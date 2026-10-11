@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/affiliate-observation.schema.json",
+  "title": "affiliate-observation",
+  "type": "object",
+  "properties": {
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "unavailable"
+      ]
+    },
+    "observed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "\\+09:00$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "clicks": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sales_count": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sales_yen": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unconfirmed_commission_yen": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "orders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "order_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amount_yen": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "item_code": {"type": ["string", "null"]},
+          "product_url": {"type": ["string", "null"]},
+          "shop_name": {"type": ["string", "null"]},
+          "occurred_at": {"type": ["string", "null"]}
+        },
+        "required": [
+          "order_key",
+          "product_name",
+          "amount_yen",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "target_date",
+    "status",
+    "observed_at",
+    "clicks",
+    "sales_count",
+    "sales_yen",
+    "unconfirmed_commission_yen",
+    "orders",
+    "errors"
+  ],
+  "additionalProperties": false
+}

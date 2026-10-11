@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-09-30T12:44:55+09:00",
+  "source": "C:/project/rakuten-room-bakemono/plan/イナゴ戦略/イナゴスキル要件定義書.html",
+  "destination": "G:/マイドライブ/イナゴスキル要件定義書.html",
+  "bytes": 818873,
+  "sourceSHA256": "81194DCB9664236B86ABE85B3B85656E58CF87E34B326B177BFC8F3273603830",
+  "destinationSHA256": "81194DCB9664236B86ABE85B3B85656E58CF87E34B326B177BFC8F3273603830",
+  "identical": true,
+  "copyStatus": "completed",
+  "gitStatusCommand": "git status --short",
+  "gitStatus": "not_a_git_repository",
+  "gitReason": "fatal: not a git repository (or any of the parent directories): .git",
+  "commit": null,
+  "push": null,
+  "cloudSyncStatus": "not_verified"
+}

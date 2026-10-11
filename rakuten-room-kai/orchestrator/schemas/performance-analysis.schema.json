@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/performance-analysis.schema.json",
+  "title": "performance-analysis",
+  "type": "object",
+  "properties": {
+    "analysis_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "post_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "pattern": "^P[0-9]{2,}$"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "hold"
+            ]
+          },
+          "attribution": {
+            "type": "string",
+            "enum": [
+              "post_confirmed",
+              "post_confirmed_by_order_product_match",
+              "day_aggregate",
+              "unattributed"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "product_id",
+          "rating",
+          "attribution",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "cohort_insights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "winning_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "single_change_experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variable": {
+            "type": "string",
+            "minLength": 1
+          },
+          "change": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "variable",
+          "change",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "deprioritized_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "research_requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "daily_plan_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "held_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "missing_or_unattributed_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "analysis_date",
+    "post_decisions",
+    "cohort_insights",
+    "winning_conditions",
+    "single_change_experiments",
+    "deprioritized_conditions",
+    "research_requests",
+    "daily_plan_constraints",
+    "held_items",
+    "missing_or_unattributed_data"
+  ],
+  "additionalProperties": false
+}

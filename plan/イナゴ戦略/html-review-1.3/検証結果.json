@@ -1,0 +1,259 @@
+{
+  "reviewedAt": "2026-10-03T00:14:19.185Z",
+  "browser": "Microsoft Edge / Chromium / headless",
+  "sourceHash": "29399b3a7e23c3831754369b80b120cd47506895fbc9d6f6ec6eb9dd05dbe3a3",
+  "total": 31,
+  "passed": 31,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "日次全体図を先頭に置き、各サブフローを手順へ対応",
+      "status": "PASS",
+      "evidence": {
+        "dailySteps": 6,
+        "subflowDiagrams": 5,
+        "orderedFigures": [
+          "task-F02",
+          "task-F00",
+          "task-F03",
+          "task-F04",
+          "task-F06",
+          "task-F09",
+          "task-F05",
+          "task-F07",
+          "task-F08",
+          "task-F10",
+          "task-F11"
+        ]
+      }
+    },
+    {
+      "name": "動作テスト図は初期非表示、開閉・検索・印刷で閲覧",
+      "status": "PASS",
+      "evidence": "初期は閉じる。本人の開閉・検索・印刷に対応し、解除後は閉状態へ戻る。"
+    },
+    {
+      "name": "対応表リンクからサブフロー全文へ直接移動",
+      "status": "PASS",
+      "evidence": "5サブフローへ移動。用語・全体図・説明を欠落させない。"
+    },
+    {
+      "name": "前夜の報告受付と翌日管理反映・人間投稿の独立",
+      "status": "PASS",
+      "evidence": "夜の受付・翌日管理反映・反映後の商品探索・未反映からの再開を保持。"
+    },
+    {
+      "name": "HTML内部sourceハッシュと表示版の一致",
+      "status": "PASS",
+      "evidence": "29399b3a7e23c3831754369b80b120cd47506895fbc9d6f6ec6eb9dd05dbe3a3"
+    },
+    {
+      "name": "全28章の全文照合（省略・書換えなし）",
+      "status": "PASS",
+      "evidence": "28章＋版情報・共通契約の全テキスト一致。Markdownの表示記法と空白だけ除外。"
+    },
+    {
+      "name": "IR28・AT28・重要経路31の収録",
+      "status": "PASS",
+      "evidence": {
+        "IR": 28,
+        "AT": 28,
+        "scenarios": 31
+      }
+    },
+    {
+      "name": "HTMLのID一意・見出し・アンカー・SVG説明",
+      "status": "PASS",
+      "evidence": {
+        "ids": 276,
+        "uniqueIds": 276,
+        "brokenAnchors": [],
+        "figures": 38,
+        "missingDescriptions": 0,
+        "h1": 1
+      }
+    },
+    {
+      "name": "参考MDの同梱・元ファイル一致・外部依存なし",
+      "status": "PASS",
+      "evidence": {
+        "referenceDocuments": 22,
+        "networkRequests": 0
+      }
+    },
+    {
+      "name": "同梱したMDをブラウザからダウンロード",
+      "status": "PASS",
+      "evidence": "HTML内のdata URLから根拠のデータ辞書を取得。原ファイルとバイト一致。"
+    },
+    {
+      "name": "SVGの全テキスト：図面境界と各ノード内の収まり",
+      "status": "PASS",
+      "evidence": "38 SVGの全テキストをgetBBoxで検証"
+    },
+    {
+      "name": "全文の展開・折りたたみ",
+      "status": "PASS",
+      "evidence": "28章＋共通契約：29全文ブロックを操作"
+    },
+    {
+      "name": "本文・図・全文の文字コントラスト",
+      "status": "PASS",
+      "evidence": {
+        "checked": 3805,
+        "minimumRatio": 4.96,
+        "failures": []
+      }
+    },
+    {
+      "name": "全文検索・複数語・0件・解除・展開状態復元",
+      "status": "PASS",
+      "evidence": "IR/ATを含む全文対象・AND検索・解除後の28開閉状態を復元"
+    },
+    {
+      "name": "目次・原文アンカーへの直接移動",
+      "status": "PASS",
+      "evidence": "第15章と閉じた全文へのディープリンク"
+    },
+    {
+      "name": "キーボード・入力ラベル・スクロール領域",
+      "status": "PASS",
+      "evidence": "Tab・Enterで全文操作可能。SVGと表の横スクロール領域をフォーカス可能。"
+    },
+    {
+      "name": "PC・タブレット・スマートフォンのページ横はみ出し",
+      "status": "PASS",
+      "evidence": [
+        {
+          "width": 1920,
+          "client": 1920,
+          "scroll": 1920
+        },
+        {
+          "width": 1440,
+          "client": 1440,
+          "scroll": 1440
+        },
+        {
+          "width": 1024,
+          "client": 1024,
+          "scroll": 1024
+        },
+        {
+          "width": 768,
+          "client": 768,
+          "scroll": 768
+        },
+        {
+          "width": 380,
+          "client": 380,
+          "scroll": 380
+        },
+        {
+          "width": 320,
+          "client": 320,
+          "scroll": 320
+        }
+      ]
+    },
+    {
+      "name": "SVGと表のモバイル横スクロール",
+      "status": "PASS",
+      "evidence": {
+        "svgScroll": {
+          "maximum": 556,
+          "scrollLeft": 120
+        },
+        "tableScroll": {
+          "maximum": 352,
+          "scrollLeft": 160
+        }
+      }
+    },
+    {
+      "name": "モバイル用目次：全28章の展開と移動",
+      "status": "PASS",
+      "evidence": "380pxの画面でも、全章へ目次から移動できる"
+    },
+    {
+      "name": "印刷：検索中も全章全文・印刷後の状態復元",
+      "status": "PASS",
+      "evidence": "全28章・29全文が印刷対象。印刷後は検索と開閉状態が戻る。"
+    },
+    {
+      "name": "表示証拠：PC・モバイル・図解一覧",
+      "status": "PASS",
+      "evidence": "PC・スマートフォンと全38図のPNGを保存"
+    },
+    {
+      "name": "JavaScript無効時：本文・図・全文閲覧",
+      "status": "PASS",
+      "evidence": "依存なし・native detailsで全文閲覧。検索と印刷の自動展開はJSが必要。"
+    },
+    {
+      "name": "22根拠資料の全文収録・元資料一致",
+      "status": "PASS",
+      "evidence": {
+        "visibleFullTextDocuments": 22
+      }
+    },
+    {
+      "name": "タスク・AI・skills・追加試験の網羅",
+      "status": "PASS",
+      "evidence": {
+        "tasks": 10,
+        "aiRoles": 7,
+        "skills": 7,
+        "flows": 11,
+        "aiContractTests": 10
+      }
+    },
+    {
+      "name": "通常完了直後と17:45例外の表現照合",
+      "status": "PASS",
+      "evidence": "20・22・28章とF02：完了直後の通常経路、長時間化だけ17:45打切り。"
+    },
+    {
+      "name": "根拠全文検索と文書内リンク",
+      "status": "PASS",
+      "evidence": "22資料の全文検索と、辞書全文への内部移動。"
+    },
+    {
+      "name": "単一HTMLを別領域へ置いた閲覧",
+      "status": "PASS",
+      "evidence": "HTML1ファイルで28章・38SVG・22根拠全文・編集sourceを閲覧。"
+    },
+    {
+      "name": "事前分析の実行設計を削除・外部結果だけ受入",
+      "status": "PASS",
+      "evidence": "T01/F01/準備専用AI/skill/標本収集設計なし。5～7章は外部確定結果の受領と利用。"
+    },
+    {
+      "name": "全担当名の対応表をフロー前に表示",
+      "status": "PASS",
+      "evidence": {
+        "programs": 16,
+        "aiRoles": 7,
+        "skills": 7,
+        "definitionTables": 7
+      }
+    },
+    {
+      "name": "全追加ノードの主語・目的・対象・動作と省略なし",
+      "status": "PASS",
+      "evidence": {
+        "fullyExplainedNodes": 64,
+        "flows": 11,
+        "responsiveTranscripts": 11
+      }
+    },
+    {
+      "name": "ブラウザ実行エラー・外部通信",
+      "status": "PASS",
+      "evidence": {
+        "errors": [],
+        "remoteRequests": []
+      }
+    }
+  ]
+}

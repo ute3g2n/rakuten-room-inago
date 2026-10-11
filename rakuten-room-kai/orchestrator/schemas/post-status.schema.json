@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/post-status.schema.json",
+  "title": "post-status",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "items": {
+      "type": "object",
+      "patternProperties": {
+        "^P[0-9]{2,}$": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "pattern": "^P[0-9]{2,}$"
+            },
+            "scheduled_date": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "posted": {
+              "type": "boolean"
+            },
+            "posted_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "\\+09:00$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "\\+09:00$"
+            },
+            "correction_history": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "\\+09:00$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "at",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "ever_marked_posted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "product_id",
+            "scheduled_date",
+            "posted",
+            "posted_at",
+            "updated_at",
+            "correction_history",
+            "ever_marked_posted"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "items"
+  ],
+  "additionalProperties": false
+}

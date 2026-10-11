@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/manifest.schema.json",
+  "title": "manifest",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}-(daily|research|performance|setup|config-change|recovery|status|health-check)-[0-9a-f]{6}$"
+    },
+    "parent_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{8}-\\d{6}-(daily|research|performance|setup|config-change|recovery|status|health-check)-[0-9a-f]{6}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "flow": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "research",
+        "performance",
+        "setup",
+        "config-change",
+        "recovery",
+        "status",
+        "health-check"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "scheduler",
+        "chat",
+        "manual"
+      ]
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "running",
+        "success",
+        "partial",
+        "action_required",
+        "failed",
+        "timed_out",
+        "cancelled",
+        "missed",
+        "skipped_already_running"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "\\+09:00$"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "\\+09:00$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "\\+09:00$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "\\+09:00$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exit_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "exit_code",
+          "artifacts"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "last_heartbeat_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "\\+09:00$"
+    },
+    "last_stage": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "type": "string",
+            "minLength": 1
+          },
+          "schema_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reasoning_effort": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "escalated": {
+            "type": "boolean"
+          },
+          "exit_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "output_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "input_tokens": {"type": "integer", "minimum": 0},
+              "cached_input_tokens": {"type": "integer", "minimum": 0},
+              "cache_write_input_tokens": {"type": "integer", "minimum": 0},
+              "output_tokens": {"type": "integer", "minimum": 0},
+              "reasoning_output_tokens": {"type": "integer", "minimum": 0}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "job",
+          "model",
+          "reasoning_effort",
+          "attempt",
+          "escalated",
+          "exit_code",
+          "status",
+          "output_path"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "run_id",
+    "parent_run_id",
+    "attempt",
+    "flow",
+    "source",
+    "target_date",
+    "status",
+    "started_at",
+    "finished_at",
+    "stages",
+    "artifacts",
+    "errors",
+    "last_heartbeat_at",
+    "last_stage",
+    "model_attempts"
+  ],
+  "additionalProperties": false
+}

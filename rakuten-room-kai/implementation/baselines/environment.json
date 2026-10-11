@@ -1,0 +1,53 @@
+{
+  "captured_at": "2026-09-24T21:26:55+09:00",
+  "operation_start_date": "2026-09-25",
+  "preparation_date": "2026-09-24",
+  "first_production_post_date": "2026-09-25",
+  "git_repository": false,
+  "versions": {
+    "node": "v24.18.1",
+    "npm": "11.16.0",
+    "python": "Python 3.12.13",
+    "codex": "codex-cli 0.155.0-alpha.16"
+  },
+  "package_json": "package.json",
+  "scripts": [
+    "affiliate-report-lib.mjs",
+    "check-affiliate.mjs",
+    "collect-room-likes.mjs",
+    "rakuten-api-lib.mjs",
+    "rakuten-api.mjs",
+    "rakuten-credentials.mjs",
+    "README-affiliate.md",
+    "README-rakuten-api.md",
+    "README-room-likes.md",
+    "register-affiliate-task.ps1",
+    "research-batch-lib.mjs",
+    "research-batch.mjs",
+    "research-brief.mjs",
+    "research-planner-lib.mjs",
+    "room-likes-lib.mjs",
+    "TDD-affiliate-order-details.md",
+    "TDD-room-likes.md"
+  ],
+  "tests": [
+    "affiliate-report.test.mjs",
+    "rakuten-api.test.mjs",
+    "research-batch.test.mjs",
+    "research-planner.test.mjs",
+    "room-likes.test.mjs"
+  ],
+  "scheduled_task": {
+    "name": "RakutenRoomBakemonoAffiliateDaily",
+    "state": "Ready",
+    "enabled": true,
+    "actions": [
+      {
+        "execute": "C:\\Program Files\\nodejs\\node.exe",
+        "arguments": "\"C:\\project\\rakuten-room-bakemono\\scripts\\check-affiliate.mjs\" check",
+        "working_directory": "C:\\project\\rakuten-room-bakemono"
+      }
+    ],
+    "xml": "baselines/RakutenRoomBakemonoAffiliateDaily.xml"
+  }
+}

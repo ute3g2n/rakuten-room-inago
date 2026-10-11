@@ -1,0 +1,43 @@
+{
+  "target": "G:\\マイドライブ\\イナゴスキル要件定義書.html",
+  "result": "PASS",
+  "sourceUnchanged": true,
+  "otherFlowsUnchanged": true,
+  "connectedArrows": [
+    {
+      "from": 1,
+      "to": 2,
+      "conditional": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "conditional": false
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "conditional": false
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "conditional": false
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "conditional": false
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "conditional": true
+    },
+    {
+      "from": 7,
+      "to": 1,
+      "conditional": true
+    }
+  ]
+}

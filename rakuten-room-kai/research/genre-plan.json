@@ -1,0 +1,12 @@
+{
+  "provisionalAcceptanceRate": 0.4,
+  "maxPagesPerBatch": 20,
+  "freshnessDays": 7,
+  "genres": [
+    { "id": "cooking", "name": "時短・料理・調理・家電", "postsPerDay": 6, "inventoryTarget": 48 },
+    { "id": "housework", "name": "家事ラク用品", "postsPerDay": 2, "inventoryTarget": 16 },
+    { "id": "home", "name": "住まい・収納・インテリア", "postsPerDay": 2, "inventoryTarget": 16 },
+    { "id": "kids", "name": "子育て・キッズ用品", "postsPerDay": 3, "inventoryTarget": 24 },
+    { "id": "self-care", "name": "親の美容・セルフケア", "postsPerDay": 2, "inventoryTarget": 16 }
+  ]
+}

@@ -1,0 +1,366 @@
+{
+  "version": 1,
+  "flows": {
+    "daily": {
+      "stages": [
+        {
+          "id": "load_state",
+          "depends_on": [],
+          "required_artifacts": [
+            "inputs/state.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "affiliate_observe",
+          "depends_on": [
+            "load_state"
+          ],
+          "required_artifacts": [
+            "outputs/affiliate-observation.json"
+          ],
+          "parallelizable": true,
+          "on_failure": "partial"
+        },
+        {
+          "id": "room_observe",
+          "depends_on": [
+            "load_state"
+          ],
+          "required_artifacts": [
+            "outputs/room-observation.json"
+          ],
+          "parallelizable": true,
+          "on_failure": "partial"
+        },
+        {
+          "id": "inventory_brief",
+          "depends_on": [
+            "load_state"
+          ],
+          "required_artifacts": [
+            "outputs/inventory-brief.json"
+          ],
+          "parallelizable": true,
+          "on_failure": "failed"
+        },
+        {
+          "id": "performance",
+          "depends_on": [
+            "affiliate_observe",
+            "room_observe",
+            "inventory_brief"
+          ],
+          "required_artifacts": [
+            "outputs/performance-analysis.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "partial"
+        },
+        {
+          "id": "research",
+          "depends_on": [
+            "inventory_brief",
+            "performance"
+          ],
+          "required_artifacts": [
+            "outputs/research-result.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "partial"
+        },
+        {
+          "id": "daily_plan",
+          "depends_on": [
+            "research",
+            "performance"
+          ],
+          "required_artifacts": [
+            "outputs/daily-plan.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "dashboard",
+          "depends_on": [
+            "daily_plan"
+          ],
+          "required_artifacts": [
+            "posting-dashboard.html"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "daily_report",
+          "depends_on": [
+            "dashboard"
+          ],
+          "required_artifacts": [
+            "outputs/daily-report.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "research": {
+      "stages": [
+        {
+          "id": "inventory_brief",
+          "depends_on": [],
+          "required_artifacts": [
+            "outputs/inventory-brief.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "research_plan",
+          "depends_on": [
+            "inventory_brief"
+          ],
+          "required_artifacts": [
+            "outputs/research-plan.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "api_collect",
+          "depends_on": [
+            "research_plan"
+          ],
+          "required_artifacts": [
+            "outputs/api-candidates.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "triage",
+          "depends_on": [
+            "api_collect"
+          ],
+          "required_artifacts": [
+            "outputs/triage-output.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "heat_scoring",
+          "depends_on": [
+            "triage"
+          ],
+          "required_artifacts": [
+            "outputs/heat-scores.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "product_verify",
+          "depends_on": [
+            "heat_scoring"
+          ],
+          "required_artifacts": [
+            "outputs/product-verification.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "copywriter",
+          "depends_on": [
+            "product_verify"
+          ],
+          "required_artifacts": [
+            "outputs/copy-output.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "quality_gate",
+          "depends_on": [
+            "copywriter"
+          ],
+          "required_artifacts": [
+            "outputs/quality-gate.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "inventory_commit",
+          "depends_on": [
+            "quality_gate"
+          ],
+          "required_artifacts": [
+            "outputs/research-result.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "performance": {
+      "stages": [
+        {
+          "id": "observations",
+          "depends_on": [],
+          "required_artifacts": [
+            "outputs/observations.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "performance",
+          "depends_on": [
+            "observations"
+          ],
+          "required_artifacts": [
+            "outputs/performance-analysis.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "setup": {
+      "stages": [
+        {
+          "id": "load_state",
+          "depends_on": [],
+          "required_artifacts": [
+            "inputs/state.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "setup_review",
+          "depends_on": [
+            "load_state"
+          ],
+          "required_artifacts": [
+            "outputs/setup-review.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "config-change": {
+      "stages": [
+        {
+          "id": "load_config",
+          "depends_on": [],
+          "required_artifacts": [
+            "inputs/config.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "change_review",
+          "depends_on": [
+            "load_config"
+          ],
+          "required_artifacts": [
+            "outputs/config-change.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "config_commit",
+          "depends_on": [
+            "change_review"
+          ],
+          "required_artifacts": [
+            "outputs/config-commit.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "recovery": {
+      "stages": [
+        {
+          "id": "load_manifest",
+          "depends_on": [],
+          "required_artifacts": [
+            "inputs/failed-manifest.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "recovery_review",
+          "depends_on": [
+            "load_manifest"
+          ],
+          "required_artifacts": [
+            "outputs/recovery-review.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "resume_stage",
+          "depends_on": [
+            "recovery_review"
+          ],
+          "required_artifacts": [
+            "outputs/recovery-result.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "partial"
+        }
+      ]
+    },
+    "status": {
+      "stages": [
+        {
+          "id": "read_status",
+          "depends_on": [],
+          "required_artifacts": [
+            "outputs/status.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    },
+    "health-check": {
+      "stages": [
+        {
+          "id": "read_schedule",
+          "depends_on": [],
+          "required_artifacts": [
+            "inputs/schedule.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        },
+        {
+          "id": "check_health",
+          "depends_on": [
+            "read_schedule"
+          ],
+          "required_artifacts": [
+            "outputs/health-status.json"
+          ],
+          "parallelizable": false,
+          "on_failure": "failed"
+        }
+      ]
+    }
+  }
+}

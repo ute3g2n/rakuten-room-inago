@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/automation-config.schema.json",
+  "title": "automation-config",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "operation_start_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "preparation_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "timezone": {
+      "const": "Asia/Tokyo"
+    },
+    "daily_schedule": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+    },
+    "health_grace_minutes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "heartbeat_interval_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_heartbeat_minutes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "daily_target": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "research_batch_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 15
+    },
+    "research_max_page_checks": {
+      "type": "integer",
+      "minimum": 15,
+      "maximum": 60
+    },
+    "genre_targets": {
+      "type": "object",
+      "properties": {
+        "時短・料理・調理・家電": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "家事ラク用品": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "住まい・収納・インテリア": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "子育て・キッズ用品": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "親の美容・セルフケア": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "時短・料理・調理・家電",
+        "家事ラク用品",
+        "住まい・収納・インテリア",
+        "子育て・キッズ用品",
+        "親の美容・セルフケア"
+      ],
+      "additionalProperties": false
+    },
+    "inventory_target": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "draft_target": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_two_days_target": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_parallel_jobs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retention_days": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure_or_escalation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "normal",
+        "failure_or_escalation"
+      ],
+      "additionalProperties": false
+    },
+    "dashboard_port": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535
+    },
+    "timeouts_seconds": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "playwright": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "codex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "api",
+        "playwright",
+        "codex",
+        "local"
+      ],
+      "additionalProperties": false
+    },
+    "dry_run_default": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "version",
+    "operation_start_date",
+    "preparation_date",
+    "timezone",
+    "daily_schedule",
+    "health_grace_minutes",
+    "heartbeat_interval_seconds",
+    "stale_heartbeat_minutes",
+    "daily_target",
+    "research_batch_size",
+    "research_max_page_checks",
+    "genre_targets",
+    "inventory_target",
+    "draft_target",
+    "next_two_days_target",
+    "max_parallel_jobs",
+    "retention_days",
+    "dashboard_port",
+    "timeouts_seconds",
+    "dry_run_default"
+  ],
+  "additionalProperties": false
+}

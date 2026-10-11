@@ -1,0 +1,1311 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-09-25T14:28:54.448Z",
+  "requested": 3,
+  "observed": 3,
+  "unavailable": 0,
+  "snapshots": [
+    {
+      "candidate_id": "P13",
+      "requested_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "status": "observed",
+      "page_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+      "name": "【楽天市場】【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W：宮城県角田市",
+      "model_candidate": null,
+      "price_yen": 50000,
+      "availability": "in_stock",
+      "availability_quantity": 99977,
+      "availability_evidence": "schema_availability",
+      "points_text": null,
+      "coupon_text": null,
+      "coupon_deadline": null,
+      "review_count": 13,
+      "review_average": 5,
+      "heat_evidence": {
+        "candidate_id": "P13",
+        "product_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+        "observed_at": "2026-09-25T14:28:54.448Z",
+        "expected_search_queries": [
+          "電気圧力鍋",
+          "圧力鍋 時短",
+          "ほったらかし調理 家電",
+          "電気調理鍋 レシピ",
+          "アイリスオーヤマ 電気圧力鍋"
+        ],
+        "search_results": [
+          {
+            "keyword": "電気圧力鍋",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 33,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "圧力鍋 時短",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E5%9C%A7%E5%8A%9B%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "ほったらかし調理 家電",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97%E8%AA%BF%E7%90%86+%E5%AE%B6%E9%9B%BB/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "電気調理鍋 レシピ",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E3%83%AC%E3%82%B7%E3%83%94/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "アイリスオーヤマ 電気圧力鍋",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 21,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "shop": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/rd/0_389448_389448_0/",
+          "review_count": 962,
+          "award_badges": []
+        },
+        "images": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+          "count": 13,
+          "image_urls": [
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694334.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694336.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694338.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694340.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694343.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694346.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp014/23351108.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp014/23351109.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp014/23351110.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694349.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp006/9545403.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp006/9549209.jpg",
+            "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694353.jpg"
+          ],
+          "first_image_url": "https://tshop.r10s.jp/f042081-kakuda/cabinet/frp_goods/frp015/23694334.jpg",
+          "first_image_has_text_overlay": null,
+          "has_comparison_or_use_scene": null,
+          "material_only": null
+        },
+        "promotions": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+          "coupon_present": false,
+          "coupon_text": null,
+          "coupon_deadline": null,
+          "coupon_amount_yen": null,
+          "small_coupon": null,
+          "points_present": false,
+          "points_text": null,
+          "points_deadline": null
+        },
+        "reviews": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/item/1/389448_10002181?sort=6#itemReviewList",
+          "observed_at": "2026-09-25T14:28:54.448Z",
+          "order": "newest",
+          "complete": true,
+          "review_count": 13,
+          "reviews": [
+            {
+              "stars": 5,
+              "date": "2025-11-11"
+            },
+            {
+              "stars": 5,
+              "date": "2025-10-27"
+            },
+            {
+              "stars": 5,
+              "date": "2025-10-01"
+            },
+            {
+              "stars": 4,
+              "date": "2025-09-30"
+            },
+            {
+              "stars": 3,
+              "date": "2025-09-06"
+            },
+            {
+              "stars": 4,
+              "date": "2025-03-09"
+            },
+            {
+              "stars": 4,
+              "date": "2025-01-04"
+            },
+            {
+              "stars": 5,
+              "date": "2024-12-27"
+            },
+            {
+              "stars": 5,
+              "date": "2024-12-25"
+            },
+            {
+              "stars": 4,
+              "date": "2024-12-17"
+            }
+          ],
+          "error": null
+        },
+        "review_url": "https://review.rakuten.co.jp/item/1/389448_10002181/1.1/?l2-id=item_review",
+        "shop_review_url": "https://review.rakuten.co.jp/rd/0_389448_389448_0/"
+      },
+      "error": null
+    },
+    {
+      "candidate_id": "P14",
+      "requested_url": "https://item.rakuten.co.jp/u-denki/290390/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "status": "observed",
+      "page_url": "https://item.rakuten.co.jp/u-denki/290390/",
+      "name": "【楽天市場】【10%OFFクーポン★19日20時～28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2：ウエノ電器　楽天市場店",
+      "model_candidate": null,
+      "price_yen": 39800,
+      "availability": "in_stock",
+      "availability_quantity": null,
+      "availability_evidence": "schema_availability",
+      "points_text": "通常商品 ⇒全会員5倍  ポイントアップキャンペーン中\n定期購入 ⇒全会員5倍  ポイントアップキャンペーン中\n頒布会 ⇒全会員5倍  ポイントアップキャンペーン中\n予約商品 ⇒全会員5倍  ポイントアップキャンペーン中",
+      "coupon_text": "【楽天市場】【10%OFFクーポン★19日20時～28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2：ウエノ電器　楽天市場店",
+      "coupon_deadline": "2026-09-28T09:59:00+09:00",
+      "review_count": 32,
+      "review_average": 5,
+      "heat_evidence": {
+        "candidate_id": "P14",
+        "product_url": "https://item.rakuten.co.jp/u-denki/290390/",
+        "observed_at": "2026-09-25T14:28:54.448Z",
+        "expected_search_queries": [
+          "自動調理器 時短",
+          "シェフドラム",
+          "電気調理鍋 時短",
+          "アイリスオーヤマ シェフドラム",
+          "ほったらかし 調理家電"
+        ],
+        "search_results": [
+          {
+            "keyword": "自動調理器 時短",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E8%87%AA%E5%8B%95%E8%AA%BF%E7%90%86%E5%99%A8+%E6%99%82%E7%9F%AD/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 16,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "シェフドラム",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 4,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "電気調理鍋 時短",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 15,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "アイリスオーヤマ シェフドラム",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 4,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "ほったらかし 調理家電",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97+%E8%AA%BF%E7%90%86%E5%AE%B6%E9%9B%BB/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          }
+        ],
+        "shop": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/rd/0_345342_345342_0/",
+          "review_count": 29131,
+          "award_badges": []
+        },
+        "images": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/u-denki/290390/",
+          "count": 20,
+          "image_urls": [
+            "https://tshop.r10s.jp/u-denki/cabinet/ranking/290390_rk.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/11925706/imgrc0115611430.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/jishahin50/290390_750750.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_1.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_2.gif",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_3.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_4.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_5.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_6.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_7.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/imgrc0108732233.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_9.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_10.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_11.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_12.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_13.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_14.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_15.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_16.jpg",
+            "https://tshop.r10s.jp/u-denki/cabinet/10834726/11162537/203682_17.jpg"
+          ],
+          "first_image_url": "https://tshop.r10s.jp/u-denki/cabinet/ranking/290390_rk.jpg",
+          "first_image_has_text_overlay": null,
+          "has_comparison_or_use_scene": null,
+          "material_only": null
+        },
+        "promotions": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/u-denki/290390/",
+          "coupon_present": true,
+          "coupon_text": "【楽天市場】【10%OFFクーポン★19日20時～28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2：ウエノ電器　楽天市場店",
+          "coupon_deadline": "2026-09-28T09:59:00+09:00",
+          "coupon_amount_yen": null,
+          "small_coupon": null,
+          "points_present": true,
+          "points_text": "通常商品 ⇒全会員5倍  ポイントアップキャンペーン中\n定期購入 ⇒全会員5倍  ポイントアップキャンペーン中\n頒布会 ⇒全会員5倍  ポイントアップキャンペーン中\n予約商品 ⇒全会員5倍  ポイントアップキャンペーン中",
+          "points_deadline": null
+        },
+        "reviews": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/item/1/345342_10037188?sort=6#itemReviewList",
+          "observed_at": "2026-09-25T14:28:54.448Z",
+          "order": "newest",
+          "complete": true,
+          "review_count": 32,
+          "reviews": [
+            {
+              "stars": 5,
+              "date": "2026-07-14"
+            },
+            {
+              "stars": 3,
+              "date": "2026-07-10"
+            },
+            {
+              "stars": 5,
+              "date": "2026-01-04"
+            },
+            {
+              "stars": 5,
+              "date": "2025-12-12"
+            },
+            {
+              "stars": 5,
+              "date": "2025-06-17"
+            },
+            {
+              "stars": 4,
+              "date": "2025-04-16"
+            },
+            {
+              "stars": 1,
+              "date": "2025-04-15"
+            },
+            {
+              "stars": 4,
+              "date": "2025-03-31"
+            },
+            {
+              "stars": 4,
+              "date": "2024-04-09"
+            },
+            {
+              "stars": 4,
+              "date": "2024-03-24"
+            }
+          ],
+          "error": null
+        },
+        "review_url": "https://review.rakuten.co.jp/item/1/345342_10037188/1.1/?l2-id=item_review",
+        "shop_review_url": "https://review.rakuten.co.jp/rd/0_345342_345342_0/"
+      },
+      "error": null
+    },
+    {
+      "candidate_id": "P52",
+      "requested_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "status": "observed",
+      "page_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+      "name": "【楽天市場】歯がためセット|3ヵ月頃～ こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット：ピジョン公式楽天市場店",
+      "model_candidate": null,
+      "price_yen": 1980,
+      "availability": "in_stock",
+      "availability_quantity": null,
+      "availability_evidence": "schema_availability",
+      "points_text": null,
+      "coupon_text": null,
+      "coupon_deadline": null,
+      "review_count": 2,
+      "review_average": 5,
+      "heat_evidence": {
+        "candidate_id": "P52",
+        "product_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+        "observed_at": "2026-09-25T14:28:54.448Z",
+        "expected_search_queries": [
+          "歯固め 赤ちゃん",
+          "歯固め ベビー セット",
+          "ベビー用品 歯固め",
+          "赤ちゃん おもちゃ 3ヶ月",
+          "ピジョン 歯固め"
+        ],
+        "search_results": [
+          {
+            "keyword": "歯固め 赤ちゃん",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "歯固め ベビー セット",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E3%83%99%E3%83%93%E3%83%BC+%E3%82%BB%E3%83%83%E3%83%88/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "ベビー用品 歯固め",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%99%E3%83%93%E3%83%BC%E7%94%A8%E5%93%81+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 5,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+              }
+            ],
+            "error": null
+          },
+          {
+            "keyword": "赤ちゃん おもちゃ 3ヶ月",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93+%E3%81%8A%E3%82%82%E3%81%A1%E3%82%83+3%E3%83%B6%E6%9C%88/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [],
+            "error": null
+          },
+          {
+            "keyword": "ピジョン 歯固め",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%94%E3%82%B8%E3%83%A7%E3%83%B3+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+            "observed_at": "2026-09-25T14:28:54.448Z",
+            "status": "observed",
+            "matches": [
+              {
+                "position": 2,
+                "placement": "organic",
+                "placement_evidence": "search_result_card_without_pr_marker",
+                "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "shop": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/rd/0_374439_374439_0/",
+          "review_count": 13099,
+          "award_badges": []
+        },
+        "images": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+          "count": 5,
+          "image_urls": [
+            "https://tshop.r10s.jp/pigeon-shop/cabinet/thumb/thumb/2000078s.jpg",
+            "https://tshop.r10s.jp/gold/pigeon-shop/rankstamp/sp/2000078s.jpg",
+            "https://tshop.r10s.jp/pigeon-shop/cabinet/thumb/200/2000078s_1.jpg",
+            "https://tshop.r10s.jp/pigeon-shop/cabinet/thumb/200/2000078s_2.jpg",
+            "https://tshop.r10s.jp/pigeon-shop/cabinet/thumb/200/2000078s_3.jpg"
+          ],
+          "first_image_url": "https://tshop.r10s.jp/pigeon-shop/cabinet/thumb/thumb/2000078s.jpg",
+          "first_image_has_text_overlay": null,
+          "has_comparison_or_use_scene": null,
+          "material_only": null
+        },
+        "promotions": {
+          "status": "observed",
+          "source_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+          "coupon_present": false,
+          "coupon_text": null,
+          "coupon_deadline": null,
+          "coupon_amount_yen": null,
+          "small_coupon": null,
+          "points_present": false,
+          "points_text": null,
+          "points_deadline": null
+        },
+        "reviews": {
+          "status": "observed",
+          "source_url": "https://review.rakuten.co.jp/item/1/374439_10001265?sort=6#itemReviewList",
+          "observed_at": "2026-09-25T14:28:54.448Z",
+          "order": "newest",
+          "complete": true,
+          "review_count": 2,
+          "reviews": [
+            {
+              "stars": 5,
+              "date": "2024-11-06"
+            },
+            {
+              "stars": 4,
+              "date": "2024-03-13"
+            }
+          ],
+          "error": null
+        },
+        "review_url": "https://review.rakuten.co.jp/item/1/374439_10001265/1.1/?l2-id=item_review",
+        "shop_review_url": "https://review.rakuten.co.jp/rd/0_374439_374439_0/"
+      },
+      "error": null
+    }
+  ],
+  "heat_scores": [
+    {
+      "scoring_method": "legacy-heat-6-factor-v1",
+      "candidate_id": "P13",
+      "product_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "score": 4,
+      "confirmed_max": 12,
+      "full_max": 12,
+      "confirmed_factors": 6,
+      "unconfirmed_factors": [],
+      "grade": "C",
+      "provisional_grade": "C",
+      "status": "complete",
+      "factors": {
+        "exposure_duplicates": {
+          "points": 0,
+          "status": "scored",
+          "reason": "同一キーワードの1ページ目に1回掲載",
+          "evidence": {
+            "keyword": "電気圧力鍋",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+            "max_same_page_count": 1,
+            "pr_and_organic": false,
+            "pages": [
+              {
+                "keyword": "電気圧力鍋",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 33,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                    "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+                  }
+                ]
+              },
+              {
+                "keyword": "圧力鍋 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E5%9C%A7%E5%8A%9B%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ほったらかし調理 家電",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97%E8%AA%BF%E7%90%86+%E5%AE%B6%E9%9B%BB/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "電気調理鍋 レシピ",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E3%83%AC%E3%82%B7%E3%83%94/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "アイリスオーヤマ 電気圧力鍋",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 21,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                    "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "shop_strength": {
+          "points": 1,
+          "status": "scored",
+          "reason": "ショップレビュー962件",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/rd/0_389448_389448_0/",
+            "review_count": 962,
+            "award_badges": []
+          }
+        },
+        "image_investment": {
+          "points": 2,
+          "status": "scored",
+          "reason": "商品画像が7枚以上",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+            "count": 13,
+            "first_image_has_text_overlay": null,
+            "has_comparison_or_use_scene": null,
+            "material_only": null
+          }
+        },
+        "promotion_strength": {
+          "points": 0,
+          "status": "scored",
+          "reason": "クーポン・ポイントアップの表示なし",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/",
+            "coupon_present": false,
+            "coupon_deadline": null,
+            "coupon_amount_yen": null,
+            "small_coupon": null,
+            "points_present": false,
+            "points_deadline": null
+          }
+        },
+        "review_freshness": {
+          "points": 0,
+          "status": "scored",
+          "reason": "直近30日のレビューが3件未満",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/item/1/389448_10002181?sort=6#itemReviewList",
+            "order": "newest",
+            "latest_reviews": [
+              {
+                "stars": 5,
+                "date": "2025-11-11"
+              },
+              {
+                "stars": 5,
+                "date": "2025-10-27"
+              },
+              {
+                "stars": 5,
+                "date": "2025-10-01"
+              },
+              {
+                "stars": 4,
+                "date": "2025-09-30"
+              },
+              {
+                "stars": 3,
+                "date": "2025-09-06"
+              },
+              {
+                "stars": 4,
+                "date": "2025-03-09"
+              },
+              {
+                "stars": 4,
+                "date": "2025-01-04"
+              },
+              {
+                "stars": 5,
+                "date": "2024-12-27"
+              },
+              {
+                "stars": 5,
+                "date": "2024-12-25"
+              },
+              {
+                "stars": 4,
+                "date": "2024-12-17"
+              }
+            ],
+            "last_7_days": 0,
+            "last_30_days": 0,
+            "last_7_days_star_4_5": 0
+          }
+        },
+        "keyword_exposure": {
+          "points": 1,
+          "status": "scored",
+          "reason": "2種類の検索キーワードで掲載",
+          "evidence": {
+            "matching_keywords": 2,
+            "keywords": [
+              "電気圧力鍋",
+              "アイリスオーヤマ 電気圧力鍋"
+            ],
+            "expected_queries": [
+              "電気圧力鍋",
+              "圧力鍋 時短",
+              "ほったらかし調理 家電",
+              "電気調理鍋 レシピ",
+              "アイリスオーヤマ 電気圧力鍋"
+            ],
+            "observed_query_count": 5,
+            "pages": [
+              {
+                "keyword": "電気圧力鍋",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 33,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                    "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+                  }
+                ]
+              },
+              {
+                "keyword": "圧力鍋 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E5%9C%A7%E5%8A%9B%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ほったらかし調理 家電",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97%E8%AA%BF%E7%90%86+%E5%AE%B6%E9%9B%BB/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "電気調理鍋 レシピ",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E3%83%AC%E3%82%B7%E3%83%94/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "アイリスオーヤマ 電気圧力鍋",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E9%9B%BB%E6%B0%97%E5%9C%A7%E5%8A%9B%E9%8D%8B/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 21,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【ふるさと納税】圧力鍋 電気圧力鍋 アイリスオーヤマ 4L ホワイト 調理家電 キッチン家電 4.0L 鍋 レシピブック付き 自動メニュー搭載 ハイパワー 大容量 保温 時短 簡単 ギフト プレゼント ふるさと おすすめ 人気 アイリス PC-MA4-W",
+                    "item_url": "https://item.rakuten.co.jp/f042081-kakuda/aa0599/?variantId=aa0599"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scoring_method": "legacy-heat-6-factor-v1",
+      "candidate_id": "P14",
+      "product_url": "https://item.rakuten.co.jp/u-denki/290390/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "score": 8,
+      "confirmed_max": 12,
+      "full_max": 12,
+      "confirmed_factors": 6,
+      "unconfirmed_factors": [],
+      "grade": "B",
+      "provisional_grade": "B",
+      "status": "complete",
+      "factors": {
+        "exposure_duplicates": {
+          "points": 0,
+          "status": "scored",
+          "reason": "同一キーワードの1ページ目に1回掲載",
+          "evidence": {
+            "keyword": "自動調理器 時短",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E8%87%AA%E5%8B%95%E8%AA%BF%E7%90%86%E5%99%A8+%E6%99%82%E7%9F%AD/",
+            "max_same_page_count": 1,
+            "pr_and_organic": false,
+            "pages": [
+              {
+                "keyword": "自動調理器 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E8%87%AA%E5%8B%95%E8%AA%BF%E7%90%86%E5%99%A8+%E6%99%82%E7%9F%AD/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 16,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "シェフドラム",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 4,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "電気調理鍋 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 15,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "アイリスオーヤマ シェフドラム",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 4,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "ほったらかし 調理家電",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97+%E8%AA%BF%E7%90%86%E5%AE%B6%E9%9B%BB/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              }
+            ]
+          }
+        },
+        "shop_strength": {
+          "points": 2,
+          "status": "scored",
+          "reason": "ショップレビュー29131件",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/rd/0_345342_345342_0/",
+            "review_count": 29131,
+            "award_badges": []
+          }
+        },
+        "image_investment": {
+          "points": 2,
+          "status": "scored",
+          "reason": "商品画像が7枚以上",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/u-denki/290390/",
+            "count": 20,
+            "first_image_has_text_overlay": null,
+            "has_comparison_or_use_scene": null,
+            "material_only": null
+          }
+        },
+        "promotion_strength": {
+          "points": 2,
+          "status": "scored",
+          "reason": "クーポンとポイントアップを併用",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/u-denki/290390/",
+            "coupon_present": true,
+            "coupon_deadline": "2026-09-28T09:59:00+09:00",
+            "coupon_amount_yen": null,
+            "small_coupon": null,
+            "points_present": true,
+            "points_deadline": null
+          }
+        },
+        "review_freshness": {
+          "points": 0,
+          "status": "scored",
+          "reason": "直近30日のレビューが3件未満",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/item/1/345342_10037188?sort=6#itemReviewList",
+            "order": "newest",
+            "latest_reviews": [
+              {
+                "stars": 5,
+                "date": "2026-07-14"
+              },
+              {
+                "stars": 3,
+                "date": "2026-07-10"
+              },
+              {
+                "stars": 5,
+                "date": "2026-01-04"
+              },
+              {
+                "stars": 5,
+                "date": "2025-12-12"
+              },
+              {
+                "stars": 5,
+                "date": "2025-06-17"
+              },
+              {
+                "stars": 4,
+                "date": "2025-04-16"
+              },
+              {
+                "stars": 1,
+                "date": "2025-04-15"
+              },
+              {
+                "stars": 4,
+                "date": "2025-03-31"
+              },
+              {
+                "stars": 4,
+                "date": "2024-04-09"
+              },
+              {
+                "stars": 4,
+                "date": "2024-03-24"
+              }
+            ],
+            "last_7_days": 0,
+            "last_30_days": 0,
+            "last_7_days_star_4_5": 0
+          }
+        },
+        "keyword_exposure": {
+          "points": 2,
+          "status": "scored",
+          "reason": "4種類以上の検索キーワードで掲載",
+          "evidence": {
+            "matching_keywords": 4,
+            "keywords": [
+              "自動調理器 時短",
+              "シェフドラム",
+              "電気調理鍋 時短",
+              "アイリスオーヤマ シェフドラム"
+            ],
+            "expected_queries": [
+              "自動調理器 時短",
+              "シェフドラム",
+              "電気調理鍋 時短",
+              "アイリスオーヤマ シェフドラム",
+              "ほったらかし 調理家電"
+            ],
+            "observed_query_count": 5,
+            "pages": [
+              {
+                "keyword": "自動調理器 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E8%87%AA%E5%8B%95%E8%AA%BF%E7%90%86%E5%99%A8+%E6%99%82%E7%9F%AD/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 16,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "シェフドラム",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 4,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "電気調理鍋 時短",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E9%9B%BB%E6%B0%97%E8%AA%BF%E7%90%86%E9%8D%8B+%E6%99%82%E7%9F%AD/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 15,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "アイリスオーヤマ シェフドラム",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9%E3%82%AA%E3%83%BC%E3%83%A4%E3%83%9E+%E3%82%B7%E3%82%A7%E3%83%95%E3%83%89%E3%83%A9%E3%83%A0/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 4,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "【10%OFFクーポン★19日20時〜28日9:59】＼楽天1位★TVで紹介されました／シェフドラム 全自動調理マシン 自動調理器 時短 揚げ物 炒め物 無水料理 煮物 蒸し料理 デザート 作り置き 電気調理鍋 簡単お手入れ CHEF DRUM アイリスオーヤマ DAC-IB2-C DAC-IA2",
+                    "item_url": "https://item.rakuten.co.jp/u-denki/290390/?variantId=203682"
+                  }
+                ]
+              },
+              {
+                "keyword": "ほったらかし 調理家電",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%81%BB%E3%81%A3%E3%81%9F%E3%82%89%E3%81%8B%E3%81%97+%E8%AA%BF%E7%90%86%E5%AE%B6%E9%9B%BB/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scoring_method": "legacy-heat-6-factor-v1",
+      "candidate_id": "P52",
+      "product_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+      "observed_at": "2026-09-25T14:28:54.448Z",
+      "score": 3,
+      "confirmed_max": 10,
+      "full_max": 12,
+      "confirmed_factors": 5,
+      "unconfirmed_factors": [
+        "image_investment"
+      ],
+      "grade": null,
+      "provisional_grade": "C",
+      "status": "hold",
+      "factors": {
+        "exposure_duplicates": {
+          "points": 0,
+          "status": "scored",
+          "reason": "同一キーワードの1ページ目に1回掲載",
+          "evidence": {
+            "keyword": "ベビー用品 歯固め",
+            "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%99%E3%83%93%E3%83%BC%E7%94%A8%E5%93%81+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+            "max_same_page_count": 1,
+            "pr_and_organic": false,
+            "pages": [
+              {
+                "keyword": "歯固め 赤ちゃん",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "歯固め ベビー セット",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E3%83%99%E3%83%93%E3%83%BC+%E3%82%BB%E3%83%83%E3%83%88/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ベビー用品 歯固め",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%99%E3%83%93%E3%83%BC%E7%94%A8%E5%93%81+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 5,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                    "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+                  }
+                ]
+              },
+              {
+                "keyword": "赤ちゃん おもちゃ 3ヶ月",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93+%E3%81%8A%E3%82%82%E3%81%A1%E3%82%83+3%E3%83%B6%E6%9C%88/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ピジョン 歯固め",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%94%E3%82%B8%E3%83%A7%E3%83%B3+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 2,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                    "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "shop_strength": {
+          "points": 2,
+          "status": "scored",
+          "reason": "ショップレビュー13099件",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/rd/0_374439_374439_0/",
+            "review_count": 13099,
+            "award_badges": []
+          }
+        },
+        "image_investment": {
+          "points": null,
+          "status": "unconfirmed",
+          "reason": "画像枚数だけでは素材写真・訴求内容を判定できません",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+            "count": 5,
+            "first_image_has_text_overlay": null,
+            "has_comparison_or_use_scene": null,
+            "material_only": null
+          }
+        },
+        "promotion_strength": {
+          "points": 0,
+          "status": "scored",
+          "reason": "クーポン・ポイントアップの表示なし",
+          "evidence": {
+            "source_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/",
+            "coupon_present": false,
+            "coupon_deadline": null,
+            "coupon_amount_yen": null,
+            "small_coupon": null,
+            "points_present": false,
+            "points_deadline": null
+          }
+        },
+        "review_freshness": {
+          "points": 0,
+          "status": "scored",
+          "reason": "直近30日のレビューが3件未満",
+          "evidence": {
+            "source_url": "https://review.rakuten.co.jp/item/1/374439_10001265?sort=6#itemReviewList",
+            "order": "newest",
+            "latest_reviews": [
+              {
+                "stars": 5,
+                "date": "2024-11-06"
+              },
+              {
+                "stars": 4,
+                "date": "2024-03-13"
+              }
+            ],
+            "last_7_days": 0,
+            "last_30_days": 0,
+            "last_7_days_star_4_5": 0
+          }
+        },
+        "keyword_exposure": {
+          "points": 1,
+          "status": "scored",
+          "reason": "2種類の検索キーワードで掲載",
+          "evidence": {
+            "matching_keywords": 2,
+            "keywords": [
+              "ベビー用品 歯固め",
+              "ピジョン 歯固め"
+            ],
+            "expected_queries": [
+              "歯固め 赤ちゃん",
+              "歯固め ベビー セット",
+              "ベビー用品 歯固め",
+              "赤ちゃん おもちゃ 3ヶ月",
+              "ピジョン 歯固め"
+            ],
+            "observed_query_count": 5,
+            "pages": [
+              {
+                "keyword": "歯固め 赤ちゃん",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "歯固め ベビー セット",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E6%AD%AF%E5%9B%BA%E3%82%81+%E3%83%99%E3%83%93%E3%83%BC+%E3%82%BB%E3%83%83%E3%83%88/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ベビー用品 歯固め",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%99%E3%83%93%E3%83%BC%E7%94%A8%E5%93%81+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 5,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                    "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+                  }
+                ]
+              },
+              {
+                "keyword": "赤ちゃん おもちゃ 3ヶ月",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E8%B5%A4%E3%81%A1%E3%82%83%E3%82%93+%E3%81%8A%E3%82%82%E3%81%A1%E3%82%83+3%E3%83%B6%E6%9C%88/",
+                "match_count": 0,
+                "placements": [],
+                "matches": []
+              },
+              {
+                "keyword": "ピジョン 歯固め",
+                "page_url": "https://search.rakuten.co.jp/search/mall/%E3%83%94%E3%82%B8%E3%83%A7%E3%83%B3+%E6%AD%AF%E5%9B%BA%E3%82%81/",
+                "match_count": 1,
+                "placements": [
+                  "organic"
+                ],
+                "matches": [
+                  {
+                    "position": 2,
+                    "placement": "organic",
+                    "placement_evidence": "search_result_card_without_pr_marker",
+                    "title": "歯がためセット|3ヵ月頃〜 こども 子ども 子供 子供用 歯固め はがため おしゃれ ピジョン 赤ちゃん 赤ちゃん用 赤ちゃん用品 ベビー ベイビー ベビー用 ベビー用品 ベビーグッズ 乳児 新生児 育児用品 出産祝い キッズ 赤ちゃんグッズ 子育て 夜泣き おでかけ セット",
+                    "item_url": "https://item.rakuten.co.jp/pigeon-shop/2000078s/?variantId=2000078s"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

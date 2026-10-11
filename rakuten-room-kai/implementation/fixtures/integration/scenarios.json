@@ -1,0 +1,7 @@
+{
+  "target_date": "2026-09-25",
+  "sources": ["manual", "chat", "scheduler"],
+  "flows": ["daily", "research", "performance", "setup", "config-change", "recovery", "status"],
+  "expected_daily_stages": ["load_state", "affiliate_observe", "room_observe", "inventory_brief", "performance", "research", "daily_plan", "dashboard", "daily_report"],
+  "expected_research_jobs": ["research_plan", "triage", "product_verify", "copywriter", "quality_gate"]
+}

@@ -1,0 +1,15 @@
+{
+  "baselineVersion": "1.0",
+  "currentVersion": "1.1",
+  "unchangedBusinessChapters": 23,
+  "modifiedChapters": [
+    20,
+    22,
+    26,
+    27
+  ],
+  "addedChapter": 28,
+  "reason": "本人指示の時刻訂正、受入試験追加、追跡・HTML正本化",
+  "sourceEqualsMigrationMD": true,
+  "sourceHash": "5fd7389c328dc2a788e9125ef4569c8404558bc2d0ca7f56c019b547ac9a9b8d"
+}

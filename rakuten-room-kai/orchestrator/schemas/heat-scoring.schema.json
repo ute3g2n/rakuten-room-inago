@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/heat-scoring.schema.json",
+  "title": "heat-scoring",
+  "type": "object",
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "target_date": { "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "scoring_method": { "const": "legacy-heat-6-factor-v1" },
+    "scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "scoring_method": { "const": "legacy-heat-6-factor-v1" },
+          "candidate_id": { "type": ["string", "null"] },
+          "product_url": { "type": ["string", "null"], "format": "uri" },
+          "observed_at": { "type": ["string", "null"], "format": "date-time" },
+          "score": { "type": "integer", "minimum": 0, "maximum": 12 },
+          "confirmed_max": { "type": "integer", "minimum": 0, "maximum": 12 },
+          "full_max": { "const": 12 },
+          "confirmed_factors": { "type": "integer", "minimum": 0, "maximum": 6 },
+          "unconfirmed_factors": {
+            "type": "array",
+            "items": { "enum": ["exposure_duplicates", "shop_strength", "image_investment", "promotion_strength", "review_freshness", "keyword_exposure"] }
+          },
+          "grade": { "type": ["string", "null"], "enum": ["A", "B", "C", null] },
+          "provisional_grade": { "enum": ["A", "B", "C"] },
+          "status": { "enum": ["complete", "provisional", "hold"] },
+          "factors": {
+            "type": "object",
+            "properties": {
+              "exposure_duplicates": { "$ref": "#/$defs/factor" },
+              "shop_strength": { "$ref": "#/$defs/factor" },
+              "image_investment": { "$ref": "#/$defs/factor" },
+              "promotion_strength": { "$ref": "#/$defs/factor" },
+              "review_freshness": { "$ref": "#/$defs/factor" },
+              "keyword_exposure": { "$ref": "#/$defs/factor" }
+            },
+            "required": ["exposure_duplicates", "shop_strength", "image_investment", "promotion_strength", "review_freshness", "keyword_exposure"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["scoring_method", "candidate_id", "product_url", "observed_at", "score", "confirmed_max", "full_max", "confirmed_factors", "unconfirmed_factors", "grade", "provisional_grade", "status", "factors"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "factor": {
+      "type": "object",
+      "properties": {
+        "points": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 },
+        "status": { "enum": ["scored", "unconfirmed"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["points", "status", "reason", "evidence"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["run_id", "target_date", "scoring_method", "scores"],
+  "additionalProperties": false
+}

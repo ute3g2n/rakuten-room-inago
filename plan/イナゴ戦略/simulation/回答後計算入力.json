@@ -1,0 +1,120 @@
+{
+  "version": 2,
+  "model": "shared shop+item pool; drafts reserved until human posted/skip; no fact/quality gate",
+  "random_seed": "none",
+  "days": [
+    30,
+    90,
+    365
+  ],
+  "target": 15,
+  "max_room_attempts": 9,
+  "max_posts_per_attempt": 50,
+  "start_jst": "13:00",
+  "draft_deadline_jst": "17:45",
+  "metrics_deadline_jst": "18:00",
+  "additional_service_yen": 0,
+  "initial_pool": 120,
+  "raw_incremental_capacity": [
+    12,
+    11,
+    10,
+    9,
+    8,
+    8,
+    7,
+    7,
+    6
+  ],
+  "source_definition": "incremental distinct shop+item capacity after search overlap; assumption, not ROOM measurement",
+  "hypothetical_units": {
+    "query_minutes": 1.5,
+    "text_attempt_minutes": 0.2,
+    "daily_overhead_minutes": 3,
+    "metrics_minutes": 10,
+    "source_post_KiB": 2,
+    "draft_KiB": 4
+  },
+  "cases": [
+    {
+      "id": "normal",
+      "name": "新規18/日・全件当日投稿",
+      "supply": 18,
+      "post_fraction": 1
+    },
+    {
+      "id": "supply12",
+      "name": "06と同じ新規12/日・全件投稿",
+      "supply": 12,
+      "post_fraction": 1
+    },
+    {
+      "id": "cluster",
+      "name": "共通商品集中・新規18/日",
+      "supply": 18,
+      "post_fraction": 1,
+      "capacity": [
+        4,
+        5,
+        4,
+        5,
+        5,
+        5,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "low",
+      "name": "新規4/日・全件投稿",
+      "supply": 4,
+      "post_fraction": 1
+    },
+    {
+      "id": "season",
+      "name": "31～90日は供給6/日・検索枠55%",
+      "supply": 18,
+      "post_fraction": 1
+    },
+    {
+      "id": "word_outage",
+      "name": "31～37日語句源停止・ROOM検索なし",
+      "supply": 18,
+      "post_fraction": 1
+    },
+    {
+      "id": "unreported",
+      "name": "新規12/日・8/15投稿・残り未報告",
+      "supply": 12,
+      "post_fraction": 0.5333333333333333
+    },
+    {
+      "id": "skips",
+      "name": "新規12/日・8/15投稿・残り翌日見送り",
+      "supply": 12,
+      "post_fraction": 0.5333333333333333,
+      "skip_next_day": true
+    },
+    {
+      "id": "copy_error",
+      "name": "最初の1候補は3回生成失敗・交換",
+      "supply": 18,
+      "post_fraction": 1,
+      "generation_failure_candidates_per_day": 1
+    },
+    {
+      "id": "facts_unknown",
+      "name": "全商品事実不明・生成成功",
+      "supply": 18,
+      "post_fraction": 1
+    },
+    {
+      "id": "all_copy_error",
+      "name": "全候補が3回生成失敗",
+      "supply": 18,
+      "post_fraction": 1,
+      "all_copy_error": true
+    }
+  ]
+}

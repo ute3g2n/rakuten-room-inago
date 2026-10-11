@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/product-ledger.schema.json",
+  "title": "product-ledger",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^P[0-9]{2,}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "normalized_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "genre": {
+            "type": "string",
+            "enum": [
+              "時短・料理・調理・家電",
+              "家事ラク用品",
+              "住まい・収納・インテリア",
+              "子育て・キッズ用品",
+              "親の美容・セルフケア"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "needs_review",
+              "eligible",
+              "planned",
+              "posted",
+              "rejected"
+            ]
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_candidate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "posted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "normalized_url",
+          "genre",
+          "status",
+          "item_code",
+          "model_candidate",
+          "checked_at",
+          "posted_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "next_id": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "required": [
+    "version",
+    "products",
+    "next_id"
+  ],
+  "additionalProperties": false
+}

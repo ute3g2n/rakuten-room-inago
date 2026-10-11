@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "operation_start_date": "2026-09-25",
+  "preparation_date": "2026-09-24",
+  "timezone": "Asia/Tokyo",
+  "daily_schedule": "13:00",
+  "health_grace_minutes": 60,
+  "heartbeat_interval_seconds": 300,
+  "stale_heartbeat_minutes": 15,
+  "daily_target": 15,
+  "research_batch_size": 10,
+  "research_max_page_checks": 60,
+  "genre_targets": {
+    "時短・料理・調理・家電": 6,
+    "家事ラク用品": 2,
+    "住まい・収納・インテリア": 2,
+    "子育て・キッズ用品": 3,
+    "親の美容・セルフケア": 2
+  },
+  "inventory_target": 120,
+  "draft_target": 120,
+  "next_two_days_target": 30,
+  "max_parallel_jobs": 3,
+  "retention_days": {
+    "normal": 90,
+    "failure_or_escalation": 180
+  },
+  "dashboard_port": 8765,
+  "timeouts_seconds": {
+    "api": 120,
+    "playwright": 600,
+    "codex": 1200,
+    "local": 300
+  },
+  "dry_run_default": false
+}

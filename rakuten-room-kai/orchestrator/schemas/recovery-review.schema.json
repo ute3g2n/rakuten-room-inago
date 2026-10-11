@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["failed_run_id", "failed_step", "cause", "retryable", "proposed_action", "requires_user_action"],
+  "properties": {
+    "failed_run_id": {"type": "string", "minLength": 1},
+    "failed_step": {"type": "string", "minLength": 1},
+    "cause": {"type": "string", "minLength": 1},
+    "retryable": {"type": "boolean"},
+    "proposed_action": {"type": "string", "minLength": 1},
+    "requires_user_action": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

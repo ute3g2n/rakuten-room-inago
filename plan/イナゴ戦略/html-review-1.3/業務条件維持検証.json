@@ -1,0 +1,37 @@
+{
+  "changedChapters": [
+    15,
+    27,
+    28
+  ],
+  "unchangedChapters": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26
+  ],
+  "htmlHash": "8ae3b13a46a05812cff5b6892322135ea13b08fadef3fd24fba129ff0a2669c4",
+  "sourceHash": "29399b3a7e23c3831754369b80b120cd47506895fbc9d6f6ec6eb9dd05dbe3a3",
+  "browserChecks": 31
+}

@@ -1,0 +1,668 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/model-policy.schema.json",
+  "title": "model-policy",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "jobs": {
+      "type": "object",
+      "properties": {
+        "research_plan": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "triage": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "product_verify": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "copywriter": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "quality_gate": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "daily_plan": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "performance": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "recovery": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "observe_diagnosis": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        },
+        "inventory_diagnosis": {
+          "type": "object",
+          "properties": {
+            "normal_model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_reasoning_effort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normal_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalation_model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_reasoning_effort": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalation_conditions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "escalation_forbidden_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "normal_model",
+            "normal_reasoning_effort",
+            "normal_retries",
+            "escalation_model",
+            "escalation_reasoning_effort",
+            "escalation_conditions",
+            "escalation_forbidden_when"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "research_plan",
+        "triage",
+        "product_verify",
+        "copywriter",
+        "quality_gate",
+        "daily_plan",
+        "performance",
+        "recovery",
+        "observe_diagnosis",
+        "inventory_diagnosis"
+      ],
+      "additionalProperties": false
+    },
+    "astra_exception_only": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "version",
+    "jobs",
+    "astra_exception_only"
+  ],
+  "additionalProperties": false
+}

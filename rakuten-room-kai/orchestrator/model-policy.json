@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "jobs": {
+    "research_plan": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "low",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-sol",
+      "escalation_reasoning_effort": "medium",
+      "escalation_conditions": [
+        "large_strategy_change"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "triage": {
+      "normal_model": "gpt-6-luna",
+      "normal_reasoning_effort": "low",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-sol",
+      "escalation_reasoning_effort": "medium",
+      "escalation_conditions": [
+        "ambiguous_candidate"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "product_verify": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-astra",
+      "escalation_reasoning_effort": "high",
+      "escalation_conditions": [
+        "conflicting_product_information",
+        "complex_page_display"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "copywriter": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-astra",
+      "escalation_reasoning_effort": "high",
+      "escalation_conditions": [
+        "repeated_quality_failure"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "quality_gate": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-astra",
+      "escalation_reasoning_effort": "high",
+      "escalation_conditions": [
+        "disputed_compliance_judgment"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "daily_plan": {
+      "normal_model": "gpt-6-luna",
+      "normal_reasoning_effort": "low",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-sol",
+      "escalation_reasoning_effort": "medium",
+      "escalation_conditions": [
+        "constraint_unsatisfied"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "performance": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-astra",
+      "escalation_reasoning_effort": "high",
+      "escalation_conditions": [
+        "monthly_strategy_redesign"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "recovery": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "high",
+      "normal_retries": 1,
+      "escalation_model": "gpt-6-astra",
+      "escalation_reasoning_effort": "high",
+      "escalation_conditions": [
+        "same_cause_failed_twice"
+      ],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "observe_diagnosis": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": null,
+      "escalation_reasoning_effort": null,
+      "escalation_conditions": [],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    },
+    "inventory_diagnosis": {
+      "normal_model": "gpt-6-sol",
+      "normal_reasoning_effort": "medium",
+      "normal_retries": 1,
+      "escalation_model": null,
+      "escalation_reasoning_effort": null,
+      "escalation_conditions": [],
+      "escalation_forbidden_when": [
+        "INPUT_INVALID",
+        "AUTH_REQUIRED",
+        "CAPTCHA_REQUIRED",
+        "FETCH_DATA_INSUFFICIENT",
+        "missing_input",
+        "fetch_failed",
+        "auth_required",
+        "captcha_required"
+      ]
+    }
+  },
+  "astra_exception_only": true
+}

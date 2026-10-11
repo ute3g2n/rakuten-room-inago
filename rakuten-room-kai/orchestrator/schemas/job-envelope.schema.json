@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/job-envelope.schema.json",
+  "title": "job-envelope",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}-(daily|research|performance|setup|config-change|recovery|status|health-check)-[0-9a-f]{6}$"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "input_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "success",
+        "failed"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "run_id",
+    "target_date",
+    "input_path",
+    "output_path",
+    "job",
+    "status",
+    "model",
+    "reasoning_effort",
+    "attempt"
+  ],
+  "additionalProperties": false
+}

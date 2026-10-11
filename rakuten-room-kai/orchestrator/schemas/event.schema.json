@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/event.schema.json",
+  "title": "event",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}-(daily|research|performance|setup|config-change|recovery|status|health-check)-[0-9a-f]{6}$"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "\\+09:00$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "run_started",
+        "stage_started",
+        "stage_succeeded",
+        "stage_failed",
+        "stage_action_required",
+        "heartbeat",
+        "retry",
+        "escalation",
+        "skipped",
+        "run_finished",
+        "step_started",
+        "step_completed",
+        "step_failed",
+        "run_completed"
+      ]
+    },
+    "stage": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "message": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "event_id",
+    "run_id",
+    "at",
+    "type",
+    "stage",
+    "message"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/workflow.schema.json",
+  "title": "workflow",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "flows": {
+      "type": "object",
+      "properties": {
+        "daily": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "research": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "performance": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "setup": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "config-change": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "recovery": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "status": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        },
+        "health-check": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required_artifacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "parallelizable": {
+                    "type": "boolean"
+                  },
+                  "on_failure": {
+                    "enum": [
+                      "failed",
+                      "partial",
+                      "action_required"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "depends_on",
+                  "required_artifacts",
+                  "parallelizable",
+                  "on_failure"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "daily",
+        "research",
+        "performance",
+        "setup",
+        "config-change",
+        "recovery",
+        "status",
+        "health-check"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "flows"
+  ],
+  "additionalProperties": false
+}

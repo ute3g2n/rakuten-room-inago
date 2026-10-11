@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/migration-report.schema.json",
+  "title": "migration-report",
+  "type": "object",
+  "properties": {
+    "migrated_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "\\+09:00$"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "destination": {
+      "type": "string",
+      "minLength": 1
+    },
+    "migrated_products": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "migrated_drafts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "migrated_posts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "posted_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^P\\d{2,}$"
+      }
+    },
+    "id_mapping": {
+      "type": "object",
+      "patternProperties": {
+        "^P\\d{2,}$": {
+          "type": "string",
+          "pattern": "^P\\d{2,}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "needs_review": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "product_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "source",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "collisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "product_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "source",
+          "line",
+          "product_id",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "skipped_existing": {
+      "type": "boolean"
+    },
+    "unmigrated_legacy_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "migrated_at",
+    "source",
+    "destination",
+    "migrated_products",
+    "migrated_drafts",
+    "migrated_posts",
+    "posted_ids",
+    "id_mapping",
+    "needs_review",
+    "collisions",
+    "skipped_existing",
+    "unmigrated_legacy_files"
+  ],
+  "additionalProperties": false
+}

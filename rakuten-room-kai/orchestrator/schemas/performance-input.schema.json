@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["analysis_date", "post_observations", "day_aggregates", "shop_aggregates", "purchased_items", "comparison", "missing_or_unattributed_data", "prior_pattern_ledger"],
+  "properties": {
+    "analysis_date": {"type": "string", "format": "date"},
+    "post_observations": {"type": "array", "items": {"type": "object", "required": ["product_id", "genre", "posted_at", "observation_days", "mature", "room_post_id", "likes", "reaction_label", "attribution_level", "confirmed_orders"], "properties": {"product_id": {"type": "string"}, "genre": {"type": "string"}, "posted_at": {"type": ["string", "null"]}, "observation_days": {"type": ["integer", "null"]}, "mature": {"type": "boolean"}, "room_post_id": {"type": ["string", "null"]}, "likes": {"type": ["integer", "null"]}, "reaction_label": {"type": "string"}, "attribution_level": {"enum": ["post_confirmed_by_order_product_match", "post_reaction_only", "unavailable"]}, "confirmed_orders": {"type": "array"}}, "additionalProperties": false}},
+    "day_aggregates": {"type": "array", "items": {"type": "object", "required": ["target_date", "attribution_level", "clicks", "sales_count", "sales_yen"], "properties": {"target_date": {"type": "string", "format": "date"}, "attribution_level": {"enum": ["day_aggregate", "unavailable"]}, "clicks": {"type": ["integer", "null"]}, "sales_count": {"type": ["integer", "null"]}, "sales_yen": {"type": ["integer", "null"]}}, "additionalProperties": false}},
+    "shop_aggregates": {"type": "array"},
+    "purchased_items": {"type": "array"},
+    "comparison": {"type": "object", "required": ["comparable_reaction_count", "trend_ready"], "properties": {"comparable_reaction_count": {"type": "integer", "minimum": 0}, "trend_ready": {"type": "boolean"}}, "additionalProperties": false},
+    "missing_or_unattributed_data": {"type": "array"},
+    "prior_pattern_ledger": {"type": "object"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,74 @@
+{
+  "source": ".agents/skills",
+  "destination": ".agents/skills/rakuten-room-bakemono-kai",
+  "source_file_count": 16,
+  "destination_file_count": 16,
+  "source_total_size_bytes": 189791,
+  "destination_total_size_bytes": 189791,
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size_bytes": 50524
+    },
+    {
+      "path": "references/calendar-setup.md",
+      "size_bytes": 6171
+    },
+    {
+      "path": "references/calendar-sync.md",
+      "size_bytes": 9419
+    },
+    {
+      "path": "references/daily-loop.md",
+      "size_bytes": 9587
+    },
+    {
+      "path": "references/diagnosis.md",
+      "size_bytes": 12199
+    },
+    {
+      "path": "references/methodology.md",
+      "size_bytes": 17321
+    },
+    {
+      "path": "references/storage.md",
+      "size_bytes": 20073
+    },
+    {
+      "path": "references/templates.md",
+      "size_bytes": 7666
+    },
+    {
+      "path": "scripts/schema.sql",
+      "size_bytes": 4548
+    },
+    {
+      "path": "scripts/sync-calendar.ps1",
+      "size_bytes": 11686
+    },
+    {
+      "path": "templates/account.md",
+      "size_bytes": 1922
+    },
+    {
+      "path": "templates/post-drafts.md",
+      "size_bytes": 1097
+    },
+    {
+      "path": "templates/posts-log.md",
+      "size_bytes": 1953
+    },
+    {
+      "path": "templates/products.md",
+      "size_bytes": 1703
+    },
+    {
+      "path": "templates/schedule.md",
+      "size_bytes": 2892
+    },
+    {
+      "path": "webapp/index.html",
+      "size_bytes": 31030
+    }
+  ]
+}

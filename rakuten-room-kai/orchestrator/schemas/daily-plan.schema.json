@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/daily-plan.schema.json",
+  "title": "daily-plan",
+  "type": "object",
+  "properties": {
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "posts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "pattern": "^P[0-9]{2,}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "genre": {
+            "type": "string",
+            "enum": [
+              "時短・料理・調理・家電",
+              "家事ラク用品",
+              "住まい・収納・インテリア",
+              "子育て・キッズ用品",
+              "親の美容・セルフケア"
+            ]
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "\\+09:00$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "url",
+          "genre",
+          "body",
+          "scheduled_at",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "shortfall": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "applied_learning": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "target_date",
+    "posts",
+    "shortfall",
+    "applied_learning"
+  ],
+  "additionalProperties": false
+}

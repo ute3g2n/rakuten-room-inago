@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>楽天ROOM 投稿カレンダー</title>
+<style>
+  :root{
+    --bg:#ffffff; --sub:#fbfafa; --line:#ebe7e8; --line2:#f3f0f1;
+    --fg:#1a1618; --muted:#8a8288; --faint:#b5aeb2;
+    --accent:#e8395f; --accent-d:#c72c4e; --accent-bg:#fff1f4; --accent-line:#f8c9d5;
+    --entry:#e8395f; --related:#f0813f; --profit:#2fa36b; --teaser:#8b6ad6;
+    --r:14px; --shadow:0 1px 2px rgba(26,22,24,.04), 0 4px 16px rgba(26,22,24,.05);
+    --safe-b:env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{overscroll-behavior-y:none}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI",
+                "Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.6;
+  }
+  .ico{width:1em; height:1em; flex:none; stroke:currentColor; fill:none;
+       stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; vertical-align:-.12em}
+
+  /* ---------- ヘッダ ---------- */
+  header{
+    position:sticky; top:0; z-index:20; background:rgba(255,255,255,.92);
+    backdrop-filter:saturate(1.6) blur(12px); border-bottom:1px solid var(--line);
+  }
+  .hin{max-width:900px; margin:0 auto; padding:12px 16px 0}
+  .brand{display:flex; align-items:center; gap:8px; font-weight:700; font-size:16px; letter-spacing:.01em}
+  .brand .ico{color:var(--accent); width:19px; height:19px}
+  .tag-src{font-size:11.5px; color:var(--faint); margin:3px 0 0; padding-left:27px}
+  .tabs{display:flex; gap:4px; margin-top:11px}
+  .tab{
+    flex:1; background:none; border:0; border-bottom:2.5px solid transparent; color:var(--muted);
+    padding:10px 4px; font-size:13.5px; font-family:inherit; cursor:pointer; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .tab .ico{width:16px; height:16px}
+  .tab.on{color:var(--accent); border-bottom-color:var(--accent)}
+  .tab .n{
+    font-size:10.5px; font-weight:700; background:var(--line2); color:var(--muted);
+    border-radius:99px; padding:1px 6px; min-width:19px;
+  }
+  .tab.on .n{background:var(--accent-bg); color:var(--accent)}
+
+  .wrap{max-width:900px; margin:0 auto; padding:16px 16px calc(40px + var(--safe-b))}
+
+  /* ---------- 月ナビ ---------- */
+  .mnav{display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:14px}
+  .mbtn{
+    width:38px; height:38px; border-radius:11px; border:1px solid var(--line); background:#fff;
+    color:var(--fg); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+  }
+  .mbtn:active{background:var(--sub); transform:scale(.95)}
+  .mbtn .ico{width:17px; height:17px}
+  .mlabel{font-size:16px; font-weight:700; min-width:8.4em; text-align:center; letter-spacing:.01em}
+  .tbtn{
+    margin-left:4px; border:1px solid var(--accent-line); background:var(--accent-bg); color:var(--accent);
+    border-radius:99px; padding:7px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .tbtn:active{transform:scale(.96)}
+
+  /* ---------- カレンダー ---------- */
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+  .dow{text-align:center; font-size:10.5px; color:var(--faint); padding:5px 0; font-weight:700; letter-spacing:.1em}
+  .dow.sun{color:#e0788e} .dow.sat{color:#7fa0d8}
+  .cell{
+    position:relative; border:1px solid var(--line2); border-radius:10px; background:#fff;
+    min-height:66px; padding:4px; display:flex; flex-direction:column; gap:3px; overflow:hidden;
+  }
+  .cell.pad{border-color:transparent; background:transparent}
+  .cell.today{border-color:var(--accent); background:var(--accent-bg)}
+  .dnum{font-size:10.5px; color:var(--faint); font-weight:600; padding-left:2px; line-height:1.3}
+  .cell.today .dnum{color:var(--accent); font-weight:800}
+  .cell.has{cursor:pointer}
+  .cell.has:active{transform:scale(.97)}
+
+  /* 商品画像サムネ */
+  .thumbs{display:flex; flex-direction:column; gap:3px; flex:1}
+  .th{position:relative; flex:1; min-height:0; border-radius:7px; overflow:hidden; background:var(--sub)}
+  .th img{width:100%; height:100%; object-fit:cover; display:block}
+  .th .noimg{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    color:var(--faint); background:var(--sub);
+  }
+  .th .noimg .ico{width:15px; height:15px}
+  .th .rb{ position:absolute; left:0; right:0; top:0; height:3px; }
+  .th .tm{
+    position:absolute; left:0; right:0; bottom:0; padding:2px 3px;
+    background:linear-gradient(transparent, rgba(0,0,0,.62));
+    color:#fff; font-size:9px; font-weight:800; letter-spacing:.02em; text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  .th.done img{filter:grayscale(1); opacity:.5}
+  /* 1日に複数投稿がある日：件数バッジ */
+  .cnt{
+    position:absolute; top:3px; right:3px; z-index:2;
+    background:var(--accent); color:#fff; font-size:9.5px; font-weight:800;
+    min-width:16px; height:16px; padding:0 4px; border-radius:99px;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    box-shadow:0 0 0 1.5px #fff;
+  }
+  .rb.入口{background:var(--entry)} .rb.関連{background:var(--related)}
+  .rb.収益拡張{background:var(--profit)} .rb.予告{background:var(--teaser)}
+
+  .legend{display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:16px; font-size:11.5px; color:var(--muted)}
+  .legend span{display:flex; align-items:center; gap:5px}
+  .sw{width:16px; height:3.5px; border-radius:2px}
+
+  /* ---------- 詳細（下からせり上がるシート） ---------- */
+  /* dialog はブラウザ既定が width/height:fit-content。
+     中身を position:absolute にすると高さが 0 に潰れ、シートが画面外に飛ぶ。
+     flex コンテナにして、中身を通常フローのまま下端に寄せる。 */
+  dialog{
+    border:0; padding:0; background:transparent; margin:0;
+    position:fixed; inset:0;
+    width:100%; max-width:100%; height:100%; max-height:100%;
+    overflow:hidden;   /* dialog自身はスクロールさせない（スクロールは .sb が担当） */
+  }
+  dialog:not([open]){display:none}                 /* 閉じている間は絶対に出さない */
+  dialog[open]{display:flex; align-items:flex-end; justify-content:center}  /* スマホ＝下端 */
+  dialog::backdrop{background:rgba(26,22,24,.42); backdrop-filter:blur(2px)}
+  .sheet{
+    position:relative; width:100%; background:#fff;
+    /* 画面を覆い切らせない。上に背景を残してタップでも閉じられるようにする */
+    border-radius:20px 20px 0 0; max-height:82vh; display:flex; flex-direction:column;
+    animation:up .26s cubic-bezier(.2,.9,.3,1);
+  }
+  /* 移動量を小さく保つ。アニメーションが動かない環境（省電力・reduced-motion・
+     一部の埋め込みブラウザ）で 0% のまま固定されても、シートが画面外に飛ばないようにする。
+     translateY(100%) だと止まった瞬間に丸ごと画面外へ消える。 */
+  @keyframes up{from{transform:translateY(22px)} to{transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    .sheet{animation:none}
+  }
+  /* 1日複数投稿の切り替えページャー */
+  .pager{display:flex; align-items:center; justify-content:center; gap:14px; padding:10px 0 2px; flex:none}
+  .pager.off{display:none}
+  .pgbtn{
+    width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--fg); padding:0;
+  }
+  .pgbtn:disabled{opacity:.28; cursor:default}
+  .pgbtn:active:not(:disabled){background:var(--sub); transform:scale(.94)}
+  .pgbtn .ico{width:16px; height:16px}
+  .pgpos{font-size:12.5px; font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums; min-width:3.4em; text-align:center}
+  .pgdots{display:flex; gap:5px}
+  .pgdot{width:6px; height:6px; border-radius:50%; background:var(--line); cursor:pointer}
+  .pgdot.on{background:var(--accent)}
+  .grab{
+    width:38px; height:4px; border-radius:99px; background:var(--line);
+    margin:9px auto 0; flex:none; cursor:pointer;
+    /* 見た目は細い線だが、タップ判定は上下に広げる */
+    box-sizing:content-box; padding:9px 24px; background-clip:content-box;
+  }
+  .sh{position:relative; padding:12px 18px 14px; border-bottom:1px solid var(--line2); flex:none}
+  .sh-top{display:flex; gap:12px; align-items:flex-start; padding-right:38px}
+  /* 閉じるボタン：シートが画面をほぼ覆うため、背景タップに頼らず必ず閉じられるようにする */
+  .close{
+    position:absolute; top:8px; right:10px; width:40px; height:40px; padding:0;
+    border:0; border-radius:50%; background:var(--sub); color:var(--muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .close:active{background:var(--line); transform:scale(.92)}
+  .close .ico{width:18px; height:18px; stroke-width:2.2}
+  .sh-img{width:66px; height:66px; border-radius:11px; overflow:hidden; background:var(--sub); flex:none; border:1px solid var(--line2)}
+  .sh-img img{width:100%; height:100%; object-fit:cover; display:block}
+  .sh-img .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+  .sh-meta{flex:1; min-width:0}
+  .when{display:flex; align-items:center; gap:5px; color:var(--accent); font-size:12.5px; font-weight:700; margin-bottom:3px}
+  .when .ico{width:14px; height:14px}
+  .sh-name{font-size:15px; font-weight:700; line-height:1.45; margin:0 0 6px; word-break:break-word}
+  .chips{display:flex; gap:5px; flex-wrap:wrap}
+  .chip2{font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; background:var(--sub); color:var(--muted); border:1px solid var(--line)}
+  .chip2.role{background:var(--accent-bg); color:var(--accent); border-color:var(--accent-line)}
+  .sb{padding:14px 18px calc(18px + var(--safe-b)); overflow-y:auto; -webkit-overflow-scrolling:touch}
+  .row{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--muted); margin-bottom:9px}
+  .row .ico{width:15px; height:15px; color:var(--faint)}
+  .row b{color:var(--fg); font-weight:700}
+  .row a{color:var(--accent); font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px}
+
+  .ptitle{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0 7px}
+  .ptitle span{font-size:11.5px; font-weight:700; color:var(--muted); letter-spacing:.04em}
+  .copy{
+    display:inline-flex; align-items:center; gap:6px; border:0; cursor:pointer; font-family:inherit;
+    background:var(--accent); color:#fff; border-radius:99px; padding:8px 15px; font-size:12.5px; font-weight:800;
+  }
+  .copy:active{transform:scale(.96); background:var(--accent-d)}
+  .copy.ok{background:var(--profit)}
+  .copy .ico{width:14px; height:14px; stroke-width:2.4}
+  pre.text{
+    margin:0; padding:14px; background:var(--sub); border:1px solid var(--line2); border-radius:12px;
+    white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:13.5px; line-height:1.85;
+    -webkit-user-select:text; user-select:text;
+  }
+  .hint{font-size:11px; color:var(--faint); margin:7px 0 0; display:flex; gap:5px; align-items:center}
+  .hint .ico{width:12px;height:12px}
+
+  /* ---------- リサーチ結果 ---------- */
+  .pf{display:flex; gap:6px; overflow-x:auto; padding-bottom:3px; margin-bottom:13px; -webkit-overflow-scrolling:touch}
+  .pf::-webkit-scrollbar{display:none}
+  .pill{
+    white-space:nowrap; border:1px solid var(--line); background:#fff; color:var(--muted);
+    border-radius:99px; padding:7px 14px; font-size:12.5px; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .pill.on{border-color:var(--accent); color:#fff; background:var(--accent)}
+  .plist{display:flex; flex-direction:column; gap:9px}
+  .prow{
+    display:flex; gap:11px; padding:11px; background:#fff; border:1px solid var(--line);
+    border-radius:var(--r); box-shadow:var(--shadow); align-items:flex-start;
+  }
+  .prow.ex{background:var(--sub); box-shadow:none}
+  .prow.ex .pimg img{filter:grayscale(1); opacity:.45}
+  .pimg{width:56px; height:56px; border-radius:10px; overflow:hidden; background:var(--sub); flex:none; border:1px solid var(--line2)}
+  .pimg img{width:100%; height:100%; object-fit:cover; display:block}
+  .pimg .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+  .pbody{flex:1; min-width:0}
+  .ptop{display:flex; align-items:center; gap:6px; margin-bottom:3px}
+  .rk{font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px; letter-spacing:.03em}
+  .rk.A{background:#e8f7ef; color:#1e7f52} .rk.A-{background:#eef8f2; color:#4a9b73}
+  .rk.B{background:#eef3fc; color:#4a72b8} .rk.C,.rk.除外{background:#f3f0f1; color:#8a8288}
+  .pn{font-size:13.5px; font-weight:700; line-height:1.4; margin-bottom:4px; word-break:break-word}
+  .pn a{color:inherit; text-decoration:none}
+  .pn a:active{color:var(--accent)}
+  .pm{font-size:11.5px; color:var(--muted); line-height:1.6}
+  .pm .dot{color:var(--faint); margin:0 5px}
+  .pe{font-size:11px; color:var(--muted); line-height:1.65; margin-top:5px; padding-top:6px; border-top:1px dashed var(--line)}
+  .pe b{color:var(--fg)}
+  .ppr{font-size:13px; font-weight:800; white-space:nowrap; flex:none; text-align:right}
+  .ppr small{display:block; font-size:10px; color:var(--faint); font-weight:600; margin-top:2px}
+
+  /* ---------- メッセージ ---------- */
+  .msg{background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:20px; box-shadow:var(--shadow)}
+  .msg.err{border-color:var(--accent-line); background:var(--accent-bg)}
+  .msg h3{margin:0 0 9px; font-size:14.5px; display:flex; align-items:center; gap:7px; color:var(--accent)}
+  .msg h3 .ico{width:17px;height:17px}
+  .msg code{background:var(--sub); padding:2px 6px; border-radius:5px; font-size:12.5px; border:1px solid var(--line2)}
+  .msg ol{margin:9px 0 0; padding-left:1.25em; font-size:13.5px}
+  .msg li{margin:5px 0}
+  .hide{display:none !important}
+
+  @media(min-width:700px){
+    .cell{min-height:104px}
+    .wrap{padding-top:20px}
+    /* PCは上寄せの中央モーダル。[open] を付けないと閉じた dialog が居座るので必須。 */
+    dialog[open]{align-items:flex-start}
+    .sheet{
+      margin:5vh 0; max-width:620px; border-radius:18px; max-height:90vh;
+      animation:pop .2s ease;
+    }
+    /* opacity:0 から始めると、アニメーションが止まった環境で透明のまま消える。
+       0% でも見えている状態から始める。 */
+    @keyframes pop{from{transform:translateY(-10px)} to{transform:none}}
+    .grab{display:none}
+  }
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M6 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"/><circle cx="7.6" cy="7.6" r="1.3"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3A5 5 0 0 0 10.5 20l1.7-1.7"/><path d="M10 13a5 5 0 0 0 7.5.5l3-3A5 5 0 0 0 13.5 4l-1.7 1.7"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<header>
+  <div class="hin">
+    <div class="brand">
+      <svg class="ico"><use href="#i-cal"/></svg>楽天ROOM 投稿カレンダー
+    </div>
+    <p class="tag-src">いつ・何を・どの文で投稿するか</p>
+    <div class="tabs">
+      <button class="tab on" data-tab="cal">
+        <svg class="ico"><use href="#i-cal"/></svg>カレンダー<span class="n" id="n-cal"></span>
+      </button>
+      <button class="tab" data-tab="res">
+        <svg class="ico"><use href="#i-search"/></svg>リサーチ結果<span class="n" id="n-res"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="msg" class="msg hide"></div>
+
+  <div id="app" class="hide">
+    <div id="view-cal">
+      <div class="mnav">
+        <button class="mbtn" id="prev" aria-label="前の月"><svg class="ico"><use href="#i-left"/></svg></button>
+        <div class="mlabel" id="month"></div>
+        <button class="mbtn" id="next" aria-label="次の月"><svg class="ico"><use href="#i-right"/></svg></button>
+        <button class="tbtn" id="today">今日</button>
+      </div>
+      <div class="grid" id="dow"></div>
+      <div class="grid" id="grid" style="margin-top:4px"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--entry)"></i>入口</span>
+        <span><i class="sw" style="background:var(--related)"></i>関連</span>
+        <span><i class="sw" style="background:var(--profit)"></i>収益拡張</span>
+        <span><i class="sw" style="background:var(--teaser)"></i>予告</span>
+      </div>
+    </div>
+
+    <div id="view-res" class="hide">
+      <div class="pf">
+        <button class="pill on" data-f="all">すべて</button>
+        <button class="pill" data-f="A">A級・本命</button>
+        <button class="pill" data-f="B">B級・当て馬</button>
+        <button class="pill" data-f="除外">除外</button>
+      </div>
+      <div class="plist" id="plist"></div>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="pager off" id="d-pager">
+      <button class="pgbtn" id="pg-prev" aria-label="前の投稿"><svg class="ico"><use href="#i-left"/></svg></button>
+      <span class="pgpos" id="pg-pos"></span>
+      <div class="pgdots" id="pg-dots"></div>
+      <button class="pgbtn" id="pg-next" aria-label="次の投稿"><svg class="ico"><use href="#i-right"/></svg></button>
+    </div>
+    <div class="sh">
+      <button class="close" id="d-close" aria-label="閉じる"><svg class="ico"><use href="#i-close"/></svg></button>
+      <div class="sh-top">
+        <div class="sh-img" id="d-img"></div>
+        <div class="sh-meta">
+          <div class="when"><svg class="ico"><use href="#i-clock"/></svg><span id="d-when"></span></div>
+          <h2 class="sh-name" id="d-name"></h2>
+          <div class="chips" id="d-chips"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sb">
+      <div id="d-rows"></div>
+      <div class="ptitle">
+        <span>投稿文（そのまま貼れます）</span>
+        <button class="copy" id="d-copy"><svg class="ico"><use href="#i-copy"/></svg>コピー</button>
+      </div>
+      <pre class="text" id="d-text"></pre>
+      <p class="hint"><svg class="ico"><use href="#i-info"/></svg>コピーして楽天ROOMの投稿画面に貼り付けてください</p>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js" onerror="window.__noConfig=true"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s??"").replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+const msgBox = $("msg");
+
+function showMsg(html, isErr){
+  msgBox.className = "msg" + (isErr ? " err" : "");
+  msgBox.innerHTML = html;
+  msgBox.classList.remove("hide");
+  $("app").classList.add("hide");
+}
+const SETUP = `<h3><svg class="ico"><use href="#i-alert"/></svg>セットアップが未完了です</h3>
+  <ol><li>Supabaseで <code>scripts/schema.sql</code> を実行</li>
+  <li><code>python scripts/sync_all.py</code> を実行</li>
+  <li>このページを再読み込み</li></ol>`;
+
+let posts=[], products=[], byDate={}, cur=new Date();
+const pad=(n)=>String(n).padStart(2,"0");
+const key=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+const todayKey=(()=>{const t=new Date();return key(t.getFullYear(),t.getMonth(),t.getDate())})();
+const isDone=(s)=>/実施済み|見送り|投稿済/.test(s||"");
+// lazy=カレンダーは即時読み込み（10枚程度・全て画面内）。一覧のみ遅延させる。
+const imgTag=(u,alt,lazy)=> u
+  ? `<img src="${esc(u)}" alt="${esc(alt||"")}"${lazy?' loading="lazy"':''} decoding="async">`
+  : `<div class="noimg"><svg class="ico"><use href="#i-img"/></svg></div>`;
+const hhmm=(t)=> t ? (String(t).match(/\d{1,2}:\d{2}/)||[""])[0] : "";
+
+async function load(){
+  if(window.__noConfig || !window.SUPABASE_CONFIG){ showMsg(SETUP,true); return; }
+  const {URL:url, ANON_KEY:anon} = window.SUPABASE_CONFIG;
+  if(!url||!anon||url.startsWith("<")||anon.startsWith("<")){ showMsg(SETUP,true); return; }
+  const base=url.replace(/\/$/,""), head={apikey:anon, Authorization:`Bearer ${anon}`};
+
+  async function get(t,q){
+    const r=await fetch(`${base}/rest/v1/${t}?${q}`,{headers:head});
+    if(!r.ok){
+      const b=await r.text();
+      let h="";
+      if(r.status===401||r.status===403) h="publishableキーかRLSポリシーを確認してください。";
+      else if(r.status===404) h=`テーブル <code>${t}</code> がありません。<code>scripts/schema.sql</code> を実行してください。`;
+      throw new Error(`<h3><svg class="ico"><use href="#i-alert"/></svg>読み込みエラー（HTTP ${r.status}）</h3>${h}<br><code>${esc(b.slice(0,240))}</code>`);
+    }
+    return r.json();
+  }
+  try{
+    [posts,products] = await Promise.all([
+      get("rakuten_posts","select=*&order=post_date.asc"),
+      get("rakuten_products","select=*&order=priority.asc")
+    ]);
+  }catch(e){
+    const m=String(e.message||e);
+    showMsg(m.startsWith("<h3>")?m:`<h3><svg class="ico"><use href="#i-alert"/></svg>接続できませんでした</h3><code>${esc(m)}</code>`,true);
+    return;
+  }
+  if(!posts.length && !products.length){
+    showMsg(`<h3><svg class="ico"><use href="#i-info"/></svg>データがまだありません</h3>
+      <code>python scripts/sync_all.py</code> を実行してください。`,false);
+    return;
+  }
+  byDate={}; posts.forEach(p=>(byDate[p.post_date] ||= []).push(p));
+  if(posts.length) cur=new Date(posts[posts.length-1].post_date+"T00:00:00");
+  $("n-cal").textContent=posts.length||"";
+  $("n-res").textContent=products.length||"";
+  msgBox.classList.add("hide"); $("app").classList.remove("hide");
+  renderDow(); render(); renderProducts("all");
+}
+
+function renderDow(){
+  $("dow").innerHTML=["日","月","火","水","木","金","土"]
+    .map((n,i)=>`<div class="dow ${i===0?"sun":i===6?"sat":""}">${n}</div>`).join("");
+}
+
+function render(){
+  const y=cur.getFullYear(), m=cur.getMonth();
+  $("month").textContent=`${y}年 ${m+1}月`;
+  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const out=[];
+  for(let i=0;i<first;i++) out.push(`<div class="cell pad"></div>`);
+  for(let d=1;d<=days;d++){
+    const k=key(y,m,d), list=byDate[k]||[];
+    // セルには先頭1投稿の画像。複数ある日は件数バッジ（例：3）を出す
+    const head=list[0];
+    const th=head?`
+      <div class="th${isDone(head.status)?" done":""}">
+        ${imgTag(head.image_url,head.product_name)}
+        <i class="rb ${esc(head.post_role||"")}"></i>
+        ${hhmm(head.post_time)?`<div class="tm">${hhmm(head.post_time)}</div>`:""}
+      </div>`:"";
+    const badge=list.length>1?`<span class="cnt">${list.length}</span>`:"";
+    out.push(`<div class="cell${k===todayKey?" today":""}${list.length?" has":""}" ${list.length?`data-d="${k}"`:""}>
+      ${badge}<div class="dnum">${d}</div>${list.length?`<div class="thumbs">${th}</div>`:""}
+    </div>`);
+  }
+  $("grid").innerHTML=out.join("");
+  document.querySelectorAll(".cell.has").forEach(c=>
+    c.addEventListener("click",()=>openDay(c.dataset.d)));
+}
+
+let dayPosts=[], dayIdx=0;
+function openDay(k){
+  dayPosts=(byDate[k]||[]).slice();
+  if(!dayPosts.length) return;
+  dayIdx=0;
+  showDetail();
+  $("dlg").showModal();
+}
+function showDetail(){
+  fillDetail(dayPosts[dayIdx]);
+  const n=dayPosts.length;
+  $("d-pager").classList.toggle("off", n<=1);
+  if(n>1){
+    $("pg-pos").textContent=`${dayIdx+1} / ${n}`;
+    $("pg-prev").disabled = dayIdx===0;
+    $("pg-next").disabled = dayIdx===n-1;
+    $("pg-dots").innerHTML=dayPosts.map((_,i)=>
+      `<i class="pgdot${i===dayIdx?" on":""}" data-i="${i}"></i>`).join("");
+    $("pg-dots").querySelectorAll(".pgdot").forEach(el=>
+      el.addEventListener("click",()=>{ dayIdx=Number(el.dataset.i); showDetail(); }));
+  }
+  const sb=document.querySelector(".sb"); if(sb) sb.scrollTop=0;
+}
+function fillDetail(p){
+  const dt=new Date(p.post_date+"T00:00:00");
+  const w=["日","月","火","水","木","金","土"][dt.getDay()];
+  $("d-when").textContent=`${dt.getMonth()+1}月${dt.getDate()}日(${w})　${p.post_time||"時間未定"}`;
+  $("d-img").innerHTML=imgTag(p.image_url,p.product_name);
+  $("d-name").textContent=p.product_name||"";
+  const chips=[];
+  if(p.post_role) chips.push(`<span class="chip2 role">${esc(p.post_role)}</span>`);
+  if(p.hook_type) chips.push(`<span class="chip2">${esc(p.hook_type)}</span>`);
+  if(p.status)    chips.push(`<span class="chip2">${esc(p.status)}</span>`);
+  $("d-chips").innerHTML=chips.join("");
+
+  const rows=[];
+  if(p.price) rows.push(`<div class="row"><svg class="ico"><use href="#i-tag"/></svg><b>${esc(p.price)}</b></div>`);
+  if(p.product_url) rows.push(`<div class="row"><svg class="ico"><use href="#i-link"/></svg>
+    <a href="${esc(p.product_url)}" target="_blank" rel="noreferrer">楽天市場で商品を開く</a></div>`);
+  if(p.reaction) rows.push(`<div class="row"><svg class="ico"><use href="#i-chart"/></svg>反応：<b>${esc(p.reaction)}</b></div>`);
+  $("d-rows").innerHTML=rows.join("");
+
+  $("d-text").textContent=p.post_text||"（投稿文は未作成）";
+  const btn=$("d-copy");
+  btn.classList.remove("ok");
+  btn.innerHTML=`<svg class="ico"><use href="#i-copy"/></svg>コピー`;
+}
+
+$("d-copy").addEventListener("click", async ()=>{
+  const t=$("d-text").textContent, btn=$("d-copy");
+  let ok=true;
+  try{ await navigator.clipboard.writeText(t); }
+  catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=t; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ ok=document.execCommand("copy"); }catch(_){ ok=false; }
+    ta.remove();
+  }
+  btn.classList.add("ok");
+  btn.innerHTML=`<svg class="ico"><use href="#i-check"/></svg>${ok?"コピーしました":"長押しで選択"}`;
+  setTimeout(()=>{ btn.classList.remove("ok");
+    btn.innerHTML=`<svg class="ico"><use href="#i-copy"/></svg>コピー`; },1800);
+});
+
+function renderProducts(f){
+  const list=products.filter(p=>{
+    if(f==="all") return true;
+    if(f==="除外") return p.listing==="除外";
+    if(f==="A") return p.listing!=="除外" && (p.priority||"").startsWith("A");
+    if(f==="B") return p.listing!=="除外" && p.priority==="B";
+    return true;
+  });
+  if(!list.length){ $("plist").innerHTML=`<div class="msg">該当なし</div>`; return; }
+  const fmt=(s)=>esc(s||"").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+  $("plist").innerHTML=list.map(p=>{
+    const ex=p.listing==="除外", rk=ex?"除外":(p.priority||"C");
+    const nm=esc(p.product_name);
+    const link=(p.product_url&&!p.product_url.startsWith("excluded://"))
+      ? `<a href="${esc(p.product_url)}" target="_blank" rel="noreferrer">${nm}</a>` : nm;
+    const meta=[]; if(p.role_fit)meta.push(esc(p.role_fit)); if(p.pain_point)meta.push(esc(p.pain_point));
+    return `<div class="prow${ex?" ex":""}">
+      <div class="pimg">${imgTag(p.image_url,p.product_name,true)}</div>
+      <div class="pbody">
+        <div class="ptop"><span class="rk ${rk}">${esc(rk)}</span></div>
+        <div class="pn">${link}</div>
+        <div class="pm">${meta.join('<span class="dot">・</span>')}</div>
+        <div class="pe">${fmt(ex?p.exclude_reason:p.heat_evidence)}</div>
+      </div>
+      <div class="ppr">${esc(p.price||"")}${ex?"<small>使わない</small>":""}</div>
+    </div>`;
+  }).join("");
+}
+
+$("prev").onclick=()=>{cur.setMonth(cur.getMonth()-1); render();};
+$("next").onclick=()=>{cur.setMonth(cur.getMonth()+1); render();};
+$("today").onclick=()=>{cur=new Date(); render();};
+// 閉じる導線は3つ：×ボタン／上のつまみ／背景タップ（＋ESCはdialog標準）
+$("d-close").addEventListener("click",()=> $("dlg").close());
+document.querySelector(".grab").addEventListener("click",()=> $("dlg").close());
+$("dlg").addEventListener("click",(e)=>{ if(e.target===$("dlg")) $("dlg").close(); });
+
+// 複数投稿の切り替え：前後ボタン＋横スワイプ
+function goPost(delta){
+  const n=dayPosts.length;
+  const i=dayIdx+delta;
+  if(i<0||i>=n) return;
+  dayIdx=i; showDetail();
+}
+$("pg-prev").addEventListener("click",()=>goPost(-1));
+$("pg-next").addEventListener("click",()=>goPost(1));
+(()=>{
+  let x0=null;
+  const sheet=document.querySelector(".sheet");
+  sheet.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true});
+  sheet.addEventListener("touchend",e=>{
+    if(x0===null||dayPosts.length<=1) return;
+    const dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>50) goPost(dx<0?1:-1);   // 左スワイプ→次
+  },{passive:true});
+})();
+
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+  $("view-cal").classList.toggle("hide",t.dataset.tab!=="cal");
+  $("view-res").classList.toggle("hide",t.dataset.tab!=="res");
+}));
+document.querySelectorAll(".pill").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".pill").forEach(x=>x.classList.toggle("on",x===b));
+  renderProducts(b.dataset.f);
+}));
+
+load();
+</script>
+</body>
+</html>

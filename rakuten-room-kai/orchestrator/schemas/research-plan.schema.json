@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/research-plan.schema.json",
+  "title": "research-plan",
+  "type": "object",
+  "properties": {
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "genre_priorities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "type": "string",
+            "enum": [
+              "時短・料理・調理・家電",
+              "家事ラク用品",
+              "住まい・収納・インテリア",
+              "子育て・キッズ用品",
+              "親の美容・セルフケア"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "genre",
+          "priority",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "search_queries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "type": "string",
+            "enum": [
+              "時短・料理・調理・家電",
+              "家事ラク用品",
+              "住まい・収納・インテリア",
+              "子育て・キッズ用品",
+              "親の美容・セルフケア"
+            ]
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "genre",
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "winning_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "deprioritized_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "research_requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "condition",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "target_date",
+    "genre_priorities",
+    "search_queries",
+    "winning_conditions",
+    "deprioritized_conditions",
+    "research_requests"
+  ],
+  "additionalProperties": false
+}

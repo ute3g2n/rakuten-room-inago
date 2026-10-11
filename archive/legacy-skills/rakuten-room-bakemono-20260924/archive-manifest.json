@@ -1,0 +1,110 @@
+{
+  "archived_at": "2026-09-25T09:46:34+09:00",
+  "source_path": "C:\\project\\rakuten-room-bakemono\\archive\\legacy-skills\\rakuten-room-bakemono-20260924\\source",
+  "file_count": 16,
+  "total_size_bytes": 189791,
+  "files": [
+    {
+      "path": "SKILL.md",
+      "archive_path": "SKILL.md.disabled",
+      "size_bytes": 50524,
+      "sha256": "6c258dca20745d9b1f5e775bf077f5313527fd135330b8a2b9a42085743034bc"
+    },
+    {
+      "path": "references/calendar-setup.md",
+      "archive_path": "references/calendar-setup.md",
+      "size_bytes": 6171,
+      "sha256": "6cf1184ee48563646865371a6f28e18729370cd9c44f2735e13c799c6a3cefcb"
+    },
+    {
+      "path": "references/calendar-sync.md",
+      "archive_path": "references/calendar-sync.md",
+      "size_bytes": 9419,
+      "sha256": "e041040d17eda92d28b3ba2e92d02940003de15066fc94e0c88351aa7334a51d"
+    },
+    {
+      "path": "references/daily-loop.md",
+      "archive_path": "references/daily-loop.md",
+      "size_bytes": 9587,
+      "sha256": "0482e446ba5612f39bddea1ce68dc91e31ccfb885e307af856a101372a2e6e38"
+    },
+    {
+      "path": "references/diagnosis.md",
+      "archive_path": "references/diagnosis.md",
+      "size_bytes": 12199,
+      "sha256": "113837091edfc324ed59f26fcbc71476bb642d0b02155a7c8a256b1b1a40801b"
+    },
+    {
+      "path": "references/methodology.md",
+      "archive_path": "references/methodology.md",
+      "size_bytes": 17321,
+      "sha256": "e255ab0be569ae0a2984229c722982d61ef1d355cc842db91f72e97d8dc7e825"
+    },
+    {
+      "path": "references/storage.md",
+      "archive_path": "references/storage.md",
+      "size_bytes": 20073,
+      "sha256": "43ea9ead9c9a19fa64da52cb1dc745725edebf58e39e97735a8de43769f9439a"
+    },
+    {
+      "path": "references/templates.md",
+      "archive_path": "references/templates.md",
+      "size_bytes": 7666,
+      "sha256": "ab9472e23b228023533a835865607c10aa9c36d8f74eb13cdd96d01ce21173b1"
+    },
+    {
+      "path": "scripts/schema.sql",
+      "archive_path": "scripts/schema.sql",
+      "size_bytes": 4548,
+      "sha256": "9d1ed7dafb7c682620d4f653a6986fb59b5305a1c18a41c9cdcfa253c22b7f10"
+    },
+    {
+      "path": "scripts/sync-calendar.ps1",
+      "archive_path": "scripts/sync-calendar.ps1",
+      "size_bytes": 11686,
+      "sha256": "80a77e4a729b745fc0d6aab0aecd5dbc2eacab7c77bf35e8593668016f94a6ff"
+    },
+    {
+      "path": "templates/account.md",
+      "archive_path": "templates/account.md",
+      "size_bytes": 1922,
+      "sha256": "a24099f2e4f92e183c5d7ac134e9a497678158312c4b797236670e713d543745"
+    },
+    {
+      "path": "templates/post-drafts.md",
+      "archive_path": "templates/post-drafts.md",
+      "size_bytes": 1097,
+      "sha256": "75ea62627109e6ddaa2d2027cad25da6e7c19301f79492c4ab97bb249df3044e"
+    },
+    {
+      "path": "templates/posts-log.md",
+      "archive_path": "templates/posts-log.md",
+      "size_bytes": 1953,
+      "sha256": "3cee2b92fe6b4439e9e832ab532bf6da64e1c4eedafc914ae650ef5cc622b8e5"
+    },
+    {
+      "path": "templates/products.md",
+      "archive_path": "templates/products.md",
+      "size_bytes": 1703,
+      "sha256": "438e5677d89b51b517380f2527a00aff0df947eeda84cee1173d956fc9a1a078"
+    },
+    {
+      "path": "templates/schedule.md",
+      "archive_path": "templates/schedule.md",
+      "size_bytes": 2892,
+      "sha256": "6d069e20a3c5603104e5c4a23fc82be8f2009b64e7fd0d634f43e285e37d6e1d"
+    },
+    {
+      "path": "webapp/index.html",
+      "archive_path": "webapp/index.html",
+      "size_bytes": 31030,
+      "sha256": "24b28ee4bd9ed4881580a0871225de71dc5cbecf30fe5094c4d7debf773f56ec"
+    }
+  ],
+  "staging_zip": {
+    "path": "C:\\project\\rakuten-room-bakemono\\archive\\legacy-skills\\rakuten-room-bakemono-20260924\\legacy-package-precutover-20260925.zip",
+    "size_bytes": 76452,
+    "created_at": "2026-09-25T09:16:46+09:00",
+    "sha256": "12a995de198a42bc8a6baaf707273e30cc9a66835eead5a19928102ca140573f"
+  }
+}

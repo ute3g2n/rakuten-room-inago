@@ -1,0 +1,11 @@
+affiliate-report-lib.mjs exit=0
+check-affiliate.mjs exit=0
+collect-room-likes.mjs exit=0
+rakuten-api-lib.mjs exit=0
+rakuten-api.mjs exit=0
+rakuten-credentials.mjs exit=0
+research-batch-lib.mjs exit=0
+research-batch.mjs exit=0
+research-brief.mjs exit=0
+research-planner-lib.mjs exit=0
+room-likes-lib.mjs exit=0

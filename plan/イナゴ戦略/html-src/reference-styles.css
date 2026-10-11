@@ -1,0 +1,21 @@
+.reference-library{margin:32px 0;padding:26px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.reference-library h2{font-size:24px;color:#173b3a}
+.reference-library label{display:block;font-weight:700;margin:16px 0 6px}
+.reference-library input{width:100%;padding:12px;border:1px solid #779c8b;border-radius:7px;font:inherit;color:#203c34;background:#fff}
+.reference-document{margin:14px 0;border:1px solid #c7d9d0;border-radius:9px;padding:16px;scroll-margin-top:24px}
+.reference-document summary{font-size:15px;color:#173b3a;font-weight:700;cursor:pointer}
+.reference-text{font-family:"Yu Gothic",Meiryo,sans-serif;font-size:13px;line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere;margin:20px 0;color:#203c34}
+.reference-document .md{font-size:13px;line-height:1.95}
+#source-28 .md h4{margin-top:32px;font-size:19px;border-left:4px solid #39735d;padding-left:12px}
+#source-28 .md figure{margin:26px 0}
+.glossary-group{margin:12px 0 24px;border:1px solid #c7d9d0;border-radius:9px;padding:12px;background:#f7faf8}
+.glossary-group summary,.flow-transcript summary{font-size:15px;font-weight:700;color:#173b3a;cursor:pointer}
+.glossary-group .table-scroll{margin-top:14px}
+.flow-transcript{margin:18px;padding:16px;border:1px solid #b9c9c2;border-radius:9px;background:#f7faf8}
+.flow-transcript ol{padding-left:25px}.flow-transcript li{margin:24px 0;line-height:1.9}.flow-transcript p{font-size:16px;line-height:1.95}
+.flow-transcript small{display:block;font-size:12px;color:#455f55}.flow-rule{border-left:3px solid #b9c9c2;padding-left:12px}
+@media print{figure[data-source-alt]{break-inside:auto}figure[data-source-alt]>.diagram-scroll{break-inside:avoid;text-align:center}figure[data-source-alt] svg{max-height:230mm;width:auto;max-width:100%}.flow-transcript{padding:10px;border:0}.flow-transcript li{break-inside:avoid}.flow-transcript p{font-size:9pt;line-height:1.7}.glossary-group{break-inside:auto}.glossary-group summary{break-after:avoid}}
+@media(max-width:800px){.reference-library{padding:17px}.reference-document{padding:12px}.reference-library h2{font-size:20px}}
+@media print{.reference-library{padding:0;border:0}.reference-library>label,.reference-library>input,#reference-count{display:none}.reference-document{break-inside:auto;border:0;border-top:1px solid #c7d9d0;padding:12px 0}.reference-document[hidden]{display:block!important}.reference-document summary{break-after:avoid}.reference-text{font-size:8pt;line-height:1.6}.reference-document .md{font-size:9pt}.reference-document a[download]{display:none}}
+
+.implementation-reference{margin:20px 0;padding:16px;border:1px solid #c7d9d0;border-radius:9px;background:#f7faf8}.implementation-reference>summary{font-weight:700;cursor:pointer;color:#173b3a}

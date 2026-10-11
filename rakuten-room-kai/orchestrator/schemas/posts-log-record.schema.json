@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.rakuten-room-kai/schemas/posts-log-record.schema.json",
+  "title": "posts-log-record",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "product_id": {
+      "type": "string",
+      "pattern": "^P[0-9]{2,}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "posted",
+        "unknown"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "posted_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "\\+09:00$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reaction": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rating": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "hold"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "date",
+    "product_id",
+    "status",
+    "source",
+    "posted_at",
+    "reaction",
+    "rating"
+  ],
+  "additionalProperties": false
+}
