@@ -5,10 +5,10 @@
   "plan_version": "1.0",
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
-  "status": "needs_owner",
-  "current_step": "08",
+  "status": "running",
+  "current_step": "09",
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-11T10:56:35+09:00",
+  "updated_at": "2026-10-11T17:54:12.000+09:00",
   "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
   "git_checkpoint": {
     "branch": "main",
@@ -369,10 +369,10 @@
     {
       "step": "08",
       "title": "公開検索画面と利用上の制約を確認する",
-      "status": "needs_owner",
+      "status": "complete",
       "started_at": null,
-      "ended_at": null,
-      "time_note": "開始時刻は記録していない。認証待ちのためSTEP 08は未完了。",
+      "ended_at": "2026-10-11T17:54:12.000+09:00",
+      "time_note": "本人認証後の再開時刻は個別記録なし。正確な終了記録時刻のみ保存。",
       "inputs": [
         "前STEPの指定出力"
       ],
@@ -384,22 +384,24 @@
         "public_room_entry_opened": 1,
         "official_web_entry_link_followed": 1,
         "rakuten_login_pages_reached": 1,
-        "search_pages_reached": 0,
-        "search_conditions_observed": 0,
+        "search_pages_reached": 1,
+        "official_condition_searches_performed": 1,
+        "search_conditions_observed": 1,
+        "displayed_total_results": 130,
         "base_sample_records": 0
       },
       "validation_results": [
-        "公式ROOM公開入口を開き、画面上の「WebでROOMをはじめる」リンクを確認",
-        "リンク操作後に楽天ログイン画面・パスキー操作を視認。動的クエリ値は保存せず、認証状態・認証情報を読まず",
-        "検索フォーム・結果一覧・総件数・詳細リンク・終端に未到達であることを確認し、取得可能と判定しない",
-        "条件付き検索、標本取得、スクロール収集、API通信、規約同意を行わず停止",
-        "本人の楽天認証待ちとしてSTEP 08をneeds_owner、次工程も未着手のまま保持"
+        "公式入口から楽天ログイン／パスキー画面へ遷移した先行観測を保持。本人の認証完了連絡後にROOM画面を再開。",
+        "検索語空欄、コレ数指定なし、コメント10件以上、いいね300件以上を詳細検索UIで設定し、再表示して確認後に公式検索操作を1回実行。",
+        "検索結果画面タイトル「ROOM : 検索結果」、安全なURL部分、表示総数130件を視認。",
+        "初期画面の検索結果カードは表示されたが、標本行を作成せず、個別詳細・継続表示・終端・規約上の継続取得条件は未確認と明記。",
+        "ハッシュを生成・照合せず、認証情報・Cookie・動的クエリ値・プロフィール内部情報を取得または保存していない。"
       ],
-      "review_ref": "公開UI確認.md#STEP-08-部分レビュー",
+      "review_ref": "公開UI確認.md#STEP-08-レビュー",
       "return_to": null,
-      "next_step": "08",
-      "next_actor": "本人認証後、公開UI観測担当がSTEP 08を再開",
-      "blocker": "公式ROOM入口から楽天ログイン／パスキー画面へ遷移。本人認証が終わるまで検索UIを確認できない。"
+      "next_step": "09",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
     },
     {
       "step": "09",
@@ -1244,14 +1246,14 @@
   ],
   "execution_audit": {
     "step": "08",
-    "completed_at": null,
-    "result": "needs_owner",
+    "completed_at": "2026-10-11T17:54:12.000+09:00",
+    "result": "complete",
     "checks": [
-      "公式ROOM公開入口を開き、画面上の「WebでROOMをはじめる」リンクを確認",
-      "リンク操作後に楽天ログイン画面・パスキー操作を視認。動的クエリ値は保存せず、認証状態・認証情報を読まず",
-      "検索フォーム・結果一覧・総件数・詳細リンク・終端に未到達であることを確認し、取得可能と判定しない",
-      "条件付き検索、標本取得、スクロール収集、API通信、規約同意を行わず停止",
-      "本人の楽天認証待ちとしてSTEP 08をneeds_owner、次工程も未着手のまま保持"
+      "公式入口から画面上の「WebでROOMをはじめる」リンクをたどり、楽天ログイン／パスキー画面への遷移を確認。ユーザーから認証完了の連絡後に再開。",
+      "詳細検索UIで商品検索、検索語空欄、コレ数指定なし、コメント10件以上、いいね300件以上を設定し、選択状態の再表示を確認。",
+      "公式検索操作1回後、「ROOM : 検索結果」とURLの非秘密部分を確認。表示総数130件。標本行0件。",
+      "個別詳細リンク・継続表示・終端・規約上の取得条件は未確認とし、全件取得可能とは判定しない。",
+      "Cookie・パスキー・認証コード・動的クエリ値・プロフィール内部情報を保存せず、全件列挙・スクロール・個別詳細閲覧・API通信・投稿を行わない。"
     ]
   }
 }
