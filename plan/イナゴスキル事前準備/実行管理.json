@@ -6,9 +6,9 @@
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
   "status": "running",
-  "current_step": "09",
+  "current_step": "10",
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-11T17:54:12.000+09:00",
+  "updated_at": "2026-10-11T18:20:23+09:00",
   "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
   "git_checkpoint": {
     "branch": "main",
@@ -406,21 +406,53 @@
     {
       "step": "09",
       "title": "同じ基礎検索で少量の項目を試し読みする",
-      "status": "not_started",
-      "started_at": null,
-      "ended_at": null,
-      "time_note": null,
+      "status": "complete",
+      "started_at": "2026-10-11T17:57:11+09:00",
+      "ended_at": "2026-10-11T18:20:23+09:00",
+      "time_note": "開始時刻と完了記録時刻は台帳に実記録。カードごとの反応値の個別観測時刻は記録できず、nullで保持。",
       "inputs": [
-        "前STEPの指定出力"
+        "plan/イナゴスキル事前準備/公開UI確認.md",
+        "plan/イナゴスキル事前準備/収集分析仕様.md",
+        "plan/イナゴスキル事前準備/保存公開方針.md",
+        "plan/イナゴ戦略/イナゴスキル要件定義書.html",
+        "plan/イナゴ戦略/意思決定台帳.md",
+        "plan/イナゴ戦略/ヒアリング記録.md"
       ],
-      "output_paths": [],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/少量読取確認.md",
+        "非公開作業データ/基礎/試行観測.jsonl",
+        "非公開作業データ/基礎/本文/B0001.txt～B0005.txt",
+        "非公開作業データ/投稿者対応/試行投稿者対応.json"
+      ],
       "source_requirement_version": "1.3",
-      "observed_counts": null,
-      "validation_results": [],
-      "review_ref": null,
+      "observed_counts": {
+        "search_display_sequence": "130→0→130",
+        "final_displayed_total": 130,
+        "sample_cards": 5,
+        "condition_matching_cards": 5,
+        "bodies_full": 4,
+        "bodies_partial": 1,
+        "known_permanent_post_ids": 0,
+        "product_links_matched": 1,
+        "product_link_mismatches": 3,
+        "product_links_not_tested": 1,
+        "private_observation_rows": 5
+      },
+      "validation_results": [
+        "同じ詳細検索条件を公式UIで再設定し、130件・0件・130件の画面変化を観測。原因は未確定として記録。",
+        "アクセシビリティ読取順の先頭5カードを保存し、画面の視覚順とは異なることを確認。",
+        "5カードのコメント数・いいね数が検索下限を満たすことを、UI値とJSONL値で照合。",
+        "公式の続きを読む操作で4件を全文表示。残り1件は部分表示とし、全文取得成功に数えない。",
+        "恒久投稿ID／URLは5件ともunknown。商品リンクは1件が一致、3件で不一致、1件は未操作として記録。",
+        "JSONLを5行として読込み、観測ID、本文参照、条件適合状態を確認。本文ファイル5件が存在し、状態は全文4・部分1。",
+        "実ファイル3種類についてgit check-ignoreで/非公開作業データ/への一致を確認。",
+        "氏名・全文本文・投稿者対応を公開資料へ記載せず、非公開データをGit対象外とした。",
+        "ハッシュの生成・照合は実施していない。"
+      ],
+      "review_ref": "少量読取確認.md#レビュー・検証",
       "return_to": null,
       "next_step": "10",
-      "next_actor": "指定STEPの担当",
+      "next_actor": "基礎収集管理",
       "blocker": null
     },
     {
@@ -1245,15 +1277,11 @@
     }
   ],
   "execution_audit": {
-    "step": "08",
-    "completed_at": "2026-10-11T17:54:12.000+09:00",
+    "step": "09",
+    "completed_at": "2026-10-11T18:20:23+09:00",
     "result": "complete",
     "checks": [
-      "公式入口から画面上の「WebでROOMをはじめる」リンクをたどり、楽天ログイン／パスキー画面への遷移を確認。ユーザーから認証完了の連絡後に再開。",
-      "詳細検索UIで商品検索、検索語空欄、コレ数指定なし、コメント10件以上、いいね300件以上を設定し、選択状態の再表示を確認。",
-      "公式検索操作1回後、「ROOM : 検索結果」とURLの非秘密部分を確認。表示総数130件。標本行0件。",
-      "個別詳細リンク・継続表示・終端・規約上の取得条件は未確認とし、全件取得可能とは判定しない。",
-      "Cookie・パスキー・認証コード・動的クエリ値・プロフィール内部情報を保存せず、全件列挙・スクロール・個別詳細閲覧・API通信・投稿を行わない。"
+      "少量読取試行と公開要約を保存。未知ID・商品リンク不一致・1件の本文部分取得を明示してSTEP 10へ。"
     ]
   }
 }
