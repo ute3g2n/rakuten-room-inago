@@ -6,9 +6,9 @@
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
   "status": "running",
-  "current_step": "10",
+  "current_step": "11",
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-11T18:20:23+09:00",
+  "updated_at": "2026-10-11T18:26:36+09:00",
   "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
   "git_checkpoint": {
     "branch": "main",
@@ -17,16 +17,18 @@
     "last_observed_status": "clean"
   },
   "base_collection": {
-    "status": "not_started",
+    "status": "running",
     "search_id": "B01",
-    "target_date": null,
-    "started_at": null,
-    "initial_ui_total": null,
-    "last_observation_id": null,
+    "target_date": "2026-10-11",
+    "started_at": "2026-10-11T17:59:55+09:00",
+    "initial_ui_total": 130,
+    "last_observation_id": "B0005",
     "terminal_confirmed": false,
-    "rows_collected": 0,
-    "rows_fulltext": 0,
-    "reason": "STEP 07～09のUI・方法確認前。過去UI観測は今回標本でない。"
+    "rows_collected": 5,
+    "rows_fulltext": 4,
+    "reason": "STEP 09の先頭5観測を同日・同条件・同一画面のB01の一部として再利用。画面の初期総数は130。恒久投稿IDは0/5件で確認済み。終端未確認のためSTEP 11で通常スクロールを継続し、明確でなければpartialで停止。",
+    "exact_search_submit_time_known": false,
+    "permanent_post_ids_known": 0
   },
   "supplement_budget": {
     "S-G01": {
@@ -458,21 +460,42 @@
     {
       "step": "10",
       "title": "基礎検索の対象日と開始状態を保存する",
-      "status": "not_started",
+      "status": "complete",
       "started_at": null,
-      "ended_at": null,
-      "time_note": null,
+      "ended_at": "2026-10-11T18:26:36+09:00",
+      "time_note": "STEP 10開始時刻と検索送信時刻は個別記録なし。B01の先頭読取基準時刻は2026-10-11T17:59:55+09:00。",
       "inputs": [
-        "前STEPの指定出力"
+        "plan/イナゴスキル事前準備/少量読取確認.md",
+        "plan/イナゴスキル事前準備/収集分析仕様.md",
+        "plan/イナゴスキル事前準備/実行管理.json"
       ],
-      "output_paths": [],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/基礎検索開始.md",
+        "非公開作業データ/基礎/検索記録.json"
+      ],
       "source_requirement_version": "1.3",
-      "observed_counts": null,
-      "validation_results": [],
-      "review_ref": null,
+      "observed_counts": {
+        "search_id": "B01",
+        "target_date": "2026-10-11",
+        "initial_displayed_total": 130,
+        "current_session_recheck_total": 130,
+        "reused_observation_rows": 5,
+        "additional_cards_after_one_scroll": true,
+        "terminal_confirmed": false
+      },
+      "validation_results": [
+        "STEP 09と同日・同条件・同一検索結果画面を確認し、検索を再送信せずB01として引継ぎ。",
+        "基準時刻17:59:55 JSTの130件表示、現在画面の同じURLと130件表示を確認。検索送信時刻はunknownで保存。",
+        "通常の下スクロール1回で追加カードが表示される一方、総数表示は130件のままと確認。明示的な終端表示は未確認。",
+        "アクセシビリティ取得順、B0001～B0005の再利用、B0006からの次位置を定義。",
+        "最下部・スクロール停滞・新規カードなしを2回確認する終端候補と、曖昧時にpartialで停止する条件を文書化。",
+        "非公開検索記録JSONを読戻し、B01条件、観測件数、未確認終端、B0001～B0005の再利用を確認。",
+        "Git除外下の検索記録を確認。ハッシュ生成・照合なし。"
+      ],
+      "review_ref": "基礎検索開始.md#レビュー・検証",
       "return_to": null,
       "next_step": "11",
-      "next_actor": "指定STEPの担当",
+      "next_actor": "基礎観測",
       "blocker": null
     },
     {
@@ -1277,11 +1300,11 @@
     }
   ],
   "execution_audit": {
-    "step": "09",
-    "completed_at": "2026-10-11T18:20:23+09:00",
+    "step": "10",
+    "completed_at": "2026-10-11T18:26:36+09:00",
     "result": "complete",
     "checks": [
-      "少量読取試行と公開要約を保存。未知ID・商品リンク不一致・1件の本文部分取得を明示してSTEP 10へ。"
+      "B01の対象日・条件・検索画面・開始表示数・取得順・終端候補・再開位置を保存。全件列挙はSTEP 11で継続。"
     ]
   }
 }
