@@ -5,10 +5,10 @@
   "plan_version": "1.0",
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
-  "status": "running",
+  "status": "blocked",
   "current_step": "11",
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-11T18:26:36+09:00",
+  "updated_at": "2026-10-11T19:00:52+09:00",
   "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
   "git_checkpoint": {
     "branch": "main",
@@ -17,18 +17,45 @@
     "last_observed_status": "clean"
   },
   "base_collection": {
-    "status": "running",
+    "status": "partial",
     "search_id": "B01",
     "target_date": "2026-10-11",
     "started_at": "2026-10-11T17:59:55+09:00",
     "initial_ui_total": 130,
-    "last_observation_id": "B0005",
+    "last_observation_id": "B0073",
     "terminal_confirmed": false,
-    "rows_collected": 5,
+    "rows_collected": 60,
     "rows_fulltext": 4,
-    "reason": "STEP 09の先頭5観測を同日・同条件・同一画面のB01の一部として再利用。画面の初期総数は130。恒久投稿IDは0/5件で確認済み。終端未確認のためSTEP 11で通常スクロールを継続し、明確でなければpartialで停止。",
+    "reason": "STEP 09の先頭5観測をB01として再利用。公式UIで40から60カードへ追加読込した際に列ごとのAX順再配置を確認し、60結果位置・13再出現候補・2反応数再観測を記録。スクロール中の表示総数は130件。プロフィール画面から戻ると同じ検索URLで0件表示となり、元の一覧を復元できなかった。再検索せずpartialで停止。終端未確認。",
     "exact_search_submit_time_known": false,
-    "permanent_post_ids_known": 0
+    "permanent_post_ids_known": 0,
+    "last_observation_at": "2026-10-11T18:43:07+09:00",
+    "unread_range": "未読目安70カード相当。次の新規観測IDはB0074。",
+    "result_rows": 60,
+    "reappearance_rows": 13,
+    "metric_reobservation_rows": 2,
+    "observation_rows_total": 75,
+    "event_rows_total": 1,
+    "next_observation_id": "B0074",
+    "latest_return_ui_total": 0,
+    "result_count_history": [130, 0],
+    "duplicate_surface_metadata": "B0041-B0053は再配置後の位置41-53に現れたB0028-B0040との再出現候補。商品名・匿名投稿者ID・反応数・価格が一致するが、恒久ID未確認のため同一投稿とは未確定。",
+    "accessibility_reflow": {
+      "previous_loaded_cards": 40,
+      "current_loaded_cards": 60,
+      "unchanged_positions": "B0001-B0014 at 1-14",
+      "moved_ranges": [
+        { "observation_ids": "B0015-B0027", "previous_positions": "15-27", "current_positions": "21-33" },
+        { "observation_ids": "B0028-B0040", "previous_positions": "28-40", "current_positions": "41-53" }
+      ],
+      "new_card_positions": ["15-20", "34-40", "54-60"],
+      "new_card_observation_ids": "B0054-B0073"
+    },
+    "reobserved_count_changes": [
+      { "observation_id": "B0003", "field": "likes", "previous": 1612, "current": 1611 },
+      { "observation_id": "B0005", "field": "likes", "previous": 608, "current": 607 }
+    ],
+    "unresolved_author_aliases": ["A0033", "A0034", "A0035", "A0036", "A0037", "A0038", "A0039", "A0040", "A0041", "A0042", "A0043", "A0044"]
   },
   "supplement_budget": {
     "S-G01": {
@@ -501,22 +528,51 @@
     {
       "step": "11",
       "title": "基礎検索の全結果を終端まで列挙する",
-      "status": "not_started",
+      "status": "partial",
       "started_at": null,
-      "ended_at": null,
-      "time_note": null,
+      "ended_at": "2026-10-11T19:00:52+09:00",
+      "time_note": "開始時刻の個別記録なし。B01の列挙観測は18:30～18:43 JST。プロフィール画面から戻った検索画面の0件表示を18:47:51 JSTに確認し、位置再配置レビューを含むpartial記録を19:00:52 JSTに確定。",
       "inputs": [
-        "前STEPの指定出力"
+        "plan/イナゴスキル事前準備/基礎検索開始.md",
+        "非公開作業データ/基礎/検索記録.json",
+        "plan/イナゴスキル事前準備/収集分析仕様.md",
+        "plan/イナゴスキル事前準備/実行管理.json"
       ],
-      "output_paths": [],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/基礎列挙記録.md",
+        "非公開作業データ/基礎/基礎列挙.jsonl",
+        "非公開作業データ/投稿者対応/試行投稿者対応.json"
+      ],
       "source_requirement_version": "1.3",
-      "observed_counts": null,
-      "validation_results": [],
-      "review_ref": null,
-      "return_to": null,
+      "observed_counts": {
+        "search_id": "B01",
+        "initial_displayed_total": 130,
+        "scroll_displayed_total": 130,
+        "loaded_card_positions": 60,
+        "result_rows": 60,
+        "reappearance_rows": 13,
+        "recorded_observation_id_range": "B0001-B0073 including reobservations",
+        "unread_count_estimate": 70,
+        "next_observation_id": "B0074",
+        "return_displayed_total": 0,
+        "permanent_post_ids_known": 0,
+        "terminal_confirmed": false
+      },
+      "validation_results": [
+        "通常のUIスクロールで40から60カード位置まで読み込み、結果行60件を保存。",
+        "追加読込で列ごとにAX順が再配置されることを比較確認。B0015～B0027は21～33へ、B0028～B0040は41～53へ移動。",
+        "新規カード20件を現在位置15～20、34～40、54～60から保存。観測ID集合B0001～B0073の連続性と、結果行60件で重複IDがないことを確認。B0003・B0005の再観測行は元IDを参照。",
+        "B0041～B0053はB0028～B0040との再出現候補として保存。恒久IDがないため同一投稿とは断定しない。",
+        "B0003とB0005のいいね数変化を旧値付きで別の再観測行に保存。",
+        "投稿ID0/60、商品URL未確認、A0033～A0044のプロフィール経路未確認を記録。",
+        "プロフィール画面から戻った検索画面が同じURLで0件表示。原因未確認のため再検索せず停止。",
+        "JSONL解析、匿名公開要約、Git除外を確認。ハッシュは生成・照合していない。"
+      ],
+      "review_ref": "基礎列挙記録.md#レビュー・検証",
+      "return_to": "11",
       "next_step": "12",
       "next_actor": "指定STEPの担当",
-      "blocker": null
+      "blocker": "B01検索画面が復帰後に0件表示となり元の一覧を復元できない。終端未確認のためSTEP 12へ進めない。"
     },
     {
       "step": "12",
@@ -1300,11 +1356,12 @@
     }
   ],
   "execution_audit": {
-    "step": "10",
-    "completed_at": "2026-10-11T18:26:36+09:00",
-    "result": "complete",
+    "step": "11",
+    "completed_at": "2026-10-11T19:00:52+09:00",
+    "result": "partial",
     "checks": [
-      "B01の対象日・条件・検索画面・開始表示数・取得順・終端候補・再開位置を保存。全件列挙はSTEP 11で継続。"
+      "B01の結果60行と再観測13件を含むB0001～B0073を保存。スクロール中は130件表示、復帰後は同じURLで0件表示。",
+      "未読目安70件相当、終端未確認。再検索せずSTEP 11で停止し、STEP 12は未開始。"
     ]
   }
 }
