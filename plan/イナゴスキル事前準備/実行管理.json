@@ -5,10 +5,10 @@
   "plan_version": "1.0",
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
-  "status": "running",
+  "status": "needs_owner",
   "current_step": "08",
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-11T10:53:31+09:00",
+  "updated_at": "2026-10-11T10:56:35+09:00",
   "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
   "git_checkpoint": {
     "branch": "main",
@@ -369,22 +369,37 @@
     {
       "step": "08",
       "title": "公開検索画面と利用上の制約を確認する",
-      "status": "not_started",
+      "status": "needs_owner",
       "started_at": null,
       "ended_at": null,
-      "time_note": null,
+      "time_note": "開始時刻は記録していない。認証待ちのためSTEP 08は未完了。",
       "inputs": [
         "前STEPの指定出力"
       ],
-      "output_paths": [],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/公開UI確認.md"
+      ],
       "source_requirement_version": "1.3",
-      "observed_counts": null,
-      "validation_results": [],
-      "review_ref": null,
+      "observed_counts": {
+        "public_room_entry_opened": 1,
+        "official_web_entry_link_followed": 1,
+        "rakuten_login_pages_reached": 1,
+        "search_pages_reached": 0,
+        "search_conditions_observed": 0,
+        "base_sample_records": 0
+      },
+      "validation_results": [
+        "公式ROOM公開入口を開き、画面上の「WebでROOMをはじめる」リンクを確認",
+        "リンク操作後に楽天ログイン画面・パスキー操作を視認。動的クエリ値は保存せず、認証状態・認証情報を読まず",
+        "検索フォーム・結果一覧・総件数・詳細リンク・終端に未到達であることを確認し、取得可能と判定しない",
+        "条件付き検索、標本取得、スクロール収集、API通信、規約同意を行わず停止",
+        "本人の楽天認証待ちとしてSTEP 08をneeds_owner、次工程も未着手のまま保持"
+      ],
+      "review_ref": "公開UI確認.md#STEP-08-部分レビュー",
       "return_to": null,
-      "next_step": "09",
-      "next_actor": "指定STEPの担当",
-      "blocker": null
+      "next_step": "08",
+      "next_actor": "本人認証後、公開UI観測担当がSTEP 08を再開",
+      "blocker": "公式ROOM入口から楽天ログイン／パスキー画面へ遷移。本人認証が終わるまで検索UIを確認できない。"
     },
     {
       "step": "09",
@@ -1228,15 +1243,15 @@
     }
   ],
   "execution_audit": {
-    "step": "07",
-    "completed_at": "2026-10-11T10:53:31+09:00",
-    "result": "complete",
+    "step": "08",
+    "completed_at": null,
+    "result": "needs_owner",
     "checks": [
-      "CUAの実状態でCodex In-app Browserを確認。開いたタブは0件、ログイン状態・秘密値は確認せず",
-      "UTF-8仮JSON 2レコードとCSV 2データ行を非公開領域で保存・再読取し、件数・日本語・0値を確認。仮ファイルを削除",
-      "旧ROOM収集器の永続プロファイルと旧台帳への書込み、楽天API収集器の認証情報・API通信・旧保存先をソースで確認し、いずれも実行せず",
-      "実標本・補足検索・外部API呼出しが0件であることを確認",
-      "作業環境確認.mdを読戻し、合格条件・限定・再開先を確認"
+      "公式ROOM公開入口を開き、画面上の「WebでROOMをはじめる」リンクを確認",
+      "リンク操作後に楽天ログイン画面・パスキー操作を視認。動的クエリ値は保存せず、認証状態・認証情報を読まず",
+      "検索フォーム・結果一覧・総件数・詳細リンク・終端に未到達であることを確認し、取得可能と判定しない",
+      "条件付き検索、標本取得、スクロール収集、API通信、規約同意を行わず停止",
+      "本人の楽天認証待ちとしてSTEP 08をneeds_owner、次工程も未着手のまま保持"
     ]
   }
 }
