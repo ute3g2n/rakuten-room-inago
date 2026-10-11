@@ -3,6 +3,9 @@ node_modules/
 /rakuten-api.credentials.json
 rakuten-room-kai/affiliate-report/*
 
+# Private raw evidence for the Inago preparation run
+/非公開作業データ/
+
 # Local Python environments and caches
 /.venv/
 venv/
