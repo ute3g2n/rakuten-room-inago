@@ -1,0 +1,1227 @@
+{
+  "schema_version": "1.0",
+  "run_id": "20261011-01",
+  "plan_path": "plan/イナゴスキル事前準備実行計画.md",
+  "plan_version": "1.0",
+  "source_requirement_version": "1.3",
+  "timezone": "Asia/Tokyo",
+  "status": "running",
+  "current_step": "07",
+  "opened_at": "2026-10-11T10:40:49+09:00",
+  "updated_at": "2026-10-11T10:49:15+09:00",
+  "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
+  "git_checkpoint": {
+    "branch": "main",
+    "upstream": "origin/main",
+    "steps_01_to_05_committed_and_pushed": true,
+    "last_observed_status": "clean"
+  },
+  "base_collection": {
+    "status": "not_started",
+    "search_id": "B01",
+    "target_date": null,
+    "started_at": null,
+    "initial_ui_total": null,
+    "last_observation_id": null,
+    "terminal_confirmed": false,
+    "rows_collected": 0,
+    "rows_fulltext": 0,
+    "reason": "STEP 07～09のUI・方法確認前。過去UI観測は今回標本でない。"
+  },
+  "supplement_budget": {
+    "S-G01": {
+      "status": "not_started",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": null
+    },
+    "S-G02": {
+      "status": "not_started",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": null
+    },
+    "S-G03": {
+      "status": "not_started",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": null
+    },
+    "S-G04": {
+      "status": "not_started",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": null
+    },
+    "S-G05": {
+      "status": "not_started",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": null
+    }
+  },
+  "supplement_total": {
+    "max_searches": 5,
+    "searches_started": 0,
+    "max_slots": 250,
+    "slots_used": 0
+  },
+  "owner_confirmation": {
+    "status": "not_requested",
+    "version": null,
+    "targets": [
+      "classification",
+      "patterns",
+      "body_length_guidance",
+      "tag_guidance"
+    ],
+    "response_ref": null
+  },
+  "final_deliverables": {
+    "expected_count": 9,
+    "confirmed_count": 0,
+    "generated_html_report": null
+  },
+  "reviews": [
+    {
+      "checkpoint_step": "17",
+      "subject": "基礎標本の条件、全件範囲、欠落、件数",
+      "status": "not_started",
+      "method": "全記録の条件・ID・集合再計数＋指定IDの公開画面再閲覧",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "28",
+      "subject": "補足の1検索／50枠／5検索／250枠上限、重複と欠落",
+      "status": "not_started",
+      "method": "検索別台帳の全行再計数、重複・条件外・取得状態の監査",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "34",
+      "subject": "5ジャンルと30テーマ、主1・補助、商品一意性",
+      "status": "not_started",
+      "method": "各ジャンル6件・親ID・包含境界・根拠参照の再計数",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "41",
+      "subject": "文型、長さ・タグの母数と作例",
+      "status": "not_started",
+      "method": "原観測に戻れる項目照合、計測分布と採用値案の確認",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "42",
+      "subject": "反例、条件の境界、計画条件との差",
+      "status": "not_started",
+      "method": "未実施・欠測・旧条件・ID誤同定のケース照査",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "43",
+      "subject": "レビュー指摘の修正と影響範囲",
+      "status": "not_started",
+      "method": "指摘ごとの変更前後・下流成果・再確認の追跡",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "47",
+      "subject": "実装担当の受領リハーサル",
+      "status": "not_started",
+      "method": "項目の再計数、参照実在、確定資料と受領値の直接比較",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "48",
+      "subject": "全成果物と準備作業の総合監査",
+      "status": "not_started",
+      "method": "最終成果・履歴・レビュー・Git除外・残条件の総覧",
+      "independent_review": null
+    },
+    {
+      "checkpoint_step": "50",
+      "subject": "最終HTML表示・値・リンク・印刷確認",
+      "status": "not_started",
+      "method": "ブラウザでデスクトップ／約390px幅／印刷、主要値を原資料と照合",
+      "independent_review": null
+    }
+  ],
+  "steps": [
+    {
+      "step": "01",
+      "title": "開始時の原典と作業状態を確認する",
+      "status": "complete",
+      "started_at": "2026-10-11T10:40:49+09:00",
+      "ended_at": null,
+      "time_note": "開始観測時刻のみ保存。正確な終了時刻は個別記録がなく推定していない。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md",
+        "plan/イナゴ戦略/イナゴスキル要件定義書.html"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/開始確認.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "collected_sample_rows": 0,
+        "inherited_full_sample_rows": 0
+      },
+      "validation_results": [
+        "現行HTML内の正本sourceをJSON解析し版1.3／更新日を読取",
+        "開始前git statusは空、run用ディレクトリと全件標本の引継ぎ資料なしを確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "02",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "02",
+      "title": "採用条件と旧記述の相違を台帳にする",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/開始確認.md",
+        "要件本文と決定／ヒアリング資料"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/原典条件台帳.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "D-021/022/026/027/028/037/038とQ-017-aを台帳・回答で直接照合",
+        "古い11/構成案/05との相違を整理、未解決ブロッカー0"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "03",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "03",
+      "title": "成果物と実装への引渡し項目を設計する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/原典条件台帳.md",
+        "要件本文第5～7・16・27章",
+        "plan/イナゴ戦略/要件データ辞書.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/成果物設計.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "成果物9種とJSON項目表を再計数",
+        "要件第16章とsettings_version境界を照合",
+        "相対参照の実在確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "04",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "04",
+      "title": "観測項目と母数の定義を固定する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/原典条件台帳.md",
+        "plan/イナゴスキル事前準備/成果物設計.md",
+        "plan/イナゴ戦略/03_情報源と取得実現性検証.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/収集分析仕様.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "基礎・補足・本人提供、母数、ID、0／欠測、長さ・タグ計算を確認",
+        "相対リンク4件の実在確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "05",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "05",
+      "title": "非公開証拠の保存とGit除外を設定する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。修正記録とGit除外実測を根拠に完了。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/成果物設計.md",
+        "plan/イナゴスキル事前準備/収集分析仕様.md",
+        ".gitignore"
+      ],
+      "output_paths": [
+        ".gitignore",
+        "plan/イナゴスキル事前準備/保存公開方針.md",
+        "非公開作業データ/ (local only, gitignored)"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "private_source_records_saved": 0,
+        "actual_ignore_probe_files_seen_ignored": 1
+      },
+      "validation_results": [
+        "実データなしの一時ファイルをgit check-ignoreとgit status --ignoredで実測",
+        "一時ファイルを削除、保存先ディレクトリを確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "06",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "06",
+      "title": "実行台帳とレビューの記録方法を用意する",
+      "status": "complete",
+      "started_at": "2026-10-11T10:47:14+09:00",
+      "ended_at": "2026-10-11T10:49:15+09:00",
+      "time_note": null,
+      "inputs": [
+        "STEP 01～05の成果物と検証記録",
+        "50-step実行計画"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/実行管理.md",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/検証設計.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "計画見出しとJSONのSTEP 01～50、見出し名・順序が一致",
+        "STEP 01～05だけcomplete、STEP 06 complete、STEP 07～50 not_started",
+        "補足5枠の開始・使用数0、基礎行数0、本人確認未依頼を読戻し確認",
+        "レビュー確認点9つと全出力参照を照合",
+        "実行管理.md・実行管理.json・検証設計.mdの3ファイルを読戻し確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "07",
+      "next_actor": null,
+      "blocker": null
+    },
+    {
+      "step": "07",
+      "title": "利用できる既存機能を読取りで確認する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "08",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "08",
+      "title": "公開検索画面と利用上の制約を確認する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "09",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "09",
+      "title": "同じ基礎検索で少量の項目を試し読みする",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "10",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "10",
+      "title": "基礎検索の対象日と開始状態を保存する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "11",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "11",
+      "title": "基礎検索の全結果を終端まで列挙する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "12",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "12",
+      "title": "対象投稿の全文と省略状態を保存する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "13",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "13",
+      "title": "恒久投稿と店舗商品の対応を確認する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "14",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "14",
+      "title": "各観測の検索条件と値の状態を点検する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "15",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "15",
+      "title": "全結果の取得範囲と欠落を照合する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "16",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "16",
+      "title": "投稿と商品と投稿者の偏りを集計する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "17",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "17",
+      "title": "基礎標本をレビューして分析可否を決める",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "18",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "18",
+      "title": "基礎標本の商品概念を上位概念へ整理する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "19",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "19",
+      "title": "基礎本文の構造を文型候補へ整理する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "20",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "20",
+      "title": "基礎本文の長さとタグを実測する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "21",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "21",
+      "title": "暫定分類と材料不足を具体化する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "22",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "22",
+      "title": "不足ジャンルだけの補足検索を計画する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "23",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "23",
+      "title": "G01の必要な補足を最大50投稿で取得する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "24",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "24",
+      "title": "G02の必要な補足を最大50投稿で取得する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "25",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "25",
+      "title": "G03の必要な補足を最大50投稿で取得する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "26",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "26",
+      "title": "G04の必要な補足を最大50投稿で取得する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "27",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "27",
+      "title": "G05の必要な補足を最大50投稿で取得する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "28",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "28",
+      "title": "補足の条件と上限と重複を監査する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "29",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "29",
+      "title": "区分と重複を保った統合分析資料を作る",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "30",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "30",
+      "title": "残る材料不足を解決し分析範囲を決める",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "31",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "31",
+      "title": "最終候補の5ジャンルを定義する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "32",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "32",
+      "title": "各ジャンルの6テーマと境界を定義する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "33",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "33",
+      "title": "主テーマと補助テーマの分類例を検証する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "34",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "34",
+      "title": "分類候補をレビューし曖昧さを修正する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "35",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "35",
+      "title": "統合標本から採用候補の文型を設計する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "36",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "36",
+      "title": "統合後の長さとタグの分布を再計測する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "37",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "37",
+      "title": "本文長さの目安を根拠付きで提案する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "38",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "38",
+      "title": "タグの数と使い方を根拠付きで提案する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "39",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "39",
+      "title": "文型ルールの一つの候補資料にまとめる",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "40",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "40",
+      "title": "文型を使った独自の紹介文を小さく試作する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "41",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "41",
+      "title": "文型と目安と試作を内容レビューする",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "42",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "42",
+      "title": "反例を使って計画条件との相違を点検する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "43",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "43",
+      "title": "レビュー指摘を修正し影響範囲を再確認する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "44",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "44",
+      "title": "本人が採用を判断できる概要資料を作る",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "45",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "45",
+      "title": "本人の実際の採用回答を記録する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "46",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "46",
+      "title": "採用結果を実装向けの確定資料へ出力する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "47",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "47",
+      "title": "実装担当として受領だけをリハーサルする",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "48",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "48",
+      "title": "全成果物の追跡と検証実績を最終監査する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "49",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "49",
+      "title": "実施内容と成果と検証のHTMLレポートを作る",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "50",
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    },
+    {
+      "step": "50",
+      "title": "HTMLの内容と表示を検証して完了を確定する",
+      "status": "not_started",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": null,
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": null,
+      "next_actor": "指定STEPの担当",
+      "blocker": null
+    }
+  ],
+  "execution_audit": {
+    "step": "06",
+    "completed_at": "2026-10-11T10:49:15+09:00",
+    "result": "complete",
+    "checks": [
+      "計画見出しとJSONのSTEP 01～50、見出し名・順序が一致",
+      "STEP 01～05だけcomplete、STEP 06 complete、STEP 07～50 not_started",
+      "補足5枠の開始・使用数0、基礎行数0、本人確認未依頼を読戻し確認",
+      "レビュー確認点9つと全出力参照を照合",
+      "実行管理.md・実行管理.json・検証設計.mdの3ファイルを読戻し確認"
+    ]
+  }
+}
