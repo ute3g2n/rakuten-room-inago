@@ -584,6 +584,245 @@ def read_human_action_state(connection: sqlite3.Connection) -> dict[str, Any]:
         raise
 
 
+def pending_posted_offer_keys(connection: sqlite3.Connection) -> tuple[str, ...]:
+    """Return products held by a pending posted report, including late reports."""
+
+    rows = connection.execute(
+        "SELECT DISTINCT offer_key FROM human_action "
+        "WHERE action='posted' AND apply_status='pending' ORDER BY offer_key"
+    ).fetchall()
+    return tuple(str(row[0]) for row in rows)
+
+
+def apply_human_action_in_transaction(
+    connection: sqlite3.Connection,
+    action: Mapping[str, Any],
+    run_id: str,
+    applied_at: str,
+) -> None:
+    """Apply one human report and its applied marker within the caller's transaction."""
+
+    if not connection.in_transaction:
+        raise PersistenceContractError(
+            "human report application requires a transaction"
+        )
+    action_id = str(action["action_id"])
+    action_kind = str(action["action"])
+    offer_key = str(action["offer_key"])
+    draft_id = str(action["draft_id"])
+    draft_version = int(action["draft_version"])
+    draft = connection.execute(
+        "SELECT draft_id, offer_key, version, status FROM draft "
+        "WHERE offer_key=? AND draft_id=? AND version=?",
+        (offer_key, draft_id, draft_version),
+    ).fetchone()
+    if draft is None:
+        raise RejectedContract("reported draft version is missing")
+
+    def refresh_exclusion() -> list[sqlite3.Row]:
+        events = connection.execute(
+            "SELECT event_id, draft_id, draft_version FROM publication_event "
+            "WHERE offer_key=? AND valid=1 ORDER BY event_id",
+            (offer_key,),
+        ).fetchall()
+        if not events:
+            connection.execute(
+                "DELETE FROM exclusion_key WHERE offer_key=?", (offer_key,)
+            )
+            return []
+        event_refs = json.dumps(
+            [str(row["event_id"]) for row in events],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        connection.execute(
+            """INSERT INTO exclusion_key
+                   (offer_key, reason, evidence_refs_json, effective, updated_at)
+               VALUES (?, 'actual_posted', ?, 1, ?)
+               ON CONFLICT(offer_key) DO UPDATE SET
+                   reason='actual_posted', evidence_refs_json=excluded.evidence_refs_json,
+                   effective=1, updated_at=excluded.updated_at""",
+            (offer_key, event_refs, applied_at),
+        )
+        return events
+
+    def release_active(posted_draft_id: str, posted_reason: str = "posted") -> None:
+        active = connection.execute(
+            "SELECT reservation_id, draft_id FROM reservation "
+            "WHERE offer_key=? AND status='active' ORDER BY reservation_id",
+            (offer_key,),
+        ).fetchall()
+        for reservation in active:
+            reason = (
+                posted_reason
+                if reservation["draft_id"] == posted_draft_id
+                else "valid_prior_post"
+            )
+            connection.execute(
+                "UPDATE reservation SET status='released', released_at=?, "
+                "release_reason=? WHERE reservation_id=? AND status='active'",
+                (applied_at, reason, reservation["reservation_id"]),
+            )
+
+    if action_kind == "posted":
+        connection.execute(
+            """INSERT INTO publication_event
+                   (event_id, offer_key, draft_id, draft_version, reported_at,
+                    actual_posted_at, room_url, evidence_kind, valid, revision)
+               VALUES (?, ?, ?, ?, ?, ?, NULL, 'human_check', 1, 0)""",
+            (
+                f"PUB-{action_id}",
+                offer_key,
+                draft_id,
+                draft_version,
+                action["reported_at"],
+                action["actual_posted_at"],
+            ),
+        )
+        connection.execute(
+            "UPDATE draft SET status='posted' WHERE draft_id=? AND version=?",
+            (draft_id, draft_version),
+        )
+        later = connection.execute(
+            "SELECT draft_id, version FROM draft WHERE offer_key=? AND version>? "
+            "ORDER BY version, draft_id",
+            (offer_key, draft_version),
+        ).fetchall()
+        for newer in later:
+            valid_newer = connection.execute(
+                "SELECT 1 FROM publication_event WHERE offer_key=? AND draft_id=? "
+                "AND draft_version=? AND valid=1 LIMIT 1",
+                (offer_key, newer["draft_id"], newer["version"]),
+            ).fetchone()
+            if valid_newer is None:
+                connection.execute(
+                    "UPDATE draft SET status='do_not_post_already_posted' "
+                    "WHERE draft_id=? AND version=?",
+                    (newer["draft_id"], newer["version"]),
+                )
+        release_active(draft_id)
+        refresh_exclusion()
+
+    elif action_kind == "skipped":
+        valid_event = connection.execute(
+            "SELECT 1 FROM publication_event WHERE offer_key=? AND valid=1 LIMIT 1",
+            (offer_key,),
+        ).fetchone()
+        if valid_event is None:
+            connection.execute(
+                "UPDATE draft SET status='skipped' WHERE draft_id=? AND version=? "
+                "AND status NOT IN ('posted','do_not_post_already_posted')",
+                (draft_id, draft_version),
+            )
+            connection.execute(
+                "UPDATE reservation SET status='released', released_at=?, "
+                "release_reason='skipped' WHERE offer_key=? AND draft_id=? "
+                "AND status='active'",
+                (applied_at, offer_key, draft_id),
+            )
+        elif draft["status"] not in {"posted", "do_not_post_already_posted"}:
+            connection.execute(
+                "UPDATE draft SET status='do_not_post_already_posted' "
+                "WHERE draft_id=? AND version=?",
+                (draft_id, draft_version),
+            )
+        if valid_event is not None:
+            release_active(draft_id, posted_reason="skipped")
+        refresh_exclusion()
+
+    elif action_kind == "correction":
+        event_ref = action["old_event_ref"]
+        reason = action["reason"]
+        if not isinstance(reason, str) or not reason.strip() or not event_ref:
+            raise RejectedContract("correction reason or reference is missing")
+        event = connection.execute(
+            "SELECT * FROM publication_event WHERE event_id=?",
+            (event_ref,),
+        ).fetchone()
+        if (
+            event is None
+            or event["offer_key"] != offer_key
+            or event["draft_id"] != draft_id
+            or int(event["draft_version"] or 0) != draft_version
+        ):
+            raise RejectedContract("correction reference does not match reported draft")
+        if int(event["valid"]) == 1:
+            connection.execute(
+                "UPDATE publication_event SET valid=0, revision=revision+1 "
+                "WHERE event_id=? AND valid=1",
+                (event_ref,),
+            )
+        valid_events = refresh_exclusion()
+        current_valid_version = any(
+            row["draft_id"] == draft_id
+            and int(row["draft_version"] or 0) == draft_version
+            for row in valid_events
+        )
+        if current_valid_version:
+            corrected_status = "posted"
+        elif valid_events:
+            corrected_status = "do_not_post_already_posted"
+        else:
+            corrected_status = "committed"
+        connection.execute(
+            "UPDATE draft SET status=? WHERE draft_id=? AND version=?",
+            (corrected_status, draft_id, draft_version),
+        )
+        if valid_events:
+            posted_event_draft = next(
+                (str(row["draft_id"]) for row in valid_events if row["draft_id"]), ""
+            )
+            release_active(posted_event_draft)
+        else:
+            connection.execute(
+                "UPDATE draft SET status='committed' WHERE offer_key=? "
+                "AND status='do_not_post_already_posted'",
+                (offer_key,),
+            )
+            active = connection.execute(
+                "SELECT draft_id FROM reservation WHERE offer_key=? AND status='active'",
+                (offer_key,),
+            ).fetchone()
+            if active is None:
+                original_reservation = connection.execute(
+                    "SELECT reservation_id FROM reservation WHERE offer_key=? AND draft_id=? "
+                    "ORDER BY created_at DESC, reservation_id DESC LIMIT 1",
+                    (offer_key, draft_id),
+                ).fetchone()
+                if original_reservation is None:
+                    raise RejectedContract(
+                        "original reservation is missing for correction"
+                    )
+                connection.execute(
+                    "UPDATE reservation SET status='active', released_at=NULL, "
+                    "release_reason=NULL WHERE reservation_id=?",
+                    (original_reservation["reservation_id"],),
+                )
+            else:
+                active_draft = connection.execute(
+                    "SELECT status FROM draft WHERE offer_key=? AND draft_id=?",
+                    (offer_key, active["draft_id"]),
+                ).fetchone()
+                if (
+                    active_draft is not None
+                    and active_draft["status"] == "do_not_post_already_posted"
+                ):
+                    connection.execute(
+                        "UPDATE draft SET status='committed' WHERE offer_key=? AND draft_id=?",
+                        (offer_key, active["draft_id"]),
+                    )
+    else:
+        raise RejectedContract("unsupported human report action")
+
+    updated = connection.execute(
+        "UPDATE human_action SET apply_status='applied', applied_at=?, "
+        "applied_run_id=?, apply_error=NULL WHERE action_id=? AND apply_status='pending'",
+        (applied_at, run_id, action_id),
+    )
+    if updated.rowcount != 1:
+        raise RejectedContract("human report pending state changed during application")
+
+
 def _database_root(connection: sqlite3.Connection) -> Path:
     row = connection.execute("PRAGMA database_list").fetchone()
     if row is None or not row[2]:
