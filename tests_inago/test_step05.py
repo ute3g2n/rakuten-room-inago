@@ -27,13 +27,13 @@ MAX_BODY_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True)
-class TestDatabase:
+class DatabaseFixture:
     path: Path
     connect: Callable[[], sqlite3.Connection]
 
 
 @pytest.fixture
-def seeded_database(tmp_path: Path) -> TestDatabase:
+def seeded_database(tmp_path: Path) -> DatabaseFixture:
     path = tmp_path / "state.sqlite"
 
     def connect() -> sqlite3.Connection:
@@ -56,7 +56,7 @@ def seeded_database(tmp_path: Path) -> TestDatabase:
         _seed_fifteen_drafts(connection)
     finally:
         connection.close()
-    return TestDatabase(path=path, connect=connect)
+    return DatabaseFixture(path=path, connect=connect)
 
 
 def _seed_fifteen_drafts(connection: sqlite3.Connection) -> None:
@@ -161,9 +161,7 @@ def _request(
     headers: dict[str, str] | None = None,
     path: str = "/api/state",
 ) -> tuple[int, dict[str, Any] | None, bytes]:
-    connection = http.client.HTTPConnection(
-        "127.0.0.1", server.server_port, timeout=5
-    )
+    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
     try:
         connection.request(method, path, body=body, headers=headers or {})
         response = connection.getresponse()
@@ -197,9 +195,9 @@ def _json_request(
         request_headers.update(headers)
     body = raw_body
     if payload is not None:
-        body = json.dumps(
-            payload, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
+            "utf-8"
+        )
     return _request(server, method, body=body, headers=request_headers, path=path)
 
 
@@ -365,7 +363,7 @@ def test_human_action_entity_contract_requires_nullable_actual_posted_at() -> No
 
 
 def test_get_state_is_read_only_and_returns_receipt_revision(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -373,27 +371,43 @@ def test_get_state_is_read_only_and_returns_receipt_revision(
         second, _ = _get_state(server)
         assert first["csrf_token"] == csrf_token
         assert len(first["drafts"]) == 15
-        assert first["receipt_revisions"] == {f"shop_test:item_A{i:02}": 0 for i in range(1, 16)}
+        assert first["receipt_revisions"] == {
+            f"shop_test:item_A{i:02}": 0 for i in range(1, 16)
+        }
         assert first["pending_reports"] == []
         assert second["pending_reports"] == []
 
     connection = seeded_database.connect()
     try:
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 0
-        assert _count(
-            connection, "SELECT COUNT(*) FROM reservation WHERE status = 'active'"
-        ) == 15
+        assert (
+            _count(
+                connection, "SELECT COUNT(*) FROM reservation WHERE status = 'active'"
+            )
+            == 15
+        )
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id='R1'"
-        ).fetchone()[0] == 15
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id='R1'"
+            ).fetchone()[0]
+            == 15
+        )
     finally:
         connection.close()
 
 
+def test_server_cannot_bind_to_another_host(seeded_database: DatabaseFixture) -> None:
+    with pytest.raises(ValueError, match="127.0.0.1"):
+        create_server(
+            connection_factory=seeded_database.connect,
+            bind_host="0.0.0.0",
+        )
+
+
 def test_eight_night_posted_reports_are_pending_only_and_keep_real_timestamps(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -419,24 +433,41 @@ def test_eight_night_posted_reports_are_pending_only_and_keep_real_timestamps(
             }
             clock.advance(1)
 
+        state, _ = _get_state(server)
+        assert len(state["pending_reports"]) == 8
+        assert all(
+            state["receipt_revisions"][f"shop_test:item_A{i:02}"] == 1
+            for i in range(1, 9)
+        )
+
     connection = seeded_database.connect()
     try:
-        assert _count(
-            connection,
-            "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'",
-        ) == 8
-        assert _count(
-            connection,
-            "SELECT COUNT(*) FROM human_action WHERE actual_posted_at IS NOT NULL",
-        ) == 8
+        assert (
+            _count(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'",
+            )
+            == 8
+        )
+        assert (
+            _count(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE actual_posted_at IS NOT NULL",
+            )
+            == 8
+        )
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
-        assert _count(
-            connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ) == 15
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id='R1'"
-        ).fetchone()[0] == 15
+        assert (
+            _count(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'")
+            == 15
+        )
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id='R1'"
+            ).fetchone()[0]
+            == 15
+        )
         timestamps = [
             row[0]
             for row in connection.execute(
@@ -465,7 +496,7 @@ def test_eight_night_posted_reports_are_pending_only_and_keep_real_timestamps(
     ids=["after-18", "23-59"],
 )
 def test_night_receipts_remain_available_after_18_and_at_2359(
-    seeded_database: TestDatabase, receipt_time: datetime
+    seeded_database: DatabaseFixture, receipt_time: datetime
 ) -> None:
     clock = FakeClock(receipt_time)
     with _running_server(seeded_database.connect, clock) as server:
@@ -489,7 +520,7 @@ def test_night_receipts_remain_available_after_18_and_at_2359(
 
 
 def test_action_id_retry_is_idempotent_and_changed_payload_conflicts(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -516,23 +547,27 @@ def test_action_id_retry_is_idempotent_and_changed_payload_conflicts(
     connection = seeded_database.connect()
     try:
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 1
-        assert connection.execute(
-            "SELECT actual_posted_at FROM human_action WHERE action_id='ACT-IDEMPOTENT'"
-        ).fetchone()[0] == original["actual_posted_at"]
+        assert (
+            connection.execute(
+                "SELECT actual_posted_at FROM human_action WHERE action_id='ACT-IDEMPOTENT'"
+            ).fetchone()[0]
+            == original["actual_posted_at"]
+        )
     finally:
         connection.close()
 
 
 def test_old_receipt_revision_returns_409_and_latest_revision(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
         _, csrf_token = _get_state(server)
         first = _report(number=1, action_id="ACT-FIRST")
-        assert _json_request(
-            server, "POST", payload=first, csrf_token=csrf_token
-        )[0] == 201
+        assert (
+            _json_request(server, "POST", payload=first, csrf_token=csrf_token)[0]
+            == 201
+        )
         stale = _report(number=1, action_id="ACT-STALE", action="skipped")
         status, conflict, _ = _json_request(
             server, "POST", payload=stale, csrf_token=csrf_token
@@ -550,15 +585,16 @@ def test_old_receipt_revision_returns_409_and_latest_revision(
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 1
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
-        assert _count(
-            connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ) == 15
+        assert (
+            _count(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'")
+            == 15
+        )
     finally:
         connection.close()
 
 
 def test_correction_requires_reason_and_known_same_offer_event(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     connection = seeded_database.connect()
     try:
@@ -638,7 +674,7 @@ def test_correction_requires_reason_and_known_same_offer_event(
 
 
 def test_old_draft_report_preserves_later_active_reservation(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     connection = seeded_database.connect()
     try:
@@ -706,25 +742,67 @@ def test_old_draft_report_preserves_later_active_reservation(
 
     connection = seeded_database.connect()
     try:
-        assert _count(
-            connection,
-            "SELECT COUNT(*) FROM human_action WHERE draft_id='D-A01' AND draft_version=1",
-        ) == 1
-        assert _count(
-            connection,
-            "SELECT COUNT(*) FROM reservation WHERE offer_key='shop_test:item_A01' AND status='active'",
-        ) == 1
-        assert connection.execute(
-            "SELECT status FROM draft WHERE draft_id='D-A01-V2'"
-        ).fetchone()[0] == "committed"
+        assert (
+            _count(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE draft_id='D-A01' AND draft_version=1",
+            )
+            == 1
+        )
+        assert (
+            _count(
+                connection,
+                "SELECT COUNT(*) FROM reservation WHERE offer_key='shop_test:item_A01' AND status='active'",
+            )
+            == 1
+        )
+        assert (
+            connection.execute(
+                "SELECT status FROM draft WHERE draft_id='D-A01-V2'"
+            ).fetchone()[0]
+            == "committed"
+        )
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
     finally:
         connection.close()
 
 
+def test_report_rejects_nonexistent_or_mismatched_draft_version(
+    seeded_database: DatabaseFixture,
+) -> None:
+    clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
+    with _running_server(seeded_database.connect, clock) as server:
+        _, csrf_token = _get_state(server)
+        wrong_draft = _report(
+            number=1,
+            action_id="ACT-MISMATCH-OFFER",
+            draft_id="D-A02",
+            draft_version=1,
+        )
+        wrong_version = _report(
+            number=1,
+            action_id="ACT-MISMATCH-VERSION",
+            draft_id="D-A01",
+            draft_version=2,
+        )
+        padded_id = _report(number=1, action_id=" ACT-PADDED-ID ")
+        for payload in (wrong_draft, wrong_version, padded_id):
+            status, response, _ = _json_request(
+                server, "POST", payload=payload, csrf_token=csrf_token
+            )
+            assert status == 400
+            assert response == {"saved": False, "error": "invalid_report"}
+
+    connection = seeded_database.connect()
+    try:
+        assert _count(connection, "SELECT COUNT(*) FROM human_action") == 0
+    finally:
+        connection.close()
+
+
 def test_invalid_actual_time_edit_action_and_unknown_fields_are_rejected(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -751,7 +829,7 @@ def test_invalid_actual_time_edit_action_and_unknown_fields_are_rejected(
 
 
 def test_origin_csrf_content_type_and_size_are_enforced(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -778,6 +856,25 @@ def test_origin_csrf_content_type_and_size_are_enforced(
         assert bad_csrf == 403
         assert csrf_error == {"saved": False, "error": "csrf_rejected"}
 
+        long_csrf, long_csrf_error, _ = _json_request(
+            server,
+            "POST",
+            payload=payload,
+            csrf_token="x" * 257,
+        )
+        assert long_csrf == 403
+        assert long_csrf_error == {"saved": False, "error": "csrf_rejected"}
+
+        bad_host, host_error, _ = _json_request(
+            server,
+            "POST",
+            payload=payload,
+            csrf_token=csrf_token,
+            headers={"Host": "localhost"},
+        )
+        assert bad_host == 403
+        assert host_error == {"saved": False, "error": "origin_rejected"}
+
         wrong_type, type_error, _ = _json_request(
             server,
             "POST",
@@ -787,6 +884,32 @@ def test_origin_csrf_content_type_and_size_are_enforced(
         )
         assert wrong_type == 415
         assert type_error == {"saved": False, "error": "content_type_rejected"}
+
+        chunked_status, chunked_error, _ = _json_request(
+            server,
+            "POST",
+            payload=payload,
+            csrf_token=csrf_token,
+            headers={"Transfer-Encoding": "chunked"},
+        )
+        assert chunked_status == 400
+        assert chunked_error == {
+            "saved": False,
+            "error": "transfer_encoding_rejected",
+        }
+
+        bad_length, bad_length_error, _ = _json_request(
+            server,
+            "POST",
+            payload=payload,
+            csrf_token=csrf_token,
+            headers={"Content-Length": "invalid"},
+        )
+        assert bad_length == 411
+        assert bad_length_error == {
+            "saved": False,
+            "error": "content_length_required",
+        }
 
         oversized = body + b" " * (MAX_BODY_BYTES + 1 - len(body))
         large_status, large_error, _ = _json_request(
@@ -798,33 +921,6 @@ def test_origin_csrf_content_type_and_size_are_enforced(
         assert large_status == 413
         assert large_error == {"saved": False, "error": "body_too_large"}
 
-        exact_payload = _report(number=1, reason=None)
-        prefix = json.dumps(exact_payload, ensure_ascii=False, separators=(",", ":"))[:-1]
-        padding_key = ',"padding":"'
-        exact_body = (prefix + padding_key + "x" * 10 + '"}').encode("utf-8")
-        exact_body = exact_body[:-2] + b"x" * (MAX_BODY_BYTES - len(exact_body)) + exact_body[-2:]
-        # A valid JSON payload exactly at the limit exercises the accepted boundary.
-        exact_payload["padding"] = "x" * (MAX_BODY_BYTES - len(json.dumps(
-            exact_payload, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")) + 1)
-        exact_body = json.dumps(
-            exact_payload, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
-        if len(exact_body) > MAX_BODY_BYTES:
-            exact_payload["padding"] = exact_payload["padding"][:-1]
-            exact_body = json.dumps(
-                exact_payload, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
-        assert len(exact_body) == MAX_BODY_BYTES
-        exact_status, exact_response, _ = _json_request(
-            server,
-            "POST",
-            csrf_token=csrf_token,
-            raw_body=exact_body,
-        )
-        assert exact_status == 400  # padding is not part of the accepted report contract
-        assert exact_response == {"saved": False, "error": "invalid_report"}
-
     connection = seeded_database.connect()
     try:
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 0
@@ -832,7 +928,7 @@ def test_origin_csrf_content_type_and_size_are_enforced(
         connection.close()
 
 
-def test_65536_byte_valid_report_is_accepted(seeded_database: TestDatabase) -> None:
+def test_65536_byte_valid_report_is_accepted(seeded_database: DatabaseFixture) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
         _, csrf_token = _get_state(server)
@@ -852,8 +948,87 @@ def test_65536_byte_valid_report_is_accepted(seeded_database: TestDatabase) -> N
         assert status == 201 and response is not None and response["saved"] is True
 
 
+def test_malformed_json_and_non_object_body_are_rejected_before_database_access(
+    seeded_database: DatabaseFixture,
+) -> None:
+    clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
+    with _running_server(seeded_database.connect, clock) as server:
+        _, csrf_token = _get_state(server)
+        bodies = (
+            b"{not-json",
+            b"[]",
+            b'{"action_id":"FIRST","action_id":"SECOND"}',
+            b'{"value":NaN}',
+            b"\xff",
+        )
+        for body in bodies:
+            status, response, _ = _json_request(
+                server,
+                "POST",
+                csrf_token=csrf_token,
+                raw_body=body,
+            )
+            assert status == 400
+            assert response == {"saved": False, "error": "invalid_report"}
+
+        wrong_route, wrong_route_response, _ = _json_request(
+            server,
+            "POST",
+            payload=_report(number=1),
+            csrf_token=csrf_token,
+            path="/api/other",
+        )
+        assert wrong_route == 404
+        assert wrong_route_response == {"saved": False, "error": "not_found"}
+
+    connection = seeded_database.connect()
+    try:
+        assert _count(connection, "SELECT COUNT(*) FROM human_action") == 0
+    finally:
+        connection.close()
+
+
+def test_get_requires_exact_origin_and_reports_storage_failure(
+    seeded_database: DatabaseFixture,
+) -> None:
+    fail = False
+
+    def connection_factory() -> sqlite3.Connection:
+        if fail:
+            raise sqlite3.OperationalError("fixture database unavailable")
+        return seeded_database.connect()
+
+    clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
+    with _running_server(connection_factory, clock) as server:
+        wrong_origin, origin_error, _ = _json_request(
+            server,
+            "GET",
+            headers={"Origin": "http://127.0.0.1.evil.invalid"},
+            path="/api/state",
+        )
+        assert wrong_origin == 403
+        assert origin_error == {"error": "origin_rejected"}
+
+        missing_path, missing_path_body, _ = _json_request(
+            server,
+            "GET",
+            path="/api/unknown",
+        )
+        assert missing_path == 404
+        assert missing_path_body == {"error": "not_found"}
+
+        fail = True
+        unavailable, unavailable_body, _ = _json_request(
+            server,
+            "GET",
+            path="/api/state",
+        )
+        assert unavailable == 503
+        assert unavailable_body == {"error": "storage_unavailable"}
+
+
 def test_database_failure_returns_5xx_saved_false_without_success_receipt(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     fail = False
 
@@ -883,7 +1058,7 @@ def test_database_failure_returns_5xx_saved_false_without_success_receipt(
 
 
 def test_failed_insert_rolls_back_and_does_not_claim_success(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     connection = seeded_database.connect()
     try:
@@ -913,15 +1088,16 @@ def test_failed_insert_rolls_back_and_does_not_claim_success(
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 0
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
-        assert _count(
-            connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ) == 15
+        assert (
+            _count(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'")
+            == 15
+        )
     finally:
         connection.close()
 
 
 def test_two_concurrent_reports_with_same_revision_have_one_winner(
-    seeded_database: TestDatabase,
+    seeded_database: DatabaseFixture,
 ) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     with _running_server(seeded_database.connect, clock) as server:
@@ -943,7 +1119,9 @@ def test_two_concurrent_reports_with_same_revision_have_one_winner(
                 ),
                 pool.submit(
                     submit,
-                    _report(number=1, action_id="ACT-CONCURRENT-SKIPPED", action="skipped"),
+                    _report(
+                        number=1, action_id="ACT-CONCURRENT-SKIPPED", action="skipped"
+                    ),
                 ),
             ]
             results = [future.result(timeout=10) for future in futures]
@@ -962,22 +1140,30 @@ def test_two_concurrent_reports_with_same_revision_have_one_winner(
         assert _count(connection, "SELECT COUNT(*) FROM human_action") == 1
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
         assert _count(connection, "SELECT COUNT(*) FROM exclusion_key") == 0
-        assert _count(
-            connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ) == 15
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id='R1'"
-        ).fetchone()[0] == 15
+        assert (
+            _count(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'")
+            == 15
+        )
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id='R1'"
+            ).fetchone()[0]
+            == 15
+        )
     finally:
         connection.close()
 
 
-def test_untrusted_reason_is_saved_as_plain_data(seeded_database: TestDatabase) -> None:
+def test_untrusted_reason_is_saved_as_plain_data(
+    seeded_database: DatabaseFixture,
+) -> None:
     clock = FakeClock(datetime(2026, 10, 12, 21, 30, tzinfo=JST))
     text = "<script>alert('not executed')</script>"
     with _running_server(seeded_database.connect, clock) as server:
         _, csrf_token = _get_state(server)
-        payload = _report(number=1, action="skipped", actual_posted_at=None, reason=text)
+        payload = _report(
+            number=1, action="skipped", actual_posted_at=None, reason=text
+        )
         status, response, _ = _json_request(
             server, "POST", payload=payload, csrf_token=csrf_token
         )
@@ -985,10 +1171,13 @@ def test_untrusted_reason_is_saved_as_plain_data(seeded_database: TestDatabase) 
 
     connection = seeded_database.connect()
     try:
-        assert connection.execute(
-            "SELECT reason FROM human_action WHERE action_id=?",
-            (payload["action_id"],),
-        ).fetchone()[0] == text
+        assert (
+            connection.execute(
+                "SELECT reason FROM human_action WHERE action_id=?",
+                (payload["action_id"],),
+            ).fetchone()[0]
+            == text
+        )
         assert _count(connection, "SELECT COUNT(*) FROM publication_event") == 0
     finally:
         connection.close()

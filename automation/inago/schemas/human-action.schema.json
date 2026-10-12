@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rakuten-room-inago:human-action-request:1",
+  "title": "Human report receipt request",
+  "type": "object",
+  "required": [
+    "action_id",
+    "offer_key",
+    "draft_id",
+    "draft_version",
+    "expected_receipt_revision",
+    "action",
+    "reason",
+    "correction_ref",
+    "actual_posted_at"
+  ],
+  "properties": {
+    "action_id": {"$ref": "#/$defs/id"},
+    "offer_key": {"$ref": "#/$defs/id"},
+    "draft_id": {"$ref": "#/$defs/id"},
+    "draft_version": {"type": "integer", "minimum": 1},
+    "expected_receipt_revision": {"type": "integer", "minimum": 0},
+    "action": {"enum": ["posted", "skipped", "correction"]},
+    "reason": {"$ref": "#/$defs/nullableText"},
+    "correction_ref": {"$ref": "#/$defs/nullableText"},
+    "actual_posted_at": {"$ref": "#/$defs/nullableTimestamp"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"action": {"const": "correction"}}},
+      "then": {
+        "properties": {
+          "reason": {"type": "string", "minLength": 1, "pattern": "\\S"},
+          "correction_ref": {"$ref": "#/$defs/id"}
+        }
+      },
+      "else": {"properties": {"correction_ref": {"type": "null"}}}
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "pattern": "^\\S(?:.*\\S)?$"},
+    "nullableText": {"type": ["string", "null"]},
+    "nullableTimestamp": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  }
+}

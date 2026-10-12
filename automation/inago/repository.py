@@ -27,12 +27,17 @@ from automation.inago.contracts import (
 )
 
 
-CURRENT_SCHEMA_VERSION = 1
-READABLE_SCHEMA_VERSIONS = frozenset({1})
+CURRENT_SCHEMA_VERSION = 2
+READABLE_SCHEMA_VERSIONS = frozenset({2})
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "entities.schema.json"
 _INITIAL_SQL_PATH = Path(__file__).resolve().parent / "sql" / "001_initial.sql"
+_MIGRATION_SQL_PATHS = {
+    2: Path(__file__).resolve().parent
+    / "sql"
+    / "002_human_action_actual_posted_at.sql",
+}
 
 _ENTITY_TABLES = frozenset(
     {
@@ -127,12 +132,16 @@ def _stored_schema_version(connection: sqlite3.Connection) -> int | None:
     ]
     if not versions:
         raise UnsupportedSchemaVersion("schema_migration has no applied version")
-    if versions != [CURRENT_SCHEMA_VERSION]:
+    if versions != list(range(1, versions[-1] + 1)):
         raise UnsupportedSchemaVersion(
             f"unsupported applied schema versions: {versions}"
         )
+    if versions[-1] > CURRENT_SCHEMA_VERSION:
+        raise UnsupportedSchemaVersion(
+            f"database schema {versions[-1]} is newer than this reader"
+        )
     user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-    if user_version != CURRENT_SCHEMA_VERSION:
+    if user_version != versions[-1]:
         raise UnsupportedSchemaVersion(
             "PRAGMA user_version disagrees with schema_migration"
         )
@@ -140,39 +149,83 @@ def _stored_schema_version(connection: sqlite3.Connection) -> int | None:
 
 
 def initialize_database(connection: sqlite3.Connection) -> int:
-    """Initialize an empty database or verify the single supported v1 layout."""
+    """Initialize empty storage and atomically advance supported migrations."""
 
     existing_version = _stored_schema_version(connection)
+    existing_tables = _user_tables(connection)
     if existing_version is not None:
-        missing = _ENTITY_TABLES - _user_tables(connection)
+        missing = _ENTITY_TABLES - existing_tables
         if missing:
             raise UnsupportedSchemaVersion(
-                "schema v1 is missing required tables: " + ", ".join(sorted(missing))
+                f"schema v{existing_version} is missing required tables: "
+                + ", ".join(sorted(missing))
             )
-        return existing_version
-
-    existing_tables = _user_tables(connection)
-    if existing_tables:
+        if existing_version == CURRENT_SCHEMA_VERSION:
+            return existing_version
+    elif existing_tables:
         raise UnsupportedSchemaVersion(
             "database has tables but no recognized schema version"
         )
 
-    clock = SystemClock()
-    applied_at = clock.now_jst().isoformat()
-    connection.execute("BEGIN IMMEDIATE")
-    try:
-        _execute_sql_file(connection, _INITIAL_SQL_PATH)
-        connection.execute(
-            "INSERT INTO schema_migration(version, applied_at, description) VALUES (?, ?, ?)",
-            (CURRENT_SCHEMA_VERSION, applied_at, "initial Q1.3 entity contract"),
-        )
-        connection.execute(f"PRAGMA user_version = {CURRENT_SCHEMA_VERSION}")
-        connection.commit()
-    except BaseException:
-        if connection.in_transaction:
-            connection.rollback()
-        raise
-    return CURRENT_SCHEMA_VERSION
+    while True:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            version = _stored_schema_version(connection)
+            tables = _user_tables(connection)
+            if version is None:
+                if tables:
+                    raise UnsupportedSchemaVersion(
+                        "database has tables but no recognized schema version"
+                    )
+                applied_at = SystemClock().now_jst().isoformat()
+                _execute_sql_file(connection, _INITIAL_SQL_PATH)
+                connection.execute(
+                    """
+                    INSERT INTO schema_migration(version, applied_at, description)
+                    VALUES (?, ?, ?)
+                    """,
+                    (1, applied_at, "initial Q1.3 entity contract"),
+                )
+                connection.execute("PRAGMA user_version = 1")
+                version = 1
+                tables = _user_tables(connection)
+
+            missing = _ENTITY_TABLES - tables
+            if missing:
+                raise UnsupportedSchemaVersion(
+                    f"schema v{version} is missing required tables: "
+                    + ", ".join(sorted(missing))
+                )
+
+            if version >= CURRENT_SCHEMA_VERSION:
+                connection.commit()
+                return version
+
+            next_version = version + 1
+            migration_path = _MIGRATION_SQL_PATHS.get(next_version)
+            if migration_path is None or not migration_path.is_file():
+                raise UnsupportedSchemaVersion(
+                    f"no migration is available from schema v{version}"
+                )
+            _execute_sql_file(connection, migration_path)
+            applied_at = SystemClock().now_jst().isoformat()
+            connection.execute(
+                """
+                INSERT INTO schema_migration(version, applied_at, description)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    next_version,
+                    applied_at,
+                    "preserve actual posted time on pending human reports",
+                ),
+            )
+            connection.execute(f"PRAGMA user_version = {next_version}")
+            connection.commit()
+        except BaseException:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
 
 
 def open_database(paths: Any) -> sqlite3.Connection:
@@ -228,6 +281,307 @@ def _timestamp(value: str, field: str) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise RejectedContract(f"{field} must include a timezone offset")
     return parsed
+
+
+class ReceiptRevisionConflict(RejectedContract):
+    """A report was based on a stale per-offer receipt revision."""
+
+    def __init__(self, current_revision: int) -> None:
+        self.current_revision = current_revision
+        super().__init__("report receipt revision is stale")
+
+
+def _report_payload_for_comparison(request: Mapping[str, Any]) -> tuple[Any, ...]:
+    return (
+        request["action_id"],
+        request["action"],
+        request["offer_key"],
+        request["draft_id"],
+        request["draft_version"],
+        request["expected_receipt_revision"],
+        request["reason"],
+        request["correction_ref"],
+        request["actual_posted_at"],
+    )
+
+
+def record_pending_human_action(
+    connection: sqlite3.Connection,
+    request: Mapping[str, Any],
+    *,
+    clock: Clock | None = None,
+) -> dict[str, Any]:
+    """Atomically save one night report without changing managed posting state."""
+
+    try:
+        payload = dict(request)
+    except (TypeError, ValueError) as exc:
+        raise RejectedContract("human report must be an object") from exc
+
+    expected_fields = {
+        "action_id",
+        "offer_key",
+        "draft_id",
+        "draft_version",
+        "expected_receipt_revision",
+        "action",
+        "reason",
+        "correction_ref",
+        "actual_posted_at",
+    }
+    if set(payload) != expected_fields:
+        raise RejectedContract("human report fields do not match the request contract")
+
+    action_id = payload.get("action_id")
+    action = payload.get("action")
+    offer_key = payload.get("offer_key")
+    draft_id = payload.get("draft_id")
+    draft_version = payload.get("draft_version")
+    expected_revision = payload.get("expected_receipt_revision")
+    reason = payload.get("reason")
+    correction_ref = payload.get("correction_ref")
+    actual_posted_at = payload.get("actual_posted_at")
+
+    for field, value in (
+        ("action_id", action_id),
+        ("offer_key", offer_key),
+        ("draft_id", draft_id),
+    ):
+        if not isinstance(value, str) or not value.strip() or value != value.strip():
+            raise RejectedContract(f"{field} is required")
+    if not isinstance(action, str) or action not in {
+        "posted",
+        "skipped",
+        "correction",
+    }:
+        raise RejectedContract("unsupported human report action")
+    if (
+        isinstance(draft_version, bool)
+        or not isinstance(draft_version, int)
+        or draft_version < 1
+    ):
+        raise RejectedContract("draft_version must be a positive integer")
+    if (
+        isinstance(expected_revision, bool)
+        or not isinstance(expected_revision, int)
+        or expected_revision < 0
+    ):
+        raise RejectedContract("expected_receipt_revision must be non-negative")
+    if reason is not None and not isinstance(reason, str):
+        raise RejectedContract("reason must be text or null")
+    if correction_ref is not None and (
+        not isinstance(correction_ref, str)
+        or not correction_ref.strip()
+        or correction_ref != correction_ref.strip()
+    ):
+        raise RejectedContract("correction_ref must be a non-empty ID or null")
+    if action == "correction":
+        if reason is None or not reason.strip():
+            raise RejectedContract("correction reason is required")
+        if correction_ref is None:
+            raise RejectedContract("correction_ref is required for a correction")
+    elif correction_ref is not None:
+        raise RejectedContract("correction_ref is only valid for corrections")
+    if actual_posted_at is not None:
+        _timestamp(actual_posted_at, "actual_posted_at")
+
+    request_key = _report_payload_for_comparison(payload)
+    system_clock = clock or SystemClock()
+    now = system_clock.now_jst()
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise RejectedContract("report clock must return an offset-aware time")
+    reported_at = now.astimezone(JST).isoformat()
+
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        existing = connection.execute(
+            "SELECT * FROM human_action WHERE action_id = ?", (action_id,)
+        ).fetchone()
+        if existing is not None:
+            existing_key = (
+                existing["action_id"],
+                existing["action"],
+                existing["offer_key"],
+                existing["draft_id"],
+                existing["draft_version"],
+                existing["prior_revision"],
+                existing["reason"],
+                existing["old_event_ref"],
+                existing["actual_posted_at"],
+            )
+            if existing_key != request_key:
+                raise IdempotencyConflict(
+                    "action_id was reused with different report content"
+                )
+            connection.commit()
+            return {
+                "action_id": existing["action_id"],
+                "receipt_revision": int(existing["receipt_revision"]),
+                "apply_status": "pending",
+                "saved": True,
+            }
+
+        draft = connection.execute(
+            """
+            SELECT 1 FROM draft
+             WHERE offer_key = ? AND draft_id = ? AND version = ?
+            """,
+            (offer_key, draft_id, draft_version),
+        ).fetchone()
+        if draft is None:
+            raise RejectedContract("report does not identify an existing draft version")
+
+        if correction_ref is not None:
+            event = connection.execute(
+                """
+                SELECT 1 FROM publication_event
+                 WHERE event_id = ? AND offer_key = ?
+                """,
+                (correction_ref, offer_key),
+            ).fetchone()
+            if event is None:
+                raise RejectedContract(
+                    "correction_ref does not identify an event for this offer"
+                )
+
+        current_revision = int(
+            connection.execute(
+                "SELECT COALESCE(MAX(receipt_revision), 0) "
+                "FROM human_action WHERE offer_key = ?",
+                (offer_key,),
+            ).fetchone()[0]
+        )
+        if current_revision != expected_revision:
+            raise ReceiptRevisionConflict(current_revision)
+
+        next_revision = current_revision + 1
+        entity = {
+            "action_id": action_id,
+            "action": action,
+            "offer_key": offer_key,
+            "draft_id": draft_id,
+            "draft_version": draft_version,
+            "prior_revision": current_revision,
+            "receipt_revision": next_revision,
+            "reason": reason,
+            "reported_at": reported_at,
+            "actual_posted_at": actual_posted_at,
+            "old_event_ref": correction_ref,
+            "new_body": None,
+            "apply_status": "pending",
+            "applied_at": None,
+            "applied_run_id": None,
+            "apply_error": None,
+        }
+        validate_entity("human_action", entity)
+        connection.execute(
+            """
+            INSERT INTO human_action
+                (action_id, action, offer_key, draft_id, draft_version,
+                 prior_revision, receipt_revision, reason, reported_at,
+                 actual_posted_at, old_event_ref, new_body, apply_status,
+                 applied_at, applied_run_id, apply_error)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                action_id,
+                action,
+                offer_key,
+                draft_id,
+                draft_version,
+                current_revision,
+                next_revision,
+                reason,
+                reported_at,
+                actual_posted_at,
+                correction_ref,
+                None,
+                "pending",
+                None,
+                None,
+                None,
+            ),
+        )
+        connection.commit()
+        return {
+            "action_id": action_id,
+            "receipt_revision": next_revision,
+            "apply_status": "pending",
+            "saved": True,
+        }
+    except BaseException:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
+
+
+def read_human_action_state(connection: sqlite3.Connection) -> dict[str, Any]:
+    """Read drafts and report state from one consistent, read-only snapshot."""
+
+    connection.execute("BEGIN")
+    try:
+        drafts = [
+            {
+                "offer_key": row["offer_key"],
+                "draft_id": row["draft_id"],
+                "draft_version": int(row["version"]),
+                "status": row["status"],
+            }
+            for row in connection.execute(
+                """
+                SELECT offer_key, draft_id, version, status
+                  FROM draft
+                 ORDER BY offer_key, version DESC, draft_id
+                """
+            )
+        ]
+        receipt_revisions = {
+            row["offer_key"]: int(row["receipt_revision"])
+            for row in connection.execute(
+                """
+                SELECT o.offer_key, COALESCE(MAX(h.receipt_revision), 0) AS receipt_revision
+                  FROM offer AS o
+                  LEFT JOIN human_action AS h ON h.offer_key = o.offer_key
+                 GROUP BY o.offer_key
+                 ORDER BY o.offer_key
+                """
+            )
+        }
+        pending_reports = [
+            {
+                "action_id": row["action_id"],
+                "action": row["action"],
+                "offer_key": row["offer_key"],
+                "draft_id": row["draft_id"],
+                "draft_version": int(row["draft_version"]),
+                "receipt_revision": int(row["receipt_revision"]),
+                "reason": row["reason"],
+                "reported_at": row["reported_at"],
+                "actual_posted_at": row["actual_posted_at"],
+                "correction_ref": row["old_event_ref"],
+                "apply_status": row["apply_status"],
+            }
+            for row in connection.execute(
+                """
+                SELECT action_id, action, offer_key, draft_id, draft_version,
+                       receipt_revision, reason, reported_at, actual_posted_at,
+                       old_event_ref, apply_status
+                  FROM human_action
+                 WHERE apply_status = 'pending'
+                 ORDER BY reported_at, receipt_revision, action_id
+                """
+            )
+        ]
+        connection.commit()
+        return {
+            "drafts": drafts,
+            "receipt_revisions": receipt_revisions,
+            "pending_reports": pending_reports,
+        }
+    except BaseException:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
 
 
 def _database_root(connection: sqlite3.Connection) -> Path:

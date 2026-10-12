@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v1.schema.json",
+  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v2.schema.json",
   "title": "Inago SQLite entity contracts",
-  "description": "Schema version 1 contracts mapped from the Q1.3 entity dictionary.",
+  "description": "Schema version 2 contracts mapped from the Q1.3 entity dictionary.",
   "$defs": {
     "id": {"type": "string", "minLength": 1},
     "date": {"type": "string", "format": "date"},
@@ -256,13 +256,14 @@
     },
     "human_action": {
       "type": "object",
-      "required": ["action_id", "action", "offer_key", "draft_id", "draft_version", "prior_revision", "receipt_revision", "reason", "reported_at", "old_event_ref", "new_body", "apply_status", "applied_at", "applied_run_id", "apply_error"],
+      "required": ["action_id", "action", "offer_key", "draft_id", "draft_version", "prior_revision", "receipt_revision", "reason", "reported_at", "actual_posted_at", "old_event_ref", "new_body", "apply_status", "applied_at", "applied_run_id", "apply_error"],
       "properties": {
         "action_id": {"$ref": "#/$defs/id"}, "action": {"enum": ["posted", "skipped", "correction", "edit"]},
         "offer_key": {"$ref": "#/$defs/id"}, "draft_id": {"$ref": "#/$defs/nullableString"},
         "draft_version": {"$ref": "#/$defs/positiveInteger"}, "prior_revision": {"$ref": "#/$defs/nonNegativeInteger"},
         "receipt_revision": {"$ref": "#/$defs/positiveInteger"}, "reason": {"$ref": "#/$defs/nullableString"},
-        "reported_at": {"$ref": "#/$defs/timestamp"}, "old_event_ref": {"$ref": "#/$defs/nullableString"},
+        "reported_at": {"$ref": "#/$defs/timestamp"}, "actual_posted_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "old_event_ref": {"$ref": "#/$defs/nullableString"},
         "new_body": {"$ref": "#/$defs/nullableString"},
         "apply_status": {"enum": ["pending", "applied", "rejected"]},
         "applied_at": {"$ref": "#/$defs/nullableTimestamp"}, "applied_run_id": {"$ref": "#/$defs/nullableString"},
