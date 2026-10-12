@@ -1,0 +1,41 @@
+{
+  "schema_version": "inago-step-02-fixture-1",
+  "environment": "fixture",
+  "network_allowed": false,
+  "target_date": "2026-10-12",
+  "started_at_jst": "2026-10-12T13:00:00+09:00",
+  "run_id": "TEST-R1",
+  "seed": "TEST-SEED-01",
+  "settings_version": "confirmed-0.3-step46-all132",
+  "detailed_writing_rules": {
+    "version": "detailed-writing-rules-candidate-0.1-step68",
+    "adopted": false,
+    "enabled": false
+  },
+  "offer": {
+    "offer_key": "shop_test:item_A",
+    "shop_id": "shop_test",
+    "item_id": "item_A",
+    "like_count": 300,
+    "test_only": true
+  },
+  "word": {
+    "word_id": "WORD-TEST-01",
+    "text": "fixture keyword",
+    "source_rank": 1,
+    "test_only": true
+  },
+  "report": {
+    "action_id": "ACTION-TEST-01",
+    "draft_id": "DRAFT-TEST-01",
+    "action": "posted",
+    "reported_at": "2026-10-12T21:30:00+09:00",
+    "test_only": true
+  },
+  "metric": {
+    "scope": "overall",
+    "revenue_yen": null,
+    "observed_at": "2026-10-12T18:00:00+09:00",
+    "test_only": true
+  }
+}
