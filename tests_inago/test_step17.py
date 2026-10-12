@@ -116,6 +116,7 @@ def _insert_artifact(
     expires_at: datetime | None,
     created_at: datetime | None = None,
     body: bytes | None = None,
+    source_kind: str = "daily",
 ) -> Path:
     artifact_dir = data_root / "artifacts" / "fixture"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -124,15 +125,15 @@ def _insert_artifact(
     connection.execute(
         """
         INSERT INTO artifact(
-            artifact_ref, path, hash, settings_version, input_refs_json,
-            evidence_refs_json, created_at, source_kind, retention_expires_at, status
-        ) VALUES (?, ?, 'fixture-runtime-record', ?, '[]', '[]', ?, 'daily', ?, 'available')
+            artifact_ref, path, hash, created_at, source_kind,
+            retention_expires_at, status
+        ) VALUES (?, ?, 'fixture-runtime-record', ?, ?, ?, 'available')
         """,
         (
             artifact_ref,
             str(artifact_path.resolve()),
-            SETTINGS_VERSION,
             (created_at or NOW).isoformat(),
+            source_kind,
             expires_at.isoformat() if expires_at else None,
         ),
     )
@@ -219,6 +220,41 @@ def _seed_retention_database(data_root: Path) -> sqlite3.Connection:
         ),
     )
 
+    source_expiry = NOW - timedelta(days=90)
+    connection.execute(
+        """
+        INSERT INTO search_attempt(
+            attempt_id, run_id, query, parent_refs_json, level, attempt_no,
+            started_at, ended_at, source_status, source_order, max_posts,
+            retry_of, error_code
+        ) VALUES ('SEARCH-RETENTION', 'RUN-2026-10-12', 'fixture-query', '[]',
+                  'combined', 1, ?, ?, 'observed', 'internal', 50, NULL, NULL)
+        """,
+        (source_expiry.isoformat(), source_expiry.isoformat()),
+    )
+    connection.execute(
+        """
+        INSERT INTO source_post(
+            source_key, stable_room_id, room_url, attempt_id, order_index,
+            likes, comments, item_url, image_ref, actor_ref, published_at,
+            evidence_ref, observed_at, availability
+        ) VALUES ('SOURCE-RETENTION', 'stable-fixture-id', 'https://example.invalid/room',
+                  'SEARCH-RETENTION', 1, 300, 5, 'https://example.invalid/item',
+                  'fixture-image', 'fixture-actor', ?, 'raw-before', ?, 'observed')
+        """,
+        ((source_expiry - timedelta(days=1)).isoformat(), source_expiry.isoformat()),
+    )
+    connection.execute(
+        """
+        INSERT INTO keyword_snapshot(
+            snapshot_id, parent_word, source, geo, range, search_type,
+            list_type, words_json, fetched_at, availability, filter_decisions_json
+        ) VALUES ('KEYWORD-RETENTION', 'fixture-parent', 'fixture-source', 'JP',
+                  '90d', 'web', 'Top', '["fixture-term"]', ?, 'observed', '[]')
+        """,
+        (source_expiry.isoformat(),),
+    )
+
     raw_expiries = {
         "raw-before": datetime.fromisoformat(f"2026-10-12T13:00:01{JST}"),
         "raw-equal": datetime.fromisoformat(f"2026-10-12T13:00:00{JST}"),
@@ -237,6 +273,20 @@ def _seed_retention_database(data_root: Path) -> sqlite3.Connection:
             expires_at=expires_at,
             created_at=raw_created[artifact_ref],
         )
+    connection.execute(
+        """
+        INSERT INTO revenue_order(
+            order_ref, is_temporary_ref, source_ref, match_kind
+        ) VALUES ('ORDER-EQUAL', 0, 'raw-equal', 'unmatched')
+        """
+    )
+    connection.execute(
+        """
+        INSERT INTO revenue_order(
+            order_ref, is_temporary_ref, source_ref, match_kind
+        ) VALUES ('ORDER-BEFORE', 0, 'raw-before', 'unmatched')
+        """
+    )
 
     aggregate_times = [
         datetime.fromisoformat(f"2025-10-12T13:00:01{JST}"),
@@ -250,9 +300,14 @@ def _seed_retention_database(data_root: Path) -> sqlite3.Connection:
                 observation_id, scope, ref, metric, value_json, unit,
                 observed_at, window, availability, source_ref, provisional
             ) VALUES (?, 'day_aggregate', ?, 'sales_yen', '100', 'JPY',
-                      ?, 'day', 'observed', NULL, 0)
+                      ?, 'day', 'observed', ?, 0)
             """,
-            (f"AGG-{index:02d}", f"day-{index:02d}", observed_at.isoformat()),
+            (
+                f"AGG-{index:02d}",
+                f"day-{index:02d}",
+                observed_at.isoformat(),
+                "raw-equal" if index == 1 else None,
+            ),
         )
     connection.commit()
     return connection
@@ -279,46 +334,164 @@ def test_retention_expires_at_equal_and_after_but_preserves_required_state(
 ) -> None:
     data_root = tmp_path / "data"
     connection = _seed_retention_database(data_root)
+    connection.row_factory = None
     try:
         result = apply_retention(connection, data_root=data_root, now=NOW)
 
         assert result.expired_artifacts == 2
         assert result.expired_aggregates == 2
-        assert _scalar(connection, "SELECT COUNT(*) FROM artifact WHERE status='available'") == 1
-        assert _scalar(connection, "SELECT COUNT(*) FROM artifact WHERE status='expired'") == 2
-        assert _scalar(connection, "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'") == 1
-        assert _scalar(connection, "SELECT COUNT(*) FROM metric_observation WHERE availability='expired'") == 2
-        assert connection.execute(
-            "SELECT status FROM artifact WHERE artifact_ref='raw-before'"
-        ).fetchone()[0] == "available"
-        assert connection.execute(
-            "SELECT status FROM artifact WHERE artifact_ref='raw-equal'"
-        ).fetchone()[0] == "expired"
+        assert result.expired_source_posts == 1
+        assert result.expired_keyword_snapshots == 1
+        assert result.deleted_revenue_orders == 1
+        assert (
+            _scalar(
+                connection, "SELECT COUNT(*) FROM artifact WHERE status='available'"
+            )
+            == 1
+        )
+        assert (
+            _scalar(connection, "SELECT COUNT(*) FROM artifact WHERE status='expired'")
+            == 2
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'",
+            )
+            == 1
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM metric_observation WHERE availability='expired'",
+            )
+            == 2
+        )
+        assert _scalar(connection, "SELECT COUNT(*) FROM revenue_order") == 1
+        assert tuple(
+            connection.execute(
+                "SELECT availability, value_json FROM metric_observation WHERE observation_id='AGG-01'"
+            ).fetchone()
+        ) == ("observed", "100")
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='raw-before'"
+            ).fetchone()[0]
+            == "available"
+        )
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='raw-equal'"
+            ).fetchone()[0]
+            == "expired"
+        )
         assert not (data_root / "artifacts" / "fixture" / "raw-equal.json").exists()
-        assert _scalar(connection, "SELECT COUNT(*) FROM exclusion_key WHERE effective=1") == 10
-        assert _scalar(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'") == 7
-        assert _scalar(connection, "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'") == 3
-        assert _scalar(connection, "SELECT COUNT(*) FROM human_action WHERE action='correction'") == 1
-        assert _scalar(connection, "SELECT committed_count FROM run WHERE run_id='RUN-2026-10-12'") == 15
+        assert result.open_artifact(connection, "raw-before", now=NOW).is_file()
+        expired_source = connection.execute(
+            """
+            SELECT availability, stable_room_id, room_url, item_url, image_ref,
+                   actor_ref, published_at, likes, comments
+            FROM source_post WHERE source_key='SOURCE-RETENTION'
+            """
+        ).fetchone()
+        assert tuple(expired_source) == (
+            "expired",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        expired_keywords = connection.execute(
+            "SELECT availability, words_json FROM keyword_snapshot WHERE snapshot_id='KEYWORD-RETENTION'"
+        ).fetchone()
+        assert tuple(expired_keywords) == ("expired", "[]")
+        assert (
+            _scalar(connection, "SELECT COUNT(*) FROM exclusion_key WHERE effective=1")
+            == 10
+        )
+        assert (
+            _scalar(
+                connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            )
+            == 7
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'",
+            )
+            == 3
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE action='correction'",
+            )
+            == 1
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT committed_count FROM run WHERE run_id='RUN-2026-10-12'",
+            )
+            == 15
+        )
         with pytest.raises(ArtifactExpiredError):
-            result.open_artifact(connection, "raw-equal")
+            result.open_artifact(connection, "raw-equal", now=NOW)
 
         later = apply_retention(
             connection, data_root=data_root, now=NOW + timedelta(seconds=1)
         )
         assert later.expired_artifacts == 1
         assert later.expired_aggregates == 1
-        assert _scalar(connection, "SELECT COUNT(*) FROM artifact WHERE status='available'") == 0
-        assert _scalar(connection, "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'") == 0
-        assert _scalar(connection, "SELECT COUNT(*) FROM exclusion_key WHERE effective=1") == 10
-        assert _scalar(connection, "SELECT COUNT(*) FROM reservation WHERE status='active'") == 7
-        assert _scalar(connection, "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'") == 3
-        assert _scalar(connection, "SELECT COUNT(*) FROM human_action WHERE action='correction'") == 1
+        assert later.deleted_revenue_orders == 1
+        assert (
+            _scalar(
+                connection, "SELECT COUNT(*) FROM artifact WHERE status='available'"
+            )
+            == 0
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'",
+            )
+            == 0
+        )
+        assert _scalar(connection, "SELECT COUNT(*) FROM revenue_order") == 0
+        assert (
+            _scalar(connection, "SELECT COUNT(*) FROM exclusion_key WHERE effective=1")
+            == 10
+        )
+        assert (
+            _scalar(
+                connection, "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            )
+            == 7
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'",
+            )
+            == 3
+        )
+        assert (
+            _scalar(
+                connection,
+                "SELECT COUNT(*) FROM human_action WHERE action='correction'",
+            )
+            == 1
+        )
     finally:
         connection.close()
 
 
-def test_retention_keeps_expired_artifact_when_a_saved_draft_still_references_it(
+def test_retention_keeps_required_generation_artifact_but_expires_raw_reference(
     tmp_path: Path,
 ) -> None:
     data_root = tmp_path / "data"
@@ -329,19 +502,165 @@ def test_retention_keeps_expired_artifact_when_a_saved_draft_still_references_it
             data_root,
             artifact_ref="draft-required",
             expires_at=NOW - timedelta(seconds=1),
+            source_kind="generation",
+        )
+        raw_path = _insert_artifact(
+            connection,
+            data_root,
+            artifact_ref="raw-draft-ref",
+            expires_at=NOW - timedelta(seconds=1),
+            source_kind="daily",
         )
         connection.execute(
             "UPDATE draft SET artifact_ref='draft-required' WHERE draft_id='D-01'"
+        )
+        connection.execute(
+            "UPDATE draft SET artifact_ref='raw-draft-ref' WHERE draft_id='D-02'"
         )
         connection.commit()
 
         result = apply_retention(connection, data_root=data_root, now=NOW)
 
-        assert result.expired_artifacts == 2
-        assert connection.execute(
-            "SELECT status FROM artifact WHERE artifact_ref='draft-required'"
-        ).fetchone()[0] == "available"
+        assert result.expired_artifacts == 3
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='draft-required'"
+            ).fetchone()[0]
+            == "available"
+        )
         assert artifact_path.is_file()
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='raw-draft-ref'"
+            ).fetchone()[0]
+            == "expired"
+        )
+        assert not raw_path.exists()
+    finally:
+        connection.close()
+
+
+def test_retention_raw_detail_boundaries_cover_89_90_and_91_days(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    connection = _seed_retention_database(data_root)
+    try:
+        for age_days in (89, 90, 91):
+            connection.execute(
+                """
+                INSERT INTO metric_observation(
+                    observation_id, scope, ref, metric, value_json, unit,
+                    observed_at, window, availability, source_ref, provisional
+                ) VALUES (?, 'room_post', ?, 'likes', '1', 'count',
+                          ?, 'fixture', 'observed', NULL, 0)
+                """,
+                (
+                    f"DETAIL-{age_days}",
+                    f"post-{age_days}",
+                    (NOW - timedelta(days=age_days)).isoformat(),
+                ),
+            )
+        connection.commit()
+
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        assert result.expired_detail_observations == 2
+        states = {
+            str(row[0]): (row[1], row[2])
+            for row in connection.execute(
+                """
+                SELECT observation_id, availability, value_json
+                FROM metric_observation WHERE observation_id LIKE 'DETAIL-%'
+                """
+            )
+        }
+        assert states["DETAIL-89"] == ("observed", "1")
+        assert states["DETAIL-90"] == ("expired", None)
+        assert states["DETAIL-91"] == ("expired", None)
+    finally:
+        connection.close()
+
+
+def test_retention_never_deletes_an_artifact_outside_the_explicit_data_root(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    connection = _seed_retention_database(data_root)
+    try:
+        outside_path = tmp_path / "outside-fixture.json"
+        outside_path.write_text("fixture-only", encoding="utf-8")
+        _insert_artifact(
+            connection,
+            data_root,
+            artifact_ref="escaped-artifact",
+            expires_at=NOW,
+        )
+        connection.execute(
+            "UPDATE artifact SET path=? WHERE artifact_ref='escaped-artifact'",
+            (str(outside_path.resolve()),),
+        )
+        connection.commit()
+
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        assert "escaped-artifact" in result.expired_artifact_refs
+        assert "escaped-artifact" in result.file_deletion_failures
+        assert outside_path.read_text(encoding="utf-8") == "fixture-only"
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='escaped-artifact'"
+            ).fetchone()[0]
+            == "expired"
+        )
+    finally:
+        connection.close()
+
+
+@pytest.mark.parametrize(
+    ("observed_at", "expiry_at"),
+    [
+        (
+            f"2024-02-29T13:00:00{JST}",
+            f"2025-02-28T13:00:00{JST}",
+        ),
+        (
+            f"2023-03-01T13:00:00{JST}",
+            f"2024-03-01T13:00:00{JST}",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "offset_seconds,expected", [(-1, "observed"), (0, "expired"), (1, "expired")]
+)
+def test_aggregate_retention_boundary_before_equal_after(
+    tmp_path: Path,
+    observed_at: str,
+    expiry_at: str,
+    offset_seconds: int,
+    expected: str,
+) -> None:
+    data_root = tmp_path / "data"
+    connection = _seed_retention_database(data_root)
+    try:
+        connection.execute(
+            "UPDATE metric_observation SET observed_at=? WHERE observation_id='AGG-01'",
+            (observed_at,),
+        )
+        connection.commit()
+        expiry = datetime.fromisoformat(expiry_at)
+
+        apply_retention(
+            connection,
+            data_root=data_root,
+            now=expiry + timedelta(seconds=offset_seconds),
+        )
+
+        row = connection.execute(
+            "SELECT availability, value_json FROM metric_observation WHERE observation_id='AGG-01'"
+        ).fetchone()
+        assert row[0] == expected
+        assert row[1] == ("100" if expected == "observed" else None)
     finally:
         connection.close()
 
@@ -369,11 +688,22 @@ def test_daily_backup_is_consistent_keeps_seven_generations_and_bundles_artifact
         generations = list_daily_backups(backup_root)
         assert len(generations) == 7
         assert created[0].directory not in generations
+        assert (
+            _scalar(connection, "SELECT COUNT(*) FROM backup WHERE status='complete'")
+            == 8
+        )
         latest = generations[-1]
         manifest = json.loads((latest / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["schema_version"] == 2
         assert manifest["table_counts"]["run"] == 1
         assert manifest["table_counts"]["draft"] == 17
+        assert manifest["table_counts"]["backup"] == 7
+        assert manifest["validation"] == {
+            "db_integrity": True,
+            "counts_match": True,
+            "details_expired_filtered": True,
+            "errors": [],
+        }
         assert {item["artifact_ref"] for item in manifest["artifacts"]} == {
             "raw-before",
             "raw-equal",
@@ -383,7 +713,12 @@ def test_daily_backup_is_consistent_keeps_seven_generations_and_bundles_artifact
         try:
             assert snapshot.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             assert snapshot.execute("PRAGMA foreign_key_check").fetchall() == []
-            assert snapshot.execute("SELECT COUNT(*) FROM reservation WHERE status='active'").fetchone()[0] == 7
+            assert (
+                snapshot.execute(
+                    "SELECT COUNT(*) FROM reservation WHERE status='active'"
+                ).fetchone()[0]
+                == 7
+            )
         finally:
             snapshot.close()
         for item in manifest["artifacts"]:
@@ -392,7 +727,9 @@ def test_daily_backup_is_consistent_keeps_seven_generations_and_bundles_artifact
         connection.close()
 
 
-def test_failed_backup_keeps_source_and_prior_generation_unchanged(tmp_path: Path) -> None:
+def test_failed_backup_keeps_source_and_prior_generation_unchanged(
+    tmp_path: Path,
+) -> None:
     data_root = tmp_path / "data"
     backup_root = tmp_path / "backups"
     connection = _seed_retention_database(data_root)
@@ -408,7 +745,7 @@ def test_failed_backup_keeps_source_and_prior_generation_unchanged(tmp_path: Pat
             "SELECT committed_count FROM run WHERE run_id='RUN-2026-10-12'"
         ).fetchone()[0]
         connection.execute(
-            "UPDATE artifact SET path=? WHERE artifact_ref='raw-before'",
+            "UPDATE artifact SET path=?, retention_expires_at=NULL WHERE artifact_ref='raw-before'",
             (str((tmp_path / "missing.json").resolve()),),
         )
         connection.commit()
@@ -421,9 +758,24 @@ def test_failed_backup_keeps_source_and_prior_generation_unchanged(tmp_path: Pat
                 fixture_mode=True,
             )
         assert first.directory.is_dir()
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id='RUN-2026-10-12'"
-        ).fetchone()[0] == before
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id='RUN-2026-10-12'"
+            ).fetchone()[0]
+            == before
+        )
+        assert (
+            connection.execute("SELECT status FROM backup ORDER BY rowid").fetchall()[
+                0
+            ][0]
+            == "complete"
+        )
+        assert (
+            connection.execute(
+                "SELECT status FROM backup ORDER BY rowid DESC LIMIT 1"
+            ).fetchone()[0]
+            == "failed"
+        )
         assert len(list_daily_backups(backup_root)) == 1
     finally:
         connection.close()
@@ -440,7 +792,7 @@ def test_backup_rejects_duplicate_daily_generation_and_non_fixture_destination(
             data_root=data_root,
             backup_root=tmp_path / "backups",
             now=NOW,
-            fixture_mode=False,
+            fixture_mode=True,
         )
         with pytest.raises(BackupError, match="already exists"):
             create_daily_backup(
@@ -448,7 +800,7 @@ def test_backup_rejects_duplicate_daily_generation_and_non_fixture_destination(
                 data_root=data_root,
                 backup_root=tmp_path / "backups",
                 now=NOW,
-                fixture_mode=False,
+                fixture_mode=True,
             )
         with pytest.raises(BackupError, match="fixture"):
             create_daily_backup(
@@ -469,29 +821,60 @@ def test_restore_check_isolated_reexpires_data_and_never_allows_selection(
     backup_root = tmp_path / "backups"
     connection = _seed_retention_database(data_root)
     try:
+        generation_path = _insert_artifact(
+            connection,
+            data_root,
+            artifact_ref="generation-live",
+            expires_at=NOW + timedelta(days=90),
+            source_kind="generation",
+        )
+        connection.execute(
+            "UPDATE draft SET artifact_ref='generation-live' WHERE draft_id='D-01'"
+        )
+        missing_path = _insert_artifact(
+            connection,
+            data_root,
+            artifact_ref="raw-missing",
+            expires_at=None,
+        )
+        missing_path.unlink()
+        connection.execute(
+            "UPDATE artifact SET status='missing' WHERE artifact_ref='raw-missing'"
+        )
+        connection.commit()
         before = {
             "run": connection.execute("SELECT COUNT(*) FROM run").fetchone()[0],
             "draft": connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0],
-            "artifacts": connection.execute("SELECT COUNT(*) FROM artifact").fetchone()[0],
-            "reservations": connection.execute("SELECT COUNT(*) FROM reservation WHERE status='active'").fetchone()[0],
-            "actions": connection.execute("SELECT COUNT(*) FROM human_action WHERE apply_status='pending'").fetchone()[0],
+            "artifacts": connection.execute("SELECT COUNT(*) FROM artifact").fetchone()[
+                0
+            ],
+            "reservations": connection.execute(
+                "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            ).fetchone()[0],
+            "actions": connection.execute(
+                "SELECT COUNT(*) FROM human_action WHERE apply_status='pending'"
+            ).fetchone()[0],
         }
         backup = create_daily_backup(
             connection,
             data_root=data_root,
             backup_root=backup_root,
-            now=NOW - timedelta(seconds=1),
-            fixture_mode=False,
+            now=NOW - timedelta(seconds=2),
+            fixture_mode=True,
         )
         result = check_monthly_restore(
             backup.directory,
             backup_root=backup_root,
             now=NOW + timedelta(seconds=1),
-            fixture_mode=False,
+            fixture_mode=True,
         )
 
         assert result.selection_allowed is False
         assert result.requires_supplementation is True
+        assert result.old_tasks_enabled is None
+        assert result.old_task_activation_attempts == 0
+        assert result.old_task_state_observed is False
+        assert result.table_counts_match is True
         assert result.integrity_check == "ok"
         assert result.foreign_key_errors == 0
         assert result.expired_artifacts == 3
@@ -505,21 +888,101 @@ def test_restore_check_isolated_reexpires_data_and_never_allows_selection(
         assert result.directory.resolve() != data_root.resolve()
         restored = sqlite3.connect(result.database_path)
         try:
-            assert restored.execute("SELECT COUNT(*) FROM artifact WHERE status='available'").fetchone()[0] == 0
-            assert restored.execute("SELECT COUNT(*) FROM artifact WHERE status='expired'").fetchone()[0] == 3
-            assert restored.execute("SELECT COUNT(*) FROM metric_observation WHERE availability='observed'").fetchone()[0] == 0
-            assert restored.execute("SELECT COUNT(*) FROM metric_observation WHERE availability='expired'").fetchone()[0] == 3
+            available = restored.execute(
+                "SELECT path FROM artifact WHERE artifact_ref='generation-live' AND status='available'"
+            ).fetchone()
+            assert available is not None
+            restored_artifact = Path(available[0])
+            assert restored_artifact.is_file()
+            assert (
+                restored_artifact.parent.parent.parent
+                == result.directory / "restored-data"
+            )
+            assert restored_artifact != generation_path
+            assert (
+                restored.execute(
+                    "SELECT COUNT(*) FROM artifact WHERE status='available'"
+                ).fetchone()[0]
+                == 1
+            )
+            assert (
+                restored.execute(
+                    "SELECT COUNT(*) FROM artifact WHERE status='expired'"
+                ).fetchone()[0]
+                == 3
+            )
+            assert (
+                restored.execute(
+                    "SELECT status FROM artifact WHERE artifact_ref='raw-missing'"
+                ).fetchone()[0]
+                == "missing"
+            )
+            assert (
+                restored.execute("SELECT COUNT(*) FROM revenue_order").fetchone()[0]
+                == 0
+            )
+            assert (
+                restored.execute(
+                    "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'"
+                ).fetchone()[0]
+                == 0
+            )
+            assert (
+                restored.execute(
+                    "SELECT COUNT(*) FROM metric_observation WHERE availability='expired'"
+                ).fetchone()[0]
+                == 3
+            )
+            assert restored.execute(
+                "SELECT availability, likes FROM source_post WHERE source_key='SOURCE-RETENTION'"
+            ).fetchone() == ("expired", None)
+            assert restored.execute(
+                "SELECT availability, words_json FROM keyword_snapshot WHERE snapshot_id='KEYWORD-RETENTION'"
+            ).fetchone() == ("expired", "[]")
+            assert (
+                restored.execute("SELECT version FROM settings_version").fetchone()[0]
+                == SETTINGS_VERSION
+            )
         finally:
             restored.close()
-        assert connection.execute("SELECT COUNT(*) FROM artifact WHERE status='available'").fetchone()[0] == 3
-        assert connection.execute("SELECT COUNT(*) FROM metric_observation WHERE availability='observed'").fetchone()[0] == 3
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM artifact WHERE status='available'"
+            ).fetchone()[0]
+            == 4
+        )
+        assert (
+            connection.execute(
+                "SELECT status FROM artifact WHERE artifact_ref='raw-missing'"
+            ).fetchone()[0]
+            == "missing"
+        )
+        assert (
+            connection.execute("SELECT COUNT(*) FROM revenue_order").fetchone()[0] == 2
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM metric_observation WHERE availability='observed'"
+            ).fetchone()[0]
+            == 3
+        )
+        assert tuple(
+            connection.execute(
+                "SELECT availability, likes FROM source_post WHERE source_key='SOURCE-RETENTION'"
+            ).fetchone()
+        ) == ("observed", 300)
+        assert tuple(
+            connection.execute(
+                "SELECT availability, words_json FROM keyword_snapshot WHERE snapshot_id='KEYWORD-RETENTION'"
+            ).fetchone()
+        ) == ("observed", '["fixture-term"]')
         assert connection.execute("SELECT committed_count FROM run").fetchone()[0] == 15
 
         repeated = check_monthly_restore(
             backup.directory,
             backup_root=backup_root,
             now=NOW + timedelta(days=4),
-            fixture_mode=False,
+            fixture_mode=True,
         )
         assert repeated.already_checked is True
         assert repeated.directory == result.directory
@@ -527,7 +990,7 @@ def test_restore_check_isolated_reexpires_data_and_never_allows_selection(
         connection.close()
 
 
-def test_restore_check_rejects_path_traversal_and_corrupt_snapshot_without_live_writes(
+def test_restore_check_rejects_path_traversal_without_live_writes(
     tmp_path: Path,
 ) -> None:
     data_root = tmp_path / "data"
@@ -539,7 +1002,7 @@ def test_restore_check_rejects_path_traversal_and_corrupt_snapshot_without_live_
             data_root=data_root,
             backup_root=backup_root,
             now=NOW - timedelta(seconds=1),
-            fixture_mode=False,
+            fixture_mode=True,
         )
         manifest_path = backup.directory / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -551,11 +1014,50 @@ def test_restore_check_rejects_path_traversal_and_corrupt_snapshot_without_live_
                 backup.directory,
                 backup_root=backup_root,
                 now=NOW + timedelta(seconds=1),
-                fixture_mode=False,
+                fixture_mode=True,
             )
         assert connection.execute("SELECT COUNT(*) FROM run").fetchone()[0] == 1
-        assert connection.execute("SELECT COUNT(*) FROM artifact WHERE status='available'").fetchone()[0] == 3
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM artifact WHERE status='available'"
+            ).fetchone()[0]
+            == 3
+        )
         assert not (backup_root / "restore-check" / "2026-10").exists()
     finally:
         connection.close()
 
+
+def test_restore_check_rejects_corrupt_sqlite_copy_without_touching_source(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    backup_root = tmp_path / "backups"
+    connection = _seed_retention_database(data_root)
+    try:
+        backup = create_daily_backup(
+            connection,
+            data_root=data_root,
+            backup_root=backup_root,
+            now=NOW - timedelta(seconds=2),
+            fixture_mode=True,
+        )
+        (backup.directory / "state.sqlite").write_bytes(b"not a SQLite database")
+
+        with pytest.raises(RestoreCheckError):
+            check_monthly_restore(
+                backup.directory,
+                backup_root=backup_root,
+                now=NOW + timedelta(seconds=1),
+                fixture_mode=True,
+            )
+        assert connection.execute("SELECT COUNT(*) FROM run").fetchone()[0] == 1
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM artifact WHERE status='available'"
+            ).fetchone()[0]
+            == 3
+        )
+        assert not (backup_root / "restore-check" / "2026-10").exists()
+    finally:
+        connection.close()
