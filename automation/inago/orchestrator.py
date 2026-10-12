@@ -22,6 +22,11 @@ from automation.inago.copy_service import (
     generate_and_commit_copy,
 )
 from automation.inago.contracts import AIJobRequest, AIJobResult
+from automation.inago.metrics import (
+    MetricsCollectionResult,
+    MetricsDeadlineExceeded,
+    commit_metrics_result,
+)
 from automation.inago.report_apply import apply_pending_reports
 from automation.inago.repository import validate_entity
 from automation.inago.room_adapter import (
@@ -300,8 +305,8 @@ class MetricsPort(Protocol):
         *,
         run_id: str,
         deadline_at: str,
-    ) -> str:
-        """Return one status using the separate read-only database connection."""
+    ) -> str | MetricsCollectionResult:
+        """Return status or data-only results using a separate read-only connection."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -1410,7 +1415,7 @@ def _open_read_only_connection(database_path: Path) -> sqlite3.Connection:
     return readonly
 
 
-def _persist_metrics_status(
+def _write_metrics_status_in_transaction(
     connection: sqlite3.Connection,
     *,
     run_id: str,
@@ -1420,25 +1425,37 @@ def _persist_metrics_status(
     if status not in {"observed", "partial", "unavailable", "not_started"}:
         raise DailyOrchestrationError("metrics_status_invalid")
     state["metrics_status"] = status
+    row = connection.execute(
+        "SELECT checkpoint FROM run WHERE run_id=?", (run_id,)
+    ).fetchone()
+    if row is None:
+        raise DailyOrchestrationError("daily_run_missing_during_metrics_commit")
+    root, _ = _daily_state(row["checkpoint"])
+    root[_DAILY_CHECKPOINT_KEY] = dict(state)
+    encoded = json.dumps(
+        root,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    connection.execute(
+        "UPDATE run SET metrics_status=?, checkpoint=? WHERE run_id=?",
+        (status, encoded, run_id),
+    )
+
+
+def _persist_metrics_status(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    state: dict[str, Any],
+    status: str,
+) -> None:
     connection.execute("BEGIN IMMEDIATE")
     try:
-        row = connection.execute(
-            "SELECT checkpoint FROM run WHERE run_id=?", (run_id,)
-        ).fetchone()
-        if row is None:
-            raise DailyOrchestrationError("daily_run_missing_during_metrics_commit")
-        root, _ = _daily_state(row["checkpoint"])
-        root[_DAILY_CHECKPOINT_KEY] = dict(state)
-        encoded = json.dumps(
-            root,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        )
-        connection.execute(
-            "UPDATE run SET metrics_status=?, checkpoint=? WHERE run_id=?",
-            (status, encoded, run_id),
+        _write_metrics_status_in_transaction(
+            connection, run_id=run_id, state=state, status=status
         )
         connection.commit()
     except BaseException:
@@ -1455,6 +1472,7 @@ def _collect_metrics(
     state: dict[str, Any],
     ports: DailyPorts,
     clock: Clock,
+    data_root: Path,
 ) -> str:
     row = connection.execute(
         "SELECT metrics_status, end_deadline FROM run WHERE run_id=?", (run_id,)
@@ -1496,7 +1514,7 @@ def _collect_metrics(
         cancel_metrics = _CancelRunWork(run_id, ports.cancel_metrics_job)
         metrics_database_path = _main_database_path(connection)
 
-        def collect_with_read_only_connection() -> str:
+        def collect_with_read_only_connection() -> str | MetricsCollectionResult:
             metrics_connection = _open_read_only_connection(metrics_database_path)
             try:
                 return ports.metrics_port.collect(
@@ -1526,6 +1544,41 @@ def _collect_metrics(
                     )
             else:
                 status = result
+                if isinstance(result, MetricsCollectionResult):
+                    if result.status == "not_started":
+                        status = "not_started"
+                        _persist_metrics_status(
+                            connection,
+                            run_id=run_id,
+                            state=state,
+                            status=status,
+                        )
+                        return status
+                    status = result.status
+                    try:
+                        commit_metrics_result(
+                            connection,
+                            data_root=data_root,
+                            result=result,
+                            expected_run_id=run_id,
+                            clock=clock,
+                            deadline_at=deadline,
+                            before_commit=lambda: _write_metrics_status_in_transaction(
+                                connection,
+                                run_id=run_id,
+                                state=state,
+                                status=result.status,
+                            ),
+                        )
+                        return status
+                    except MetricsDeadlineExceeded:
+                        status = "unavailable"
+                        _append_error(state, "metrics", "metrics_commit_deadline")
+                    except Exception as exc:
+                        status = "unavailable"
+                        _append_error(
+                            state, "metrics", "metrics_commit_error", type(exc).__name__
+                        )
             if status not in {"observed", "partial", "unavailable", "not_started"}:
                 status = "unavailable"
         except Exception as exc:
@@ -1786,6 +1839,7 @@ def run_daily(
             state=state,
             ports=ports,
             clock=system_clock,
+            data_root=root,
         )
         count, attempts = _status_counts(connection, run_id)
         if count >= DAILY_TARGET:

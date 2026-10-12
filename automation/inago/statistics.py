@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+import json
+import sqlite3
 from typing import Sequence
 
 from automation.inago.contracts import RejectedContract
@@ -12,6 +14,7 @@ from automation.inago.selection import (
     PRIMARY_REASON_ORDER,
     SelectionResult,
 )
+from automation.inago.metrics import MetricTotal, MetricsSummary
 
 
 DAILY_TARGET = 15
@@ -160,4 +163,118 @@ def summarize_daily(
             for reason in PRIMARY_REASON_ORDER
             if reason_counts[reason]
         },
+    )
+
+
+def _metric_totals(rows: Sequence[sqlite3.Row]) -> MetricTotal:
+    known_values: list[float] = []
+    for row in rows:
+        if row["availability"] != "observed" or row["value_json"] is None:
+            continue
+        value = json.loads(row["value_json"])
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        known_values.append(float(value))
+    return MetricTotal(
+        known_total=sum(known_values) if known_values else None,
+        observed_count=len(known_values),
+        missing_count=len(rows) - len(known_values),
+    )
+
+
+def summarize_metrics(connection: sqlite3.Connection) -> MetricsSummary:
+    """Summarize the latest values in each scope without cross-scope allocation."""
+
+    daily_rows = connection.execute(
+        """
+        SELECT ref, metric, value_json, observed_at, window, availability, observation_id
+          FROM metric_observation
+         WHERE scope='day_aggregate'
+         ORDER BY observed_at DESC, observation_id DESC
+        """
+    ).fetchall()
+    latest_daily: dict[tuple[str, str], sqlite3.Row] = {}
+    for row in daily_rows:
+        key = (str(row["ref"]), str(row["metric"]))
+        latest_daily.setdefault(key, row)
+    daily_by_metric: dict[str, list[sqlite3.Row]] = {}
+    for row in latest_daily.values():
+        daily_by_metric.setdefault(str(row["metric"]), []).append(row)
+    affiliate = {
+        metric: _metric_totals(values) for metric, values in daily_by_metric.items()
+    }
+
+    orders = connection.execute(
+        "SELECT is_temporary_ref, sales_yen, commission_yen FROM revenue_order ORDER BY order_ref"
+    ).fetchall()
+    stable_orders = [row for row in orders if not row["is_temporary_ref"]]
+    order_sales = [row["sales_yen"] for row in stable_orders]
+    order_commission = [row["commission_yen"] for row in stable_orders]
+
+    order_window_rows = connection.execute(
+        """
+        SELECT ref, value_json, observed_at, window, availability, observation_id
+          FROM metric_observation
+         WHERE scope='order_item' AND metric='sales_count' AND ref LIKE 'order-window:%'
+         ORDER BY observed_at DESC, observation_id DESC
+        """
+    ).fetchall()
+    latest_order_windows: dict[str, sqlite3.Row] = {}
+    for row in order_window_rows:
+        latest_order_windows.setdefault(str(row["ref"]), row)
+    order_window_values = list(latest_order_windows.values())
+    order_windows = {
+        str(row["ref"]): _metric_totals([row]) for row in order_window_values
+    }
+    order_count = (
+        _metric_totals(order_window_values)
+        if order_window_values
+        else MetricTotal(None, 0, 1)
+    )
+
+    room_rows = connection.execute(
+        """
+        SELECT ref, value_json, observed_at, availability, observation_id
+          FROM metric_observation
+         WHERE scope='room_post' AND metric='likes'
+         ORDER BY observed_at DESC, observation_id DESC
+        """
+    ).fetchall()
+    latest_room: dict[str, sqlite3.Row] = {}
+    for row in room_rows:
+        latest_room.setdefault(str(row["ref"]), row)
+    room_values = list(latest_room.values())
+    orders_complete_empty = (
+        not orders and order_count.known_total == 0 and order_count.missing_count == 0
+    )
+    return MetricsSummary(
+        affiliate_daily=affiliate,
+        order_count=order_count,
+        order_windows=order_windows,
+        order_unresolved_count=sum(1 for row in orders if row["is_temporary_ref"]),
+        orders_current_sales_yen=(
+            sum(float(value) for value in order_sales)
+            if stable_orders
+            and not any(row["is_temporary_ref"] for row in orders)
+            and all(value is not None for value in order_sales)
+            else 0.0
+            if orders_complete_empty
+            else None
+        ),
+        orders_current_commission_unconfirmed_yen=(
+            sum(float(value) for value in order_commission)
+            if stable_orders
+            and not any(row["is_temporary_ref"] for row in orders)
+            and all(value is not None for value in order_commission)
+            else 0.0
+            if orders_complete_empty
+            else None
+        ),
+        room_post_count=sum(
+            1 for row in room_values if row["availability"] == "observed"
+        ),
+        room_missing_count=sum(
+            1 for row in room_values if row["availability"] != "observed"
+        ),
+        room_likes=_metric_totals(room_values),
     )
