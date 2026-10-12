@@ -19,10 +19,14 @@ from automation.inago.selection import (
     choose_themes,
     evaluate_sources,
     identify_offer,
+    load_offer_history,
     load_theme_candidates,
+    load_theme_selection_events,
     make_offer_key,
     normalize_offer_url,
     persist_theme_selection_events,
+    record_theme_result_word_refs,
+    select_theme_batch,
     split_offer_key,
 )
 from automation.inago.settings import register_external_settings
@@ -158,6 +162,7 @@ def test_299_300_and_unknown_likes_have_distinct_primary_reasons() -> None:
             post("P-UNKNOWN", None, 500, image_ref="img-same"),
         ],
         seed=RUN_SEED,
+        history=OfferHistory(),
     )
 
     assert [item.source_key for item in result.eligible_representatives] == ["P-300"]
@@ -182,6 +187,7 @@ def test_max_likes_representative_is_not_a_sum_and_50_counts_raw_posts() -> None
     result = evaluate_sources(
         repeated_offer_posts + [post("B-600", "shop-B:item-B", 600)] + remaining_posts,
         seed=RUN_SEED,
+        history=OfferHistory(),
     )
 
     assert result.observed_posts == 50
@@ -201,7 +207,7 @@ def test_source_limit_rejects_more_than_50_observations() -> None:
     posts = [post(f"P-{n}", f"shop:item-{n}", 300) for n in range(51)]
 
     with pytest.raises(RejectedContract):
-        evaluate_sources(posts, seed=RUN_SEED)
+        evaluate_sources(posts, seed=RUN_SEED, history=OfferHistory())
 
 
 def test_tied_representatives_are_reproducible_from_saved_seed() -> None:
@@ -212,8 +218,8 @@ def test_tied_representatives_are_reproducible_from_saved_seed() -> None:
         post("C-1", "shop-C:item-C", 400),
     ]
 
-    first = evaluate_sources(posts, seed=RUN_SEED)
-    resumed = evaluate_sources(posts, seed=RUN_SEED)
+    first = evaluate_sources(posts, seed=RUN_SEED, history=OfferHistory())
+    resumed = evaluate_sources(posts, seed=RUN_SEED, history=OfferHistory())
 
     assert first == resumed
     assert [item.offer_key for item in first.representatives] == [
@@ -265,6 +271,145 @@ def test_identity_not_image_controls_grouping_and_history_exclusion_order() -> N
     assert sum(result.primary_reason_counts.values()) == len(result.decisions) == 8
 
 
+def test_offer_history_reads_same_day_posted_pending_and_reserved_state_from_db(
+    selection_db: sqlite3.Connection,
+) -> None:
+    selection_db.execute(
+        """
+        INSERT INTO run
+            (run_id, target_date, mode, status, settings_version, seed,
+             started_at, draft_deadline, end_deadline, attempt_used,
+             committed_count, checkpoint, metrics_status, finished_at)
+        VALUES ('RUN-PRIOR', '2026-10-11', 'daily', 'complete', ?, 'SEED-PRIOR',
+                '2026-10-11T13:00:00+09:00', '2026-10-11T17:45:00+09:00',
+                '2026-10-11T18:00:00+09:00', 1, 0, NULL, 'not_started',
+                '2026-10-11T15:00:00+09:00')
+        """,
+        (SETTINGS_VERSION,),
+    )
+    keys = {
+        name: f"shop_test:item_{name}"
+        for name in (
+            "same",
+            "selected",
+            "posted",
+            "pending",
+            "reserved",
+            "failed",
+        )
+    }
+    for name, offer_key in keys.items():
+        selection_db.execute(
+            """
+            INSERT INTO offer
+                (offer_key, shop_id, item_id, name, url, image_refs_json,
+                 main_theme_id, aux_theme_ids_json, first_seen, last_seen, facts_json)
+            VALUES (?, 'shop_test', ?, ?, ?, '[]', 'G01-T01', '[]', ?, ?, '[]')
+            """,
+            (
+                offer_key,
+                f"item_{name}",
+                f"fixture {name}",
+                f"https://item.rakuten.co.jp/shop_test/item_{name}/",
+                "2026-10-11T13:00:00+09:00",
+                "2026-10-12T13:00:00+09:00",
+            ),
+        )
+    selection_db.execute(
+        """
+        INSERT INTO draft
+            (draft_id, offer_key, run_id, version, body, generated_at, committed_at,
+             generator_version, pattern_version, status, artifact_ref, pattern_id,
+             evidence_refs_json)
+        VALUES ('D-SAME', ?, ?, 1, 'body', '2026-10-12T13:01:00+09:00',
+                '2026-10-12T13:01:00+09:00', 'gen', 'patterns', 'committed',
+                NULL, 'P01', '[]')
+        """,
+        (keys["same"], RUN_ID),
+    )
+    for name in ("pending", "reserved"):
+        selection_db.execute(
+            """
+            INSERT INTO draft
+                (draft_id, offer_key, run_id, version, body, generated_at, committed_at,
+                 generator_version, pattern_version, status, artifact_ref, pattern_id,
+                 evidence_refs_json)
+            VALUES (?, ?, 'RUN-PRIOR', 1, 'body', '2026-10-11T13:01:00+09:00',
+                    '2026-10-11T13:01:00+09:00', 'gen', 'patterns', 'committed',
+                    NULL, 'P01', '[]')
+            """,
+            (f"D-{name.upper()}", keys[name]),
+        )
+    selection_db.execute(
+        """
+        INSERT INTO human_action
+            (action_id, action, offer_key, draft_id, draft_version, prior_revision,
+             receipt_revision, reason, reported_at, old_event_ref, new_body,
+             apply_status, applied_at, applied_run_id, apply_error)
+        VALUES ('ACTION-PENDING', 'posted', ?, 'D-PENDING', 1, 0, 1, NULL,
+                '2026-10-11T21:00:00+09:00', NULL, NULL, 'pending', NULL, NULL, NULL)
+        """,
+        (keys["pending"],),
+    )
+    selection_db.execute(
+        """
+        INSERT INTO reservation
+            (reservation_id, offer_key, draft_id, status, created_at,
+             released_at, release_reason)
+        VALUES ('RES-RESERVED', ?, 'D-RESERVED', 'active',
+                '2026-10-11T13:02:00+09:00', NULL, NULL)
+        """,
+        (keys["reserved"],),
+    )
+    selection_db.execute(
+        """
+        INSERT INTO publication_event
+            (event_id, offer_key, draft_id, draft_version, reported_at,
+             actual_posted_at, room_url, evidence_kind, valid, revision)
+        VALUES ('EVENT-POSTED', ?, NULL, NULL, '2026-10-11T21:00:00+09:00',
+                NULL, NULL, 'human_statement', 1, 0)
+        """,
+        (keys["posted"],),
+    )
+    selection_db.execute(
+        """
+        INSERT INTO exclusion_key
+            (offer_key, reason, evidence_refs_json, effective, updated_at)
+        VALUES (?, 'actual_posted', '["EVENT-POSTED"]', 1, '2026-10-11T21:00:00+09:00')
+        """,
+        (keys["posted"],),
+    )
+    selection_db.execute(
+        """
+        INSERT INTO generation_attempt
+            (generation_attempt_id, run_id, offer_key, draft_id, attempt_no,
+             outcome, artifact_ref, error_code, started_at, ended_at)
+        VALUES ('GEN-FAILED', ?, ?, NULL, 3, 'error', NULL, 'fixture_error',
+                '2026-10-12T13:10:00+09:00', '2026-10-12T13:11:00+09:00')
+        """,
+        (RUN_ID, keys["failed"]),
+    )
+    selection_db.execute(
+        """
+        INSERT INTO generation_attempt
+            (generation_attempt_id, run_id, offer_key, draft_id, attempt_no,
+             outcome, artifact_ref, error_code, started_at, ended_at)
+        VALUES ('GEN-SELECTED', ?, ?, NULL, 1, 'in_progress', NULL, NULL,
+                '2026-10-12T13:10:00+09:00', NULL)
+        """,
+        (RUN_ID, keys["selected"]),
+    )
+
+    history = load_offer_history(selection_db, RUN_ID)
+
+    assert history.same_day_selected == {keys["selected"]}
+    assert history.completed == {keys["same"]}
+    assert keys["posted"] in history.permanently_posted
+    assert history.pending_posted == {keys["pending"]}
+    assert history.active_reservations == {keys["reserved"]}
+    assert history.generation_failed == {keys["failed"]}
+
+
 def test_theme_selection_uses_lowest_counts_seeded_ties_and_active_themes_only() -> None:
     themes = (
         ThemeCandidate("T-A", 2),
@@ -311,44 +456,71 @@ def test_initial_and_additional_theme_count_events_are_atomic_and_idempotent(
     assert len(candidates) == 30
     initial = choose_themes(candidates, seed=RUN_SEED, count=3)
     assert set(initial) == {"G01-T02", "G01-T03", "G01-T04"}
-    saved_initial = persist_theme_selection_events(
+    saved_initial = select_theme_batch(
         selection_db,
         RUN_ID,
         event_kind="initial",
-        selected_theme_ids=initial,
-        seed=RUN_SEED,
         selected_at="2026-10-12T13:01:00+09:00",
     )
-    replayed_initial = persist_theme_selection_events(
+    assert {event.theme_id for event in saved_initial} == set(initial)
+    result_event = record_theme_result_word_refs(
         selection_db,
         RUN_ID,
         event_kind="initial",
-        selected_theme_ids=initial,
-        seed=RUN_SEED,
+        ordinal=1,
+        result_word_refs=("WORD-OBSERVED-1", "WORD-OBSERVED-2"),
+    )
+    assert result_event.result_word_refs == ("WORD-OBSERVED-1", "WORD-OBSERVED-2")
+    assert (
+        record_theme_result_word_refs(
+            selection_db,
+            RUN_ID,
+            event_kind="initial",
+            ordinal=1,
+            result_word_refs=("WORD-OBSERVED-1", "WORD-OBSERVED-2"),
+        )
+        == result_event
+    )
+    with pytest.raises(IdempotencyConflict):
+        record_theme_result_word_refs(
+            selection_db,
+            RUN_ID,
+            event_kind="initial",
+            ordinal=1,
+            result_word_refs=("WORD-DIFFERENT",),
+        )
+    replayed_initial = select_theme_batch(
+        selection_db,
+        RUN_ID,
+        event_kind="initial",
         selected_at="2026-10-12T13:02:00+09:00",
     )
 
-    assert replayed_initial == saved_initial
+    assert [event.selection_id for event in replayed_initial] == [
+        event.selection_id for event in saved_initial
+    ]
+    assert replayed_initial[0].result_word_refs == result_event.result_word_refs
+    assert (
+        load_theme_selection_events(selection_db, RUN_ID, event_kind="initial")
+        == replayed_initial
+    )
     assert (
         selection_db.execute("SELECT COUNT(*) FROM theme_selection").fetchone()[0] == 3
     )
     updated = load_theme_candidates(selection_db, RUN_ID)
     assert {item.theme_id: item.selection_count for item in updated}["G01-T02"] == 1
     additional = choose_themes(updated, seed=RUN_SEED, count=1)
-    saved_additional = persist_theme_selection_events(
+    saved_additional = select_theme_batch(
         selection_db,
         RUN_ID,
         event_kind="additional",
-        selected_theme_ids=additional,
-        seed=RUN_SEED,
         selected_at="2026-10-12T13:10:00+09:00",
     )
-    replayed_additional = persist_theme_selection_events(
+    assert {event.theme_id for event in saved_additional} == set(additional)
+    replayed_additional = select_theme_batch(
         selection_db,
         RUN_ID,
         event_kind="additional",
-        selected_theme_ids=additional,
-        seed=RUN_SEED,
         selected_at="2026-10-12T13:11:00+09:00",
     )
 
@@ -385,11 +557,12 @@ def test_theme_event_conflicts_and_inactive_or_wrong_seed_choices_fail_closed(
             seed="another-seed",
             selected_at="2026-10-12T13:01:00+09:00",
         )
+    valid_initial = ("G01-T01", "G01-T02", "G01-T03")
     persist_theme_selection_events(
         selection_db,
         RUN_ID,
         event_kind="initial",
-        selected_theme_ids=("G01-T01",),
+        selected_theme_ids=valid_initial,
         seed=RUN_SEED,
         selected_at="2026-10-12T13:01:00+09:00",
     )
@@ -399,12 +572,12 @@ def test_theme_event_conflicts_and_inactive_or_wrong_seed_choices_fail_closed(
             selection_db,
             RUN_ID,
             event_kind="initial",
-            selected_theme_ids=("G01-T02",),
+            selected_theme_ids=("G01-T04", "G01-T05", "G01-T06"),
             seed=RUN_SEED,
             selected_at="2026-10-12T13:02:00+09:00",
         )
     assert (
-        selection_db.execute("SELECT COUNT(*) FROM theme_selection").fetchone()[0] == 1
+        selection_db.execute("SELECT COUNT(*) FROM theme_selection").fetchone()[0] == 3
     )
 
 
@@ -415,11 +588,13 @@ def test_daily_statistics_separate_attempts_posts_representatives_union_D_and_P(
             post("B-600", "shop-B:item-B", 600),
         ],
         seed=RUN_SEED,
+        history=OfferHistory(),
     )
-    successful_zero = evaluate_sources([], seed=RUN_SEED)
+    successful_zero = evaluate_sources([], seed=RUN_SEED, history=OfferHistory())
     next_search = evaluate_sources(
         [post("A-again", "shop-A:item-A", 450)],
         seed=RUN_SEED,
+        history=OfferHistory(),
     )
 
     summary = summarize_daily(
@@ -432,7 +607,9 @@ def test_daily_statistics_separate_attempts_posts_representatives_union_D_and_P(
         posted_count=20,
     )
 
+    assert summary.seed == RUN_SEED
     assert summary.search_attempts == 3
+    assert summary.search_status_counts == {"observed": 3}
     assert summary.observed_posts == 12
     assert summary.representative_count == 3
     assert summary.distinct_offer_count == 2
@@ -443,8 +620,74 @@ def test_daily_statistics_separate_attempts_posts_representatives_union_D_and_P(
     assert sum(summary.primary_reason_counts.values()) == summary.observed_posts
 
 
+def test_q19_367_observations_42_representatives_38_distinct_and_D11() -> None:
+    completed_keys = {f"shop:item-{number}" for number in range(27, 38)}
+    posted_keys = {f"shop:item-{number}" for number in range(20)}
+    reserved_keys = {f"shop:item-{number}" for number in range(20, 27)}
+    repeated_keys = [f"shop:item-{number}" for number in range(27, 31)]
+    representative_keys = [
+        *(f"shop:item-{number}" for number in range(38)),
+        *repeated_keys,
+    ]
+    representatives_per_search = [6, 6, 5, 5, 5, 5, 4, 3, 3]
+    observations_per_search = [41, 41, 41, 41, 41, 41, 41, 41, 39]
+    attempts = []
+    cursor = 0
+    same_day_keys: set[str] = set()
+
+    for attempt_no, (representative_count, observed_count) in enumerate(
+        zip(representatives_per_search, observations_per_search), start=1
+    ):
+        keys = representative_keys[cursor : cursor + representative_count]
+        cursor += representative_count
+        history = OfferHistory(
+            same_day_selected=frozenset(same_day_keys),
+            permanently_posted=frozenset(posted_keys),
+            active_reservations=frozenset(reserved_keys),
+            completed=frozenset(completed_keys),
+        )
+        source_posts = [
+            post(
+                f"R-{attempt_no}-{offer_key}",
+                offer_key,
+                700 - int(offer_key.rsplit("-", 1)[1]),
+            )
+            for offer_key in keys
+        ]
+        for duplicate_no in range(observed_count - representative_count):
+            source_posts.append(
+                post(
+                    f"D-{attempt_no}-{duplicate_no}",
+                    keys[0],
+                    300,
+                )
+            )
+        result = evaluate_sources(source_posts, seed=RUN_SEED, history=history)
+        same_day_keys.update(item.offer_key for item in result.representatives)
+        attempts.append(SearchAttempt(attempt_no, "observed", result))
+
+    assert cursor == 42
+    summary = summarize_daily(attempts, committed_count=11, posted_count=20)
+
+    assert summary.search_attempts == 9
+    assert summary.observed_posts == 367
+    assert summary.representative_count == 42
+    assert summary.distinct_offer_count == 38
+    assert summary.committed_count == 11
+    assert summary.posted_count == 20
+    assert summary.shortfall_count == 4
+    assert summary.primary_reason_counts == {
+        "active_reservation": 7,
+        "completed": 11,
+        "permanently_posted": 20,
+        "same_day_selected": 4,
+        "same_search_offer_duplicate": 325,
+    }
+    assert sum(summary.primary_reason_counts.values()) == 367
+
+
 def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bound() -> None:
-    empty = evaluate_sources([], seed=RUN_SEED)
+    empty = evaluate_sources([], seed=RUN_SEED, history=OfferHistory())
     summary = summarize_daily(
         [
             SearchAttempt(1, "observed", empty),
@@ -455,6 +698,7 @@ def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bo
     )
 
     assert summary.search_attempts == 2
+    assert summary.search_status_counts == {"observed": 1, "unavailable": 1}
     assert summary.observed_posts == 0
     with pytest.raises(RejectedContract):
         summarize_daily(
@@ -464,3 +708,16 @@ def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bo
         )
     with pytest.raises(RejectedContract):
         summarize_daily([], committed_count=16, posted_count=0)
+    with pytest.raises(RejectedContract):
+        summarize_daily(
+            [
+                SearchAttempt(1, "observed", empty),
+                SearchAttempt(
+                    2,
+                    "observed",
+                    evaluate_sources([], seed="different-seed", history=OfferHistory()),
+                ),
+            ],
+            committed_count=0,
+            posted_count=0,
+        )
