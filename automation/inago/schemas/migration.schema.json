@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/migration-v1.schema.json",
+  "title": "Read-only legacy migration result",
+  "type": "object",
+  "required": [
+    "report_version", "mode", "observed_at", "source_files", "items",
+    "supplementation_required", "summary", "selection_allowed",
+    "old_file_write_attempts", "old_task_api_calls"
+  ],
+  "properties": {
+    "report_version": {"const": 1},
+    "mode": {"enum": ["dry_run", "apply"]},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "source_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "version"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "version": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "items": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "supplementation_required": {
+      "type": "array", "items": {"$ref": "#/$defs/supplementation"}
+    },
+    "summary": {"$ref": "#/$defs/summary"},
+    "selection_allowed": {"type": "boolean"},
+    "old_file_write_attempts": {"const": 0},
+    "old_task_api_calls": {"const": 0}
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": [
+        "source_ref", "source_path", "source_version", "classification",
+        "legacy_product_ref", "offer_key", "outcome", "reason", "event_id"
+      ],
+      "properties": {
+        "source_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+        "source_path": {"type": "string", "minLength": 1},
+        "source_version": {"type": "string", "minLength": 1},
+        "classification": {
+          "enum": ["legacy_evidence", "human_statement", "planned", "draft", "unknown"]
+        },
+        "legacy_product_ref": {"type": ["string", "null"]},
+        "offer_key": {"type": ["string", "null"]},
+        "outcome": {
+          "enum": [
+            "would_import", "imported", "already_imported", "not_posted",
+            "supplementation_required"
+          ]
+        },
+        "reason": {"type": ["string", "null"]},
+        "event_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "supplementation": {
+      "type": "object",
+      "required": [
+        "source_ref", "source_path", "source_version", "legacy_product_ref",
+        "product_url", "reason"
+      ],
+      "properties": {
+        "source_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+        "source_path": {"type": "string", "minLength": 1},
+        "source_version": {"type": "string", "minLength": 1},
+        "legacy_product_ref": {"type": ["string", "null"]},
+        "product_url": {"type": ["string", "null"], "format": "uri"},
+        "reason": {
+          "enum": [
+            "legacy_product_unmapped", "duplicate_legacy_product_id",
+            "legacy_product_url_unreadable", "current_offer_missing",
+            "ambiguous_current_offer", "legacy_status_conflict",
+            "human_status_inconsistent", "legacy_posting_state_unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "source_records", "legacy_evidence", "human_statements", "planned",
+        "drafts", "unknown", "created_publications", "already_imported",
+        "created_exclusions", "updated_exclusions", "publication_count_before",
+        "publication_count_after", "exclusion_count_before", "exclusion_count_after"
+      ],
+      "properties": {
+        "source_records": {"type": "integer", "minimum": 0},
+        "legacy_evidence": {"type": "integer", "minimum": 0},
+        "human_statements": {"type": "integer", "minimum": 0},
+        "planned": {"type": "integer", "minimum": 0},
+        "drafts": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0},
+        "created_publications": {"type": "integer", "minimum": 0},
+        "already_imported": {"type": "integer", "minimum": 0},
+        "created_exclusions": {"type": "integer", "minimum": 0},
+        "updated_exclusions": {"type": "integer", "minimum": 0},
+        "publication_count_before": {"type": "integer", "minimum": 0},
+        "publication_count_after": {"type": "integer", "minimum": 0},
+        "exclusion_count_before": {"type": "integer", "minimum": 0},
+        "exclusion_count_after": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
