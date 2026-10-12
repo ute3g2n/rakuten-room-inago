@@ -901,7 +901,9 @@ def test_origin_csrf_content_type_and_size_are_enforced(
         bad_length, bad_length_error, _ = _json_request(
             server,
             "POST",
-            payload=payload,
+            # The server closes after rejecting the invalid length; send no body
+            # so the client cannot race that close with an undeclared payload.
+            raw_body=b"",
             csrf_token=csrf_token,
             headers={"Content-Length": "invalid"},
         )

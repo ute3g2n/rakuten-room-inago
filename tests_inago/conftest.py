@@ -12,6 +12,20 @@ from jsonschema import FormatChecker, validate
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_CONFIG = Path(__file__).resolve().parent / "config" / "fixture.json"
 
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Register STEP 19's two explicit offline acceptance phases."""
+
+    config.addinivalue_line(
+        "markers",
+        "fixture_contract: isolated offline fixture acceptance checks",
+    )
+    config.addinivalue_line(
+        "markers",
+        "document_contract: source-document and decision-trace checks",
+    )
+
+
 FIXTURE_CONFIG_SCHEMA = {
     "type": "object",
     "required": [
