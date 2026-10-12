@@ -9,7 +9,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Self
+from typing import Callable, Literal, Self
 
 
 class RunLockError(RuntimeError):
@@ -60,6 +60,125 @@ class LockOwner:
         return cls(pid, process_start_time, run_id)
 
 
+@dataclass(frozen=True, slots=True)
+class LockOwnerObservation:
+    """Read-only observation of the atomically published lock-owner record."""
+
+    status: Literal["present", "missing", "invalid", "unknown"]
+    owner: LockOwner | None
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class ProcessObservation:
+    """Process identity comparison that never treats access failure as death."""
+
+    status: Literal["alive", "dead", "reused", "unknown"]
+    pid: int
+    expected_start_time: str
+    observed_start_time: str | None
+    reason: str
+
+
+def read_lock_owner(path: str | Path) -> LockOwnerObservation:
+    """Read owner metadata without trying to acquire, release, or repair a lock."""
+
+    owner_path = Path(path)
+    try:
+        raw_bytes = owner_path.read_bytes()
+    except FileNotFoundError:
+        return LockOwnerObservation("missing", None, "owner_file_missing")
+    except OSError:
+        return LockOwnerObservation("unknown", None, "owner_file_unreadable")
+    if len(raw_bytes) > 4096:
+        return LockOwnerObservation("invalid", None, "owner_file_too_large")
+    try:
+        raw = raw_bytes.decode("utf-8", errors="strict")
+    except UnicodeError:
+        return LockOwnerObservation("invalid", None, "owner_encoding_invalid")
+    try:
+        payload = json.loads(raw)
+    except (json.JSONDecodeError, RecursionError):
+        return LockOwnerObservation("invalid", None, "owner_json_invalid")
+    owner = LockOwner.from_dict(payload)
+    if owner is None:
+        return LockOwnerObservation("invalid", None, "owner_fields_invalid")
+    return LockOwnerObservation("present", owner, "owner_metadata_observed")
+
+
+def _canonical_start_time(value: str) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    return parsed.astimezone(timezone.utc).isoformat(timespec="microseconds")
+
+
+def observe_process_owner(
+    owner: LockOwner,
+    *,
+    start_time_reader: Callable[[int], str] | None = None,
+) -> ProcessObservation:
+    """Compare PID and creation time; permission/API errors remain unknown."""
+
+    reader = start_time_reader or process_start_time
+    expected = _canonical_start_time(owner.process_start_time)
+    if expected is None:
+        return ProcessObservation(
+            "unknown",
+            owner.pid,
+            owner.process_start_time,
+            None,
+            "owner_start_time_invalid",
+        )
+    try:
+        observed_raw = reader(owner.pid)
+    except ProcessLookupError:
+        return ProcessObservation(
+            "dead", owner.pid, owner.process_start_time, None, "process_not_found"
+        )
+    except PermissionError:
+        return ProcessObservation(
+            "unknown",
+            owner.pid,
+            owner.process_start_time,
+            None,
+            "process_access_denied",
+        )
+    except (OSError, RunLockError, TypeError, ValueError):
+        return ProcessObservation(
+            "unknown",
+            owner.pid,
+            owner.process_start_time,
+            None,
+            "process_observation_failed",
+        )
+    observed = _canonical_start_time(observed_raw)
+    if observed is None:
+        return ProcessObservation(
+            "unknown",
+            owner.pid,
+            owner.process_start_time,
+            None,
+            "process_start_time_invalid",
+        )
+    if observed != expected:
+        return ProcessObservation(
+            "reused", owner.pid, owner.process_start_time, observed, "pid_reused"
+        )
+    return ProcessObservation(
+        "alive",
+        owner.pid,
+        owner.process_start_time,
+        observed,
+        "process_identity_matches",
+    )
+
+
 class RunLockBusy(RunLockError):
     """Another process owns the lock; ``owner`` may be unknown during publish."""
 
@@ -95,7 +214,12 @@ def process_start_time(pid: int) -> str:
 
     handle = kernel32.OpenProcess(0x1000, 0, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
-        raise OSError(ctypes.get_last_error(), "OpenProcess failed", pid)
+        error = ctypes.get_last_error()
+        if error in {87, 1168}:  # ERROR_INVALID_PARAMETER / ERROR_NOT_FOUND
+            raise ProcessLookupError(error, "OpenProcess process not found", pid)
+        if error == 5:  # ERROR_ACCESS_DENIED is not evidence that the process exited.
+            raise PermissionError(error, "OpenProcess access denied", pid)
+        raise OSError(error, "OpenProcess failed", pid)
     try:
         created = FileTime()
         exited = FileTime()
@@ -108,7 +232,14 @@ def process_start_time(pid: int) -> str:
             ctypes.byref(kernel),
             ctypes.byref(user),
         ):
-            raise OSError(ctypes.get_last_error(), "GetProcessTimes failed", pid)
+            error = ctypes.get_last_error()
+            if error in {87, 1168}:
+                raise ProcessLookupError(
+                    error, "GetProcessTimes process not found", pid
+                )
+            if error == 5:
+                raise PermissionError(error, "GetProcessTimes access denied", pid)
+            raise OSError(error, "GetProcessTimes failed", pid)
     finally:
         kernel32.CloseHandle(handle)
 
