@@ -1,6 +1,6 @@
 {
   "version": "confirmed-0.3-step46-all132",
-  "generated_at": "2026-10-12T16:26:37+09:00",
+  "generated_at": "2026-10-12T16:31:12+09:00",
   "status": "confirmed_partial_pipeline",
   "intended_for": "本人採用済みの外部分析結果と準備工程成果物の索引。運用正本ではない。",
   "artifact_count": 10,
@@ -172,7 +172,13 @@
         "visual_review_status": "unverified_browser_file_protocol_blocked",
         "content_review_ref": "レビュー/書き方詳細版最終確認.md",
         "final_status": "all_71_steps_complete",
-        "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認"
+        "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認",
+        "git_delivery": {
+          "branch": "main",
+          "commit": "296ffea",
+          "push_target": "origin/main",
+          "push_status": "success"
+        }
       }
     },
     {
@@ -266,6 +272,13 @@
     "content_review_ref": "レビュー/書き方詳細版最終確認.md",
     "visual_review_status": "unverified_step50_user_waiver_and_step70_browser_policy",
     "final_status": "all_71_steps_complete",
-    "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認"
+    "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認",
+    "git_delivery": {
+      "branch": "main",
+      "commit": "296ffea",
+      "push_target": "origin/main",
+      "push_status": "success",
+      "private_working_data_staged": false
+    }
   }
 }

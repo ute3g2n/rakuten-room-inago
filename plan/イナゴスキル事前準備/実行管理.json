@@ -5,10 +5,10 @@
   "plan_version": "1.3",
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
-  "status": "in_progress",
+  "status": "complete",
   "current_step": 71,
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-12T16:22:30+09:00",
+  "updated_at": "2026-10-12T16:31:12+09:00",
   "latest_user_instruction_update": {
     "recorded_at": "2026-10-12T08:01:53+09:00",
     "accepted_body_count": 132,
@@ -27,8 +27,13 @@
   "git_checkpoint": {
     "branch": "main",
     "upstream": "origin/main",
-    "steps_01_to_05_committed_and_pushed": true,
-    "last_observed_status": "Before this run: clean main at 52ab868, tracking origin/main. STEP50 is complete by explicit user waiver; visual and print remain unverified."
+    "steps_52_to_71_committed_and_pushed": true,
+    "primary_commit": "296ffea",
+    "push_result": "success",
+    "private_working_data_staged": false,
+    "force_push": false,
+    "history_rewrite": false,
+    "last_observed_status": "Primary deliverables pushed to origin/main; final execution closure record being recorded."
   },
   "base_collection": {
     "status": "partial",
@@ -3774,10 +3779,10 @@
     {
       "step": "71",
       "title": "詳細ルールの受領内容を確認し今回の成果物を納品する",
-      "status": "running",
+      "status": "complete",
       "started_at": "2026-10-12T16:22:30+09:00",
-      "ended_at": null,
-      "time_note": "",
+      "ended_at": "2026-10-12T16:31:12+09:00",
+      "time_note": "詳細書き方候補を受領可能な資料として版・状態・根拠範囲とともに確認。Git対象をレビューし、22件の計画成果物のみをコミット。mainからorigin/mainへのpush成功。視覚未確認と本人新規採用なしを保持。",
       "inputs": [
         "plan/イナゴスキル事前準備実行計画.md STEP71",
         "plan/イナゴスキル事前準備/実装受領確認.md",
@@ -3786,17 +3791,34 @@
       "output_paths": [
         "plan/イナゴスキル事前準備/実装受領確認.md",
         "plan/イナゴスキル事前準備/実行管理.md",
-        "plan/イナゴスキル事前準備/結果セット索引.json"
+        "plan/イナゴスキル事前準備/結果セット索引.json",
+        "plan/イナゴスキル事前準備/事前準備完了レポート.html",
+        "Git commit 296ffea (main → origin/main)"
       ],
       "source_requirement_version": "1.3",
-      "observed_counts": null,
-      "validation_results": [],
-      "review_ref": null,
+      "observed_counts": {
+        "completed_steps": 71,
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "base_full_body_records": 132,
+        "p05_rule_basis_records": 5,
+        "visual_desktop": "unverified",
+        "visual_390px": "unverified",
+        "visual_print": "unverified"
+      },
+      "validation_results": [
+        "確認済み基本版と詳細候補版の状態を区別。P05規則はB0002/B0201/B0213/B0235/B0252だけから導出。",
+        "受領記録・結果セット索引・HTMLとSTEP70レビューの版・根拠・未確認事項が一致。",
+        "対象22件はplan配下の今回成果物。非公開作業データは .gitignore 対象でステージしない。git diff --cached --check 合格。",
+        "mainのコミット 296ffea を作成し、origin/mainへのpush成功。force push・履歴書換えなし。",
+        "ソフトウェアテストは依頼されていないため実施していない。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/書き方詳細版最終確認.md",
       "return_to": null,
       "next_step": null,
       "next_actor": null,
       "blocker": null,
-      "sequence_acceptance": "running_in_order"
+      "sequence_acceptance": "complete_in_order_all132_visual_unverified"
     }
   ],
   "execution_audit": [
@@ -4208,6 +4230,22 @@
       "followup_checkpoints": [
         "STEP71で詳細ルールの受領可能性・Git対象範囲を確認し納品する。"
       ]
+    },
+    {
+      "step": "71",
+      "recorded_at": "2026-10-12T16:31:12+09:00",
+      "result": "completed_in_order_all132_visual_unverified",
+      "checks": [
+        "実装受領確認.mdへ詳細候補の内容、確認済み基本版との差、P05の5件根拠、132件母数、未実施事項を記録。",
+        "全71工程の順序実績を確認。STEP50はユーザー指示による完了扱い。STEP50/70の視覚確認は未確認。",
+        "task成果22ファイルを確認し非公開作業データを除外。git diff --cached --check合格。",
+        "commit 296ffea on main pushed successfully to origin/main."
+      ],
+      "blockers": [
+        "デスクトップ・約390px幅・印刷の視覚確認は未確認。",
+        "ソフトウェア実装・実投稿・反応効果測定は今回範囲外。"
+      ],
+      "followup_checkpoints": []
     }
   ],
   "historical_out_of_sequence_execution_audits": [
@@ -4315,7 +4353,7 @@
       ]
     }
   ],
-  "latest_execution_update": "STEP70完了。MD/JSON/HTMLの内容照合は合格。ローカルfile:プレビューはブラウザーセキュリティポリシーで拒否され、デスクトップ/390px/印刷の実表示は未確認と記録。現在STEP71。",
+  "latest_execution_update": "STEP52～71を順番どおり完了（STEP50はユーザー指示による完了扱い）。P05規則は指定5件のみから決定。HTMLの内容確認と受領記録を完了。視覚/印刷は未確認。main commit 296ffeaをorigin/mainへpush済み。",
   "sequence_revalidation": {
     "reason": "STEP27 JSONLに統合対応表が参照するS05-0001原観測行が欠けていたため、STEP27修復とSTEP28以降の順次再検証が必要",
     "reopened_at": "2026-10-12T09:00:22+09:00",
@@ -4333,7 +4371,7 @@
     "step33": "complete_after_step27_source_gap_repair",
     "step34": "complete_in_order_after_step27_source_gap_repair",
     "step36_to_44": "step36_to_47_complete_in_order; step48_in_progress_in_order",
-    "current_revalidation_step": "70",
+    "current_revalidation_step": "71",
     "step35": "complete_in_order_all132",
     "step36": "complete_in_order_with_documented_data_limitations",
     "step37_to_44": "step37_to_47_complete_in_order; step48_in_progress_in_order",
