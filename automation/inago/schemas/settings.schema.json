@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/settings.schema.json",
+  "title": "Inago imported settings and candidate writing rules",
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "nullableTimestamp": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "format": "date-time"}
+      ]
+    },
+    "sourceGenre": {
+      "type": "object",
+      "required": ["genre_id", "name", "definition", "body_observation_count", "denominator"],
+      "properties": {
+        "genre_id": {"$ref": "#/$defs/nonEmptyString"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "body_observation_count": {"type": "integer", "minimum": 0},
+        "denominator": {"const": 132}
+      },
+      "additionalProperties": false
+    },
+    "sourceTheme": {
+      "type": "object",
+      "required": ["theme_id", "genre_id", "name", "definition", "included_examples", "boundary_examples", "evidence_refs", "material_count", "material_kind", "material_count_note", "state", "selection_count"],
+      "properties": {
+        "theme_id": {"$ref": "#/$defs/nonEmptyString"},
+        "genre_id": {"$ref": "#/$defs/nonEmptyString"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "included_examples": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}},
+        "boundary_examples": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}},
+        "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}},
+        "material_count": {"type": ["integer", "null"], "minimum": 0},
+        "material_kind": {"type": ["string", "null"]},
+        "material_count_note": {"type": "string"},
+        "state": {"const": "active"},
+        "selection_count": {"const": 0}
+      },
+      "additionalProperties": false
+    },
+    "basicPattern": {
+      "type": "object",
+      "required": ["pattern_id", "name", "observation_count", "denominator", "structure_candidate", "reference", "detailed_rules_ref", "detailed_rules_version", "detailed_rules_status"],
+      "properties": {
+        "pattern_id": {"enum": ["P01", "P02", "P03", "P04", "P05"]},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "observation_count": {"type": "integer", "minimum": 0},
+        "denominator": {"const": 132},
+        "structure_candidate": {"$ref": "#/$defs/nonEmptyString"},
+        "reference": {"$ref": "#/$defs/nonEmptyString"},
+        "detailed_rules_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "detailed_rules_version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
+        "detailed_rules_status": {"const": "reviewed_candidate_not_new_owner_confirmation"}
+      },
+      "additionalProperties": false
+    },
+    "guidance": {
+      "type": "object",
+      "required": ["min", "max", "unit", "mandatory", "reference"],
+      "properties": {
+        "min": {"type": "integer", "minimum": 0},
+        "max": {"type": "integer", "minimum": 0},
+        "unit": {"$ref": "#/$defs/nonEmptyString"},
+        "mandatory": {"const": false},
+        "reference": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "additionalProperties": false
+    },
+    "analysisBasis": {
+      "type": "object",
+      "required": ["base_full_body_observations", "reaction_condition_status", "supplement_observations", "supplement_is_separate_cohort"],
+      "properties": {
+        "base_full_body_observations": {"const": 132},
+        "reaction_condition_status": {
+          "type": "object",
+          "required": ["match", "unknown", "exclusions", "used_as_filter"],
+          "properties": {
+            "match": {"const": 24},
+            "unknown": {"const": 108},
+            "exclusions": {"const": 0},
+            "used_as_filter": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "supplement_observations": {"const": 50},
+        "supplement_is_separate_cohort": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "external_settings": {
+      "type": "object",
+      "required": ["artifact_kind", "version", "status", "adopted", "confirmed_at", "confirmation_ref", "analysis_basis", "genres", "themes", "patterns", "pattern_refs", "pattern_selection_policy", "body_length_guidance", "tag_guidance", "selection_count", "result_index_ref", "detailed_rules_extension", "detailed_rules_ref", "detailed_rules_version", "detailed_rules_status"],
+      "properties": {
+        "artifact_kind": {"const": "external_analysis_result"},
+        "version": {"const": "confirmed-0.3-step46-all132"},
+        "status": {"const": "confirmed"},
+        "adopted": {"const": true},
+        "confirmed_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "confirmation_ref": {"const": "本人確認記録.md"},
+        "analysis_basis": {"$ref": "#/$defs/analysisBasis"},
+        "genres": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/sourceGenre"}},
+        "themes": {"type": "array", "minItems": 30, "maxItems": 30, "items": {"$ref": "#/$defs/sourceTheme"}},
+        "patterns": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/basicPattern"}},
+        "pattern_refs": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/nonEmptyString"}},
+        "pattern_selection_policy": {"const": "商品ごとに、確認できる情報に合う型を選ぶ。5種類を順番にローテーションしない。"},
+        "body_length_guidance": {"$ref": "#/$defs/guidance"},
+        "tag_guidance": {"$ref": "#/$defs/guidance"},
+        "selection_count": {"const": 0},
+        "result_index_ref": {
+          "type": "object",
+          "required": ["path", "version", "status"],
+          "properties": {
+            "path": {"const": "結果セット索引.json"},
+            "version": {"const": "confirmed-0.3-step46-all132"},
+            "status": {"const": "created_in_step46"}
+          },
+          "additionalProperties": true
+        },
+        "detailed_rules_extension": {
+          "type": "object",
+          "required": ["version", "status", "adopted", "pattern_specific_rule_counts", "p05_rule_basis"],
+          "properties": {
+            "version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
+            "status": {"const": "reviewed_candidate_not_new_owner_confirmation"},
+            "adopted": {"const": false},
+            "pattern_specific_rule_counts": {
+              "type": "object",
+              "required": ["P01", "P02", "P03", "P04", "P05"],
+              "properties": {"P01": {"const": 17}, "P02": {"const": 17}, "P03": {"const": 17}, "P04": {"const": 17}, "P05": {"const": 17}},
+              "additionalProperties": false
+            },
+            "p05_rule_basis": {
+              "type": "object",
+              "required": ["source_body_ids", "other_127_or_full_132_used_to_derive_P05_rules"],
+              "properties": {
+                "source_body_ids": {"const": ["B0002", "B0201", "B0213", "B0235", "B0252"]},
+                "other_127_or_full_132_used_to_derive_P05_rules": {"const": false}
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "detailed_rules_ref": {"const": "文型詳細ルール.json"},
+        "detailed_rules_version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
+        "detailed_rules_status": {"const": "reviewed_candidate_not_new_owner_confirmation"}
+      },
+      "additionalProperties": true
+    },
+    "patternRule": {
+      "type": "object",
+      "required": ["rule_id", "detail_dimension", "input_conditions_and_decision", "procedure", "wording_and_syntax", "omissions_and_switching", "concrete_examples", "evidence_and_classification", "content_checks", "sequence"],
+      "properties": {
+        "rule_id": {"$ref": "#/$defs/nonEmptyString"},
+        "detail_dimension": {"$ref": "#/$defs/nonEmptyString"},
+        "input_conditions_and_decision": {"$ref": "#/$defs/nonEmptyString"},
+        "procedure": {"$ref": "#/$defs/nonEmptyString"},
+        "wording_and_syntax": {"$ref": "#/$defs/nonEmptyString"},
+        "omissions_and_switching": {"$ref": "#/$defs/nonEmptyString"},
+        "concrete_examples": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_and_classification": {"$ref": "#/$defs/nonEmptyString"},
+        "content_checks": {"$ref": "#/$defs/nonEmptyString"},
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 17}
+      },
+      "additionalProperties": false
+    },
+    "patternCandidate": {
+      "type": "object",
+      "required": ["pattern_id", "name", "structure_candidate", "observation_count", "denominator", "detailed_rule_count", "rule_derivation_basis", "source_markdown", "rules"],
+      "properties": {
+        "pattern_id": {"enum": ["P01", "P02", "P03", "P04", "P05"]},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "structure_candidate": {"$ref": "#/$defs/nonEmptyString"},
+        "observation_count": {"type": "integer", "minimum": 0},
+        "denominator": {"const": 132},
+        "detailed_rule_count": {"const": 17},
+        "rule_derivation_basis": {"type": "object"},
+        "source_markdown": {"$ref": "#/$defs/nonEmptyString"},
+        "rules": {"type": "array", "minItems": 17, "maxItems": 17, "items": {"$ref": "#/$defs/patternRule"}}
+      },
+      "additionalProperties": false
+    },
+    "commonRule": {
+      "type": "object",
+      "required": ["rule_id", "detail_dimension", "input_conditions", "procedure", "wording_and_syntax", "omissions_and_switching", "evidence_and_classification", "content_checks"],
+      "properties": {
+        "rule_id": {"$ref": "#/$defs/nonEmptyString"},
+        "detail_dimension": {"$ref": "#/$defs/nonEmptyString"},
+        "input_conditions": {"$ref": "#/$defs/nonEmptyString"},
+        "procedure": {"$ref": "#/$defs/nonEmptyString"},
+        "wording_and_syntax": {"$ref": "#/$defs/nonEmptyString"},
+        "omissions_and_switching": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_and_classification": {"$ref": "#/$defs/nonEmptyString"},
+        "content_checks": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "additionalProperties": false
+    },
+    "detailed_rules_candidate": {
+      "type": "object",
+      "required": ["artifact_kind", "schema_version", "version", "status", "adopted", "base_confirmed_version", "base_confirmation_ref", "analysis_basis", "source_references", "patterns", "common_rules"],
+      "properties": {
+        "artifact_kind": {"const": "detailed_writing_rules"},
+        "schema_version": {"const": "1.0"},
+        "version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
+        "status": {"const": "reviewed_candidate_not_new_owner_confirmation"},
+        "adopted": {"const": false},
+        "base_confirmed_version": {"const": "confirmed-0.3-step46-all132"},
+        "base_confirmation_ref": {"const": "本人確認記録.md"},
+        "analysis_basis": {
+          "type": "object",
+          "required": ["base_full_body_records", "reaction_condition_match", "reaction_condition_unknown", "reaction_condition_exclusions", "reaction_conditions_used_as_filter_or_weight", "p05_rule_derivation_source_body_ids", "p05_rule_derivation_uses_other_127_or_full_132_aggregate"],
+          "properties": {
+            "base_full_body_records": {"const": 132},
+            "reaction_condition_match": {"const": 24},
+            "reaction_condition_unknown": {"const": 108},
+            "reaction_condition_exclusions": {"const": 0},
+            "reaction_conditions_used_as_filter_or_weight": {"const": false},
+            "p05_rule_derivation_source_body_ids": {"const": ["B0002", "B0201", "B0213", "B0235", "B0252"]},
+            "p05_rule_derivation_uses_other_127_or_full_132_aggregate": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "source_references": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}},
+        "patterns": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/patternCandidate"}},
+        "common_rules": {"type": "array", "minItems": 14, "maxItems": 14, "items": {"$ref": "#/$defs/commonRule"}}
+      },
+      "additionalProperties": true
+    },
+    "owner_adoption": {
+      "type": "object",
+      "required": ["target_version", "adopted", "confirmed_at", "confirmation_ref", "reason"],
+      "properties": {
+        "target_version": {"$ref": "#/$defs/nonEmptyString"},
+        "adopted": {"const": true},
+        "confirmed_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "confirmation_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "reason": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
