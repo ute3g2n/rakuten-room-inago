@@ -1092,6 +1092,18 @@ def _check_job_contract(
 
 
 def _insert_artifact(connection: sqlite3.Connection, artifact: ArtifactRecord) -> None:
+    validate_entity(
+        "artifact",
+        {
+            "artifact_ref": artifact.artifact_ref,
+            "path": str(artifact.path),
+            "hash": artifact.content_hash,
+            "created_at": artifact.created_at,
+            "source_kind": artifact.source_kind,
+            "retention_expires_at": artifact.retention_expires_at,
+            "status": artifact.status,
+        },
+    )
     stored = connection.execute(
         "SELECT * FROM artifact WHERE artifact_ref = ?", (artifact.artifact_ref,)
     ).fetchone()
@@ -1128,6 +1140,454 @@ def _insert_artifact(connection: sqlite3.Connection, artifact: ArtifactRecord) -
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (artifact.artifact_ref, *values),
+    )
+
+
+def load_copy_generation_state(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    offer_key: str,
+) -> dict[str, Any]:
+    """Read the current offer, draft, and retry checkpoint for copy generation."""
+
+    run = connection.execute("SELECT * FROM run WHERE run_id = ?", (run_id,)).fetchone()
+    offer = connection.execute(
+        "SELECT * FROM offer WHERE offer_key = ?", (offer_key,)
+    ).fetchone()
+    if run is None or offer is None:
+        raise RejectedContract("copy run or offer does not exist")
+    draft = connection.execute(
+        "SELECT * FROM draft WHERE run_id = ? AND offer_key = ?",
+        (run_id, offer_key),
+    ).fetchone()
+    attempt = connection.execute(
+        """
+        SELECT * FROM generation_attempt
+         WHERE run_id = ? AND offer_key = ?
+         ORDER BY attempt_no DESC LIMIT 1
+        """,
+        (run_id, offer_key),
+    ).fetchone()
+    copy_job = None
+    artifact = None
+    if attempt is not None and attempt["outcome"] == "success":
+        copy_job = connection.execute(
+            """
+            SELECT * FROM ai_job
+             WHERE run_id = ? AND agent_id = 'AG-COPY' AND artifact_ref = ?
+             ORDER BY started_at DESC LIMIT 1
+            """,
+            (run_id, attempt["artifact_ref"]),
+        ).fetchone()
+        artifact = connection.execute(
+            "SELECT * FROM artifact WHERE artifact_ref = ?",
+            (attempt["artifact_ref"],),
+        ).fetchone()
+    return {
+        "run": dict(run),
+        "offer": dict(offer),
+        "draft": dict(draft) if draft is not None else None,
+        "attempt": dict(attempt) if attempt is not None else None,
+        "copy_job": dict(copy_job) if copy_job is not None else None,
+        "artifact": dict(artifact) if artifact is not None else None,
+    }
+
+
+def read_existing_draft_result(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    offer_key: str,
+) -> DraftCommitResult | None:
+    """Return a saved draft without regenerating it, after checking its record."""
+
+    draft = connection.execute(
+        "SELECT * FROM draft WHERE run_id = ? AND offer_key = ?",
+        (run_id, offer_key),
+    ).fetchone()
+    if draft is None:
+        return None
+    run = connection.execute(
+        "SELECT committed_count, settings_version FROM run WHERE run_id = ?",
+        (run_id,),
+    ).fetchone()
+    if run is None or run["settings_version"] != draft["pattern_version"]:
+        raise RejectedContract("saved draft no longer matches its run version")
+    if draft["status"] == "committed":
+        stored_artifact = connection.execute(
+            "SELECT * FROM artifact WHERE artifact_ref = ?",
+            (draft["artifact_ref"],),
+        ).fetchone()
+        if stored_artifact is None:
+            raise PersistenceContractError("saved draft artifact record is missing")
+        artifact = ArtifactRecord(
+            artifact_ref=stored_artifact["artifact_ref"],
+            path=Path(stored_artifact["path"]),
+            content_hash=stored_artifact["hash"],
+            source_kind=stored_artifact["source_kind"],
+            created_at=stored_artifact["created_at"],
+            retention_expires_at=stored_artifact["retention_expires_at"],
+            status=stored_artifact["status"],
+        )
+        payload = _artifact_payload(connection, artifact)
+        if (
+            payload["offer_key"] != draft["offer_key"]
+            or payload["draft_version"] != draft["version"]
+            or payload["body"] != draft["body"]
+            or payload["pattern_id"] != draft["pattern_id"]
+            or json.loads(draft["evidence_refs_json"]) != payload["evidence_refs"]
+        ):
+            raise PersistenceContractError(
+                "saved draft differs from its response artifact"
+            )
+    return DraftCommitResult(
+        draft_id=draft["draft_id"],
+        offer_key=draft["offer_key"],
+        draft_version=int(draft["version"]),
+        committed_count=int(run["committed_count"]),
+        already_committed=True,
+    )
+
+
+def reserve_generation_attempt(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    offer_key: str,
+    settings_version: str,
+    generation_attempt_id: str,
+    attempt_no: int,
+    started_at: str,
+    clock: Clock | None = None,
+) -> dict[str, Any]:
+    """Durably reserve one of the three copy calls before invoking an AI runner."""
+
+    _timestamp(started_at, "started_at")
+    validate_entity(
+        "generation_attempt",
+        {
+            "generation_attempt_id": generation_attempt_id,
+            "run_id": run_id,
+            "offer_key": offer_key,
+            "draft_id": None,
+            "attempt_no": attempt_no,
+            "outcome": "in_progress",
+            "artifact_ref": None,
+            "error_code": None,
+            "started_at": started_at,
+            "ended_at": None,
+        },
+    )
+    system_clock = clock or SystemClock()
+    now = system_clock.now_jst()
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise RejectedContract("generation clock must return an offset-aware time")
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        run = connection.execute(
+            "SELECT * FROM run WHERE run_id = ?", (run_id,)
+        ).fetchone()
+        if run is None or run["mode"] != "daily" or run["status"] != "running":
+            raise RejectedContract("copy generation requires a running daily run")
+        if run["settings_version"] != settings_version:
+            raise RejectedContract("copy settings version differs from the started run")
+        if now.astimezone(JST) >= _timestamp(run["draft_deadline"], "draft_deadline"):
+            raise RejectedContract("copy generation deadline has passed")
+        if int(run["committed_count"]) >= 15:
+            raise RejectedContract("daily committed_count limit 15 has been reached")
+        if (
+            connection.execute(
+                "SELECT 1 FROM draft WHERE run_id = ? AND offer_key = ?",
+                (run_id, offer_key),
+            ).fetchone()
+            is not None
+        ):
+            raise RejectedContract("offer already has a saved draft for this run")
+        if (
+            connection.execute(
+                "SELECT 1 FROM exclusion_key WHERE offer_key = ? AND effective = 1",
+                (offer_key,),
+            ).fetchone()
+            is not None
+        ):
+            raise RejectedContract("offer already has an effective posted exclusion")
+        if (
+            connection.execute(
+                "SELECT 1 FROM reservation WHERE offer_key = ? AND status = 'active'",
+                (offer_key,),
+            ).fetchone()
+            is not None
+        ):
+            raise RejectedContract("offer already has an active reservation")
+        if (
+            connection.execute(
+                """
+            SELECT 1 FROM human_action
+             WHERE offer_key = ? AND action = 'posted' AND apply_status = 'pending'
+            """,
+                (offer_key,),
+            ).fetchone()
+            is not None
+        ):
+            raise RejectedContract("offer has a pending posted report")
+
+        latest = connection.execute(
+            """
+            SELECT attempt_no, outcome FROM generation_attempt
+             WHERE run_id = ? AND offer_key = ? ORDER BY attempt_no DESC LIMIT 1
+            """,
+            (run_id, offer_key),
+        ).fetchone()
+        expected_no = 1 if latest is None else int(latest["attempt_no"]) + 1
+        if latest is not None and latest["outcome"] == "in_progress":
+            raise RejectedContract("copy generation already has an in-progress attempt")
+        if attempt_no != expected_no or attempt_no > 3:
+            raise RejectedContract(
+                "copy generation attempt is not the next allowed call"
+            )
+        connection.execute(
+            """
+            INSERT INTO generation_attempt
+                (generation_attempt_id, run_id, offer_key, draft_id, attempt_no,
+                 outcome, artifact_ref, error_code, started_at, ended_at)
+            VALUES (?, ?, ?, NULL, ?, 'in_progress', NULL, NULL, ?, NULL)
+            """,
+            (generation_attempt_id, run_id, offer_key, attempt_no, started_at),
+        )
+        connection.commit()
+    except BaseException:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
+    return {
+        "generation_attempt_id": generation_attempt_id,
+        "attempt_no": attempt_no,
+        "outcome": "in_progress",
+        "started_at": started_at,
+    }
+
+
+def finish_generation_attempt(
+    connection: sqlite3.Connection,
+    *,
+    generation_attempt_id: str,
+    run_id: str,
+    offer_key: str,
+    attempt_no: int,
+    outcome: str,
+    artifact_ref: str | None,
+    error_code: str | None,
+    ended_at: str,
+    artifacts: tuple[ArtifactRecord, ...] = (),
+    ai_jobs: tuple[Mapping[str, Any], ...] = (),
+) -> None:
+    """Atomically persist one call result and its observable AI-job records."""
+
+    if outcome not in {"success", "empty", "error"}:
+        raise RejectedContract("finished generation outcome is invalid")
+    _timestamp(ended_at, "ended_at")
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        current = connection.execute(
+            """
+            SELECT * FROM generation_attempt
+             WHERE generation_attempt_id = ?
+            """,
+            (generation_attempt_id,),
+        ).fetchone()
+        if (
+            current is None
+            or current["run_id"] != run_id
+            or current["offer_key"] != offer_key
+            or current["attempt_no"] != attempt_no
+        ):
+            raise RejectedContract("generation attempt reservation is missing")
+        validate_entity(
+            "generation_attempt",
+            {
+                "generation_attempt_id": generation_attempt_id,
+                "run_id": run_id,
+                "offer_key": offer_key,
+                "draft_id": current["draft_id"],
+                "attempt_no": attempt_no,
+                "outcome": outcome,
+                "artifact_ref": artifact_ref,
+                "error_code": error_code,
+                "started_at": current["started_at"],
+                "ended_at": ended_at,
+            },
+        )
+        if current["outcome"] not in {"in_progress", outcome}:
+            raise RejectedContract(
+                "generation attempt was already completed differently"
+            )
+        if current["outcome"] == outcome and (
+            current["artifact_ref"] != artifact_ref
+            or current["error_code"] != error_code
+            or current["ended_at"] != ended_at
+        ):
+            raise RejectedContract("generation attempt result changed during replay")
+
+        for artifact in artifacts:
+            _insert_artifact(connection, artifact)
+        for record in ai_jobs:
+            _insert_ai_job_record(connection, record)
+        if current["outcome"] == "in_progress":
+            updated = connection.execute(
+                """
+                UPDATE generation_attempt
+                   SET outcome = ?, artifact_ref = ?, error_code = ?, ended_at = ?
+                 WHERE generation_attempt_id = ? AND outcome = 'in_progress'
+                """,
+                (outcome, artifact_ref, error_code, ended_at, generation_attempt_id),
+            )
+            if updated.rowcount != 1:
+                raise RejectedContract("generation attempt changed before completion")
+        connection.commit()
+    except BaseException:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
+
+
+def _insert_ai_job_record(
+    connection: sqlite3.Connection, record: Mapping[str, Any]
+) -> None:
+    required = {
+        "job_id",
+        "run_id",
+        "protocol_version",
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "skill_name",
+        "attempt",
+        "target_date",
+        "settings_version",
+        "input_refs",
+        "evidence_refs",
+        "input_hash",
+        "deadline_at",
+        "started_at",
+        "finished_at",
+        "resolved_model",
+        "reasoning_setting",
+        "auth_mode",
+        "result_status",
+        "payload",
+        "error",
+        "artifact_ref",
+        "accepted_at",
+        "adoption_status",
+    }
+    if set(record) != required:
+        raise RejectedContract(
+            "AI job record fields do not match the persistence contract"
+        )
+    payload = {
+        **dict(record),
+        "input_refs": list(record["input_refs"]),
+        "evidence_refs": list(record["evidence_refs"]),
+    }
+    validate_entity("ai_job", payload)
+    try:
+        payload_json = (
+            json.dumps(
+                record["payload"],
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            if record["payload"] is not None
+            else None
+        )
+        error_json = (
+            json.dumps(
+                record["error"],
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            if record["error"] is not None
+            else None
+        )
+    except (TypeError, ValueError) as exc:
+        raise RejectedContract("AI job payload and error must be strict JSON") from exc
+    values = (
+        record["run_id"],
+        record["protocol_version"],
+        record["schema_version"],
+        record["task_id"],
+        record["agent_id"],
+        record["skill_name"],
+        record["attempt"],
+        record["target_date"],
+        record["settings_version"],
+        json.dumps(payload["input_refs"], ensure_ascii=False),
+        json.dumps(payload["evidence_refs"], ensure_ascii=False),
+        record["input_hash"],
+        record["deadline_at"],
+        record["started_at"],
+        record["finished_at"],
+        record["resolved_model"],
+        record["reasoning_setting"],
+        record["auth_mode"],
+        record["result_status"],
+        payload_json,
+        error_json,
+        record["artifact_ref"],
+        record["accepted_at"],
+        record["adoption_status"],
+    )
+    existing = connection.execute(
+        "SELECT * FROM ai_job WHERE job_id = ?", (record["job_id"],)
+    ).fetchone()
+    columns = (
+        "run_id",
+        "protocol_version",
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "skill_name",
+        "attempt",
+        "target_date",
+        "settings_version",
+        "input_refs_json",
+        "evidence_refs_json",
+        "input_hash",
+        "deadline_at",
+        "started_at",
+        "finished_at",
+        "resolved_model",
+        "reasoning_setting",
+        "auth_mode",
+        "result_status",
+        "payload_json",
+        "error_json",
+        "artifact_ref",
+        "accepted_at",
+        "adoption_status",
+    )
+    if existing is not None:
+        if tuple(existing[column] for column in columns) != values:
+            raise RejectedContract(
+                "AI job ID already identifies different execution data"
+            )
+        return
+    connection.execute(
+        """
+        INSERT INTO ai_job
+            (job_id, run_id, protocol_version, schema_version, task_id, agent_id,
+             skill_name, attempt, target_date, settings_version, input_refs_json,
+             evidence_refs_json, input_hash, deadline_at, started_at, finished_at,
+             resolved_model, reasoning_setting, auth_mode, result_status, payload_json,
+             error_json, artifact_ref, accepted_at, adoption_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (record["job_id"], *values),
     )
 
 
