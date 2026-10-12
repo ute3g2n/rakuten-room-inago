@@ -4,46 +4,158 @@
   "title": "AI-O root job result with native specialist delegations",
   "type": "object",
   "required": [
-    "protocol_version", "schema_version", "run_id", "job_id", "attempt",
-    "task_id", "agent_id", "skill_name", "target_date", "settings_version",
-    "input_refs", "evidence_refs", "input_hash", "deadline_at",
-    "result_status", "payload", "error", "delegations"
+    "protocol_version",
+    "schema_version",
+    "run_id",
+    "job_id",
+    "attempt",
+    "task_id",
+    "agent_id",
+    "skill_name",
+    "target_date",
+    "settings_version",
+    "input_refs",
+    "evidence_refs",
+    "input_hash",
+    "deadline_at",
+    "result_status",
+    "payload",
+    "error",
+    "delegations"
   ],
   "properties": {
-    "protocol_version": {"const": "1"},
-    "schema_version": {"const": "1"},
-    "run_id": {"type": "string", "minLength": 1},
-    "job_id": {"type": "string", "minLength": 1},
-    "attempt": {"type": "integer", "minimum": 1},
-    "task_id": {"enum": ["T02", "T05", "T06", "T07", "T08", "T09", "T10"]},
-    "agent_id": {"const": "AI-O"},
-    "skill_name": {"const": "rakuten-room-inago"},
-    "target_date": {"type": "string", "minLength": 10},
-    "settings_version": {"type": "string", "minLength": 1},
-    "input_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "input_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "deadline_at": {"type": "string", "minLength": 20},
-    "result_status": {"enum": ["success", "empty", "error"]},
+    "protocol_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "task_id": {
+      "enum": [
+        "T02",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10"
+      ]
+    },
+    "agent_id": {
+      "type": "string",
+      "enum": [
+        "AI-O"
+      ]
+    },
+    "skill_name": {
+      "type": "string",
+      "enum": [
+        "rakuten-room-inago"
+      ]
+    },
+    "target_date": {
+      "type": "string",
+      "minLength": 10
+    },
+    "settings_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "deadline_at": {
+      "type": "string",
+      "minLength": 20
+    },
+    "result_status": {
+      "enum": [
+        "success",
+        "empty",
+        "error"
+      ]
+    },
     "payload": {
       "type": "object",
-      "required": ["summary", "details", "references"],
+      "required": [
+        "summary",
+        "details",
+        "references"
+      ],
       "properties": {
-        "summary": {"type": "string", "minLength": 1},
-        "details": {"type": "array", "items": {"type": "string"}},
-        "references": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       },
       "additionalProperties": false
     },
     "error": {
       "anyOf": [
-        {"type": "null"},
+        {
+          "type": "null"
+        },
         {
           "type": "object",
-          "required": ["code", "detail"],
+          "required": [
+            "code",
+            "detail"
+          ],
           "properties": {
-            "code": {"type": "string", "minLength": 1},
-            "detail": {"type": "string", "minLength": 1}
+            "code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "additionalProperties": false
         }
@@ -51,26 +163,434 @@
     },
     "delegations": {
       "type": "array",
-      "items": {"$ref": "#/$defs/delegation"}
+      "items": {
+        "$ref": "#/$defs/delegation"
+      }
     }
   },
   "$defs": {
     "delegation": {
       "type": "object",
       "required": [
-        "agent_id", "task_id", "skill_name", "input_refs", "evidence_refs",
-        "result_status", "payload"
+        "agent_id",
+        "task_id",
+        "skill_name",
+        "input_refs",
+        "evidence_refs",
+        "result_status",
+        "payload"
       ],
       "properties": {
-        "agent_id": {"enum": ["AG-OBS", "AG-KEY", "AG-COPY", "AG-INSIGHT", "AG-CONFIG", "AG-RECOVERY"]},
-        "task_id": {"enum": ["T02", "T04", "T05", "T06", "T08"]},
-        "skill_name": {"enum": ["rr-inago-observation", "rr-inago-keywords", "rr-inago-copywriter", "rr-inago-insight", "rr-inago-config", "rr-inago-recovery"]},
-        "input_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "result_status": {"enum": ["success", "empty", "error"]},
-        "payload": {"type": "object"}
+        "agent_id": {
+          "enum": [
+            "AG-OBS",
+            "AG-KEY",
+            "AG-COPY",
+            "AG-INSIGHT",
+            "AG-CONFIG",
+            "AG-RECOVERY"
+          ]
+        },
+        "task_id": {
+          "enum": [
+            "T02",
+            "T04",
+            "T05",
+            "T06",
+            "T08"
+          ]
+        },
+        "skill_name": {
+          "enum": [
+            "rr-inago-observation",
+            "rr-inago-keywords",
+            "rr-inago-copywriter",
+            "rr-inago-insight",
+            "rr-inago-config",
+            "rr-inago-recovery"
+          ]
+        },
+        "input_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "result_status": {
+          "enum": [
+            "success",
+            "empty",
+            "error"
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/delegation_payload"
+        }
       },
       "additionalProperties": false
+    },
+    "delegation_payload": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "field",
+            "value",
+            "position",
+            "ref",
+            "availability",
+            "unknown_reason"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "position": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "availability": {
+              "enum": [
+                "observed",
+                "unknown",
+                "unavailable",
+                "not_present"
+              ]
+            },
+            "unknown_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "word_id",
+            "decision",
+            "reason"
+          ],
+          "properties": {
+            "word_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision": {
+              "enum": [
+                "child",
+                "not_child",
+                "unknown"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "offer_key",
+            "draft_version",
+            "body",
+            "pattern_id",
+            "evidence_refs",
+            "selection_reason",
+            "used_input_refs",
+            "omitted_unknowns"
+          ],
+          "properties": {
+            "offer_key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "draft_version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pattern_id": {
+              "enum": [
+                "P01",
+                "P02",
+                "P03",
+                "P04",
+                "P05"
+              ]
+            },
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "selection_reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "used_input_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "omitted_unknowns": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "scope",
+            "findings"
+          ],
+          "properties": {
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "statement",
+                  "evidence_refs",
+                  "comparison_basis",
+                  "limitations"
+                ],
+                "properties": {
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "comparison_basis": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "limitations": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "proposal_id",
+            "reason",
+            "diff",
+            "affected_settings",
+            "requires_owner_decision"
+          ],
+          "properties": {
+            "proposal_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "diff": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "setting_key",
+                  "before",
+                  "after",
+                  "rationale"
+                ],
+                "properties": {
+                  "setting_key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "before": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "after": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "affected_settings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "requires_owner_decision": {
+              "type": "boolean",
+              "enum": [
+                true
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "causes",
+            "unfinished",
+            "resume_proposal",
+            "owner_actions"
+          ],
+          "properties": {
+            "causes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "hypothesis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "hypothesis": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "unfinished": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "resume_proposal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "owner_actions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "additionalProperties": false

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -12,11 +13,13 @@ import subprocess
 import tempfile
 import time
 from collections import Counter
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from threading import Event
-from typing import Any, Mapping, Sequence
+from threading import Event, Lock
+from typing import Any, Callable, Mapping, Sequence
+from urllib.parse import quote
 
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
@@ -53,6 +56,18 @@ _BILLING_OVERRIDE_ENV = frozenset(
     }
 )
 _ROOT_SKILL = "rakuten-room-inago"
+_TRACE_LOCK = Lock()
+_TRACE_EVENT_TYPE = re.compile(r"[A-Za-z0-9._:-]{1,80}\Z")
+_TRACE_CLI_EVENT_TYPES = frozenset(
+    {
+        "thread.started",
+        "turn.started",
+        "turn.completed",
+        "item.started",
+        "item.completed",
+        "item.output_delta",
+    }
+)
 _ROOT_TASKS = frozenset({"T02", "T05", "T06", "T07", "T08", "T09", "T10"})
 _MANUAL_TASKS = frozenset({"T05", "T06", "T07", "T08", "T09", "T10"})
 _AGENT_TASK_SKILLS: dict[str, dict[str, str]] = {
@@ -87,6 +102,25 @@ _AGENT_TYPE_ALIASES: dict[str, frozenset[str]] = {
     if agent_id != "AI-O"
     for skill in task_map.values()
 }
+
+
+@dataclass(frozen=True, slots=True)
+class _ObservedSubagent:
+    agent_type: str
+    thread_id: str
+    model: str | None
+    reasoning_setting: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class _CodexSessionTrace:
+    thread_id: str
+    root_events: tuple[dict[str, Any], ...]
+    spawn_events: tuple[dict[str, Any], ...]
+    root_model: str | None
+    root_reasoning_setting: str | None
+    children: tuple[_ObservedSubagent, ...]
+    error: str | None = None
 
 
 class AIJobInputError(ValueError):
@@ -237,7 +271,7 @@ def _error_result(
 
 
 def _child_agent_type(event: Any) -> str | None:
-    """Read native subagent type only from a structured spawn-tool event."""
+    """Read native subagent type from CLI events or a saved rollout call."""
 
     def walk(value: Any):
         if isinstance(value, dict):
@@ -250,7 +284,9 @@ def _child_agent_type(event: Any) -> str | None:
 
     for node in walk(event):
         node_type = str(node.get("type", "")).casefold().replace("-", "_")
-        tool = str(node.get("tool", node.get("tool_name", ""))).casefold()
+        tool = str(
+            node.get("tool", node.get("tool_name", node.get("name", "")))
+        ).casefold()
         if "collab_tool_call" not in node_type and tool not in {
             "spawn_agent",
             "collab.spawn_agent",
@@ -270,6 +306,104 @@ def _child_agent_type(event: Any) -> str | None:
             if isinstance(value, str) and value.strip():
                 return value.strip()
     return None
+
+
+def _rollout_settings(
+    events: Sequence[Mapping[str, Any]]
+) -> tuple[str | None, str | None]:
+    """Return one consistently observed model and effort from turn contexts."""
+
+    contexts = [
+        event.get("payload") for event in events if event.get("type") == "turn_context"
+    ]
+    contexts = [context for context in contexts if isinstance(context, Mapping)]
+    if not contexts:
+        return None, None
+
+    models: list[str] = []
+    efforts: list[str] = []
+    for context in contexts:
+        model = context.get("model")
+        collaboration_mode = context.get("collaboration_mode")
+        settings = (
+            collaboration_mode.get("settings")
+            if isinstance(collaboration_mode, Mapping)
+            else None
+        )
+        effort = context.get("effort")
+        if not isinstance(effort, str) and isinstance(settings, Mapping):
+            effort = settings.get("reasoning_effort")
+        if not isinstance(model, str) or not model.strip():
+            return None, None
+        if not isinstance(effort, str) or not effort.strip():
+            return None, None
+        models.append(model.strip())
+        efforts.append(effort.strip())
+    if len(set(models)) != 1 or len(set(efforts)) != 1:
+        return None, None
+    return models[0], efforts[0]
+
+
+def _read_rollout(path: Path) -> tuple[dict[str, Any], ...] | None:
+    events: list[dict[str, Any]] = []
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            for line in stream:
+                if not line.strip():
+                    continue
+                event = json.loads(line)
+                if not isinstance(event, dict):
+                    return None
+                events.append(event)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return tuple(events)
+
+
+def _rollout_meta(events: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    for event in events:
+        if event.get("type") == "session_meta":
+            payload = event.get("payload")
+            return payload if isinstance(payload, Mapping) else None
+    return None
+
+
+def _spawn_calls(
+    events: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    calls: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if event.get("type") != "response_item":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            continue
+        item_type = payload.get("type")
+        call_id = payload.get("call_id")
+        if item_type == "function_call" and payload.get("name") == "spawn_agent":
+            arguments = payload.get("arguments")
+            if isinstance(arguments, str):
+                try:
+                    arguments = json.loads(arguments)
+                except json.JSONDecodeError:
+                    continue
+            if not isinstance(arguments, Mapping) or not isinstance(call_id, str):
+                continue
+            agent_type = arguments.get("agent_type", arguments.get("agentType"))
+            if not isinstance(agent_type, str) or not agent_type.strip():
+                continue
+            calls[call_id] = {
+                "call_id": call_id,
+                "agent_type": agent_type.strip(),
+                "event": dict(event),
+                "completed": False,
+            }
+        elif item_type == "function_call_output" and isinstance(call_id, str):
+            output = payload.get("output")
+            if isinstance(output, str) and output.strip():
+                if call_id in calls:
+                    calls[call_id]["completed"] = True
+    return tuple(calls.values())
 
 
 def _parse_jsonl(stdout: bytes) -> tuple[list[dict[str, Any]], bool]:
@@ -332,7 +466,8 @@ class AIJobRunner:
     """Run one isolated Codex CLI process for AI-O and validate its subagents.
 
     The runner never launches one CLI process per specialist. Specialists must
-    appear as native spawn-agent calls in this root process's JSONL stream.
+    appear as native spawn-agent calls in this execution's public stream or
+    its matching saved Codex rollout, with a completed child rollout.
     """
 
     def __init__(
@@ -344,6 +479,8 @@ class AIJobRunner:
         cli_command: Sequence[str] = ("codex",),
         environment: Mapping[str, str] | None = None,
         clock: Clock | None = None,
+        auth_mode_provider: Callable[[], str] | None = None,
+        require_observed_metadata: bool = True,
         max_timeout_seconds: float = 120.0,
         poll_interval_seconds: float = 0.25,
     ) -> None:
@@ -355,6 +492,8 @@ class AIJobRunner:
             raise ValueError("max_timeout_seconds must be positive and finite")
         if not math.isfinite(poll_interval_seconds) or poll_interval_seconds <= 0:
             raise ValueError("poll_interval_seconds must be positive and finite")
+        if not isinstance(require_observed_metadata, bool):
+            raise ValueError("require_observed_metadata must be a boolean")
         self.data_root = Path(data_root).expanduser().resolve()
         self.skill_root = (
             Path(skill_root).expanduser().resolve()
@@ -369,8 +508,153 @@ class AIJobRunner:
         self.cli_command = tuple(cli_command)
         self.environment = dict(environment) if environment is not None else None
         self.clock = clock or SystemClock()
+        self.auth_mode_provider = auth_mode_provider
+        self.require_observed_metadata = require_observed_metadata
         self.max_timeout_seconds = float(max_timeout_seconds)
         self.poll_interval_seconds = float(poll_interval_seconds)
+
+    def _observe_auth_mode(self) -> str:
+        if self.auth_mode_provider is not None:
+            try:
+                mode = self.auth_mode_provider()
+            except Exception:
+                return "unobserved"
+            return mode.strip().casefold() if isinstance(mode, str) else "unobserved"
+        try:
+            result = subprocess.run(
+                [*self.cli_command, "login", "status"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=self._env(),
+                timeout=10,
+                shell=False,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return "unobserved"
+        output = (result.stdout + result.stderr).decode("utf-8", "replace").casefold()
+        if result.returncode == 0 and "logged in using chatgpt" in output:
+            return "chatgpt"
+        if result.returncode == 0 and "logged in using api key" in output:
+            return "api_key"
+        if "not logged in" in output or "not authenticated" in output:
+            return "not_logged_in"
+        return "unobserved"
+
+    def _load_session_trace(
+        self,
+        stream_events: Sequence[Mapping[str, Any]],
+        *,
+        started_at: str,
+        finished_at: str,
+    ) -> _CodexSessionTrace | None:
+        thread_id = next(
+            (
+                event.get("thread_id")
+                for event in stream_events
+                if event.get("type") == "thread.started"
+                and isinstance(event.get("thread_id"), str)
+                and event.get("thread_id")
+            ),
+            None,
+        )
+        if not isinstance(thread_id, str):
+            return None
+        try:
+            first_time = datetime.fromisoformat(started_at).astimezone()
+            last_time = datetime.fromisoformat(finished_at).astimezone()
+        except ValueError:
+            return None
+        first_day = min(first_time.date(), last_time.date()) - timedelta(days=1)
+        last_day = max(first_time.date(), last_time.date()) + timedelta(days=1)
+        environment = self._env() or os.environ
+        codex_home = Path(
+            environment.get("CODEX_HOME") or (Path.home() / ".codex")
+        ).expanduser()
+        sessions_root = codex_home / "sessions"
+        day_directories: list[Path] = []
+        current_day = first_day
+        while current_day <= last_day:
+            day_directories.append(
+                sessions_root
+                / f"{current_day.year:04d}"
+                / f"{current_day.month:02d}"
+                / f"{current_day.day:02d}"
+            )
+            current_day += timedelta(days=1)
+
+        root_paths = [
+            path
+            for directory in day_directories
+            if directory.is_dir()
+            for path in directory.glob(f"rollout-*-{thread_id}.jsonl")
+        ]
+        if len(root_paths) != 1:
+            return None
+        root_events = _read_rollout(root_paths[0])
+        if root_events is None:
+            return None
+        root_meta = _rollout_meta(root_events)
+        if not isinstance(root_meta, Mapping) or root_meta.get("id") != thread_id:
+            return None
+
+        calls = _spawn_calls(root_events)
+        call_counts = Counter(str(call["agent_type"]).casefold() for call in calls)
+        children: list[_ObservedSubagent] = []
+        for directory in day_directories:
+            if not directory.is_dir():
+                continue
+            for path in directory.glob("rollout-*.jsonl"):
+                if path == root_paths[0]:
+                    continue
+                events = _read_rollout(path)
+                if events is None:
+                    continue
+                meta = _rollout_meta(events)
+                if (
+                    not isinstance(meta, Mapping)
+                    or meta.get("parent_thread_id") != thread_id
+                    or meta.get("thread_source") != "subagent"
+                ):
+                    continue
+                agent_type = meta.get("agent_role")
+                child_thread_id = meta.get("id")
+                agent_path = meta.get("agent_path")
+                if (
+                    not isinstance(agent_type, str)
+                    or not agent_type.strip()
+                    or not isinstance(child_thread_id, str)
+                    or not isinstance(agent_path, str)
+                    or not agent_path.startswith("/root/")
+                ):
+                    continue
+                model, reasoning = _rollout_settings(events)
+                children.append(
+                    _ObservedSubagent(
+                        agent_type=agent_type.strip(),
+                        thread_id=child_thread_id,
+                        model=model,
+                        reasoning_setting=reasoning,
+                    )
+                )
+
+        child_counts = Counter(child.agent_type.casefold() for child in children)
+        incomplete_calls = any(not call["completed"] for call in calls)
+        trace_error = None
+        if incomplete_calls or call_counts != child_counts:
+            trace_error = "native_spawn_child_mismatch"
+        spawn_events = tuple(call["event"] for call in calls if call["completed"])
+        root_model, root_reasoning = _rollout_settings(root_events)
+        return _CodexSessionTrace(
+            thread_id=thread_id,
+            root_events=root_events,
+            spawn_events=spawn_events,
+            root_model=root_model,
+            root_reasoning_setting=root_reasoning,
+            children=tuple(children),
+            error=trace_error,
+        )
 
     def _work_root(self) -> Path:
         try:
@@ -520,7 +804,8 @@ class AIJobRunner:
             "exec",
             "--sandbox",
             "read-only",
-            "--ephemeral",
+            "--config",
+            "agents.enabled=true",
             "--enable",
             "multi_agent",
             "--skip-git-repo-check",
@@ -541,6 +826,142 @@ class AIJobRunner:
         for key in _BILLING_OVERRIDE_ENV:
             environment.pop(key, None)
         return environment
+
+    def _trace_path(self, request: AIJobRequest) -> Path:
+        safe = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-"
+        filename = (
+            f"{quote(request.run_id, safe=safe)}--"
+            f"{quote(request.job_id, safe=safe)}-a{request.attempt}.jsonl"
+        )
+        return self.data_root / "logs" / request.target_date / filename
+
+    def _trace_event(
+        self,
+        request: AIJobRequest,
+        event: str,
+        **fields: Any,
+    ) -> None:
+        """Append only allowlisted operational metadata; never log job text or raw CLI output."""
+
+        record: dict[str, Any] = {
+            "schema_version": "1",
+            "at": datetime.now().astimezone().isoformat(),
+            "event": event,
+            "run_id": request.run_id,
+            "job_id": request.job_id,
+            "attempt": request.attempt,
+            "task_id": request.task_id,
+            "settings_version": request.settings_version,
+        }
+        allowed_fields = {
+            "auth_mode",
+            "process_status",
+            "process_returncode",
+            "result_status",
+            "adoption_status",
+            "error_code",
+            "resolved_model",
+            "reasoning_setting",
+            "artifact_ref",
+            "duration_ms",
+            "event_type",
+            "agent_id",
+            "child_agents",
+            "jsonl_valid",
+            "spawn_count",
+            "sandbox_mode",
+        }
+        for key, value in fields.items():
+            if key not in allowed_fields:
+                continue
+            if isinstance(value, (str, int, bool)) or value is None:
+                record[key] = value
+            elif key == "child_agents" and isinstance(value, (list, tuple)):
+                children: list[dict[str, str]] = []
+                for item in value:
+                    if isinstance(item, str) and item in _AGENT_TASK_SKILLS:
+                        children.append({"agent_id": item})
+                        continue
+                    if not isinstance(item, Mapping):
+                        continue
+                    agent_id = item.get("agent_id")
+                    if (
+                        not isinstance(agent_id, str)
+                        or agent_id not in _AGENT_TASK_SKILLS
+                    ):
+                        continue
+                    child: dict[str, str] = {"agent_id": agent_id}
+                    for child_field in (
+                        "task_id",
+                        "skill_name",
+                        "result_status",
+                        "resolved_model",
+                        "reasoning_setting",
+                        "auth_mode",
+                    ):
+                        child_value = item.get(child_field)
+                        if not isinstance(child_value, str) or len(child_value) > 128:
+                            continue
+                        if child_field == "task_id" and child_value not in _ROOT_TASKS:
+                            continue
+                        if child_field == "skill_name" and child_value not in {
+                            skill
+                            for tasks in _AGENT_TASK_SKILLS.values()
+                            for skill in tasks.values()
+                        }:
+                            continue
+                        if child_field == "result_status" and child_value not in {
+                            "success",
+                            "empty",
+                            "error",
+                            "timed_out",
+                            "late_result",
+                            "cancelled",
+                        }:
+                            continue
+                        if child_field == "auth_mode" and child_value not in {
+                            "chatgpt",
+                            "api_key",
+                            "not_logged_in",
+                            "unobserved",
+                        }:
+                            continue
+                        if child_field in {"resolved_model", "reasoning_setting"} and (
+                            not _TRACE_EVENT_TYPE.fullmatch(child_value)
+                        ):
+                            continue
+                        child[child_field] = child_value
+                    children.append(child)
+                record[key] = children
+
+        path = self._trace_path(request)
+        try:
+            encoded = (
+                json.dumps(
+                    record,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with _TRACE_LOCK:
+                descriptor = os.open(
+                    path,
+                    os.O_APPEND | os.O_CREAT | os.O_WRONLY,
+                    0o600,
+                )
+                try:
+                    os.write(descriptor, encoded)
+                finally:
+                    os.close(descriptor)
+        except (OSError, TypeError, ValueError):
+            logging.getLogger(__name__).warning(
+                "AI runner trace append failed for job %s event %s",
+                request.job_id,
+                event,
+            )
 
     @staticmethod
     def _terminate_owned(process: subprocess.Popen[bytes]) -> tuple[bytes, bytes]:
@@ -638,6 +1059,9 @@ class AIJobRunner:
         input_hash: str,
         response: Mapping[str, Any],
         events: Sequence[Mapping[str, Any]],
+        *,
+        child_traces: Sequence[_ObservedSubagent] = (),
+        auth_mode: str = "unobserved",
     ) -> tuple[tuple[AISubjobResult, ...], str | None]:
         declarations = response.get("delegations")
         if not isinstance(declarations, list):
@@ -652,6 +1076,7 @@ class AIJobRunner:
         claimed_counts: Counter[str] = Counter()
         spawned_counts: Counter[str] = Counter(spawn_types)
         subjobs: list[AISubjobResult] = []
+        claimed_children: set[int] = set()
         seen_copy_targets: set[tuple[str, int]] = set()
         allowed_refs = set(request.input_refs) | set(request.evidence_refs)
 
@@ -681,6 +1106,22 @@ class AIJobRunner:
             if observed_type is None:
                 return (), f"delegations[{index - 1}].native_spawn_unobserved"
             claimed_counts[observed_type] += 1
+
+            child_index = next(
+                (
+                    child_index
+                    for child_index, child in enumerate(child_traces)
+                    if child_index not in claimed_children
+                    and child.agent_type.casefold() in aliases
+                ),
+                None,
+            )
+            child_trace: _ObservedSubagent | None = None
+            if child_index is not None:
+                claimed_children.add(child_index)
+                child_trace = child_traces[child_index]
+            elif child_traces or self.require_observed_metadata:
+                return (), f"delegations[{index - 1}].native_child_unobserved"
 
             input_refs = declaration.get("input_refs")
             evidence_refs = declaration.get("evidence_refs")
@@ -742,10 +1183,23 @@ class AIJobRunner:
                     deadline_at=request.deadline_at,
                     result_status=status,
                     payload=dict(payload),
+                    resolved_model=(
+                        child_trace.model
+                        if child_trace and child_trace.model
+                        else "unobserved"
+                    ),
+                    reasoning_setting=(
+                        child_trace.reasoning_setting
+                        if child_trace and child_trace.reasoning_setting
+                        else "unobserved"
+                    ),
+                    auth_mode=auth_mode,
                 )
             )
 
-        if claimed_counts != spawned_counts:
+        if claimed_counts != spawned_counts or len(claimed_children) != len(
+            child_traces
+        ):
             return (), "native_spawn_result_count"
         return tuple(subjobs), None
 
@@ -826,8 +1280,10 @@ class AIJobRunner:
             )
 
         started_at = _iso_timestamp(self.clock.now_jst())
+        process_started_at = time.monotonic()
+        self._trace_event(request, "job_started")
         if cancel_event is not None and cancel_event.is_set():
-            return _error_result(
+            result = _error_result(
                 request,
                 status="cancelled",
                 adoption_status="expired",
@@ -836,8 +1292,10 @@ class AIJobRunner:
                 started_at=started_at,
                 finished_at=_iso_timestamp(self.clock.now_jst()),
             )
+            self._trace_result(request, result, process_started_at)
+            return result
         if self.clock.deadline_remaining(request.deadline_monotonic) <= 0:
-            return _error_result(
+            result = _error_result(
                 request,
                 status="timed_out",
                 adoption_status="expired",
@@ -846,6 +1304,35 @@ class AIJobRunner:
                 started_at=started_at,
                 finished_at=_iso_timestamp(self.clock.now_jst()),
             )
+            self._trace_result(request, result, process_started_at)
+            return result
+
+        auth_mode = self._observe_auth_mode()
+        self._trace_event(request, "auth_observed", auth_mode=auth_mode)
+        if auth_mode != "chatgpt":
+            result = _error_result(
+                request,
+                status="error",
+                adoption_status="pending",
+                error_code="auth_mode_not_permitted",
+                input_hash=input_hash,
+                auth_mode=auth_mode,
+                started_at=started_at,
+                finished_at=_iso_timestamp(self.clock.now_jst()),
+            )
+            self._trace_result(request, result, process_started_at)
+            return result
+
+        resolved_model = "unobserved"
+        reasoning_setting = "unobserved"
+
+        def failed_result(**kwargs: Any) -> AIJobResult:
+            kwargs.setdefault("auth_mode", auth_mode)
+            kwargs.setdefault("resolved_model", resolved_model)
+            kwargs.setdefault("reasoning_setting", reasoning_setting)
+            result = _error_result(request, **kwargs)
+            self._trace_result(request, result, process_started_at)
+            return result
 
         job_dir: Path | None = None
         artifact: ArtifactRecord | None = None
@@ -858,6 +1345,11 @@ class AIJobRunner:
                 request, input_hash
             )
             argv = self._argv(output_schema, job_dir, last_message)
+            self._trace_event(
+                request,
+                "cli_started",
+                sandbox_mode="read-only",
+            )
             process_status, returncode, stdout, stderr = self._run_process(
                 argv,
                 job_dir,
@@ -865,12 +1357,83 @@ class AIJobRunner:
                 request.deadline_monotonic,
                 cancel_event,
             )
+            self._trace_event(
+                request,
+                "cli_finished",
+                process_status=process_status,
+                process_returncode=returncode,
+            )
             artifact = self._save_raw_response(request, last_message)
+            if artifact is not None:
+                self._trace_event(
+                    request,
+                    "artifact_saved",
+                    artifact_ref=artifact.artifact_ref,
+                )
             finished_at = _iso_timestamp(self.clock.now_jst())
+            stream_events, jsonl_valid = _parse_jsonl(stdout)
+            for stream_event in stream_events:
+                event_type = stream_event.get("type")
+                if (
+                    not isinstance(event_type, str)
+                    or event_type not in _TRACE_CLI_EVENT_TYPES
+                    or not _TRACE_EVENT_TYPE.fullmatch(event_type)
+                ):
+                    event_type = "other"
+                child_type = _child_agent_type(stream_event)
+                agent_id = next(
+                    (
+                        candidate
+                        for candidate, aliases in _AGENT_TYPE_ALIASES.items()
+                        if child_type is not None and child_type.casefold() in aliases
+                    ),
+                    None,
+                )
+                self._trace_event(
+                    request,
+                    "cli_event",
+                    event_type=event_type,
+                    agent_id=agent_id,
+                )
+            session_trace = self._load_session_trace(
+                stream_events,
+                started_at=started_at,
+                finished_at=finished_at,
+            )
+            if session_trace is not None:
+                resolved_model = session_trace.root_model or "unobserved"
+                reasoning_setting = session_trace.root_reasoning_setting or "unobserved"
+                self._trace_event(
+                    request,
+                    "session_trace_observed",
+                    resolved_model=resolved_model,
+                    reasoning_setting=reasoning_setting,
+                    child_agents=[
+                        {
+                            "agent_id": agent_id,
+                            "resolved_model": child.model or "unobserved",
+                            "reasoning_setting": child.reasoning_setting
+                            or "unobserved",
+                            "auth_mode": auth_mode,
+                        }
+                        for child in session_trace.children
+                        for agent_id in [
+                            next(
+                                (
+                                    agent_id
+                                    for agent_id, aliases in _AGENT_TYPE_ALIASES.items()
+                                    if child.agent_type.casefold() in aliases
+                                ),
+                                None,
+                            )
+                        ]
+                        if agent_id is not None
+                    ],
+                    spawn_count=len(session_trace.spawn_events),
+                )
 
             if process_status in {"cancelled", "timed_out", "late_result"}:
-                return _error_result(
-                    request,
+                return failed_result(
                     status=process_status,
                     adoption_status="expired",
                     error_code=process_status,
@@ -881,8 +1444,7 @@ class AIJobRunner:
                     finished_at=finished_at,
                 )
             if process_status != "completed":
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="pending",
                     error_code="cli_start_failed",
@@ -893,8 +1455,7 @@ class AIJobRunner:
                     finished_at=finished_at,
                 )
             if artifact is None:
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="rejected_contract"
                     if returncode == 0
@@ -906,8 +1467,7 @@ class AIJobRunner:
                     finished_at=finished_at,
                 )
             if returncode != 0:
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="pending",
                     error_code="cli_exit_nonzero",
@@ -919,8 +1479,7 @@ class AIJobRunner:
                 )
             raw = artifact.path.read_bytes()
             if not raw:
-                return _error_result(
-                    request,
+                return failed_result(
                     status="empty",
                     adoption_status="pending",
                     error_code="empty_final_response",
@@ -933,8 +1492,7 @@ class AIJobRunner:
             try:
                 response = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="rejected_contract",
                     error_code="final_response_not_json",
@@ -950,10 +1508,8 @@ class AIJobRunner:
                 identity_error = "root_schema"
             else:
                 identity_error = _validate_identity(request, input_hash, response)
-            events, jsonl_valid = _parse_jsonl(stdout)
             if identity_error is not None or not jsonl_valid:
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="rejected_contract",
                     error_code=identity_error or "invalid_jsonl",
@@ -963,12 +1519,70 @@ class AIJobRunner:
                     started_at=started_at,
                     finished_at=finished_at,
                 )
+            if session_trace is not None and session_trace.error is not None:
+                return failed_result(
+                    status="error",
+                    adoption_status="rejected_contract",
+                    error_code=session_trace.error,
+                    input_hash=input_hash,
+                    artifact=artifact,
+                    process_returncode=returncode,
+                    started_at=started_at,
+                    finished_at=finished_at,
+                )
+            if self.require_observed_metadata:
+                if session_trace is None:
+                    return failed_result(
+                        status="error",
+                        adoption_status="rejected_contract",
+                        error_code="session_rollout_unobserved",
+                        input_hash=input_hash,
+                        artifact=artifact,
+                        process_returncode=returncode,
+                        started_at=started_at,
+                        finished_at=finished_at,
+                    )
+                if resolved_model == "unobserved" or reasoning_setting == "unobserved":
+                    return failed_result(
+                        status="error",
+                        adoption_status="rejected_contract",
+                        error_code="runtime_model_settings_unobserved",
+                        input_hash=input_hash,
+                        artifact=artifact,
+                        process_returncode=returncode,
+                        started_at=started_at,
+                        finished_at=finished_at,
+                    )
+                if any(
+                    child.model is None or child.reasoning_setting is None
+                    for child in session_trace.children
+                ):
+                    return failed_result(
+                        status="error",
+                        adoption_status="rejected_contract",
+                        error_code="subagent_model_settings_unobserved",
+                        input_hash=input_hash,
+                        artifact=artifact,
+                        process_returncode=returncode,
+                        started_at=started_at,
+                        finished_at=finished_at,
+                    )
+
+            events = list(stream_events)
+            if session_trace is not None and not any(
+                _child_agent_type(event) is not None for event in events
+            ):
+                events.extend(session_trace.spawn_events)
             subjobs, delegation_error = self._validate_delegations(
-                request, input_hash, response, events
+                request,
+                input_hash,
+                response,
+                events,
+                child_traces=session_trace.children if session_trace else (),
+                auth_mode=auth_mode,
             )
             if delegation_error is not None:
-                return _error_result(
-                    request,
+                return failed_result(
                     status="error",
                     adoption_status="rejected_contract",
                     error_code=delegation_error,
@@ -979,7 +1593,7 @@ class AIJobRunner:
                     finished_at=finished_at,
                 )
             status = response["result_status"]
-            return AIJobResult(
+            result = AIJobResult(
                 job_id=request.job_id,
                 run_id=request.run_id,
                 attempt=request.attempt,
@@ -998,13 +1612,17 @@ class AIJobRunner:
                 error=response["error"],
                 artifact=artifact,
                 subjobs=subjobs,
+                resolved_model=resolved_model,
+                reasoning_setting=reasoning_setting,
+                auth_mode=auth_mode,
                 process_returncode=returncode,
                 started_at=started_at,
                 finished_at=finished_at,
             )
+            self._trace_result(request, result, process_started_at)
+            return result
         except (OSError, ValueError, PersistenceContractError):
-            return _error_result(
-                request,
+            return failed_result(
                 status="error",
                 adoption_status="pending",
                 error_code="runner_io_or_contract_error",
@@ -1017,3 +1635,40 @@ class AIJobRunner:
         finally:
             if job_dir is not None:
                 shutil.rmtree(job_dir, ignore_errors=True)
+
+    def _trace_result(
+        self,
+        request: AIJobRequest,
+        result: AIJobResult,
+        process_started_at: float,
+    ) -> None:
+        error_code = None
+        if isinstance(result.error, Mapping):
+            code = result.error.get("code")
+            if isinstance(code, str) and _TRACE_EVENT_TYPE.fullmatch(code):
+                error_code = code
+        self._trace_event(
+            request,
+            "job_finished",
+            result_status=result.result_status,
+            adoption_status=result.adoption_status,
+            error_code=error_code,
+            auth_mode=result.auth_mode,
+            resolved_model=result.resolved_model,
+            reasoning_setting=result.reasoning_setting,
+            artifact_ref=(result.artifact.artifact_ref if result.artifact else None),
+            process_returncode=result.process_returncode,
+            duration_ms=max(0, round((time.monotonic() - process_started_at) * 1000)),
+            child_agents=[
+                {
+                    "agent_id": subjob.agent_id,
+                    "task_id": subjob.task_id,
+                    "skill_name": subjob.skill_name,
+                    "result_status": subjob.result_status,
+                    "resolved_model": subjob.resolved_model,
+                    "reasoning_setting": subjob.reasoning_setting,
+                    "auth_mode": subjob.auth_mode,
+                }
+                for subjob in result.subjobs
+            ],
+        )

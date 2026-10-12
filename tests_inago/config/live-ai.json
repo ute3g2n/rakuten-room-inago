@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "suite": "authenticated-local-ai",
+  "purpose": "STEP20の隔離されたCodex CLI実証用設定。実日次運用や外部取得には使わない。",
+  "cli_discovery": "PATH上のcodexを確認し、見つからない場合は実機で確認したcodex.exe絶対パスを指定する",
+  "auth_mode": "chatgpt",
+  "model_policy": "現在のCodex設定を継承し、各実行記録から実際のモデルと推論設定を確認する",
+  "allowed_auth_modes": [
+    "chatgpt"
+  ],
+  "require_observed_metadata": true,
+  "sandbox": "read-only",
+  "native_subagents": true,
+  "timeout_seconds": 480,
+  "billing": {
+    "allow_api_key_fallback": false,
+    "allow_paid_api_or_model_switch": false
+  },
+  "side_effects": {
+    "room_access": false,
+    "external_data_access": false,
+    "production_database": false,
+    "scheduled_task_registration": false,
+    "room_posting": false
+  },
+  "evidence_directory": "非公開作業データ/イナゴ実装試験/step-20/"
+}

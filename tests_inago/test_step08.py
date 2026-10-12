@@ -21,6 +21,7 @@ from automation.inago.ai_runner import (
     CopyTarget,
     authorized_agent_task,
     compute_input_hash,
+    _child_agent_type,
 )
 from automation.inago.clock import FakeClock, JST
 
@@ -176,6 +177,22 @@ def _spawn_event(agent_id: str, call_id: str = "call-1") -> dict[str, object]:
     }
 
 
+def test_child_agent_type_reads_spawn_from_saved_codex_rollout() -> None:
+    event = {
+        "type": "response_item",
+        "payload": {
+            "type": "function_call",
+            "name": "spawn_agent",
+            "call_id": "call-rollout-1",
+            "arguments": json.dumps(
+                {"agent_type": "rr-inago-observation", "task_name": "ag_obs"}
+            ),
+        },
+    }
+
+    assert _child_agent_type(event) == "rr-inago-observation"
+
+
 def _runner(
     tmp_path: Path,
     *,
@@ -184,6 +201,8 @@ def _runner(
     exit_code: int = 0,
     sleep: float = 0.0,
     clock: object | None = None,
+    auth_mode: str = "chatgpt",
+    require_observed_metadata: bool = False,
     max_timeout_seconds: float = 1.0,
     poll_interval_seconds: float = 0.02,
 ) -> tuple[AIJobRunner, Path, Path]:
@@ -210,6 +229,8 @@ def _runner(
         cli_command=(sys.executable, str(fake)),
         environment=environment,
         clock=clock or FakeClock(NOW),
+        auth_mode_provider=lambda: auth_mode,
+        require_observed_metadata=require_observed_metadata,
         max_timeout_seconds=max_timeout_seconds,
         poll_interval_seconds=poll_interval_seconds,
     )
@@ -279,13 +300,14 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
     assert len(result.subjobs[0].input_hash) == 64
     assert result.resolved_model == "unobserved"
     assert result.reasoning_setting == "unobserved"
-    assert result.auth_mode == "unobserved"
+    assert result.auth_mode == "chatgpt"
     assert result.artifact is not None and result.artifact.path.is_file()
     recorded = json.loads(record_path.read_text(encoding="utf-8"))
     argv = recorded["argv"]
     assert argv[:1] == ["exec"]
     assert argv[argv.index("--sandbox") + 1] == "read-only"
-    assert "--ephemeral" in argv
+    assert "--ephemeral" not in argv
+    assert argv[argv.index("--config") + 1] == "agents.enabled=true"
     assert argv[argv.index("--enable") + 1] == "multi_agent"
     assert "--json" in argv and "-" in argv
     assert "--output-schema" in argv
@@ -309,6 +331,263 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
         "rr-inago-keywords.toml",
         "rr-inago-observation.toml",
     ]
+    trace_path = next((runner.data_root / "logs").rglob("*.jsonl"))
+    trace_records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    child_records = trace_records[-1]["child_agents"]
+    assert child_records == [
+        {
+            "agent_id": "AG-KEY",
+            "task_id": "T02",
+            "skill_name": "rr-inago-keywords",
+            "result_status": "success",
+            "resolved_model": "unobserved",
+            "reasoning_setting": "unobserved",
+            "auth_mode": "chatgpt",
+        }
+    ]
+
+
+def test_runner_persists_sanitized_per_job_trace_events(tmp_path: Path) -> None:
+    private_marker = "PRIVATE_FIXTURE_TEXT_MUST_NOT_ENTER_TRACE"
+    request = _base_request(
+        input_payload={"private_text": private_marker, "word_ids": ["WORD-01"]}
+    )
+    response = _root_response(request)
+    response["payload"]["details"] = [private_marker]
+    runner, _, _ = _runner(
+        tmp_path,
+        response=json.dumps(response, ensure_ascii=False).encode("utf-8"),
+        events=[{"type": "thread.started", "thread_id": "fixture-session-id"}],
+    )
+
+    result = runner.run(request)
+
+    assert result.result_status == "success"
+    trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
+    assert len(trace_files) == 1
+    trace_text = trace_files[0].read_text(encoding="utf-8")
+    records = [json.loads(line) for line in trace_text.splitlines()]
+    assert [record["event"] for record in records] == [
+        "job_started",
+        "auth_observed",
+        "cli_started",
+        "cli_finished",
+        "artifact_saved",
+        "cli_event",
+        "job_finished",
+    ]
+    assert all(record["job_id"] == request.job_id for record in records)
+    assert all(record["run_id"] == request.run_id for record in records)
+    assert records[-1]["result_status"] == "success"
+    assert records[-1]["resolved_model"] == "unobserved"
+    assert records[5]["event_type"] == "thread.started"
+    assert private_marker not in trace_text
+    assert "fixture-session-id" not in trace_text
+    assert "PRIVATE_FIXTURE_TEXT_MUST_NOT_ENTER_TRACE" not in trace_text
+
+
+def test_api_key_auth_is_rejected_before_cli_start(tmp_path: Path) -> None:
+    request = _base_request()
+    runner, record_path, _ = _runner(
+        tmp_path,
+        response=None,
+        auth_mode="api_key",
+    )
+
+    result = runner.run(request)
+
+    assert result.result_status == "error"
+    assert result.error == {"code": "auth_mode_not_permitted"}
+    assert result.auth_mode == "api_key"
+    assert not record_path.exists()
+    trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
+    assert len(trace_files) == 1
+    records = [
+        json.loads(line)
+        for line in trace_files[0].read_text(encoding="utf-8").splitlines()
+    ]
+    assert [record["event"] for record in records] == [
+        "job_started",
+        "auth_observed",
+        "job_finished",
+    ]
+    assert records[-1]["error_code"] == "auth_mode_not_permitted"
+
+
+def test_load_session_trace_links_root_spawn_to_completed_native_child(
+    tmp_path: Path,
+) -> None:
+    thread_id = "fake-root-01"
+    sessions = tmp_path / "codex-home" / "sessions" / "2026" / "10" / "12"
+    sessions.mkdir(parents=True)
+    root_events = [
+        {"type": "session_meta", "payload": {"id": thread_id}},
+        {
+            "type": "turn_context",
+            "payload": {"model": "gpt-6.1-sol", "effort": "xhigh"},
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call",
+                "name": "spawn_agent",
+                "call_id": "call-child-1",
+                "arguments": json.dumps(
+                    {"agent_type": "rr-inago-observation", "task_name": "obs"}
+                ),
+            },
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call_output",
+                "call_id": "call-child-1",
+                "output": "completed child rollout",
+            },
+        },
+    ]
+    child_events = [
+        {
+            "type": "session_meta",
+            "payload": {
+                "id": "fake-child-01",
+                "parent_thread_id": thread_id,
+                "thread_source": "subagent",
+                "agent_role": "rr-inago-observation",
+                "agent_path": "/root/observation",
+            },
+        },
+        {
+            "type": "turn_context",
+            "payload": {"model": "gpt-6.1-sol", "effort": "xhigh"},
+        },
+    ]
+    root_path = sessions / f"rollout-2026-10-12T04-00-00-{thread_id}.jsonl"
+    child_path = sessions / "rollout-2026-10-12T04-00-01-fake-child-01.jsonl"
+    root_path.write_text(
+        "".join(json.dumps(event) + "\n" for event in root_events),
+        encoding="utf-8",
+    )
+    child_path.write_text(
+        "".join(json.dumps(event) + "\n" for event in child_events),
+        encoding="utf-8",
+    )
+    runner, _, _ = _runner(tmp_path, response=None)
+    runner.environment = {"CODEX_HOME": str(tmp_path / "codex-home")}
+
+    trace = runner._load_session_trace(
+        [{"type": "thread.started", "thread_id": thread_id}],
+        started_at="2026-10-12T13:00:00+09:00",
+        finished_at="2026-10-12T13:00:10+09:00",
+    )
+
+    assert trace is not None
+    assert trace.error is None
+    assert trace.thread_id == thread_id
+    assert trace.root_model == "gpt-6.1-sol"
+    assert trace.root_reasoning_setting == "xhigh"
+    assert len(trace.spawn_events) == 1
+    assert len(trace.children) == 1
+    assert trace.children[0].agent_type == "rr-inago-observation"
+    assert trace.children[0].model == "gpt-6.1-sol"
+    assert trace.children[0].reasoning_setting == "xhigh"
+
+
+def test_live_ai_case_registry_covers_seven_roles_with_synthetic_safe_inputs() -> None:
+    config = json.loads(
+        (PROJECT_ROOT / "tests_inago" / "config" / "live-ai.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    registry = json.loads(
+        (PROJECT_ROOT / "tests_inago" / "live_ai_cases.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    cases = registry["cases"]
+
+    assert config["auth_mode"] == "chatgpt"
+    assert config["allowed_auth_modes"] == ["chatgpt"]
+    assert config["require_observed_metadata"] is True
+    assert config["sandbox"] == "read-only"
+    assert config["native_subagents"] is True
+    assert config["billing"]["allow_api_key_fallback"] is False
+    assert config["billing"]["allow_paid_api_or_model_switch"] is False
+    assert {case["task_id"] for case in cases} == {
+        "T02",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+    }
+    assert len({case["case_id"] for case in cases}) == 8
+    daily_cases = [case for case in cases if case["task_id"] == "T02"]
+    assert sorted(len(case["copy_targets"]) for case in daily_cases) == [1, 2]
+    for case in cases:
+        assert case["input_payload"]["synthetic_test_only"] is True
+        assert case["input_refs"] and len(set(case["input_refs"])) == len(
+            case["input_refs"]
+        )
+        assert case["evidence_refs"] and len(set(case["evidence_refs"])) == len(
+            case["evidence_refs"]
+        )
+        if case["task_id"] == "T02":
+            assert case["trigger"] == "scheduled_daily"
+            assert case["explicit_user_request"] is False
+            assert len({target["offer_key"] for target in case["copy_targets"]}) == len(
+                case["copy_targets"]
+            )
+        else:
+            assert case["trigger"] == "user_request"
+            assert case["explicit_user_request"] is True
+            assert case["request_text"].startswith("私が明示的に依頼します。")
+
+    two_product_case = next(
+        case for case in daily_cases if len(case["copy_targets"]) == 2
+    )
+    target_keys = {target["offer_key"] for target in two_product_case["copy_targets"]}
+    offers = two_product_case["input_payload"]["offers"]
+    assert {offer["offer_key"] for offer in offers} == target_keys
+    assert offers[1]["confirmed_facts"] == []
+    assert offers[1]["owner_experience"] is None
+
+    adopted_settings = json.loads(
+        (PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "初期設定引渡し.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    theme = next(
+        item
+        for item in adopted_settings["themes"]
+        if item["theme_id"] == cases[0]["input_payload"]["parent_theme"]["theme_id"]
+    )
+    assert adopted_settings["version"] == registry["settings_version"]
+    assert cases[0]["input_payload"]["parent_theme"]["name"] == theme["name"]
+
+    def contains_sensitive_key(value: object) -> bool:
+        if isinstance(value, dict):
+            blocked_keys = {
+                "password",
+                "api_key",
+                "api_token",
+                "access_token",
+                "refresh_token",
+                "cookie",
+                "secret",
+            }
+            if any(key.casefold() in blocked_keys for key in value):
+                return True
+            return any(contains_sensitive_key(item) for item in value.values())
+        if isinstance(value, list):
+            return any(contains_sensitive_key(item) for item in value)
+        return False
+
+    assert not contains_sensitive_key(config)
+    assert not contains_sensitive_key(registry)
 
 
 @pytest.mark.parametrize(
@@ -672,6 +951,16 @@ def test_timeout_cancels_only_the_owned_cli_and_preserves_written_output(
     assert result.adoption_status == "expired"
     assert result.artifact is not None
     assert result.artifact.path.read_bytes() == raw
+    trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
+    records = [
+        json.loads(line)
+        for line in trace_files[0].read_text(encoding="utf-8").splitlines()
+    ]
+    assert any(
+        record["event"] == "cli_finished" and record["process_status"] == "timed_out"
+        for record in records
+    )
+    assert records[-1]["result_status"] == "timed_out"
 
 
 def test_pre_cancelled_invocation_does_not_start_cli(tmp_path: Path) -> None:
@@ -797,3 +1086,127 @@ def test_all_seven_role_schemas_are_valid_json_schema_documents() -> None:
     for path in schema_paths:
         schema = json.loads(path.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
+
+
+@pytest.mark.parametrize(
+    ("agent_id", "schema_name", "payload"),
+    [
+        (
+            "AG-OBS",
+            "observation",
+            {
+                "field": "likes",
+                "value": 300,
+                "position": 1,
+                "ref": "EVIDENCE-ROOM-1",
+                "availability": "observed",
+                "unknown_reason": None,
+            },
+        ),
+        (
+            "AG-KEY",
+            "keywords",
+            {"word_id": "WORD-01", "decision": "child", "reason": "関連語"},
+        ),
+        (
+            "AG-COPY",
+            "copy",
+            {
+                "offer_key": "shop-A:item-1",
+                "draft_version": 1,
+                "body": "本文",
+                "pattern_id": "P02",
+                "evidence_refs": ["EVIDENCE-ROOM-1"],
+                "selection_reason": "利用情報に合う",
+                "used_input_refs": ["INPUT-OFFERS-1"],
+                "omitted_unknowns": [],
+            },
+        ),
+        (
+            "AG-INSIGHT",
+            "insight",
+            {
+                "scope": "当日",
+                "findings": [
+                    {
+                        "statement": "欠測があります",
+                        "evidence_refs": ["EVIDENCE-ROOM-1"],
+                        "comparison_basis": "当日入力",
+                        "limitations": "予測はしない",
+                    }
+                ],
+            },
+        ),
+        (
+            "AG-CONFIG",
+            "config",
+            {
+                "proposal_id": "proposal-1",
+                "reason": "明示依頼",
+                "diff": [
+                    {
+                        "setting_key": "theme",
+                        "before": "A",
+                        "after": "B",
+                        "rationale": "本人依頼の案",
+                    }
+                ],
+                "affected_settings": ["theme"],
+                "requires_owner_decision": True,
+            },
+        ),
+        (
+            "AG-RECOVERY",
+            "recovery",
+            {
+                "causes": [
+                    {"hypothesis": "停止位置", "evidence_refs": ["EVIDENCE-ROOM-1"]}
+                ],
+                "unfinished": ["工程1"],
+                "resume_proposal": "同じrunから再開",
+                "owner_actions": ["状態確認"],
+            },
+        ),
+    ],
+)
+def test_root_schema_uses_strict_specialist_payload_contracts(
+    agent_id: str, schema_name: str, payload: dict[str, object]
+) -> None:
+    root_schema = json.loads(
+        (SCHEMA_ROOT / "ai-job.schema.json").read_text(encoding="utf-8")
+    )
+    child_schema = json.loads(
+        (SCHEMA_ROOT / f"ai-{schema_name}.schema.json").read_text(encoding="utf-8")
+    )
+    payload_union = root_schema["$defs"].get("delegation_payload", {}).get("anyOf", [])
+    normalized_child_schema = {
+        key: value
+        for key, value in child_schema.items()
+        if key not in {"$schema", "$id", "title"}
+    }
+
+    assert normalized_child_schema in payload_union, agent_id
+    assert normalized_child_schema["additionalProperties"] is False
+    Draft202012Validator(normalized_child_schema).validate(payload)
+
+
+def test_ai_job_output_schema_uses_codex_strict_json_schema_subset() -> None:
+    schema = json.loads(
+        (SCHEMA_ROOT / "ai-job.schema.json").read_text(encoding="utf-8")
+    )
+
+    def visit(node: object) -> None:
+        if isinstance(node, dict):
+            assert "const" not in node
+            assert not isinstance(node.get("type"), list)
+            if node.get("type") == "object":
+                properties = node.get("properties", {})
+                assert node.get("additionalProperties") is False
+                assert set(node.get("required", [])) == set(properties)
+            for value in node.values():
+                visit(value)
+        elif isinstance(node, list):
+            for value in node:
+                visit(value)
+
+    visit(schema)

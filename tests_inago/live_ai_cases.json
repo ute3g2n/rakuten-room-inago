@@ -1,0 +1,346 @@
+{
+  "schema_version": "1",
+  "settings_version": "confirmed-0.3-step46-all132",
+  "warning": "すべて架空fixture。各非日次依頼は試験内の明示依頼としてAI-Oへ渡す。保存・設定採用・移行・投稿はしない。",
+  "cases": [
+    {
+      "case_id": "L-AI-T02-COPY-01",
+      "task_id": "T02",
+      "trigger": "scheduled_daily",
+      "explicit_user_request": false,
+      "request_name": "毎日の自動日次運用",
+      "request_text": "Python制御プログラムが開始した架空の1商品分の日次処理を進めてください。親テーマ、いいね読取不能、取得済み語句、商品事実、設定版、参照だけを使い、観測・語句判定・本文作成を必要な専門役へ同じ実行内で委譲してください。",
+      "source_kind": "daily",
+      "input_refs": [
+        "INPUT-LAI-T02-OFFER-01",
+        "INPUT-LAI-T02-WORD-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T02-ROOM-01"
+      ],
+      "copy_targets": [
+        {
+          "offer_key": "shop_demo:item_demo_001",
+          "draft_version": 1
+        }
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "parent_theme": {
+          "theme_id": "G01-T01",
+          "name": "菓子・スイーツ"
+        },
+        "room_snapshot": {
+          "ref": "EVIDENCE-LAI-T02-ROOM-01",
+          "authorized_fields": [
+            "likes"
+          ],
+          "likes": {
+            "state": "unknown",
+            "reason": "fixture_unreadable"
+          }
+        },
+        "retrieved_words": [
+          {
+            "word_id": "WORD-LAI-T02-01",
+            "text": "焼き菓子ギフト"
+          }
+        ],
+        "word_ids": [
+          "WORD-LAI-T02-01"
+        ],
+        "offers": [
+          {
+            "offer_key": "shop_demo:item_demo_001",
+            "item_id": "item_demo_001",
+            "draft_version": 1,
+            "product_name": "架空焼き菓子セット",
+            "category": "菓子・スイーツ",
+            "confirmed_facts": [
+              "個包装",
+              "詰め合わせ"
+            ],
+            "price": null,
+            "promotion": {
+              "text": "期限切れ販促の試験文字列",
+              "status": "expired"
+            },
+            "owner_experience": null,
+            "purpose": "確認済みの架空特徴を紹介する"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "L-AI-T02-COPY-02",
+      "task_id": "T02",
+      "trigger": "scheduled_daily",
+      "explicit_user_request": false,
+      "request_name": "毎日の自動日次運用・2商品",
+      "request_text": "Python制御プログラムが開始した架空の2商品分の日次処理を進め、各商品に1件ずつ本文案を作ってください。",
+      "source_kind": "daily",
+      "input_refs": [
+        "INPUT-LAI-T02-2-OFFER-01",
+        "INPUT-LAI-T02-2-OFFER-02",
+        "INPUT-LAI-T02-2-WORD-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T02-2-ROOM-01",
+        "EVIDENCE-LAI-T02-2-ROOM-02"
+      ],
+      "copy_targets": [
+        {"offer_key": "shop_demo:item_demo_001", "draft_version": 1},
+        {"offer_key": "shop_demo:item_demo_002", "draft_version": 1}
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "parent_theme": {
+          "theme_id": "G01-T01",
+          "name": "菓子・スイーツ"
+        },
+        "room_snapshots": [
+          {
+            "offer_key": "shop_demo:item_demo_001",
+            "ref": "EVIDENCE-LAI-T02-2-ROOM-01",
+            "authorized_fields": ["likes"],
+            "likes": {"state": "unknown", "reason": "fixture_unreadable"}
+          },
+          {
+            "offer_key": "shop_demo:item_demo_002",
+            "ref": "EVIDENCE-LAI-T02-2-ROOM-02",
+            "authorized_fields": ["likes"],
+            "likes": {"state": "observed", "value": 300}
+          }
+        ],
+        "retrieved_words": [
+          {"word_id": "WORD-LAI-T02-2-01", "text": "焼き菓子ギフト"}
+        ],
+        "word_ids": ["WORD-LAI-T02-2-01"],
+        "offers": [
+          {
+            "offer_key": "shop_demo:item_demo_001",
+            "item_id": "item_demo_001",
+            "draft_version": 1,
+            "product_name": "架空焼き菓子セット",
+            "category": "菓子・スイーツ",
+            "confirmed_facts": ["個包装", "詰め合わせ"],
+            "price": null,
+            "promotion": {"text": "期限切れ販促の試験文字列", "status": "expired"},
+            "owner_experience": null,
+            "purpose": "確認済みの架空特徴を紹介する"
+          },
+          {
+            "offer_key": "shop_demo:item_demo_002",
+            "item_id": "item_demo_002",
+            "draft_version": 1,
+            "product_name": "架空焼き菓子ギフト",
+            "category": "菓子・スイーツ",
+            "confirmed_facts": [],
+            "price": null,
+            "promotion": null,
+            "owner_experience": null,
+            "purpose": "不明な情報を補わず商品を簡潔に紹介する"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "L-AI-T05-INSIGHT",
+      "task_id": "T05",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "成果分析",
+      "request_text": "私が明示的に依頼します。以下の架空fixture集計だけを分析し、確認済み0件・不明値・全体収益を商品へ配分できない制約を区別してください。",
+      "source_kind": "metrics",
+      "input_refs": [
+        "INPUT-LAI-T05-SUMMARY-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T05-METRICS-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "scope": "架空fixtureの1日分集計",
+        "as_of": "2026-10-13T20:00:00+09:00",
+        "metrics": {
+          "drafts_generated": {
+            "value": 14,
+            "availability": "observed",
+            "unit": "draft"
+          },
+          "reported_posts": {
+            "value": 0,
+            "availability": "observed",
+            "unit": "post"
+          },
+          "product_a_likes": {
+            "value": 0,
+            "availability": "observed",
+            "unit": "like"
+          },
+          "product_b_likes": {
+            "value": null,
+            "availability": "unavailable",
+            "unit": "like"
+          },
+          "store_total_revenue_yen": {
+            "value": 500,
+            "availability": "observed",
+            "unit": "JPY"
+          },
+          "product_sales_attribution": {
+            "value": null,
+            "availability": "unknown",
+            "unit": "product"
+          }
+        },
+        "comparison_basis": "この1日の架空集計だけ。過去日・他店舗との比較入力なし。"
+      }
+    },
+    {
+      "case_id": "L-AI-T06-CONFIG",
+      "task_id": "T06",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "設定変更案",
+      "request_text": "私が明示的に依頼します。架空fixtureに限り、タグ数の任意目安上限を12から10へ変える案を差分として示してください。これは提案だけで、採用・保存・有効化はしないでください。",
+      "source_kind": "daily",
+      "input_refs": [
+        "INPUT-LAI-T06-SETTINGS-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T06-OWNER-REQUEST-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "settings_version": "confirmed-0.3-step46-all132",
+        "owner_request": "任意のタグ目安上限を12から10へ変える案",
+        "current_value": {
+          "setting_key": "tag_guidance.max_tags",
+          "value": 12,
+          "is_completion_gate": false
+        },
+        "requested_value": 10,
+        "must_remain_proposal_only": true
+      }
+    },
+    {
+      "case_id": "L-AI-T07-STATUS",
+      "task_id": "T07",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "状態確認",
+      "request_text": "私が明示的に依頼します。入力した架空のrun状態と未反映報告数を、そのまま区別して要約してください。状態を変更しないでください。",
+      "source_kind": "daily",
+      "input_refs": [
+        "INPUT-LAI-T07-STATUS-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T07-STATUS-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "run_id": "RUN-LAI-T07-01",
+        "run_status": "partial",
+        "target_count": 15,
+        "committed_drafts": 14,
+        "unapplied_reports": 2,
+        "settings_version": "confirmed-0.3-step46-all132",
+        "observed_at": "2026-10-13T18:01:00+09:00"
+      }
+    },
+    {
+      "case_id": "L-AI-T08-RECOVERY",
+      "task_id": "T08",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "障害診断・復旧案",
+      "request_text": "私が明示的に依頼します。下記の架空checkpointと伏字済みログだけを診断し、同じrun・設定版・消費済み試行を維持する再開案を出してください。実際の復旧・kill・DB更新はしないでください。",
+      "source_kind": "generation",
+      "input_refs": [
+        "INPUT-LAI-T08-RUN-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T08-LOG-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "run_id": "RUN-LAI-T08-01",
+        "task_id": "T02",
+        "settings_version": "confirmed-0.3-step46-all132",
+        "run_status": "partial",
+        "checkpoint": "14 drafts committed; metrics retrieval pending",
+        "attempts_used": 8,
+        "search_limit": 9,
+        "error": {
+          "code": "fixture_timeout",
+          "secret_redacted": true
+        },
+        "database_state": "integrity_ok; no current transaction",
+        "late_ai_response": "not_received"
+      }
+    },
+    {
+      "case_id": "L-AI-T09-EXPORT",
+      "task_id": "T09",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "データ書き出し",
+      "request_text": "私が明示的に依頼します。指定された架空の集計scopeと列を整理してください。書き出しファイルの作成はPythonプログラムが行うため、作成済みとは答えないでください。",
+      "source_kind": "daily",
+      "input_refs": [
+        "INPUT-LAI-T09-EXPORT-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T09-REQUEST-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "export_scope": "当日の件数サマリーのみ",
+        "columns": [
+          "target_date",
+          "committed_drafts",
+          "reported_posts",
+          "unapplied_reports"
+        ],
+        "contains_personal_data": false,
+        "output_format": "CSV"
+      }
+    },
+    {
+      "case_id": "L-AI-T10-MIGRATION",
+      "task_id": "T10",
+      "trigger": "user_request",
+      "explicit_user_request": true,
+      "request_name": "旧運用からの移行",
+      "request_text": "私が明示的に依頼します。以下の架空legacy項目を新旧分離の観点から分類し、移行時の確認案だけを示してください。旧DB・旧task・新DBを変更せず、移行を実行したとは答えないでください。",
+      "source_kind": "external_analysis_result",
+      "input_refs": [
+        "INPUT-LAI-T10-LEGACY-01"
+      ],
+      "evidence_refs": [
+        "EVIDENCE-LAI-T10-LEGACY-SUMMARY-01"
+      ],
+      "input_payload": {
+        "synthetic_test_only": true,
+        "legacy_version": "fixture-v0",
+        "legacy_rows": [
+          {
+            "row_id": "LEGACY-01",
+            "state": "posted",
+            "evidence_ref": "EVIDENCE-LAI-T10-LEGACY-SUMMARY-01",
+            "identity_match": "confirmed"
+          },
+          {
+            "row_id": "LEGACY-02",
+            "state": "unknown",
+            "evidence_ref": null,
+            "identity_match": "unresolved"
+          }
+        ],
+        "old_tasks_must_remain_disabled": true,
+        "perform_migration": false
+      }
+    }
+  ]
+}

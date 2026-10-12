@@ -14,15 +14,29 @@
         "required": ["setting_key", "before", "after", "rationale"],
         "properties": {
           "setting_key": {"type": "string", "minLength": 1},
-          "before": {"type": ["string", "number", "boolean", "null"]},
-          "after": {"type": ["string", "number", "boolean", "null"]},
+          "before": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "number"},
+              {"type": "boolean"},
+              {"type": "null"}
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "number"},
+              {"type": "boolean"},
+              {"type": "null"}
+            ]
+          },
           "rationale": {"type": "string", "minLength": 1}
         },
         "additionalProperties": false
       }
     },
     "affected_settings": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "requires_owner_decision": {"const": true}
+    "requires_owner_decision": {"type": "boolean", "enum": [true]}
   },
   "additionalProperties": false
 }

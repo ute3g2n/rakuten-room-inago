@@ -6,11 +6,27 @@
   "required": ["field", "value", "position", "ref", "availability", "unknown_reason"],
   "properties": {
     "field": {"type": "string", "minLength": 1},
-    "value": {"type": ["string", "number", "integer", "boolean", "null"]},
-    "position": {"type": ["string", "integer", "null"]},
+    "value": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "null"}
+      ]
+    },
+    "position": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "integer"},
+        {"type": "null"}
+      ]
+    },
     "ref": {"type": "string", "minLength": 1},
     "availability": {"enum": ["observed", "unknown", "unavailable", "not_present"]},
-    "unknown_reason": {"type": ["string", "null"]}
+    "unknown_reason": {
+      "anyOf": [{"type": "string"}, {"type": "null"}]
+    }
   },
   "additionalProperties": false
 }

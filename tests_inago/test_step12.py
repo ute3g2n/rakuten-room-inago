@@ -151,6 +151,7 @@ class FakeCopyRunner:
         draft_version: int = 1,
         pattern_id: str = "P01",
         subjob_input_refs: tuple[str, ...] | None = None,
+        include_scouting_subjobs: bool = False,
     ) -> None:
         self.outcomes = list(outcomes or ["success"])
         self.body = body
@@ -158,6 +159,7 @@ class FakeCopyRunner:
         self.draft_version = draft_version
         self.pattern_id = pattern_id
         self.subjob_input_refs = subjob_input_refs
+        self.include_scouting_subjobs = include_scouting_subjobs
         self.requests: list[AIJobRequest] = []
 
     def run(self, request: AIJobRequest) -> AIJobResult:
@@ -177,7 +179,54 @@ class FakeCopyRunner:
         }
         subjobs: tuple[AISubjobResult, ...] = ()
         if status in {"success", "empty", "error"} and status != "error":
+            scouting = (
+                (
+                    AISubjobResult(
+                        job_id=f"{request.job_id}-a{request.attempt}-obs",
+                        parent_job_id=request.job_id,
+                        run_id=request.run_id,
+                        attempt=request.attempt,
+                        task_id="T02",
+                        agent_id="AG-OBS",
+                        skill_name="rr-inago-observation",
+                        target_date=request.target_date,
+                        settings_version=request.settings_version,
+                        input_refs=request.input_refs,
+                        evidence_refs=request.evidence_refs,
+                        input_hash="observation-input",
+                        deadline_at=request.deadline_at,
+                        result_status="success",
+                        payload={"field": "likes", "value": None},
+                        resolved_model="fixture-model",
+                        reasoning_setting="fixture",
+                        auth_mode="fixture",
+                    ),
+                    AISubjobResult(
+                        job_id=f"{request.job_id}-a{request.attempt}-key",
+                        parent_job_id=request.job_id,
+                        run_id=request.run_id,
+                        attempt=request.attempt,
+                        task_id="T02",
+                        agent_id="AG-KEY",
+                        skill_name="rr-inago-keywords",
+                        target_date=request.target_date,
+                        settings_version=request.settings_version,
+                        input_refs=request.input_refs,
+                        evidence_refs=request.evidence_refs,
+                        input_hash="keywords-input",
+                        deadline_at=request.deadline_at,
+                        result_status="success",
+                        payload={"word_id": "WORD-1", "decision": "omit"},
+                        resolved_model="fixture-model",
+                        reasoning_setting="fixture",
+                        auth_mode="fixture",
+                    ),
+                )
+                if self.include_scouting_subjobs
+                else ()
+            )
             subjobs = (
+                *scouting,
                 AISubjobResult(
                     job_id=f"{request.job_id}-a{request.attempt}-child-01",
                     parent_job_id=request.job_id,
@@ -314,6 +363,32 @@ def test_one_offer_commits_one_body_and_replay_never_regenerates(
         == 1
     )
     assert len(notices) == 1
+
+
+def test_generation_persists_all_successful_native_specialist_jobs_atomically(
+    runtime_case: RuntimeCase,
+) -> None:
+    result = run_copy(
+        runtime_case,
+        FakeCopyRunner(include_scouting_subjobs=True),
+    )
+
+    assert result.status == "committed"
+    rows = runtime_case.connection.execute(
+        """
+        SELECT agent_id, skill_name, resolved_model, reasoning_setting, auth_mode
+          FROM ai_job
+         WHERE run_id = ?
+         ORDER BY agent_id
+        """,
+        (RUN_ID,),
+    ).fetchall()
+    assert [tuple(row) for row in rows] == [
+        ("AG-COPY", "rr-inago-copywriter", "fixture-model", "fixture", "fixture"),
+        ("AG-KEY", "rr-inago-keywords", "fixture-model", "fixture", "fixture"),
+        ("AG-OBS", "rr-inago-observation", "fixture-model", "fixture", "fixture"),
+        ("AI-O", "rakuten-room-inago", "fixture-model", "fixture", "fixture"),
+    ]
 
 
 @pytest.mark.parametrize(
@@ -566,6 +641,18 @@ def test_save_failure_resumes_same_artifact_without_ai_call(
         ).fetchone()[0]
         == 1
     )
+    trace_files = list(
+        (runtime_case.data_root / "logs" / "copy-generation").rglob("*.jsonl")
+    )
+    assert len(trace_files) == 1
+    trace_text = trace_files[0].read_text(encoding="utf-8")
+    trace_events = [json.loads(line)["event"] for line in trace_text.splitlines()]
+    assert "response_checkpoint_saved" in trace_events
+    assert "draft_commit_failed" in trace_events
+    assert "fixture body for item A1" not in trace_text
+    if failpoint == "before_commit":
+        assert "saved_response_resume" in trace_events
+        assert "draft_committed" in trace_events
 
 
 def test_export_notification_failure_does_not_undo_saved_body(

@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import os
 import re
 import sqlite3
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 from typing import Any, Callable, Literal, Mapping, Protocol
+from urllib.parse import quote
 
 from automation.inago.artifact_io import write_temp_response
 from automation.inago.clock import Clock, SystemClock
@@ -37,6 +41,7 @@ from automation.inago.repository import (
 
 _COPY_RESPONSE_SCHEMA_VERSION = "copy-response-1"
 _COPY_PROTOCOL_VERSION = "1"
+_COPY_TRACE_LOCK = Lock()
 _NON_RETRYABLE_CODES = frozenset(
     {
         "copy_identity_mismatch",
@@ -105,6 +110,78 @@ def _timestamp(clock: Clock) -> str:
     if now.tzinfo is None or now.utcoffset() is None:
         raise RejectedContract("copy clock must return an offset-aware time")
     return now.isoformat()
+
+
+def _trace_copy_event(
+    data_root: str | Path,
+    spec: CopyGenerationSpec,
+    event: str,
+    *,
+    clock: Clock,
+    attempt_no: int | None = None,
+    status: str | None = None,
+    error_code: str | None = None,
+    artifact_ref: str | None = None,
+    ai_run_invoked: bool | None = None,
+) -> None:
+    """Persist lifecycle metadata without recording prompts, facts, or draft text."""
+
+    record: dict[str, Any] = {
+        "schema_version": "1",
+        "at": _timestamp(clock),
+        "event": event,
+        "run_id": spec.run_id,
+        "offer_key": spec.offer_key,
+        "draft_version": spec.draft_version,
+        "settings_version": spec.settings_version,
+    }
+    if attempt_no is not None:
+        record["attempt_no"] = attempt_no
+    if status is not None:
+        record["status"] = status
+    if isinstance(error_code, str) and re.fullmatch(
+        r"[A-Za-z0-9._:-]{1,128}", error_code
+    ):
+        record["error_code"] = error_code
+    if artifact_ref is not None and re.fullmatch(
+        r"[A-Za-z0-9._:-]{1,128}", artifact_ref
+    ):
+        record["artifact_ref"] = artifact_ref
+    if ai_run_invoked is not None:
+        record["ai_run_invoked"] = ai_run_invoked
+
+    safe = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-"
+    filename = (
+        f"{quote(spec.run_id, safe=safe)}--{quote(spec.offer_key, safe=safe)}.jsonl"
+    )
+    path = Path(data_root) / "logs" / "copy-generation" / spec.target_date / filename
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        encoded = (
+            json.dumps(
+                record,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        with _COPY_TRACE_LOCK:
+            descriptor = os.open(
+                path,
+                os.O_APPEND | os.O_CREAT | os.O_WRONLY,
+                0o600,
+            )
+            try:
+                os.write(descriptor, encoded)
+            finally:
+                os.close(descriptor)
+    except (OSError, TypeError, ValueError):
+        logging.getLogger(__name__).warning(
+            "copy lifecycle trace append failed for run %s event %s",
+            spec.run_id,
+            event,
+        )
 
 
 def _root_job_id(attempt_id: str) -> str:
@@ -286,6 +363,52 @@ def _root_record(
         "accepted_at": None,
         "adoption_status": result.adoption_status,
     }
+
+
+def _specialist_records(
+    root: AIJobResult | None,
+    *,
+    finished_at: str,
+    exclude_job_id: str | None = None,
+) -> tuple[dict[str, Any], ...]:
+    if root is None:
+        return ()
+    records: list[dict[str, Any]] = []
+    for subjob in root.subjobs:
+        if subjob.job_id == exclude_job_id:
+            continue
+        records.append(
+            {
+                "job_id": subjob.job_id,
+                "run_id": subjob.run_id,
+                "protocol_version": _COPY_PROTOCOL_VERSION,
+                "schema_version": _COPY_RESPONSE_SCHEMA_VERSION,
+                "task_id": subjob.task_id,
+                "agent_id": subjob.agent_id,
+                "skill_name": subjob.skill_name,
+                "attempt": subjob.attempt,
+                "target_date": subjob.target_date,
+                "settings_version": subjob.settings_version,
+                "input_refs": subjob.input_refs,
+                "evidence_refs": subjob.evidence_refs,
+                "input_hash": subjob.input_hash,
+                "deadline_at": subjob.deadline_at,
+                "started_at": root.started_at or finished_at,
+                "finished_at": root.finished_at or finished_at,
+                "resolved_model": subjob.resolved_model,
+                "reasoning_setting": subjob.reasoning_setting,
+                "auth_mode": subjob.auth_mode,
+                "result_status": subjob.result_status,
+                "payload": dict(subjob.payload),
+                "error": None,
+                "artifact_ref": (
+                    root.artifact.artifact_ref if root.artifact is not None else None
+                ),
+                "accepted_at": None,
+                "adoption_status": "pending",
+            }
+        )
+    return tuple(records)
 
 
 def _copy_record(
@@ -552,9 +675,17 @@ def _persist_attempt_result(
     root_record = _root_record(
         request, root, finished_at=finished_at, error_code=error_code
     )
-    records: tuple[Mapping[str, Any], ...] = (root_record,)
+    copy_job_id = copy_record.get("job_id") if copy_record is not None else None
+    records: tuple[Mapping[str, Any], ...] = (
+        root_record,
+        *_specialist_records(
+            root,
+            finished_at=finished_at,
+            exclude_job_id=copy_job_id,
+        ),
+    )
     if copy_record is not None:
-        records = (root_record, copy_record)
+        records = (*records, copy_record)
     root_artifacts = (root.artifact,) if root is not None and root.artifact else ()
     merged_artifacts = tuple(dict.fromkeys((*root_artifacts, *artifacts)))
     attempt_artifact_ref = (
@@ -584,16 +715,28 @@ def _commit_saved_response(
     connection: sqlite3.Connection,
     request: DraftCommitRequest,
     *,
+    data_root: str | Path,
+    spec: CopyGenerationSpec,
     clock: Clock,
     attempt_no: int,
     attempts_used: int,
     resumed: bool,
     export_notifier: Callable[[DraftCommitResult], None] | None,
 ) -> CopyGenerationOutcome:
+    _trace_copy_event(
+        data_root,
+        spec,
+        "draft_commit_started",
+        clock=clock,
+        attempt_no=attempt_no,
+        status="pending",
+        artifact_ref=request.artifact.artifact_ref,
+        ai_run_invoked=False,
+    )
     try:
         result = commit_draft(connection, request, clock=clock)
     except (sqlite3.Error, OSError, InjectedFailure):
-        return CopyGenerationOutcome(
+        outcome = CopyGenerationOutcome(
             status="pending_commit",
             commit_result=None,
             attempts_used=attempts_used,
@@ -601,16 +744,40 @@ def _commit_saved_response(
             resumed=resumed,
             error_code="draft_save_failed",
         )
+        _trace_copy_event(
+            data_root,
+            spec,
+            "draft_commit_failed",
+            clock=clock,
+            attempt_no=attempt_no,
+            status=outcome.status,
+            error_code=outcome.error_code,
+            artifact_ref=request.artifact.artifact_ref,
+            ai_run_invoked=False,
+        )
+        return outcome
     except (RejectedContract, PersistenceContractError) as exc:
-        return CopyGenerationOutcome(
+        outcome = CopyGenerationOutcome(
             status="contract_error",
             commit_result=None,
             attempts_used=attempts_used,
             attempt_no=attempt_no,
             resumed=resumed,
-            error_code=f"draft_commit_contract_error:{exc}",
+            error_code="draft_commit_contract_error",
         )
-    return _make_outcome(
+        _trace_copy_event(
+            data_root,
+            spec,
+            "draft_commit_rejected",
+            clock=clock,
+            attempt_no=attempt_no,
+            status=outcome.status,
+            error_code=outcome.error_code,
+            artifact_ref=request.artifact.artifact_ref,
+            ai_run_invoked=False,
+        )
+        return outcome
+    outcome = _make_outcome(
         "committed",
         result=result,
         attempts_used=attempts_used,
@@ -618,6 +785,17 @@ def _commit_saved_response(
         resumed=resumed,
         export_notifier=export_notifier,
     )
+    _trace_copy_event(
+        data_root,
+        spec,
+        "draft_committed",
+        clock=clock,
+        attempt_no=attempt_no,
+        status=outcome.status,
+        artifact_ref=request.artifact.artifact_ref,
+        ai_run_invoked=False,
+    )
+    return outcome
 
 
 def generate_and_commit_copy(
@@ -633,6 +811,14 @@ def generate_and_commit_copy(
 
     _check_spec(spec)
     system_clock = clock or SystemClock()
+    _trace_copy_event(
+        data_root,
+        spec,
+        "generation_requested",
+        clock=system_clock,
+        status="started",
+        ai_run_invoked=False,
+    )
     state = load_copy_generation_state(
         connection, run_id=spec.run_id, offer_key=spec.offer_key
     )
@@ -684,9 +870,21 @@ def generate_and_commit_copy(
                 error_code="daily_limit_reached",
             )
         checkpoint = _copy_checkpoint_request(spec, state, clock=system_clock)
+        _trace_copy_event(
+            data_root,
+            spec,
+            "saved_response_resume",
+            clock=system_clock,
+            attempt_no=attempts_used,
+            status="checkpoint_reused",
+            artifact_ref=checkpoint.artifact.artifact_ref,
+            ai_run_invoked=False,
+        )
         return _commit_saved_response(
             connection,
             checkpoint,
+            data_root=data_root,
+            spec=spec,
             clock=system_clock,
             attempt_no=attempts_used,
             attempts_used=attempts_used,
@@ -729,12 +927,31 @@ def generate_and_commit_copy(
             started_at=started_at,
             clock=system_clock,
         )
+        _trace_copy_event(
+            data_root,
+            spec,
+            "generation_attempt_reserved",
+            clock=system_clock,
+            attempt_no=attempt_no,
+            status="in_progress",
+            ai_run_invoked=False,
+        )
         request = _new_ai_request(spec, attempt_id=attempt_id, attempt_no=attempt_no)
         attempts_used = attempt_no
         try:
             root = runner.run(request)
         except Exception as exc:
             error_code = f"runner_error_{type(exc).__name__}"
+            _trace_copy_event(
+                data_root,
+                spec,
+                "ai_runner_failed",
+                clock=system_clock,
+                attempt_no=attempt_no,
+                status="error",
+                error_code=f"runner_error_{type(exc).__name__}",
+                ai_run_invoked=True,
+            )
             _persist_attempt_result(
                 connection,
                 attempt=attempt,
@@ -753,6 +970,21 @@ def generate_and_commit_copy(
                 attempt_no=attempt_no,
                 error_code=error_code,
             )
+
+        _trace_copy_event(
+            data_root,
+            spec,
+            "ai_result_received",
+            clock=system_clock,
+            attempt_no=attempt_no,
+            status=root.result_status if isinstance(root, AIJobResult) else "invalid",
+            error_code=(
+                root.error.get("code")
+                if isinstance(root, AIJobResult) and isinstance(root.error, Mapping)
+                else None
+            ),
+            ai_run_invoked=True,
+        )
 
         if not isinstance(root, AIJobResult) or not _root_matches(request, root):
             error_code = "copy_runner_result_invalid"
@@ -1012,6 +1244,16 @@ def generate_and_commit_copy(
             artifacts=(response_artifact,),
             copy_record=copy_record,
         )
+        _trace_copy_event(
+            data_root,
+            spec,
+            "response_checkpoint_saved",
+            clock=system_clock,
+            attempt_no=attempt_no,
+            status="success",
+            artifact_ref=response_artifact.artifact_ref,
+            ai_run_invoked=True,
+        )
         commit_request = DraftCommitRequest(
             run_id=spec.run_id,
             job_id=subjob.job_id,
@@ -1030,6 +1272,8 @@ def generate_and_commit_copy(
         return _commit_saved_response(
             connection,
             commit_request,
+            data_root=data_root,
+            spec=spec,
             clock=system_clock,
             attempt_no=attempt_no,
             attempts_used=attempts_used,
