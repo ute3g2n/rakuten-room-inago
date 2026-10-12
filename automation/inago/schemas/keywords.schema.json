@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/keywords-v1.schema.json",
+  "title": "Observed Google Trends related Top fixture response",
+  "description": "Data contract only. It does not authorize or implement browser access.",
+  "type": "object",
+  "required": [
+    "request_id",
+    "snapshot_id",
+    "run_id",
+    "settings_version",
+    "source",
+    "parent_word",
+    "current_parent",
+    "refresh_complete",
+    "language",
+    "geo",
+    "search_type",
+    "range",
+    "list_type",
+    "status",
+    "fetched_at",
+    "error_code",
+    "words"
+  ],
+  "properties": {
+    "request_id": {"type": "string", "minLength": 1},
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "settings_version": {"type": "string", "minLength": 1},
+    "source": {"const": "google_trends_public_ui"},
+    "parent_word": {"type": "string", "minLength": 1},
+    "current_parent": {"type": ["string", "null"]},
+    "refresh_complete": {"type": "boolean"},
+    "language": {"const": "ja"},
+    "geo": {"const": "JP"},
+    "search_type": {"const": "web"},
+    "range": {"const": "90d"},
+    "list_type": {"const": "Top"},
+    "status": {"enum": ["observed", "unavailable"]},
+    "fetched_at": {"type": ["string", "null"], "format": "date-time"},
+    "error_code": {"type": ["string", "null"]},
+    "words": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/observedWord"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "current_parent": {"type": "string", "minLength": 1},
+          "refresh_complete": {"const": true},
+          "fetched_at": {"type": "string", "format": "date-time"},
+          "error_code": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "unavailable"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "current_parent": {"type": "null"},
+          "refresh_complete": {"const": false},
+          "fetched_at": {"type": "null"},
+          "error_code": {"type": "string", "minLength": 1},
+          "words": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "observedWord": {
+      "type": "object",
+      "required": ["word_id", "raw", "source_rank", "popularity_index"],
+      "properties": {
+        "word_id": {"type": "string", "minLength": 1},
+        "raw": {"type": "string", "minLength": 1},
+        "source_rank": {"type": "integer", "minimum": 1},
+        "popularity_index": {"type": ["number", "null"], "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
