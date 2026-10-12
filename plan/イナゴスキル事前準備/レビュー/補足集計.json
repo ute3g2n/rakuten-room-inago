@@ -1,0 +1,227 @@
+{
+  "execution_id": "20261011-01",
+  "audit_step": "28",
+  "recorded_at": "2026-10-12T09:01:47+09:00",
+  "status": "complete_in_order_with_identity_limits_and_source_repair",
+  "expected_searches_max": 5,
+  "expected_cards_max": 250,
+  "actual_searches": 1,
+  "actual_allocated_slots": 50,
+  "actual_used_slots": 50,
+  "searches_remaining": 4,
+  "slots_remaining": 200,
+  "genre_results": [
+    {
+      "genre_id": "G01",
+      "genre": "食品・飲料",
+      "status": "not_needed",
+      "searches": 0,
+      "slots": 0,
+      "full_body_save_successes": 0,
+      "result_total": null,
+      "search_term": null,
+      "reason": "STEP21の保存済み本文132件全体から6テーマ候補を整理済み。検索不要の順序内判定。"
+    },
+    {
+      "genre_id": "G02",
+      "genre": "美容・セルフケア",
+      "status": "not_needed",
+      "searches": 0,
+      "slots": 0,
+      "full_body_save_successes": 0,
+      "result_total": null,
+      "search_term": null,
+      "reason": "STEP21の保存済み本文132件全体から6テーマ候補を整理済み。検索不要の順序内判定。"
+    },
+    {
+      "genre_id": "G03",
+      "genre": "ファッション・身だしなみ",
+      "status": "not_needed",
+      "searches": 0,
+      "slots": 0,
+      "full_body_save_successes": 0,
+      "result_total": null,
+      "search_term": null,
+      "reason": "STEP21の保存済み本文132件全体から6テーマ候補を整理済み。検索不要の順序内判定。"
+    },
+    {
+      "genre_id": "G04",
+      "genre": "住まい・暮らし",
+      "status": "not_needed",
+      "searches": 0,
+      "slots": 0,
+      "full_body_save_successes": 0,
+      "result_total": null,
+      "search_term": null,
+      "reason": "STEP21の保存済み本文132件全体から6テーマ候補を整理済み。検索不要の順序内判定。"
+    },
+    {
+      "genre_id": "G05",
+      "genre": "子ども・ペット用品",
+      "status": "complete",
+      "searches": 1,
+      "slots": 50,
+      "full_body_save_successes": 50,
+      "result_total": 101,
+      "search_term": "子ども・ペット用品",
+      "search_conditions": {
+        "likes_min": 300,
+        "comments": "none"
+      },
+      "slot_range": "1-50",
+      "excluded_slots": "51+",
+      "reason": "本人選定の2テーマへの追加資料として1検索を実行。固定条件・上限内で先頭50枠の本文全文を個別プレビューから保存。"
+    }
+  ],
+  "analysis_basis": {
+    "base_full_body_count": 132,
+    "all_132_in_denominator": true,
+    "reaction_status": {
+      "match": 24,
+      "unknown": 108,
+      "used_as_filter": false
+    },
+    "supplemental_bodies_are_separate": true,
+    "body_readback_required": false,
+    "product_name_pair_storage_required_for_body_count": false
+  },
+  "identification": {
+    "permanent_room_post_ids_collected": 0,
+    "store_product_keys_collected": 0,
+    "exact_product_name_dedup_performed": false,
+    "base_supplement_same_post_overlap": "unknown",
+    "exact_product_overlap": "unknown",
+    "unique_post_count": null,
+    "independent_product_count": null,
+    "interpretation": "識別・商品名の取得は今回の本文収集件数条件から除外。投稿・商品一意数や基礎/補足重複数を推定しない。"
+  },
+  "audit_checks": {
+    "per_genre_search_limit": "pass: each genre 0 or 1",
+    "per_genre_slot_limit": "pass: each genre 0 to 50",
+    "total_search_limit": "pass: 1 of 5",
+    "total_slot_limit": "pass: 50 of 250",
+    "g05_fixed_query": "pass: 子ども・ペット用品",
+    "g05_conditions": "pass: likes >= 300, no comment condition",
+    "g05_limit": "pass: positions 1-50 only; 51+ excluded",
+    "no_retry_or_relaxation": true,
+    "all_132_base_rows_retained": true,
+    "reaction_based_exclusion": false,
+    "hashes_used": false,
+    "major_unresolved_violations": 0,
+    "step27_source_gap_repaired": "pass: S05-0001 restored before proceeding",
+    "final_g05_progress_event": "pass: 50/50 complete; initial session snapshot retained as history"
+  },
+  "findings": [
+    "G01～G04は順序内のnot_needed判定。検索・UI操作・枠消費はない。",
+    "G05は1検索、表示101件、位置1～50の50枠を記録。検索回数・枠数は各上限以内。",
+    "50枠は本文全文の保存成功記録による。ユーザー指示により保存後の本文読戻し、価格下商品名との対保存は行わず、件数条件にもしていない。",
+    "恒久ROOM投稿ID・店舗商品キー・価格下商品名を取得していないため、同一投稿・同一商品の重複数は不明。独立投稿数・独立商品数を50と主張しない。",
+    "基礎本文132件は補足と混ぜず維持。反応状態24/108を基礎分析や補足枠の選別に使っていない。",
+    "再監査: 初期検索セッション行は提出時点のslots_collected=1を記録。後続進捗ログの50枠完了とS05-0001修復後の50原観測行を照合し、修正後の現況は50/50と判定。初期記録は消去・上書きせず履歴として保持。"
+  ],
+  "hashes_used": false,
+  "historical_out_of_sequence_reference": {
+    "preserved": true,
+    "disposition": "reference_only_not_accepted_in_order",
+    "note": "既存の旧補足監査は全G01～G05を0検索・0枠としていた順序外スナップショット。削除せず下記に内容を保全し、今回の順序内監査の実績には採用しない。",
+    "prior_audit": {
+      "execution_id": "20261011-01",
+      "expected_searches_max": 5,
+      "expected_cards_max": 250,
+      "actual_searches": 0,
+      "actual_allocated_slots": 0,
+      "actual_used_slots": 0,
+      "genre_results": [
+        {
+          "genre_id": "G01",
+          "genre": "食品・飲料",
+          "status": "not_needed",
+          "searches": 0,
+          "slots": 0,
+          "body_complete": 0,
+          "room_post_ids": 0,
+          "store_item_keys": 0,
+          "reason": "タイトル文字列上に候補概念があり、カテゴリー幅の追加検索は不要。本文の全文性・商品一意性の不足は解決しない。"
+        },
+        {
+          "genre_id": "G02",
+          "genre": "美容・セルフケア",
+          "status": "not_needed",
+          "searches": 0,
+          "slots": 0,
+          "body_complete": 0,
+          "room_post_ids": 0,
+          "store_item_keys": 0,
+          "reason": "タイトル文字列上に候補概念があり、カテゴリー幅の追加検索は不要。本文の全文性・商品一意性の不足は解決しない。"
+        },
+        {
+          "genre_id": "G03",
+          "genre": "ファッション・身だしなみ",
+          "status": "not_needed",
+          "searches": 0,
+          "slots": 0,
+          "body_complete": 0,
+          "room_post_ids": 0,
+          "store_item_keys": 0,
+          "reason": "タイトル文字列上に候補概念があり、カテゴリー幅の追加検索は不要。本文の全文性・商品一意性の不足は解決しない。"
+        },
+        {
+          "genre_id": "G04",
+          "genre": "住まい・暮らし",
+          "status": "not_needed",
+          "searches": 0,
+          "slots": 0,
+          "body_complete": 0,
+          "room_post_ids": 0,
+          "store_item_keys": 0,
+          "reason": "タイトル文字列上に候補概念があり、カテゴリー幅の追加検索は不要。本文の全文性・商品一意性の不足は解決しない。"
+        },
+        {
+          "genre_id": "G05",
+          "genre": "子ども・ペット・余暇",
+          "status": "not_needed",
+          "searches": 0,
+          "slots": 0,
+          "body_complete": 0,
+          "room_post_ids": 0,
+          "store_item_keys": 0,
+          "reason": "タイトル文字列上に候補概念があり、カテゴリー幅の追加検索は不要。本文の全文性・商品一意性の不足は解決しない。"
+        }
+      ],
+      "base_collection_merged": false,
+      "result_count_deduplicated_by_product": 0,
+      "unresolved_base_body_count": 169,
+      "hashes_used": false
+    }
+  },
+  "revalidation_history": [
+    {
+      "g05_unique_observation_ids": 50,
+      "g05_counted_full_body_count": 50,
+      "final_progress_slots": 50,
+      "recorded_at": "2026-10-12T09:01:47+09:00",
+      "unique_post_and_product_counts": "unknown",
+      "repair_observation_id": "S05-0001",
+      "g05_position_range": "1-50",
+      "g05_searches": 1,
+      "g05_comment_condition": "none",
+      "reaction_match": 24,
+      "initial_search_session_snapshot_slots": 1,
+      "reaction_used_as_filter": false,
+      "revalidation_status": "pass_after_step27_source_gap_repair",
+      "initial_snapshot_interpreted_as": "submitted-time snapshot; superseded by chronological progress events",
+      "g05_result_total": 101,
+      "repair_used_existing_search": true,
+      "g05_observation_rows": 50,
+      "new_search_started": false,
+      "g05_full_body_state_count": 50,
+      "base_denominator": 132,
+      "reaction_unknown": 108,
+      "product_name_pair_required_for_body_count": false,
+      "g05_fixed_search_term": "子ども・ペット用品",
+      "hashes_used": false,
+      "body_readback_required": false,
+      "g05_likes_min": 300
+    }
+  ]
+}

@@ -1,0 +1,1768 @@
+{
+  "schema_version": "1.0",
+  "version": "candidate-0.3-step21",
+  "status": "proposed_needs_owner",
+  "adopted": false,
+  "step": "21",
+  "recorded_at": "2026-10-12T07:04:56+09:00",
+  "source_requirement_version": "1.3",
+  "target": {
+    "genre_slots": 5,
+    "themes_per_genre": 6,
+    "total_theme_slots": 30,
+    "named_provisional_theme_candidates": 28,
+    "unset_theme_slots": 2,
+    "adopted_genres": 0,
+    "adopted_themes": 0,
+    "approximate_full_body_target": 130,
+    "full_body_saved_count": 132,
+    "unique_product_target_is_body_count_target": false
+  },
+  "evidence_basis": {
+    "full_body_observations_used": 132,
+    "all_132_in_analysis_denominator": true,
+    "annotation_records": 132,
+    "annotation_observation_id_set_matches_saved_full_set": true,
+    "reaction_condition_descriptive_only": {
+      "match": 24,
+      "unknown": 108,
+      "used_as_filter": false
+    },
+    "group_overlap_allowed": true,
+    "hashes_used": false
+  },
+  "concept_group_summary": {
+    "genre_observation_counts": [
+      {
+        "genre_id": "G01",
+        "count": 44
+      },
+      {
+        "genre_id": "G02",
+        "count": 23
+      },
+      {
+        "genre_id": "G03",
+        "count": 31
+      },
+      {
+        "genre_id": "G04",
+        "count": 48
+      },
+      {
+        "genre_id": "G05",
+        "count": 20
+      }
+    ],
+    "group_memberships": 166,
+    "classified_observation_union": 119,
+    "unclassified_observations": 13,
+    "observations_with_multi_group_membership": 41,
+    "count_semantics": "Group memberships overlap and are not unique products or market shares."
+  },
+  "body_collection_identity": {
+    "saved_full_body_observation_count": 132,
+    "new_full_saved_records": 128,
+    "previous_full_records": 4,
+    "known_product_key_rows_within_full_body_set": 1,
+    "known_unique_product_key_lower_bound": 1,
+    "unknown_product_key_rows": 131,
+    "independent_product_count": null,
+    "body_count_requires_product_name_pair": false,
+    "body_count_requires_post_id": false,
+    "body_count_requires_store_item_key": false,
+    "body_count_requires_body_file_readback": false
+  },
+  "genres": [
+    {
+      "genre_id": "G01",
+      "candidate_name": "食品・飲料",
+      "definition": "食べたり飲んだりする商品を、用途と食品カテゴリで整理する候補。",
+      "source_taxonomy_labels": [
+        "食品・飲料"
+      ],
+      "body_observation_count": 44,
+      "body_observation_denominator": 132,
+      "body_observation_refs": [
+        "B0001",
+        "B0189",
+        "B0195",
+        "B0198",
+        "B0201",
+        "B0202",
+        "B0206",
+        "B0207",
+        "B0208",
+        "B0216",
+        "B0218",
+        "B0220",
+        "B0221",
+        "B0225",
+        "B0227",
+        "B0228",
+        "B0233",
+        "B0236",
+        "B0238",
+        "B0245",
+        "B0248",
+        "B0250",
+        "B0253",
+        "B0256",
+        "B0258",
+        "B0267",
+        "B0271",
+        "B0272",
+        "B0277",
+        "B0278",
+        "B0287",
+        "B0288",
+        "B0293",
+        "B0294",
+        "B0296",
+        "B0297",
+        "B0298",
+        "B0299",
+        "B0300",
+        "B0301",
+        "B0302",
+        "B0304",
+        "B0305",
+        "B0315"
+      ],
+      "confirmed_product_key_rows": 1,
+      "known_unique_product_key_lower_bound": 1,
+      "independent_product_count": null,
+      "material_status": "base_material_sufficient_for_candidate_breadth",
+      "material_decision": "食品の6つの異なる商品カテゴリ候補が本文根拠に現れる。独立商品数は商品キー不明のため別途unknown。",
+      "adoption_status": "proposed_not_adopted",
+      "count_semantics": "Overlapping observation rows; not unique posts, products, or market share."
+    },
+    {
+      "genre_id": "G02",
+      "candidate_name": "美容・セルフケア",
+      "definition": "美容・身だしなみ、および健康・休息・介護を補助する用品を整理する候補。医療判断・効能承認にはしない。",
+      "source_taxonomy_labels": [
+        "美容・身だしなみ",
+        "健康・休息・介護の補助"
+      ],
+      "body_observation_count": 23,
+      "body_observation_denominator": 132,
+      "body_observation_refs": [
+        "B0002",
+        "B0003",
+        "B0200",
+        "B0209",
+        "B0223",
+        "B0224",
+        "B0225",
+        "B0235",
+        "B0237",
+        "B0239",
+        "B0240",
+        "B0242",
+        "B0263",
+        "B0264",
+        "B0270",
+        "B0280",
+        "B0282",
+        "B0286",
+        "B0291",
+        "B0292",
+        "B0306",
+        "B0307",
+        "B0313"
+      ],
+      "confirmed_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_status": "base_material_sufficient_for_candidate_breadth",
+      "material_decision": "個人の美容・身だしなみ・日常ケアの6候補が本文根拠に現れる。美容ツールは1観測だが、最低nを置かず、独立商品数はunknownとする。",
+      "adoption_status": "proposed_not_adopted",
+      "count_semantics": "Overlapping observation rows; not unique posts, products, or market share."
+    },
+    {
+      "genre_id": "G03",
+      "candidate_name": "ファッション・身だしなみ",
+      "definition": "衣服・履物・身に着ける小物を整理する候補。",
+      "source_taxonomy_labels": [
+        "衣類・靴・装身具"
+      ],
+      "body_observation_count": 31,
+      "body_observation_denominator": 132,
+      "body_observation_refs": [
+        "B0002",
+        "B0003",
+        "B0192",
+        "B0193",
+        "B0199",
+        "B0205",
+        "B0210",
+        "B0212",
+        "B0215",
+        "B0217",
+        "B0219",
+        "B0225",
+        "B0226",
+        "B0231",
+        "B0235",
+        "B0237",
+        "B0244",
+        "B0246",
+        "B0257",
+        "B0260",
+        "B0261",
+        "B0270",
+        "B0275",
+        "B0280",
+        "B0282",
+        "B0285",
+        "B0291",
+        "B0297",
+        "B0308",
+        "B0312",
+        "B0317"
+      ],
+      "confirmed_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_status": "base_material_sufficient_for_candidate_breadth",
+      "material_decision": "衣服・下着・履物・携行品・装身具・子ども衣料の6候補が本文根拠に現れる。独立商品数はunknown。",
+      "adoption_status": "proposed_not_adopted",
+      "count_semantics": "Overlapping observation rows; not unique posts, products, or market share."
+    },
+    {
+      "genre_id": "G04",
+      "candidate_name": "住まい・暮らし",
+      "definition": "住環境、家事、調理、収納、生活設備、防災・安全関連を整理する候補。",
+      "source_taxonomy_labels": [
+        "住まい・キッチン・家事",
+        "防災・安全"
+      ],
+      "body_observation_count": 48,
+      "body_observation_denominator": 132,
+      "body_observation_refs": [
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0196",
+        "B0200",
+        "B0204",
+        "B0210",
+        "B0212",
+        "B0213",
+        "B0215",
+        "B0222",
+        "B0224",
+        "B0225",
+        "B0228",
+        "B0229",
+        "B0239",
+        "B0240",
+        "B0241",
+        "B0243",
+        "B0244",
+        "B0247",
+        "B0248",
+        "B0251",
+        "B0252",
+        "B0255",
+        "B0257",
+        "B0259",
+        "B0260",
+        "B0261",
+        "B0264",
+        "B0265",
+        "B0268",
+        "B0270",
+        "B0273",
+        "B0279",
+        "B0282",
+        "B0284",
+        "B0285",
+        "B0287",
+        "B0289",
+        "B0297",
+        "B0298",
+        "B0301",
+        "B0303",
+        "B0309",
+        "B0311",
+        "B0313",
+        "B0314"
+      ],
+      "confirmed_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_status": "base_material_sufficient_for_candidate_breadth",
+      "material_decision": "家事・調理・食卓・ファブリック・収納と、生活家電・照明に整理できる6候補がある。安全用品だけを家電に混ぜない。",
+      "adoption_status": "proposed_not_adopted",
+      "count_semantics": "Overlapping observation rows; not unique posts, products, or market share."
+    },
+    {
+      "genre_id": "G05",
+      "candidate_name": "子ども・ペット・余暇",
+      "definition": "子ども・育児、玩具・知育、ペット用品を整理する候補。外出・季節行事は商品ジャンルではなく用途文脈として扱う。",
+      "source_taxonomy_labels": [
+        "子ども・ベビー・知育",
+        "ペット用品"
+      ],
+      "body_observation_count": 20,
+      "body_observation_denominator": 132,
+      "body_observation_refs": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207",
+        "B0211",
+        "B0213",
+        "B0218",
+        "B0228",
+        "B0243",
+        "B0247",
+        "B0259",
+        "B0266",
+        "B0268",
+        "B0274",
+        "B0281",
+        "B0283",
+        "B0300",
+        "B0303",
+        "B0310"
+      ],
+      "confirmed_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_status": "owner_material_needed",
+      "material_decision": "子ども・育児とペットの20観測を候補群として保つ。商品カテゴリにできない外出・贈答用途の2枠は空欄。親ジャンルのまとまりと追加2テーマを本人資料で決める。",
+      "adoption_status": "proposed_not_adopted",
+      "count_semantics": "Overlapping observation rows; not unique posts, products, or market share."
+    }
+  ],
+  "themes": [
+    {
+      "theme_id": "G01-T01",
+      "genre_id": "G01",
+      "name": "菓子・スイーツ",
+      "definition": "菓子、チョコ、ケーキ、焼き菓子など、そのまま楽しむ甘味食品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "お菓子|チョコ|スイーツ|ケーキ|ハトムギスナック|バームクーヘン",
+      "candidate_lexical_hit_count": 16,
+      "candidate_observation_refs": [
+        "B0001",
+        "B0195",
+        "B0208",
+        "B0216",
+        "B0221",
+        "B0227",
+        "B0236",
+        "B0248",
+        "B0253",
+        "B0256",
+        "B0271",
+        "B0272",
+        "B0277",
+        "B0298",
+        "B0299",
+        "B0315"
+      ],
+      "body_material_count": 16,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0001",
+        "B0195",
+        "B0208",
+        "B0216",
+        "B0221",
+        "B0227",
+        "B0236",
+        "B0248",
+        "B0253",
+        "B0256",
+        "B0271",
+        "B0272",
+        "B0277",
+        "B0298",
+        "B0299",
+        "B0315"
+      ],
+      "inclusion_examples": [
+        "菓子、チョコ、ケーキ、焼き菓子など、そのまま楽しむ甘味食品。"
+      ],
+      "boundary_examples": [
+        "主食、調味料、飲料、健康補助食品はそれぞれ該当テーマへ。"
+      ],
+      "verified_product_key_rows": 1,
+      "known_unique_product_key_lower_bound": 1,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G01-T02",
+      "genre_id": "G01",
+      "name": "主食・麺・パン",
+      "definition": "米・パン・麺・シリアル等、食事の主な炭水化物となる食品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ラーメン|パスタ|ふりかけ|ごはん|麺|パン",
+      "candidate_lexical_hit_count": 16,
+      "candidate_observation_refs": [
+        "B0198",
+        "B0201",
+        "B0202",
+        "B0206",
+        "B0218",
+        "B0243",
+        "B0251",
+        "B0267",
+        "B0271",
+        "B0288",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0304",
+        "B0305",
+        "B0317"
+      ],
+      "body_material_count": 16,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0198",
+        "B0201",
+        "B0202",
+        "B0206",
+        "B0218",
+        "B0243",
+        "B0251",
+        "B0267",
+        "B0271",
+        "B0288",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0304",
+        "B0305",
+        "B0317"
+      ],
+      "inclusion_examples": [
+        "米・パン・麺・シリアル等、食事の主な炭水化物となる食品。"
+      ],
+      "boundary_examples": [
+        "菓子、調味料、単体飲料は除く。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G01-T03",
+      "genre_id": "G01",
+      "name": "肉・魚・たんぱく食材",
+      "definition": "肉、魚介、卵、豆腐等、主菜となる生鮮・加工食品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "鮭|サバ|さば|鶏肉|ハンバーグ|明太子|肉まん",
+      "candidate_lexical_hit_count": 5,
+      "candidate_observation_refs": [
+        "B0202",
+        "B0206",
+        "B0294",
+        "B0296",
+        "B0301"
+      ],
+      "body_material_count": 5,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0202",
+        "B0206",
+        "B0294",
+        "B0296",
+        "B0301"
+      ],
+      "inclusion_examples": [
+        "肉、魚介、卵、豆腐等、主菜となる生鮮・加工食品。"
+      ],
+      "boundary_examples": [
+        "完成した調味料や一般サプリは除く。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G01-T04",
+      "genre_id": "G01",
+      "name": "青果・植物性食品",
+      "definition": "野菜、果物、海藻、植物由来の素材食品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "にんにく|はちみつ|果物|野菜|フルーツ",
+      "candidate_lexical_hit_count": 2,
+      "candidate_observation_refs": [
+        "B0258",
+        "B0302"
+      ],
+      "body_material_count": 2,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0258",
+        "B0302"
+      ],
+      "inclusion_examples": [
+        "野菜、果物、海藻、植物由来の素材食品。"
+      ],
+      "boundary_examples": [
+        "それらを含む菓子・加工済み主食は主用途を優先。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G01-T05",
+      "genre_id": "G01",
+      "name": "調味料・加工食品・惣菜",
+      "definition": "調味料、レトルト、冷凍食品、惣菜、保存食など、味付け・調理を助ける食品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "カレー粉|カレーフレーク|調味料|冷凍食品|惣菜|ふりかけ",
+      "candidate_lexical_hit_count": 8,
+      "candidate_observation_refs": [
+        "B0198",
+        "B0207",
+        "B0267",
+        "B0293",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0305"
+      ],
+      "body_material_count": 8,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0198",
+        "B0207",
+        "B0267",
+        "B0293",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0305"
+      ],
+      "inclusion_examples": [
+        "調味料、レトルト、冷凍食品、惣菜、保存食など、味付け・調理を助ける食品。"
+      ],
+      "boundary_examples": [
+        "器具や調理家電はG04。主食・菓子として単独で扱う商品は各テーマへ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G01-T06",
+      "genre_id": "G01",
+      "name": "飲料・茶・酒",
+      "definition": "水、茶、コーヒー、清涼飲料、酒類、飲料用商品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ビール|スーパードライ|健康ドリンク|ソーダストリーム|紅茶|お茶",
+      "candidate_lexical_hit_count": 6,
+      "candidate_observation_refs": [
+        "B0228",
+        "B0245",
+        "B0256",
+        "B0258",
+        "B0287",
+        "B0293"
+      ],
+      "body_material_count": 6,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0228",
+        "B0245",
+        "B0256",
+        "B0258",
+        "B0287",
+        "B0293"
+      ],
+      "inclusion_examples": [
+        "水、茶、コーヒー、清涼飲料、酒類、飲料用商品。"
+      ],
+      "boundary_examples": [
+        "飲料を作る器具はG04。医薬品や効能訴求は扱わない。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T01",
+      "genre_id": "G02",
+      "name": "スキンケア",
+      "definition": "洗顔、化粧水、乳液、保湿、クレンジング等の肌用化粧品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "クレンジング|ハイドロキノン|クリーム|スキンケア",
+      "candidate_lexical_hit_count": 4,
+      "candidate_observation_refs": [
+        "B0223",
+        "B0248",
+        "B0286",
+        "B0306"
+      ],
+      "body_material_count": 4,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0223",
+        "B0248",
+        "B0286",
+        "B0306"
+      ],
+      "inclusion_examples": [
+        "洗顔、化粧水、乳液、保湿、クレンジング等の肌用化粧品。"
+      ],
+      "boundary_examples": [
+        "メイク色材、ボディ専用品、美容家電は各テーマへ。効能を独自に断定しない。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T02",
+      "genre_id": "G02",
+      "name": "メイクアップ",
+      "definition": "ファンデーション、ポイントメイク、化粧用色材・仕上げ用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "フェイスパウダー|ファンデーション|メイク|化粧",
+      "candidate_lexical_hit_count": 7,
+      "candidate_observation_refs": [
+        "B0223",
+        "B0263",
+        "B0264",
+        "B0282",
+        "B0286",
+        "B0291",
+        "B0313"
+      ],
+      "body_material_count": 7,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0223",
+        "B0263",
+        "B0264",
+        "B0282",
+        "B0286",
+        "B0291",
+        "B0313"
+      ],
+      "inclusion_examples": [
+        "ファンデーション、ポイントメイク、化粧用色材・仕上げ用品。"
+      ],
+      "boundary_examples": [
+        "基礎化粧品、衣類・装身具は除く。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T03",
+      "genre_id": "G02",
+      "name": "ヘアケア",
+      "definition": "シャンプー、トリートメント、整髪料、ヘアオイル、頭皮用ブラシ等。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ミルボン|ヘアオイル|シャンプー|スカルプブラシ|頭皮",
+      "candidate_lexical_hit_count": 3,
+      "candidate_observation_refs": [
+        "B0209",
+        "B0224",
+        "B0307"
+      ],
+      "body_material_count": 3,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0209",
+        "B0224",
+        "B0307"
+      ],
+      "inclusion_examples": [
+        "シャンプー、トリートメント、整髪料、ヘアオイル、頭皮用ブラシ等。"
+      ],
+      "boundary_examples": [
+        "一般家電はG04。頭皮・発毛などの効果を補わない。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T04",
+      "genre_id": "G02",
+      "name": "ボディ・セルフケア",
+      "definition": "ボディ・ハンドケア、入浴・身だしなみ用の非医療商品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ハンドクリーム|ボディ|耳つぼ|耳ツボ",
+      "candidate_lexical_hit_count": 2,
+      "candidate_observation_refs": [
+        "B0002",
+        "B0235"
+      ],
+      "body_material_count": 2,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0002",
+        "B0235"
+      ],
+      "inclusion_examples": [
+        "ボディ・ハンドケア、入浴・身だしなみ用の非医療商品。"
+      ],
+      "boundary_examples": [
+        "医薬品・疾病治療を主目的とする商品はこの分類だけで適格としない。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T05",
+      "genre_id": "G02",
+      "name": "ウェルネス・休息",
+      "definition": "睡眠・リラックス・日常ケアに使う商品候補。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "サイナスリンス|鼻うがい|睡眠|健康|温活",
+      "candidate_lexical_hit_count": 8,
+      "candidate_observation_refs": [
+        "B0003",
+        "B0200",
+        "B0225",
+        "B0237",
+        "B0240",
+        "B0280",
+        "B0282",
+        "B0292"
+      ],
+      "body_material_count": 8,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0003",
+        "B0200",
+        "B0225",
+        "B0237",
+        "B0240",
+        "B0280",
+        "B0282",
+        "B0292"
+      ],
+      "inclusion_examples": [
+        "睡眠・リラックス・日常ケアに使う商品候補。"
+      ],
+      "boundary_examples": [
+        "病気の予防・治療、身体変化を保証する区分ではない。食品は食品カテゴリを主分類。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G02-T06",
+      "genre_id": "G02",
+      "name": "美容ツール・器具",
+      "definition": "美容用途を主目的とする器具、ブラシ、セルフケア用ツール。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "美容器|美顔器|ブラシ|耳つぼジュエリー|耳つぼシール",
+      "candidate_lexical_hit_count": 1,
+      "candidate_observation_refs": [
+        "B0307"
+      ],
+      "body_material_count": 1,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0307"
+      ],
+      "inclusion_examples": [
+        "美容用途を主目的とする器具、ブラシ、セルフケア用ツール。"
+      ],
+      "boundary_examples": [
+        "一般家電・清掃用品はG04。商品適格性は別判定。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T01",
+      "genre_id": "G03",
+      "name": "衣服・アウター",
+      "definition": "大人向けの衣服、トップス、ボトムス、アウター等。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ジャケット|チュニック|アウター|トップス",
+      "candidate_lexical_hit_count": 4,
+      "candidate_observation_refs": [
+        "B0217",
+        "B0226",
+        "B0231",
+        "B0317"
+      ],
+      "body_material_count": 4,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0217",
+        "B0226",
+        "B0231",
+        "B0317"
+      ],
+      "inclusion_examples": [
+        "大人向けの衣服、トップス、ボトムス、アウター等。"
+      ],
+      "boundary_examples": [
+        "下着・靴・子ども向け衣料は別テーマ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T02",
+      "genre_id": "G03",
+      "name": "下着・靴下",
+      "definition": "肌着、ブラトップ、ショーツ、靴下、ルームウェアの下着類。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ショーツ|ブラトップ|靴下|ソックス|インナー",
+      "candidate_lexical_hit_count": 6,
+      "candidate_observation_refs": [
+        "B0003",
+        "B0205",
+        "B0219",
+        "B0225",
+        "B0237",
+        "B0280"
+      ],
+      "body_material_count": 6,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0003",
+        "B0205",
+        "B0219",
+        "B0225",
+        "B0237",
+        "B0280"
+      ],
+      "inclusion_examples": [
+        "肌着、ブラトップ、ショーツ、靴下、ルームウェアの下着類。"
+      ],
+      "boundary_examples": [
+        "一般衣料・履物は別テーマ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T03",
+      "genre_id": "G03",
+      "name": "靴・履物",
+      "definition": "スニーカー、靴、サンダル、スリッパ等の履物。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "スニーカー|シューズ|スリッパ|靴",
+      "candidate_lexical_hit_count": 9,
+      "candidate_observation_refs": [
+        "B0003",
+        "B0215",
+        "B0219",
+        "B0237",
+        "B0257",
+        "B0275",
+        "B0280",
+        "B0285",
+        "B0308"
+      ],
+      "body_material_count": 9,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0003",
+        "B0215",
+        "B0219",
+        "B0237",
+        "B0257",
+        "B0275",
+        "B0280",
+        "B0285",
+        "B0308"
+      ],
+      "inclusion_examples": [
+        "スニーカー、靴、サンダル、スリッパ等の履物。"
+      ],
+      "boundary_examples": [
+        "履物に付属する装飾小物は用途で主分類を選ぶ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T04",
+      "genre_id": "G03",
+      "name": "バッグ・身の回り小物",
+      "definition": "バッグ、財布、ポーチ、ハンカチ等の携行・身の回り品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "バッグ|ポーチ|ハンカチ|ケース|小物",
+      "candidate_lexical_hit_count": 5,
+      "candidate_observation_refs": [
+        "B0212",
+        "B0270",
+        "B0282",
+        "B0291",
+        "B0297"
+      ],
+      "body_material_count": 5,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0212",
+        "B0270",
+        "B0282",
+        "B0291",
+        "B0297"
+      ],
+      "inclusion_examples": [
+        "バッグ、財布、ポーチ、ハンカチ等の携行・身の回り品。"
+      ],
+      "boundary_examples": [
+        "衣服、装身具、室内収納用品は除く。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T05",
+      "genre_id": "G03",
+      "name": "アクセサリー・装身具",
+      "definition": "アクセサリー、ジュエリー、帽子、ヘアアクセサリー等、身につける小物。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ヘアゴム|アクセサリー|帽子|ハット|ジュエリー",
+      "candidate_lexical_hit_count": 10,
+      "candidate_observation_refs": [
+        "B0002",
+        "B0193",
+        "B0199",
+        "B0210",
+        "B0219",
+        "B0235",
+        "B0244",
+        "B0246",
+        "B0260",
+        "B0261"
+      ],
+      "body_material_count": 10,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0002",
+        "B0193",
+        "B0199",
+        "B0210",
+        "B0219",
+        "B0235",
+        "B0244",
+        "B0246",
+        "B0260",
+        "B0261"
+      ],
+      "inclusion_examples": [
+        "アクセサリー、ジュエリー、帽子、ヘアアクセサリー等、身につける小物。"
+      ],
+      "boundary_examples": [
+        "美容施術器具や生活収納品は除く。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G03-T06",
+      "genre_id": "G03",
+      "name": "キッズ衣料",
+      "definition": "子ども用の衣服、帽子、靴など身に着ける商品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "キッズ|子供服|子ども|男の子|女の子|七五三",
+      "candidate_lexical_hit_count": 1,
+      "candidate_observation_refs": [
+        "B0317"
+      ],
+      "body_material_count": 1,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0317"
+      ],
+      "inclusion_examples": [
+        "子ども用の衣服、帽子、靴など身に着ける商品。"
+      ],
+      "boundary_examples": [
+        "乳幼児の授乳・育児用品はG05-T01。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T01",
+      "genre_id": "G04",
+      "name": "調理・キッチン道具",
+      "definition": "調理器具、鍋、保存・計量・下ごしらえ用品など。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "キッチンツール|ザルボウル|調理器具|鍋|フライパン",
+      "candidate_lexical_hit_count": 9,
+      "candidate_observation_refs": [
+        "B0189",
+        "B0196",
+        "B0222",
+        "B0241",
+        "B0243",
+        "B0251",
+        "B0282",
+        "B0284",
+        "B0301"
+      ],
+      "body_material_count": 9,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0189",
+        "B0196",
+        "B0222",
+        "B0241",
+        "B0243",
+        "B0251",
+        "B0282",
+        "B0284",
+        "B0301"
+      ],
+      "inclusion_examples": [
+        "調理器具、鍋、保存・計量・下ごしらえ用品など。"
+      ],
+      "boundary_examples": [
+        "食品はG01。食卓で使う食器はG04-T02。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T02",
+      "genre_id": "G04",
+      "name": "食器・食卓用品",
+      "definition": "食器、グラス、カトラリー、食卓用具。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "タンブラー|グラス|スプーン|食器|鍋敷き|ポット",
+      "candidate_lexical_hit_count": 12,
+      "candidate_observation_refs": [
+        "B0191",
+        "B0196",
+        "B0222",
+        "B0248",
+        "B0259",
+        "B0264",
+        "B0265",
+        "B0282",
+        "B0284",
+        "B0287",
+        "B0298",
+        "B0303"
+      ],
+      "body_material_count": 12,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0191",
+        "B0196",
+        "B0222",
+        "B0248",
+        "B0259",
+        "B0264",
+        "B0265",
+        "B0282",
+        "B0284",
+        "B0287",
+        "B0298",
+        "B0303"
+      ],
+      "inclusion_examples": [
+        "食器、グラス、カトラリー、食卓用具。"
+      ],
+      "boundary_examples": [
+        "食品・調理器具・装飾主体の家具は別テーマ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T03",
+      "genre_id": "G04",
+      "name": "掃除・洗濯・日用品",
+      "definition": "洗剤、香り付け用品、掃除用具、洗濯用品、日常消耗品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "洗剤|香り付けビーズ|スポンジ|掃除|ディスペンサー",
+      "candidate_lexical_hit_count": 5,
+      "candidate_observation_refs": [
+        "B0224",
+        "B0243",
+        "B0255",
+        "B0279",
+        "B0282"
+      ],
+      "body_material_count": 5,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0224",
+        "B0243",
+        "B0255",
+        "B0279",
+        "B0282"
+      ],
+      "inclusion_examples": [
+        "洗剤、香り付け用品、掃除用具、洗濯用品、日常消耗品。"
+      ],
+      "boundary_examples": [
+        "化粧品・食品・衣料品は各ジャンルへ。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T04",
+      "genre_id": "G04",
+      "name": "寝具・タオル・ファブリック",
+      "definition": "毛布、シーツ、タオル、寝具や布製の生活用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "毛布|シーツ|寝具|タオル|ティッシュ",
+      "candidate_lexical_hit_count": 7,
+      "candidate_observation_refs": [
+        "B0200",
+        "B0229",
+        "B0240",
+        "B0252",
+        "B0282",
+        "B0297",
+        "B0314"
+      ],
+      "body_material_count": 7,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0200",
+        "B0229",
+        "B0240",
+        "B0252",
+        "B0282",
+        "B0297",
+        "B0314"
+      ],
+      "inclusion_examples": [
+        "毛布、シーツ、タオル、寝具や布製の生活用品。"
+      ],
+      "boundary_examples": [
+        "衣服・持ち歩き用ハンカチはG03-T04。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T05",
+      "genre_id": "G04",
+      "name": "収納・インテリア",
+      "definition": "収納ボックス、ワゴン、室内装飾、家具・整理用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "収納|ボックス|ワゴン|トローリー|インテリア",
+      "candidate_lexical_hit_count": 8,
+      "candidate_observation_refs": [
+        "B0191",
+        "B0213",
+        "B0224",
+        "B0241",
+        "B0243",
+        "B0247",
+        "B0255",
+        "B0261"
+      ],
+      "body_material_count": 8,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0191",
+        "B0213",
+        "B0224",
+        "B0241",
+        "B0243",
+        "B0247",
+        "B0255",
+        "B0261"
+      ],
+      "inclusion_examples": [
+        "収納ボックス、ワゴン、室内装飾、家具・整理用品。"
+      ],
+      "boundary_examples": [
+        "災害安全機能が主役の商品はG04-T06。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G04-T06",
+      "genre_id": "G04",
+      "name": "生活家電・照明",
+      "definition": "家庭で使う電気式の生活機器と室内照明。",
+      "status": "provisional_refined_candidate",
+      "prior_candidate_name": "家電・安全・季節用品",
+      "prior_candidate_lexical_rule": "加湿器|家電|ソーダストリーム|耐火|防災|湯たんぽ",
+      "candidate_lexical_hit_count": 3,
+      "candidate_observation_refs": [
+        "B0212",
+        "B0228",
+        "B0268"
+      ],
+      "body_material_count": 2,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0228",
+        "B0268"
+      ],
+      "inclusion_examples": [
+        "炭酸水メーカー等の家庭用機器、生活用ライト。"
+      ],
+      "boundary_examples": [
+        "耐火ポーチ等の防災用品は商品機能に応じて別テーマとし、家電の根拠に混ぜない。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "候補の3語句一致のうちB0212は耐火ポーチ・防災用品で異質。B0228のソーダストリームとB0268のライトを生活家電・照明候補の根拠として残す。",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G05-T01",
+      "genre_id": "G05",
+      "name": "ベビー・マタニティ",
+      "definition": "妊娠・出産・授乳・乳幼児期のケアや育児用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ベビー|赤ちゃん|マタニティ|搾乳|哺乳|離乳食",
+      "candidate_lexical_hit_count": 4,
+      "candidate_observation_refs": [
+        "B0259",
+        "B0266",
+        "B0283",
+        "B0303"
+      ],
+      "body_material_count": 4,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0259",
+        "B0266",
+        "B0283",
+        "B0303"
+      ],
+      "inclusion_examples": [
+        "妊娠・出産・授乳・乳幼児期のケアや育児用品。"
+      ],
+      "boundary_examples": [
+        "子どもが身に着ける一般衣料はG03-T06。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G05-T02",
+      "genre_id": "G05",
+      "name": "おもちゃ・学び",
+      "definition": "遊具、知育・学習用品、玩具・ブロック等。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "レゴ|LEGO|おもちゃ|玩具|ブロック|学習",
+      "candidate_lexical_hit_count": 5,
+      "candidate_observation_refs": [
+        "B0211",
+        "B0243",
+        "B0247",
+        "B0274",
+        "B0310"
+      ],
+      "body_material_count": 5,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0211",
+        "B0243",
+        "B0247",
+        "B0274",
+        "B0310"
+      ],
+      "inclusion_examples": [
+        "遊具、知育・学習用品、玩具・ブロック等。"
+      ],
+      "boundary_examples": [
+        "一般の家電・大人向け趣味用品はG04/G05-T05。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G05-T03",
+      "genre_id": "G05",
+      "name": "ペットフード",
+      "definition": "犬猫等の動物用フード・おやつ・食事用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "キャットフード|犬用.*フード|猫.*フード|ナチュラルチョイス",
+      "candidate_lexical_hit_count": 1,
+      "candidate_observation_refs": [
+        "B0218"
+      ],
+      "body_material_count": 1,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0218"
+      ],
+      "inclusion_examples": [
+        "犬猫等の動物用フード・おやつ・食事用品。"
+      ],
+      "boundary_examples": [
+        "食器やケア用品が主用途ならG05-T04。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G05-T04",
+      "genre_id": "G05",
+      "name": "ペットケア・用品",
+      "definition": "ペット用のケア用品、衛生用品、服、移動・生活用品。",
+      "status": "provisional_candidate",
+      "prior_candidate_name": null,
+      "prior_candidate_lexical_rule": "ペット|犬用|猫用|猫.*コスプレ|ドッグステップ",
+      "candidate_lexical_hit_count": 11,
+      "candidate_observation_refs": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207",
+        "B0213",
+        "B0218",
+        "B0228",
+        "B0268",
+        "B0281",
+        "B0300"
+      ],
+      "body_material_count": 11,
+      "body_material_denominator": 132,
+      "body_material_refs": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207",
+        "B0213",
+        "B0218",
+        "B0228",
+        "B0268",
+        "B0281",
+        "B0300"
+      ],
+      "inclusion_examples": [
+        "ペット用のケア用品、衛生用品、服、移動・生活用品。"
+      ],
+      "boundary_examples": [
+        "ペット用食品はG05-T03。人用の品は対象外。"
+      ],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "product_count_status": "unknown_due_to_unidentified_store_item_keys",
+      "material_note": "Existing candidate boundary retained for provisional review. A lexical hit is material evidence, not semantic validation or a count of distinct products.",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "theme_id": "G05-T05",
+      "genre_id": "G05",
+      "name": null,
+      "status": "unset_needs_owner_material",
+      "superseded_candidate_name": "外出・レジャー",
+      "superseded_candidate_definition": "旅行、運動会、公園、アウトドアなど余暇・外出を主目的とする商品。",
+      "candidate_lexical_hit_count": 4,
+      "candidate_observation_refs": [
+        "B0215",
+        "B0237",
+        "B0257",
+        "B0285"
+      ],
+      "inclusion_examples": [],
+      "boundary_examples": [
+        "服・靴はG03を主分類にし、必要なら余暇を補助分類にする。"
+      ],
+      "body_material_count": null,
+      "body_material_refs": [],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_note": "既存4語句一致はB0215/B0237/B0257/B0285で、本文注釈上の根拠はスニーカー・履物。外出/余暇は用途文脈であり、独立した商品上位概念を示さない。G03側の履物テーマと重なるため空欄。",
+      "analysis_denominator": 132,
+      "adoption_status": "not_adopted"
+    },
+    {
+      "theme_id": "G05-T06",
+      "genre_id": "G05",
+      "name": null,
+      "status": "unset_needs_owner_material",
+      "superseded_candidate_name": "ギフト・イベント",
+      "superseded_candidate_definition": "贈答・季節行事・誕生日などの用途が明確な商品。",
+      "candidate_lexical_hit_count": 2,
+      "candidate_observation_refs": [
+        "B0199",
+        "B0208"
+      ],
+      "inclusion_examples": [],
+      "boundary_examples": [
+        "ギフト用途だけで商品カテゴリを置き換えず、補助テーマとして使う。"
+      ],
+      "body_material_count": null,
+      "body_material_refs": [],
+      "verified_product_key_rows": 0,
+      "known_unique_product_key_lower_bound": 0,
+      "independent_product_count": null,
+      "material_note": "既存2語句一致はB0199/B0208。前者は猫用帽子、後者は菓子で、ハロウィン等の行事・贈答用途が商品カテゴリを示していない。用途だけを独立テーマにせず空欄。",
+      "analysis_denominator": 132,
+      "adoption_status": "not_adopted"
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "GAP-21-01",
+      "scope": "G05",
+      "type": "owner_material_needed",
+      "observation_refs": [
+        "B0215",
+        "B0237",
+        "B0257",
+        "B0285",
+        "B0199",
+        "B0208"
+      ],
+      "description": "外出・余暇と贈答・イベントの2候補は商品カテゴリではなく用途文脈。5番目の親ジャンル境界と、空欄2枠へ置く商品カテゴリを基礎資料だけから決めない。",
+      "required_material": "本人が子ども・育児とペットを一つのジャンルにまとめるか判断し、残り2テーマとして扱う具体的な商品上位概念または本人資料を指定する。",
+      "search_expansion_allowed_before_resolution": false
+    },
+    {
+      "gap_id": "GAP-21-02",
+      "scope": "all_132",
+      "type": "product_identity_unknown",
+      "observation_refs": [
+        "B0002",
+        "B0003",
+        "B0004",
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0192",
+        "B0193",
+        "B0194",
+        "B0195",
+        "B0196",
+        "B0197",
+        "B0198",
+        "B0199",
+        "B0200",
+        "B0201",
+        "B0202",
+        "B0203",
+        "B0204",
+        "B0205",
+        "B0206",
+        "B0207",
+        "B0208",
+        "B0209",
+        "B0210",
+        "B0211",
+        "B0212",
+        "B0213",
+        "B0214",
+        "B0215",
+        "B0216",
+        "B0217",
+        "B0218",
+        "B0219",
+        "B0220",
+        "B0221",
+        "B0222",
+        "B0223",
+        "B0224",
+        "B0225",
+        "B0226",
+        "B0227",
+        "B0228",
+        "B0229",
+        "B0230",
+        "B0231",
+        "B0233",
+        "B0234",
+        "B0235",
+        "B0236",
+        "B0237",
+        "B0238",
+        "B0239",
+        "B0240",
+        "B0241",
+        "B0242",
+        "B0243",
+        "B0244",
+        "B0245",
+        "B0246",
+        "B0247",
+        "B0248",
+        "B0249",
+        "B0250",
+        "B0251",
+        "B0252",
+        "B0253",
+        "B0254",
+        "B0255",
+        "B0256",
+        "B0257",
+        "B0258",
+        "B0259",
+        "B0260",
+        "B0261",
+        "B0262",
+        "B0263",
+        "B0264",
+        "B0265",
+        "B0266",
+        "B0267",
+        "B0268",
+        "B0269",
+        "B0270",
+        "B0271",
+        "B0272",
+        "B0273",
+        "B0274",
+        "B0275",
+        "B0276",
+        "B0277",
+        "B0278",
+        "B0279",
+        "B0280",
+        "B0281",
+        "B0282",
+        "B0283",
+        "B0284",
+        "B0285",
+        "B0286",
+        "B0287",
+        "B0288",
+        "B0289",
+        "B0290",
+        "B0291",
+        "B0292",
+        "B0293",
+        "B0294",
+        "B0295",
+        "B0296",
+        "B0297",
+        "B0298",
+        "B0299",
+        "B0300",
+        "B0301",
+        "B0302",
+        "B0303",
+        "B0304",
+        "B0305",
+        "B0306",
+        "B0307",
+        "B0308",
+        "B0309",
+        "B0310",
+        "B0311",
+        "B0312",
+        "B0313",
+        "B0314",
+        "B0315",
+        "B0316",
+        "B0317"
+      ],
+      "description": "保存済み本文132件中、店舗＋商品ID確認はB0001の1行のみ。残り131行はunknown。独立商品総数を観測行数から推定できない。",
+      "required_material": "商品独立数が必要な分類工程で、許可された商品キー資料を追加するか、unknownのまま明示する。",
+      "search_expansion_allowed_before_resolution": true
+    }
+  ],
+  "input_distributions": {
+    "body_codepoints": {
+      "n": 132,
+      "min": 37,
+      "q1": 150.25,
+      "median": 235.5,
+      "mean": 231.45454545454547,
+      "q3": 296.25,
+      "max": 483,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "tag_occurrences": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.553030303030303,
+      "q3": 12.0,
+      "max": 57,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "structure_candidate_counts": [
+      {
+        "name": "商品参照と特徴説明",
+        "n": 41
+      },
+      {
+        "name": "商品参照とタグ",
+        "n": 36
+      },
+      {
+        "name": "価格・販促を先に提示",
+        "n": 23
+      },
+      {
+        "name": "特徴箇条書き",
+        "n": 15
+      },
+      {
+        "name": "タグを含む他型",
+        "n": 6
+      },
+      {
+        "name": "混合・分類不能",
+        "n": 6
+      },
+      {
+        "name": "体験と留保",
+        "n": 5
+      }
+    ]
+  },
+  "method": {
+    "theme_support": "Each of the 132 full-body concept-annotation rows was searched for the candidate lexical pattern against body_named_item_phrases, observed_product_type_terms, and nested evidence_terms. Taxonomy labels were not included in the match string. Nonmatches stayed in the denominator.",
+    "semantic_review": "Explicitly evaluated whether each candidate is a distinct product upper concept. Use-case-only candidates were left blank. Counts of one were retained when they named a distinct product category; no minimum n was invented.",
+    "overlap": "Theme evidence may overlap. Unique product count is separately unknown unless store+item key is confirmed."
+  },
+  "superseded_legacy_fields": {
+    "source_file": "暫定分類.json before STEP21",
+    "confirmed_unique_products": 2,
+    "target_unique_products_approx": 130,
+    "target_met": false,
+    "disposition": "These older fields conflated the result-row product-identity audit with the full-body acquisition target. They are retained as historical context only; 130 refers to approximate full body texts, not unique products."
+  },
+  "hashes_used": false,
+  "next_step": "22",
+  "theme_support_summary": {
+    "named_theme_candidates": 28,
+    "unset_slots": 2,
+    "observation_hit_union": 104,
+    "total_hits_with_theme_overlap": 177.0,
+    "unmatched_observations_in_candidate_union": 28,
+    "count_semantics": "Overlap permitted. This is body annotation pattern evidence, not unique products or independent posts."
+  }
+}

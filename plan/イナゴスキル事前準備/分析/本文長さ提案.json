@@ -1,0 +1,796 @@
+{
+  "version": "candidate-0.4-step37-all132",
+  "step": 37,
+  "recorded_at": "2026-10-12T09:30:03+09:00",
+  "status": "proposed_needs_owner",
+  "adopted": false,
+  "basis_observations": 132,
+  "all_132_in_analysis_denominator": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "unknown": 108
+  },
+  "reaction_condition_used_as_filter": false,
+  "reaction_condition_exclusions": 0,
+  "measurement_unit": {
+    "unit": "Unicode code points",
+    "body_scope": "本文からURL文字列と#タグトークンを除いた範囲",
+    "counting_rules_ref": "plan/イナゴスキル事前準備/分析/統合長さタグ.json#step36_ordered.method",
+    "normalization": "CRLF/CRをLFに統一。その他の空白、改行、句読点は保持。",
+    "display_note": "コードポイント数は画面上の表示字形数や結合絵文字の数とは一致しない。"
+  },
+  "observed_body_distribution": {
+    "n": 132,
+    "min": 37,
+    "q1": 150.25,
+    "median": 235.5,
+    "mean": 231.45454545,
+    "q3": 296.25,
+    "max": 483
+  },
+  "suggested_soft_range": {
+    "min": 150,
+    "max": 300,
+    "unit": "Unicode code points",
+    "kind": "optional_drafting_reference_not_a_constraint",
+    "status": "proposed_needs_owner",
+    "reason": "基礎132件のQ1=150.25、中央値=235.5、平均=231.45、Q3=296.25を中心とするばらつきを、執筆時に読みやすく参照するための仮幅。四分位点を必須下限・上限に変換したものではない。",
+    "target_center": {
+      "value": 235.5,
+      "unit": "Unicode code points",
+      "meaning": "観測中央値の参考。達成を求める目標値ではない。"
+    }
+  },
+  "soft_range_coverage": {
+    "base_132": {
+      "n": 132,
+      "within_soft_range_rows": 68,
+      "percentage": 51.52,
+      "interpretation": "descriptive_only_not_acceptance_rate"
+    },
+    "g05_supplement_50": {
+      "n": 50,
+      "within_soft_range_rows": 23,
+      "percentage": 46.0,
+      "interpretation": "descriptive_only_not_acceptance_rate"
+    },
+    "raw_row_sum_182": {
+      "n": 182,
+      "within_soft_range_rows": 91,
+      "percentage": 50.0,
+      "interpretation": "descriptive_only_not_acceptance_rate"
+    },
+    "warning": "範囲内割合は実測位置の説明だけ。合否、品質評価、商品選別には使わない。"
+  },
+  "genre_distributions_base_132": {
+    "G01": {
+      "name": "食品・飲料",
+      "n": 44,
+      "body_codepoints": {
+        "n": 44,
+        "min": 60,
+        "q1": 139.75,
+        "median": 246.0,
+        "mean": 227.81818182,
+        "q3": 291.5,
+        "max": 411
+      },
+      "soft_range_coverage": {
+        "n": 44,
+        "within_soft_range_rows": 22,
+        "percentage": 50.0,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_refs": [
+        "B0001",
+        "B0189",
+        "B0195",
+        "B0198",
+        "B0201",
+        "B0202",
+        "B0206",
+        "B0207",
+        "B0208",
+        "B0216",
+        "B0218",
+        "B0220",
+        "B0221",
+        "B0225",
+        "B0227",
+        "B0228",
+        "B0233",
+        "B0236",
+        "B0238",
+        "B0245",
+        "B0248",
+        "B0250",
+        "B0253",
+        "B0256",
+        "B0258",
+        "B0267",
+        "B0271",
+        "B0272",
+        "B0277",
+        "B0278",
+        "B0287",
+        "B0288",
+        "B0293",
+        "B0294",
+        "B0296",
+        "B0297",
+        "B0298",
+        "B0299",
+        "B0300",
+        "B0301",
+        "B0302",
+        "B0304",
+        "B0305",
+        "B0315"
+      ]
+    },
+    "G02": {
+      "name": "美容・セルフケア",
+      "n": 23,
+      "body_codepoints": {
+        "n": 23,
+        "min": 53,
+        "q1": 227.5,
+        "median": 282.0,
+        "mean": 289.82608696,
+        "q3": 394.5,
+        "max": 483
+      },
+      "soft_range_coverage": {
+        "n": 23,
+        "within_soft_range_rows": 9,
+        "percentage": 39.13,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_refs": [
+        "B0002",
+        "B0003",
+        "B0200",
+        "B0209",
+        "B0223",
+        "B0224",
+        "B0225",
+        "B0235",
+        "B0237",
+        "B0239",
+        "B0240",
+        "B0242",
+        "B0263",
+        "B0264",
+        "B0270",
+        "B0280",
+        "B0282",
+        "B0286",
+        "B0291",
+        "B0292",
+        "B0306",
+        "B0307",
+        "B0313"
+      ]
+    },
+    "G03": {
+      "name": "ファッション・身だしなみ",
+      "n": 31,
+      "body_codepoints": {
+        "n": 31,
+        "min": 37,
+        "q1": 144.5,
+        "median": 221.0,
+        "mean": 237.35483871,
+        "q3": 353.5,
+        "max": 483
+      },
+      "soft_range_coverage": {
+        "n": 31,
+        "within_soft_range_rows": 11,
+        "percentage": 35.48,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_refs": [
+        "B0002",
+        "B0003",
+        "B0192",
+        "B0193",
+        "B0199",
+        "B0205",
+        "B0210",
+        "B0212",
+        "B0215",
+        "B0217",
+        "B0219",
+        "B0225",
+        "B0226",
+        "B0231",
+        "B0235",
+        "B0237",
+        "B0244",
+        "B0246",
+        "B0257",
+        "B0260",
+        "B0261",
+        "B0270",
+        "B0275",
+        "B0280",
+        "B0282",
+        "B0285",
+        "B0291",
+        "B0297",
+        "B0308",
+        "B0312",
+        "B0317"
+      ]
+    },
+    "G04": {
+      "name": "住まい・暮らし",
+      "n": 48,
+      "body_codepoints": {
+        "n": 48,
+        "min": 63,
+        "q1": 163.5,
+        "median": 237.0,
+        "mean": 238.5625,
+        "q3": 292.75,
+        "max": 483
+      },
+      "soft_range_coverage": {
+        "n": 48,
+        "within_soft_range_rows": 28,
+        "percentage": 58.33,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_refs": [
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0196",
+        "B0200",
+        "B0204",
+        "B0210",
+        "B0212",
+        "B0213",
+        "B0215",
+        "B0222",
+        "B0224",
+        "B0225",
+        "B0228",
+        "B0229",
+        "B0239",
+        "B0240",
+        "B0241",
+        "B0243",
+        "B0244",
+        "B0247",
+        "B0248",
+        "B0251",
+        "B0252",
+        "B0255",
+        "B0257",
+        "B0259",
+        "B0260",
+        "B0261",
+        "B0264",
+        "B0265",
+        "B0268",
+        "B0270",
+        "B0273",
+        "B0279",
+        "B0282",
+        "B0284",
+        "B0285",
+        "B0287",
+        "B0289",
+        "B0297",
+        "B0298",
+        "B0301",
+        "B0303",
+        "B0309",
+        "B0311",
+        "B0313",
+        "B0314"
+      ]
+    },
+    "G05": {
+      "name": "子ども・ペット用品",
+      "n": 20,
+      "body_codepoints": {
+        "n": 20,
+        "min": 151,
+        "q1": 173.75,
+        "median": 236.0,
+        "mean": 243.8,
+        "q3": 293.0,
+        "max": 367
+      },
+      "soft_range_coverage": {
+        "n": 20,
+        "within_soft_range_rows": 16,
+        "percentage": 80.0,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_refs": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207",
+        "B0211",
+        "B0213",
+        "B0218",
+        "B0228",
+        "B0243",
+        "B0247",
+        "B0259",
+        "B0266",
+        "B0268",
+        "B0274",
+        "B0281",
+        "B0283",
+        "B0300",
+        "B0303",
+        "B0310"
+      ]
+    }
+  },
+  "pattern_distributions_base_132": {
+    "P01": {
+      "name": "商品＋特徴",
+      "n": 41,
+      "body_codepoints": {
+        "n": 41,
+        "min": 53,
+        "q1": 152.0,
+        "median": 230.0,
+        "mean": 236.65853659,
+        "q3": 291.0,
+        "max": 483
+      },
+      "soft_range_coverage": {
+        "n": 41,
+        "within_soft_range_rows": 24,
+        "percentage": 58.54,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "product_and_feature"
+      ],
+      "source_refs": [
+        "B0003",
+        "B0192",
+        "B0198",
+        "B0200",
+        "B0206",
+        "B0208",
+        "B0209",
+        "B0212",
+        "B0214",
+        "B0219",
+        "B0222",
+        "B0224",
+        "B0225",
+        "B0227",
+        "B0228",
+        "B0231",
+        "B0242",
+        "B0248",
+        "B0256",
+        "B0257",
+        "B0258",
+        "B0259",
+        "B0261",
+        "B0266",
+        "B0270",
+        "B0271",
+        "B0272",
+        "B0273",
+        "B0275",
+        "B0279",
+        "B0282",
+        "B0283",
+        "B0285",
+        "B0289",
+        "B0293",
+        "B0296",
+        "B0302",
+        "B0303",
+        "B0309",
+        "B0312",
+        "B0317"
+      ]
+    },
+    "P02": {
+      "name": "商品参照＋タグ",
+      "n": 36,
+      "body_codepoints": {
+        "n": 36,
+        "min": 37,
+        "q1": 91.25,
+        "median": 167.5,
+        "mean": 175,
+        "q3": 248.5,
+        "max": 354
+      },
+      "soft_range_coverage": {
+        "n": 36,
+        "within_soft_range_rows": 17,
+        "percentage": 47.22,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "product_reference_with_tags"
+      ],
+      "source_refs": [
+        "B0004",
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0194",
+        "B0195",
+        "B0202",
+        "B0207",
+        "B0211",
+        "B0217",
+        "B0218",
+        "B0220",
+        "B0221",
+        "B0226",
+        "B0236",
+        "B0241",
+        "B0244",
+        "B0245",
+        "B0246",
+        "B0253",
+        "B0255",
+        "B0263",
+        "B0268",
+        "B0274",
+        "B0281",
+        "B0286",
+        "B0287",
+        "B0290",
+        "B0291",
+        "B0298",
+        "B0299",
+        "B0307",
+        "B0308",
+        "B0310",
+        "B0313",
+        "B0315"
+      ]
+    },
+    "P03": {
+      "name": "販促先行",
+      "n": 23,
+      "body_codepoints": {
+        "n": 23,
+        "min": 135,
+        "q1": 208.0,
+        "median": 283.0,
+        "mean": 295.56521739,
+        "q3": 390.0,
+        "max": 481
+      },
+      "soft_range_coverage": {
+        "n": 23,
+        "within_soft_range_rows": 9,
+        "percentage": 39.13,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "promotion_before_product"
+      ],
+      "source_refs": [
+        "B0205",
+        "B0210",
+        "B0215",
+        "B0223",
+        "B0237",
+        "B0238",
+        "B0240",
+        "B0243",
+        "B0247",
+        "B0250",
+        "B0260",
+        "B0264",
+        "B0267",
+        "B0276",
+        "B0280",
+        "B0292",
+        "B0297",
+        "B0301",
+        "B0304",
+        "B0305",
+        "B0306",
+        "B0311",
+        "B0314"
+      ]
+    },
+    "P04": {
+      "name": "特徴箇条書き",
+      "n": 15,
+      "body_codepoints": {
+        "n": 15,
+        "min": 197,
+        "q1": 241.5,
+        "median": 256.0,
+        "mean": 277.73333333,
+        "q3": 326.0,
+        "max": 367
+      },
+      "soft_range_coverage": {
+        "n": 15,
+        "within_soft_range_rows": 10,
+        "percentage": 66.67,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "feature_point_list"
+      ],
+      "source_refs": [
+        "B0001",
+        "B0193",
+        "B0196",
+        "B0199",
+        "B0229",
+        "B0233",
+        "B0239",
+        "B0251",
+        "B0262",
+        "B0277",
+        "B0278",
+        "B0284",
+        "B0288",
+        "B0294",
+        "B0300"
+      ]
+    },
+    "P05": {
+      "name": "体験＋留保",
+      "n": 5,
+      "body_codepoints": {
+        "n": 5,
+        "min": 174,
+        "q1": 177.0,
+        "median": 270.0,
+        "mean": 285.4,
+        "q3": 399.0,
+        "max": 407
+      },
+      "soft_range_coverage": {
+        "n": 5,
+        "within_soft_range_rows": 3,
+        "percentage": 60.0,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "experience_with_caveat"
+      ],
+      "source_refs": [
+        "B0002",
+        "B0201",
+        "B0213",
+        "B0235",
+        "B0252"
+      ]
+    },
+    "cross_cutting_tags": {
+      "name": "タグ＋他役割（横断）",
+      "n": 6,
+      "body_codepoints": {
+        "n": 6,
+        "min": 138,
+        "q1": 150.25,
+        "median": 170.0,
+        "mean": 195.16666667,
+        "q3": 231.75,
+        "max": 297
+      },
+      "soft_range_coverage": {
+        "n": 6,
+        "within_soft_range_rows": 4,
+        "percentage": 66.67,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "tags_with_other_roles"
+      ],
+      "source_refs": [
+        "B0197",
+        "B0203",
+        "B0230",
+        "B0234",
+        "B0269",
+        "B0316"
+      ]
+    },
+    "unfixed_mixed_or_unclassified": {
+      "name": "混合・未分類（型を固定しない）",
+      "n": 6,
+      "body_codepoints": {
+        "n": 6,
+        "min": 47,
+        "q1": 99.0,
+        "median": 112.5,
+        "mean": 164.5,
+        "q3": 150.75,
+        "max": 457
+      },
+      "soft_range_coverage": {
+        "n": 6,
+        "within_soft_range_rows": 1,
+        "percentage": 16.67,
+        "interpretation": "descriptive_only_not_acceptance_rate"
+      },
+      "source_structure_classes": [
+        "mixed_or_unclassified"
+      ],
+      "source_refs": [
+        "B0204",
+        "B0216",
+        "B0249",
+        "B0254",
+        "B0265",
+        "B0295"
+      ]
+    }
+  },
+  "common_vs_pattern_specific": {
+    "recommendation": "全体共通の任意参考幅を1つ示し、文型別の必須幅は設けない。",
+    "common_range_reason": "全体中央値235.5、各ジャンル中央値221～282。主要文型P01/P04では中心が共通幅内にある。",
+    "pattern_variation": [
+      {
+        "pattern_id": "P02",
+        "n": 36,
+        "median": 167.5,
+        "q1": 91.25,
+        "q3": 248.5,
+        "note": "商品参照＋タグの簡潔型は150未満でも自然な分布。文字数を埋めるため説明を足さない。"
+      },
+      {
+        "pattern_id": "P03",
+        "n": 23,
+        "median": 283,
+        "q1": 208,
+        "q3": 390,
+        "note": "販促先行型には300超の観測がある。時点・対象を説明する必要があるときは範囲超過を許容する。"
+      },
+      {
+        "pattern_id": "P04",
+        "n": 15,
+        "median": 256,
+        "q1": 241.5,
+        "q3": 326,
+        "note": "特徴箇条書きは一部300超。情報量を優先する。"
+      },
+      {
+        "pattern_id": "P05",
+        "n": 5,
+        "median": 270,
+        "q1": 177,
+        "q3": 399,
+        "note": "少数群。専用の数値幅は提案しない。"
+      },
+      {
+        "pattern_id": "cross_cutting_tags",
+        "n": 6,
+        "note": "横断要素であり専用本文型ではない。別幅なし。"
+      },
+      {
+        "pattern_id": "unfixed_mixed_or_unclassified",
+        "n": 6,
+        "note": "型を固定しない残余。別幅なし。"
+      }
+    ],
+    "style_effect_separated_from_genre_or_author": false
+  },
+  "supplement_reference": {
+    "cohort": "G05 one-search supplement, separate from base",
+    "n": 50,
+    "body_codepoints": {
+      "n": 50,
+      "min": 99,
+      "q1": 208.25,
+      "median": 288.0,
+      "mean": 275.56,
+      "q3": 342.0,
+      "max": 425
+    },
+    "soft_range_coverage": {
+      "n": 50,
+      "within_soft_range_rows": 23,
+      "percentage": 46.0,
+      "interpretation": "descriptive_only_not_acceptance_rate"
+    },
+    "selection_note": "いいね300以上の固定検索から先頭50枠を取得。分析では50件全て使用し、反応値で再選別・重み付けしていない。検索条件と選定に偏りがあるため市場分布とは見なさない。",
+    "theme_note": "「子ども・ペット用品」検索群の50件。T05「子ども移動・車載安全用品」・T06「ペット家電・見守り機器」への個別割当はしていない。テーマ別の長さ分布は未算出。"
+  },
+  "raw_row_sum_reference": {
+    "n": 182,
+    "body_codepoints": {
+      "n": 182,
+      "min": 37,
+      "q1": 163.5,
+      "median": 246.0,
+      "mean": 243.57142857,
+      "q3": 312.75,
+      "max": 483
+    },
+    "deduplicated_unique_union_count": null,
+    "use": "基礎と補足を単純に足した記述値に限る。推奨幅の主要根拠にはせず、重複除去後の統合分布と呼ばない。"
+  },
+  "use_instructions": [
+    "草稿を組む際の任意の初期参考として150～300コードポイント程度を見てよい。",
+    "範囲内に収めるために文を足したり、必要な根拠ある情報を削ったりしない。",
+    "150未満または300超という長さだけで投稿文・商品を保留しない。",
+    "本文の事実、必要情報、読みやすさを優先し、文型に合うなら短く/長くてよい。",
+    "日次に字数を判定する品質承認ジョブや必須の字数検査を追加しない。"
+  ],
+  "limitations": [
+    "基礎132行は投稿観測行で、恒久ROOM投稿IDは0。独立投稿・独立商品別の長さ分布ではない。",
+    "確認済み商品キーは基礎全文内1行、131行は不明。著者別・商品別の重なりや集中を分離できない。",
+    "基礎検索の条件内で得た標本と補足検索50枠の記述で、市場全体の代表性を示さない。補足は基礎と別コホート。",
+    "ジャンル所属には重複と未分類があり、候補群ごとのnを独立商品数とみなさない。G05の選定済みT05/T06ごとの長さは未算出。",
+    "コードポイント単位は表示字形・音節・読みやすさを直接測らない。",
+    "文字数と反応/売上の相関・因果は測っていない。文型効果は商品/作者/検索選定から分離されていない。"
+  ],
+  "effect_claim": "長いほど売れる・短いほど反応が高いという因果主張なし。実投稿後の成果は別途観測された場合に本人が改良判断する。",
+  "owner_decision": {
+    "state": "pending_until_step45",
+    "candidate": "candidate-0.4-step37-all132",
+    "adoption_inferred": false
+  },
+  "source_refs": [
+    "plan/イナゴスキル事前準備/分析/統合長さタグ.json#step36_ordered",
+    "plan/イナゴスキル事前準備/分析/統合長さタグ.md",
+    "非公開作業データ/統合/計測値.jsonl",
+    "plan/イナゴスキル事前準備/分析/文型候補.json#ordered_candidate_patterns",
+    "plan/イナゴスキル事前準備/分析/5ジャンル候補.json#genres",
+    "plan/イナゴ戦略/意思決定台帳.md#D-021",
+    "plan/イナゴ戦略/ヒアリング記録.md#Q-012-a",
+    "plan/イナゴ戦略/イナゴスキル要件定義書.html#IR-007"
+  ],
+  "superseded_prior_proposal": {
+    "basis_observations": 4,
+    "prior_fields": {
+      "version": "candidate-0.1",
+      "status": "proposed",
+      "adopted": false,
+      "sample": {
+        "n": 4,
+        "median_codepoints": 214.5,
+        "q1": 143,
+        "q3": 291.75,
+        "min": 53,
+        "max": 399
+      },
+      "suggested_soft_reference": {
+        "min_codepoints": 150,
+        "max_codepoints": 300
+      },
+      "mandatory": false,
+      "use": "本文の読みやすさ確認用の補助目安。十分な情報を優先し、短い説明を無理に伸ばしたり、必要事項を切り捨てたりしない。",
+      "limitations": [
+        "全文4件のみ",
+        "恒久投稿ID0で独立投稿数不明",
+        "人気・効果との因果関係なし",
+        "全ジャンルの分布ではない"
+      ],
+      "hashes_used": false
+    }
+  },
+  "previous_step37_reference": {
+    "version": "candidate-0.3-step20-full132",
+    "status": "proposed_needs_owner",
+    "adopted": false,
+    "suggested_soft_range": {
+      "min": 150,
+      "max": 300,
+      "reason": "round Q1=150.25 and Q3=296.25 to a readable optional interval"
+    },
+    "note": "前版は全132件の全体分布を根拠に同じ任意幅を提案していた。STEP36のジャンル/文型差・補足50別コホート・統合重複不明を追記し、採用前の根拠を更新。"
+  },
+  "hashes_used": false
+}

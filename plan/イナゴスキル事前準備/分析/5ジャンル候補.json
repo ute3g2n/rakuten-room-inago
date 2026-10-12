@@ -1,0 +1,1178 @@
+{
+  "version": "candidate-0.4-step34-reviewed",
+  "execution_id": "20261011-01",
+  "step": "31",
+  "status": "proposed",
+  "adopted": false,
+  "recorded_at": "2026-10-12T08:30:58+09:00",
+  "genre_count": 5,
+  "themes_per_genre": 6,
+  "total_themes": 30,
+  "genres": [
+    {
+      "genre_id": "G01",
+      "name": "食品・飲料",
+      "definition": "人が食べる食品・飲料を、主な食品カテゴリと摂取用途で整理する候補。",
+      "body_observation_count": 44,
+      "body_observation_denominator": 132,
+      "source_taxonomy_labels": [
+        "食品・飲料"
+      ],
+      "representative_observation_ids": [
+        "B0001",
+        "B0189",
+        "B0195",
+        "B0198",
+        "B0201"
+      ],
+      "included_examples": [
+        "菓子・スイーツ",
+        "主食・麺・パン",
+        "肉・魚・たんぱく食材",
+        "青果・植物性食品",
+        "調味料・加工食品・惣菜",
+        "飲料・茶・酒"
+      ],
+      "boundary_examples": [
+        "調理器具・食器はG04",
+        "ペットフードはG05",
+        "美容・健康目的のケア用品はG02"
+      ],
+      "excluded_concepts": [
+        "キッチン器具・食卓用品",
+        "動物用の食品",
+        "食品ではない健康・美容用品"
+      ],
+      "related_genres": [
+        "G02",
+        "G04",
+        "G05"
+      ],
+      "candidate_themes": [
+        {
+          "id": "G01-T01",
+          "name": "菓子・スイーツ",
+          "base_observations": 16
+        },
+        {
+          "id": "G01-T02",
+          "name": "主食・麺・パン",
+          "base_observations": 16
+        },
+        {
+          "id": "G01-T03",
+          "name": "肉・魚・たんぱく食材",
+          "base_observations": 5
+        },
+        {
+          "id": "G01-T04",
+          "name": "青果・植物性食品",
+          "base_observations": 2
+        },
+        {
+          "id": "G01-T05",
+          "name": "調味料・加工食品・惣菜",
+          "base_observations": 8
+        },
+        {
+          "id": "G01-T06",
+          "name": "飲料・茶・酒",
+          "base_observations": 6
+        }
+      ],
+      "evidence_type": "base_full_body_concept_annotations_all132",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "genre_id": "G02",
+      "name": "美容・セルフケア",
+      "definition": "人の美容・身だしなみ、日常的な身体ケア、休息・ウェルネスを補助する商品を整理する候補。医療判断や効能承認を意味しない。",
+      "body_observation_count": 23,
+      "body_observation_denominator": 132,
+      "source_taxonomy_labels": [
+        "美容・身だしなみ",
+        "健康・休息・介護の補助"
+      ],
+      "representative_observation_ids": [
+        "B0002",
+        "B0003",
+        "B0200",
+        "B0209",
+        "B0223"
+      ],
+      "included_examples": [
+        "スキンケア",
+        "メイクアップ",
+        "ヘアケア",
+        "ボディ・セルフケア",
+        "ウェルネス・休息",
+        "美容ツール・器具"
+      ],
+      "boundary_examples": [
+        "衣服・装身具はG03",
+        "寝具・家事用品はG04",
+        "乳幼児やペット専用のケア用品はG05"
+      ],
+      "excluded_concepts": [
+        "医療診断・治療判断",
+        "家庭用の掃除・洗濯用品",
+        "衣服・履物・ファッション小物"
+      ],
+      "related_genres": [
+        "G03",
+        "G04",
+        "G05"
+      ],
+      "candidate_themes": [
+        {
+          "id": "G02-T01",
+          "name": "スキンケア",
+          "base_observations": 4
+        },
+        {
+          "id": "G02-T02",
+          "name": "メイクアップ",
+          "base_observations": 7
+        },
+        {
+          "id": "G02-T03",
+          "name": "ヘアケア",
+          "base_observations": 3
+        },
+        {
+          "id": "G02-T04",
+          "name": "ボディ・セルフケア",
+          "base_observations": 2
+        },
+        {
+          "id": "G02-T05",
+          "name": "ウェルネス・休息",
+          "base_observations": 8
+        },
+        {
+          "id": "G02-T06",
+          "name": "美容ツール・器具",
+          "base_observations": 1
+        }
+      ],
+      "evidence_type": "base_full_body_concept_annotations_all132",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "genre_id": "G03",
+      "name": "ファッション・身だしなみ",
+      "definition": "人が身に着ける衣服・履物・バッグ・装身具と、服装に関わる小物を整理する候補。",
+      "body_observation_count": 31,
+      "body_observation_denominator": 132,
+      "source_taxonomy_labels": [
+        "衣類・靴・装身具"
+      ],
+      "representative_observation_ids": [
+        "B0002",
+        "B0003",
+        "B0192",
+        "B0193",
+        "B0199"
+      ],
+      "included_examples": [
+        "衣服・アウター",
+        "下着・靴下",
+        "靴・履物",
+        "バッグ・身の回り小物",
+        "アクセサリー・装身具",
+        "キッズ衣料"
+      ],
+      "boundary_examples": [
+        "子ども用チャイルドシート・ベビーカーはG05",
+        "タオル・寝具・室内ファブリックはG04",
+        "人のスキンケア・美容器具はG02"
+      ],
+      "excluded_concepts": [
+        "妊娠・授乳・育児用品",
+        "住居用インテリア・収納",
+        "美容ケア用品そのもの"
+      ],
+      "related_genres": [
+        "G02",
+        "G04",
+        "G05"
+      ],
+      "candidate_themes": [
+        {
+          "id": "G03-T01",
+          "name": "衣服・アウター",
+          "base_observations": 4
+        },
+        {
+          "id": "G03-T02",
+          "name": "下着・靴下",
+          "base_observations": 6
+        },
+        {
+          "id": "G03-T03",
+          "name": "靴・履物",
+          "base_observations": 9
+        },
+        {
+          "id": "G03-T04",
+          "name": "バッグ・身の回り小物",
+          "base_observations": 5
+        },
+        {
+          "id": "G03-T05",
+          "name": "帽子・アクセサリー・装身具",
+          "base_observations": 10
+        },
+        {
+          "id": "G03-T06",
+          "name": "キッズ衣料",
+          "base_observations": 1
+        }
+      ],
+      "evidence_type": "base_full_body_concept_annotations_all132",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "genre_id": "G04",
+      "name": "住まい・暮らし",
+      "definition": "住居の環境づくり、調理・食卓、掃除・洗濯、収納、生活設備、防災・一般的な住居安全に使う商品を整理する候補。",
+      "body_observation_count": 48,
+      "body_observation_denominator": 132,
+      "source_taxonomy_labels": [
+        "住まい・キッチン・家事",
+        "防災・安全"
+      ],
+      "representative_observation_ids": [
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0196",
+        "B0200"
+      ],
+      "included_examples": [
+        "調理・キッチン道具",
+        "食器・食卓用品",
+        "掃除・洗濯・日用品",
+        "寝具・タオル・ファブリック",
+        "収納・インテリア",
+        "生活家電・照明"
+      ],
+      "boundary_examples": [
+        "人が摂取する食品・飲料はG01",
+        "美容・セルフケア機器はG02",
+        "子ども専用の車載安全用品とペット見守り家電はG05"
+      ],
+      "excluded_concepts": [
+        "人の身体に使う美容・ケア用品",
+        "子ども・ペット専用を主用途とする商品",
+        "食品そのもの"
+      ],
+      "related_genres": [
+        "G01",
+        "G02",
+        "G03",
+        "G05"
+      ],
+      "candidate_themes": [
+        {
+          "id": "G04-T01",
+          "name": "調理・キッチン道具",
+          "base_observations": 9
+        },
+        {
+          "id": "G04-T02",
+          "name": "食器・食卓用品",
+          "base_observations": 12
+        },
+        {
+          "id": "G04-T03",
+          "name": "掃除・洗濯・日用品",
+          "base_observations": 5
+        },
+        {
+          "id": "G04-T04",
+          "name": "寝具・タオル・ファブリック",
+          "base_observations": 7
+        },
+        {
+          "id": "G04-T05",
+          "name": "収納・インテリア",
+          "base_observations": 8
+        },
+        {
+          "id": "G04-T06",
+          "name": "生活家電・照明",
+          "base_observations": 2
+        }
+      ],
+      "evidence_type": "base_full_body_concept_annotations_all132",
+      "adoption_status": "proposed_not_adopted"
+    },
+    {
+      "genre_id": "G05",
+      "name": "子ども・ペット用品",
+      "definition": "子ども・乳幼児またはペットを主な利用者とする育児・遊び・移動安全・食事・ケア・見守り商品を整理する候補。外出や贈答などの利用文脈だけでは独立ジャンルとしない。",
+      "body_observation_count": 20,
+      "body_observation_denominator": 132,
+      "source_taxonomy_labels": [
+        "子ども・ベビー・知育",
+        "ペット用品"
+      ],
+      "representative_observation_ids": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207"
+      ],
+      "included_examples": [
+        "ベビー・マタニティ",
+        "おもちゃ・学び",
+        "ペットフード",
+        "ペットケア・用品",
+        "子ども移動・車載安全用品",
+        "ペット家電・見守り機器"
+      ],
+      "boundary_examples": [
+        "子ども向け衣服はG03",
+        "一般の収納・寝具・家電はG04",
+        "人用美容・セルフケアはG02",
+        "人が食べる食品はG01"
+      ],
+      "excluded_concepts": [
+        "外出・季節行事・贈答だけの用途分類",
+        "一般用途の住居用品",
+        "商品機能と無関係な利用場面"
+      ],
+      "related_genres": [
+        "G01",
+        "G02",
+        "G03",
+        "G04"
+      ],
+      "candidate_themes": [
+        {
+          "id": "G05-T01",
+          "name": "ベビー・マタニティ",
+          "base_observations": 4,
+          "support_status": "base_candidate"
+        },
+        {
+          "id": "G05-T02",
+          "name": "おもちゃ・学び",
+          "base_observations": 5,
+          "support_status": "base_candidate"
+        },
+        {
+          "id": "G05-T03",
+          "name": "ペットフード",
+          "base_observations": 1,
+          "support_status": "base_candidate"
+        },
+        {
+          "id": "G05-T04",
+          "name": "ペットケア・用品",
+          "base_observations": 11,
+          "support_status": "base_candidate"
+        },
+        {
+          "id": "G05-T05",
+          "name": "子ども移動・車載安全用品",
+          "base_observations": null,
+          "direct_phrase_hits_in_base132": 0,
+          "owner_selected": true,
+          "supplement_per_record_assignment": "not_done"
+        },
+        {
+          "id": "G05-T06",
+          "name": "ペット家電・見守り機器",
+          "base_observations": null,
+          "direct_phrase_hits_in_base132": 0,
+          "owner_selected": true,
+          "supplement_per_record_assignment": "not_done"
+        }
+      ],
+      "evidence_type": "base_full_body_concept_annotations_all132_plus_separate_G05_supplement_and_owner_selection",
+      "owner_selected_categories": [
+        "子ども移動・車載安全用品",
+        "ペット家電・見守り機器"
+      ],
+      "owner_selection_recorded_at": "2026-10-12T07:38:16+09:00",
+      "adoption_status": "proposed_not_adopted"
+    }
+  ],
+  "full_body_observations_used": 132,
+  "all_132_in_analysis_denominator": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "unknown": 108,
+    "used_as_filter": false
+  },
+  "excluded_for_reaction_state": 0,
+  "classified_in_one_or_more_genres": 119,
+  "unclassified_in_current_taxonomy": 13,
+  "sum_of_group_memberships": 166,
+  "overlap_observations_across_groups": 41,
+  "g05_supplement": {
+    "search_id": "S-G05",
+    "result_total": 101,
+    "slots": 50,
+    "included_in_base_denominator": false,
+    "per_record_theme_assignment": "not_done",
+    "unique_posts": null,
+    "independent_products": null
+  },
+  "count_semantics": "重複可能な基礎観測行数。独立投稿・独立商品・市場比率・人気順位ではない。未分類13件も132件の分母に含む。",
+  "classification_rule": {
+    "allow_genre_overlap": true,
+    "one_primary_theme_per_identified_product": true,
+    "secondary_themes_allowed": true,
+    "if_product_identity_unknown": "観測行を分類候補に保持し、独立商品数へ数えない",
+    "primary_basis": "商品自体の主用途・主利用者。投稿文中の外出/贈答などの場面語だけではテーマを決めない。"
+  },
+  "source": "STEP18 concept annotations from all 132 saved full bodies; STEP19R/STEP29 ordered integration; owner selection for G05; S-G05 supplement is separate.",
+  "source_refs": [
+    "非公開作業データ/統合/分類用.jsonl:基礎132行",
+    "非公開作業データ/統合/対応.jsonl:基礎302行・G05補足50行",
+    "plan/イナゴスキル事前準備/分析/暫定分類.json",
+    "plan/イナゴスキル事前準備/材料充足判定.md",
+    "plan/イナゴスキル事前準備/補足/G05取得記録_順序実行.md"
+  ],
+  "superseded_prior_basis": {
+    "version": "candidate-0.2-full132-reanalysis",
+    "status": "proposed_needs_owner",
+    "adopted": false,
+    "genre_count": 5,
+    "themes_per_genre": 6,
+    "total_themes": 30,
+    "genres": [
+      {
+        "genre_id": "G01",
+        "name": "食品・飲料",
+        "definition": "食べたり飲んだりする商品を、用途と食品カテゴリで整理する候補。",
+        "body_observation_count": 44,
+        "body_observation_denominator": 132,
+        "body_observation_percent": 33.3,
+        "source_taxonomy_labels": [
+          "食品・飲料"
+        ],
+        "example_observation_ids": [
+          "B0001",
+          "B0189",
+          "B0195",
+          "B0198",
+          "B0201"
+        ],
+        "adoption_status": "proposed_not_adopted"
+      },
+      {
+        "genre_id": "G02",
+        "name": "美容・セルフケア",
+        "definition": "美容・身だしなみ、および健康・休息・介護を補助する用品を整理する候補。医療判断・効能承認にはしない。",
+        "body_observation_count": 23,
+        "body_observation_denominator": 132,
+        "body_observation_percent": 17.4,
+        "source_taxonomy_labels": [
+          "美容・身だしなみ",
+          "健康・休息・介護の補助"
+        ],
+        "example_observation_ids": [
+          "B0002",
+          "B0003",
+          "B0200",
+          "B0209",
+          "B0223"
+        ],
+        "adoption_status": "proposed_not_adopted"
+      },
+      {
+        "genre_id": "G03",
+        "name": "ファッション・身だしなみ",
+        "definition": "衣服・履物・身に着ける小物を整理する候補。",
+        "body_observation_count": 31,
+        "body_observation_denominator": 132,
+        "body_observation_percent": 23.5,
+        "source_taxonomy_labels": [
+          "衣類・靴・装身具"
+        ],
+        "example_observation_ids": [
+          "B0002",
+          "B0003",
+          "B0192",
+          "B0193",
+          "B0199"
+        ],
+        "adoption_status": "proposed_not_adopted"
+      },
+      {
+        "genre_id": "G04",
+        "name": "住まい・暮らし",
+        "definition": "住環境、家事、調理、収納、生活設備、防災・安全関連を整理する候補。",
+        "body_observation_count": 48,
+        "body_observation_denominator": 132,
+        "body_observation_percent": 36.4,
+        "source_taxonomy_labels": [
+          "住まい・キッチン・家事",
+          "防災・安全"
+        ],
+        "example_observation_ids": [
+          "B0189",
+          "B0190",
+          "B0191",
+          "B0196",
+          "B0200"
+        ],
+        "adoption_status": "proposed_not_adopted"
+      },
+      {
+        "genre_id": "G05",
+        "name": "子ども・ペット・余暇",
+        "definition": "子ども・育児、玩具・知育、ペット用品を整理する候補。外出・季節行事は商品ジャンルではなく用途文脈として扱う。",
+        "body_observation_count": 20,
+        "body_observation_denominator": 132,
+        "body_observation_percent": 15.2,
+        "source_taxonomy_labels": [
+          "子ども・ベビー・知育",
+          "ペット用品"
+        ],
+        "example_observation_ids": [
+          "B0004",
+          "B0193",
+          "B0194",
+          "B0199",
+          "B0207"
+        ],
+        "adoption_status": "proposed_not_adopted"
+      }
+    ],
+    "full_body_observations_used": 132,
+    "all_132_in_analysis_denominator": true,
+    "condition_status_descriptive_only": {
+      "match": 24,
+      "unknown": 108
+    },
+    "classified_in_one_or_more_genres": 119,
+    "unclassified_in_current_taxonomy": 13,
+    "sum_of_group_memberships": 166,
+    "overlap_observations_across_groups": 41,
+    "count_semantics": "Unique observation-row counts from STEP18 body concept annotation. Group counts overlap and do not represent market shares or unique products.",
+    "source": "STEP18 concept annotations from all 132 saved full bodies; the 5-group merge is a re-evaluation, not an adopted taxonomy.",
+    "superseded_prior_basis": {
+      "version": "candidate-0.1",
+      "source": "基礎タイトル概念候補。商品キー確定数はテーマ別に不明。",
+      "status": "proposed_needs_owner",
+      "genre_basis": "173 title candidate rows; title strings only"
+    },
+    "hashes_used": false
+  },
+  "hashes_used": false,
+  "review_revision": {
+    "step": "34",
+    "prior_version": "candidate-0.3-step31-ordered",
+    "changed_theme_label": "G03-T05 アクセサリー・装身具 → 帽子・アクセサリー・装身具",
+    "observation_count_unchanged": true,
+    "all_132_retained": true,
+    "recorded_at": "2026-10-12T08:47:22+09:00"
+  },
+  "superseded_ordered_version": {
+    "preservation_note": "STEP34レビュー前のSTEP31順序内5ジャンル候補。",
+    "version": "candidate-0.3-step31-ordered",
+    "json": {
+      "version": "candidate-0.3-step31-ordered",
+      "execution_id": "20261011-01",
+      "step": "31",
+      "status": "proposed",
+      "adopted": false,
+      "recorded_at": "2026-10-12T08:30:58+09:00",
+      "genre_count": 5,
+      "themes_per_genre": 6,
+      "total_themes": 30,
+      "genres": [
+        {
+          "genre_id": "G01",
+          "name": "食品・飲料",
+          "definition": "人が食べる食品・飲料を、主な食品カテゴリと摂取用途で整理する候補。",
+          "body_observation_count": 44,
+          "body_observation_denominator": 132,
+          "source_taxonomy_labels": [
+            "食品・飲料"
+          ],
+          "representative_observation_ids": [
+            "B0001",
+            "B0189",
+            "B0195",
+            "B0198",
+            "B0201"
+          ],
+          "included_examples": [
+            "菓子・スイーツ",
+            "主食・麺・パン",
+            "肉・魚・たんぱく食材",
+            "青果・植物性食品",
+            "調味料・加工食品・惣菜",
+            "飲料・茶・酒"
+          ],
+          "boundary_examples": [
+            "調理器具・食器はG04",
+            "ペットフードはG05",
+            "美容・健康目的のケア用品はG02"
+          ],
+          "excluded_concepts": [
+            "キッチン器具・食卓用品",
+            "動物用の食品",
+            "食品ではない健康・美容用品"
+          ],
+          "related_genres": [
+            "G02",
+            "G04",
+            "G05"
+          ],
+          "candidate_themes": [
+            {
+              "id": "G01-T01",
+              "name": "菓子・スイーツ",
+              "base_observations": 16
+            },
+            {
+              "id": "G01-T02",
+              "name": "主食・麺・パン",
+              "base_observations": 16
+            },
+            {
+              "id": "G01-T03",
+              "name": "肉・魚・たんぱく食材",
+              "base_observations": 5
+            },
+            {
+              "id": "G01-T04",
+              "name": "青果・植物性食品",
+              "base_observations": 2
+            },
+            {
+              "id": "G01-T05",
+              "name": "調味料・加工食品・惣菜",
+              "base_observations": 8
+            },
+            {
+              "id": "G01-T06",
+              "name": "飲料・茶・酒",
+              "base_observations": 6
+            }
+          ],
+          "evidence_type": "base_full_body_concept_annotations_all132",
+          "adoption_status": "proposed_not_adopted"
+        },
+        {
+          "genre_id": "G02",
+          "name": "美容・セルフケア",
+          "definition": "人の美容・身だしなみ、日常的な身体ケア、休息・ウェルネスを補助する商品を整理する候補。医療判断や効能承認を意味しない。",
+          "body_observation_count": 23,
+          "body_observation_denominator": 132,
+          "source_taxonomy_labels": [
+            "美容・身だしなみ",
+            "健康・休息・介護の補助"
+          ],
+          "representative_observation_ids": [
+            "B0002",
+            "B0003",
+            "B0200",
+            "B0209",
+            "B0223"
+          ],
+          "included_examples": [
+            "スキンケア",
+            "メイクアップ",
+            "ヘアケア",
+            "ボディ・セルフケア",
+            "ウェルネス・休息",
+            "美容ツール・器具"
+          ],
+          "boundary_examples": [
+            "衣服・装身具はG03",
+            "寝具・家事用品はG04",
+            "乳幼児やペット専用のケア用品はG05"
+          ],
+          "excluded_concepts": [
+            "医療診断・治療判断",
+            "家庭用の掃除・洗濯用品",
+            "衣服・履物・ファッション小物"
+          ],
+          "related_genres": [
+            "G03",
+            "G04",
+            "G05"
+          ],
+          "candidate_themes": [
+            {
+              "id": "G02-T01",
+              "name": "スキンケア",
+              "base_observations": 4
+            },
+            {
+              "id": "G02-T02",
+              "name": "メイクアップ",
+              "base_observations": 7
+            },
+            {
+              "id": "G02-T03",
+              "name": "ヘアケア",
+              "base_observations": 3
+            },
+            {
+              "id": "G02-T04",
+              "name": "ボディ・セルフケア",
+              "base_observations": 2
+            },
+            {
+              "id": "G02-T05",
+              "name": "ウェルネス・休息",
+              "base_observations": 8
+            },
+            {
+              "id": "G02-T06",
+              "name": "美容ツール・器具",
+              "base_observations": 1
+            }
+          ],
+          "evidence_type": "base_full_body_concept_annotations_all132",
+          "adoption_status": "proposed_not_adopted"
+        },
+        {
+          "genre_id": "G03",
+          "name": "ファッション・身だしなみ",
+          "definition": "人が身に着ける衣服・履物・バッグ・装身具と、服装に関わる小物を整理する候補。",
+          "body_observation_count": 31,
+          "body_observation_denominator": 132,
+          "source_taxonomy_labels": [
+            "衣類・靴・装身具"
+          ],
+          "representative_observation_ids": [
+            "B0002",
+            "B0003",
+            "B0192",
+            "B0193",
+            "B0199"
+          ],
+          "included_examples": [
+            "衣服・アウター",
+            "下着・靴下",
+            "靴・履物",
+            "バッグ・身の回り小物",
+            "アクセサリー・装身具",
+            "キッズ衣料"
+          ],
+          "boundary_examples": [
+            "子ども用チャイルドシート・ベビーカーはG05",
+            "タオル・寝具・室内ファブリックはG04",
+            "人のスキンケア・美容器具はG02"
+          ],
+          "excluded_concepts": [
+            "妊娠・授乳・育児用品",
+            "住居用インテリア・収納",
+            "美容ケア用品そのもの"
+          ],
+          "related_genres": [
+            "G02",
+            "G04",
+            "G05"
+          ],
+          "candidate_themes": [
+            {
+              "id": "G03-T01",
+              "name": "衣服・アウター",
+              "base_observations": 4
+            },
+            {
+              "id": "G03-T02",
+              "name": "下着・靴下",
+              "base_observations": 6
+            },
+            {
+              "id": "G03-T03",
+              "name": "靴・履物",
+              "base_observations": 9
+            },
+            {
+              "id": "G03-T04",
+              "name": "バッグ・身の回り小物",
+              "base_observations": 5
+            },
+            {
+              "id": "G03-T05",
+              "name": "アクセサリー・装身具",
+              "base_observations": 10
+            },
+            {
+              "id": "G03-T06",
+              "name": "キッズ衣料",
+              "base_observations": 1
+            }
+          ],
+          "evidence_type": "base_full_body_concept_annotations_all132",
+          "adoption_status": "proposed_not_adopted"
+        },
+        {
+          "genre_id": "G04",
+          "name": "住まい・暮らし",
+          "definition": "住居の環境づくり、調理・食卓、掃除・洗濯、収納、生活設備、防災・一般的な住居安全に使う商品を整理する候補。",
+          "body_observation_count": 48,
+          "body_observation_denominator": 132,
+          "source_taxonomy_labels": [
+            "住まい・キッチン・家事",
+            "防災・安全"
+          ],
+          "representative_observation_ids": [
+            "B0189",
+            "B0190",
+            "B0191",
+            "B0196",
+            "B0200"
+          ],
+          "included_examples": [
+            "調理・キッチン道具",
+            "食器・食卓用品",
+            "掃除・洗濯・日用品",
+            "寝具・タオル・ファブリック",
+            "収納・インテリア",
+            "生活家電・照明"
+          ],
+          "boundary_examples": [
+            "人が摂取する食品・飲料はG01",
+            "美容・セルフケア機器はG02",
+            "子ども専用の車載安全用品とペット見守り家電はG05"
+          ],
+          "excluded_concepts": [
+            "人の身体に使う美容・ケア用品",
+            "子ども・ペット専用を主用途とする商品",
+            "食品そのもの"
+          ],
+          "related_genres": [
+            "G01",
+            "G02",
+            "G03",
+            "G05"
+          ],
+          "candidate_themes": [
+            {
+              "id": "G04-T01",
+              "name": "調理・キッチン道具",
+              "base_observations": 9
+            },
+            {
+              "id": "G04-T02",
+              "name": "食器・食卓用品",
+              "base_observations": 12
+            },
+            {
+              "id": "G04-T03",
+              "name": "掃除・洗濯・日用品",
+              "base_observations": 5
+            },
+            {
+              "id": "G04-T04",
+              "name": "寝具・タオル・ファブリック",
+              "base_observations": 7
+            },
+            {
+              "id": "G04-T05",
+              "name": "収納・インテリア",
+              "base_observations": 8
+            },
+            {
+              "id": "G04-T06",
+              "name": "生活家電・照明",
+              "base_observations": 2
+            }
+          ],
+          "evidence_type": "base_full_body_concept_annotations_all132",
+          "adoption_status": "proposed_not_adopted"
+        },
+        {
+          "genre_id": "G05",
+          "name": "子ども・ペット用品",
+          "definition": "子ども・乳幼児またはペットを主な利用者とする育児・遊び・移動安全・食事・ケア・見守り商品を整理する候補。外出や贈答などの利用文脈だけでは独立ジャンルとしない。",
+          "body_observation_count": 20,
+          "body_observation_denominator": 132,
+          "source_taxonomy_labels": [
+            "子ども・ベビー・知育",
+            "ペット用品"
+          ],
+          "representative_observation_ids": [
+            "B0004",
+            "B0193",
+            "B0194",
+            "B0199",
+            "B0207"
+          ],
+          "included_examples": [
+            "ベビー・マタニティ",
+            "おもちゃ・学び",
+            "ペットフード",
+            "ペットケア・用品",
+            "子ども移動・車載安全用品",
+            "ペット家電・見守り機器"
+          ],
+          "boundary_examples": [
+            "子ども向け衣服はG03",
+            "一般の収納・寝具・家電はG04",
+            "人用美容・セルフケアはG02",
+            "人が食べる食品はG01"
+          ],
+          "excluded_concepts": [
+            "外出・季節行事・贈答だけの用途分類",
+            "一般用途の住居用品",
+            "商品機能と無関係な利用場面"
+          ],
+          "related_genres": [
+            "G01",
+            "G02",
+            "G03",
+            "G04"
+          ],
+          "candidate_themes": [
+            {
+              "id": "G05-T01",
+              "name": "ベビー・マタニティ",
+              "base_observations": 4,
+              "support_status": "base_candidate"
+            },
+            {
+              "id": "G05-T02",
+              "name": "おもちゃ・学び",
+              "base_observations": 5,
+              "support_status": "base_candidate"
+            },
+            {
+              "id": "G05-T03",
+              "name": "ペットフード",
+              "base_observations": 1,
+              "support_status": "base_candidate"
+            },
+            {
+              "id": "G05-T04",
+              "name": "ペットケア・用品",
+              "base_observations": 11,
+              "support_status": "base_candidate"
+            },
+            {
+              "id": "G05-T05",
+              "name": "子ども移動・車載安全用品",
+              "base_observations": null,
+              "direct_phrase_hits_in_base132": 0,
+              "owner_selected": true,
+              "supplement_per_record_assignment": "not_done"
+            },
+            {
+              "id": "G05-T06",
+              "name": "ペット家電・見守り機器",
+              "base_observations": null,
+              "direct_phrase_hits_in_base132": 0,
+              "owner_selected": true,
+              "supplement_per_record_assignment": "not_done"
+            }
+          ],
+          "evidence_type": "base_full_body_concept_annotations_all132_plus_separate_G05_supplement_and_owner_selection",
+          "owner_selected_categories": [
+            "子ども移動・車載安全用品",
+            "ペット家電・見守り機器"
+          ],
+          "owner_selection_recorded_at": "2026-10-12T07:38:16+09:00",
+          "adoption_status": "proposed_not_adopted"
+        }
+      ],
+      "full_body_observations_used": 132,
+      "all_132_in_analysis_denominator": true,
+      "condition_status_descriptive_only": {
+        "match": 24,
+        "unknown": 108,
+        "used_as_filter": false
+      },
+      "excluded_for_reaction_state": 0,
+      "classified_in_one_or_more_genres": 119,
+      "unclassified_in_current_taxonomy": 13,
+      "sum_of_group_memberships": 166,
+      "overlap_observations_across_groups": 41,
+      "g05_supplement": {
+        "search_id": "S-G05",
+        "result_total": 101,
+        "slots": 50,
+        "included_in_base_denominator": false,
+        "per_record_theme_assignment": "not_done",
+        "unique_posts": null,
+        "independent_products": null
+      },
+      "count_semantics": "重複可能な基礎観測行数。独立投稿・独立商品・市場比率・人気順位ではない。未分類13件も132件の分母に含む。",
+      "classification_rule": {
+        "allow_genre_overlap": true,
+        "one_primary_theme_per_identified_product": true,
+        "secondary_themes_allowed": true,
+        "if_product_identity_unknown": "観測行を分類候補に保持し、独立商品数へ数えない",
+        "primary_basis": "商品自体の主用途・主利用者。投稿文中の外出/贈答などの場面語だけではテーマを決めない。"
+      },
+      "source": "STEP18 concept annotations from all 132 saved full bodies; STEP19R/STEP29 ordered integration; owner selection for G05; S-G05 supplement is separate.",
+      "source_refs": [
+        "非公開作業データ/統合/分類用.jsonl:基礎132行",
+        "非公開作業データ/統合/対応.jsonl:基礎302行・G05補足50行",
+        "plan/イナゴスキル事前準備/分析/暫定分類.json",
+        "plan/イナゴスキル事前準備/材料充足判定.md",
+        "plan/イナゴスキル事前準備/補足/G05取得記録_順序実行.md"
+      ],
+      "superseded_prior_basis": {
+        "version": "candidate-0.2-full132-reanalysis",
+        "status": "proposed_needs_owner",
+        "adopted": false,
+        "genre_count": 5,
+        "themes_per_genre": 6,
+        "total_themes": 30,
+        "genres": [
+          {
+            "genre_id": "G01",
+            "name": "食品・飲料",
+            "definition": "食べたり飲んだりする商品を、用途と食品カテゴリで整理する候補。",
+            "body_observation_count": 44,
+            "body_observation_denominator": 132,
+            "body_observation_percent": 33.3,
+            "source_taxonomy_labels": [
+              "食品・飲料"
+            ],
+            "example_observation_ids": [
+              "B0001",
+              "B0189",
+              "B0195",
+              "B0198",
+              "B0201"
+            ],
+            "adoption_status": "proposed_not_adopted"
+          },
+          {
+            "genre_id": "G02",
+            "name": "美容・セルフケア",
+            "definition": "美容・身だしなみ、および健康・休息・介護を補助する用品を整理する候補。医療判断・効能承認にはしない。",
+            "body_observation_count": 23,
+            "body_observation_denominator": 132,
+            "body_observation_percent": 17.4,
+            "source_taxonomy_labels": [
+              "美容・身だしなみ",
+              "健康・休息・介護の補助"
+            ],
+            "example_observation_ids": [
+              "B0002",
+              "B0003",
+              "B0200",
+              "B0209",
+              "B0223"
+            ],
+            "adoption_status": "proposed_not_adopted"
+          },
+          {
+            "genre_id": "G03",
+            "name": "ファッション・身だしなみ",
+            "definition": "衣服・履物・身に着ける小物を整理する候補。",
+            "body_observation_count": 31,
+            "body_observation_denominator": 132,
+            "body_observation_percent": 23.5,
+            "source_taxonomy_labels": [
+              "衣類・靴・装身具"
+            ],
+            "example_observation_ids": [
+              "B0002",
+              "B0003",
+              "B0192",
+              "B0193",
+              "B0199"
+            ],
+            "adoption_status": "proposed_not_adopted"
+          },
+          {
+            "genre_id": "G04",
+            "name": "住まい・暮らし",
+            "definition": "住環境、家事、調理、収納、生活設備、防災・安全関連を整理する候補。",
+            "body_observation_count": 48,
+            "body_observation_denominator": 132,
+            "body_observation_percent": 36.4,
+            "source_taxonomy_labels": [
+              "住まい・キッチン・家事",
+              "防災・安全"
+            ],
+            "example_observation_ids": [
+              "B0189",
+              "B0190",
+              "B0191",
+              "B0196",
+              "B0200"
+            ],
+            "adoption_status": "proposed_not_adopted"
+          },
+          {
+            "genre_id": "G05",
+            "name": "子ども・ペット・余暇",
+            "definition": "子ども・育児、玩具・知育、ペット用品を整理する候補。外出・季節行事は商品ジャンルではなく用途文脈として扱う。",
+            "body_observation_count": 20,
+            "body_observation_denominator": 132,
+            "body_observation_percent": 15.2,
+            "source_taxonomy_labels": [
+              "子ども・ベビー・知育",
+              "ペット用品"
+            ],
+            "example_observation_ids": [
+              "B0004",
+              "B0193",
+              "B0194",
+              "B0199",
+              "B0207"
+            ],
+            "adoption_status": "proposed_not_adopted"
+          }
+        ],
+        "full_body_observations_used": 132,
+        "all_132_in_analysis_denominator": true,
+        "condition_status_descriptive_only": {
+          "match": 24,
+          "unknown": 108
+        },
+        "classified_in_one_or_more_genres": 119,
+        "unclassified_in_current_taxonomy": 13,
+        "sum_of_group_memberships": 166,
+        "overlap_observations_across_groups": 41,
+        "count_semantics": "Unique observation-row counts from STEP18 body concept annotation. Group counts overlap and do not represent market shares or unique products.",
+        "source": "STEP18 concept annotations from all 132 saved full bodies; the 5-group merge is a re-evaluation, not an adopted taxonomy.",
+        "superseded_prior_basis": {
+          "version": "candidate-0.1",
+          "source": "基礎タイトル概念候補。商品キー確定数はテーマ別に不明。",
+          "status": "proposed_needs_owner",
+          "genre_basis": "173 title candidate rows; title strings only"
+        },
+        "hashes_used": false
+      },
+      "hashes_used": false
+    },
+    "markdown": "# STEP 31 5ジャンル候補（順序内・candidate-0.3）\n\n状態: proposed（候補案、本人採用前）。本番設定へ登録していません。  \n基礎分母: 保存済み全文132観測の全件。反応状態match24／unknown108は内訳だけで、除外0。  \n補足: G05検索1回、101件表示、先頭50枠。選定カテゴリに関する追加根拠として別区分で保持し、基礎の分母には加えません。\n\n## 5候補の定義と根拠\n\n| ID | ジャンル案 | 定義 | 基礎観測 | 主な包含例 |\n|---|---|---|---:|---|\n| G01 | 食品・飲料 | 人が食べる食品・飲料を、主な食品カテゴリと摂取用途で整理する。 | 44/132 | 菓子、主食、肉・魚、青果、加工食品、飲料 |\n| G02 | 美容・セルフケア | 人の美容・身だしなみ、身体ケア、休息・ウェルネスの補助用品を整理する。医療判断・効能承認は含意しない。 | 23/132 | スキンケア、メイク、ヘアケア、ボディケア、休息、美容器具 |\n| G03 | ファッション・身だしなみ | 人が身に着ける衣服・履物・バッグ・装身具と服装小物を整理する。 | 31/132 | 衣服、下着、靴、バッグ、装身具、キッズ衣料 |\n| G04 | 住まい・暮らし | 住居環境、調理・食卓、掃除・洗濯、収納、生活設備、防災・一般的な住居安全の商品を整理する。 | 48/132 | キッチン道具、食器、掃除・洗濯、寝具・ファブリック、収納、生活家電・照明 |\n| G05 | 子ども・ペット用品 | 子ども・乳幼児またはペットを主な利用者とする育児・遊び・移動安全・食事・ケア・見守り商品を整理する。外出・贈答など用途だけでは独立ジャンルとしない。 | 20/132 | ベビー、玩具、ペットフード、ペットケア、子ども移動・車載安全、ペット家電・見守り |\n\n件数は基礎本文に付いた重複可能な概念分類行です。人気順位でも、独立商品の数でもありません。5候補のいずれかに分類候補が付いた観測は119/132、いずれにも付かなかった13/132も分母に残ります。候補群の延べ所属は166、複数群に付いた観測は41です。\n\n## 各ジャンルの包含・境界・除外\n\n### G01 食品・飲料\n\n- 含む: 人が食べる菓子、主食・麺・パン、肉・魚・たんぱく食材、青果・植物性食品、調味料・加工食品・惣菜、飲料・茶・酒。\n- 境界: 調理器具・食器はG04。ペットフードはG05。摂取を主目的としない美容・身体ケア用品はG02。\n- 除く: 食品と関係するだけの台所用品、動物専用食品、商品でない利用場面。\n- G04との重なりは、食品そのものか調理・食卓設備かで主用途を決めます。\n\n### G02 美容・セルフケア\n\n- 含む: スキンケア、メイクアップ、ヘアケア、ボディ・セルフケア、ウェルネス・休息、美容ツール・器具。\n- 境界: 衣類・装身具はG03。寝具や掃除用品はG04。乳幼児・ペット専用ケア用品はG05。\n- 除く: 医療診断・治療の判断や、根拠のない効能確定。家庭の清掃・洗濯を主目的とする商品。\n- G03との重なりは、身に着ける品か、身体を手入れする品かで分類します。\n\n### G03 ファッション・身だしなみ\n\n- 含む: 衣服・アウター、下着・靴下、靴・履物、バッグ・身の回り小物、アクセサリー・装身具、キッズ衣料。\n- 境界: 子ども用チャイルドシート・ベビーカーはG05。タオル・寝具・室内ファブリックはG04。人の美容器具はG02。\n- 除く: 育児・移動安全用品、住居用の布・収納、身体ケア用品そのもの。\n- G05と重なる幼児衣料は、衣服として使う商品はG03、乳幼児の育児・安全機能が主な商品はG05とします。\n\n### G04 住まい・暮らし\n\n- 含む: 調理・キッチン道具、食器・食卓用品、掃除・洗濯・日用品、寝具・タオル・ファブリック、収納・インテリア、生活家電・照明。一般的な住居の防災・安全用品は暫定的にここへ置きます。\n- 境界: 人の美容・セルフケア機器はG02。子ども向け車載安全用品やペット専用見守り家電はG05。食材はG01。\n- 除く: 人の身に着ける品、子ども・ペット向け機能が主用途の製品、食品そのもの。\n- 住居の一般機能か、子ども・ペットを主利用者とする専用品かでG04/G05の主分類を決めます。\n\n### G05 子ども・ペット用品\n\n- 含む: ベビー・マタニティ、おもちゃ・学び、ペットフード、ペットケア・用品、子ども移動・車載安全用品、ペット家電・見守り機器。\n- 境界: キッズ衣料はG03。一般の収納・寝具・家電はG04。人用美容・セルフケアはG02。人用食品はG01。\n- 除く: 外出・季節行事・贈答の用途だけで独立した商品概念を作ること。外出等は補助的な利用文脈として残せます。\n- 子ども・ペット向け専用品はG05、家族共用で主機能が一般の生活設備にあるものはG04を主分類とします。\n\n## 6テーマへ展開する見通し\n\n- G01～G04は、基礎132件の概念注釈にそれぞれ6つの異なる商品カテゴリ候補があります。個別候補数が小さいテーマも、最低件数を設けて除外しません。\n- G05のT01～T04は基礎注釈から候補を保持し、T05「子ども移動・車載安全用品」とT06「ペット家電・見守り機器」は本人が選定しました。\n- 選定した2名称への基礎132件の直接語句一致は0/132です。これは文字列一致数であり、商品概念の不存在を証明しません。G05補足50枠は追加資料ですが、枠ごとのT05/T06分類は未実施です。人気・市場規模の実証とは扱いません。\n\n## 重なり、一意計数、限界\n\nジャンル間の重なりを禁止しません。商品概念を付けるときは主用途に基づき主ジャンルを一つ選び、補助的な用途は副分類として残します。商品キーが確認できる場合に限り同一店舗＋商品IDを一商品として扱います。キー不明の観測は本文分類に含めますが、独立商品数へ数えません。\n\n基礎の商品キーは302行中2件確認・300件不明、全文132件内では1件確認・131件不明、恒久ROOM投稿IDは0件です。G05補足50枠は本文保存数で、独立投稿数・独立商品数・基礎との重複数は不明です。これらを理由に本文132件を分類・文型分析から外しません。\n\n基礎132件全てを根拠にした候補案であり、人気順位・市場シェア・独立商品による網羅性・本人採用は未確定です。G05名とT05/T06はSTEP27の本人選定を反映していますが、STEP45の候補版採用回答とは別です。ハッシュ生成・照合なし。\r\n\r\n---\r\n\r\n## 旧順序外5ジャンル候補（参考履歴・順序内採用ではない）\r\n\r\n状態: proposed_needs_owner。順序外の現行案を全件母数に基づいて再評価した参考版。本人採用・設定登録は未実施。\r\n\r\n対象は保存済み全文132観測の全件。STEP18本文概念注釈にある8概念群を、以下の5親候補へ統合しました。反応条件match24／unknown108は副次内訳のみで、候補選定から除外した観測はありません。\r\n\r\n| ID | ジャンル候補 | 定義・境界 | 根拠観測行 / 132 |\r\n|---|---|---|---:|\r\n| G01 | 食品・飲料 | 食べたり飲んだりする商品を、用途と食品カテゴリで整理する候補。 | 44 |\r\n| G02 | 美容・セルフケア | 美容・身だしなみ、および健康・休息・介護を補助する用品を整理する候補。医療判断・効能承認にはしない。 | 23 |\r\n| G03 | ファッション・身だしなみ | 衣服・履物・身に着ける小物を整理する候補。 | 31 |\r\n| G04 | 住まい・暮らし | 住環境、家事、調理、収納、生活設備、防災・安全関連を整理する候補。 | 48 |\r\n| G05 | 子ども・ペット・余暇 | 子ども・育児、玩具・知育、ペット用品を整理する候補。外出・季節行事は商品ジャンルではなく用途文脈として扱う。 | 20 |\r\n\r\n132観測中119観測に少なくとも一群の候補が付き、13観測は候補なしのまま残ります。群間重複は41観測あり、群別件数の合計166を独立投稿数・商品数・市場比率として扱いません。\r\n\r\n出典は本文で注釈した商品概念で、価格下の商品名ではありません。確認済み商品キーは全文132行中1、残り131行は不明。識別不足を理由に本文を除外していません。子ども・ペット群の「余暇」は用途語であり独立商品ジャンルの根拠ではないため、STEP 32で意味境界を再検討します。\r\n\r\n以前の候補は173件のタイトル概念を基礎に作られていました。そのタイトル範囲を現行根拠として継承せず、本文132件の注釈へ置き換えました。ハッシュ生成・照合なし。\r\n"
+  },
+  "ordered_revalidation_history": [
+    {
+      "g05_supplement_slots": 50,
+      "per_genre_theme_candidates": 6,
+      "genre_observations": {
+        "G01": 44,
+        "G05": 20,
+        "G04": 48,
+        "G03": 31,
+        "G02": 23
+      },
+      "g05_supplement_in_base_denominator": false,
+      "all_132_included": true,
+      "themes": 30,
+      "g05_owner_selected_categories": [
+        "子ども移動・車載安全用品",
+        "ペット家電・見守り機器"
+      ],
+      "base_full_body_denominator": 132,
+      "status": "pass_after_step27_source_gap_repair",
+      "reaction_exclusions": 0,
+      "recorded_at": "2026-10-12T09:05:28+09:00",
+      "candidate_adopted": false,
+      "reaction_used_as_filter": false,
+      "genres": 5
+    }
+  ]
+}

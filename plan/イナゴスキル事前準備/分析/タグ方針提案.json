@@ -1,0 +1,740 @@
+{
+  "version": "candidate-0.4-step38-all132",
+  "step": 38,
+  "recorded_at": "2026-10-12T09:38:39+09:00",
+  "status": "proposed_needs_owner",
+  "adopted": false,
+  "basis_observations": 132,
+  "all_132_in_analysis_denominator": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "unknown": 108
+  },
+  "reaction_condition_used_as_filter": false,
+  "reaction_condition_exclusions": 0,
+  "count_unit": {
+    "name": "ASCII # hashtag token occurrences per full post body",
+    "definition": "STEP36の表示タグ計測定義。URL断片識別子を除き、空白区切りのASCII #開始トークンを数える。",
+    "exact_spelling_for_uniqueness": true,
+    "body_length_relation": "本文文字数とは別指標。STEP37のUnicodeコードポイント数からタグを分離して計測。"
+  },
+  "observed_base_132": {
+    "n": 132,
+    "tag_occurrences": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.5530303,
+      "q3": 12.0,
+      "max": 57
+    },
+    "unique_tags_per_observation": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.5,
+      "q3": 12.0,
+      "max": 56
+    },
+    "tag_occurrences_total": 1261,
+    "sum_of_per_observation_unique_tag_counts": 1254,
+    "distinct_exact_tag_strings_across_sample": 927,
+    "observations_with_tags": 124,
+    "observations_without_tags": 8,
+    "tag_position_counts": {
+      "mixed": 45,
+      "none": 8,
+      "terminal": 79
+    },
+    "rows_with_duplicate_exact_tags": 7,
+    "within_soft_range_5_to_12": {
+      "n": 132,
+      "count": 69,
+      "percentage": 52.27,
+      "interpretation": "descriptive_only_not_pass_rate"
+    }
+  },
+  "suggested_soft_range": {
+    "min": 5,
+    "max": 12,
+    "unit": "hashtag tokens per post",
+    "kind": "optional_reference_not_a_constraint",
+    "status": "proposed_needs_owner",
+    "reason": "基礎132件の出現数Q1=4.75、中央値=9、Q3=12を読みやすく示す任意幅。3～5等を先に確定せず、観測分布から提案。",
+    "center": {
+      "value": 9,
+      "meaning": "基礎132件の出現数中央値。達成目標ではない。"
+    },
+    "coverage": {
+      "n": 132,
+      "count": 69,
+      "percentage": 52.27,
+      "interpretation": "descriptive_only_not_pass_rate"
+    },
+    "exception": "関連するタグが少ない/ない場合は5未満または0個でもよい。幅外だけで下書き・商品を保留しない。"
+  },
+  "separate_supplement": {
+    "cohort": "G05 supplement, separate from base",
+    "n": 50,
+    "tag_occurrences": {
+      "n": 50,
+      "min": 0,
+      "q1": 9.25,
+      "median": 13.0,
+      "mean": 15.08,
+      "q3": 16.0,
+      "max": 49
+    },
+    "unique_tags_per_observation": {
+      "n": 50,
+      "min": 0,
+      "q1": 9.25,
+      "median": 13.0,
+      "mean": 15.02,
+      "q3": 16.0,
+      "max": 49
+    },
+    "tag_occurrences_total": 754,
+    "distinct_exact_tag_strings": 517,
+    "observations_with_tags": 49,
+    "observations_without_tags": 1,
+    "tag_position_counts": {
+      "mixed": 29,
+      "none": 1,
+      "position_unobserved_in_body_field": 1,
+      "terminal": 19
+    },
+    "rows_with_duplicate_exact_tags": 3,
+    "coverage_5_to_12": {
+      "n": 50,
+      "count": 22,
+      "percentage": 44.0,
+      "interpretation": "descriptive_only_not_pass_rate"
+    },
+    "selection_note": "いいね300以上の固定検索からの補足50枠。基礎の目安を置き換えず、132件との単純合算を一意観測数としない。",
+    "theme_note": "ユーザー選定G05-T05「子ども移動・車載安全用品」・T06「ペット家電・見守り機器」へ補足各レコードを割り当てていない。"
+  },
+  "by_genre_base_132": {
+    "G01": {
+      "name": "食品・飲料",
+      "n": 44,
+      "tag_occurrences": {
+        "n": 44,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 9,
+        "q3": 12.0,
+        "max": 26
+      },
+      "unique_tags_per_observation": {
+        "n": 44,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 9,
+        "q3": 12.0,
+        "max": 26
+      },
+      "observations_with_tags": 41,
+      "observations_without_tags": 3,
+      "tag_position_counts": {
+        "terminal": 30,
+        "mixed": 11,
+        "none": 3,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 44,
+        "count": 27,
+        "percentage": 61.36,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "G02": {
+      "name": "美容・セルフケア",
+      "n": 23,
+      "tag_occurrences": {
+        "n": 23,
+        "min": 1,
+        "q1": 5.0,
+        "median": 8.0,
+        "mean": 11.13043478,
+        "q3": 13.5,
+        "max": 57
+      },
+      "unique_tags_per_observation": {
+        "n": 23,
+        "min": 1,
+        "q1": 5.0,
+        "median": 8.0,
+        "mean": 11,
+        "q3": 13.0,
+        "max": 56
+      },
+      "observations_with_tags": 23,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 13,
+        "mixed": 10,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 23,
+        "count": 11,
+        "percentage": 47.83,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "G03": {
+      "name": "ファッション・身だしなみ",
+      "n": 31,
+      "tag_occurrences": {
+        "n": 31,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.70967742,
+        "q3": 12.5,
+        "max": 57
+      },
+      "unique_tags_per_observation": {
+        "n": 31,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.61290323,
+        "q3": 12.5,
+        "max": 56
+      },
+      "observations_with_tags": 30,
+      "observations_without_tags": 1,
+      "tag_position_counts": {
+        "terminal": 18,
+        "mixed": 12,
+        "none": 1,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 31,
+        "count": 16,
+        "percentage": 51.61,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "G04": {
+      "name": "住まい・暮らし",
+      "n": 48,
+      "tag_occurrences": {
+        "n": 48,
+        "min": 0,
+        "q1": 4.0,
+        "median": 8.0,
+        "mean": 8.125,
+        "q3": 11.0,
+        "max": 31
+      },
+      "unique_tags_per_observation": {
+        "n": 48,
+        "min": 0,
+        "q1": 4.0,
+        "median": 8.0,
+        "mean": 8.10416667,
+        "q3": 11.0,
+        "max": 31
+      },
+      "observations_with_tags": 44,
+      "observations_without_tags": 4,
+      "tag_position_counts": {
+        "terminal": 29,
+        "mixed": 15,
+        "none": 4,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 48,
+        "count": 27,
+        "percentage": 56.25,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "G05": {
+      "name": "子ども・ペット用品",
+      "n": 20,
+      "tag_occurrences": {
+        "n": 20,
+        "min": 1,
+        "q1": 5.0,
+        "median": 9.5,
+        "mean": 9.3,
+        "q3": 12.0,
+        "max": 22
+      },
+      "unique_tags_per_observation": {
+        "n": 20,
+        "min": 1,
+        "q1": 5.0,
+        "median": 9.5,
+        "mean": 9.3,
+        "q3": 12.0,
+        "max": 22
+      },
+      "observations_with_tags": 20,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 13,
+        "mixed": 7,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 20,
+        "count": 12,
+        "percentage": 60.0,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    }
+  },
+  "by_pattern_base_132": {
+    "P01": {
+      "name": "商品＋特徴",
+      "n": 41,
+      "tag_occurrences": {
+        "n": 41,
+        "min": 0,
+        "q1": 6.0,
+        "median": 10.0,
+        "mean": 10.87804878,
+        "q3": 13.0,
+        "max": 57
+      },
+      "unique_tags_per_observation": {
+        "n": 41,
+        "min": 0,
+        "q1": 6.0,
+        "median": 10.0,
+        "mean": 10.80487805,
+        "q3": 13.0,
+        "max": 56
+      },
+      "observations_with_tags": 40,
+      "observations_without_tags": 1,
+      "tag_position_counts": {
+        "terminal": 32,
+        "mixed": 8,
+        "none": 1,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 41,
+        "count": 24,
+        "percentage": 58.54,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "P02": {
+      "name": "商品参照＋タグ",
+      "n": 36,
+      "tag_occurrences": {
+        "n": 36,
+        "min": 1,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.13888889,
+        "q3": 13.25,
+        "max": 31
+      },
+      "unique_tags_per_observation": {
+        "n": 36,
+        "min": 1,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.11111111,
+        "q3": 13.25,
+        "max": 31
+      },
+      "observations_with_tags": 36,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 27,
+        "mixed": 9,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 36,
+        "count": 18,
+        "percentage": 50.0,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "P03": {
+      "name": "販促先行",
+      "n": 23,
+      "tag_occurrences": {
+        "n": 23,
+        "min": 0,
+        "q1": 2.5,
+        "median": 9.0,
+        "mean": 7.73913043,
+        "q3": 10.5,
+        "max": 26
+      },
+      "unique_tags_per_observation": {
+        "n": 23,
+        "min": 0,
+        "q1": 2.5,
+        "median": 9.0,
+        "mean": 7.69565217,
+        "q3": 10.5,
+        "max": 26
+      },
+      "observations_with_tags": 20,
+      "observations_without_tags": 3,
+      "tag_position_counts": {
+        "terminal": 9,
+        "mixed": 11,
+        "none": 3,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 23,
+        "count": 10,
+        "percentage": 43.48,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "P04": {
+      "name": "特徴箇条書き",
+      "n": 15,
+      "tag_occurrences": {
+        "n": 15,
+        "min": 4,
+        "q1": 6.5,
+        "median": 10.0,
+        "mean": 10.26666667,
+        "q3": 11.5,
+        "max": 23
+      },
+      "unique_tags_per_observation": {
+        "n": 15,
+        "min": 4,
+        "q1": 6.5,
+        "median": 10.0,
+        "mean": 10.2,
+        "q3": 11.5,
+        "max": 22
+      },
+      "observations_with_tags": 15,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 8,
+        "mixed": 7,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 15,
+        "count": 10,
+        "percentage": 66.67,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "P05": {
+      "name": "体験＋留保",
+      "n": 5,
+      "tag_occurrences": {
+        "n": 5,
+        "min": 1,
+        "q1": 5.0,
+        "median": 6.0,
+        "mean": 6.4,
+        "q3": 8.0,
+        "max": 12
+      },
+      "unique_tags_per_observation": {
+        "n": 5,
+        "min": 1,
+        "q1": 5.0,
+        "median": 6.0,
+        "mean": 6.4,
+        "q3": 8.0,
+        "max": 12
+      },
+      "observations_with_tags": 5,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 2,
+        "mixed": 3,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 5,
+        "count": 4,
+        "percentage": 80.0,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "cross_cutting_tags": {
+      "name": "タグ＋他役割（横断）",
+      "n": 6,
+      "tag_occurrences": {
+        "n": 6,
+        "min": 1,
+        "q1": 3.5,
+        "median": 9.0,
+        "mean": 7.66666667,
+        "q3": 10.0,
+        "max": 15
+      },
+      "unique_tags_per_observation": {
+        "n": 6,
+        "min": 1,
+        "q1": 3.5,
+        "median": 8.5,
+        "mean": 7.5,
+        "q3": 9.75,
+        "max": 15
+      },
+      "observations_with_tags": 6,
+      "observations_without_tags": 0,
+      "tag_position_counts": {
+        "terminal": 1,
+        "mixed": 5,
+        "none": 0,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 6,
+        "count": 3,
+        "percentage": 50.0,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    },
+    "unfixed_mixed_or_unclassified": {
+      "name": "混合・未分類（型を固定しない）",
+      "n": 6,
+      "tag_occurrences": {
+        "n": 6,
+        "min": 0,
+        "q1": 0.0,
+        "median": 0.0,
+        "mean": 0.66666667,
+        "q3": 1.5,
+        "max": 2
+      },
+      "unique_tags_per_observation": {
+        "n": 6,
+        "min": 0,
+        "q1": 0.0,
+        "median": 0.0,
+        "mean": 0.66666667,
+        "q3": 1.5,
+        "max": 2
+      },
+      "observations_with_tags": 2,
+      "observations_without_tags": 4,
+      "tag_position_counts": {
+        "terminal": 0,
+        "mixed": 2,
+        "none": 4,
+        "unobserved": 0
+      },
+      "within_5_to_12": {
+        "n": 6,
+        "count": 0,
+        "percentage": 0.0,
+        "interpretation": "descriptive_only_not_pass_rate"
+      }
+    }
+  },
+  "semantic_tag_categories": {
+    "method": "本文注釈語と固定語彙の文字列一致による主カテゴリ1つの暫定分類。複数の意味を持つ可能性があり、意味判断の確定・成果との因果を示さない。",
+    "classification_scope": "全132件。STEP20保存値を引用し、match24/unknown108で除外していない。",
+    "distinct_exact_tag_strings_total": 927,
+    "occurrences_total": 1261,
+    "per_string_mapping_available": false,
+    "primary_categories": [
+      {
+        "code": "promotion",
+        "label": "販売・キャンペーン",
+        "distinct_exact_strings": 24,
+        "occurrences": 40
+      },
+      {
+        "code": "room",
+        "label": "ROOM・発見導線",
+        "distinct_exact_strings": 5,
+        "occurrences": 10
+      },
+      {
+        "code": "scene",
+        "label": "用途・場面・対象",
+        "distinct_exact_strings": 46,
+        "occurrences": 86
+      },
+      {
+        "code": "feature",
+        "label": "特徴・属性",
+        "distinct_exact_strings": 53,
+        "occurrences": 80
+      },
+      {
+        "code": "product",
+        "label": "商品種別・カテゴリ",
+        "distinct_exact_strings": 260,
+        "occurrences": 317
+      },
+      {
+        "code": "lifestyle",
+        "label": "生活・発信文脈",
+        "distinct_exact_strings": 19,
+        "occurrences": 47
+      },
+      {
+        "code": "other",
+        "label": "その他・判定保留",
+        "distinct_exact_strings": 520,
+        "occurrences": 681
+      }
+    ]
+  },
+  "theme_context": {
+    "candidate_version": "candidate-0.4-step34-reviewed",
+    "candidate_status": "proposed_not_adopted",
+    "theme_count": 30,
+    "base_denominator": 132,
+    "all_132_used": true,
+    "g05_owner_selected_theme_names": [
+      "子ども移動・車載安全用品",
+      "ペット家電・見守り機器"
+    ],
+    "g05_supplement_item_assignment": "not_performed",
+    "theme_specific_tag_range": "not_proposed; candidate theme counts are classification evidence, not evidence for per-theme tag count effects."
+  },
+  "placement": {
+    "proposal": "本文とタグを視覚的に区別し、基本形では本文末尾に関連タグをまとめる。",
+    "basis": {
+      "base_n": 132,
+      "terminal": 79,
+      "mixed": 45,
+      "no_tags": 8
+    },
+    "exception": "本文中/混在も45観測にあるため禁止しない。読みやすさと本文の意味を優先。"
+  },
+  "duplicate_policy": {
+    "within_post": "完全一致のタグは同一投稿内で重ねない。同義語も検索目的が異なる根拠がなければ水増ししない。",
+    "observed_duplicate_rows": 7,
+    "occurrence_minus_per_row_unique": 7,
+    "cross_post_reuse": "投稿間で同じタグを使うこと自体は重複違反としない。各本文への関連性を個別に見る。"
+  },
+  "relevance_policy": [
+    "商品種別・カテゴリ、確認できる特徴・属性、本文に明記した利用場面・対象を中心に候補を選ぶ。",
+    "季節・用途・販促タグは実際の商品/投稿時点に当てはまると確認できる場合だけ使う。",
+    "人気投稿者固有の自己紹介、無関係な流行語、未確認の値引き・順位・効能・使用経験をタグで加えない。",
+    "テーマ語は実際の商品がその分類に該当すると確認できる場合だけ使う。"
+  ],
+  "synthetic_examples": {
+    "status": "illustrative_placeholders_not_observed_tags",
+    "generic": "#商品カテゴリ #利用場面 #確認済み特徴",
+    "g05_t05": "[実商品が該当する場合のみ] #子ども移動・車載安全用品",
+    "g05_t06": "[実商品が該当する場合のみ] #ペット家電・見守り機器",
+    "note": "例は型説明用で、特定商品の事実、人気タグ、必須3個を意味しない。未確認体験を含めない。"
+  },
+  "use_instructions": [
+    "本文の内容から関連性を見て任意で使う。必要なら出現数5～12個程度を初期参照にできるが、少なくても0個でもよい。",
+    "本文末尾にまとめるのを標準形にする。本文と一体で必要な場合は混在も許す。",
+    "関連性・事実性・読みやすさを個数より優先する。タグ数を埋めるため本文へ情報を追加しない。",
+    "5未満/12超/タグなしだけを理由に商品や完成下書きを保留しない。日次のタグ数検査ジョブを設けない。"
+  ],
+  "no_gate": {
+    "draft_hold_for_tag_count": false,
+    "product_hold_for_tag_count": false,
+    "daily_quality_approval_job": false,
+    "tag_effect_causal_claim": false
+  },
+  "limitations": [
+    "基礎132件はコメント10以上・いいね300以上を含む基礎検索の観測で、市場全体を代表する標本ではない。反応状態match24/unknown108は内訳のみ。",
+    "タグ数といいね/売上の因果は測っていない。投稿者・商品・検索条件が交絡し、反応の因果効果は結論できない。",
+    "タグ意味分類は固定語彙による一次分類で、927文字列中520文字列/681出現がその他・判定保留。意味の重複や多義性がある。",
+    "補足50は別検索コホート。タグ意味カテゴリの文字列別対応表がなく、補足意味分類は未算出。",
+    "5ジャンル・30テーマ候補は基礎132件を分母に作成済み。ジャンル所属は重複、未所属を含む。G05補足50は選定T05/T06に個別割当していないためテーマ別分布は不明。",
+    "この提案は採用前。本文長さとタグ数の単位は別であり、STEP37の本文長さ案150～300 Unicodeコードポイントをタグトークン数へ換算しない。"
+  ],
+  "effect_claim": "タグ数が増えるほどいいね/売上が増える等の因果主張なし。",
+  "owner_decision": {
+    "state": "pending_until_step45",
+    "candidate": "candidate-0.4-step38-all132",
+    "adoption_inferred": false
+  },
+  "source_refs": [
+    "plan/イナゴスキル事前準備/分析/統合長さタグ.json#step36_ordered",
+    "plan/イナゴスキル事前準備/分析/統合長さタグ.md",
+    "非公開作業データ/統合/計測値.jsonl",
+    "plan/イナゴスキル事前準備/分析/文型候補.json#candidate-0.3-step35-all132",
+    "plan/イナゴスキル事前準備/分析/30テーマ候補.json#candidate-0.4-step34-reviewed",
+    "plan/イナゴスキル事前準備/分析/本文長さ提案.json#candidate-0.4-step37-all132",
+    "plan/イナゴ戦略/意思決定台帳.md#D-022",
+    "plan/イナゴ戦略/ヒアリング記録.md#Q-012-b",
+    "plan/イナゴ戦略/イナゴスキル要件定義書.html#IR-007"
+  ],
+  "previous_step38_candidate": {
+    "version": "candidate-0.3-step20-full132",
+    "status": "proposed_needs_owner",
+    "adopted": false,
+    "basis_observations": 132,
+    "all_132_in_analysis_denominator": true,
+    "suggested_soft_range": {
+      "min": 5,
+      "max": 12,
+      "reason": "ceil Q1=4.75 to 5; Q3=12"
+    },
+    "note": "STEP20基礎分布までを反映した旧提案。旧JSON/Markdownは置換せず、本版ではSTEP36の補足・ジャンル・文型・位置・分類限界を追加。"
+  },
+  "previous_candidate_0_1": {
+    "basis_observations": 4,
+    "prior_median": 8,
+    "prior_fields": {
+      "version": "candidate-0.1",
+      "status": "proposed",
+      "adopted": false,
+      "sample": {
+        "n": 4,
+        "median_occurrences": 8,
+        "q1": 4.75,
+        "q3": 21.75,
+        "min": 1,
+        "max": 57,
+        "unique_counts": [
+          1,
+          6,
+          10,
+          56
+        ]
+      },
+      "suggested_soft_reference": {
+        "min": 5,
+        "max": 12
+      },
+      "mandatory": false,
+      "rules": [
+        "本文内容と関係するタグだけを選ぶ",
+        "本文末尾にまとめ、本文とタグを区別する",
+        "同義語・汎用語の過剰反復を避ける",
+        "医療・健康・購入体験の事実をタグだけで断定しない",
+        "関連性が弱い場合は範囲未満でよい"
+      ],
+      "limitations": [
+        "全文4件のみ",
+        "B0003の57個が最大値を引き上げる",
+        "独立投稿性・ジャンル代表性は不明"
+      ],
+      "hashes_used": false
+    }
+  },
+  "hashes_used": false
+}

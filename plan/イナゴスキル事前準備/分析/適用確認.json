@@ -1,0 +1,319 @@
+{
+  "version": "candidate-0.2-step40-synthetic-all132",
+  "step": 40,
+  "recorded_at": "2026-10-12T09:48:23+09:00",
+  "status": "application_examples_not_posted",
+  "adopted": false,
+  "basis_analysis_observations": 132,
+  "all_132_remain_analysis_basis": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "unknown": 108
+  },
+  "reaction_condition_used_as_filter": false,
+  "reaction_condition_exclusions": 0,
+  "application_case_count": 6,
+  "pattern_cases": [
+    "P01",
+    "P02",
+    "P03",
+    "P04",
+    "P05"
+  ],
+  "boundary_case_count": 1,
+  "case_selection_note": "6件は指示の理解を試す仮想適用ケースで、分析標本ではない。基礎132件はSTEP35〜39の根拠として全件維持。反応条件から例文を選んでいない。",
+  "all_cases_synthetic": true,
+  "real_posts_or_source_body_text_used": false,
+  "cases": [
+    {
+      "case_id": "C01",
+      "case_kind": "pattern_application",
+      "pattern_id": "P01",
+      "pattern_name": "商品参照＋特徴説明",
+      "theme_id": "G01-T01",
+      "theme_name": "菓子・スイーツ",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "P01の順序・確認済み特徴・利用場面の扱いを適用する。",
+      "scenario_input": {
+        "virtual_item": "いちごクッキー（仮想商品）",
+        "provided_case_facts": [
+          "個包装8袋入りという仮想設定",
+          "小分けで持ち歩く場面という仮想設定"
+        ],
+        "unknowns": [
+          "味・食感",
+          "原材料/アレルゲン",
+          "価格/在庫"
+        ],
+        "user_experience": "なし"
+      },
+      "body_text": "「いちごクッキー（仮想商品）」は個包装8袋入りという設定です。小分けで持ち歩きたい場面の候補として、内容量や原材料表示を確認しながら選べます。味や食感は確認していないため断定せず、好みやアレルギー表示は購入前に商品情報で確かめる形にします。",
+      "tags": [
+        "#いちご菓子",
+        "#個包装",
+        "#焼き菓子",
+        "#おやつ",
+        "#原材料表示"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 120,
+      "tag_token_count": 5,
+      "soft_body_range_150_300": false,
+      "soft_tag_range_5_12": true,
+      "within_both_soft_ranges": false,
+      "length_or_tag_deviation_is_hold_gate": false
+    },
+    {
+      "case_id": "C02",
+      "case_kind": "pattern_application",
+      "pattern_id": "P02",
+      "pattern_name": "商品参照＋関連タグ",
+      "theme_id": "G04-T05",
+      "theme_name": "収納・インテリア",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "確認情報が少なくても短く構成し、タグを関連付ける。",
+      "scenario_input": {
+        "virtual_item": "折りたたみ収納ボックス（仮想商品）",
+        "provided_case_facts": [
+          "使用時の幅45cmという仮想設定",
+          "置き場所の幅を測ってから選ぶという仮想場面"
+        ],
+        "unknowns": [
+          "素材",
+          "耐荷重",
+          "折り畳み方法",
+          "価格/在庫"
+        ],
+        "user_experience": "なし"
+      },
+      "body_text": "「折りたたみ収納ボックス（仮想商品）」は、設定上、使用時の幅が45cmです。置き場所を測ってから収納用品を比べたい方には、サイズの目安を先に確認できる候補になります。素材・耐荷重・畳み方は未確認なので、入力にない性能を足さず、必要な仕様は購入前に表示で見比べてください。設置場所と寸法の確認を先に進めたい人向けの短い案内です。",
+      "tags": [
+        "#収納ボックス",
+        "#収納用品",
+        "#サイズ確認",
+        "#部屋づくり",
+        "#片付け"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 163,
+      "tag_token_count": 5,
+      "soft_body_range_150_300": true,
+      "soft_tag_range_5_12": true,
+      "within_both_soft_ranges": true,
+      "length_or_tag_deviation_is_hold_gate": false
+    },
+    {
+      "case_id": "C03",
+      "case_kind": "pattern_application",
+      "pattern_id": "P03",
+      "pattern_name": "確認済み販促情報を先に置く",
+      "theme_id": "G01-T06",
+      "theme_name": "飲料・茶・酒",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "時限条件を含む場合の条件提示と、期限/対象の確認を適用する。",
+      "scenario_input": {
+        "virtual_item": "茶葉セット（仮想商品）",
+        "provided_case_facts": [
+          "10月31日まで10%引きという仮想条件",
+          "クーポン1人1回という仮想条件",
+          "対象商品と期限が特定されるという仮想設定"
+        ],
+        "unknowns": [
+          "茶葉の産地/味わい",
+          "実際の販売価格/在庫"
+        ],
+        "user_experience": "なし"
+      },
+      "body_text": "仮想の販促条件では、10月31日まで10％引き、クーポン1人1回の対象は「茶葉セット（仮想商品）」です。対象商品と期限が表示どおりである場合だけ、条件を添えて案内します。茶葉の産地や味わいは確認されていないため断定を避け、期限・対象・利用条件を投稿時にも確認する前提で書きます。",
+      "tags": [
+        "#茶葉セット",
+        "#お茶時間",
+        "#クーポン条件",
+        "#キャンペーン情報",
+        "#対象期間"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 139,
+      "tag_token_count": 5,
+      "soft_body_range_150_300": false,
+      "soft_tag_range_5_12": true,
+      "within_both_soft_ranges": false,
+      "length_or_tag_deviation_is_hold_gate": false
+    },
+    {
+      "case_id": "C04",
+      "case_kind": "pattern_application",
+      "pattern_id": "P04",
+      "pattern_name": "確認済み特徴の箇条書き",
+      "theme_id": "G05-T05",
+      "theme_name": "子ども移動・車載安全用品",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "本人選定G05-T05を型説明に使う。複数の事実を分け、未確認の適合/安全性能を補わない。",
+      "scenario_input": {
+        "virtual_item": "チャイルドシート（仮想商品）",
+        "provided_case_facts": [
+          "ヘッドレスト5段階調整という仮想説明欄",
+          "カバー取り外し可という仮想説明欄"
+        ],
+        "unknowns": [
+          "車種への適合",
+          "安全基準/試験",
+          "価格/在庫"
+        ],
+        "user_experience": "なし"
+      },
+      "body_text": "「チャイルドシート（仮想商品）」の仮想説明欄に次の2点があります。`n・ヘッドレストは5段階調整`n・カバーは取り外し可`n車への適合や安全基準は未確認のため、型式や適合表を確かめずに使用を勧める表現はしません。",
+      "tags": [
+        "#チャイルドシート",
+        "#子ども移動・車載安全用品",
+        "#車載準備",
+        "#サイズ適合確認",
+        "#育児用品"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 106,
+      "tag_token_count": 5,
+      "soft_body_range_150_300": false,
+      "soft_tag_range_5_12": true,
+      "within_both_soft_ranges": false,
+      "length_or_tag_deviation_is_hold_gate": false
+    },
+    {
+      "case_id": "C05",
+      "case_kind": "pattern_application",
+      "pattern_id": "P05",
+      "pattern_name": "本人の実体験＋留保",
+      "theme_id": "G05-T06",
+      "theme_name": "ペット家電・見守り機器",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "本人選定G05-T06を型説明に使う。実体験入力がある場合と、その範囲を超える断言を避ける規則を適用する。",
+      "scenario_input": {
+        "virtual_item": "自動給餌器（架空商品）",
+        "provided_case_facts": [
+          "仮想テスト担当者が自宅で3日試したと申告する設定",
+          "設定画面から給餌時刻を登録できたという仮想観察"
+        ],
+        "unknowns": [
+          "給餌量の正確さ",
+          "他の環境/ペットへの適合",
+          "長期耐久性"
+        ],
+        "user_experience": "現実の本人経験ではなく、仮想のテスト担当者の申告設定"
+      },
+      "body_text": "仮想ケースとして、テスト担当者が「自動給餌器（架空商品）」を自宅で3日試し、設定画面で給餌時刻を登録できたと申告したことにします。その人が操作した範囲での観察に限り、給餌の正確さや全てのペットへの適合を測定・保証したものではありません。実際に使っていない人の体験談としては扱わず、飼育環境や対応条件は説明書で確認してください。",
+      "tags": [
+        "#自動給餌器",
+        "#ペット家電・見守り機器",
+        "#ペットのいる暮らし",
+        "#給餌管理",
+        "#操作確認"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 163,
+      "tag_token_count": 5,
+      "soft_body_range_150_300": true,
+      "soft_tag_range_5_12": true,
+      "within_both_soft_ranges": true,
+      "length_or_tag_deviation_is_hold_gate": false
+    },
+    {
+      "case_id": "C06",
+      "case_kind": "boundary_case",
+      "pattern_id": "P02",
+      "pattern_name": "商品参照＋関連タグへの簡素化",
+      "theme_id": "G03-T04",
+      "theme_name": "バッグ・身の回り小物",
+      "source_kind": "synthetic_virtual_case",
+      "selection_reason": "カテゴリだけが分かり、特徴/場面/体験/販促が不明な境界例。少ない根拠で簡潔にし、タグ数/長さを理由に保留しない。",
+      "scenario_input": {
+        "virtual_item": "財布（仮想カテゴリ例）",
+        "provided_case_facts": [
+          "商品カテゴリだけが分かるという仮想設定"
+        ],
+        "unknowns": [
+          "サイズ",
+          "重さ",
+          "耐風性",
+          "撥水性",
+          "使用感",
+          "利用場面",
+          "価格/在庫"
+        ],
+        "user_experience": "なし"
+      },
+      "body_text": "仮想の境界確認ケースです。入力で分かるのは商品カテゴリ「財布」だけで、素材、寸法、収納枚数、使い心地は未確認です。確認できない仕様や実際の使用場面は補わず、カテゴリを短く示す案内に留めます。少ない情報でも商品を保留せず、P02の簡潔な形へ切り替えられることを確認します。",
+      "tags": [
+        "#財布"
+      ],
+      "real_product_facts": "none",
+      "body_codepoints": 135,
+      "tag_token_count": 1,
+      "soft_body_range_150_300": false,
+      "soft_tag_range_5_12": false,
+      "within_both_soft_ranges": false,
+      "length_or_tag_deviation_is_hold_gate": false
+    }
+  ],
+  "actual_posted": false,
+  "daily_output_count": 0,
+  "measured_reaction_or_revenue": false,
+  "effect_claim": "適用可能性と指示の明瞭さを見る小規模な仮想試作。人気・収益・実投稿効果を示さない。",
+  "source_refs": [
+    "plan/イナゴスキル事前準備/文型ルール候補.md#candidate-0.2-step39-all132",
+    "plan/イナゴスキル事前準備/分析/文型候補.json#candidate-0.3-step35-all132",
+    "plan/イナゴスキル事前準備/分析/本文長さ提案.json#candidate-0.4-step37-all132",
+    "plan/イナゴスキル事前準備/分析/タグ方針提案.json#candidate-0.4-step38-all132",
+    "plan/イナゴスキル事前準備/分析/30テーマ候補.json#candidate-0.4-step34-reviewed",
+    "plan/イナゴ戦略/イナゴスキル要件定義書.html#IR-007,IR-012,IR-014"
+  ],
+  "historical_out_of_sequence_candidate": {
+    "version": "candidate-0.1",
+    "test_examples": 4,
+    "pattern_ids": [
+      "P01",
+      "P02",
+      "P03",
+      "P04"
+    ],
+    "examples": [
+      {
+        "pattern_id": "P01",
+        "result": "drafted",
+        "facts_used": [
+          "商品名上のいちご・ホワイトチョコ",
+          "商品名上の60g"
+        ],
+        "unsupported_claims": 0
+      },
+      {
+        "pattern_id": "P02",
+        "result": "template_only",
+        "publishable_without_owner_input": false
+      },
+      {
+        "pattern_id": "P03",
+        "result": "drafted_with_selection_caveat",
+        "facts_used": [
+          "商品名上の組み合わせ",
+          "容量表示"
+        ],
+        "unsupported_claims": 0
+      },
+      {
+        "pattern_id": "P04",
+        "result": "drafted_short",
+        "facts_used": [
+          "商品名上の組み合わせ"
+        ],
+        "unsupported_claims": 0
+      }
+    ],
+    "actual_posted": false,
+    "daily_output_count": 0,
+    "hashes_used": false,
+    "sequence_status": "reference_only_out_of_sequence",
+    "scope_note": "Four mock examples are not a 132-body corpus analysis. Do not use their sample count to narrow genre, theme, or pattern analyses.",
+    "to_be_recreated_at_step": "40 after Step35 is performed in order"
+  },
+  "hashes_used": false
+}

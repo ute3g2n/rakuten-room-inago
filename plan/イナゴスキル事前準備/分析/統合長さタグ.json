@@ -1,0 +1,2590 @@
+{
+  "version": "candidate-0.4-step36-ordered",
+  "measurement": "Unicode code points; original saved text is left unchanged.",
+  "body_definition": "Normalize CRLF/CR to LF; remove recognized product URL strings; remove all displayed whitespace-delimited hashtag tokens for body length. If all tokens from the first hashtag to the end are hashtags, remove the preceding separator and an immediately preceding standalone UI label タグ:. Preserve other whitespace, punctuation and linefeeds.",
+  "tag_definition": "After URL removal, each whitespace-delimited token beginning with # and containing at least one following character is one displayed tag. Exact strings define uniqueness; punctuation and spelling variants are not merged.",
+  "tag_position_definition": "terminal: all non-whitespace tokens from the first hashtag through the end are hashtags; mixed: hashtags occur with other text after/around them; none: no hashtag token.",
+  "base_full_body_records": 132,
+  "body_observations_used": 132,
+  "all_132_in_analysis_denominator": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "unknown": 108
+  },
+  "verified_unique_permanent_posts": 0,
+  "partial_records_not_in_full_basis": 1,
+  "body_measurement_missing": 0,
+  "tag_measurement_missing": 0,
+  "body_codepoints": {
+    "n": 132,
+    "min": 37,
+    "q1": 150.25,
+    "median": 235.5,
+    "mean": 231.45454545454547,
+    "q3": 296.25,
+    "max": 483,
+    "quartile_method": "p*(n-1) linear interpolation"
+  },
+  "tag_occurrences": {
+    "n": 132,
+    "min": 0,
+    "q1": 4.75,
+    "median": 9.0,
+    "mean": 9.553030303030303,
+    "q3": 12.0,
+    "max": 57,
+    "quartile_method": "p*(n-1) linear interpolation"
+  },
+  "unique_tag_counts": {
+    "n": 132,
+    "min": 0,
+    "q1": 4.75,
+    "median": 9.0,
+    "mean": 9.5,
+    "q3": 12.0,
+    "max": 56,
+    "quartile_method": "p*(n-1) linear interpolation"
+  },
+  "tag_occurrences_total": 1261,
+  "sum_of_per_observation_unique_tag_counts": 1254,
+  "unique_tag_strings_across_sample": 927,
+  "observations_with_tags": 124,
+  "observations_without_tags": 8,
+  "tag_position_counts": {
+    "terminal": 79,
+    "mixed": 45,
+    "none": 8
+  },
+  "recognized_product_url_occurrences": 0,
+  "body_codepoint_values_sorted": [
+    37,
+    42,
+    47,
+    53,
+    55,
+    60,
+    63,
+    67,
+    69,
+    70,
+    76,
+    81,
+    89,
+    92,
+    95,
+    98,
+    99,
+    102,
+    104,
+    121,
+    122,
+    123,
+    129,
+    135,
+    137,
+    138,
+    139,
+    140,
+    142,
+    146,
+    147,
+    147,
+    148,
+    151,
+    151,
+    152,
+    159,
+    160,
+    160,
+    163,
+    165,
+    165,
+    167,
+    168,
+    173,
+    173,
+    174,
+    177,
+    177,
+    179,
+    180,
+    189,
+    190,
+    197,
+    203,
+    206,
+    210,
+    218,
+    221,
+    222,
+    222,
+    226,
+    226,
+    230,
+    232,
+    234,
+    237,
+    239,
+    240,
+    241,
+    242,
+    246,
+    249,
+    251,
+    252,
+    254,
+    255,
+    255,
+    256,
+    256,
+    256,
+    257,
+    259,
+    265,
+    269,
+    270,
+    275,
+    277,
+    279,
+    280,
+    282,
+    283,
+    284,
+    286,
+    291,
+    292,
+    293,
+    295,
+    296,
+    297,
+    297,
+    305,
+    306,
+    312,
+    314,
+    322,
+    327,
+    329,
+    330,
+    340,
+    341,
+    342,
+    349,
+    351,
+    354,
+    358,
+    367,
+    376,
+    389,
+    390,
+    390,
+    396,
+    397,
+    399,
+    407,
+    411,
+    412,
+    457,
+    462,
+    466,
+    481,
+    483
+  ],
+  "tag_occurrence_values_sorted": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    13,
+    13,
+    13,
+    13,
+    13,
+    14,
+    14,
+    14,
+    14,
+    15,
+    15,
+    15,
+    15,
+    16,
+    17,
+    17,
+    18,
+    18,
+    19,
+    19,
+    22,
+    22,
+    23,
+    23,
+    26,
+    26,
+    30,
+    30,
+    31,
+    57
+  ],
+  "unique_tag_count_values_sorted": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    14,
+    14,
+    14,
+    15,
+    15,
+    15,
+    15,
+    16,
+    17,
+    17,
+    18,
+    18,
+    19,
+    19,
+    21,
+    22,
+    22,
+    22,
+    26,
+    26,
+    29,
+    30,
+    31,
+    56
+  ],
+  "limitations": [
+    "132件は観測行。恒久ROOM投稿IDがないため投稿単位の独立性・重複排除後の分布は確認できない。",
+    "複合絵文字はコードポイント数と表示上の一文字数が一致しない。",
+    "タグ意味の主分類は文字列規則による暫定集計で、意味・成果との関係を確認したものではない。",
+    "182行は基礎132観測とG05補足50観測の単純合算であり、独立投稿・商品数ではない。重複排除後の統合分布は作れない。",
+    "補足50件は本文長とタグ数を別コホートで示す。検索標本であり市場構成比と見なさない。G05-T05/T06へ全50件を分類していない。",
+    "タグ意味分類の既存7分類は基礎132件の集計だけ。STEP20の文字列別カテゴリ対応表が保存されていないため、G05補足と182行合算の意味分類は再計算していない。",
+    "S05-0001はタグ10件が本文欄と別配列にあるためタグ位置を特定できない。本文長とタグ数は各々の保存フィールドから計測した。",
+    "文字数・タグ数の統計は記述値であり、売上や反応の因果効果を示さない。字数・タグ数の採用値ではない。"
+  ],
+  "superseded_previous_4_record_summary": {
+    "base_full_body_records": 4,
+    "body_codepoints": {
+      "n": 4,
+      "values": [
+        53,
+        173,
+        256,
+        399
+      ],
+      "min": 53,
+      "max": 399,
+      "mean": 220.25,
+      "median": 214.5,
+      "q1": 143,
+      "q3": 291.75,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "tag_occurrences": {
+      "n": 4,
+      "values": [
+        1,
+        6,
+        10,
+        57
+      ],
+      "min": 1,
+      "max": 57,
+      "mean": 18.5,
+      "median": 8,
+      "q1": 4.75,
+      "q3": 21.75,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "unique_tag_counts": [
+      1,
+      6,
+      10,
+      56
+    ],
+    "status": "superseded_small_sample_analysis"
+  },
+  "hashes_used": false,
+  "status": "complete_in_order_with_data_limitations",
+  "integrated_cohorts": {
+    "base_full_body_observations": 132,
+    "g05_supplement_full_body_observations": 50,
+    "raw_observation_row_sum": 182,
+    "deduplicated_unique_post_or_product_union": null,
+    "overlap_known": false,
+    "market_share_inference_allowed": false
+  },
+  "supplement_counts_not_included_until_step29": true,
+  "superseded_previous_integrated_snapshot": {
+    "base_full_body_records": 4,
+    "body_codepoints": {
+      "n": 4,
+      "values": [
+        53,
+        173,
+        256,
+        399
+      ],
+      "min": 53,
+      "max": 399,
+      "mean": 220.25,
+      "median": 214.5,
+      "q1": 143,
+      "q3": 291.75,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "tag_occurrences": {
+      "n": 4,
+      "values": [
+        1,
+        6,
+        10,
+        57
+      ],
+      "min": 1,
+      "max": 57,
+      "mean": 18.5,
+      "median": 8,
+      "q1": 4.75,
+      "q3": 21.75,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "unique_tag_counts": [
+      1,
+      6,
+      10,
+      56
+    ]
+  },
+  "concept_group_distributions": [
+    {
+      "id": "G_BEAUTY",
+      "label": "美容・身だしなみ",
+      "observations": 13,
+      "condition_status_descriptive_only": {
+        "match": 0,
+        "unknown": 13
+      },
+      "body_codepoints": {
+        "n": 13,
+        "min": 95,
+        "q1": 189.0,
+        "median": 277.0,
+        "mean": 275.0,
+        "q3": 389.0,
+        "max": 483,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 13,
+        "min": 1,
+        "q1": 5.0,
+        "median": 11.0,
+        "mean": 11.384615384615385,
+        "q3": 15.0,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 13,
+        "min": 1,
+        "q1": 5.0,
+        "median": 11.0,
+        "mean": 11.23076923076923,
+        "q3": 15.0,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_CHILD",
+      "label": "子ども・ベビー・知育",
+      "observations": 9,
+      "condition_status_descriptive_only": {
+        "match": 0,
+        "unknown": 9
+      },
+      "body_codepoints": {
+        "n": 9,
+        "min": 151,
+        "q1": 190.0,
+        "median": 222.0,
+        "mean": 223.66666666666666,
+        "q3": 256.0,
+        "max": 292,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 9,
+        "min": 1,
+        "q1": 5.0,
+        "median": 11.0,
+        "mean": 9.444444444444445,
+        "q3": 13.0,
+        "max": 19,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 9,
+        "min": 1,
+        "q1": 5.0,
+        "median": 11.0,
+        "mean": 9.444444444444445,
+        "q3": 13.0,
+        "max": 19,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_FOOD",
+      "label": "食品・飲料",
+      "observations": 44,
+      "condition_status_descriptive_only": {
+        "match": 9,
+        "unknown": 35
+      },
+      "body_codepoints": {
+        "n": 44,
+        "min": 60,
+        "q1": 139.75,
+        "median": 246.0,
+        "mean": 227.8181818181818,
+        "q3": 291.5,
+        "max": 411,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 44,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 9.0,
+        "q3": 12.0,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 44,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 9.0,
+        "q3": 12.0,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_HOME",
+      "label": "住まい・キッチン・家事",
+      "observations": 47,
+      "condition_status_descriptive_only": {
+        "match": 6,
+        "unknown": 41
+      },
+      "body_codepoints": {
+        "n": 47,
+        "min": 63,
+        "q1": 162.0,
+        "median": 234.0,
+        "mean": 235.63829787234042,
+        "q3": 289.0,
+        "max": 483,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 47,
+        "min": 0,
+        "q1": 4.0,
+        "median": 8.0,
+        "mean": 8.063829787234043,
+        "q3": 10.5,
+        "max": 31,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 47,
+        "min": 0,
+        "q1": 4.0,
+        "median": 8.0,
+        "mean": 8.042553191489361,
+        "q3": 10.5,
+        "max": 31,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_PET",
+      "label": "ペット用品",
+      "observations": 11,
+      "condition_status_descriptive_only": {
+        "match": 5,
+        "unknown": 6
+      },
+      "body_codepoints": {
+        "n": 11,
+        "min": 165,
+        "q1": 173.5,
+        "median": 246.0,
+        "mean": 260.27272727272725,
+        "q3": 344.5,
+        "max": 367,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 11,
+        "min": 1,
+        "q1": 7.0,
+        "median": 8.0,
+        "mean": 9.181818181818182,
+        "q3": 12.0,
+        "max": 22,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 11,
+        "min": 1,
+        "q1": 7.0,
+        "median": 8.0,
+        "mean": 9.181818181818182,
+        "q3": 12.0,
+        "max": 22,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_SAFETY",
+      "label": "防災・安全",
+      "observations": 2,
+      "condition_status_descriptive_only": {
+        "match": 0,
+        "unknown": 2
+      },
+      "body_codepoints": {
+        "n": 2,
+        "min": 354,
+        "q1": 359.5,
+        "median": 365.0,
+        "mean": 365.0,
+        "q3": 370.5,
+        "max": 376,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 2,
+        "min": 8,
+        "q1": 8.75,
+        "median": 9.5,
+        "mean": 9.5,
+        "q3": 10.25,
+        "max": 11,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 2,
+        "min": 8,
+        "q1": 8.75,
+        "median": 9.5,
+        "mean": 9.5,
+        "q3": 10.25,
+        "max": 11,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_WEAR",
+      "label": "衣類・靴・装身具",
+      "observations": 31,
+      "condition_status_descriptive_only": {
+        "match": 6,
+        "unknown": 25
+      },
+      "body_codepoints": {
+        "n": 31,
+        "min": 37,
+        "q1": 144.5,
+        "median": 221.0,
+        "mean": 237.3548387096774,
+        "q3": 353.5,
+        "max": 483,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 31,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.709677419354838,
+        "q3": 12.5,
+        "max": 57,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 31,
+        "min": 0,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.612903225806452,
+        "q3": 12.5,
+        "max": 56,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "G_WELLNESS",
+      "label": "健康・休息・介護の補助",
+      "observations": 11,
+      "condition_status_descriptive_only": {
+        "match": 3,
+        "unknown": 8
+      },
+      "body_codepoints": {
+        "n": 11,
+        "min": 53,
+        "q1": 244.5,
+        "median": 312.0,
+        "mean": 324.90909090909093,
+        "q3": 434.5,
+        "max": 483,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 11,
+        "min": 1,
+        "q1": 1.0,
+        "median": 7.0,
+        "mean": 9.909090909090908,
+        "q3": 8.5,
+        "max": 57,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 11,
+        "min": 1,
+        "q1": 1.0,
+        "median": 7.0,
+        "mean": 9.818181818181818,
+        "q3": 8.5,
+        "max": 56,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    }
+  ],
+  "structure_candidate_distributions": [
+    {
+      "id": "experience_with_caveat",
+      "label": "体験表現と留保を併記",
+      "observations": 5,
+      "condition_status_descriptive_only": {
+        "match": 2,
+        "unknown": 3
+      },
+      "body_codepoints": {
+        "n": 5,
+        "min": 174,
+        "q1": 177.0,
+        "median": 270.0,
+        "mean": 285.4,
+        "q3": 399.0,
+        "max": 407,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 5,
+        "min": 1,
+        "q1": 5.0,
+        "median": 6.0,
+        "mean": 6.4,
+        "q3": 8.0,
+        "max": 12,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 5,
+        "min": 1,
+        "q1": 5.0,
+        "median": 6.0,
+        "mean": 6.4,
+        "q3": 8.0,
+        "max": 12,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "feature_point_list",
+      "label": "商品特徴を箇条書きで提示",
+      "observations": 15,
+      "condition_status_descriptive_only": {
+        "match": 4,
+        "unknown": 11
+      },
+      "body_codepoints": {
+        "n": 15,
+        "min": 197,
+        "q1": 241.5,
+        "median": 256.0,
+        "mean": 277.73333333333335,
+        "q3": 326.0,
+        "max": 367,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 15,
+        "min": 4,
+        "q1": 6.5,
+        "median": 10.0,
+        "mean": 10.266666666666667,
+        "q3": 11.5,
+        "max": 23,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 15,
+        "min": 4,
+        "q1": 6.5,
+        "median": 10.0,
+        "mean": 10.2,
+        "q3": 11.5,
+        "max": 22,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "mixed_or_unclassified",
+      "label": "混合または分類不能",
+      "observations": 6,
+      "condition_status_descriptive_only": {
+        "match": 1,
+        "unknown": 5
+      },
+      "body_codepoints": {
+        "n": 6,
+        "min": 47,
+        "q1": 99.0,
+        "median": 112.5,
+        "mean": 164.5,
+        "q3": 150.75,
+        "max": 457,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 6,
+        "min": 0,
+        "q1": 0.0,
+        "median": 0.0,
+        "mean": 0.6666666666666666,
+        "q3": 1.5,
+        "max": 2,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 6,
+        "min": 0,
+        "q1": 0.0,
+        "median": 0.0,
+        "mean": 0.6666666666666666,
+        "q3": 1.5,
+        "max": 2,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "product_and_feature",
+      "label": "商品参照と特徴説明",
+      "observations": 41,
+      "condition_status_descriptive_only": {
+        "match": 6,
+        "unknown": 35
+      },
+      "body_codepoints": {
+        "n": 41,
+        "min": 53,
+        "q1": 152.0,
+        "median": 230.0,
+        "mean": 236.65853658536585,
+        "q3": 291.0,
+        "max": 483,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 41,
+        "min": 0,
+        "q1": 6.0,
+        "median": 10.0,
+        "mean": 10.878048780487806,
+        "q3": 13.0,
+        "max": 57,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 41,
+        "min": 0,
+        "q1": 6.0,
+        "median": 10.0,
+        "mean": 10.804878048780488,
+        "q3": 13.0,
+        "max": 56,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "product_reference_with_tags",
+      "label": "商品参照とタグ",
+      "observations": 36,
+      "condition_status_descriptive_only": {
+        "match": 8,
+        "unknown": 28
+      },
+      "body_codepoints": {
+        "n": 36,
+        "min": 37,
+        "q1": 91.25,
+        "median": 167.5,
+        "mean": 175.0,
+        "q3": 248.5,
+        "max": 354,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 36,
+        "min": 1,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.13888888888889,
+        "q3": 13.25,
+        "max": 31,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 36,
+        "min": 1,
+        "q1": 6.0,
+        "median": 9.0,
+        "mean": 11.11111111111111,
+        "q3": 13.25,
+        "max": 31,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "promotion_before_product",
+      "label": "価格・販促を商品参照より先に提示",
+      "observations": 23,
+      "condition_status_descriptive_only": {
+        "match": 1,
+        "unknown": 22
+      },
+      "body_codepoints": {
+        "n": 23,
+        "min": 135,
+        "q1": 208.0,
+        "median": 283.0,
+        "mean": 295.5652173913044,
+        "q3": 390.0,
+        "max": 481,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 23,
+        "min": 0,
+        "q1": 2.5,
+        "median": 9.0,
+        "mean": 7.739130434782608,
+        "q3": 10.5,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 23,
+        "min": 0,
+        "q1": 2.5,
+        "median": 9.0,
+        "mean": 7.695652173913044,
+        "q3": 10.5,
+        "max": 26,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    },
+    {
+      "id": "tags_with_other_roles",
+      "label": "タグと他の役割",
+      "observations": 6,
+      "condition_status_descriptive_only": {
+        "match": 2,
+        "unknown": 4
+      },
+      "body_codepoints": {
+        "n": 6,
+        "min": 138,
+        "q1": 150.25,
+        "median": 170.0,
+        "mean": 195.16666666666666,
+        "q3": 231.75,
+        "max": 297,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "tag_occurrences": {
+        "n": 6,
+        "min": 1,
+        "q1": 3.5,
+        "median": 9.0,
+        "mean": 7.666666666666667,
+        "q3": 10.0,
+        "max": 15,
+        "quartile_method": "p*(n-1) linear interpolation"
+      },
+      "unique_tag_counts": {
+        "n": 6,
+        "min": 1,
+        "q1": 3.5,
+        "median": 8.5,
+        "mean": 7.5,
+        "q3": 9.75,
+        "max": 15,
+        "quartile_method": "p*(n-1) linear interpolation"
+      }
+    }
+  ],
+  "tag_semantic_classification": {
+    "unit": "表示されたハッシュタグの厳密な文字列。表記揺れを意味判断なしに統合しない。",
+    "method": "本文注釈語と固定語彙の文字列一致による主カテゴリ1つの暫定分類。複数の意味を持つ可能性があり、意味判断の確定・成果との因果を示さない。",
+    "primary_categories": [
+      {
+        "code": "promotion",
+        "label": "販売・キャンペーン",
+        "distinct_exact_strings": 24,
+        "occurrences": 40
+      },
+      {
+        "code": "room",
+        "label": "ROOM・発見導線",
+        "distinct_exact_strings": 5,
+        "occurrences": 10
+      },
+      {
+        "code": "scene",
+        "label": "用途・場面・対象",
+        "distinct_exact_strings": 46,
+        "occurrences": 86
+      },
+      {
+        "code": "feature",
+        "label": "特徴・属性",
+        "distinct_exact_strings": 53,
+        "occurrences": 80
+      },
+      {
+        "code": "product",
+        "label": "商品種別・カテゴリ",
+        "distinct_exact_strings": 260,
+        "occurrences": 317
+      },
+      {
+        "code": "lifestyle",
+        "label": "生活・発信文脈",
+        "distinct_exact_strings": 19,
+        "occurrences": 47
+      },
+      {
+        "code": "other",
+        "label": "その他・判定保留",
+        "distinct_exact_strings": 520,
+        "occurrences": 681
+      }
+    ],
+    "distinct_exact_strings_total": 927,
+    "occurrences_total": 1261,
+    "unclassified_or_held_strings": 520,
+    "human_semantic_review_pending": true
+  },
+  "identity_and_concentration_limits": {
+    "observation_rows": 132,
+    "permanent_room_post_ids_confirmed": 0,
+    "same_post_deduplication_performed": false,
+    "same_post_deduplication_reason": "恒久ROOM投稿IDが0件で、同一投稿を特定できないため。",
+    "confirmed_store_item_key_rows": 1,
+    "unknown_store_item_key_rows": 131,
+    "author_alias_only_rows": 4,
+    "author_unknown_rows": 128,
+    "author_alias_observation_linkage_available": false,
+    "product_or_author_concentration_estimable": false,
+    "concentration_limitation": "商品キーは一部1行のみ、残り131行は不明。匿名投稿者別名は4行分で観測ID対応なし。投稿者・商品集中を一意に推定できない。"
+  },
+  "selected_direct_recounts": [
+    {
+      "selection_reason": "shortest_body",
+      "observation_id": "B0308",
+      "source_body_ref": "非公開作業データ/基礎/本文/B0308.txt",
+      "previous_step19r_body_codepoints": 37,
+      "step20_body_codepoints": 37,
+      "tag_occurrences": 2,
+      "unique_displayed_tags": 2,
+      "tag_position": "terminal",
+      "url_occurrences_removed": 0,
+      "supplementary_emoji_codepoints": [
+        "U+1F429",
+        "U+1F4AD"
+      ]
+    },
+    {
+      "selection_reason": "longest_body",
+      "observation_id": "B0282",
+      "source_body_ref": "非公開作業データ/基礎/本文/B0282.txt",
+      "previous_step19r_body_codepoints": 483,
+      "step20_body_codepoints": 483,
+      "tag_occurrences": 1,
+      "unique_displayed_tags": 1,
+      "tag_position": "mixed",
+      "url_occurrences_removed": 0,
+      "supplementary_emoji_codepoints": [
+        "U+1F31F"
+      ]
+    },
+    {
+      "selection_reason": "most_tag_occurrences",
+      "observation_id": "B0003",
+      "source_body_ref": "非公開作業データ/基礎/本文/B0003.txt",
+      "previous_step19r_body_codepoints": 53,
+      "step20_body_codepoints": 53,
+      "tag_occurrences": 57,
+      "unique_displayed_tags": 56,
+      "tag_position": "terminal",
+      "url_occurrences_removed": 0,
+      "supplementary_emoji_codepoints": [
+        "U+1F493",
+        "U+1F923",
+        "U+1F92D",
+        "U+1F9E6"
+      ]
+    },
+    {
+      "selection_reason": "tagless_body",
+      "observation_id": "B0204",
+      "source_body_ref": "非公開作業データ/基礎/本文/B0204.txt",
+      "previous_step19r_body_codepoints": 98,
+      "step20_body_codepoints": 98,
+      "tag_occurrences": 0,
+      "unique_displayed_tags": 0,
+      "tag_position": "none",
+      "url_occurrences_removed": 0,
+      "supplementary_emoji_codepoints": [
+        "U+1F60E",
+        "U+1F923"
+      ]
+    },
+    {
+      "selection_reason": "emoji_body",
+      "observation_id": "B0001",
+      "source_body_ref": "非公開作業データ/基礎/本文/B0001.txt",
+      "previous_step19r_body_codepoints": 256,
+      "step20_body_codepoints": 256,
+      "tag_occurrences": 10,
+      "unique_displayed_tags": 10,
+      "tag_position": "terminal",
+      "url_occurrences_removed": 0,
+      "supplementary_emoji_codepoints": [
+        "U+1F353",
+        "U+1F4AD",
+        "U+1F4CC"
+      ]
+    }
+  ],
+  "step19r_measurement_corrections": [
+    {
+      "observation_id": "B0193",
+      "superseded_step19r_values": {
+        "body_codepoints": 412
+      },
+      "step20_values": {
+        "body_codepoints": 367
+      }
+    },
+    {
+      "observation_id": "B0199",
+      "superseded_step19r_values": {
+        "body_codepoints": 390
+      },
+      "step20_values": {
+        "body_codepoints": 340
+      }
+    },
+    {
+      "observation_id": "B0237",
+      "superseded_step19r_values": {
+        "body_codepoints": 292
+      },
+      "step20_values": {
+        "body_codepoints": 282
+      }
+    },
+    {
+      "observation_id": "B0268",
+      "superseded_step19r_values": {
+        "body_codepoints": 416
+      },
+      "step20_values": {
+        "body_codepoints": 354
+      }
+    },
+    {
+      "observation_id": "B0289",
+      "superseded_step19r_values": {
+        "body_codepoints": 303
+      },
+      "step20_values": {
+        "body_codepoints": 279
+      }
+    },
+    {
+      "observation_id": "B0296",
+      "superseded_step19r_values": {
+        "body_codepoints": 360
+      },
+      "step20_values": {
+        "body_codepoints": 329
+      }
+    },
+    {
+      "observation_id": "B0300",
+      "superseded_step19r_values": {
+        "body_codepoints": 395
+      },
+      "step20_values": {
+        "body_codepoints": 349
+      }
+    }
+  ],
+  "superseded_step19r_distribution": {
+    "body_codepoints": {
+      "n": 132,
+      "min": 37,
+      "q1": 150.25,
+      "median": 235.5,
+      "mean": 233.4848484848485,
+      "q3": 297.0,
+      "max": 483,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "tag_occurrences": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.553030303030303,
+      "q3": 12.0,
+      "max": 57,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "unique_tag_counts": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.5,
+      "q3": 12.0,
+      "max": 56,
+      "quartile_method": "p*(n-1) linear interpolation"
+    },
+    "distinct_tag_strings_across_sample": 918
+  },
+  "step": 36,
+  "adopted": false,
+  "active_analysis_section": "step36_ordered",
+  "prior_top_level_base_measurement_preserved": "candidate-0.3-step20-full132; existing base-only arrays and summaries remain as reference history.",
+  "step36_ordered": {
+    "step": "36",
+    "version": "candidate-0.4-step36-ordered",
+    "recorded_at": "2026-10-12T09:26:02+09:00",
+    "status": "complete_in_order_with_data_limitations",
+    "adopted": false,
+    "cohorts": {
+      "base_132": {
+        "n": 132,
+        "body_codepoints": {
+          "n": 132,
+          "min": 37,
+          "q1": 150.25,
+          "median": 235.5,
+          "mean": 231.45454545,
+          "q3": 296.25,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 132,
+          "min": 0,
+          "q1": 4.75,
+          "median": 9.0,
+          "mean": 9.5530303,
+          "q3": 12.0,
+          "max": 57
+        },
+        "unique_tags_per_observation": {
+          "n": 132,
+          "min": 0,
+          "q1": 4.75,
+          "median": 9.0,
+          "mean": 9.5,
+          "q3": 12.0,
+          "max": 56
+        },
+        "tag_occurrences_total": 1261,
+        "sum_of_per_observation_unique_tag_counts": 1254,
+        "unique_tag_strings_across_cohort": 927,
+        "observations_with_tags": 124,
+        "observations_without_tags": 8,
+        "tag_position_counts": {
+          "mixed": 45,
+          "none": 8,
+          "terminal": 79
+        },
+        "rows_with_duplicate_exact_tags": 7,
+        "url_occurrences_removed": 0,
+        "rows_with_url": 0,
+        "newline_count_in_source_text_fields": 12,
+        "rows_with_newlines": 4,
+        "fullwidth_hash_mark_count_in_source_text_fields": 0,
+        "rows_with_fullwidth_hash_mark": 0,
+        "supplementary_plane_codepoints_in_source_text_fields": 650,
+        "rows_with_supplementary_plane_codepoints": 117,
+        "body_length_min_ids": [
+          "B0308"
+        ],
+        "body_length_max_ids": [
+          "B0282"
+        ],
+        "tag_occurrence_min_ids": [
+          "B0204",
+          "B0205",
+          "B0216",
+          "B0254",
+          "B0265",
+          "B0272",
+          "B0301",
+          "B0311"
+        ],
+        "tag_occurrence_max_ids": [
+          "B0003"
+        ]
+      },
+      "supplement_G05_50": {
+        "n": 50,
+        "body_codepoints": {
+          "n": 50,
+          "min": 99,
+          "q1": 208.25,
+          "median": 288.0,
+          "mean": 275.56,
+          "q3": 342.0,
+          "max": 425
+        },
+        "tag_occurrences": {
+          "n": 50,
+          "min": 0,
+          "q1": 9.25,
+          "median": 13.0,
+          "mean": 15.08,
+          "q3": 16.0,
+          "max": 49
+        },
+        "unique_tags_per_observation": {
+          "n": 50,
+          "min": 0,
+          "q1": 9.25,
+          "median": 13.0,
+          "mean": 15.02,
+          "q3": 16.0,
+          "max": 49
+        },
+        "tag_occurrences_total": 754,
+        "sum_of_per_observation_unique_tag_counts": 751,
+        "unique_tag_strings_across_cohort": 517,
+        "observations_with_tags": 49,
+        "observations_without_tags": 1,
+        "tag_position_counts": {
+          "mixed": 29,
+          "none": 1,
+          "position_unobserved_in_body_field": 1,
+          "terminal": 19
+        },
+        "rows_with_duplicate_exact_tags": 3,
+        "url_occurrences_removed": 0,
+        "rows_with_url": 0,
+        "newline_count_in_source_text_fields": 0,
+        "rows_with_newlines": 0,
+        "fullwidth_hash_mark_count_in_source_text_fields": 0,
+        "rows_with_fullwidth_hash_mark": 0,
+        "supplementary_plane_codepoints_in_source_text_fields": 280,
+        "rows_with_supplementary_plane_codepoints": 43,
+        "body_length_min_ids": [
+          "S05-0030"
+        ],
+        "body_length_max_ids": [
+          "S05-0015"
+        ],
+        "tag_occurrence_min_ids": [
+          "S05-0033"
+        ],
+        "tag_occurrence_max_ids": [
+          "S05-0022"
+        ]
+      },
+      "raw_row_sum_182": {
+        "n": 182,
+        "body_codepoints": {
+          "n": 182,
+          "min": 37,
+          "q1": 163.5,
+          "median": 246.0,
+          "mean": 243.57142857,
+          "q3": 312.75,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 182,
+          "min": 0,
+          "q1": 6.0,
+          "median": 10.0,
+          "mean": 11.07142857,
+          "q3": 14.0,
+          "max": 57
+        },
+        "unique_tags_per_observation": {
+          "n": 182,
+          "min": 0,
+          "q1": 6.0,
+          "median": 10.0,
+          "mean": 11.01648352,
+          "q3": 13.0,
+          "max": 56
+        },
+        "tag_occurrences_total": 2015,
+        "sum_of_per_observation_unique_tag_counts": 2005,
+        "unique_tag_strings_across_cohort": 1347,
+        "observations_with_tags": 173,
+        "observations_without_tags": 9,
+        "tag_position_counts": {
+          "mixed": 74,
+          "none": 9,
+          "position_unobserved_in_body_field": 1,
+          "terminal": 98
+        },
+        "rows_with_duplicate_exact_tags": 10,
+        "url_occurrences_removed": 0,
+        "rows_with_url": 0,
+        "newline_count_in_source_text_fields": 12,
+        "rows_with_newlines": 4,
+        "fullwidth_hash_mark_count_in_source_text_fields": 0,
+        "rows_with_fullwidth_hash_mark": 0,
+        "supplementary_plane_codepoints_in_source_text_fields": 930,
+        "rows_with_supplementary_plane_codepoints": 160,
+        "body_length_min_ids": [
+          "B0308"
+        ],
+        "body_length_max_ids": [
+          "B0282"
+        ],
+        "tag_occurrence_min_ids": [
+          "B0204",
+          "B0205",
+          "B0216",
+          "B0254",
+          "B0265",
+          "B0272",
+          "B0301",
+          "B0311",
+          "S05-0033"
+        ],
+        "tag_occurrence_max_ids": [
+          "B0003"
+        ]
+      }
+    },
+    "source_row_counts": {
+      "base_full": 132,
+      "base_unique_observation_ids": 132,
+      "base_source_files_missing": 0,
+      "base_partial_rows_excluded": 1,
+      "base_partial_observation_ids": [
+        "B0005"
+      ],
+      "base_search_sessions": {
+        "B01": 4,
+        "B01-R2": 128
+      },
+      "supplement_full": 50,
+      "supplement_unique_observation_ids": 50,
+      "supplement_nonrecord_null_lines_ignored": 1,
+      "supplement_search_session_rows": 1,
+      "raw_observation_row_sum": 182,
+      "deduplicated_union_count": null
+    },
+    "all_132_base_rows_retained": true,
+    "base_condition_states_descriptive_only": {
+      "match": 24,
+      "unknown": 108
+    },
+    "reaction_condition_used_as_analysis_filter": false,
+    "reaction_condition_exclusions": 0,
+    "by_final_genre_base_only": {
+      "G01": {
+        "name": "食品・飲料",
+        "n": 44,
+        "body_codepoints": {
+          "n": 44,
+          "min": 60,
+          "q1": 139.75,
+          "median": 246.0,
+          "mean": 227.81818182,
+          "q3": 291.5,
+          "max": 411
+        },
+        "tag_occurrences": {
+          "n": 44,
+          "min": 0,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 9,
+          "q3": 12.0,
+          "max": 26
+        },
+        "unique_tags_per_observation": {
+          "n": 44,
+          "min": 0,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 9,
+          "q3": 12.0,
+          "max": 26
+        },
+        "source_refs": [
+          "B0001",
+          "B0189",
+          "B0195",
+          "B0198",
+          "B0201",
+          "B0202",
+          "B0206",
+          "B0207",
+          "B0208",
+          "B0216",
+          "B0218",
+          "B0220",
+          "B0221",
+          "B0225",
+          "B0227",
+          "B0228",
+          "B0233",
+          "B0236",
+          "B0238",
+          "B0245",
+          "B0248",
+          "B0250",
+          "B0253",
+          "B0256",
+          "B0258",
+          "B0267",
+          "B0271",
+          "B0272",
+          "B0277",
+          "B0278",
+          "B0287",
+          "B0288",
+          "B0293",
+          "B0294",
+          "B0296",
+          "B0297",
+          "B0298",
+          "B0299",
+          "B0300",
+          "B0301",
+          "B0302",
+          "B0304",
+          "B0305",
+          "B0315"
+        ]
+      },
+      "G02": {
+        "name": "美容・セルフケア",
+        "n": 23,
+        "body_codepoints": {
+          "n": 23,
+          "min": 53,
+          "q1": 227.5,
+          "median": 282.0,
+          "mean": 289.82608696,
+          "q3": 394.5,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 23,
+          "min": 1,
+          "q1": 5.0,
+          "median": 8.0,
+          "mean": 11.13043478,
+          "q3": 13.5,
+          "max": 57
+        },
+        "unique_tags_per_observation": {
+          "n": 23,
+          "min": 1,
+          "q1": 5.0,
+          "median": 8.0,
+          "mean": 11,
+          "q3": 13.0,
+          "max": 56
+        },
+        "source_refs": [
+          "B0002",
+          "B0003",
+          "B0200",
+          "B0209",
+          "B0223",
+          "B0224",
+          "B0225",
+          "B0235",
+          "B0237",
+          "B0239",
+          "B0240",
+          "B0242",
+          "B0263",
+          "B0264",
+          "B0270",
+          "B0280",
+          "B0282",
+          "B0286",
+          "B0291",
+          "B0292",
+          "B0306",
+          "B0307",
+          "B0313"
+        ]
+      },
+      "G03": {
+        "name": "ファッション・身だしなみ",
+        "n": 31,
+        "body_codepoints": {
+          "n": 31,
+          "min": 37,
+          "q1": 144.5,
+          "median": 221.0,
+          "mean": 237.35483871,
+          "q3": 353.5,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 31,
+          "min": 0,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 11.70967742,
+          "q3": 12.5,
+          "max": 57
+        },
+        "unique_tags_per_observation": {
+          "n": 31,
+          "min": 0,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 11.61290323,
+          "q3": 12.5,
+          "max": 56
+        },
+        "source_refs": [
+          "B0002",
+          "B0003",
+          "B0192",
+          "B0193",
+          "B0199",
+          "B0205",
+          "B0210",
+          "B0212",
+          "B0215",
+          "B0217",
+          "B0219",
+          "B0225",
+          "B0226",
+          "B0231",
+          "B0235",
+          "B0237",
+          "B0244",
+          "B0246",
+          "B0257",
+          "B0260",
+          "B0261",
+          "B0270",
+          "B0275",
+          "B0280",
+          "B0282",
+          "B0285",
+          "B0291",
+          "B0297",
+          "B0308",
+          "B0312",
+          "B0317"
+        ]
+      },
+      "G04": {
+        "name": "住まい・暮らし",
+        "n": 48,
+        "body_codepoints": {
+          "n": 48,
+          "min": 63,
+          "q1": 163.5,
+          "median": 237.0,
+          "mean": 238.5625,
+          "q3": 292.75,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 48,
+          "min": 0,
+          "q1": 4.0,
+          "median": 8.0,
+          "mean": 8.125,
+          "q3": 11.0,
+          "max": 31
+        },
+        "unique_tags_per_observation": {
+          "n": 48,
+          "min": 0,
+          "q1": 4.0,
+          "median": 8.0,
+          "mean": 8.10416667,
+          "q3": 11.0,
+          "max": 31
+        },
+        "source_refs": [
+          "B0189",
+          "B0190",
+          "B0191",
+          "B0196",
+          "B0200",
+          "B0204",
+          "B0210",
+          "B0212",
+          "B0213",
+          "B0215",
+          "B0222",
+          "B0224",
+          "B0225",
+          "B0228",
+          "B0229",
+          "B0239",
+          "B0240",
+          "B0241",
+          "B0243",
+          "B0244",
+          "B0247",
+          "B0248",
+          "B0251",
+          "B0252",
+          "B0255",
+          "B0257",
+          "B0259",
+          "B0260",
+          "B0261",
+          "B0264",
+          "B0265",
+          "B0268",
+          "B0270",
+          "B0273",
+          "B0279",
+          "B0282",
+          "B0284",
+          "B0285",
+          "B0287",
+          "B0289",
+          "B0297",
+          "B0298",
+          "B0301",
+          "B0303",
+          "B0309",
+          "B0311",
+          "B0313",
+          "B0314"
+        ]
+      },
+      "G05": {
+        "name": "子ども・ペット用品",
+        "n": 20,
+        "body_codepoints": {
+          "n": 20,
+          "min": 151,
+          "q1": 173.75,
+          "median": 236.0,
+          "mean": 243.8,
+          "q3": 293.0,
+          "max": 367
+        },
+        "tag_occurrences": {
+          "n": 20,
+          "min": 1,
+          "q1": 5.0,
+          "median": 9.5,
+          "mean": 9.3,
+          "q3": 12.0,
+          "max": 22
+        },
+        "unique_tags_per_observation": {
+          "n": 20,
+          "min": 1,
+          "q1": 5.0,
+          "median": 9.5,
+          "mean": 9.3,
+          "q3": 12.0,
+          "max": 22
+        },
+        "source_refs": [
+          "B0004",
+          "B0193",
+          "B0194",
+          "B0199",
+          "B0207",
+          "B0211",
+          "B0213",
+          "B0218",
+          "B0228",
+          "B0243",
+          "B0247",
+          "B0259",
+          "B0266",
+          "B0268",
+          "B0274",
+          "B0281",
+          "B0283",
+          "B0300",
+          "B0303",
+          "B0310"
+        ]
+      }
+    },
+    "genre_assignment_audit": {
+      "source_labels_mapped_from_step31_candidate": {
+        "G01": [
+          "食品・飲料"
+        ],
+        "G02": [
+          "健康・休息・介護の補助",
+          "美容・身だしなみ"
+        ],
+        "G03": [
+          "衣類・靴・装身具"
+        ],
+        "G04": [
+          "住まい・キッチン・家事",
+          "防災・安全"
+        ],
+        "G05": [
+          "ペット用品",
+          "子ども・ベビー・知育"
+        ]
+      },
+      "observations_with_at_least_one_genre": 119,
+      "total_memberships": 166,
+      "multi_genre_observations": 41,
+      "unassigned_observations": 13,
+      "note": "各ジャンルの条件付き分布。全132件は基礎全体分布に保持し、ジャンル間の重複・未分類を残した。"
+    },
+    "by_step35_pattern_base_only": {
+      "P01": {
+        "name": "商品＋特徴",
+        "source_structure_classes": [
+          "product_and_feature"
+        ],
+        "n": 41,
+        "body_codepoints": {
+          "n": 41,
+          "min": 53,
+          "q1": 152.0,
+          "median": 230.0,
+          "mean": 236.65853659,
+          "q3": 291.0,
+          "max": 483
+        },
+        "tag_occurrences": {
+          "n": 41,
+          "min": 0,
+          "q1": 6.0,
+          "median": 10.0,
+          "mean": 10.87804878,
+          "q3": 13.0,
+          "max": 57
+        },
+        "unique_tags_per_observation": {
+          "n": 41,
+          "min": 0,
+          "q1": 6.0,
+          "median": 10.0,
+          "mean": 10.80487805,
+          "q3": 13.0,
+          "max": 56
+        },
+        "source_refs": [
+          "B0003",
+          "B0192",
+          "B0198",
+          "B0200",
+          "B0206",
+          "B0208",
+          "B0209",
+          "B0212",
+          "B0214",
+          "B0219",
+          "B0222",
+          "B0224",
+          "B0225",
+          "B0227",
+          "B0228",
+          "B0231",
+          "B0242",
+          "B0248",
+          "B0256",
+          "B0257",
+          "B0258",
+          "B0259",
+          "B0261",
+          "B0266",
+          "B0270",
+          "B0271",
+          "B0272",
+          "B0273",
+          "B0275",
+          "B0279",
+          "B0282",
+          "B0283",
+          "B0285",
+          "B0289",
+          "B0293",
+          "B0296",
+          "B0302",
+          "B0303",
+          "B0309",
+          "B0312",
+          "B0317"
+        ]
+      },
+      "P02": {
+        "name": "商品参照＋タグ",
+        "source_structure_classes": [
+          "product_reference_with_tags"
+        ],
+        "n": 36,
+        "body_codepoints": {
+          "n": 36,
+          "min": 37,
+          "q1": 91.25,
+          "median": 167.5,
+          "mean": 175,
+          "q3": 248.5,
+          "max": 354
+        },
+        "tag_occurrences": {
+          "n": 36,
+          "min": 1,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 11.13888889,
+          "q3": 13.25,
+          "max": 31
+        },
+        "unique_tags_per_observation": {
+          "n": 36,
+          "min": 1,
+          "q1": 6.0,
+          "median": 9.0,
+          "mean": 11.11111111,
+          "q3": 13.25,
+          "max": 31
+        },
+        "source_refs": [
+          "B0004",
+          "B0189",
+          "B0190",
+          "B0191",
+          "B0194",
+          "B0195",
+          "B0202",
+          "B0207",
+          "B0211",
+          "B0217",
+          "B0218",
+          "B0220",
+          "B0221",
+          "B0226",
+          "B0236",
+          "B0241",
+          "B0244",
+          "B0245",
+          "B0246",
+          "B0253",
+          "B0255",
+          "B0263",
+          "B0268",
+          "B0274",
+          "B0281",
+          "B0286",
+          "B0287",
+          "B0290",
+          "B0291",
+          "B0298",
+          "B0299",
+          "B0307",
+          "B0308",
+          "B0310",
+          "B0313",
+          "B0315"
+        ]
+      },
+      "P03": {
+        "name": "販促先行",
+        "source_structure_classes": [
+          "promotion_before_product"
+        ],
+        "n": 23,
+        "body_codepoints": {
+          "n": 23,
+          "min": 135,
+          "q1": 208.0,
+          "median": 283.0,
+          "mean": 295.56521739,
+          "q3": 390.0,
+          "max": 481
+        },
+        "tag_occurrences": {
+          "n": 23,
+          "min": 0,
+          "q1": 2.5,
+          "median": 9.0,
+          "mean": 7.73913043,
+          "q3": 10.5,
+          "max": 26
+        },
+        "unique_tags_per_observation": {
+          "n": 23,
+          "min": 0,
+          "q1": 2.5,
+          "median": 9.0,
+          "mean": 7.69565217,
+          "q3": 10.5,
+          "max": 26
+        },
+        "source_refs": [
+          "B0205",
+          "B0210",
+          "B0215",
+          "B0223",
+          "B0237",
+          "B0238",
+          "B0240",
+          "B0243",
+          "B0247",
+          "B0250",
+          "B0260",
+          "B0264",
+          "B0267",
+          "B0276",
+          "B0280",
+          "B0292",
+          "B0297",
+          "B0301",
+          "B0304",
+          "B0305",
+          "B0306",
+          "B0311",
+          "B0314"
+        ]
+      },
+      "P04": {
+        "name": "特徴箇条書き",
+        "source_structure_classes": [
+          "feature_point_list"
+        ],
+        "n": 15,
+        "body_codepoints": {
+          "n": 15,
+          "min": 197,
+          "q1": 241.5,
+          "median": 256.0,
+          "mean": 277.73333333,
+          "q3": 326.0,
+          "max": 367
+        },
+        "tag_occurrences": {
+          "n": 15,
+          "min": 4,
+          "q1": 6.5,
+          "median": 10.0,
+          "mean": 10.26666667,
+          "q3": 11.5,
+          "max": 23
+        },
+        "unique_tags_per_observation": {
+          "n": 15,
+          "min": 4,
+          "q1": 6.5,
+          "median": 10.0,
+          "mean": 10.2,
+          "q3": 11.5,
+          "max": 22
+        },
+        "source_refs": [
+          "B0001",
+          "B0193",
+          "B0196",
+          "B0199",
+          "B0229",
+          "B0233",
+          "B0239",
+          "B0251",
+          "B0262",
+          "B0277",
+          "B0278",
+          "B0284",
+          "B0288",
+          "B0294",
+          "B0300"
+        ]
+      },
+      "P05": {
+        "name": "体験＋留保",
+        "source_structure_classes": [
+          "experience_with_caveat"
+        ],
+        "n": 5,
+        "body_codepoints": {
+          "n": 5,
+          "min": 174,
+          "q1": 177.0,
+          "median": 270.0,
+          "mean": 285.4,
+          "q3": 399.0,
+          "max": 407
+        },
+        "tag_occurrences": {
+          "n": 5,
+          "min": 1,
+          "q1": 5.0,
+          "median": 6.0,
+          "mean": 6.4,
+          "q3": 8.0,
+          "max": 12
+        },
+        "unique_tags_per_observation": {
+          "n": 5,
+          "min": 1,
+          "q1": 5.0,
+          "median": 6.0,
+          "mean": 6.4,
+          "q3": 8.0,
+          "max": 12
+        },
+        "source_refs": [
+          "B0002",
+          "B0201",
+          "B0213",
+          "B0235",
+          "B0252"
+        ]
+      },
+      "cross_cutting_tags": {
+        "name": "タグ＋他役割（横断）",
+        "source_structure_classes": [
+          "tags_with_other_roles"
+        ],
+        "n": 6,
+        "body_codepoints": {
+          "n": 6,
+          "min": 138,
+          "q1": 150.25,
+          "median": 170.0,
+          "mean": 195.16666667,
+          "q3": 231.75,
+          "max": 297
+        },
+        "tag_occurrences": {
+          "n": 6,
+          "min": 1,
+          "q1": 3.5,
+          "median": 9.0,
+          "mean": 7.66666667,
+          "q3": 10.0,
+          "max": 15
+        },
+        "unique_tags_per_observation": {
+          "n": 6,
+          "min": 1,
+          "q1": 3.5,
+          "median": 8.5,
+          "mean": 7.5,
+          "q3": 9.75,
+          "max": 15
+        },
+        "source_refs": [
+          "B0197",
+          "B0203",
+          "B0230",
+          "B0234",
+          "B0269",
+          "B0316"
+        ]
+      },
+      "unfixed_mixed_or_unclassified": {
+        "name": "混合・未分類（型を固定しない）",
+        "source_structure_classes": [
+          "mixed_or_unclassified"
+        ],
+        "n": 6,
+        "body_codepoints": {
+          "n": 6,
+          "min": 47,
+          "q1": 99.0,
+          "median": 112.5,
+          "mean": 164.5,
+          "q3": 150.75,
+          "max": 457
+        },
+        "tag_occurrences": {
+          "n": 6,
+          "min": 0,
+          "q1": 0.0,
+          "median": 0.0,
+          "mean": 0.66666667,
+          "q3": 1.5,
+          "max": 2
+        },
+        "unique_tags_per_observation": {
+          "n": 6,
+          "min": 0,
+          "q1": 0.0,
+          "median": 0.0,
+          "mean": 0.66666667,
+          "q3": 1.5,
+          "max": 2
+        },
+        "source_refs": [
+          "B0204",
+          "B0216",
+          "B0249",
+          "B0254",
+          "B0265",
+          "B0295"
+        ]
+      }
+    },
+    "pattern_assignment_audit": {
+      "raw_structure_class_counts": {
+        "feature_point_list": 15,
+        "experience_with_caveat": 5,
+        "product_and_feature": 41,
+        "product_reference_with_tags": 36,
+        "tags_with_other_roles": 6,
+        "mixed_or_unclassified": 6,
+        "promotion_before_product": 23
+      },
+      "sum": 132,
+      "all_132_rows_have_one_structure_class": true,
+      "supplement_structural_annotations": 0,
+      "supplement_rows_not_assigned_to_patterns": 50
+    },
+    "tag_semantic_classification": {
+      "method": "本文注釈語と固定語彙の文字列一致による主カテゴリ1つの暫定分類。複数の意味を持つ可能性があり、意味判断の確定・成果との因果を示さない。",
+      "base_132_saved_result": {
+        "classification_scope": "全132件。STEP20保存値を引用し、match24/unknown108で除外していない。",
+        "distinct_exact_tag_strings_total": 927,
+        "occurrences_total": 1261,
+        "primary_categories": [
+          {
+            "code": "promotion",
+            "label": "販売・キャンペーン",
+            "distinct_exact_strings": 24,
+            "occurrences": 40
+          },
+          {
+            "code": "room",
+            "label": "ROOM・発見導線",
+            "distinct_exact_strings": 5,
+            "occurrences": 10
+          },
+          {
+            "code": "scene",
+            "label": "用途・場面・対象",
+            "distinct_exact_strings": 46,
+            "occurrences": 86
+          },
+          {
+            "code": "feature",
+            "label": "特徴・属性",
+            "distinct_exact_strings": 53,
+            "occurrences": 80
+          },
+          {
+            "code": "product",
+            "label": "商品種別・カテゴリ",
+            "distinct_exact_strings": 260,
+            "occurrences": 317
+          },
+          {
+            "code": "lifestyle",
+            "label": "生活・発信文脈",
+            "distinct_exact_strings": 19,
+            "occurrences": 47
+          },
+          {
+            "code": "other",
+            "label": "その他・判定保留",
+            "distinct_exact_strings": 520,
+            "occurrences": 681
+          }
+        ],
+        "per_string_mapping_available": false
+      },
+      "supplement_G05_50": {
+        "distinct_exact_tag_strings": 517,
+        "occurrences": 754,
+        "classification": "unavailable",
+        "reason": "既存STEP20出力には固定語彙の文字列別対応表が保存されず、補足50件へ同じ意味分類を再適用できない。意味分類を推測で補わない。"
+      },
+      "raw_row_sum_182": {
+        "classification": "not_computed",
+        "reason": "基礎の既存分類と補足の未分類を一貫した文字列別規則で統合できない。"
+      }
+    },
+    "step20_base_remeasurement_comparison": {
+      "source": "非公開作業データ/基礎/計測値.jsonl（state=full, measurement_basis=STEP20-all-132）と参照された本文ファイル132件",
+      "fields_compared": [
+        "body_codepoints",
+        "tag_occurrences",
+        "unique_displayed_tags",
+        "tag_position",
+        "url_occurrences_removed"
+      ],
+      "comparison_count": 660,
+      "mismatch_count": 0,
+      "mismatches": [],
+      "result": "132件全ての各5項目がSTEP20値と一致。"
+    },
+    "supplement_tag_source_audit": {
+      "source": "非公開作業データ/補足/G05.jsonl の50 observation行",
+      "tag_array_hashtag_entries_total": 754,
+      "body_inline_and_tag_array_mismatch_rows": [
+        {
+          "source_id": "S05-0001",
+          "embedded_hash_tokens": 0,
+          "array_hash_tokens": 10,
+          "array_hash_token_list_matches": false,
+          "position_status": "tag_list_separate_from_body_field"
+        }
+      ],
+      "nonhashtag_tag_array_items_ignored": [
+        {
+          "source_id": "S05-0002",
+          "nonhash_items": 1
+        }
+      ],
+      "note": "S05-0001はbody_fullに#トークンがなく、tags配列の10件をタグ数へ含めた。タグ位置はbody_fullから確認できないため未確認とした。S05-0002のタグ配列には#で始まらない項目が1件あり、タグ定義に従い除外。#項目は本文中13件と一致。"
+    },
+    "identity_and_deduplication": {
+      "base_permanent_post_ids_confirmed": 0,
+      "base_full_confirmed_product_key_rows": 1,
+      "base_full_unknown_product_key_rows": 131,
+      "supplement_permanent_post_or_product_keys_confirmed": 0,
+      "cross_cohort_overlap_known": false,
+      "same_post_or_product_deduplication_performed": false,
+      "deduplicated_unique_union_distribution": null,
+      "reason": "恒久投稿IDがなく、基礎全件のうち131件と補足50件の独立商品・独立投稿を確認できない。商品キーやタイトルを推測して統合しない。",
+      "author_or_product_concentration_estimable": false
+    },
+    "method": {
+      "unicode_unit": "Unicode code points; in Python len over Unicode strings. Grapheme clusters/display glyphs may contain multiple code points.",
+      "newline_normalization": "CRLF and CR normalized to LF for measurement; source text not modified.",
+      "url_rule": "Remove recognized https?:// non-whitespace URL strings before counting tags and body length. No URL occurred in 182 measurement inputs.",
+      "tag_rule": "A whitespace-delimited token beginning with ASCII # and at least one following character is one tag; exact strings only; no spelling or punctuation merging.",
+      "base_body_rule": "Normalize CRLF/CR to LF; remove recognized product URL strings; remove all displayed whitespace-delimited hashtag tokens for body length. If all tokens from the first hashtag to the end are hashtags, remove the preceding separator and an immediately preceding standalone UI label タグ:. Preserve other whitespace, punctuation and linefeeds.",
+      "supplement_body_rule": "Use body_full, removing inline hashtag tokens and URL strings using the same rule. Tags stored separately are not included in body codepoint length.",
+      "supplement_tag_rule": "Use saved tags array entries beginning with ASCII #; compare against embedded body_full tags. Do not double-count duplicate representation.",
+      "quartiles": "Sort ascending; linear interpolation at p*(n-1), p=.25/.50/.75. n=0 gives null statistics; n=1 gives the sole value for all statistics.",
+      "reaction_rule": "All 132 base rows and all 50 G05 rows included; reaction state does not filter or weight analysis.",
+      "readback_rule": "Source text is read only as input to length/tag measurement; saved-body readback is not a collection count condition.",
+      "hashes_used": false
+    },
+    "edge_case_checks": {
+      "expected_and_observed": "n=0 returns null summary; n=1 returns the single observed value for min/Q1/median/mean/Q3/max. No observed measurement row is silently dropped for either case.",
+      "emoji_and_unicode": "Base source contains supplementary-plane codepoints in 117 rows and G05 body_full in 43 rows; counted by Unicode code point, not grapheme. Source body values were not emitted.",
+      "newlines": {
+        "base_rows_with_newlines": 4,
+        "base_newline_count": 12,
+        "supplement_rows_with_newlines": 0,
+        "supplement_newline_count": 0
+      },
+      "urls_removed": 0,
+      "fullwidth_hash_marks": 0,
+      "duplicate_tag_rows": {
+        "base": 7,
+        "supplement_G05": 3
+      },
+      "no_tag_rows": {
+        "base": 8,
+        "supplement_G05": 1
+      },
+      "extreme_body_lengths": {
+        "base_min_ids": [
+          "B0308"
+        ],
+        "base_max_ids": [
+          "B0282"
+        ],
+        "supplement_min_ids": [
+          "S05-0030"
+        ],
+        "supplement_max_ids": [
+          "S05-0015"
+        ]
+      },
+      "extreme_tag_counts": {
+        "base_min_ids": [
+          "B0204",
+          "B0205",
+          "B0216",
+          "B0254",
+          "B0265",
+          "B0272",
+          "B0301",
+          "B0311"
+        ],
+        "base_max_ids": [
+          "B0003"
+        ],
+        "supplement_min_ids": [
+          "S05-0033"
+        ],
+        "supplement_max_ids": [
+          "S05-0022"
+        ]
+      }
+    },
+    "source_refs": [
+      "非公開作業データ/基礎/計測値.jsonl",
+      "非公開作業データ/基礎/本文/*.txt",
+      "非公開作業データ/統合/分類用.jsonl",
+      "非公開作業データ/統合/文型用.jsonl",
+      "非公開作業データ/補足/G05.jsonl",
+      "plan/イナゴスキル事前準備/分析/基礎長さタグ.json",
+      "plan/イナゴスキル事前準備/分析/5ジャンル候補.json",
+      "plan/イナゴスキル事前準備/分析/文型候補.json"
+    ],
+    "limitations": [
+      "182行は基礎132観測とG05補足50観測の単純合算であり、独立投稿・商品数ではない。重複排除後の統合分布は作れない。",
+      "補足50件は本文長とタグ数を別コホートで示す。検索標本であり市場構成比と見なさない。G05-T05/T06へ全50件を分類していない。",
+      "タグ意味分類の既存7分類は基礎132件の集計だけ。STEP20の文字列別カテゴリ対応表が保存されていないため、G05補足と182行合算の意味分類は再計算していない。",
+      "S05-0001はタグ10件が本文欄と別配列にあるためタグ位置を特定できない。本文長とタグ数は各々の保存フィールドから計測した。",
+      "文字数・タグ数の統計は記述値であり、売上や反応の因果効果を示さない。字数・タグ数の採用値ではない。"
+    ]
+  },
+  "updated_at": "2026-10-12T09:26:02+09:00"
+}

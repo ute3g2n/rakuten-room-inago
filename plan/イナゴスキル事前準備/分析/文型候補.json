@@ -1,0 +1,983 @@
+{
+  "version": "candidate-0.3-step35-all132",
+  "status": "proposed_not_adopted",
+  "adopted": false,
+  "basis_observations": 132,
+  "all_132_in_analysis_denominator": true,
+  "condition_status_descriptive_only": {
+    "match": 24,
+    "excluded": 0,
+    "used_as_filter": false,
+    "unknown": 108
+  },
+  "observed_structure_distribution": [
+    {
+      "structure_candidate": "product_and_feature",
+      "observation_count": 41,
+      "denominator": 132,
+      "percent": 31.1,
+      "example_observation_ids": [
+        "B0003",
+        "B0192",
+        "B0198",
+        "B0200",
+        "B0206"
+      ]
+    },
+    {
+      "structure_candidate": "product_reference_with_tags",
+      "observation_count": 36,
+      "denominator": 132,
+      "percent": 27.3,
+      "example_observation_ids": [
+        "B0004",
+        "B0189",
+        "B0190",
+        "B0191",
+        "B0194"
+      ]
+    },
+    {
+      "structure_candidate": "promotion_before_product",
+      "observation_count": 23,
+      "denominator": 132,
+      "percent": 17.4,
+      "example_observation_ids": [
+        "B0205",
+        "B0210",
+        "B0215",
+        "B0223",
+        "B0237"
+      ]
+    },
+    {
+      "structure_candidate": "feature_point_list",
+      "observation_count": 15,
+      "denominator": 132,
+      "percent": 11.4,
+      "example_observation_ids": [
+        "B0001",
+        "B0193",
+        "B0196",
+        "B0199",
+        "B0229"
+      ]
+    },
+    {
+      "structure_candidate": "tags_with_other_roles",
+      "observation_count": 6,
+      "denominator": 132,
+      "percent": 4.5,
+      "example_observation_ids": [
+        "B0197",
+        "B0203",
+        "B0230",
+        "B0234",
+        "B0269"
+      ]
+    },
+    {
+      "structure_candidate": "mixed_or_unclassified",
+      "observation_count": 6,
+      "denominator": 132,
+      "percent": 4.5,
+      "example_observation_ids": [
+        "B0204",
+        "B0216",
+        "B0249",
+        "B0254",
+        "B0265"
+      ]
+    },
+    {
+      "structure_candidate": "experience_with_caveat",
+      "observation_count": 5,
+      "denominator": 132,
+      "percent": 3.8,
+      "example_observation_ids": [
+        "B0002",
+        "B0201",
+        "B0213",
+        "B0235",
+        "B0252"
+      ]
+    }
+  ],
+  "interpretation": "Observed structural categories, not validated copywriting templates. The all-132 distribution supersedes the four-text-only frequency implications; Step35 will design templates in order.",
+  "superseded_prior_four_text_candidate_templates": {
+    "version": "candidate-0.1",
+    "sample_basis": "全文4ファイル、投稿IDなし",
+    "patterns": [
+      {
+        "pattern_id": "P01",
+        "name": "利用場面→具体的な特徴→選ぶ人→控えめな案内",
+        "role": "商品をどう使うかを短く伝える",
+        "evidence_ids": [
+          "B01/B0001",
+          "B01/B0004"
+        ],
+        "applicability": "商品事実と用途が確認できる場合",
+        "limits": [
+          "価格・在庫・効果を追加で断定しない",
+          "個人の経験を作らない"
+        ]
+      },
+      {
+        "pattern_id": "P02",
+        "name": "経験→実感の範囲→注意点→読者への問い",
+        "role": "実体験の範囲を明確に共有する",
+        "evidence_ids": [
+          "B01/B0002"
+        ],
+        "applicability": "本人が経験事実を提供し、根拠を明確にできる場合のみ",
+        "limits": [
+          "健康・身体効果は根拠なしに推奨・保証しない",
+          "架空の一人称を生成しない"
+        ]
+      },
+      {
+        "pattern_id": "P03",
+        "name": "季節・贈る場面→商品特徴→選ぶ際の確認事項→案内",
+        "role": "時期や贈答の候補として情報を整理する",
+        "evidence_ids": [
+          "B01/B0004"
+        ],
+        "applicability": "季節・用途が商品と合う場合",
+        "limits": [
+          "期限・セール・在庫は最新ページ確認なしで書かない",
+          "贈答適合は相手条件に依存"
+        ]
+      },
+      {
+        "pattern_id": "P04",
+        "name": "短い評価→具体的な理由→関連タグ",
+        "role": "短文で要点を一つだけ伝える",
+        "evidence_ids": [
+          "B01/B0003"
+        ],
+        "applicability": "短さ自体が目的に合う場合",
+        "limits": [
+          "長いタグ列を品質指標にしない",
+          "単なる感嘆だけで商品情報を補わない"
+        ]
+      }
+    ],
+    "status": "superseded_4_text_candidate_templates"
+  },
+  "hashes_used": false,
+  "ordered_candidate_patterns": [
+    {
+      "pattern_id": "P01",
+      "name": "商品参照＋特徴説明",
+      "observed_base_structure": "product_and_feature",
+      "base_observation_count": 41,
+      "denominator": 132,
+      "share_percent": 31.1,
+      "representative_observation_refs": [
+        "B0003",
+        "B0192",
+        "B0198"
+      ],
+      "role_presence_counts": {
+        "product_reference": 41,
+        "usage_scene": 14,
+        "tags": 40,
+        "feature_or_specification": 41,
+        "benefit_or_result": 22,
+        "call_to_action": 15
+      },
+      "ending_counts": {
+        "descriptive_or_other": 8,
+        "tag_marker_at_end": 26,
+        "cta_marker_at_end": 7
+      },
+      "proposed_authoring_order": [
+        "商品・カテゴリを示す",
+        "確認できる特徴・仕様を述べる",
+        "必要なら具体的な使用場面または裏付けのある便益を添える",
+        "必要に応じて案内・関連タグ"
+      ],
+      "required_elements": [
+        "確認できる商品参照",
+        "確認済みの特徴または仕様"
+      ],
+      "optional_elements": [
+        "使用場面",
+        "事実として裏付く便益",
+        "誘導",
+        "関連タグ"
+      ],
+      "use_when": "商品と確認済み特徴があり、短く説明できる。",
+      "avoid_or_fallback": "特徴を確認できない場合は作らず、P02の簡潔な事実構成を使う。",
+      "example": "[商品名]は[確認済み仕様]を備えています。[具体的な使用場面]に合わせて選ぶ際の参考に。",
+      "example_is_synthetic_role_example": true,
+      "independent_posts": null,
+      "independent_authors": null,
+      "independent_products": null
+    },
+    {
+      "pattern_id": "P02",
+      "name": "商品参照＋関連タグ",
+      "observed_base_structure": "product_reference_with_tags",
+      "base_observation_count": 36,
+      "denominator": 132,
+      "share_percent": 27.3,
+      "representative_observation_refs": [
+        "B0004",
+        "B0189",
+        "B0190"
+      ],
+      "role_presence_counts": {
+        "usage_scene": 9,
+        "tags": 36,
+        "opening_hook": 11,
+        "benefit_or_result": 21,
+        "product_reference": 36
+      },
+      "ending_counts": {
+        "descriptive_or_other": 9,
+        "tag_marker_at_end": 23,
+        "cta_marker_at_end": 4
+      },
+      "proposed_authoring_order": [
+        "商品・カテゴリを示す",
+        "確認できる事実または選ぶ場面を一つ添える",
+        "必要な場合だけ関連タグを付ける"
+      ],
+      "required_elements": [
+        "誤認のない商品参照"
+      ],
+      "optional_elements": [
+        "確認済みの特徴",
+        "使用場面",
+        "関連タグ"
+      ],
+      "use_when": "説明できる事実が少ない商品にも短い紹介を作れる。",
+      "avoid_or_fallback": "タグ数を固定せず、無関係なタグで埋めない。事実があればP01へ広げる。",
+      "example": "[商品名・カテゴリ]。 [確認できる事実または利用場面]。 [必要な関連タグ]",
+      "example_is_synthetic_role_example": true,
+      "independent_posts": null,
+      "independent_authors": null,
+      "independent_products": null
+    },
+    {
+      "pattern_id": "P03",
+      "name": "確認済み販促情報を先に置く",
+      "observed_base_structure": "promotion_before_product",
+      "base_observation_count": 23,
+      "denominator": 132,
+      "share_percent": 17.4,
+      "representative_observation_refs": [
+        "B0205",
+        "B0210",
+        "B0215"
+      ],
+      "role_presence_counts": {
+        "product_reference": 23,
+        "price_or_promotion": 23,
+        "tags": 21,
+        "feature_or_specification": 19,
+        "usage_scene": 10,
+        "benefit_or_result": 14,
+        "call_to_action": 12
+      },
+      "ending_counts": {
+        "tag_marker_at_end": 7,
+        "descriptive_or_other": 8,
+        "cta_marker_at_end": 8
+      },
+      "proposed_authoring_order": [
+        "最新の確認済み価格・キャンペーンを示す",
+        "対象商品を明示する",
+        "確認済みの特徴か利用場面を一つ添える",
+        "必要なら行動案内・関連タグ"
+      ],
+      "required_elements": [
+        "表示日時点で確認できる販促情報",
+        "対象商品の特定"
+      ],
+      "optional_elements": [
+        "特徴・仕様",
+        "使用場面",
+        "案内",
+        "関連タグ"
+      ],
+      "use_when": "価格・割引・期間・対象条件が投稿時点で確認できる。",
+      "avoid_or_fallback": "販促が未確認・失効・対象不明なら販促を省きP01またはP02へ切替。販促未確認だけで商品を保留しない。",
+      "example": "[確認済みのキャンペーン条件]の対象は[商品名]です。[確認済みの特徴]。",
+      "example_is_synthetic_role_example": true,
+      "independent_posts": null,
+      "independent_authors": null,
+      "independent_products": null
+    },
+    {
+      "pattern_id": "P04",
+      "name": "確認済み特徴の箇条書き",
+      "observed_base_structure": "feature_point_list",
+      "base_observation_count": 15,
+      "denominator": 132,
+      "share_percent": 11.4,
+      "representative_observation_refs": [
+        "B0001",
+        "B0193",
+        "B0196"
+      ],
+      "role_presence_counts": {
+        "feature_or_specification": 11,
+        "product_reference": 14,
+        "list_or_bullets": 15,
+        "opening_hook": 11,
+        "price_or_promotion": 9,
+        "benefit_or_result": 8,
+        "call_to_action": 9,
+        "tags": 15
+      },
+      "ending_counts": {
+        "descriptive_or_other": 2,
+        "tag_marker_at_end": 8,
+        "cta_marker_at_end": 5
+      },
+      "proposed_authoring_order": [
+        "商品参照または一行の導入",
+        "互いに異なる確認済み特徴を項目ごとに提示",
+        "必要なら使用場面または案内で締める",
+        "関連タグは任意"
+      ],
+      "required_elements": [
+        "区別できる確認済み事実が複数ある"
+      ],
+      "optional_elements": [
+        "商品参照",
+        "導入",
+        "使用場面",
+        "案内",
+        "関連タグ"
+      ],
+      "use_when": "2点以上の独立した仕様・特徴を読みやすく並べる価値がある。",
+      "avoid_or_fallback": "事実が一つしかなければ箇条書きで水増しせずP01/P02の文章にする。",
+      "example": "[商品名]の確認できる点：`n・[仕様A]`n・[仕様B]",
+      "example_is_synthetic_role_example": true,
+      "independent_posts": null,
+      "independent_authors": null,
+      "independent_products": null
+    },
+    {
+      "pattern_id": "P05",
+      "name": "本人の実体験＋留保",
+      "observed_base_structure": "experience_with_caveat",
+      "base_observation_count": 5,
+      "denominator": 132,
+      "share_percent": 3.8,
+      "representative_observation_refs": [
+        "B0002",
+        "B0201",
+        "B0213"
+      ],
+      "role_presence_counts": {
+        "tags": 5,
+        "product_reference": 5,
+        "usage_scene": 3,
+        "comparison": 3,
+        "feature_or_specification": 4,
+        "first_person_or_experience_marker": 5,
+        "uncertainty_or_caution": 5
+      },
+      "ending_counts": {
+        "descriptive_or_other": 2,
+        "tag_marker_at_end": 2,
+        "cta_marker_at_end": 1
+      },
+      "proposed_authoring_order": [
+        "実際に確認できる使用経験の範囲を示す",
+        "本人が観察した感想と事実を分ける",
+        "個人差・未確認点など必要な留保を添える",
+        "商品特徴・関連タグは確認できる範囲で添える"
+      ],
+      "required_elements": [
+        "本人が実際に経験したこと",
+        "経験の範囲に沿った留保"
+      ],
+      "optional_elements": [
+        "商品特徴",
+        "使用場面",
+        "関連タグ"
+      ],
+      "use_when": "本人の実使用・購入経験が事実として分かっている。",
+      "avoid_or_fallback": "経験がなければ一人称・効果を創作せずP01/P02へ切替。経験未確認だけで商品を保留しない。",
+      "example": "[本人が実際に試した条件]では[観察した感想]でした。[条件や個人差に関する留保]。",
+      "example_is_synthetic_role_example": true,
+      "independent_posts": null,
+      "independent_authors": null,
+      "independent_products": null
+    }
+  ],
+  "candidate_pattern_count": 5,
+  "candidate_pattern_observation_coverage": 120,
+  "residual_observations_included": {
+    "mixed_or_unclassified": 6,
+    "total": 12,
+    "tags_with_other_roles": 6,
+    "disposition": "not forced into standalone templates"
+  },
+  "theme_applicability": [
+    {
+      "theme_id": "G01-T01",
+      "genre_id": "G01",
+      "theme_name": "菓子・スイーツ",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G01-T02",
+      "genre_id": "G01",
+      "theme_name": "主食・麺・パン",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G01-T03",
+      "genre_id": "G01",
+      "theme_name": "肉・魚・たんぱく食材",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G01-T04",
+      "genre_id": "G01",
+      "theme_name": "青果・植物性食品",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G01-T05",
+      "genre_id": "G01",
+      "theme_name": "調味料・加工食品・惣菜",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G01-T06",
+      "genre_id": "G01",
+      "theme_name": "飲料・茶・酒",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T01",
+      "genre_id": "G02",
+      "theme_name": "スキンケア",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T02",
+      "genre_id": "G02",
+      "theme_name": "メイクアップ",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T03",
+      "genre_id": "G02",
+      "theme_name": "ヘアケア",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T04",
+      "genre_id": "G02",
+      "theme_name": "ボディ・セルフケア",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T05",
+      "genre_id": "G02",
+      "theme_name": "ウェルネス・休息",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G02-T06",
+      "genre_id": "G02",
+      "theme_name": "美容ツール・器具",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T01",
+      "genre_id": "G03",
+      "theme_name": "衣服・アウター",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T02",
+      "genre_id": "G03",
+      "theme_name": "下着・靴下",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T03",
+      "genre_id": "G03",
+      "theme_name": "靴・履物",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T04",
+      "genre_id": "G03",
+      "theme_name": "バッグ・身の回り小物",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T05",
+      "genre_id": "G03",
+      "theme_name": "帽子・アクセサリー・装身具",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G03-T06",
+      "genre_id": "G03",
+      "theme_name": "キッズ衣料",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T01",
+      "genre_id": "G04",
+      "theme_name": "調理・キッチン道具",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T02",
+      "genre_id": "G04",
+      "theme_name": "食器・食卓用品",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T03",
+      "genre_id": "G04",
+      "theme_name": "掃除・洗濯・日用品",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T04",
+      "genre_id": "G04",
+      "theme_name": "寝具・タオル・ファブリック",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T05",
+      "genre_id": "G04",
+      "theme_name": "収納・インテリア",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G04-T06",
+      "genre_id": "G04",
+      "theme_name": "生活家電・照明",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G05-T01",
+      "genre_id": "G05",
+      "theme_name": "ベビー・マタニティ",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G05-T02",
+      "genre_id": "G05",
+      "theme_name": "おもちゃ・学び",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G05-T03",
+      "genre_id": "G05",
+      "theme_name": "ペットフード",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G05-T04",
+      "genre_id": "G05",
+      "theme_name": "ペットケア・用品",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": false,
+      "note": "一般文型候補を確認済み情報に応じて使う。テーマ別効果は未検証。"
+    },
+    {
+      "theme_id": "G05-T05",
+      "genre_id": "G05",
+      "theme_name": "子ども移動・車載安全用品",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": true,
+      "note": "本人選定テーマ。基礎の意味分類・補足の構造注釈がなく、テーマ専用文型は作らない。"
+    },
+    {
+      "theme_id": "G05-T06",
+      "genre_id": "G05",
+      "theme_name": "ペット家電・見守り機器",
+      "general_candidate_patterns": [
+        "P01",
+        "P02"
+      ],
+      "conditional_patterns": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "pattern_specific_evidence": "no effect or winning structure is established at theme level",
+      "owner_selected_g05_theme": true,
+      "note": "本人選定テーマ。基礎の意味分類・補足の構造注釈がなく、テーマ専用文型は作らない。"
+    }
+  ],
+  "supplemental_style_review": {
+    "per_record_assignment": "not_done",
+    "structural_annotation_records": 0,
+    "saved_full_body_records": 50,
+    "cohort": "supplement_G05",
+    "role_annotation_records": 0,
+    "structure_candidate_null_records": 50,
+    "disposition": "No supplementary style frequency or commonality claim; review is limited to the annotation-availability finding.",
+    "included_in_base_denominator": false,
+    "separate_style_distribution": "not available",
+    "base_supplement_commonality": "unknown"
+  },
+  "identity_limits": {
+    "independent_product_count": null,
+    "known_store_product_keys_in_base_full_texts": 1,
+    "permanent_room_post_ids": 0,
+    "independent_post_count": null,
+    "unknown_store_product_keys_in_base_full_texts": 131,
+    "independent_author_count": null
+  },
+  "usage_and_effect_policy": {
+    "sales_or_revenue_effect_proven": false,
+    "copy_of_source_phrasing": false,
+    "length_or_tag_threshold_set": false,
+    "low_reaction_precomparison_required": false,
+    "unverified_price_or_personal_experience": "omit that element and use another candidate pattern",
+    "fixed_tag_count_set": false,
+    "product_hold_gate_for_unavailable_price_or_experience": false,
+    "operational_position": "hypothesis to test after authoring and posting"
+  },
+  "source_refs": [
+    "plan/イナゴスキル事前準備/分析/基礎文型.md",
+    "非公開作業データ/統合/文型用.jsonl",
+    "plan/イナゴスキル事前準備/分析/統合標本.md",
+    "plan/イナゴスキル事前準備/分析/30テーマ候補.json",
+    "plan/イナゴスキル事前準備/レビュー/分類レビュー.md",
+    "plan/イナゴ戦略/意思決定台帳.md#D-037",
+    "plan/イナゴ戦略/ヒアリング記録.md#Q-026"
+  ],
+  "ordered_step35_record": {
+    "source_distribution": 132,
+    "candidate_version": "candidate-0.3-step35-all132",
+    "all_132_used": true,
+    "recorded_at": "2026-10-12T09:14:20+09:00",
+    "supplement_frequency_claimed": false,
+    "reaction_excluded": 0,
+    "supplement_style_annotation_rows": 0,
+    "independent_identity_counts": "unknown"
+  }
+}

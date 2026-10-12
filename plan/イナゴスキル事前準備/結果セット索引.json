@@ -1,0 +1,176 @@
+{
+  "version": "confirmed-0.3-step46-all132",
+  "generated_at": "2026-10-12T12:47:56+09:00",
+  "status": "confirmed_partial_pipeline",
+  "intended_for": "本人採用済みの外部分析結果と準備工程成果物の索引。運用正本ではない。",
+  "artifact_count": 9,
+  "artifacts": [
+    {
+      "path": "ジャンルテーマ確定.md",
+      "kind": "genres_and_themes",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みの5ジャンル・30テーマ定義、所属、包含・境界、観測参照。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "本人確認記録.md",
+        "分析/30テーマ候補.json#candidate-0.4-step34-reviewed"
+      ]
+    },
+    {
+      "path": "文型ルール確定.md",
+      "kind": "writing_patterns",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みのP01～P05、商品ごとの型選択方針、基礎132件からの実例。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "本人確認記録.md",
+        "分析/文型候補.json#candidate-0.3-step35-all132",
+        "非公開作業データ/基礎/本文/B0001.txt",
+        "非公開作業データ/基礎/本文/B0002.txt",
+        "非公開作業データ/基礎/本文/B0003.txt",
+        "非公開作業データ/基礎/本文/B0004.txt",
+        "非公開作業データ/基礎/本文/B0205.txt"
+      ]
+    },
+    {
+      "path": "本文長さタグ目安確定.json",
+      "kind": "body_length_and_tags",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みの本文・タグ任意目安、単位、基礎132件の分布と例外。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "本人確認記録.md",
+        "分析/本文長さ提案.json#candidate-0.4-step37-all132",
+        "分析/タグ方針提案.json#candidate-0.4-step38-all132"
+      ]
+    },
+    {
+      "path": "初期設定引渡し.json",
+      "kind": "implementation_handoff",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:21:27+09:00",
+      "purpose": "実装担当へ渡す分類・文型・目安の採用済み外部結果セット。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "本人確認記録.md",
+        "ジャンルテーマ確定.md",
+        "文型ルール確定.md",
+        "本文長さタグ目安確定.json"
+      ]
+    },
+    {
+      "path": "本人確認記録.md",
+      "kind": "owner_confirmation",
+      "version": "candidate-0.3-step43-all132",
+      "generated_at": "2026-10-12T12:15:39+09:00",
+      "purpose": "本人の4対象一括採用と追加要件の記録。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "本人確認用概要.html"
+      ],
+      "time_note": "回答の正確な受領時刻は個別記録されていない。generated_atは記録ファイルの実ファイル更新時刻。"
+    },
+    {
+      "path": "実装受領確認.md",
+      "kind": "implementation_receipt_rehearsal",
+      "version": "receipt-review-0.1-step47-in-order",
+      "generated_at": "2026-10-12T12:24:16+09:00",
+      "purpose": "STEP47順序内受領リハーサル。外部初期設定入力としての読取可否と限界を確認。",
+      "status": "complete_in_order",
+      "adopted": false,
+      "refs": [
+        "初期設定引渡し.json",
+        "本人確認記録.md",
+        "../イナゴ戦略/要件データ辞書.md"
+      ],
+      "time_note": "この順序実行での成果物生成は未到達。既存参考資料の作成時刻は記録されていないため推定しない。"
+    },
+    {
+      "path": "レビュー/総合検証記録.md",
+      "kind": "final_audit",
+      "version": "audit-0.1-step48-in-order",
+      "generated_at": "2026-10-12T12:30:07+09:00",
+      "purpose": "全51工程、成果・本人採用・レビュー・検証・制約を順序内で監査した記録。",
+      "status": "complete_in_order",
+      "adopted": true,
+      "refs": [
+        "実行管理.json"
+      ],
+      "time_note": "記録の実施時刻を保持。"
+    },
+    {
+      "path": "結果セット索引.json",
+      "kind": "result_index",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:24:16+09:00",
+      "purpose": "9種の最終成果物と付属資料の実在・版・状態・参照を示す。",
+      "status": "complete_in_order",
+      "adopted": true,
+      "refs": [
+        "実行管理.json"
+      ]
+    },
+    {
+      "path": "事前準備完了レポート.html",
+      "kind": "human_readable_report",
+      "version": "report-0.2-step50-visual-unverified",
+      "generated_at": "2026-10-12T12:47:56+09:00",
+      "purpose": "本人採用・132件全分析・成果・実レビュー・制約を記載。STEP50の内容確認済み、実画面・印刷表示は未検証。",
+      "status": "partial_content_checked_visual_unverified",
+      "adopted": false,
+      "refs": [
+        "本人確認記録.md",
+        "ジャンルテーマ確定.md",
+        "文型ルール確定.md",
+        "本文長さタグ目安確定.json",
+        "実装受領確認.md",
+        "レビュー/総合検証記録.md",
+        "レビュー/HTML最終検証.md",
+        "実行管理.json"
+      ],
+      "time_note": "STEP50で検証結果を反映して保存した時刻。"
+    }
+  ],
+  "supplemental": [
+    "実行管理.md",
+    "実行管理.json",
+    "全文取得記録.md",
+    "基礎列挙記録.md",
+    "分析/統合標本.md",
+    "分析/5ジャンル候補.md",
+    "分析/30テーマ候補.md",
+    "文型ルール候補.md",
+    "本人確認用概要.html",
+    "事前準備完了レポート_順序外旧版.html",
+    "レビュー/HTML最終検証.md",
+    "レビュー/HTML最終検証_順序外旧版.md"
+  ],
+  "counts": {
+    "candidate_result_rows": 302,
+    "base_full_body_records": 132,
+    "partial_body_records": 1,
+    "preview_only_records": 163,
+    "unavailable_records": 6,
+    "full_body_target_approx": 130,
+    "full_body_target_met": true,
+    "verified_permanent_post_ids": 0,
+    "confirmed_store_item_key_rows": 2,
+    "unknown_product_key_rows": 300,
+    "unique_post_count": null,
+    "unique_product_count": null,
+    "unique_count_note": "恒久投稿IDと商品キーの識別が不足しているため、ユニーク投稿数・独立商品数は不明。本文保存数132件を商品数とみなさない。",
+    "g05_supplement_slots": 50,
+    "g05_supplement_is_separate_cohort": true,
+    "reaction_condition_match": 24,
+    "reaction_condition_unknown": 108,
+    "reaction_condition_exclusions": 0
+  }
+}

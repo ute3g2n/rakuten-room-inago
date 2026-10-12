@@ -1,0 +1,62 @@
+{
+  "execution_id": "20261011-01",
+  "search_ids": [
+    "B01",
+    "B01-R1",
+    "B01-R2"
+  ],
+  "cohort": "base_result_observations",
+  "target_date": "2026-10-11",
+  "timezone": "Asia/Tokyo",
+  "counts": {
+    "result_rows": 302,
+    "B01": 60,
+    "B01_R1": 113,
+    "B01_R2": 129,
+    "reobservations": 133,
+    "reflow_events": 1,
+    "full_body_files": 132,
+    "new_full_body_files": 128,
+    "partial_body_files": 1,
+    "preview_only_rows": 163,
+    "preview_unavailable_rows": 6,
+    "body_files_read_back_after_save": 0,
+    "body_product_name_pairs_required": false,
+    "condition_match_observed": 192,
+    "condition_unknown": 110,
+    "condition_out": 0,
+    "full_bodies_condition_match": 24,
+    "full_bodies_condition_unknown": 108,
+    "permanent_room_post_ids": 0,
+    "verified_store_item_keys": 2,
+    "unknown_store_item_keys": 300,
+    "verified_product_group_sizes": [
+      1,
+      1
+    ],
+    "actor_alias_rows": 80,
+    "actor_alias_unknown_rows": 222,
+    "distinct_alias_strings_recorded": 45,
+    "actor_alias_observation_linkage_available": false,
+    "unique_post_count": null,
+    "unique_product_count": null,
+    "max_observed_comments": 174,
+    "max_observed_likes": 1736,
+    "enumeration_jsonl_lines": 436,
+    "enumeration_result_rows": 302,
+    "enumeration_reobservation_rows": 133,
+    "enumeration_reflow_events": 1,
+    "hashes_used": false
+  },
+  "scope_notes": [
+    "各検索IDは別スナップショット。結果位置合計302はユニーク投稿・商品数ではない。",
+    "本文全体の目標約130件は保存ファイル132件で達成。独立投稿数は未確定。",
+    "B01は60/130表示で終端未確認。B01-R1は113/129表示で16件差。B01-R2は129/129位置で終端確認。",
+    "同じURLの後日表示132件は別スナップショットで、取得数に混ぜない。B01-R2位置44/B0232は全文未取得。",
+    "検索反応値を行別に見た条件一致は192、不明110、外れ0。閾値不明を一致とみなさない。",
+    "商品キーは2件のみ確定し、300件不明。店舗コード・商品番号・恒久ROOM投稿IDは本文数の条件ではない。",
+    "別名文字列一覧45件に観測ID対応がなく、投稿者集中率は算出しない。",
+    "再観測133件とreflow event1件は結果位置数へ加えない。過去の未保存128候補も含めない。"
+  ],
+  "hashes_used": false
+}

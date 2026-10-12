@@ -1,0 +1,230 @@
+{
+  "version": "step29-ordered-2026-10-12",
+  "execution_id": "20261011-01",
+  "step": "29",
+  "status": "complete_in_order",
+  "recorded_at": "2026-10-12T08:25:10+09:00",
+  "source_requirement_version": "1.3",
+  "cohorts": {
+    "base": {
+      "search_ids": [
+        "B01",
+        "B01-R1",
+        "B01-R2"
+      ],
+      "result_rows": 302,
+      "result_row_breakdown": {
+        "B01": 60,
+        "B01-R1": 113,
+        "B01-R2": 129
+      },
+      "full_body_files": 132,
+      "partial_body_files": 1,
+      "partial_preview_rows": 162,
+      "preview_only_rows": 1,
+      "body_unavailable_rows": 6,
+      "permanent_room_post_ids": 0,
+      "confirmed_item_key_rows": 2,
+      "unknown_item_key_rows": 300,
+      "unique_posts": null,
+      "independent_products": null
+    },
+    "supplements": {
+      "G01": {
+        "status": "not_needed",
+        "searches": 0,
+        "slots": 0
+      },
+      "G02": {
+        "status": "not_needed",
+        "searches": 0,
+        "slots": 0
+      },
+      "G03": {
+        "status": "not_needed",
+        "searches": 0,
+        "slots": 0
+      },
+      "G04": {
+        "status": "not_needed",
+        "searches": 0,
+        "slots": 0
+      },
+      "G05": {
+        "status": "collected_and_audited",
+        "search_id": "S-G05",
+        "query": "子ども・ペット用品",
+        "result_total": 101,
+        "searches": 1,
+        "slots": 50,
+        "full_body_save_successes": 50,
+        "slot_range": "1-50",
+        "excluded": "51+",
+        "permanent_room_post_ids": 0,
+        "store_item_keys": 0,
+        "unique_posts": null,
+        "independent_products": null
+      }
+    }
+  },
+  "aggregate": {
+    "source_rows": 352,
+    "unique_source_ids": 352,
+    "full_body_save_success_entries": 182,
+    "base_and_supplement_combined_unique_posts": null,
+    "base_and_supplement_combined_unique_products": null,
+    "base_supplement_overlap": "unknown"
+  },
+  "analysis_sets": {
+    "classification": {
+      "base_full_text_denominator": 132,
+      "base_full_texts_included": 132,
+      "supplement_full_text_entries": 50,
+      "supplement_role": "separate_additional_G05_evidence",
+      "reaction_status_descriptive_only": {
+        "match": 24,
+        "unknown": 108
+      },
+      "reaction_based_exclusions": 0
+    },
+    "style": {
+      "base_full_text_denominator": 132,
+      "base_full_texts_included": 132,
+      "supplement_full_text_entries": 50,
+      "supplement_excluded_from_base_distribution": 50,
+      "body_measurements_base": 132,
+      "structural_annotations_base": 132,
+      "reaction_based_exclusions": 0
+    },
+    "product": {
+      "base_result_rows": 302,
+      "confirmed_store_item_key_rows": 2,
+      "unknown_store_item_key_rows": 300,
+      "full_body_rows_with_confirmed_key": 1,
+      "full_body_rows_with_unknown_key": 131,
+      "supplement_item_keys": "not_collected",
+      "independent_product_count": "unknown"
+    }
+  },
+  "source_state_normalization": {
+    "original_mapping": "非公開作業データ/基礎/本文対応.jsonl",
+    "corrected_rows": "B01-R2の128行はsource_body_state=preview_onlyだがbody_file_exists=trueかつretrieval_status=full_savedのため、本統合表示でfullとした。原対応表は変更していない。",
+    "full_body_files_confirmed_by_reference_existence": 132,
+    "partial_file": 1,
+    "source_body_text_readback_performed": false
+  },
+  "integration_rules": {
+    "base_and_supplement_kept_separate": true,
+    "no_raw_body_copied_into_integration_outputs": true,
+    "body_readback_required": false,
+    "product_name_pair_storage_required_for_body_count": false,
+    "product_and_post_dedup": "not claimed because identifiers are incomplete",
+    "supplementation_used_for_market_share": false,
+    "step31_and_step32_base_denominator": 132,
+    "style_distribution_base_denominator": 132,
+    "hashes_used": false
+  },
+  "output_rows": {
+    "mapping": "352 rows: base302 + G05 supplement50",
+    "classification": "182 references: base132 + separate G05 supplement50",
+    "style": "182 references: base132 + separate G05 supplement50",
+    "classification_product_mapping": "352 rows; unknown identities remain null"
+  },
+  "historical_out_of_sequence_reference": {
+    "preserved_copy": "非公開作業データ/統合/履歴/STEP29-順序外参考-20261012/",
+    "prior_json": {
+      "version": "reference-only-reanalysis-2026-10-12",
+      "status": "reference_only_out_of_sequence_pending_step29",
+      "cohorts": [
+        {
+          "search_id": "B01",
+          "rows": 60,
+          "end_confirmed": false
+        },
+        {
+          "search_id": "B01-R1",
+          "rows": 113,
+          "end_confirmed": true
+        },
+        {
+          "search_id": "B01-R2",
+          "rows": 129,
+          "end_confirmed": true
+        }
+      ],
+      "combined_result_rows": 302,
+      "room_posts_with_permanent_ids": 0,
+      "distinct_verified_store_item_keys": 2,
+      "unknown_product_key_rows": 300,
+      "unique_products_confirmed": 2,
+      "known_item_key_rows_in_full_body_set": 1,
+      "unknown_item_key_rows_in_full_body_set": 131,
+      "full_body_files": 132,
+      "partial_body_files": 1,
+      "preview_only_rows": 163,
+      "body_unavailable_rows": 6,
+      "followup_visible_result_count": 129,
+      "followup_cards_with_accessible_body_container": 83,
+      "followup_added_full_body_files": 128,
+      "in_order_supplement_searches": 0,
+      "in_order_supplement_slots": 0,
+      "full_body_observations_used_in_all_current_analyses": 132,
+      "condition_split_descriptive_only": {
+        "match": 24,
+        "unknown": 108
+      },
+      "adopted": false,
+      "superseded_prior_snapshot": {
+        "combined_result_rows": 173,
+        "full_body_files": 4,
+        "partial_body_files": 1,
+        "preview_only_rows": 162,
+        "body_unavailable_rows": 6,
+        "followup_added_full_body_files": 0,
+        "status": "proposed_with_material_gaps"
+      },
+      "hashes_used": false
+    },
+    "disposition": "reference_only_not_accepted_as_ordered_step29"
+  },
+  "unresolved": [
+    "恒久ROOM投稿IDが全基礎302行で未確認。",
+    "基礎の商品キーは2/302のみ確認、300行不明。全文132件のうち1件に既知キー、131件は不明。",
+    "G05の恒久投稿ID・店舗商品キーは件数条件外として未取得。基礎/補足間とG05内の一意投稿・一意商品・重複件数は不明。"
+  ],
+  "references": [
+    "plan/イナゴスキル事前準備/レビュー/基礎標本レビュー.md",
+    "plan/イナゴスキル事前準備/レビュー/補足監査.md",
+    "plan/イナゴスキル事前準備/分析/暫定分類.json",
+    "plan/イナゴスキル事前準備/分析/30テーマ候補.json",
+    "非公開作業データ/基礎/本文対応.jsonl",
+    "非公開作業データ/基礎/識別対応.jsonl",
+    "非公開作業データ/基礎/概念注釈.jsonl",
+    "非公開作業データ/基礎/構造注釈.jsonl",
+    "非公開作業データ/基礎/計測値.jsonl",
+    "非公開作業データ/補足/G05-順序実行.jsonl"
+  ],
+  "hashes_used": false,
+  "ordered_revalidation_history": [
+    {
+      "hashes_used": false,
+      "style_base_denominator": 132,
+      "integration_rows": 352,
+      "step29_map_and_step33_map_source_sets_equal": true,
+      "recorded_at": "2026-10-12T09:04:03+09:00",
+      "unique_products": "unknown",
+      "source_ref_files_missing": 0,
+      "base_supplement_overlap": "unknown",
+      "base_rows": 302,
+      "body_readback_performed": false,
+      "style_rows": 182,
+      "raw_g05_ids_match_integrated_s05_ids": true,
+      "classification_base_denominator": 132,
+      "g05_rows": 50,
+      "classification_rows": 182,
+      "unique_source_ids": 352,
+      "reaction_filter_true_rows": 0,
+      "status": "pass_after_step27_source_gap_repair"
+    }
+  ]
+}
