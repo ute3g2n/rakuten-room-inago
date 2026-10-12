@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/room-source-v1.schema.json",
+  "title": "Fixture ROOM public-search observation",
+  "description": "A data contract only; it does not authorize browser, login, or network access.",
+  "type": "object",
+  "required": [
+    "attempt_id", "run_id", "query", "parent_refs", "level", "likes_min",
+    "max_posts", "current_search_id", "search_loaded", "internal_order_confirmed",
+    "status", "fetched_at", "end_reached", "error_code", "posts"
+  ],
+  "properties": {
+    "attempt_id": {"$ref": "#/$defs/id"},
+    "run_id": {"$ref": "#/$defs/id"},
+    "query": {"type": "string", "minLength": 1, "maxLength": 500},
+    "parent_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "level": {"enum": ["combined", "parent"]},
+    "likes_min": {"const": 300},
+    "max_posts": {"const": 50},
+    "current_search_id": {"$ref": "#/$defs/nullableId"},
+    "search_loaded": {"type": "boolean"},
+    "internal_order_confirmed": {"type": "boolean"},
+    "status": {"enum": ["observed", "partial", "unavailable"]},
+    "fetched_at": {"$ref": "#/$defs/nullableTimestamp"},
+    "end_reached": {"type": "boolean"},
+    "error_code": {"$ref": "#/$defs/nullableId"},
+    "posts": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/post"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "unavailable"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "current_search_id": {"type": "null"},
+          "search_loaded": {"const": false},
+          "internal_order_confirmed": {"const": false},
+          "fetched_at": {"type": "null"},
+          "end_reached": {"const": false},
+          "error_code": {"type": "string", "minLength": 1},
+          "posts": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["observed", "partial"]}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "current_search_id": {"$ref": "#/$defs/id"},
+          "search_loaded": {"const": true},
+          "internal_order_confirmed": {"const": true},
+          "fetched_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
+      "then": {"properties": {"error_code": {"type": "null"}}}
+    }
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "nullableId": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "nullableTimestamp": {"anyOf": [{"$ref": "#/$defs/timestamp"}, {"type": "null"}]},
+    "nullableText": {"type": ["string", "null"]},
+    "nullableCount": {"type": ["integer", "null"], "minimum": 0},
+    "post": {
+      "type": "object",
+      "required": [
+        "internal_index", "stable_room_id", "room_url", "likes", "comments",
+        "item_url", "observed_shop_id", "observed_item_id", "image_ref",
+        "actor_ref", "published_at", "evidence_ref", "observed_at", "availability"
+      ],
+      "properties": {
+        "internal_index": {"type": "integer", "minimum": 1},
+        "stable_room_id": {"$ref": "#/$defs/nullableId"},
+        "room_url": {"type": ["string", "null"], "format": "uri"},
+        "likes": {"$ref": "#/$defs/nullableCount"},
+        "comments": {"$ref": "#/$defs/nullableCount"},
+        "item_url": {"type": ["string", "null"], "format": "uri"},
+        "observed_shop_id": {"$ref": "#/$defs/nullableId"},
+        "observed_item_id": {"$ref": "#/$defs/nullableId"},
+        "image_ref": {"$ref": "#/$defs/nullableText"},
+        "actor_ref": {"$ref": "#/$defs/nullableText"},
+        "published_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "evidence_ref": {"$ref": "#/$defs/id"},
+        "observed_at": {"$ref": "#/$defs/timestamp"},
+        "availability": {"enum": ["observed", "unknown", "unavailable", "not_present", "unmatched", "expired"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

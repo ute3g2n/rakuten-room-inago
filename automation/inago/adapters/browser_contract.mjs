@@ -140,3 +140,199 @@ export function validateTrendsSnapshot(payload, expected) {
     error_code: null,
   };
 }
+
+const ROOM_REQUIRED_KEYS = Object.freeze([
+  "attempt_id",
+  "run_id",
+  "query",
+  "parent_refs",
+  "level",
+  "likes_min",
+  "max_posts",
+  "current_search_id",
+  "search_loaded",
+  "internal_order_confirmed",
+  "status",
+  "fetched_at",
+  "end_reached",
+  "error_code",
+  "posts",
+]);
+const ROOM_POST_KEYS = Object.freeze([
+  "internal_index",
+  "stable_room_id",
+  "room_url",
+  "likes",
+  "comments",
+  "item_url",
+  "observed_shop_id",
+  "observed_item_id",
+  "image_ref",
+  "actor_ref",
+  "published_at",
+  "evidence_ref",
+  "observed_at",
+  "availability",
+]);
+const ROOM_AVAILABILITY = new Set([
+  "observed",
+  "unknown",
+  "unavailable",
+  "not_present",
+  "unmatched",
+  "expired",
+]);
+
+function invalidRoom(errorCode) {
+  return { status: "invalid", posts: [], error_code: errorCode };
+}
+
+function nullableId(value) {
+  return value === null || (typeof value === "string" && SAFE_REF.test(value));
+}
+
+function nullableCount(value) {
+  return value === null || (Number.isInteger(value) && value >= 0);
+}
+
+function nullableHttpUrl(value) {
+  if (value === null) return true;
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return (
+      ["http:", "https:"].includes(url.protocol) &&
+      url.hostname.length > 0 &&
+      url.username.length === 0 &&
+      url.password.length === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validRoomPost(post) {
+  if (
+    post === null ||
+    typeof post !== "object" ||
+    Array.isArray(post) ||
+    Object.keys(post).sort().join(",") !== [...ROOM_POST_KEYS].sort().join(",")
+  ) {
+    return false;
+  }
+  return (
+    Number.isInteger(post.internal_index) &&
+    post.internal_index > 0 &&
+    nullableId(post.stable_room_id) &&
+    nullableHttpUrl(post.room_url) &&
+    nullableCount(post.likes) &&
+    nullableCount(post.comments) &&
+    nullableHttpUrl(post.item_url) &&
+    nullableId(post.observed_shop_id) &&
+    nullableId(post.observed_item_id) &&
+    (post.image_ref === null || typeof post.image_ref === "string") &&
+    (post.actor_ref === null || typeof post.actor_ref === "string") &&
+    (post.published_at === null || validTimestamp(post.published_at)) &&
+    typeof post.evidence_ref === "string" &&
+    SAFE_REF.test(post.evidence_ref) &&
+    validTimestamp(post.observed_at) &&
+    ROOM_AVAILABILITY.has(post.availability)
+  );
+}
+
+/**
+ * Validate a fixture observation for one exact ROOM search. This function does
+ * not open a browser or establish that a live connector is permitted.
+ */
+export function validateRoomSnapshot(payload, expected) {
+  if (
+    payload === null ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    expected === null ||
+    typeof expected !== "object"
+  ) {
+    return invalidRoom("response_not_object");
+  }
+  if (
+    Object.keys(payload).sort().join(",") !==
+    [...ROOM_REQUIRED_KEYS].sort().join(",")
+  ) {
+    return invalidRoom("response_shape_invalid");
+  }
+  if (
+    !SAFE_REF.test(payload.attempt_id) ||
+    !SAFE_REF.test(payload.run_id) ||
+    typeof payload.query !== "string" ||
+    payload.query.trim().length === 0 ||
+    !Array.isArray(payload.parent_refs) ||
+    payload.parent_refs.length === 0 ||
+    !payload.parent_refs.every((ref) => typeof ref === "string" && SAFE_REF.test(ref)) ||
+    new Set(payload.parent_refs).size !== payload.parent_refs.length ||
+    !["combined", "parent"].includes(payload.level) ||
+    payload.likes_min !== 300 ||
+    payload.max_posts !== 50 ||
+    payload.attempt_id !== expected.attemptId ||
+    payload.run_id !== expected.runId ||
+    payload.query !== expected.query ||
+    JSON.stringify(payload.parent_refs) !== JSON.stringify(expected.parentRefs) ||
+    payload.level !== expected.level
+  ) {
+    return invalidRoom("search_conditions_mismatch");
+  }
+  if (
+    !["observed", "partial", "unavailable"].includes(payload.status) ||
+    typeof payload.search_loaded !== "boolean" ||
+    typeof payload.internal_order_confirmed !== "boolean" ||
+    typeof payload.end_reached !== "boolean" ||
+    !Array.isArray(payload.posts) ||
+    payload.posts.length > 100 ||
+    !payload.posts.every(validRoomPost)
+  ) {
+    return invalidRoom("response_schema_invalid");
+  }
+  if (
+    payload.status === "unavailable" &&
+    (payload.current_search_id !== null ||
+      payload.search_loaded !== false ||
+      payload.internal_order_confirmed !== false ||
+      payload.fetched_at !== null ||
+      payload.end_reached !== false ||
+      typeof payload.error_code !== "string" ||
+      payload.error_code.trim().length === 0 ||
+      payload.posts.length !== 0)
+  ) {
+    return invalidRoom("failure_response_contains_stale_data");
+  }
+  if (payload.status === "unavailable") {
+    return { status: "unavailable", posts: [], error_code: payload.error_code };
+  }
+  if (
+    payload.current_search_id !== payload.attempt_id ||
+    payload.search_loaded !== true ||
+    payload.internal_order_confirmed !== true ||
+    !validTimestamp(payload.fetched_at) ||
+    (payload.status === "observed" && payload.error_code !== null) ||
+    (payload.error_code !== null &&
+      (typeof payload.error_code !== "string" || payload.error_code.trim().length === 0))
+  ) {
+    return invalidRoom("search_conditions_mismatch");
+  }
+  let lastIndex = 0;
+  for (const post of payload.posts) {
+    if (post.internal_index <= lastIndex) {
+      return invalidRoom("internal_order_invalid");
+    }
+    lastIndex = post.internal_index;
+  }
+  return {
+    status: payload.status,
+    posts: payload.posts,
+    current_search_id: payload.current_search_id,
+    search_loaded: true,
+    internal_order_confirmed: true,
+    end_reached: payload.end_reached,
+    fetched_at: payload.fetched_at,
+    error_code: payload.error_code,
+  };
+}
