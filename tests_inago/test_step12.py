@@ -355,6 +355,53 @@ def test_only_empty_or_generation_errors_retry_up_to_three_calls(
 
 
 @pytest.mark.parametrize(
+    "statuses", [["empty", "error", "success"], ["error", "error", "error"]]
+)
+def test_specialist_empty_or_error_retries_when_orchestrator_succeeds(
+    runtime_case: RuntimeCase, statuses: list[str]
+) -> None:
+    class SpecialistOutcomeRunner(FakeCopyRunner):
+        def __init__(self, child_statuses: list[str]) -> None:
+            super().__init__(["success"] * len(child_statuses))
+            self.child_statuses = list(child_statuses)
+
+        def run(self, request: AIJobRequest) -> AIJobResult:
+            result = super().run(request)
+            child = replace(result.subjobs[0], result_status=self.child_statuses.pop(0))
+            return replace(result, subjobs=(child,))
+
+    runner = SpecialistOutcomeRunner(statuses)
+    result = run_copy(runtime_case, runner)
+
+    assert result.status == (
+        "committed" if statuses[-1] == "success" else "generation_failed"
+    )
+    assert len(runner.requests) == 3
+    assert [request.attempt for request in runner.requests] == [1, 2, 3]
+    assert [
+        row[0]
+        for row in runtime_case.connection.execute(
+            "SELECT result_status FROM ai_job WHERE run_id = ? AND agent_id = 'AI-O' ORDER BY attempt",
+            (RUN_ID,),
+        ).fetchall()
+    ] == ["success"] * 3
+    assert [
+        tuple(row)
+        for row in runtime_case.connection.execute(
+            "SELECT attempt_no, outcome FROM generation_attempt WHERE run_id = ? ORDER BY attempt_no",
+            (RUN_ID,),
+        ).fetchall()
+    ] == [(index, status) for index, status in enumerate(statuses, start=1)]
+    assert [
+        row[0]
+        for row in runtime_case.connection.execute(
+            "SELECT result_status FROM ai_job WHERE run_id = ? AND agent_id = 'AG-COPY' ORDER BY attempt",
+            (RUN_ID,),
+        ).fetchall()
+    ] == statuses
+
+
+@pytest.mark.parametrize(
     "runner_kwargs",
     [
         {"offer_key": "shop_test:item_OTHER"},
