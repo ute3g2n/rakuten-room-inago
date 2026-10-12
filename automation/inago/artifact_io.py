@@ -76,45 +76,16 @@ def _existing_artifact_matches(path: Path, encoded: bytes, root: Path) -> bool:
         raise PersistenceContractError("existing artifact cannot be read") from exc
 
 
-def write_temp_response(
+def _write_encoded_artifact(
     *,
     data_root: str | Path,
     artifact_ref: str,
-    payload: Mapping[str, Any],
+    encoded: bytes,
+    extension: str,
     source_kind: str,
     created_at: str,
-    retention_expires_at: str | None = None,
+    retention_expires_at: str | None,
 ) -> ArtifactRecord:
-    """Atomically persist one JSON response before any database transaction.
-
-    The returned content hash belongs to this runtime artifact record only; the
-    function never hashes plans, source documents, repositories, or test runs.
-    A later database failure leaves the saved response file intact so the
-    same response can be offered to the repository again.
-    """
-
-    if not _ARTIFACT_REF.fullmatch(artifact_ref):
-        raise PersistenceContractError("artifact_ref must be a safe file identifier")
-    if source_kind not in _SOURCE_KINDS:
-        raise PersistenceContractError("unsupported artifact source_kind")
-    _validate_timestamp(created_at)
-    if retention_expires_at is not None:
-        _validate_timestamp(retention_expires_at)
-
-    try:
-        encoded = (
-            json.dumps(
-                dict(payload),
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-                allow_nan=False,
-            )
-            + "\n"
-        ).encode("utf-8")
-    except (TypeError, ValueError) as exc:
-        raise PersistenceContractError("response payload is not strict JSON") from exc
-
     root = Path(data_root).expanduser().resolve()
     try:
         root.mkdir(parents=True, exist_ok=True)
@@ -125,7 +96,7 @@ def write_temp_response(
             "artifact directory could not be created safely"
         ) from exc
 
-    destination = resolved_dir / f"{artifact_ref}.json"
+    destination = resolved_dir / f"{artifact_ref}{extension}"
     if destination.exists() or destination.is_symlink():
         if not _existing_artifact_matches(destination, encoded, root):
             raise IdempotencyConflict(
@@ -177,4 +148,85 @@ def write_temp_response(
         created_at=created_at,
         retention_expires_at=retention_expires_at,
         status="available",
+    )
+
+
+def write_temp_response(
+    *,
+    data_root: str | Path,
+    artifact_ref: str,
+    payload: Mapping[str, Any],
+    source_kind: str,
+    created_at: str,
+    retention_expires_at: str | None = None,
+) -> ArtifactRecord:
+    """Atomically persist one JSON response before any database transaction.
+
+    The returned content hash belongs to this runtime artifact record only; the
+    function never hashes plans, source documents, repositories, or test runs.
+    A later database failure leaves the saved response file intact so the
+    same response can be offered to the repository again.
+    """
+
+    if not _ARTIFACT_REF.fullmatch(artifact_ref):
+        raise PersistenceContractError("artifact_ref must be a safe file identifier")
+    if source_kind not in _SOURCE_KINDS:
+        raise PersistenceContractError("unsupported artifact source_kind")
+    _validate_timestamp(created_at)
+    if retention_expires_at is not None:
+        _validate_timestamp(retention_expires_at)
+
+    try:
+        encoded = (
+            json.dumps(
+                dict(payload),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise PersistenceContractError("response payload is not strict JSON") from exc
+
+    return _write_encoded_artifact(
+        data_root=data_root,
+        artifact_ref=artifact_ref,
+        encoded=encoded,
+        extension=".json",
+        source_kind=source_kind,
+        created_at=created_at,
+        retention_expires_at=retention_expires_at,
+    )
+
+
+def write_temp_response_bytes(
+    *,
+    data_root: str | Path,
+    artifact_ref: str,
+    response: bytes,
+    source_kind: str,
+    created_at: str,
+    retention_expires_at: str | None = None,
+) -> ArtifactRecord:
+    """Preserve raw CLI response bytes before parsing or contract checks."""
+
+    if not _ARTIFACT_REF.fullmatch(artifact_ref):
+        raise PersistenceContractError("artifact_ref must be a safe file identifier")
+    if source_kind not in _SOURCE_KINDS:
+        raise PersistenceContractError("unsupported artifact source_kind")
+    if not isinstance(response, bytes):
+        raise PersistenceContractError("raw response must be bytes")
+    _validate_timestamp(created_at)
+    if retention_expires_at is not None:
+        _validate_timestamp(retention_expires_at)
+    return _write_encoded_artifact(
+        data_root=data_root,
+        artifact_ref=artifact_ref,
+        encoded=response,
+        extension=".response",
+        source_kind=source_kind,
+        created_at=created_at,
+        retention_expires_at=retention_expires_at,
     )

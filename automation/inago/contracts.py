@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 
 class PersistenceContractError(ValueError):
@@ -68,3 +68,90 @@ class DraftCommitResult:
     draft_version: int
     committed_count: int
     already_committed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class CopyTarget:
+    """A program-selected offer and draft version a copy subagent may address."""
+
+    offer_key: str
+    draft_version: int
+
+
+@dataclass(frozen=True, slots=True)
+class AIJobRequest:
+    """Program-owned inputs and authorization for one AI-O root execution."""
+
+    job_id: str
+    run_id: str
+    attempt: int
+    task_id: str
+    target_date: str
+    settings_version: str
+    input_refs: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    deadline_at: str
+    deadline_monotonic: float
+    input_payload: Mapping[str, Any]
+    trigger: Literal["scheduled_daily", "user_request"]
+    explicit_user_request: bool
+    source_kind: str
+    copy_targets: tuple[CopyTarget, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AISubjobResult:
+    """One specialist result observed inside the AI-O CLI execution."""
+
+    job_id: str
+    parent_job_id: str
+    run_id: str
+    attempt: int
+    task_id: str
+    agent_id: str
+    skill_name: str
+    target_date: str
+    settings_version: str
+    input_refs: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    input_hash: str
+    deadline_at: str
+    result_status: Literal["success", "empty", "error"]
+    payload: Mapping[str, Any]
+    resolved_model: str = "unobserved"
+    reasoning_setting: str = "unobserved"
+    auth_mode: str = "unobserved"
+
+
+@dataclass(frozen=True, slots=True)
+class AIJobResult:
+    """A root AI-O outcome, separate from later program adoption."""
+
+    job_id: str
+    run_id: str
+    attempt: int
+    task_id: str
+    agent_id: str
+    skill_name: str
+    target_date: str
+    settings_version: str
+    input_refs: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    input_hash: str
+    deadline_at: str
+    result_status: Literal[
+        "success", "empty", "error", "timed_out", "cancelled", "late_result"
+    ]
+    adoption_status: Literal[
+        "pending", "accepted", "rejected_contract", "expired", "conflict"
+    ]
+    payload: Mapping[str, Any] | None
+    error: Mapping[str, Any] | None
+    artifact: ArtifactRecord | None
+    subjobs: tuple[AISubjobResult, ...] = ()
+    resolved_model: str = "unobserved"
+    reasoning_setting: str = "unobserved"
+    auth_mode: str = "unobserved"
+    process_returncode: int | None = None
+    started_at: str | None = None
+    finished_at: str | None = None

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/ai-observation-v1.schema.json",
+  "title": "AG-OBS observation result",
+  "type": "object",
+  "required": ["field", "value", "position", "ref", "availability", "unknown_reason"],
+  "properties": {
+    "field": {"type": "string", "minLength": 1},
+    "value": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "position": {"type": ["string", "integer", "null"]},
+    "ref": {"type": "string", "minLength": 1},
+    "availability": {"enum": ["observed", "unknown", "unavailable", "not_present"]},
+    "unknown_reason": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

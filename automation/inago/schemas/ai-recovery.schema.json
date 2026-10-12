@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/ai-recovery-v1.schema.json",
+  "title": "AG-RECOVERY diagnosis and resume proposal",
+  "type": "object",
+  "required": ["causes", "unfinished", "resume_proposal", "owner_actions"],
+  "properties": {
+    "causes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["hypothesis", "evidence_refs"],
+        "properties": {
+          "hypothesis": {"type": "string", "minLength": 1},
+          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "unfinished": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "resume_proposal": {"type": "string", "minLength": 1},
+    "owner_actions": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/ai-config-v1.schema.json",
+  "title": "AG-CONFIG settings proposal",
+  "type": "object",
+  "required": ["proposal_id", "reason", "diff", "affected_settings", "requires_owner_decision"],
+  "properties": {
+    "proposal_id": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1},
+    "diff": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["setting_key", "before", "after", "rationale"],
+        "properties": {
+          "setting_key": {"type": "string", "minLength": 1},
+          "before": {"type": ["string", "number", "boolean", "null"]},
+          "after": {"type": ["string", "number", "boolean", "null"]},
+          "rationale": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "affected_settings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "requires_owner_decision": {"const": true}
+  },
+  "additionalProperties": false
+}
