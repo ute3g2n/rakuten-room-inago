@@ -1,0 +1,415 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v1.schema.json",
+  "title": "Inago SQLite entity contracts",
+  "description": "Schema version 1 contracts mapped from the Q1.3 entity dictionary.",
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "date": {"type": "string", "format": "date"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "nullableTimestamp": {"anyOf": [{"$ref": "#/$defs/timestamp"}, {"type": "null"}]},
+    "nullableString": {"type": ["string", "null"]},
+    "nullableInteger": {"type": ["integer", "null"], "minimum": 0},
+    "nullablePositiveInteger": {"type": ["integer", "null"], "minimum": 1},
+    "nullableNumber": {"type": ["number", "null"]},
+    "nonNegativeNumber": {"type": ["number", "null"], "minimum": 0},
+    "nonNegativeInteger": {"type": "integer", "minimum": 0},
+    "positiveInteger": {"type": "integer", "minimum": 1},
+    "availability": {
+      "enum": ["observed", "unknown", "unavailable", "not_present", "unmatched", "expired"]
+    },
+    "genre": {
+      "type": "object",
+      "required": ["genre_id", "name", "definition"],
+      "properties": {
+        "genre_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/id"},
+        "definition": {"$ref": "#/$defs/id"}
+      },
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "object",
+      "required": [
+        "theme_id", "genre_id", "name", "definition", "included_examples",
+        "boundary_examples", "evidence_refs", "material_count", "material_kind",
+        "state", "selection_count"
+      ],
+      "properties": {
+        "theme_id": {"$ref": "#/$defs/id"},
+        "genre_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/id"},
+        "definition": {"$ref": "#/$defs/id"},
+        "included_examples": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "boundary_examples": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "material_count": {"$ref": "#/$defs/nullableInteger"},
+        "material_kind": {"$ref": "#/$defs/nullableString"},
+        "state": {"enum": ["active", "retired"]},
+        "selection_count": {"$ref": "#/$defs/nonNegativeInteger"}
+      },
+      "additionalProperties": false
+    },
+    "fact": {
+      "type": "object",
+      "required": ["field", "value", "availability", "source_ref", "observed_at", "original_display"],
+      "properties": {
+        "field": {"$ref": "#/$defs/id"},
+        "value": {"type": ["number", "string", "null"]},
+        "availability": {"$ref": "#/$defs/availability"},
+        "source_ref": {"$ref": "#/$defs/nullableString"},
+        "observed_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "original_display": {"$ref": "#/$defs/nullableString"}
+      },
+      "additionalProperties": false
+    },
+    "word": {
+      "type": "object",
+      "required": ["raw", "normalized", "source_rank", "popularity_index", "semantic_reason", "is_child"],
+      "properties": {
+        "raw": {"$ref": "#/$defs/id"},
+        "normalized": {"$ref": "#/$defs/id"},
+        "source_rank": {"$ref": "#/$defs/positiveInteger"},
+        "popularity_index": {"$ref": "#/$defs/nullableNumber"},
+        "semantic_reason": {"$ref": "#/$defs/id"},
+        "is_child": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "settings_version": {
+      "type": "object",
+      "required": ["version", "confirmed_at", "genres", "themes", "pattern_refs", "change_reason", "created_at"],
+      "properties": {
+        "version": {"$ref": "#/$defs/id"},
+        "confirmed_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "genres": {"type": "array", "items": {"$ref": "#/$defs/genre"}},
+        "themes": {"type": "array", "items": {"$ref": "#/$defs/theme"}},
+        "pattern_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "change_reason": {"$ref": "#/$defs/nullableString"},
+        "created_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "run": {
+      "type": "object",
+      "required": ["run_id", "target_date", "mode", "status", "settings_version", "seed", "started_at", "draft_deadline", "end_deadline", "attempt_used", "committed_count", "checkpoint", "metrics_status", "finished_at"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/id"},
+        "target_date": {"$ref": "#/$defs/date"},
+        "mode": {"enum": ["setup", "daily", "status", "recovery", "config-change", "export", "serve", "migrate", "backup", "restore-check", "acceptance"]},
+        "status": {"enum": ["created", "running", "complete", "partial", "failed", "shortfall", "missed"]},
+        "settings_version": {"$ref": "#/$defs/id"},
+        "seed": {"$ref": "#/$defs/id"},
+        "started_at": {"$ref": "#/$defs/timestamp"},
+        "draft_deadline": {"$ref": "#/$defs/timestamp"},
+        "end_deadline": {"$ref": "#/$defs/timestamp"},
+        "attempt_used": {"type": "integer", "minimum": 0, "maximum": 9},
+        "committed_count": {"type": "integer", "minimum": 0, "maximum": 15},
+        "checkpoint": {"$ref": "#/$defs/nullableString"},
+        "metrics_status": {"enum": ["pending", "observed", "partial", "unavailable", "not_started"]},
+        "finished_at": {"$ref": "#/$defs/nullableTimestamp"}
+      },
+      "additionalProperties": false
+    },
+    "search_attempt": {
+      "type": "object",
+      "required": ["attempt_id", "run_id", "query", "parent_refs", "level", "attempt_no", "started_at", "ended_at", "source_status", "source_order", "max_posts", "retry_of", "error_code"],
+      "properties": {
+        "attempt_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+        "query": {"$ref": "#/$defs/id"}, "parent_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "level": {"enum": ["combined", "parent"]}, "attempt_no": {"type": "integer", "minimum": 1, "maximum": 9},
+        "started_at": {"$ref": "#/$defs/timestamp"}, "ended_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "source_status": {"enum": ["observed", "partial", "unavailable", "invalid"]},
+        "source_order": {"const": "internal"}, "max_posts": {"const": 50},
+        "retry_of": {"$ref": "#/$defs/nullableString"}, "error_code": {"$ref": "#/$defs/nullableString"}
+      },
+      "additionalProperties": false
+    },
+    "source_post": {
+      "type": "object",
+      "required": ["source_key", "stable_room_id", "room_url", "attempt_id", "order_index", "likes", "comments", "item_url", "image_ref", "actor_ref", "published_at", "evidence_ref", "observed_at", "availability"],
+      "properties": {
+        "source_key": {"$ref": "#/$defs/id"}, "stable_room_id": {"$ref": "#/$defs/nullableString"},
+        "room_url": {"$ref": "#/$defs/nullableString"}, "attempt_id": {"$ref": "#/$defs/id"},
+        "order_index": {"type": "integer", "minimum": 1, "maximum": 50},
+        "likes": {"$ref": "#/$defs/nullableInteger"}, "comments": {"$ref": "#/$defs/nullableInteger"},
+        "item_url": {"$ref": "#/$defs/nullableString"}, "image_ref": {"$ref": "#/$defs/nullableString"},
+        "actor_ref": {"$ref": "#/$defs/nullableString"}, "published_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "evidence_ref": {"$ref": "#/$defs/id"}, "observed_at": {"$ref": "#/$defs/timestamp"},
+        "availability": {"$ref": "#/$defs/availability"}
+      },
+      "additionalProperties": false
+    },
+    "offer": {
+      "type": "object",
+      "required": ["offer_key", "shop_id", "item_id", "name", "url", "image_refs", "main_theme_id", "aux_theme_ids", "first_seen", "last_seen", "facts"],
+      "properties": {
+        "offer_key": {"$ref": "#/$defs/id"}, "shop_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/id"}, "url": {"type": "string", "format": "uri"},
+        "image_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "main_theme_id": {"$ref": "#/$defs/id"}, "aux_theme_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "first_seen": {"$ref": "#/$defs/timestamp"}, "last_seen": {"$ref": "#/$defs/timestamp"},
+        "facts": {"type": "array", "items": {"$ref": "#/$defs/fact"}}
+      },
+      "additionalProperties": false
+    },
+    "candidate_decision": {
+      "type": "object",
+      "required": ["decision_id", "run_id", "offer_key", "source_key", "stage", "primary_reason", "secondary_reasons", "representative_ref", "representative_likes", "rule_version", "decided_at"],
+      "properties": {
+        "decision_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+        "offer_key": {"$ref": "#/$defs/nullableString"}, "source_key": {"$ref": "#/$defs/nullableString"},
+        "stage": {"$ref": "#/$defs/id"}, "primary_reason": {"$ref": "#/$defs/id"},
+        "secondary_reasons": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "representative_ref": {"$ref": "#/$defs/nullableString"}, "representative_likes": {"$ref": "#/$defs/nullableInteger"},
+        "rule_version": {"$ref": "#/$defs/id"}, "decided_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "allOf": [{"anyOf": [{"properties": {"offer_key": {"$ref": "#/$defs/id"}}, "required": ["offer_key"]}, {"properties": {"source_key": {"$ref": "#/$defs/id"}}, "required": ["source_key"]}]}],
+      "additionalProperties": false
+    },
+    "keyword_snapshot": {
+      "type": "object",
+      "required": ["snapshot_id", "parent_word", "source", "geo", "range", "search_type", "list_type", "words", "fetched_at", "availability", "filter_decisions"],
+      "properties": {
+        "snapshot_id": {"$ref": "#/$defs/id"}, "parent_word": {"$ref": "#/$defs/id"},
+        "source": {"$ref": "#/$defs/id"}, "geo": {"const": "JP"}, "range": {"const": "90d"},
+        "search_type": {"const": "web"}, "list_type": {"const": "Top"},
+        "words": {"type": "array", "items": {"$ref": "#/$defs/word"}},
+        "fetched_at": {"$ref": "#/$defs/nullableTimestamp"}, "availability": {"$ref": "#/$defs/availability"},
+        "filter_decisions": {"type": "array", "items": {"type": "object"}}
+      },
+      "additionalProperties": false
+    },
+    "theme_selection": {
+      "type": "object",
+      "required": ["selection_id", "run_id", "theme_id", "event_kind", "count_event_id", "seed", "result_word_refs", "selected_at"],
+      "properties": {
+        "selection_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+        "theme_id": {"$ref": "#/$defs/id"}, "event_kind": {"enum": ["initial", "additional"]},
+        "count_event_id": {"$ref": "#/$defs/id"}, "seed": {"$ref": "#/$defs/id"},
+        "result_word_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "selected_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "draft": {
+      "type": "object",
+      "required": ["draft_id", "offer_key", "run_id", "version", "body", "generated_at", "committed_at", "generator_version", "pattern_version", "status", "artifact_ref", "pattern_id", "evidence_refs"],
+      "properties": {
+        "draft_id": {"$ref": "#/$defs/id"}, "offer_key": {"$ref": "#/$defs/id"},
+        "run_id": {"$ref": "#/$defs/id"}, "version": {"$ref": "#/$defs/positiveInteger"},
+        "body": {"type": "string", "minLength": 1, "pattern": "\\S"},
+        "generated_at": {"$ref": "#/$defs/timestamp"}, "committed_at": {"$ref": "#/$defs/timestamp"},
+        "generator_version": {"$ref": "#/$defs/id"}, "pattern_version": {"$ref": "#/$defs/id"},
+        "status": {"enum": ["committed", "human_edited", "posted", "skipped", "do_not_post_already_posted"]},
+        "artifact_ref": {"$ref": "#/$defs/nullableString"}, "pattern_id": {"enum": ["P01", "P02", "P03", "P04", "P05"]},
+        "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}}
+      },
+      "additionalProperties": false
+    },
+    "generation_attempt": {
+      "type": "object",
+      "required": ["generation_attempt_id", "run_id", "offer_key", "draft_id", "attempt_no", "outcome", "artifact_ref", "error_code", "started_at", "ended_at"],
+      "properties": {
+        "generation_attempt_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+        "offer_key": {"$ref": "#/$defs/id"}, "draft_id": {"$ref": "#/$defs/nullableString"},
+        "attempt_no": {"type": "integer", "minimum": 1, "maximum": 3},
+        "outcome": {"enum": ["success", "empty", "error", "in_progress"]},
+        "artifact_ref": {"$ref": "#/$defs/nullableString"}, "error_code": {"$ref": "#/$defs/nullableString"},
+        "started_at": {"$ref": "#/$defs/timestamp"}, "ended_at": {"$ref": "#/$defs/nullableTimestamp"}
+      },
+      "additionalProperties": false
+    },
+    "reservation": {
+      "type": "object",
+      "required": ["reservation_id", "offer_key", "draft_id", "status", "created_at", "released_at", "release_reason"],
+      "properties": {
+        "reservation_id": {"$ref": "#/$defs/id"}, "offer_key": {"$ref": "#/$defs/id"},
+        "draft_id": {"$ref": "#/$defs/id"}, "status": {"enum": ["active", "released"]},
+        "created_at": {"$ref": "#/$defs/timestamp"}, "released_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "release_reason": {"type": ["string", "null"], "enum": ["posted", "skipped", "valid_prior_post", null]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "active"}}}, "then": {"properties": {"released_at": {"type": "null"}, "release_reason": {"type": "null"}}}},
+        {"if": {"properties": {"status": {"const": "released"}}}, "then": {"properties": {"released_at": {"$ref": "#/$defs/timestamp"}, "release_reason": {"enum": ["posted", "skipped", "valid_prior_post"]}}}}
+      ],
+      "additionalProperties": false
+    },
+    "publication_event": {
+      "type": "object",
+      "required": ["event_id", "offer_key", "draft_id", "draft_version", "reported_at", "actual_posted_at", "room_url", "evidence_kind", "valid", "revision"],
+      "properties": {
+        "event_id": {"$ref": "#/$defs/id"}, "offer_key": {"$ref": "#/$defs/id"},
+        "draft_id": {"$ref": "#/$defs/nullableString"}, "draft_version": {"$ref": "#/$defs/nullablePositiveInteger"},
+        "reported_at": {"$ref": "#/$defs/timestamp"}, "actual_posted_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "room_url": {"type": ["string", "null"], "format": "uri"},
+        "evidence_kind": {"enum": ["human_check", "legacy_evidence", "human_statement"]},
+        "valid": {"type": "boolean"}, "revision": {"$ref": "#/$defs/nonNegativeInteger"}
+      },
+      "allOf": [
+        {"anyOf": [
+          {"properties": {"draft_id": {"type": "null"}, "draft_version": {"type": "null"}}},
+          {"properties": {"draft_id": {"type": "string"}, "draft_version": {"$ref": "#/$defs/positiveInteger"}}}
+        ]}
+      ],
+      "additionalProperties": false
+    },
+    "human_action": {
+      "type": "object",
+      "required": ["action_id", "action", "offer_key", "draft_id", "draft_version", "prior_revision", "receipt_revision", "reason", "reported_at", "old_event_ref", "new_body", "apply_status", "applied_at", "applied_run_id", "apply_error"],
+      "properties": {
+        "action_id": {"$ref": "#/$defs/id"}, "action": {"enum": ["posted", "skipped", "correction", "edit"]},
+        "offer_key": {"$ref": "#/$defs/id"}, "draft_id": {"$ref": "#/$defs/nullableString"},
+        "draft_version": {"$ref": "#/$defs/positiveInteger"}, "prior_revision": {"$ref": "#/$defs/nonNegativeInteger"},
+        "receipt_revision": {"$ref": "#/$defs/positiveInteger"}, "reason": {"$ref": "#/$defs/nullableString"},
+        "reported_at": {"$ref": "#/$defs/timestamp"}, "old_event_ref": {"$ref": "#/$defs/nullableString"},
+        "new_body": {"$ref": "#/$defs/nullableString"},
+        "apply_status": {"enum": ["pending", "applied", "rejected"]},
+        "applied_at": {"$ref": "#/$defs/nullableTimestamp"}, "applied_run_id": {"$ref": "#/$defs/nullableString"},
+        "apply_error": {"$ref": "#/$defs/nullableString"}
+      },
+      "allOf": [
+        {"if": {"properties": {"action": {"const": "correction"}}}, "then": {"properties": {"reason": {"type": "string", "minLength": 1, "pattern": "\\S"}}}},
+        {"if": {"properties": {"apply_status": {"const": "applied"}}}, "then": {"properties": {"applied_at": {"$ref": "#/$defs/timestamp"}, "applied_run_id": {"$ref": "#/$defs/id"}}}}
+      ],
+      "additionalProperties": false
+    },
+    "exclusion_key": {
+      "type": "object",
+      "required": ["offer_key", "reason", "evidence_refs", "effective", "updated_at"],
+      "properties": {
+        "offer_key": {"$ref": "#/$defs/id"}, "reason": {"const": "actual_posted"},
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/id"}},
+        "effective": {"type": "boolean"}, "updated_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "metric_observation": {
+      "type": "object",
+      "required": ["observation_id", "scope", "ref", "metric", "value", "unit", "observed_at", "window", "availability", "source_ref", "provisional"],
+      "properties": {
+        "observation_id": {"$ref": "#/$defs/id"}, "scope": {"enum": ["day_aggregate", "room_post", "order_item", "entry_post"]},
+        "ref": {"$ref": "#/$defs/id"}, "metric": {"enum": ["clicks", "likes", "sales_count", "sales_yen", "commission_unconfirmed_yen"]},
+        "value": {"type": ["number", "string", "null"], "minimum": 0}, "unit": {"enum": ["count", "JPY", "seconds", "bytes", "ratio", "text"]},
+        "observed_at": {"$ref": "#/$defs/timestamp"}, "window": {"$ref": "#/$defs/nullableString"},
+        "availability": {"$ref": "#/$defs/availability"}, "source_ref": {"$ref": "#/$defs/nullableString"},
+        "provisional": {"type": ["boolean", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "revenue_order": {
+      "type": "object",
+      "required": ["order_ref", "is_temporary_ref", "occurred_at", "shop_name", "product_name", "item_code", "product_url", "sales_yen", "commission_yen", "order_status", "link_type", "source_ref", "match_kind", "matched_offer_key", "entry_post_ref"],
+      "properties": {
+        "order_ref": {"$ref": "#/$defs/id"}, "is_temporary_ref": {"type": "boolean"},
+        "occurred_at": {"$ref": "#/$defs/nullableTimestamp"}, "shop_name": {"$ref": "#/$defs/nullableString"},
+        "product_name": {"$ref": "#/$defs/nullableString"}, "item_code": {"$ref": "#/$defs/nullableString"},
+        "product_url": {"type": ["string", "null"], "format": "uri"},
+        "sales_yen": {"$ref": "#/$defs/nonNegativeNumber"}, "commission_yen": {"$ref": "#/$defs/nonNegativeNumber"},
+        "order_status": {"$ref": "#/$defs/nullableString"}, "link_type": {"$ref": "#/$defs/nullableString"},
+        "source_ref": {"$ref": "#/$defs/id"},
+        "match_kind": {"enum": ["unmatched", "purchased_item_match", "entry_post_confirmed"]},
+        "matched_offer_key": {"$ref": "#/$defs/nullableString"}, "entry_post_ref": {"$ref": "#/$defs/nullableString"}
+      },
+      "allOf": [{"if": {"properties": {"match_kind": {"const": "entry_post_confirmed"}}}, "then": {"properties": {"entry_post_ref": {"$ref": "#/$defs/id"}}}}],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifact_ref", "path", "hash", "created_at", "source_kind", "retention_expires_at", "status"],
+      "properties": {
+        "artifact_ref": {"$ref": "#/$defs/id"}, "path": {"$ref": "#/$defs/id"},
+        "hash": {"$ref": "#/$defs/id"}, "created_at": {"$ref": "#/$defs/timestamp"},
+        "source_kind": {"enum": ["external_analysis_result", "daily", "metrics", "generation"]},
+        "retention_expires_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "status": {"enum": ["available", "expired", "missing"]}
+      },
+      "additionalProperties": false
+    },
+    "recovery": {
+      "type": "object",
+      "required": ["operation_id", "type", "run_ref", "checkpoint", "cause", "owner", "status", "backup_path", "restored_at", "validation", "observed_at"],
+      "properties": {
+        "operation_id": {"$ref": "#/$defs/id"}, "type": {"const": "recovery"},
+        "run_ref": {"$ref": "#/$defs/nullableString"},
+        "checkpoint": {"$ref": "#/$defs/nullableString"}, "cause": {"$ref": "#/$defs/nullableString"},
+        "owner": {"$ref": "#/$defs/nullableString"}, "status": {"$ref": "#/$defs/id"},
+        "backup_path": {"$ref": "#/$defs/nullableString"}, "restored_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "validation": {"$ref": "#/$defs/validation"},
+        "observed_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "backup": {
+      "type": "object",
+      "required": ["operation_id", "type", "run_ref", "checkpoint", "cause", "owner", "status", "backup_path", "restored_at", "validation", "observed_at"],
+      "properties": {
+        "operation_id": {"$ref": "#/$defs/id"}, "type": {"const": "backup"},
+        "run_ref": {"$ref": "#/$defs/nullableString"},
+        "checkpoint": {"$ref": "#/$defs/nullableString"}, "cause": {"$ref": "#/$defs/nullableString"},
+        "owner": {"$ref": "#/$defs/nullableString"}, "status": {"$ref": "#/$defs/id"},
+        "backup_path": {"$ref": "#/$defs/nullableString"}, "restored_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "validation": {"$ref": "#/$defs/validation"},
+        "observed_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "restore_check": {
+      "type": "object",
+      "required": ["operation_id", "type", "run_ref", "checkpoint", "cause", "owner", "status", "backup_path", "restored_at", "validation", "observed_at"],
+      "properties": {
+        "operation_id": {"$ref": "#/$defs/id"}, "type": {"const": "restore_check"},
+        "run_ref": {"$ref": "#/$defs/nullableString"},
+        "checkpoint": {"$ref": "#/$defs/nullableString"}, "cause": {"$ref": "#/$defs/nullableString"},
+        "owner": {"$ref": "#/$defs/nullableString"}, "status": {"$ref": "#/$defs/id"},
+        "backup_path": {"$ref": "#/$defs/nullableString"}, "restored_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "validation": {"$ref": "#/$defs/validation"}, "observed_at": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["db_integrity", "counts_match", "details_expired_filtered", "errors"],
+      "properties": {
+        "db_integrity": {"type": ["boolean", "null"]}, "counts_match": {"type": ["boolean", "null"]},
+        "details_expired_filtered": {"type": ["boolean", "null"]},
+        "errors": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "ai_job": {
+      "type": "object",
+      "required": ["job_id", "run_id", "protocol_version", "schema_version", "task_id", "agent_id", "skill_name", "attempt", "target_date", "settings_version", "input_refs", "evidence_refs", "input_hash", "deadline_at", "started_at", "finished_at", "resolved_model", "reasoning_setting", "auth_mode", "result_status", "payload", "error", "artifact_ref", "accepted_at", "adoption_status"],
+      "properties": {
+        "job_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+        "protocol_version": {"$ref": "#/$defs/id"}, "schema_version": {"$ref": "#/$defs/id"},
+        "task_id": {"enum": ["T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11"]},
+        "agent_id": {"$ref": "#/$defs/id"}, "skill_name": {"$ref": "#/$defs/id"},
+        "attempt": {"$ref": "#/$defs/positiveInteger"}, "target_date": {"$ref": "#/$defs/date"},
+        "settings_version": {"$ref": "#/$defs/id"},
+        "input_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        "input_hash": {"$ref": "#/$defs/id"}, "deadline_at": {"$ref": "#/$defs/timestamp"},
+        "started_at": {"$ref": "#/$defs/timestamp"}, "finished_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "resolved_model": {"$ref": "#/$defs/id"}, "reasoning_setting": {"$ref": "#/$defs/id"},
+        "auth_mode": {"$ref": "#/$defs/id"},
+        "result_status": {"enum": ["success", "empty", "error", "timed_out", "cancelled", "late_result"]},
+        "payload": {"type": ["object", "null"]}, "error": {"type": ["object", "null"]},
+        "artifact_ref": {"$ref": "#/$defs/nullableString"}, "accepted_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "adoption_status": {"enum": ["pending", "accepted", "rejected_contract", "expired", "conflict"]}
+      },
+      "additionalProperties": false
+    },
+    "copy_response": {
+      "type": "object",
+      "required": ["offer_key", "draft_version", "body", "pattern_id", "evidence_refs"],
+      "properties": {
+        "offer_key": {"$ref": "#/$defs/id"}, "draft_version": {"$ref": "#/$defs/positiveInteger"},
+        "body": {"type": "string", "minLength": 1, "pattern": "\\S"},
+        "pattern_id": {"enum": ["P01", "P02", "P03", "P04", "P05"]},
+        "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}}
+      },
+      "additionalProperties": false
+    }
+  }
+}
