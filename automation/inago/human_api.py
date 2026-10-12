@@ -21,9 +21,9 @@ from automation.inago.contracts import (
     IdempotencyConflict,
     RejectedContract,
 )
+from automation.inago.export import build_dashboard_state
 from automation.inago.repository import (
     ReceiptRevisionConflict,
-    read_human_action_state,
     record_pending_human_action,
 )
 
@@ -31,6 +31,26 @@ from automation.inago.repository import (
 MAX_REQUEST_BYTES = 64 * 1024
 _REQUEST_SCHEMA_PATH = (
     Path(__file__).resolve().parent / "schemas" / "human-action.schema.json"
+)
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_DASHBOARD_FILES = {
+    "/": (
+        _PROJECT_ROOT / "automation" / "inago" / "templates" / "posting-dashboard.html",
+        "text/html; charset=utf-8",
+    ),
+    "/dashboard-assets/app.js": (
+        _PROJECT_ROOT / "rakuten-room-inago" / "dashboard-assets" / "app.js",
+        "text/javascript; charset=utf-8",
+    ),
+    "/dashboard-assets/style.css": (
+        _PROJECT_ROOT / "rakuten-room-inago" / "dashboard-assets" / "style.css",
+        "text/css; charset=utf-8",
+    ),
+}
+_CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+    "img-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; "
+    "form-action 'self'; frame-ancestors 'none'"
 )
 
 
@@ -114,33 +134,63 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         self.close_connection = True
         self.wfile.write(body)
 
-    def _origin_is_valid(self) -> bool:
+    def _send_static_file(self, path: Path, content_type: str) -> None:
+        try:
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(_PROJECT_ROOT)
+            body = resolved.read_bytes()
+        except (OSError, RuntimeError, ValueError):
+            self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", _CONTENT_SECURITY_POLICY)
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        self.wfile.write(body)
+
+    def _origin_is_valid(self, *, require_origin: bool = True) -> bool:
         if self.client_address[0] != "127.0.0.1":
             return False
-        origin = self.headers.get("Origin")
         host = self.headers.get("Host")
-        if origin != self._api_server.origin or host is None:
-            return False
-        parsed = urlsplit(origin)
         expected = urlsplit(self._api_server.origin)
-        return (
-            parsed.scheme == "http"
-            and parsed.hostname == "127.0.0.1"
-            and parsed.port == expected.port
-            and parsed.netloc.lower() == host.lower()
-            and not parsed.username
-            and not parsed.password
-            and parsed.path == ""
-            and parsed.query == ""
-            and parsed.fragment == ""
-        )
+        if host is None or host.lower() != expected.netloc.lower():
+            return False
+        origin = self.headers.get("Origin")
+        if origin is None:
+            return not require_origin
+        try:
+            parsed = urlsplit(origin)
+            return (
+                parsed.scheme == "http"
+                and parsed.hostname == "127.0.0.1"
+                and parsed.port == expected.port
+                and parsed.netloc.lower() == host.lower()
+                and not parsed.username
+                and not parsed.password
+                and parsed.path == ""
+                and parsed.query == ""
+                and parsed.fragment == ""
+            )
+        except ValueError:
+            return False
 
     def do_GET(self) -> None:
-        if not self._origin_is_valid():
+        if not self._origin_is_valid(require_origin=False):
             self._send_json(
                 HTTPStatus.FORBIDDEN,
                 {"error": "origin_rejected"},
             )
+            return
+        static_file = _DASHBOARD_FILES.get(self.path)
+        if static_file is not None:
+            self._send_static_file(*static_file)
             return
         if self.path != "/api/state":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
@@ -148,7 +198,7 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         connection: sqlite3.Connection | None = None
         try:
             connection = self._api_server.connection_factory()
-            state = read_human_action_state(connection)
+            state = build_dashboard_state(connection)
             state["csrf_token"] = self._api_server.csrf_token
             self._send_json(HTTPStatus.OK, state)
         except (sqlite3.Error, OSError):
