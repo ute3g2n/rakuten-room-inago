@@ -2,13 +2,13 @@
   "schema_version": "1.0",
   "run_id": "20261011-01",
   "plan_path": "plan/イナゴスキル事前準備実行計画.md",
-  "plan_version": "1.0",
+  "plan_version": "1.3",
   "source_requirement_version": "1.3",
   "timezone": "Asia/Tokyo",
-  "status": "partial",
-  "current_step": "50",
+  "status": "in_progress",
+  "current_step": 71,
   "opened_at": "2026-10-11T10:40:49+09:00",
-  "updated_at": "2026-10-12T12:53:38+09:00",
+  "updated_at": "2026-10-12T16:22:30+09:00",
   "latest_user_instruction_update": {
     "recorded_at": "2026-10-12T08:01:53+09:00",
     "accepted_body_count": 132,
@@ -28,7 +28,7 @@
     "branch": "main",
     "upstream": "origin/main",
     "steps_01_to_05_committed_and_pushed": true,
-    "last_observed_status": "Pre-commit review: 68 in-scope plan files staged; no private/raw data paths included; branch main tracks origin/main. STEP50 visual state remains unverified."
+    "last_observed_status": "Before this run: clean main at 52ab868, tracking origin/main. STEP50 is complete by explicit user waiver; visual and print remain unverified."
   },
   "base_collection": {
     "status": "partial",
@@ -2838,10 +2838,10 @@
     {
       "step": "50",
       "title": "HTMLの内容と表示を検証して完了を確定する",
-      "status": "partial",
+      "status": "complete",
       "started_at": "2026-10-12T12:40:04+09:00",
-      "ended_at": "2026-10-12T12:43:43+09:00",
-      "time_note": "STEP50内容確認を終えた時刻を記録。実画面表示はブラウザー安全ポリシーにより未確認。",
+      "ended_at": "2026-10-12T13:45:20+09:00",
+      "time_note": "内容照合・静的確認は12:43:43に終了。13:45:20に本人が視覚・印刷確認を省略して完了とするよう明示したため、未確認のまま完了扱いに更新。",
       "inputs": [
         "前STEPの指定出力"
       ],
@@ -2868,15 +2868,935 @@
         "成果物9件の存在・版とHTML相対リンク11件の存在を確認。自己完結CSS、狭幅CSS、印刷CSSを静的確認。",
         "Codex In-app Browserでローカルfile URLを開く操作は安全ポリシーにより拒否。許可外プロトコルはhttp/httpsのみとされ、別ブラウザー・CLI・CDP等の迂回は行わなかった。",
         "デスクトップ幅、約390px幅、印刷表示の視覚確認は未実施。レイアウト崩れがないとは主張しない。",
-        "ソフトウェアテスト・ハッシュ生成/照合は実施していない。"
+        "ソフトウェアテスト・ハッシュ生成/照合は実施していない。",
+        "本人が画面表示と印刷確認を不要としてSTEP50を完了にするよう指示。実画面・印刷の未確認状態は維持し、表示合格とは扱わない。"
       ],
       "review_ref": "plan/イナゴスキル事前準備/レビュー/HTML最終検証.md",
       "return_to": null,
-      "next_step": null,
+      "next_step": "52",
       "next_actor": "指定STEPの担当",
-      "blocker": "ローカルfile URLがブラウザー安全ポリシーで拒否され、迂回禁止の指示が返ったため、デスクトップ・約390px・印刷の視覚表示は未検証。",
-      "historical_status_recorded": "partial",
-      "sequence_acceptance": "partial_in_order_visual_unverified"
+      "blocker": null,
+      "historical_status_recorded": "partial_before_explicit_user_waiver",
+      "sequence_acceptance": "complete_in_order_user_waiver_visual_unverified"
+    },
+    {
+      "step": "52",
+      "title": "詳細分析の対象132件と入力版を固定する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:46:01+09:00",
+      "ended_at": "2026-10-12T13:47:34+09:00",
+      "time_note": "対象一覧と入力節の生成・照合を終了。",
+      "inputs": [
+        "非公開作業データ/基礎/本文対応.jsonl",
+        "非公開作業データ/基礎/構造注釈.jsonl",
+        "非公開作業データ/基礎/計測値.jsonl",
+        "非公開作業データ/統合/文型用.jsonl",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/本人確認記録.md"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_records": 132,
+        "existing_full_files": 4,
+        "full_saved_files": 128,
+        "partial_files_excluded": 1,
+        "preview_only_records": 163,
+        "unavailable_records": 6,
+        "duplicate_target_ids": 0,
+        "missing_body_refs": 0,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "保存成功記録でexisting_full_file_read_back 4件とfull_saved 128件を抽出し、partial 1件を除外。",
+        "対象132件のID一意、本文参照ファイル存在、構造注釈・計測値・統合表への参照を全件確認。重複0・参照欠落0。",
+        "本文状態source_body_stateの旧preview_only表記だけでは除外せず、retrieval_statusの保存成功区分を基準に特定。",
+        "match24／unknown108、旧構造7群の合計132、反応除外0を確認。STEP50はユーザー指示により完了扱い、視覚・印刷確認は未実施。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "53",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "53",
+      "title": "詳細注釈の単位と判定規則を定義する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:47:34+09:00",
+      "ended_at": "2026-10-12T13:49:17+09:00",
+      "time_note": "仕様書の作成と全観点・規則・契約の静的確認を終了。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10.2～10.4節",
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/本文長さタグ目安確定.json"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "annotation_aspects_defined": 15,
+        "target_denominator": 132,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "第10.3節の15観点A01～A15すべてに定義・採否・注意を付与。",
+        "投稿/段落/行/文/文片/節/タグ/絵文字の単位と位置参照を定義し、文片・改行・複合絵文字の二重計数規則を明示。",
+        "present/absent/unknown/not_applicable、根拠・理由・観測/解釈/設計推奨の区分と、全132分母・型内n・複数回答・項目別欠測の集計を定義。",
+        "論理構成・表現構文・絵文字配置の3注釈JSONL契約を接続。STEP53では新しい観測値・必須スタイル・効果は主張していない。",
+        "静的確認でA01～A15の15項目、unknown規則、反応フィルタ禁止、3ファイル契約を確認。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "54",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "54",
+      "title": "132件を論理・構成・タグ機能で注釈する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:49:17+09:00",
+      "ended_at": "2026-10-12T14:23:03+09:00",
+      "time_note": "132件の注釈、根拠位置の照合、公開分析節の作成を終了。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "annotation_errors": 0,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108
+      },
+      "validation_results": [
+        "対象132 IDと注釈132 IDの集合が一致し、重複・欠落・余剰は0。",
+        "全132件で9所有観点・分母132・反応フィルターfalse・本文参照を確認。",
+        "根拠ユニットの重複、行番号範囲、抜粋と本文行の不一致、存在しない根拠参照は0。present/absent/unknownの根拠・理由要件を確認。",
+        "旧構造候補7群の分布は41/36/23/15/5/6/6で計132。状態分布と注意事項を分析書へ追記。",
+        "A03～A05の全件presentを共通技法の一律出現と誤読しない説明、CTA・真偽・因果の限界を明記。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "55",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "55",
+      "title": "全132件の言い回し・構文・定型表現・語尾を注釈化する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:23:03+09:00",
+      "ended_at": "2026-10-12T14:37:55+09:00",
+      "time_note": "132件の表現注釈、本文根拠照合、全体集計・交差分析を終了。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "validation_errors": 0,
+        "marker_families": 15,
+        "terminal_or_line_segments": 357,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "source_phrase_templates": 0
+      },
+      "validation_results": [
+        "対象IDと注釈IDは132件で一致。重複・欠落・余剰は0。",
+        "全件でA02/A06-A09/A13の状態・根拠要件を確認。STEP54由来の論理参照、位置、行番号、抜粋の不一致0。",
+        "15表層マーカー族について出現回数と使用投稿数を分離し、全レコードに分母132・reaction_condition_used_as_filter=falseを保持。",
+        "本文区間357件の長さ帯・語尾マーカーを記録し、文法上の文数・絵文字表示幅と混同しない制約を分析書へ明記。",
+        "強い/急ぎ語20投稿、同一行の根拠語候補3投稿、未検証の範囲、CTA候補と実CTAの区別、主語/指示語の確認フラグを記録。",
+        "原文抜粋は非公開注釈内の根拠に限定し、テンプレートへ直写した phrase slot は0。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "56",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "56",
+      "title": "全132件の絵文字・記号・改行・タグ接続を注釈化する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:37:55+09:00",
+      "ended_at": "2026-10-12T14:50:34+09:00",
+      "time_note": "全132件の絵文字・記号・改行・タグ配置注釈と根拠位置照合を完了。既存コードポイント値との差79件は別計数として記録。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/絵文字配置注釈.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "reaction_exclusions": 0,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "validation_errors": 0,
+        "total_units": 2506,
+        "emoji_clusters_excluding_tags": 884,
+        "posts_with_emoji": 121,
+        "posts_without_emoji": 11,
+        "tag_occurrences": 1261,
+        "tag_locations_found": 1261,
+        "tag_locations_unknown": 0,
+        "within_post_duplicate_tag_occurrences": 7,
+        "visual_only_candidates": 2,
+        "legacy_codepoint_scope_differences": 79,
+        "condition_match": 24,
+        "condition_unknown": 108
+      },
+      "validation_results": [
+        "対象132 IDと注釈132 IDの集合一致。重複・欠落・余剰、入力参照欠落、本文位置照合エラーは0。",
+        "Unicode絵文字クラスタ884（本文121投稿、絵文字なし11投稿）、タグ領域を含む総数891。コードポイント、表示クラスタ、記号、顔文字、文候補、保存改行を別単位で記録。",
+        "STEP20のタグ文字列1,261個をすべて本文位置へ照合。未知位置0、投稿内重複7出現、タグなし8投稿。",
+        "reaction_condition_used_as_filter=falseを132行で確認。反応条件は選別・重み付けに不使用。",
+        "既存body_codepointsとの差は79行。既存値を変更・合算せず、タグ文字列除外規則による今回のコードポイント計数と別記。",
+        "記号だけ/句読点片の候補2区間を根拠位置付きで保持。情報代用・意味変更・読みにくさは未確定と明記。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "57",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "57",
+      "title": "詳細注釈を全件集計し5型・その他の差を整理する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:50:34+09:00",
+      "ended_at": "2026-10-12T14:57:39+09:00",
+      "time_note": "3注釈集合を全132件で照合し、型別・観点別・複数ラベル交差集計と分析節を作成・検証。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl",
+        "非公開作業データ/文章詳細化/絵文字配置注釈.jsonl"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "logic_ids": 132,
+        "expression_ids": 132,
+        "emoji_layout_ids": 132,
+        "group_counts_sum": 132,
+        "P01": 41,
+        "P02": 36,
+        "P03": 23,
+        "P04": 15,
+        "P05": 5,
+        "residual_12": 12,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "duplicate_ids": 0,
+        "annotation_state_errors": 0,
+        "cross_tab_families": 5
+      },
+      "validation_results": [
+        "54/55/56の各注釈ID集合は対象132件と一致。重複・欠落・余剰、本文参照差、観点状態未記録、反応フィルターtrueは0。",
+        "P01～P05の型内nは41/36/23/15/5、残余12件はR01=6/R02=6で別保持。群計132。",
+        "全15観点の状態と多重ラベル、表層マーカーのpost_n/occurrence_n、文区間、絵文字・記号・段落・タグを全群/全体で集計。",
+        "導入×論理、構文×終結、段落×終結、タグ位置×終結、絵文字役割×文位置の5交差表を作成。単位・分母と多重回答の重複を明記。",
+        "反応match24/unknown108は説明用内訳のみで除外・重み付け0。共起・頻度をクリック/購入/反応の因果とは解釈しない。",
+        "公開JSONに本文全文・投稿者対応を含めず、匿名観測IDと集計のみを保存。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "58",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "58",
+      "title": "共通の書き方・根拠付き規則・型選択の契約を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T14:57:39+09:00",
+      "ended_at": "2026-10-12T15:02:38+09:00",
+      "time_note": "全件集計に基づく共通規則・根拠区分・型選択基準・17項目契約を文書化し、内容要件を照合。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/本文長さタグ目安確定.json"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "common_rule_ids": 14,
+        "type_contract_fields": 17
+      },
+      "validation_results": [
+        "本文132件を分母に維持。型別41/36/23/15/5と残余12を明記し、match24／unknown108は記述内訳のみ・反応除外0。",
+        "観測・解釈・設計推奨の区分、根拠と適用条件、共通規則W-C01～W-C14を記載。",
+        "型選択条件・重複適用時の選び方・採用済み切替条件を整理し、ローテーション・頻度優先・商品保留を追加していない。",
+        "計画第10.4節の17項目を個別の契約行として確認。短文・絵文字なし・記号装飾なし・タグなしと任意目安の例外を含む。",
+        "内容チェック、優先順位、出典参照、効果未検証の限界を記載。本文全文・投稿者対応情報の引用なし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "59",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "59",
+      "title": "P01 商品参照＋特徴説明の詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:02:38+09:00",
+      "ended_at": "2026-10-12T15:09:52+09:00",
+      "time_note": "P01の全41件と他型・残余を含む132件全体を比較し、17項目の詳細案と根拠を作成・検証。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md STEP57",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P01": 41,
+        "other_types_and_residual": 91,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "annotation_sets_each_132": 3,
+        "p01_rule_count": 17
+      },
+      "validation_results": [
+        "対象132件からP01 41一意IDを抽出。P01内n=41、P01以外=91、群合計=132。",
+        "論理・表現・絵文字の注釈集合は各132一意IDで対象集合と一致。reaction_condition_used_as_filter=false、match24/unknown108を記述内訳のみ。",
+        "P01-W01～W17を各項目の入力・手順・構文・省略/切替・例・根拠・確認へ対応づけた。",
+        "P01と全132件の型別・全体比較を記載。本文例はB0228/B0272の短い抜粋。B0259とB0303は本文完全一致のため独立した言い回し根拠として二重評価しない。",
+        "P01のタグ分布・絵文字なし4件・絵文字密度・文区間・留保等を観測と設計推奨に分け、任意目安を必須化していない。",
+        "出典不明の仕様・効果・人気・販促・本人経験を生成に使わない切替と独自弱例の修正を記載."
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "60",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "60",
+      "title": "P02 商品参照＋関連タグの詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:09:52+09:00",
+      "ended_at": "2026-10-12T15:14:39+09:00",
+      "time_note": "P02旧観測36件と全132件を比較し、商品識別・短文構成・任意タグ/絵文字・切替を17規則で作成。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md STEP57",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P02": 36,
+        "other_types_and_residual": 96,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P02 36件、P02以外96件、全体132件を比較。群合計132、反応条件による除外・重み付け0。match24/unknown108は記述内訳のみ。",
+        "P02-W01～W17を作成。各規則に入力条件・判断、手順、構文候補、省略/切替、具体例、根拠、確認欄あり。",
+        "P02と全体・他群の分子/分母、タグ、絵文字、文構成、販促・評価表現を比較し、観測・解釈・設計推奨と真偽未確認を区別。",
+        "P02群36/36のタグ出現は旧ラベル条件と明記し、生成時の必須条件にせず、5～12個は任意、タグなし・絵文字なし・短文を許容。",
+        "短い実例、仮想独自例、弱い例→修正、確認済み情報増加時のP01/P04切替を記載。P02.mdは29998 bytes、258行、W01～W17の17見出し。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "61",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "61",
+      "title": "P03 確認済み販促情報を先に置く詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:16:00+09:00",
+      "ended_at": "2026-10-12T15:19:20+09:00",
+      "time_note": "P03旧観測23件を本文読取し、A12状態・販促語・導入と詳細役割順を全132件で比較。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md STEP57",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P03": 23,
+        "other_types_and_residual": 109,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P03対象23IDは一意23、本文ファイル存在23/23、原本文23件を読取。P03以外109、全群合計132。",
+        "A12数値/販促/社会的証明状態はP03 present23/absent0/unknown0、全体99/32/1、P03以外76/32/1。A12 presentを有効販促の証明とは扱わない。",
+        "販促/根拠語はP03 23/23、全体91/132。A01導入ラベルとA03詳細役割順を比較。P03は21系列で最多3/23、全体114系列で最多15/132。",
+        "全132件のP03以外109件も集計に含め、match24/unknown108は副次内訳、反応除外0。",
+        "P03-W01～W17の各7欄、数値/条件/時点/対象、販促未確認・期限切れ時の別型切替、無絵文字・タグなし、任意CTA、仮想例・弱例修正を確認。P03.mdは29514 bytes・253行。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "62",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "62",
+      "title": "P04 確認済み特徴の箇条書きの詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:19:20+09:00",
+      "ended_at": "2026-10-12T15:23:26+09:00",
+      "time_note": "P04旧観測15件の本文・根拠と全132件の列挙・構文・記号配置を照合。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md STEP57",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P04.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P04": 15,
+        "other_types_and_residual": 117,
+        "condition_match": 4,
+        "condition_unknown": 11,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P04対象15IDは一意15、本文ファイル存在15/15、原本文15件を読取。P04以外117、全群132。",
+        "P04-W01～W17の全規則に入力条件・手順・構文・省略/切替・具体例・根拠・確認欄を記載。",
+        "箇条書き記号P04=12/15、全体49/132。絵文字P04=15/15でも全体の絵文字なし11/132、タグなし8/132の例外を設計に反映。",
+        "特徴2点以上の既存適用条件、非重複の特徴選別、粒度・並列性・配置・P01/P02等への切替を記載。",
+        "A12 present/absent/unknownはP04=13/2/0、全体=99/32/1、他群=86/30/1。効果未実証・本文真偽未確認を明記。",
+        "B0001/B0277は商品紹介本文がほぼ同じでタグ配置に差があり、完全重複とは扱わない。P04.mdは28667 bytes、257行。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "63",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "63",
+      "title": "P05 本人の実体験＋留保の詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:23:26+09:00",
+      "ended_at": "2026-10-12T15:26:18+09:00",
+      "time_note": "P05旧観測5件の本文を読み、全132件の一人称・留保・主張・時制と比較。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md STEP57",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P04.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P05": 5,
+        "other_types_and_residual": 127,
+        "condition_match": 2,
+        "condition_unknown": 3,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P05対象5IDは一意5、本文ファイル存在5/5、原本文5件を読取。P05以外127、全群132。",
+        "P05-W01～W17の全規則に入力・手順・構文・省略/切替・具体例・根拠・確認欄を記載。",
+        "明示一人称3/5、全体37/132。P05群内の一人称・購入後期待・第三者記述と本人の実体験を分離。",
+        "留保節5/5と全体102/132、A07 caveat5/5と全体68/132を比較。個人経験だけで効果・安全を一般化しない。",
+        "P05 A12 present/absent/unknown=3/2/0、全体=99/32/1、他群=96/30/1。絵文字・タグなし/ありを強制しない。",
+        "B0002/B0235の中心経験本文がほぼ同じこと、B0201の使用前期待、B0213/B0252の本人経験不明を区別。P05.mdは28240 bytes・251行。match2/unknown3は説明のみ、反応除外0."
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "64",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "64",
+      "title": "5型を選び一文ずつ作る生成・編集手順へ統合する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:26:18+09:00",
+      "ended_at": "2026-10-12T15:29:21+09:00",
+      "time_note": "5型の詳細・共通規則と採用済み条件を照合し、一商品入力票、選択・編集手順、直接使用プロンプトを候補統合文書へ追記。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P04.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P01～P05各17規則、ID01～17連続、各規則に入力・手順・構文・切替・具体例・根拠・確認欄があることを構造照合。",
+        "1商品ごとの入力票に識別、焦点、読者/場面、確認済み特徴、販促、本人経験、第三者評価、文体、タグ/案内、不明点を記載。",
+        "P05本人経験、P03現行販促、P04独立特徴2点以上、P01特徴1点以上、P02情報限定の採用済み条件を維持。複数候補時は目的と根拠から主型を選び、ローテーションしない。",
+        "事実→焦点→型→構成/表現→装飾/案内→校正の手順、修正優先順位、直接利用プロンプトと出力欄分離を作成。一投稿一商品単位で、文法上一文に固定しない。",
+        "基礎132件全件、match24/unknown108は記述内訳のみ、反応による除外・重み付け0を明記。バズ・反応・売上効果未検証。追加コード・専用skillなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "65",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "65",
+      "title": "全5型の独自適用見本と修正過程を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:29:21+09:00",
+      "ended_at": "2026-10-12T15:34:55+09:00",
+      "time_note": "20件の架空適用見本と型別修正例を作成。任意文字数を強制せず、絵文字・タグ条件を明記。P04-03の入力条件と記号使用の矛盾を解消。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10節",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md STEP58/64",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P04.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "hypothetical_cases_target": 20,
+        "cases_per_type": 4
+      },
+      "validation_results": [
+        "P01～P05各4ケース、計20ケースを目視確認。各型に通常・焦点差・絵文字なし・情報不足/切替を配置。",
+        "全20ケースに架空入力、型/理由、規則ID、本文案、任意目安・タグ/締め、絵文字の扱い、事実範囲の説明を記載。文字数目安は強制しない。",
+        "P03で有効販促と期限切れ販促を対比し、P05で本人経験ありとなしを対比。各型に弱い初稿・問題・修正・規則根拠あり。",
+        "全132件分析の母数を維持。見本は架空で、原投稿の抜粋・反応実験・ソフトウェアテストとしていない。match24/unknown108は除外・重み付け0。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "66",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "66",
+      "title": "全件分析・5型全規則・適用見本を内容レビューする",
+      "status": "complete",
+      "started_at": "2026-10-12T15:34:55+09:00",
+      "ended_at": "2026-10-12T15:46:21+09:00",
+      "time_note": "STEP65を順序内で完了。全132件の注釈・集計、5型全17規則、統合手順、20件の適用見本を内容照合する。同一実行内の自己レビューとして記録し、独立審査とは表現しない。P05固有ルールはP05分類の実投稿5件を根拠に確認する。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md STEP66",
+        "plan/イナゴスキル事前準備/実行管理.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細集計.json",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P02.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P03.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P04.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md",
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md",
+        "plan/イナゴスキル事前準備/非公開作業データ/132件本文・注釈"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "対象132件はID一意132、本文参照切れ0。3注釈集合はいずれも132 IDで対象と一致し、重複・欠落・余剰・reaction_filter_trueは0。",
+        "構造群P01/P02/P03/P04/P05/R01/R02は41/36/23/15/5/6/6で合計132。match24／unknown108は記述内訳のみ。",
+        "P01～P05は各17規則、各規則の7項目を確認。20ケースと生成手順を確認し、型ローテーション・反応条件による除外なし。",
+        "自己レビューとして書き方詳細レビュー.mdを作成。F66-01として、P05の5件を根拠に型固有ルールを決める表現へ修正する指摘を特定。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "67",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "running",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "67",
+      "title": "指摘を修正し影響する集計・規則・見本を再確認する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:46:21+09:00",
+      "ended_at": "2026-10-12T15:56:02+09:00",
+      "time_note": "STEP67開始を記録。終了時刻は未記録。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md",
+        "plan/イナゴスキル事前準備実行計画.md",
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/詳細書き方/P05.md",
+        "plan/イナゴスキル事前準備実行計画.md",
+        "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_denominator": 132,
+        "p05_denominator": 5,
+        "reaction_filter_exclusions": 0
+      },
+      "validation_results": [
+        "レビューF66-01を修正。P05分類済み5件すべてを行別に使い、本人実使用/到着後期待/問題提起の商品案内/仕様・注意の差からP05固有の構成・語尾・絵文字・締めを決定。",
+        "反応条件はP05 match2/unknown3を記述内訳として維持し、5件をすべて含めた。132件と3注釈集合の分母・IDは変更せず、反応除外0。",
+        "詳細書き方/P05.md、統合手順、STEP63/67計画指示を更新。B0002/B0235は両方分母に保持し、近似本文として独立型扱いしない。",
+        "適用見本20件・P05 4件を再確認し、P05-03の誤ったW14参照をW09へ修正。全5型17規則と7項目欄、P05根拠行5件を確認。",
+        "レビュー記録にF66-01解消と再確認結果を追記。原本文・注釈・集計は変更せず、テストは実施していない。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "68",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "68",
+      "title": "詳細な書き方を最終MD・JSONと引渡しへ反映する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:57:05+09:00",
+      "ended_at": "2026-10-12T16:11:01+09:00",
+      "time_note": "P01～P05各17規則と共通14規則をMD・JSONへ統合。P05規則はB0002、B0201、B0213、B0235、B0252の5件だけから導出し、他127件/全132件は比較文脈のみ。基本採用状態は維持。",
+      "inputs": [
+        "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md～P05.md",
+        "plan/イナゴスキル事前準備/文型詳細ルール候補.md",
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/文型詳細ルール.json",
+        "plan/イナゴスキル事前準備/初期設定引渡し.json",
+        "plan/イナゴスキル事前準備/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "p05_rule_basis_records": 5,
+        "pattern_rules_per_type": 17,
+        "common_rules": 14
+      },
+      "validation_results": [
+        "5型各17規則、共通14規則。型別85規則IDに重複なし、各規則の7フィールド空欄なし。",
+        "P05固有ルールの決定根拠はB0002/B0201/B0213/B0235/B0252のみ。他群127件・全132件集計は比較文脈のみ。反応条件除外・重み付け0。",
+        "MD/JSON、引渡し、索引の基礎版・詳細候補版・状態を照合。確認済みbase confirmed-0.3-step46-all132を維持。",
+        "参照先34件の実在を確認。公開追加分に非公開本文全文を含めない。JSON parse/整合検証PASS。テスト未実施。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "69",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "69",
+      "title": "最終HTMLに5型の詳細ルールと全件分析を掲載する",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md STEP69",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/文型詳細ルール.json",
+        "plan/イナゴスキル事前準備/分析/書き方詳細分析.md",
+        "plan/イナゴスキル事前準備/分析/書き方注釈仕様.md",
+        "plan/イナゴスキル事前準備/分析/書き方適用見本.md",
+        "plan/イナゴスキル事前準備/事前準備完了レポート.html"
+      ],
+      "status": "complete",
+      "started_at": "2026-10-12T16:11:01+09:00",
+      "ended_at": "2026-10-12T16:18:50+09:00",
+      "time_note": "5型の詳細書き方候補と全件分析をHTML本文へ掲載。各型17規則・共通14規則、基礎132件の分析方法・単位・型内n・残余・観測と推奨の区別、実例5件、仮想見本20件、全71工程表を反映。",
+      "output_paths": [
+        "plan/イナゴスキル事前準備/事前準備完了レポート.html",
+        "plan/イナゴスキル事前準備/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "pattern_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5
+        },
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "fictional_cases": 20,
+        "workflow_rows": 71,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "5型別85規則と共通14規則を掲載。実例は各型1件、仮想適用見本は20件。",
+        "母数132、詳細注釈単位、型内n、残余12、観測/解釈/設計推奨、反応効果未実証を記述。P05固有ルールは指定5件のみを根拠と明記。",
+        "工程表は01～50、19R、52～71の71行。STEP51は作らず、STEP69完了、STEP70実行中、STEP71未着手を表示。",
+        "静的確認PASS: 19 unique page IDs、内部リンク切れ0、型別ルール99（共通14+型別85）、仮想例20、追加工程20行。12 source paths exist.",
+        "狭幅・印刷用CSSを用意。視覚確認は次STEP70で可否と実績を記録。STEP50のユーザー指示による完了扱い・視覚未確認を維持。テスト未実施。"
+      ],
+      "review_ref": null,
+      "next_step": "70",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "70",
+      "title": "詳細版の内容を照合し表示確認の可否と実績を記録する",
+      "status": "complete",
+      "started_at": "2026-10-12T16:18:50+09:00",
+      "ended_at": "2026-10-12T16:22:30+09:00",
+      "time_note": "MD/JSON/HTMLを内容照合し、全体母数・型内n・85規則/14共通規則・20例・71工程を確認。許可済みの実表示は取得できず、file: URLがブラウザーポリシーで拒否されたため、幅別/印刷視覚確認を未確認と記録。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md STEP70",
+        "plan/イナゴスキル事前準備/文型ルール確定.md",
+        "plan/イナゴスキル事前準備/文型詳細ルール.json",
+        "plan/イナゴスキル事前準備/事前準備完了レポート.html"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/レビュー/書き方詳細版最終確認.md",
+        "plan/イナゴスキル事前準備/事前準備完了レポート.html",
+        "plan/イナゴスキル事前準備/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "fictional_cases": 20,
+        "workflow_rows": 71,
+        "missing_anchors": 0,
+        "visual_desktop": "unverified",
+        "visual_390px": "unverified",
+        "visual_print": "unverified"
+      },
+      "validation_results": [
+        "MD/JSON/HTMLの版・状態、P01～P05各17規則、共通14規則、全132件の母数と観測数が一致。P05ルールは指定5件のみから決定。",
+        "HTML内部アンカー切れ0、規則カード99、仮想例20、工程行71、詳細参照12件実在。",
+        "Codex preview returned queued without rendered view. In-app Browser rejected local file: URL under browser security policy; no alternate surface or route used.",
+        "デスクトップ・約390px幅・印刷の視覚確認は未確認。CSSの存在を実表示の合格とは扱わない。STEP50のユーザー指示による完了扱いと視覚未確認を維持。",
+        "テスト未実施。静的内容照合は合格。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/書き方詳細版最終確認.md",
+      "return_to": null,
+      "next_step": "71",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132_visual_unverified"
+    },
+    {
+      "step": "71",
+      "title": "詳細ルールの受領内容を確認し今回の成果物を納品する",
+      "status": "running",
+      "started_at": "2026-10-12T16:22:30+09:00",
+      "ended_at": null,
+      "time_note": "",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md STEP71",
+        "plan/イナゴスキル事前準備/実装受領確認.md",
+        "plan/イナゴスキル事前準備/結果セット索引.json"
+      ],
+      "output_paths": [
+        "plan/イナゴスキル事前準備/実装受領確認.md",
+        "plan/イナゴスキル事前準備/実行管理.md",
+        "plan/イナゴスキル事前準備/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": null,
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "running_in_order"
     }
   ],
   "execution_audit": [
@@ -3135,6 +4055,159 @@
       "followup_checkpoints": [
         "許可済みのレンダリングプレビューが得られた場合のみ画面幅・印刷確認を追加できる。現状の未検証状態は最終HTMLと本記録へ明記"
       ]
+    },
+    {
+      "step": "58",
+      "recorded_at": "2026-10-12T15:02:38+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "STEP57全件集計と注釈仕様、本人採用済み文型、任意目安を参照。",
+        "P01～P05=41/36/23/15/5、残余R01/R02=6/6、母数132。match24／unknown108を記述内訳として維持し、除外・重み付け0。",
+        "共通規則W-C01～W-C14、根拠区分、型選択と切替、競合時の優先順位、生成後確認を記載。",
+        "第10.4節の17項目を契約表の17行として確認。型別詳細はSTEP59～63に残した。",
+        "短い事実文、装飾なし、絵文字なし、タグなしを許容し、長さ・タグ目安は任意として維持。",
+        "効果未検証、画面表示・印刷未確認を保持。原文全文・投稿者対応情報の引用なし。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP59でP01の17項目を型内41件と全132件比較で具体化する。"
+      ]
+    },
+    {
+      "step": "59",
+      "recorded_at": "2026-10-12T15:09:52+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P01旧構造群41件とP01以外91件を全132件比較。型別頻度を優先順位に使用しない。",
+        "P01-W01～W17を作成し、根拠分子/分母、観測/解釈/設計推奨、例・切替・内容確認を対応。",
+        "注釈3集合は対象132IDと一致。反応除外0、match24/unknown108は記述内訳のみ。",
+        "短い原文例2件、仮想独自例、弱い例の修正、重複本文・絵文字なし・タグなし・長さ等の境界を含む。",
+        "効果未検証・原文の真偽未確認を明記し、既存採用条件を保持。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP60でP02 36件と他型・残余を含む全132件を比較し、簡潔な商品紹介とタグ接続の17項目を作成する。"
+      ]
+    },
+    {
+      "step": "60",
+      "recorded_at": "2026-10-12T15:14:39+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P02旧構造群36件、その他96件、全件132分母。reaction filter/exclusion=0。",
+        "P02-W01～W17と17項目契約に沿う詳細規則、根拠・型内n・全体比較・例・切替を記載。",
+        "タグ5～12、絵文字、CTA、文長を強制せず、タグなし・短文・絵文字なしを明示。",
+        "生成推奨の効果は未検証、原投稿の主張真偽は未確認と区別。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP61でP03 23件と全132件を比較し、販促条件・未確認時の切替を具体化する。"
+      ]
+    },
+    {
+      "step": "61",
+      "recorded_at": "2026-10-12T15:19:20+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P03 23件、P03以外109件、全132件。P03原本文23件を読取。",
+        "A12 present/absent/unknownはP03 23/0/0、全体99/32/1。販促の有効性と区別。",
+        "販促語・A01導入・A03役割順を型内と全体で比較。系列頻度から固定順を導かない。",
+        "P03-W01～W17各項目、条件・期限・数値、別型切替、例・限界を記録。reaction filter/exclusion=0."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP62でP04旧観測15件と全132件を比較し、特徴2点以上の列挙条件と配置規則を作成する。"
+      ]
+    },
+    {
+      "step": "62",
+      "recorded_at": "2026-10-12T15:23:26+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P04 15件、他群117件、全132件。P04の原本文15件を読取.",
+        "P04-W01～W17、17項目、特徴粒度・項目構文・導入/順序・記号/絵文字/タグ配置・別型切替を記載.",
+        "P04の箇条書き記号12/15、絵文字あり15/15、タグあり15/15は旧群観測。全体の反例を保持し必須化しない.",
+        "reaction filter/exclusion=0、match24/unknown108は内訳のみ。効果・真偽未検証."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP63でP05旧観測5件の少数性を明示し、全132件中の体験/主観/留保と他型混在を比較する。"
+      ]
+    },
+    {
+      "step": "63",
+      "recorded_at": "2026-10-12T15:26:18+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P05 5件、他群127件、全132件。原本文5件を読取。",
+        "本人経験要件・時制・条件・観察・感想・留保・効果一般化防止・別型切替をP05-W01～W17へ反映。",
+        "A02一人称3/5・37/132、A07 caveat5/5・68/132、A12 status3/2/0・99/32/1。",
+        "反応除外0。match2/unknown3は内訳のみ。旧群の少数性と近似本文、経験を示さない例を明記。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP64で5型を商品情報と依頼焦点から選ぶ手順、入力欄、編集順、直接使える生成プロンプトへ統合する。"
+      ]
+    },
+    {
+      "step": "64",
+      "recorded_at": "2026-10-12T15:29:21+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P01～P05の17規則・採用条件を照合。",
+        "一商品ごとの入力フィールド、事実の状態、型選択表、編集手順、直接使用プロンプトを作成。",
+        "複数型の競合は目的と確認済み情報で決め、頻度・型順・反応条件でローテーション/選別しない。",
+        "1商品1案を個別生成する。文法上の一文数・絵文字/タグ/CTAを固定しない。",
+        "全132件、match24/unknown108は内訳のみ、reaction exclusions/weight=0。専用skill/コード追加なし."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP65で全5型各4ケース、計20の仮想商品入力・本文・規則根拠・弱い初稿の修正例を作成する。"
+      ]
+    },
+    {
+      "step": "68",
+      "recorded_at": "2026-10-12T16:11:01+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "5型各17規則・共通14規則、85 ID一意、全詳細項目が記入済み。",
+        "P05固有ルールの根拠は5件のみ。132件全体は比較文脈でありP05規則の導出に使用していない。",
+        "confirmed base statusを保持し、候補詳細版を引渡し・索引へ接続。参照切れ0。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP69でHTML完了レポートを5型の詳細書き方・132件根拠に合わせて更新する。"
+      ]
+    },
+    {
+      "step": "69",
+      "recorded_at": "2026-10-12T16:18:50+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "HTML本文に型別85規則・共通14規則、全132件の分析方法、5実例、20仮想ケースを掲載。",
+        "HTML工程表に全71工程を掲載。step51はなく、69完了・70実行中・71未着手。",
+        "静的確認で内部アンカー切れ0、ルール99、仮想例20、参照先12件実在。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP70でHTML/MD/JSONの内容を照合し、許可済みプレビューの有無と視覚確認の実績を記録する。"
+      ]
+    },
+    {
+      "step": "70",
+      "recorded_at": "2026-10-12T16:22:30+09:00",
+      "result": "completed_in_order_all132_visual_unverified",
+      "checks": [
+        "MD/JSON/HTML内容照合に重大差異なし。",
+        "許可済みプレビューは描画結果を返さず、file: URL拒否後の代替経路を試していない。視覚・印刷は未確認。",
+        "STEP50のユーザー指示による完了扱いと視覚未確認を保持。"
+      ],
+      "blockers": [
+        "デスクトップ・390px幅・印刷の視覚結果は未確認。"
+      ],
+      "followup_checkpoints": [
+        "STEP71で詳細ルールの受領可能性・Git対象範囲を確認し納品する。"
+      ]
     }
   ],
   "historical_out_of_sequence_execution_audits": [
@@ -3213,9 +4286,36 @@
         "37",
         "38"
       ]
+    },
+    {
+      "recorded_at": "2026-10-12T13:45:20+09:00",
+      "instruction": "画面表示・印刷確認は不要としてSTEP50を完了扱いにし、STEP52～71を1つずつ順番に実行する。視覚確認を実施済みとは記録しない。",
+      "applied_to_step": "50",
+      "future_steps": [
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71"
+      ]
     }
   ],
-  "latest_execution_update": "STEP50の内容照合・静的確認を順序内で実施。ローカルfile URLプレビューは安全ポリシーで拒否され、迂回しないためデスクトップ/390px/印刷は未検証。状態はpartial_in_order_visual_unverified。独立したSTEP51は計画に存在しない。",
+  "latest_execution_update": "STEP70完了。MD/JSON/HTMLの内容照合は合格。ローカルfile:プレビューはブラウザーセキュリティポリシーで拒否され、デスクトップ/390px/印刷の実表示は未確認と記録。現在STEP71。",
   "sequence_revalidation": {
     "reason": "STEP27 JSONLに統合対応表が参照するS05-0001原観測行が欠けていたため、STEP27修復とSTEP28以降の順次再検証が必要",
     "reopened_at": "2026-10-12T09:00:22+09:00",
@@ -3233,7 +4333,7 @@
     "step33": "complete_after_step27_source_gap_repair",
     "step34": "complete_in_order_after_step27_source_gap_repair",
     "step36_to_44": "step36_to_47_complete_in_order; step48_in_progress_in_order",
-    "current_revalidation_step": "50",
+    "current_revalidation_step": "70",
     "step35": "complete_in_order_all132",
     "step36": "complete_in_order_with_documented_data_limitations",
     "step37_to_44": "step37_to_47_complete_in_order; step48_in_progress_in_order",
@@ -3250,7 +4350,24 @@
     "step47": "complete_in_order_receivable",
     "step48": "complete_in_order",
     "step49": "complete_in_order",
-    "step50": "partial_in_order_visual_unverified"
+    "step50": "complete_in_order_user_waiver_visual_unverified",
+    "step52": "complete_in_order_all132",
+    "step53": "complete_in_order",
+    "step54": "complete_in_order_all132",
+    "step55": "complete_in_order_all132",
+    "step56": "complete_in_order_all132",
+    "step57": "complete_in_order_all132",
+    "step58": "complete_in_order_all132",
+    "step59": "complete_in_order_all132",
+    "step60": "complete_in_order_all132",
+    "step61": "complete_in_order_all132",
+    "step62": "complete_in_order_all132",
+    "step63": "complete_in_order_all132",
+    "step64": "complete_in_order_all132",
+    "step65": "complete_in_order_all132",
+    "step66": "complete_in_order_all132",
+    "step67": "complete_in_order_all132",
+    "step68": "running_in_order"
   },
   "historical_rule_audits": [
     {

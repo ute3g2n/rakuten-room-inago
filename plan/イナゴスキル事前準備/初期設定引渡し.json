@@ -831,7 +831,10 @@
       "observation_count": 41,
       "denominator": 132,
       "structure_candidate": "product_and_feature",
-      "reference": "文型ルール確定.md#P01"
+      "reference": "文型ルール確定.md#P01",
+      "detailed_rules_ref": "文型詳細ルール.json#/patterns/P01",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
     },
     {
       "pattern_id": "P02",
@@ -839,7 +842,10 @@
       "observation_count": 36,
       "denominator": 132,
       "structure_candidate": "product_reference_with_tags",
-      "reference": "文型ルール確定.md#P02"
+      "reference": "文型ルール確定.md#P02",
+      "detailed_rules_ref": "文型詳細ルール.json#/patterns/P02",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
     },
     {
       "pattern_id": "P03",
@@ -847,7 +853,10 @@
       "observation_count": 23,
       "denominator": 132,
       "structure_candidate": "promotion_before_product",
-      "reference": "文型ルール確定.md#P03"
+      "reference": "文型ルール確定.md#P03",
+      "detailed_rules_ref": "文型詳細ルール.json#/patterns/P03",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
     },
     {
       "pattern_id": "P04",
@@ -855,7 +864,10 @@
       "observation_count": 15,
       "denominator": 132,
       "structure_candidate": "feature_point_list",
-      "reference": "文型ルール確定.md#P04"
+      "reference": "文型ルール確定.md#P04",
+      "detailed_rules_ref": "文型詳細ルール.json#/patterns/P04",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
     },
     {
       "pattern_id": "P05",
@@ -863,7 +875,10 @@
       "observation_count": 5,
       "denominator": 132,
       "structure_candidate": "experience_with_caveat",
-      "reference": "文型ルール確定.md#P05"
+      "reference": "文型ルール確定.md#P05",
+      "detailed_rules_ref": "文型詳細ルール.json#/patterns/P05",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
     }
   ],
   "pattern_selection_policy": "商品ごとに、確認できる情報に合う型を選ぶ。5種類を順番にローテーションしない。",
@@ -896,5 +911,37 @@
   "selection_count": 0,
   "selection_count_note": "運用開始前の初期値。標本数や選択実績ではない。",
   "unique_product_count": null,
-  "unique_product_count_note": "商品キー・恒久投稿IDの確認が不足しており、独立商品数は不明。"
+  "unique_product_count_note": "商品キー・恒久投稿IDの確認が不足しており、独立商品数は不明。",
+  "detailed_rules_extension": {
+    "artifact_path": "文型詳細ルール.json",
+    "markdown_path": "文型ルール確定.md#詳細書き方追補",
+    "version": "detailed-writing-rules-candidate-0.1-step68",
+    "markdown_version": "writing-guide-candidate-0.1-step68",
+    "generated_at": "2026-10-12T16:09:10+09:00",
+    "status": "reviewed_candidate_not_new_owner_confirmation",
+    "adopted": false,
+    "purpose": "本人採用済みの文型の意味を保った詳細な文章生成ガイド。",
+    "review_ref": "レビュー/書き方詳細レビュー.md",
+    "source_candidate_version": "detailed-writing-candidate-0.2-step67",
+    "pattern_specific_rule_counts": {
+      "P01": 17,
+      "P02": 17,
+      "P03": 17,
+      "P04": 17,
+      "P05": 17
+    },
+    "p05_rule_basis": {
+      "source_body_ids": [
+        "B0002",
+        "B0201",
+        "B0213",
+        "B0235",
+        "B0252"
+      ],
+      "other_127_or_full_132_used_to_derive_P05_rules": false
+    }
+  },
+  "detailed_rules_ref": "文型詳細ルール.json",
+  "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+  "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
 }

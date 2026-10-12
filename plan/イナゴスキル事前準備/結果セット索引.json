@@ -1,9 +1,9 @@
 {
   "version": "confirmed-0.3-step46-all132",
-  "generated_at": "2026-10-12T12:47:56+09:00",
+  "generated_at": "2026-10-12T16:26:37+09:00",
   "status": "confirmed_partial_pipeline",
   "intended_for": "本人採用済みの外部分析結果と準備工程成果物の索引。運用正本ではない。",
-  "artifact_count": 9,
+  "artifact_count": 10,
   "artifacts": [
     {
       "path": "ジャンルテーマ確定.md",
@@ -34,7 +34,15 @@
         "非公開作業データ/基礎/本文/B0003.txt",
         "非公開作業データ/基礎/本文/B0004.txt",
         "非公開作業データ/基礎/本文/B0205.txt"
-      ]
+      ],
+      "detailed_writing_extension": {
+        "version": "detailed-writing-rules-candidate-0.1-step68",
+        "markdown_version": "writing-guide-candidate-0.1-step68",
+        "status": "reviewed_candidate_not_new_owner_confirmation",
+        "adopted": false,
+        "json_ref": "文型詳細ルール.json",
+        "purpose": "confirmed base meaning retained; detailed style extension remains a candidate"
+      }
     },
     {
       "path": "本文長さタグ目安確定.json",
@@ -121,10 +129,10 @@
     {
       "path": "事前準備完了レポート.html",
       "kind": "human_readable_report",
-      "version": "report-0.2-step50-visual-unverified",
+      "version": "report-0.3-step50-user-waiver",
       "generated_at": "2026-10-12T12:47:56+09:00",
-      "purpose": "本人採用・132件全分析・成果・実レビュー・制約を記載。STEP50の内容確認済み、実画面・印刷表示は未検証。",
-      "status": "partial_content_checked_visual_unverified",
+      "purpose": "本人採用・132件全分析・成果・実レビュー・制約を記載。STEP50はユーザー指示により完了扱い、実画面・印刷表示は未検証。",
+      "status": "complete_by_user_waiver_visual_unverified",
       "adopted": false,
       "refs": [
         "本人確認記録.md",
@@ -134,9 +142,57 @@
         "実装受領確認.md",
         "レビュー/総合検証記録.md",
         "レビュー/HTML最終検証.md",
-        "実行管理.json"
+        "実行管理.json",
+        "文型ルール確定.md#詳細書き方追補",
+        "文型詳細ルール.json",
+        "分析/書き方詳細分析.md",
+        "分析/書き方注釈仕様.md",
+        "分析/書き方適用見本.md",
+        "レビュー/書き方詳細レビュー.md",
+        "レビュー/書き方詳細版最終確認.md"
       ],
-      "time_note": "STEP50で検証結果を反映して保存した時刻。"
+      "time_note": "STEP50のユーザー指示を反映して保存。視覚・印刷確認は未実施。",
+      "detailed_writing_extension": {
+        "version": "report-detailed-writing-candidate-0.1-step69",
+        "generated_at": "2026-10-12T16:26:37+09:00",
+        "status": "final_delivered_candidate_visual_unverified",
+        "adopted": false,
+        "contains": [
+          "full 132-body analysis method",
+          "five pattern writing rules, 17 per pattern",
+          "20 fictional application cases"
+        ],
+        "p05_rule_basis_ids": [
+          "B0002",
+          "B0201",
+          "B0213",
+          "B0235",
+          "B0252"
+        ],
+        "visual_review_status": "unverified_browser_file_protocol_blocked",
+        "content_review_ref": "レビュー/書き方詳細版最終確認.md",
+        "final_status": "all_71_steps_complete",
+        "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認"
+      }
+    },
+    {
+      "path": "文型詳細ルール.json",
+      "kind": "detailed_writing_rules",
+      "version": "detailed-writing-rules-candidate-0.1-step68",
+      "generated_at": "2026-10-12T16:09:10+09:00",
+      "purpose": "P01～P05の詳細な書き方規則、共通手順、根拠と確認項目。",
+      "status": "reviewed_candidate_not_new_owner_confirmation",
+      "adopted": false,
+      "refs": [
+        "文型ルール確定.md#詳細書き方追補",
+        "文型詳細ルール候補.md",
+        "詳細書き方/P01.md",
+        "詳細書き方/P02.md",
+        "詳細書き方/P03.md",
+        "詳細書き方/P04.md",
+        "詳細書き方/P05.md",
+        "レビュー/書き方詳細レビュー.md"
+      ]
     }
   ],
   "supplemental": [
@@ -151,7 +207,21 @@
     "本人確認用概要.html",
     "事前準備完了レポート_順序外旧版.html",
     "レビュー/HTML最終検証.md",
-    "レビュー/HTML最終検証_順序外旧版.md"
+    "レビュー/HTML最終検証_順序外旧版.md",
+    "文型詳細ルール.json",
+    "文型詳細ルール候補.md",
+    "詳細書き方/P01.md",
+    "詳細書き方/P02.md",
+    "詳細書き方/P03.md",
+    "詳細書き方/P04.md",
+    "詳細書き方/P05.md",
+    "分析/書き方詳細分析.md",
+    "分析/書き方詳細集計.json",
+    "分析/書き方注釈仕様.md",
+    "分析/書き方適用見本.md",
+    "レビュー/書き方詳細レビュー.md",
+    "レビュー/書き方詳細版最終確認.md",
+    "実装受領確認.md"
   ],
   "counts": {
     "candidate_result_rows": 302,
@@ -172,5 +242,30 @@
     "reaction_condition_match": 24,
     "reaction_condition_unknown": 108,
     "reaction_condition_exclusions": 0
+  },
+  "detailed_writing_extension": {
+    "version": "detailed-writing-rules-candidate-0.1-step68",
+    "markdown_version": "writing-guide-candidate-0.1-step68",
+    "generated_at": "2026-10-12T16:26:37+09:00",
+    "status": "reviewed_candidate_not_new_owner_confirmation",
+    "adopted": false,
+    "purpose": "P01～P05の17項目詳細ルールと共通生成手順を提供する候補拡張。",
+    "markdown_ref": "文型ルール確定.md#詳細書き方追補",
+    "json_ref": "文型詳細ルール.json",
+    "p05_rule_basis_ids": [
+      "B0002",
+      "B0201",
+      "B0213",
+      "B0235",
+      "B0252"
+    ],
+    "review_ref": "レビュー/書き方詳細レビュー.md",
+    "html_version": "report-detailed-writing-candidate-0.1-step69",
+    "html_status": "content_reviewed_visual_unverified_step70",
+    "html_generated_at": "2026-10-12T16:18:50+09:00",
+    "content_review_ref": "レビュー/書き方詳細版最終確認.md",
+    "visual_review_status": "unverified_step50_user_waiver_and_step70_browser_policy",
+    "final_status": "all_71_steps_complete",
+    "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認"
   }
 }
