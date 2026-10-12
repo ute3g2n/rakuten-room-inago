@@ -180,6 +180,21 @@ def identify_offer(
     return ProductIdentity("identified", shop_id, item_id, offer_key, normalized_url)
 
 
+def identify_offer_from_saved_url(item_url: str | None) -> ProductIdentity:
+    """Re-derive a previously confirmed identity from its persisted item URL."""
+
+    try:
+        _, _, offer_key = _product_url_parts(item_url)
+    except _ProductUrlError as exc:
+        return ProductIdentity("unresolved", None, None, None, None, exc.reason)
+    shop_id, item_id = split_offer_key(offer_key)
+    return identify_offer(
+        item_url,
+        observed_shop_id=shop_id,
+        observed_item_id=item_id,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class SourcePost:
     """One observed post within one search, before product-key aggregation."""

@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -91,7 +92,15 @@ class RoomSearchResult:
 
 class RoomSearchPort(Protocol):
     def search(self, request: RoomSearchRequest) -> Mapping[str, Any]:
-        """Return one observation for exactly this reserved attempt."""
+        """Return one data-only observation for exactly this reserved attempt.
+
+        The orchestrator invokes this port on an owned worker thread so it can
+        enforce the 17:45 deadline. Implementations must not use the caller's
+        SQLite connection and must support cancellation from the corresponding
+        ``cancel_owned_jobs`` port. A browser adapter must establish that its
+        supported browser driver is safe to use from this execution model before
+        it is connected here; no browser integration is assumed by this contract.
+        """
 
 
 class FixtureRoomSearchPort:
@@ -429,6 +438,55 @@ class RoomSearchSession:
                             "observed_at",
                             "availability",
                         )
+                    ),
+                )
+                # Persist the identity decision in the same transaction as the
+                # source post. The offer row can be registered by a later
+                # intake adapter, so the durable identity marker deliberately
+                # references the source post and re-derives its key from the
+                # exact saved item URL on resume.
+                identity_confirmed = (
+                    post.identity_status == "identified" and post.offer_key is not None
+                )
+                decision_id = uuid.uuid5(
+                    uuid.NAMESPACE_URL,
+                    f"inago-identity:{result.request.run_id}:"
+                    f"{result.request.attempt_id}:{post.source_key}",
+                ).hex
+                decision = {
+                    "decision_id": decision_id,
+                    "run_id": result.request.run_id,
+                    "offer_key": None,
+                    "source_key": post.source_key,
+                    "stage": f"daily-identity:{result.request.attempt_id}",
+                    "primary_reason": (
+                        "identity_confirmed"
+                        if identity_confirmed
+                        else "identity_unresolved"
+                    ),
+                    "secondary_reasons": [],
+                    "representative_ref": None,
+                    "representative_likes": None,
+                    "rule_version": "room-identity-v1",
+                    "decided_at": ended_at,
+                }
+                validate_entity("candidate_decision", decision)
+                connection.execute(
+                    """
+                    INSERT INTO candidate_decision
+                        (decision_id, run_id, offer_key, source_key, stage,
+                         primary_reason, secondary_reasons_json, representative_ref,
+                         representative_likes, rule_version, decided_at)
+                    VALUES (?, ?, NULL, ?, ?, ?, '[]', NULL, NULL, ?, ?)
+                    """,
+                    (
+                        decision_id,
+                        result.request.run_id,
+                        post.source_key,
+                        f"daily-identity:{result.request.attempt_id}",
+                        decision["primary_reason"],
+                        "room-identity-v1",
+                        ended_at,
                     ),
                 )
             connection.execute(
