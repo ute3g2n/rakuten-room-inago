@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import validate
+from jsonschema import FormatChecker, validate
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -42,9 +42,7 @@ FIXTURE_CONFIG_SCHEMA = {
             "type": "object",
             "required": ["version", "adopted", "enabled"],
             "properties": {
-                "version": {
-                    "const": "detailed-writing-rules-candidate-0.1-step68"
-                },
+                "version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
                 "adopted": {"const": False},
                 "enabled": {"const": False},
             },
@@ -118,8 +116,22 @@ class ExternalCallSpy:
 @pytest.fixture(scope="session")
 def fixture_document() -> dict[str, object]:
     document = json.loads(FIXTURE_CONFIG.read_text(encoding="utf-8"))
-    validate(instance=document, schema=FIXTURE_CONFIG_SCHEMA)
+    validate_fixture_document(document)
     return document
+
+
+def validate_fixture_document(document: dict[str, object]) -> None:
+    """Validate one fixture configuration using the shared schema."""
+    validate(
+        instance=document,
+        schema=FIXTURE_CONFIG_SCHEMA,
+        format_checker=FormatChecker(),
+    )
+
+
+@pytest.fixture
+def fixture_validator():
+    return validate_fixture_document
 
 
 @pytest.fixture(scope="session")

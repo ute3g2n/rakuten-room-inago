@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import importlib
 import json
+from copy import deepcopy
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
+from jsonschema.exceptions import ValidationError
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -29,6 +31,26 @@ def test_fixture_contract_is_synthetic_and_external_access_is_disabled(
     for field in ("offer", "word", "report", "metric"):
         assert fixture_document[field]["test_only"] is True
     assert fixture_document["metric"]["revenue_yen"] is None
+
+
+@pytest.mark.parametrize(
+    ("field_path", "invalid_value"),
+    (
+        (("target_date",), "2026-13-40"),
+        (("report", "reported_at"), "not-a-date-time"),
+    ),
+)
+def test_fixture_schema_rejects_invalid_date_formats(
+    fixture_document: dict[str, object], fixture_validator, field_path, invalid_value
+) -> None:
+    malformed = deepcopy(fixture_document)
+    target = malformed
+    for key in field_path[:-1]:
+        target = target[key]
+    target[field_path[-1]] = invalid_value
+
+    with pytest.raises(ValidationError):
+        fixture_validator(malformed)
 
 
 def test_path_contract_requires_explicit_values_and_confines_fixture_writes(
