@@ -1,0 +1,13 @@
+{
+  "version": "requirements-1.4-public-dom-1",
+  "cases": [
+    {"id":"LIVE-ROOM-01","kind":"allowed_public_connection","query":"調理器具","likes_min":300,"exact_likes":false,"accepted_limit":50,"expected":"fresh actual conditions, first50 source positions before product grouping, actual product URL/key and SQLite save"},
+    {"id":"LIVE-TRENDS-01","kind":"allowed_public_connection","query":"電子レンジ","geo":"JP","language":"ja","period":"today 3-m","type":"web_keyword","list":"Top","limit":20,"expected":"actual refreshed original rank/raw/popularity index, period label and isolated SQLite save"},
+    {"id":"FIXTURE-UI-01","kind":"synthetic_public_dom","initial":30,"loaded":80,"accepted":50,"unused":30,"expected":"no row51 lookup, no dedup refill"},
+    {"id":"FIXTURE-UI-02","kind":"synthetic_public_dom","counts":[0,37],"expected":"explicit visible end evidence, observed actual count; stable loading alone is unavailable"},
+    {"id":"FIXTURE-UI-03","kind":"synthetic_public_dom","expected":"query mismatch/Rising/topics excluded; Top20 pagination/raw preserved, explicit zero and fewer rows retained"},
+    {"id":"FIXTURE-UI-04","kind":"synthetic_public_dom","failures":[429,403,"CAPTCHA","timeout","cancel"],"expected":"no candidates from failed response, terminate own process tree only; denial prevents another source route"}
+  ],
+  "result_policy":"fixture and allowed live connection are separate; not run/unconfirmed/partial is not success",
+  "side_effects_forbidden":["post","like","collect","follow","purchase","login_cookie_copy","paid_api","production_activation","internal_profile_api","access_denial_bypass"]
+}

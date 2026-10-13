@@ -1,0 +1,14 @@
+{
+  "environment": "public_ui",
+  "purpose": "isolated_read_only_connection_probe",
+  "network_allowed": true,
+  "chrome_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "node_executable": "node",
+  "timeout_seconds": 180,
+  "source_method": "public_explore_and_room_ui",
+  "authentication": "public_no_login",
+  "browser_profile": "owned_temporary_context",
+  "daily_activation": false,
+  "posting_allowed": false,
+  "access_denial_action": "stop_without_alternate_route"
+}
