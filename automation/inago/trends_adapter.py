@@ -42,6 +42,16 @@ _SCOPED_QUERY = {
     "list_type": "Top",
 }
 _LEVEL_LIMITS = {1: 20, 2: 10}
+_THREE_MONTH_LABELS = frozenset(
+    {
+        "過去3か月間",
+        "過去3か月",
+        "過去3ヶ月間",
+        "過去3ヶ月",
+        "過去90日間",
+        "Past3months",
+    }
+)
 
 
 class TrendsContractError(RejectedContract):
@@ -95,6 +105,7 @@ class TrendsSnapshot:
     fetched_at: str | None
     words: tuple[TrendsWord, ...]
     error_code: str | None
+    ui_period_label: str | None = None
 
     @property
     def availability(self) -> str:
@@ -502,7 +513,18 @@ def validate_key_decisions(
             "KEY must return one decision for every observed word"
         )
     try:
-        schema = json.loads(_KEY_RESPONSE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        # Historical v1.3 snapshots have a different decision contract. This
+        # reader does not authorize child classification in the Q1.4 daily path.
+        schema = {
+            "type": "object",
+            "required": ["word_id", "decision", "reason"],
+            "properties": {
+                "word_id": {"type": "string", "minLength": 1},
+                "decision": {"enum": ["child", "not_child", "unknown"]},
+                "reason": {"type": "string", "minLength": 1},
+            },
+            "additionalProperties": False,
+        }
         Draft202012Validator.check_schema(schema)
         validator = Draft202012Validator(schema)
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
@@ -670,9 +692,9 @@ def save_keyword_snapshot(
                 "normalized": word.normalized,
                 "source_rank": word.source_rank,
                 "popularity_index": word.popularity_index,
-                "semantic_reason": decision.reason
-                if decision
-                else "classification_pending",
+                "semantic_reason": (
+                    decision.reason if decision else "classification_pending"
+                ),
                 "is_child": bool(decision and decision.decision == "child"),
             }
         )
@@ -1169,3 +1191,647 @@ def _require_observed(snapshot: TrendsSnapshot) -> None:
         raise KeywordAcquisitionStopped(
             "KEY and selection require a successfully refreshed current-parent snapshot"
         )
+
+
+GROUP_RULES_VERSION = "requirements-1.4"
+TOP_WORD_LIMIT = 20
+ROOM_WORD_LIMIT = 5
+_GROUP_SAVEPOINT = "inago_keyword_groups14"
+
+
+@dataclass(frozen=True, slots=True)
+class GroupedKeywordDecision:
+    word_id: str
+    decision: str
+    group_ref: str | None
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class SelectedRoomKeyword:
+    group_ref: str
+    word_id: str
+    raw: str
+    source_rank: int
+
+
+@dataclass(frozen=True, slots=True)
+class StoredGroupedSnapshot:
+    snapshot: TrendsSnapshot
+    decisions: tuple[GroupedKeywordDecision, ...] | None
+    selected: tuple[SelectedRoomKeyword, ...]
+    seed: str | None
+
+
+def parse_grouped_top_response(
+    response: Mapping[str, Any], request: TrendsRequest
+) -> TrendsSnapshot:
+    """Accept current Q1.4 Top data and retain the raw first twenty before grouping."""
+
+    if request.range != "3m":
+        raise TrendsContractError("new daily keyword acquisition requires range=3m")
+    if not isinstance(response, Mapping):
+        return _invalid_snapshot(request, request.request_id, "response_not_object")
+    try:
+        _browser_schema().validate(dict(response))
+    except ValidationError:
+        return _invalid_snapshot(request, request.request_id, "response_schema_invalid")
+    expected = {
+        "request_id": request.request_id,
+        "snapshot_id": request.request_id,
+        "run_id": request.run_id,
+        "settings_version": request.settings_version,
+        "source": _BROWSER_SOURCE,
+        "parent_word": request.parent_word,
+        "language": "ja",
+        "geo": "JP",
+        "search_type": "web",
+        "range": "3m",
+        "list_type": "Top",
+    }
+    if any(response.get(key) != value for key, value in expected.items()):
+        return _invalid_snapshot(request, request.request_id, "query_scope_mismatch")
+    if response["status"] == "unavailable":
+        return TrendsSnapshot(
+            request,
+            request.request_id,
+            "unavailable",
+            None,
+            False,
+            None,
+            (),
+            response["error_code"],
+        )
+    period = _normalize(response.get("ui_period_label", "")).replace(" ", "")
+    if (
+        response["current_parent"] != request.parent_word
+        or response["refresh_complete"] is not True
+        or period not in _THREE_MONTH_LABELS
+        or _aware_timestamp(response["fetched_at"]) is None
+    ):
+        return _invalid_snapshot(
+            request, request.request_id, "query_freshness_mismatch"
+        )
+    ordered = sorted(
+        enumerate(response["words"]), key=lambda item: (item[1]["source_rank"], item[0])
+    )[:TOP_WORD_LIMIT]
+    words = []
+    seen = set()
+    for _, item in ordered:
+        word_id = item["word_id"]
+        if (
+            not _SAFE_REF.fullmatch(word_id)
+            or word_id in seen
+            or not _normalize(item["raw"])
+        ):
+            return _invalid_snapshot(
+                request, request.request_id, "word_identity_invalid"
+            )
+        seen.add(word_id)
+        variant = ObservedVariant(
+            word_id, item["raw"], item["source_rank"], item["popularity_index"]
+        )
+        words.append(
+            TrendsWord(
+                word_id,
+                item["raw"],
+                _normalize(item["raw"]),
+                item["source_rank"],
+                item["popularity_index"],
+                (variant,),
+            )
+        )
+    return TrendsSnapshot(
+        request,
+        request.request_id,
+        "observed",
+        request.parent_word,
+        True,
+        response["fetched_at"],
+        tuple(words),
+        None,
+        response["ui_period_label"],
+    )
+
+
+def grouped_key_input(snapshot: TrendsSnapshot) -> dict[str, Any]:
+    """Expose only the observed raw Top20 and its stable snapshot identity to KEY."""
+
+    _require_group_snapshot(snapshot)
+    _require_observed(snapshot)
+    return {
+        "snapshot_id": snapshot.snapshot_id,
+        "query_word": snapshot.request.parent_word,
+        "words": [
+            {"word_id": word.word_id, "raw": word.raw, "source_rank": word.source_rank}
+            for word in snapshot.words
+        ],
+    }
+
+
+def validate_grouped_key_response(
+    snapshot: TrendsSnapshot, response: Mapping[str, Any]
+) -> tuple[GroupedKeywordDecision, ...]:
+    """Bind one batch result to every observed ID and validate group references."""
+
+    _require_group_snapshot(snapshot)
+    _require_observed(snapshot)
+    try:
+        document = json.loads(_KEY_RESPONSE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        Draft202012Validator(document).validate(dict(response))
+    except (
+        OSError,
+        json.JSONDecodeError,
+        ValidationError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        raise TrendsContractError("grouped KEY response violates schema") from exc
+    if (
+        response["snapshot_id"] != snapshot.snapshot_id
+        or response["query_word"] != snapshot.request.parent_word
+    ):
+        raise TrendsContractError("grouped KEY snapshot or query mismatch")
+    decisions = tuple(GroupedKeywordDecision(**item) for item in response["decisions"])
+    _group_decision_map(snapshot, decisions)
+    return tuple(
+        {item.word_id: item for item in decisions}[word.word_id]
+        for word in snapshot.words
+    )
+
+
+def _group_decision_map(
+    snapshot: TrendsSnapshot, decisions: Sequence[GroupedKeywordDecision]
+) -> dict[str, GroupedKeywordDecision]:
+    expected = {word.word_id: word for word in snapshot.words}
+    result: dict[str, GroupedKeywordDecision] = {}
+    for item in decisions:
+        if (
+            not isinstance(item, GroupedKeywordDecision)
+            or item.word_id not in expected
+            or item.word_id in result
+            or not isinstance(item.reason, str)
+            or not item.reason.strip()
+            or item.decision
+            not in {"query_same", "duplicate_member", "candidate", "unknown"}
+        ):
+            raise TrendsContractError(
+                "grouped KEY contains missing, duplicate or invalid word identity"
+            )
+        if item.decision == "query_same":
+            if item.group_ref is not None:
+                raise TrendsContractError(
+                    "query-only words cannot belong to a selectable group"
+                )
+        elif item.group_ref not in expected:
+            raise TrendsContractError("group reference is not an observed word ID")
+        if item.decision in {"candidate", "unknown"} and item.group_ref != item.word_id:
+            raise TrendsContractError(
+                "candidate group anchors must use their own observed ID"
+            )
+        if (
+            _normalize(expected[item.word_id].raw)
+            == _normalize(snapshot.request.parent_word)
+            and item.decision != "query_same"
+        ):
+            raise TrendsContractError(
+                "the query itself cannot be a ROOM related-word candidate"
+            )
+        result[item.word_id] = item
+    if set(result) != set(expected):
+        raise TrendsContractError(
+            "grouped KEY must cover exactly the observed Top20 IDs"
+        )
+    groups: dict[str, list[str]] = {}
+    for item in result.values():
+        if item.group_ref is not None:
+            anchor = result[item.group_ref]
+            if anchor.decision not in {"candidate", "unknown"}:
+                raise TrendsContractError("group has no candidate anchor")
+            groups.setdefault(item.group_ref, []).append(item.word_id)
+    order = {word.word_id: i for i, word in enumerate(snapshot.words)}
+    for anchor, members in groups.items():
+        if min(members, key=order.__getitem__) != anchor:
+            raise TrendsContractError("group anchor must be its first observed member")
+        if result[anchor].decision == "unknown" and len(members) != 1:
+            raise TrendsContractError(
+                "uncertain relationships cannot silently merge other words"
+            )
+    return result
+
+
+def draw_room_keywords(
+    snapshot: TrendsSnapshot, decisions: Sequence[GroupedKeywordDecision], *, seed: str
+) -> tuple[SelectedRoomKeyword, ...]:
+    """Uniformly draw up to five groups and one unmodified raw expression per group."""
+
+    _require_group_snapshot(snapshot)
+    _require_observed(snapshot)
+    by_id = _group_decision_map(snapshot, decisions)
+    groups: dict[str, list[TrendsWord]] = {}
+    for word in snapshot.words:
+        group = by_id[word.word_id].group_ref
+        if group is not None:
+            groups.setdefault(group, []).append(word)
+    saved_seed = _required_text(seed, "saved run seed")
+    rng = random.Random(f"{saved_seed}|{snapshot.snapshot_id}|{GROUP_RULES_VERSION}")
+    chosen = rng.sample(list(groups), min(ROOM_WORD_LIMIT, len(groups)))
+    selected = []
+    for group in chosen:
+        word = rng.choice(groups[group])
+        selected.append(
+            SelectedRoomKeyword(group, word.word_id, word.raw, word.source_rank)
+        )
+    return tuple(selected)
+
+
+def _require_group_snapshot(snapshot: TrendsSnapshot) -> None:
+    if not isinstance(snapshot, TrendsSnapshot) or snapshot.request.range != "3m":
+        raise TrendsContractError("Q1.4 grouping requires a three-month snapshot")
+    if (
+        snapshot.snapshot_id != snapshot.request.request_id
+        or len(snapshot.words) > TOP_WORD_LIMIT
+    ):
+        raise TrendsContractError("Q1.4 snapshot identity or Top20 size is invalid")
+    if (
+        snapshot.request.language,
+        snapshot.request.geo,
+        snapshot.request.search_type,
+        snapshot.request.list_type,
+    ) != ("ja", "JP", "web", "Top"):
+        raise TrendsContractError("Q1.4 snapshot scope is not Japan/web/Top")
+    if any(not isinstance(word, TrendsWord) for word in snapshot.words):
+        raise TrendsContractError("Q1.4 snapshot contains malformed observed words")
+    if len({word.word_id for word in snapshot.words}) != len(snapshot.words):
+        raise TrendsContractError("Q1.4 snapshot contains repeated word IDs")
+    for word in snapshot.words:
+        if (
+            not isinstance(word, TrendsWord)
+            or not _SAFE_REF.fullmatch(word.word_id)
+            or not isinstance(word.raw, str)
+            or not _normalize(word.raw)
+            or word.normalized != _normalize(word.raw)
+            or isinstance(word.source_rank, bool)
+            or not isinstance(word.source_rank, int)
+            or word.source_rank < 1
+            or (
+                word.popularity_index is not None
+                and (
+                    isinstance(word.popularity_index, bool)
+                    or not isinstance(word.popularity_index, (int, float))
+                    or not math.isfinite(word.popularity_index)
+                    or word.popularity_index < 0
+                )
+            )
+        ):
+            raise TrendsContractError("Q1.4 snapshot contains malformed observed words")
+    if snapshot.status == "observed":
+        if (
+            snapshot.current_parent != snapshot.request.parent_word
+            or snapshot.refresh_complete is not True
+            or _aware_timestamp(snapshot.fetched_at) is None
+            or not isinstance(snapshot.ui_period_label, str)
+            or _normalize(snapshot.ui_period_label).replace(" ", "")
+            not in _THREE_MONTH_LABELS
+            or snapshot.error_code is not None
+        ):
+            raise TrendsContractError("Q1.4 observed snapshot is not fresh and scoped")
+    elif snapshot.status in {"invalid", "unavailable"}:
+        if snapshot.words or not snapshot.error_code:
+            raise TrendsContractError("failed snapshot cannot keep candidate words")
+    else:
+        raise TrendsContractError("unknown snapshot status")
+
+
+def _group_record(
+    snapshot: TrendsSnapshot,
+    decisions: Sequence[GroupedKeywordDecision] | None,
+    seed: str | None,
+    selected: Sequence[SelectedRoomKeyword] = (),
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    by_id = _group_decision_map(snapshot, decisions) if decisions is not None else {}
+    words = []
+    for word in snapshot.words:
+        decision = by_id.get(word.word_id)
+        words.append(
+            {
+                "word_id": word.word_id,
+                "raw": word.raw,
+                "normalized": word.normalized,
+                "source_rank": word.source_rank,
+                "popularity_index": word.popularity_index,
+                "decision": decision.decision if decision else "pending",
+                "group_ref": decision.group_ref if decision else None,
+                "semantic_reason": (
+                    decision.reason if decision else "classification_pending"
+                ),
+            }
+        )
+    metadata = [
+        {
+            "kind": "snapshot",
+            "rules_version": GROUP_RULES_VERSION,
+            "run_id": snapshot.request.run_id,
+            "settings_version": snapshot.request.settings_version,
+            "request_id": snapshot.request.request_id,
+            "status": snapshot.status,
+            "error_code": snapshot.error_code,
+            "current_parent": snapshot.current_parent,
+            "refresh_complete": snapshot.refresh_complete,
+            "classification_complete": decisions is not None,
+            "seed": seed,
+            "selected": [
+                {
+                    "group_ref": word.group_ref,
+                    "word_id": word.word_id,
+                    "raw": word.raw,
+                    "source_rank": word.source_rank,
+                }
+                for word in selected
+            ],
+        }
+    ]
+    return words, metadata
+
+
+def save_grouped_snapshot(
+    connection: sqlite3.Connection,
+    snapshot: TrendsSnapshot,
+    *,
+    decisions: Sequence[GroupedKeywordDecision] | None = None,
+    seed: str | None = None,
+) -> str:
+    """Save raw first, then atomically adopt grouping and saved draws exactly once."""
+
+    _require_group_snapshot(snapshot)
+    if decisions is not None:
+        _require_observed(snapshot)
+        if seed is None:
+            raise TrendsContractError("completed grouping requires the saved run seed")
+    elif seed is not None:
+        raise TrendsContractError("a pending grouping cannot claim a draw seed")
+    words, records = _group_record(snapshot, decisions, seed)
+    entity = {
+        "snapshot_id": snapshot.snapshot_id,
+        "parent_word": snapshot.request.parent_word,
+        "source": _BROWSER_SOURCE,
+        "geo": "JP",
+        "range": "3m",
+        "search_type": "web",
+        "list_type": "Top",
+        "words": words,
+        "fetched_at": snapshot.fetched_at,
+        "availability": snapshot.availability,
+        "filter_decisions": records,
+        "ui_period_label": snapshot.ui_period_label,
+    }
+    validate_entity("keyword_snapshot", entity)
+    owns = not connection.in_transaction
+    connection.execute("BEGIN IMMEDIATE" if owns else f"SAVEPOINT {_GROUP_SAVEPOINT}")
+    try:
+        run = connection.execute(
+            "SELECT mode,status,settings_version,seed FROM run WHERE run_id=?",
+            (snapshot.request.run_id,),
+        ).fetchone()
+        if (
+            run is None
+            or run[0] != "daily"
+            or run[1] not in {"running", "partial"}
+            or run[2] != snapshot.request.settings_version
+        ):
+            raise TrendsContractError(
+                "grouped snapshot does not match its active run, settings or seed"
+            )
+        previous = load_grouped_snapshot(
+            connection, snapshot.snapshot_id, request=snapshot.request
+        )
+        if previous is not None and previous.decisions is not None:
+            if tuple(decisions or ()) != previous.decisions or seed != previous.seed:
+                raise IdempotencyConflict(
+                    "saved group decisions or draw seed cannot change"
+                )
+        if seed is not None and seed != run[3]:
+            raise TrendsContractError("draw seed differs from the saved run seed")
+        if decisions is not None and (previous is None or previous.decisions is None):
+            selected = draw_room_keywords(snapshot, decisions, seed=seed)
+            words, records = _group_record(snapshot, decisions, seed, selected)
+        values = (
+            snapshot.request.parent_word,
+            _BROWSER_SOURCE,
+            "JP",
+            "3m",
+            "web",
+            "Top",
+            _canonical_json(words),
+            snapshot.fetched_at,
+            snapshot.availability,
+            _canonical_json(records),
+            snapshot.ui_period_label,
+        )
+        if previous is not None:
+            if previous.snapshot != snapshot:
+                raise IdempotencyConflict(
+                    "snapshot identity already has different raw observations"
+                )
+            if previous.decisions is not None:
+                # The previous branch validated content; preserve stored draws.
+                pass
+            elif decisions is not None:
+                connection.execute(
+                    "UPDATE keyword_snapshot SET words_json=?,filter_decisions_json=? WHERE snapshot_id=?",
+                    (values[6], values[9], snapshot.snapshot_id),
+                )
+        else:
+            others = connection.execute(
+                "SELECT snapshot_id,filter_decisions_json FROM keyword_snapshot WHERE parent_word=? AND range='3m'",
+                (snapshot.request.parent_word,),
+            ).fetchall()
+            for row in others:
+                prior = json.loads(row[1])
+                if any(
+                    isinstance(item, dict)
+                    and item.get("kind") == "snapshot"
+                    and item.get("run_id") == snapshot.request.run_id
+                    for item in prior
+                ):
+                    raise IdempotencyConflict(
+                        "this run already captured this theme query"
+                    )
+            connection.execute(
+                "INSERT INTO keyword_snapshot (snapshot_id,parent_word,source,geo,range,search_type,list_type,words_json,fetched_at,availability,filter_decisions_json,ui_period_label) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (snapshot.snapshot_id, *values),
+            )
+        if owns:
+            connection.commit()
+        else:
+            connection.execute(f"RELEASE {_GROUP_SAVEPOINT}")
+        return snapshot.snapshot_id
+    except BaseException:
+        if owns:
+            connection.rollback()
+        else:
+            connection.execute(f"ROLLBACK TO {_GROUP_SAVEPOINT}")
+            connection.execute(f"RELEASE {_GROUP_SAVEPOINT}")
+        raise
+
+
+def load_grouped_snapshot(
+    connection: sqlite3.Connection, snapshot_id: str, *, request: TrendsRequest
+) -> StoredGroupedSnapshot | None:
+    """Read stored decisions and raw draws; resuming performs no new random draw."""
+
+    row = connection.execute(
+        "SELECT parent_word,source,geo,range,search_type,list_type,words_json,fetched_at,availability,filter_decisions_json,ui_period_label FROM keyword_snapshot WHERE snapshot_id=?",
+        (snapshot_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    if (
+        tuple(row[:6])
+        != (request.parent_word, _BROWSER_SOURCE, "JP", "3m", "web", "Top")
+        or snapshot_id != request.request_id
+    ):
+        raise TrendsContractError("stored grouping query identity differs from request")
+    try:
+        words_data = json.loads(row[6])
+        records = json.loads(row[9])
+        if (
+            not isinstance(words_data, list)
+            or not isinstance(records, list)
+            or any(not isinstance(item, dict) for item in records)
+        ):
+            raise ValueError("stored snapshot JSON is not a record list")
+        metadata = [item for item in records if item.get("kind") == "snapshot"]
+        if len(metadata) != 1:
+            raise ValueError("snapshot lineage missing")
+        meta = metadata[0]
+        if (
+            meta["rules_version"] != GROUP_RULES_VERSION
+            or meta["run_id"] != request.run_id
+            or meta["settings_version"] != request.settings_version
+            or meta["request_id"] != request.request_id
+        ):
+            raise ValueError("snapshot lineage mismatch")
+        if not isinstance(meta["classification_complete"], bool):
+            raise ValueError("classification state must be explicit")
+        words = tuple(
+            TrendsWord(
+                item["word_id"],
+                item["raw"],
+                item["normalized"],
+                item["source_rank"],
+                item["popularity_index"],
+                (
+                    ObservedVariant(
+                        item["word_id"],
+                        item["raw"],
+                        item["source_rank"],
+                        item["popularity_index"],
+                    ),
+                ),
+            )
+            for item in words_data
+        )
+        snapshot = TrendsSnapshot(
+            request,
+            snapshot_id,
+            meta["status"],
+            meta["current_parent"],
+            meta["refresh_complete"],
+            row[7],
+            words,
+            meta["error_code"],
+            row[10],
+        )
+        _require_group_snapshot(snapshot)
+        decisions = (
+            tuple(
+                GroupedKeywordDecision(
+                    item["word_id"],
+                    item["decision"],
+                    item["group_ref"],
+                    item["semantic_reason"],
+                )
+                for item in words_data
+            )
+            if meta["classification_complete"]
+            else None
+        )
+        if decisions is not None:
+            _group_decision_map(snapshot, decisions)
+            run = connection.execute(
+                "SELECT settings_version,seed FROM run WHERE run_id=?",
+                (request.run_id,),
+            ).fetchone()
+            groups = {
+                item.group_ref for item in decisions if item.group_ref is not None
+            }
+            if (
+                not isinstance(meta["seed"], str)
+                or not meta["seed"].strip()
+                or run is None
+                or run[0] != request.settings_version
+                or run[1] != meta["seed"]
+                or len(meta["selected"]) != min(ROOM_WORD_LIMIT, len(groups))
+            ):
+                raise ValueError("completed grouping is missing saved draw results")
+        elif meta["selected"] or meta["seed"] is not None:
+            raise ValueError("pending grouping claims selection")
+        selected = tuple(SelectedRoomKeyword(**item) for item in meta["selected"])
+        if len(selected) > ROOM_WORD_LIMIT or len(
+            {item.group_ref for item in selected}
+        ) != len(selected):
+            raise ValueError("stored selection repeats a group or exceeds five")
+        by_id = {word.word_id: word for word in words}
+        decision_map = {item.word_id: item for item in decisions or ()}
+        for item in selected:
+            word = by_id[item.word_id]
+            if (
+                item.raw != word.raw
+                or item.source_rank != word.source_rank
+                or decision_map[item.word_id].group_ref != item.group_ref
+            ):
+                raise ValueError("stored selection mismatches observed raw word")
+        return StoredGroupedSnapshot(snapshot, decisions, selected, meta["seed"])
+    except (ValueError, KeyError, TypeError) as exc:
+        raise TrendsContractError(
+            "stored grouped snapshot is incomplete or inconsistent"
+        ) from exc
+
+
+class GroupKeywordSession:
+    """Acquire Q1.4 theme Top data once per query and stop after source failure."""
+
+    def __init__(
+        self, port: BrowserSnapshotPort, *, run_id: str, settings_version: str
+    ):
+        self.port = port
+        self.run_id = _required_text(run_id, "run_id")
+        self.settings_version = _required_text(settings_version, "settings_version")
+        self.attempted_queries: set[str] = set()
+        self.stopped = False
+
+    def fetch(self, query_word: str, *, snapshot_id: str) -> TrendsSnapshot:
+        if self.stopped:
+            raise KeywordAcquisitionStopped("daily keyword acquisition is stopped")
+        query = _required_text(query_word, "query_word")
+        _require_safe_ref(snapshot_id, "snapshot_id")
+        normalized = _normalize(query)
+        if normalized in self.attempted_queries:
+            raise IdempotencyConflict(
+                "load the saved snapshot instead of refetching this query"
+            )
+        self.attempted_queries.add(normalized)
+        request = TrendsRequest(
+            snapshot_id, self.run_id, self.settings_version, query, range="3m"
+        )
+        try:
+            result = parse_grouped_top_response(self.port.fetch(request), request)
+        except Exception as exc:
+            self.stopped = True
+            raise KeywordAcquisitionStopped(
+                f"keyword port failed: {type(exc).__name__}"
+            ) from exc
+        if result.status != "observed":
+            self.stopped = True
+        return result

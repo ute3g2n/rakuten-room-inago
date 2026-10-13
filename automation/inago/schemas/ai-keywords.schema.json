@@ -1,13 +1,60 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/ai-keywords-v1.schema.json",
-  "title": "AG-KEY word classification result",
+  "$id": "https://rakuten-room-inago.invalid/schemas/ai-keywords-v2.schema.json",
+  "title": "AG-KEY observed Top20 semantic groups",
   "type": "object",
-  "required": ["word_id", "decision", "reason"],
+  "required": [
+    "snapshot_id",
+    "query_word",
+    "decisions"
+  ],
   "properties": {
-    "word_id": {"type": "string", "minLength": 1},
-    "decision": {"enum": ["child", "not_child", "unknown"]},
-    "reason": {"type": "string", "minLength": 1}
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "query_word": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "word_id",
+          "decision",
+          "group_ref",
+          "reason"
+        ],
+        "properties": {
+          "word_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "enum": [
+              "query_same",
+              "duplicate_member",
+              "candidate",
+              "unknown"
+            ]
+          },
+          "group_ref": {
+            "anyOf": [
+              {"type": "string", "minLength": 1},
+              {"type": "null", "minLength": 1}
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
   },
   "additionalProperties": false
 }

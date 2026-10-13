@@ -64,17 +64,86 @@
       "additionalProperties": false
     },
     "word": {
-      "type": "object",
-      "required": ["raw", "normalized", "source_rank", "popularity_index", "semantic_reason", "is_child"],
-      "properties": {
-        "raw": {"$ref": "#/$defs/id"},
-        "normalized": {"$ref": "#/$defs/id"},
-        "source_rank": {"$ref": "#/$defs/positiveInteger"},
-        "popularity_index": {"$ref": "#/$defs/nullableNumber"},
-        "semantic_reason": {"$ref": "#/$defs/id"},
-        "is_child": {"type": "boolean"}
-      },
-      "additionalProperties": false
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "raw",
+            "normalized",
+            "source_rank",
+            "popularity_index",
+            "semantic_reason",
+            "is_child"
+          ],
+          "properties": {
+            "raw": {
+              "$ref": "#/$defs/id"
+            },
+            "normalized": {
+              "$ref": "#/$defs/id"
+            },
+            "source_rank": {
+              "$ref": "#/$defs/positiveInteger"
+            },
+            "popularity_index": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "semantic_reason": {
+              "$ref": "#/$defs/id"
+            },
+            "is_child": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "word_id",
+            "raw",
+            "normalized",
+            "source_rank",
+            "popularity_index",
+            "semantic_reason",
+            "decision",
+            "group_ref"
+          ],
+          "properties": {
+            "word_id": {
+              "$ref": "#/$defs/id"
+            },
+            "raw": {
+              "$ref": "#/$defs/id"
+            },
+            "normalized": {
+              "$ref": "#/$defs/id"
+            },
+            "source_rank": {
+              "$ref": "#/$defs/positiveInteger"
+            },
+            "popularity_index": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "semantic_reason": {
+              "$ref": "#/$defs/id"
+            },
+            "decision": {
+              "enum": [
+                "pending",
+                "query_same",
+                "duplicate_member",
+                "candidate",
+                "unknown"
+              ]
+            },
+            "group_ref": {
+              "$ref": "#/$defs/nullableString"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "settings_version": {
       "type": "object",

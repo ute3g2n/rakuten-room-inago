@@ -102,6 +102,11 @@ def _base_request(**changes: object) -> AIJobRequest:
         input_payload={
             "offers": [{"offer_key": "shop-A:item-1", "draft_version": 1}],
             "word_ids": ["WORD-01"],
+            "keywords": {
+                "snapshot_id": "KEYWORDS-01",
+                "query_word": "テーマ",
+                "words": [{"word_id": "WORD-01", "raw": "用途", "source_rank": 1}],
+            },
         },
         trigger="scheduled_daily",
         explicit_user_request=False,
@@ -276,7 +281,18 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
         "AG-KEY",
         "T02",
         "rr-inago-keywords",
-        {"word_id": "WORD-01", "decision": "child", "reason": "用途が合う"},
+        {
+            "snapshot_id": "KEYWORDS-01",
+            "query_word": "テーマ",
+            "decisions": [
+                {
+                    "word_id": "WORD-01",
+                    "decision": "candidate",
+                    "group_ref": "WORD-01",
+                    "reason": "用途が合う",
+                }
+            ],
+        },
     )
     response = _root_response(request, delegations=[delegation])
     runner, record_path, _ = _runner(
@@ -556,9 +572,9 @@ def test_live_ai_case_registry_covers_seven_roles_with_synthetic_safe_inputs() -
     assert offers[1]["owner_experience"] is None
 
     adopted_settings = json.loads(
-        (PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "初期設定引渡し.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "初期設定引渡し.json"
+        ).read_text(encoding="utf-8")
     )
     theme = next(
         item
@@ -654,7 +670,18 @@ def test_fixed_specialist_task_skill_matrix(
         ),
         (
             "keywords",
-            {"word_id": "WORD-01", "decision": "child", "reason": "関連語"},
+            {
+                "snapshot_id": "KEYWORDS-01",
+                "query_word": "テーマ",
+                "decisions": [
+                    {
+                        "word_id": "WORD-01",
+                        "decision": "candidate",
+                        "group_ref": "WORD-01",
+                        "reason": "関連語",
+                    }
+                ],
+            },
         ),
         (
             "copy",
@@ -905,7 +932,18 @@ def test_root_version_and_reference_mismatch_is_rejected(
                     "AG-KEY",
                     "T02",
                     "rr-inago-keywords",
-                    {"word_id": "WORD-01", "decision": "child", "reason": "用途"},
+                    {
+                        "snapshot_id": "KEYWORDS-01",
+                        "query_word": "テーマ",
+                        "decisions": [
+                            {
+                                "word_id": "WORD-01",
+                                "decision": "candidate",
+                                "group_ref": "WORD-01",
+                                "reason": "用途",
+                            }
+                        ],
+                    },
                 )
             ],
             [],
@@ -1106,7 +1144,18 @@ def test_all_seven_role_schemas_are_valid_json_schema_documents() -> None:
         (
             "AG-KEY",
             "keywords",
-            {"word_id": "WORD-01", "decision": "child", "reason": "関連語"},
+            {
+                "snapshot_id": "KEYWORDS-01",
+                "query_word": "テーマ",
+                "decisions": [
+                    {
+                        "word_id": "WORD-01",
+                        "decision": "candidate",
+                        "group_ref": "WORD-01",
+                        "reason": "関連語",
+                    }
+                ],
+            },
         ),
         (
             "AG-COPY",

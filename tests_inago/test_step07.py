@@ -50,7 +50,9 @@ def selection_db(tmp_path: Path, fixture_config_path: Path) -> sqlite3.Connectio
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
+    basic = json.loads(
+        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
+    )
     details = json.loads(
         (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
     )
@@ -107,7 +109,9 @@ def test_offer_key_is_reversible_and_rejects_ambiguous_identifiers() -> None:
         split_offer_key("shop-01:item-1:variant-2")
 
 
-def test_url_normalization_drops_tracking_and_identity_must_match_observed_ids() -> None:
+def test_url_normalization_drops_tracking_and_identity_must_match_observed_ids() -> (
+    None
+):
     url = (
         "HTTPS://ITEM.RAKUTEN.CO.JP/shop-01/item-A/?scid=af_pc_etc"
         "&utm_source=fixture&sku=blue#reviews"
@@ -153,10 +157,10 @@ def test_unconfirmed_product_identity_never_creates_an_offer_key(
     assert identity.reason == reason
 
 
-def test_299_300_and_unknown_likes_have_distinct_primary_reasons() -> None:
+def test_exact_like_values_do_not_rank_or_exclude_verified_search_products() -> None:
     result = evaluate_sources(
         [
-            post("P-299", "shop:item-299", 299),
+            post("P-600", "shop:item-600", 600),
             post("P-300", "shop:item-300", 300),
             post("P-NULL", "shop:item-null", None),
             post("P-UNKNOWN", None, 500, image_ref="img-same"),
@@ -165,17 +169,19 @@ def test_299_300_and_unknown_likes_have_distinct_primary_reasons() -> None:
         history=OfferHistory(),
     )
 
-    assert [item.source_key for item in result.eligible_representatives] == ["P-300"]
+    assert [item.source_key for item in result.eligible_representatives] == [
+        "P-600",
+        "P-300",
+        "P-NULL",
+    ]
     assert Counter(item.primary_reason for item in result.decisions) == {
-        "below_like_threshold": 1,
-        "eligible": 1,
-        "likes_unreadable": 1,
+        "eligible": 3,
         "offer_id_unresolved": 1,
     }
     assert sum(result.primary_reason_counts.values()) == result.observed_posts == 4
 
 
-def test_max_likes_representative_is_not_a_sum_and_50_counts_raw_posts() -> None:
+def test_first_post_is_representative_and_50_counts_raw_posts() -> None:
     repeated_offer_posts = [
         post(f"A-{likes}", "shop-A:item-A", likes, image_ref=f"img-{likes}")
         for likes in range(301, 311)
@@ -192,13 +198,13 @@ def test_max_likes_representative_is_not_a_sum_and_50_counts_raw_posts() -> None
 
     assert result.observed_posts == 50
     assert len(result.representatives) == 41
-    assert result.representatives[0].offer_key == "shop-B:item-B"
+    assert result.representatives[0].offer_key == "shop-A:item-A"
     representative_a = next(
         item for item in result.representatives if item.offer_key == "shop-A:item-A"
     )
-    assert representative_a.likes == 310
-    assert representative_a.source_key == "A-310"
-    assert "A-301" not in {item.source_key for item in result.representatives}
+    assert representative_a.likes == 301
+    assert representative_a.source_key == "A-301"
+    assert "A-310" not in {item.source_key for item in result.representatives}
     assert result.primary_reason_counts["same_search_offer_duplicate"] == 9
     assert sum(result.primary_reason_counts.values()) == 50
 
@@ -254,8 +260,8 @@ def test_identity_not_image_controls_grouping_and_history_exclusion_order() -> N
     )
     by_source = {item.source_key: item for item in result.decisions}
 
-    assert by_source["A-color-1"].primary_reason == "same_search_offer_duplicate"
-    assert by_source["A-color-2"].offer_key == "shop-A:item-color"
+    assert by_source["A-color-1"].primary_reason == "eligible"
+    assert by_source["A-color-2"].primary_reason == "same_search_offer_duplicate"
     assert by_source["B-same-image"].primary_reason == "eligible"
     assert by_source["C-other-shop"].primary_reason == "eligible"
     assert by_source["DAY"].primary_reason == "same_day_selected"
@@ -410,7 +416,9 @@ def test_offer_history_reads_same_day_posted_pending_and_reserved_state_from_db(
     assert history.generation_failed == {keys["failed"]}
 
 
-def test_theme_selection_uses_lowest_counts_seeded_ties_and_active_themes_only() -> None:
+def test_theme_selection_uses_lowest_counts_seeded_ties_and_active_themes_only() -> (
+    None
+):
     themes = (
         ThemeCandidate("T-A", 2),
         ThemeCandidate("T-B", 0),
@@ -581,7 +589,9 @@ def test_theme_event_conflicts_and_inactive_or_wrong_seed_choices_fail_closed(
     )
 
 
-def test_daily_statistics_separate_attempts_posts_representatives_union_D_and_P() -> None:
+def test_daily_statistics_separate_attempts_posts_representatives_union_D_and_P() -> (
+    None
+):
     first_search = evaluate_sources(
         [
             *[post(f"A-{likes}", "shop-A:item-A", likes) for likes in range(301, 311)],
@@ -686,7 +696,9 @@ def test_q19_367_observations_42_representatives_38_distinct_and_D11() -> None:
     assert sum(summary.primary_reason_counts.values()) == 367
 
 
-def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bound() -> None:
+def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bound() -> (
+    None
+):
     empty = evaluate_sources([], seed=RUN_SEED, history=OfferHistory())
     summary = summarize_daily(
         [

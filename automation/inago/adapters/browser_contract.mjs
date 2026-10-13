@@ -74,6 +74,31 @@ function validWord(word) {
  * candidate words, so stale results cannot enter KEY or keyword selection.
  */
 export function validateTrendsSnapshot(payload, expected) {
+  return validateScopedTrendsSnapshot(payload, expected, QUERY, REQUIRED_KEYS);
+}
+
+// Q1.3 remains a historical reader above. Current daily data has no hierarchy:
+// original Top20 rows enter the AI semantic-group job unchanged.
+export function validateTrendsGroupedSnapshot(payload, expected) {
+  if (!payload || typeof payload !== "object" || !Array.isArray(payload.words)) {
+    return invalid("response_not_object");
+  }
+  const period = typeof payload.ui_period_label === "string"
+    ? payload.ui_period_label.normalize("NFKC").replace(/\s+/g, "") : "";
+  const labels = new Set(["過去3か月間", "過去3か月", "過去3ヶ月間", "過去3ヶ月", "過去90日間", "Past3months"]);
+  if (payload.status === "observed" && !labels.has(period)) {
+    return invalid("query_freshness_mismatch");
+  }
+  const result = validateScopedTrendsSnapshot(
+    payload, expected, {...QUERY, range: "3m"}, [...REQUIRED_KEYS, "ui_period_label"]
+  );
+  if (result.status !== "observed") return result;
+  return {...result, words: result.words.map((word, index) => ({word, index}))
+    .sort((a,b) => a.word.source_rank - b.word.source_rank || a.index - b.index)
+    .slice(0,20).map(row => row.word), ui_period_label: payload.ui_period_label};
+}
+
+function validateScopedTrendsSnapshot(payload, expected, scope, requiredKeys) {
   if (
     payload === null ||
     typeof payload !== "object" ||
@@ -84,7 +109,7 @@ export function validateTrendsSnapshot(payload, expected) {
     return invalid("response_not_object");
   }
   const keys = Object.keys(payload).sort();
-  if (keys.join(",") !== [...REQUIRED_KEYS].sort().join(",")) {
+  if (keys.join(",") !== [...requiredKeys].sort().join(",")) {
     return invalid("response_shape_invalid");
   }
   if (
@@ -98,7 +123,7 @@ export function validateTrendsSnapshot(payload, expected) {
     payload.run_id !== expected.runId ||
     payload.settings_version !== expected.settingsVersion ||
     payload.parent_word !== expected.parentWord ||
-    Object.entries(QUERY).some(([key, value]) => payload[key] !== value)
+    Object.entries(scope).some(([key, value]) => payload[key] !== value)
   ) {
     return invalid("request_contract_mismatch");
   }

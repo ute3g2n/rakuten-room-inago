@@ -15,7 +15,6 @@ from automation.inago.clock import JST
 from automation.inago.contracts import IdempotencyConflict, RejectedContract
 
 
-MIN_LIKES = 300
 MAX_POSTS_PER_SEARCH = 50
 PRIMARY_REASON_ORDER = (
     "non_product",
@@ -316,7 +315,7 @@ class CandidateDecision:
 class Representative:
     offer_key: str
     source_key: str
-    likes: int
+    likes: int | None
     image_ref: str | None
     order_index: int | None
 
@@ -355,12 +354,6 @@ def _history_reasons(offer_key: str, history: OfferHistory) -> tuple[str, ...]:
     )
 
 
-def _seeded_first(values: Sequence[SourcePost], seed: str, context: str) -> SourcePost:
-    tied = list(sorted(values, key=lambda post: post.source_key))
-    random.Random(f"{seed}|{context}").shuffle(tied)
-    return tied[0]
-
-
 def _validate_source_post(post: SourcePost) -> None:
     if (
         not isinstance(post.source_key, str)
@@ -390,7 +383,7 @@ def evaluate_sources(
     seed: str,
     history: OfferHistory,
 ) -> SelectionResult:
-    """Classify every source once and rank one maximum-like representative per offer."""
+    """Select the first observed post per product from a condition-verified search."""
 
     if not isinstance(seed, str) or not seed.strip():
         raise RejectedContract("selection requires the saved non-empty run seed")
@@ -422,14 +415,6 @@ def evaluate_sources(
             decisions[post.source_key] = CandidateDecision(
                 post.source_key, post.offer_key, "non_product"
             )
-        elif post.likes is None:
-            decisions[post.source_key] = CandidateDecision(
-                post.source_key, post.offer_key, "likes_unreadable"
-            )
-        elif post.likes < MIN_LIKES:
-            decisions[post.source_key] = CandidateDecision(
-                post.source_key, post.offer_key, "below_like_threshold"
-            )
         else:
             try:
                 if post.offer_key is None:
@@ -444,13 +429,11 @@ def evaluate_sources(
 
     representative_by_source: dict[str, Representative] = {}
     for offer_key, posts in grouped.items():
-        maximum = max(post.likes for post in posts if post.likes is not None)
-        tied = [post for post in posts if post.likes == maximum]
-        representative_post = _seeded_first(tied, seed, f"representative:{offer_key}")
+        representative_post = posts[0]
         representative = Representative(
             offer_key=offer_key,
             source_key=representative_post.source_key,
-            likes=maximum,
+            likes=representative_post.likes,
             image_ref=representative_post.image_ref,
             order_index=representative_post.order_index,
         )
@@ -477,14 +460,7 @@ def evaluate_sources(
             )
 
     representatives = list(representative_by_source.values())
-    by_likes: dict[int, list[Representative]] = defaultdict(list)
-    for item in representatives:
-        by_likes[item.likes].append(item)
-    ranked: list[Representative] = []
-    for likes in sorted(by_likes, reverse=True):
-        tied = sorted(by_likes[likes], key=lambda item: item.offer_key)
-        random.Random(f"{seed}|offer-rank:{likes}").shuffle(tied)
-        ranked.extend(tied)
+    ranked = representatives
 
     decision_by_source = {key: decisions[key] for key in decisions}
     ordered_decisions = tuple(

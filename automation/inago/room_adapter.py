@@ -11,7 +11,7 @@ import json
 import re
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
@@ -59,6 +59,9 @@ class RoomSearchRequest:
     deadline_at: str
     likes_min: int = 300
     max_posts: int = 50
+    query_kind: str | None = None
+    keyword_snapshot_ref: str | None = None
+    selected_word_ref: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +91,10 @@ class RoomSearchResult:
     end_reached: bool
     fetched_at: str | None
     error_code: str | None
+    loaded_posts: int | None = None
+    unused_posts: int = 0
+    end_reason: str | None = None
+    condition_evidence_ref: str | None = None
 
 
 class RoomSearchPort(Protocol):
@@ -516,6 +523,116 @@ def parse_room_response(
     response: Mapping[str, Any], request: RoomSearchRequest
 ) -> RoomSearchResult:
     """Reject stale search data and preserve only the current internal result order."""
+
+    if request.level in {"related", "theme_fallback"}:
+        return _parse_current_room_response(response, request)
+    return _parse_legacy_room_response(response, request)
+
+
+def _parse_current_room_response(
+    response: Mapping[str, Any], request: RoomSearchRequest
+) -> RoomSearchResult:
+    """Bound rows before inspecting the unused tail; require current condition evidence."""
+
+    if not isinstance(response, Mapping) or not isinstance(response.get("posts"), list):
+        return _invalid_result(request, "response_not_object")
+    if (
+        request.query_kind != request.level
+        or request.likes_min != 300
+        or request.max_posts != 50
+        or (
+            request.level == "related"
+            and not (request.keyword_snapshot_ref and request.selected_word_ref)
+        )
+        or (
+            request.level == "theme_fallback"
+            and (
+                request.keyword_snapshot_ref is not None
+                or request.selected_word_ref is not None
+            )
+        )
+        or any(
+            response.get(key) != getattr(request, key)
+            for key in ("query_kind", "keyword_snapshot_ref", "selected_word_ref")
+        )
+    ):
+        return _invalid_result(request, "search_conditions_mismatch")
+    rows = response["posts"]
+    loaded = response.get("loaded_posts")
+    if not isinstance(loaded, int) or isinstance(loaded, bool) or loaded < len(rows):
+        return _invalid_result(request, "loaded_count_invalid")
+    # Stable post IDs identify repeat reads. Without one, only an exactly equal
+    # row at the same search-local position is a repeat; product IDs never do.
+    accepted = []
+    seen = {}
+    for row in rows:
+        if len(accepted) == 50:
+            break
+        if not isinstance(row, Mapping):
+            return _invalid_result(request, "post_field_invalid")
+        stable = row.get("stable_room_id")
+        index = row.get("internal_index")
+        if not isinstance(index, int) or isinstance(index, bool) or index < 1:
+            return _invalid_result(request, "post_field_invalid")
+        if stable is not None and not isinstance(stable, str):
+            return _invalid_result(request, "post_field_invalid")
+        key = ("stable", stable) if stable is not None else ("position", index)
+        if key in seen:
+            if stable is None and row != seen[key]:
+                return _invalid_result(request, "internal_order_invalid")
+            continue
+        seen[key] = row
+        accepted.append(row)
+    limited = dict(response, posts=accepted)
+    try:
+        _room_schema().validate(limited)
+    except ValidationError:
+        return _invalid_result(request, "response_schema_invalid")
+    if response["status"] != "unavailable":
+        evidence = response.get("condition_evidence_ref")
+        if not isinstance(evidence, str) or not _SAFE_REF.fullmatch(evidence):
+            return _invalid_result(request, "search_conditions_unverified")
+        if any(row["likes"] is not None and row["likes"] < 300 for row in accepted):
+            return _invalid_result(request, "search_condition_contradicted")
+    # Reuse the historical row/URL validator after the new bounded contract has
+    # been checked. Reaching 50 is a successful end condition, not a timeout.
+    at_limit = len(accepted) == 50
+    actual_end = response["end_reached"]
+    if at_limit and response["status"] == "observed":
+        limited["end_reached"] = True
+    result = _parse_legacy_room_response(limited, request)
+    return replace(
+        result,
+        posts=tuple(
+            replace(
+                post, source_key=f"{request.attempt_id}:position:{post.order_index}"
+            )
+            for post in result.posts
+        ),
+        end_reached=actual_end if result.status != "invalid" else False,
+        loaded_posts=loaded,
+        unused_posts=loaded - len(result.posts),
+        end_reason=(
+            (
+                "limit_reached"
+                if at_limit
+                else "terminal" if actual_end else "incomplete"
+            )
+            if result.status in {"observed", "partial"}
+            else "source_failure"
+        ),
+        condition_evidence_ref=(
+            response.get("condition_evidence_ref")
+            if result.status in {"observed", "partial"}
+            else None
+        ),
+    )
+
+
+def _parse_legacy_room_response(
+    response: Mapping[str, Any], request: RoomSearchRequest
+) -> RoomSearchResult:
+    """Read historical 1.3 observations without reinterpreting their completion rules."""
 
     if not isinstance(response, Mapping):
         return _invalid_result(request, "response_not_object")

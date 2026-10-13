@@ -309,7 +309,7 @@ def _child_agent_type(event: Any) -> str | None:
 
 
 def _rollout_settings(
-    events: Sequence[Mapping[str, Any]]
+    events: Sequence[Mapping[str, Any]],
 ) -> tuple[str | None, str | None]:
     """Return one consistently observed model and effort from turn contexts."""
 
@@ -1159,7 +1159,7 @@ class AIJobRunner:
                 "evidence_refs": evidence_refs,
                 "target": {
                     key: payload[key]
-                    for key in ("offer_key", "draft_version", "word_id")
+                    for key in ("offer_key", "draft_version", "word_id", "snapshot_id")
                     if key in payload
                 },
             }
@@ -1214,9 +1214,28 @@ class AIJobRunner:
             return payload.get("ref") in allowed_refs
         if agent_id == "AG-KEY":
             known_word_ids = request.input_payload.get("word_ids")
-            return (
+            keywords = request.input_payload.get("keywords")
+            decisions = payload.get("decisions")
+            words = keywords.get("words") if isinstance(keywords, Mapping) else None
+            if not (
                 isinstance(known_word_ids, list)
-                and payload.get("word_id") in known_word_ids
+                and all(isinstance(item, str) and item for item in known_word_ids)
+                and len(set(known_word_ids)) == len(known_word_ids)
+                and isinstance(words, list)
+                and all(isinstance(item, Mapping) for item in words)
+                and all(isinstance(item.get("word_id"), str) for item in words)
+                and [item["word_id"] for item in words] == known_word_ids
+                and isinstance(decisions, list)
+                and all(isinstance(item, Mapping) for item in decisions)
+                and all(isinstance(item.get("word_id"), str) for item in decisions)
+            ):
+                return False
+            return (
+                payload.get("snapshot_id") == keywords.get("snapshot_id")
+                and payload.get("query_word") == keywords.get("query_word")
+                and len(decisions) == len(known_word_ids)
+                and len({item.get("word_id") for item in decisions}) == len(decisions)
+                and {item.get("word_id") for item in decisions} == set(known_word_ids)
             )
         if agent_id == "AG-COPY":
             offer_key = payload.get("offer_key")
@@ -1457,9 +1476,9 @@ class AIJobRunner:
             if artifact is None:
                 return failed_result(
                     status="error",
-                    adoption_status="rejected_contract"
-                    if returncode == 0
-                    else "pending",
+                    adoption_status=(
+                        "rejected_contract" if returncode == 0 else "pending"
+                    ),
                     error_code="final_response_not_saved",
                     input_hash=input_hash,
                     process_returncode=returncode,
