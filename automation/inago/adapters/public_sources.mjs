@@ -11,8 +11,136 @@ const allowedPeriods = new Set(['過去90日間', '過去3か月間', '過去3�
 const compact = value => value.normalize('NFKC').replace(/\s/g, '');
 const timestamp = () => new Date().toISOString();
 const processStartedAt = Date.now();
+const PRODUCT_NAVIGATION_TIMEOUT_MS = 15000;
+let activeTrace = {stage:'startup',row_index:null};
+const browserDiagnostics = {
+  pages:0,
+  consoleErrors:0,
+  pageErrors:0,
+  failedRequests:0,
+  popupNavigations:0,
+  droppedGroups:0,
+  groups:new Map(),
+};
 function trace(stage, details = {}) {
+  activeTrace = {
+    stage,
+    row_index:Number.isInteger(details.row_index) ? details.row_index : activeTrace.row_index,
+  };
   process.stderr.write(JSON.stringify({event:'public_source_stage',stage,elapsed_ms:Date.now()-processStartedAt,...details})+'\n');
+}
+
+function diagnostic(signal, fields = {}) {
+  if (signal === 'console_error') browserDiagnostics.consoleErrors++;
+  else if (signal === 'page_error') browserDiagnostics.pageErrors++;
+  else if (signal === 'failed_request') browserDiagnostics.failedRequests++;
+  else if (signal === 'popup_navigation') browserDiagnostics.popupNavigations++;
+  const keyFields = {
+    signal,
+    stage:activeTrace.stage,
+    row_index:activeTrace.row_index,
+    ...fields,
+  };
+  const key = JSON.stringify(keyFields);
+  const existing = browserDiagnostics.groups.get(key);
+  if (existing) existing.count++;
+  else if (browserDiagnostics.groups.size < 64) browserDiagnostics.groups.set(key,{
+    ...keyFields,
+    count:1,
+    first_elapsed_ms:Date.now()-processStartedAt,
+  });
+  else browserDiagnostics.droppedGroups++;
+}
+
+function safeHostClass(raw) {
+  try {
+    const host = new URL(raw).hostname;
+    if (host === 'room.rakuten.co.jp') return 'room';
+    if (host === 'item.rakuten.co.jp') return 'product';
+    if (host.endsWith('.rakuten.co.jp') || host.endsWith('.rakuten.com')) return 'rakuten_other';
+    if (/(^|\.)trends\.google\.(co\.jp|com)$/.test(host)) return 'trends';
+    return 'other';
+  } catch { return 'other'; }
+}
+
+function safeResourceType(raw) {
+  return ['document','stylesheet','image','media','font','script','texttrack','xhr','fetch','eventsource','websocket','manifest','other'].includes(raw) ? raw : 'other';
+}
+
+function safeFailureClass(raw) {
+  const value = String(raw || '').toUpperCase();
+  if (value.includes('ERR_ABORTED')) return 'aborted';
+  if (value.includes('ERR_BLOCKED_BY_CLIENT')) return 'blocked';
+  if (value.includes('ERR_NAME_NOT_RESOLVED')) return 'dns';
+  if (value.includes('ERR_CONNECTION_RESET')) return 'connection_reset';
+  if (value.includes('ERR_CONNECTION_CLOSED')) return 'connection_closed';
+  if (value.includes('ERR_TIMED_OUT')) return 'timed_out';
+  if (value.includes('ERR_CONNECTION_REFUSED')) return 'connection_refused';
+  return 'other';
+}
+
+function safeErrorClass(raw) {
+  return ['Error','TypeError','ReferenceError','SyntaxError','RangeError','URIError','EvalError','AggregateError','SecurityError','NotAllowedError'].includes(raw) ? raw : 'other';
+}
+
+function installBrowserDiagnostics(context) {
+  context.on('page', page => {
+    const pageRole = browserDiagnostics.pages++ === 0 ? 'main' : 'popup';
+    page.on('console', message => {
+      if (message.type() === 'error') diagnostic('console_error',{page_role:pageRole});
+    });
+    page.on('pageerror', error => diagnostic('page_error',{page_role:pageRole,error_class:safeErrorClass(error?.name)}));
+    page.on('requestfailed', request => diagnostic('failed_request',{
+      page_role:pageRole,
+      host_class:safeHostClass(request.url()),
+      resource_type:safeResourceType(request.resourceType()),
+      failure_class:safeFailureClass(request.failure()?.errorText),
+    }));
+    page.on('request', request => {
+      if (pageRole === 'popup' && request.isNavigationRequest() && request.resourceType() === 'document')
+        diagnostic('navigation_request',{
+          page_role:pageRole,
+          host_class:safeHostClass(request.url()),
+          resource_type:'document',
+        });
+    });
+    page.on('response', response => {
+      const request = response.request();
+      if (pageRole === 'popup' && request.isNavigationRequest() && request.resourceType() === 'document')
+        diagnostic('navigation_response',{
+          page_role:pageRole,
+          host_class:safeHostClass(response.url()),
+          resource_type:'document',
+          status:response.status(),
+        });
+    });
+    page.on('requestfinished', request => {
+      if (pageRole === 'popup' && request.isNavigationRequest() && request.resourceType() === 'document')
+        diagnostic('navigation_finished',{
+          page_role:pageRole,
+          host_class:safeHostClass(request.url()),
+          resource_type:'document',
+        });
+    });
+    page.on('framenavigated', frame => {
+      if (pageRole === 'popup' && frame === page.mainFrame())
+        diagnostic('popup_navigation',{page_role:pageRole,url_kind:safeUrlKind(frame.url())});
+    });
+  });
+}
+
+function flushBrowserDiagnostics() {
+  process.stderr.write(JSON.stringify({
+    event:'public_source_diagnostic',signal:'summary',
+    page_count:browserDiagnostics.pages,
+    console_error_count:browserDiagnostics.consoleErrors,
+    page_error_count:browserDiagnostics.pageErrors,
+    failed_request_count:browserDiagnostics.failedRequests,
+    popup_navigation_count:browserDiagnostics.popupNavigations,
+    dropped_groups:browserDiagnostics.droppedGroups,
+  })+'\n');
+  for (const fields of browserDiagnostics.groups.values())
+    process.stderr.write(JSON.stringify({event:'public_source_diagnostic',...fields})+'\n');
 }
 
 function validateInput(input) {
@@ -106,19 +234,26 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex) {
     // ROOM exposes this market-details control as visible text, but its DOM
     // class is not stable across the public UI. Anchor to the rendered label.
     const button = page.getByText('楽天市場で詳細を見る', {exact:true}).filter({visible:true}).first();
-    await button.waitFor({state:'visible',timeout:Math.min(1500,Math.max(1,deadline-Date.now()))});
+    await button.waitFor({state:'visible',timeout:Math.min(2000,Math.max(1,deadline-Date.now()))});
     trace('room_detail_button_ready',detail);
-    const control = await button.evaluate(el => ({
-      tag: el.tagName.toLowerCase(),
-      href: el instanceof HTMLAnchorElement ? el.href : null,
-      target: el instanceof HTMLAnchorElement ? el.target : null,
-    }));
+    const control = await button.evaluate(el => {
+      const visible = anchor => anchor.isConnected && anchor.getClientRects().length > 0;
+      const descendant = Array.from(el.querySelectorAll('a[href]')).find(visible) || null;
+      const anchor = el instanceof HTMLAnchorElement && el.href ? el : el.closest('a[href]') || descendant;
+      return {
+        tag:el.tagName.toLowerCase(),
+        href:anchor?.href || null,
+        target:anchor?.target || null,
+        link_scope:!anchor ? 'none' : anchor === el ? 'self' : anchor.contains(el) ? 'ancestor' : 'descendant',
+      };
+    });
     const directProduct = control.href ? productIds(control.href) : null;
     trace('room_detail_control_inspected',{
       ...detail,
       element_tag: ['a','button','div','span'].includes(control.tag) ? control.tag : 'other',
       has_href: Boolean(control.href),
       href_kind: control.href ? safeUrlKind(control.href) : 'none',
+      link_scope: ['none','self','ancestor','descendant'].includes(control.link_scope) ? control.link_scope : 'other',
       link_target: control.target === '_blank' ? '_blank' : control.target === '_self' ? '_self' : control.target ? 'other' : 'none',
     });
     if (directProduct) {
@@ -154,7 +289,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex) {
     phase = 'product_navigation';
     trace('room_product_navigation_begin',detail);
     await popup.waitForURL(url => url.hostname === 'item.rakuten.co.jp', {
-      waitUntil: 'commit', timeout: Math.min(5000, Math.max(1, deadline-Date.now())),
+      waitUntil: 'commit', timeout: Math.min(PRODUCT_NAVIGATION_TIMEOUT_MS, Math.max(1, deadline-Date.now())),
     });
     trace('room_product_navigation_complete',{...detail,...popupUrlKind(popup.url())});
     await popupCheck();
@@ -389,6 +524,7 @@ export async function main(input) {
     trace('browser_context_begin');
     const context = await browser.newContext({locale:'ja-JP'});
     trace('browser_context_complete');
+    installBrowserDiagnostics(context);
     // Installed before newPage/popup: even the first popup document and its
     // redirects are monitored. No response body or internal API is queried.
     context.on('response', response => {
@@ -415,6 +551,7 @@ export async function main(input) {
     if (access.code) throw new SourceFailure(access.code);
     throw error;
   } finally {
+    flushBrowserDiagnostics();
     try { await browser.close(); }
     catch (error) { if (access.code) throw new SourceFailure(access.code); throw error; }
   }

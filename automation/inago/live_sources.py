@@ -36,7 +36,7 @@ class PublicSourceConfig:
     chrome_executable: Path
     evidence_root: Path
     environment: str = "public_ui"
-    timeout_seconds: float = 180
+    timeout_seconds: float = 300
     fixture_url: str | None = None
     node_executable: str = "node"
 
@@ -318,6 +318,168 @@ class PublicBrowserSource:
             except json.JSONDecodeError:
                 continue
             if (
+                isinstance(item, dict)
+                and item.get("event") == "public_source_diagnostic"
+            ):
+                signal = item.get("signal")
+                if signal == "summary":
+                    event = {"event": "public_source_diagnostic", "signal": "summary"}
+                    valid = True
+                    for key in (
+                        "page_count",
+                        "console_error_count",
+                        "page_error_count",
+                        "failed_request_count",
+                        "popup_navigation_count",
+                        "dropped_groups",
+                    ):
+                        value = item.get(key)
+                        if (
+                            not isinstance(value, int)
+                            or isinstance(value, bool)
+                            or value < 0
+                        ):
+                            valid = False
+                            break
+                        event[key] = value
+                    if valid:
+                        events.append(event)
+                    continue
+                if signal not in {
+                    "console_error",
+                    "page_error",
+                    "failed_request",
+                    "popup_navigation",
+                    "navigation_request",
+                    "navigation_response",
+                    "navigation_finished",
+                }:
+                    continue
+                stage = item.get("stage")
+                row_index = item.get("row_index")
+                page_role = item.get("page_role")
+                count = item.get("count")
+                if (
+                    not isinstance(stage, str)
+                    or not SAFE_REF.fullmatch(stage)
+                    or row_index is not None
+                    and (
+                        not isinstance(row_index, int)
+                        or isinstance(row_index, bool)
+                        or not 1 <= row_index <= 50
+                    )
+                    or page_role not in {"main", "popup"}
+                    or not isinstance(count, int)
+                    or isinstance(count, bool)
+                    or count < 1
+                ):
+                    continue
+                event = {
+                    "event": "public_source_diagnostic",
+                    "signal": signal,
+                    "stage": stage,
+                    "page_role": page_role,
+                    "count": count,
+                }
+                if row_index is not None:
+                    event["row_index"] = row_index
+                first_elapsed_ms = item.get("first_elapsed_ms")
+                if (
+                    isinstance(first_elapsed_ms, int)
+                    and not isinstance(first_elapsed_ms, bool)
+                    and first_elapsed_ms >= 0
+                ):
+                    event["first_elapsed_ms"] = first_elapsed_ms
+                if signal == "page_error":
+                    error_class = item.get("error_class")
+                    if error_class not in {
+                        "Error",
+                        "TypeError",
+                        "ReferenceError",
+                        "SyntaxError",
+                        "RangeError",
+                        "URIError",
+                        "EvalError",
+                        "AggregateError",
+                        "SecurityError",
+                        "NotAllowedError",
+                        "other",
+                    }:
+                        continue
+                    event["error_class"] = error_class
+                if signal in {
+                    "failed_request",
+                    "navigation_request",
+                    "navigation_response",
+                    "navigation_finished",
+                }:
+                    host_class = item.get("host_class")
+                    resource_type = item.get("resource_type")
+                    if host_class not in {
+                        "room",
+                        "product",
+                        "rakuten_other",
+                        "trends",
+                        "other",
+                    } or resource_type not in {
+                        "document",
+                        "stylesheet",
+                        "image",
+                        "media",
+                        "font",
+                        "script",
+                        "texttrack",
+                        "xhr",
+                        "fetch",
+                        "eventsource",
+                        "websocket",
+                        "manifest",
+                        "other",
+                    }:
+                        continue
+                    event.update(
+                        host_class=host_class,
+                        resource_type=resource_type,
+                    )
+                    if signal == "failed_request":
+                        failure_class = item.get("failure_class")
+                        if failure_class not in {
+                            "aborted",
+                            "blocked",
+                            "dns",
+                            "connection_reset",
+                            "connection_closed",
+                            "timed_out",
+                            "connection_refused",
+                            "other",
+                        }:
+                            continue
+                        event["failure_class"] = failure_class
+                    if signal == "navigation_response":
+                        status = item.get("status")
+                        if (
+                            not isinstance(status, int)
+                            or isinstance(status, bool)
+                            or not 100 <= status <= 599
+                        ):
+                            continue
+                        event["status"] = status
+                if signal == "popup_navigation":
+                    url_kind = item.get("url_kind")
+                    if url_kind not in {
+                        "blank",
+                        "empty",
+                        "rakuten_item",
+                        "rakuten_other",
+                        "other_https",
+                        "other_scheme",
+                        "invalid",
+                    }:
+                        continue
+                    event["url_kind"] = url_kind
+                events.append(event)
+                continue
+            if (
                 not isinstance(item, dict)
                 or item.get("event") != "public_source_stage"
                 or not isinstance(item.get("stage"), str)
@@ -381,6 +543,9 @@ class PublicBrowserSource:
             link_target = item.get("link_target")
             if link_target in {"none", "_blank", "_self", "other"}:
                 event["link_target"] = link_target
+            link_scope = item.get("link_scope")
+            if link_scope in {"none", "self", "ancestor", "descendant", "other"}:
+                event["link_scope"] = link_scope
             if (
                 isinstance(item.get("elapsed_ms"), int)
                 and not isinstance(item["elapsed_ms"], bool)

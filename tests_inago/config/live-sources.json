@@ -4,7 +4,7 @@
   "network_allowed": true,
   "chrome_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "node_executable": "node",
-  "timeout_seconds": 180,
+  "timeout_seconds": 300,
   "source_method": "public_explore_and_room_ui",
   "authentication": "public_no_login",
   "browser_profile": "owned_temporary_context",

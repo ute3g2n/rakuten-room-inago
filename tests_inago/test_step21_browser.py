@@ -48,6 +48,8 @@ def room_html(
     likes="300件",
     comments="コメント数指定なし",
     direct_href=False,
+    wrapped_href=False,
+    detail_delay_ms=0,
 ):
     # Every ten source rows refer to the same item. All still occupy source slots.
     rows = "".join(
@@ -57,7 +59,16 @@ def room_html(
     detail_control = (
         '<a href="https://item.rakuten.co.jp/shop/item-1/">楽天市場で詳細を見る</a>'
         if direct_href
-        else "<div class=\"market-detail-link\" onclick=\"window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')\">楽天市場で詳細を見る</div>"
+        else (
+            '<a href="https://item.rakuten.co.jp/shop/item-1/"><div>楽天市場で詳細を見る</div></a>'
+            if wrapped_href
+            else "<div class=\"market-detail-link\" onclick=\"window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')\">楽天市場で詳細を見る</div>"
+        )
+    )
+    open_preview = (
+        f"setTimeout(()=>document.querySelector('#modal').style.display='block',{detail_delay_ms})"
+        if detail_delay_ms
+        else "document.querySelector('#modal').style.display='block'"
     )
     return f"""<input id="search-box" value="{query}"><div class="search-detail-wrap" onclick="const popup=document.querySelector('.itemSearch-popup');popup.style.display=popup.style.display==='block'?'none':'block'">詳細検索</div>
     <div class="itemSearch-popup" style="display:none"><a class="close" onclick="this.parentElement.style.display='none'">閉じる</a>
@@ -66,7 +77,7 @@ def room_html(
     <div id="rows">{rows}</div>
     <div id="end" style="display:none">検索結果は以上です</div>
     <div id="modal" style="display:none">{detail_control}<div class="close-button" onclick="document.querySelector('#modal').style.display='none'">閉じる</div></div>
-    <script>let current=1; function openPreview(n){{current=n;document.querySelector('#modal').style.display='block'}}
+    <script>let current=1; function openPreview(n){{current=n;{open_preview}}}
     function more(){{const rows=document.querySelector('#rows');if(rows.children.length<{count}){{for(let n=rows.children.length+1;n<={count};n++){{const e=document.createElement('div');e.className='items-search';e.innerHTML='<div class="item"><div class="detail"><div class="imgLink" onclick="openPreview('+n+')"><img alt="合成商品'+n+'"></div></div></div>';rows.appendChild(e)}}}} {'document.querySelector("#end").style.display="block";' if terminal else ''}}}
     window.addEventListener('scroll',more);document.body.style.height='3000px';
     {'more();' if count == 0 else ''}</script>"""
@@ -136,6 +147,12 @@ def source(tmp_path, ui_server, timeout=25):
     )
 
 
+def test_default_source_timeout_covers_measured_50_row_scan(tmp_path):
+    config = PublicSourceConfig(chrome_executable=CHROME, evidence_root=tmp_path)
+
+    assert config.timeout_seconds == 300
+
+
 def test_room_30_to_80_uses_first_50_before_product_dedup(tmp_path, ui_server):
     ui_server["html"] = room_html()
     port = source(tmp_path, ui_server)
@@ -160,6 +177,35 @@ def test_room_30_to_80_uses_first_50_before_product_dedup(tmp_path, ui_server):
         next((tmp_path / "observations").glob("*.json")).read_text(encoding="utf-8")
     )
     assert record["response"]["posts"] == payload["posts"]
+
+
+def test_room_resolves_visible_link_on_detail_label_ancestor(tmp_path, ui_server):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, wrapped_href=True)
+    payload = source(tmp_path, ui_server).search(room_request())
+
+    assert payload["status"] == "observed", payload.get("error_code")
+    assert payload["posts"][0]["item_url"] == "https://item.rakuten.co.jp/shop/item-1/"
+    assert payload["posts"][0]["availability"] == "observed"
+    assert not any(path.startswith("/product-") for path in ui_server["requests"])
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    link_trace = next(
+        event
+        for event in record["node_events"]
+        if event.get("stage") == "room_detail_control_inspected"
+    )
+    assert link_trace["link_scope"] == "ancestor"
+
+
+def test_room_waits_for_detail_label_rendering_after_preview_click(tmp_path, ui_server):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, detail_delay_ms=1800)
+    payload = source(tmp_path, ui_server).search(room_request())
+
+    assert payload["status"] == "observed", payload.get("error_code")
+    assert payload["posts"][0]["item_url"] == "https://item.rakuten.co.jp/shop/item-1/"
 
 
 @pytest.mark.parametrize("count", [0, 37])
@@ -422,6 +468,7 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
                     "row_index": 7,
                     "popup_url_kind": "blank",
                     "popup_url_length": 11,
+                    "link_scope": "ancestor",
                     "token": "SECRET-FAKE",
                 }
             ),
@@ -439,9 +486,121 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
             "row_index": 7,
             "popup_url_kind": "blank",
             "popup_url_length": 11,
+            "link_scope": "ancestor",
         }
     ]
     assert "SECRET-FAKE" not in json.dumps(events)
+
+
+def test_diagnostic_trace_keeps_only_allowlisted_browser_error_metadata():
+    raw = "\n".join(
+        [
+            json.dumps(
+                {
+                    "event": "public_source_diagnostic",
+                    "signal": "page_error",
+                    "stage": "product_navigation",
+                    "row_index": 4,
+                    "page_role": "popup",
+                    "error_class": "TypeError",
+                    "count": 2,
+                    "message": "contains private page text",
+                    "url": "https://example.invalid/private/path?token=secret",
+                }
+            ),
+            json.dumps(
+                {
+                    "event": "public_source_diagnostic",
+                    "signal": "navigation_request",
+                    "stage": "product_navigation",
+                    "row_index": 4,
+                    "page_role": "popup",
+                    "count": 1,
+                    "first_elapsed_ms": 321,
+                    "host_class": "product",
+                    "resource_type": "document",
+                    "url": "https://item.rakuten.co.jp/private/path?token=secret",
+                }
+            ),
+            json.dumps(
+                {
+                    "event": "public_source_diagnostic",
+                    "signal": "navigation_response",
+                    "stage": "product_navigation",
+                    "row_index": 4,
+                    "page_role": "popup",
+                    "count": 1,
+                    "first_elapsed_ms": 654,
+                    "host_class": "product",
+                    "resource_type": "document",
+                    "status": 200,
+                    "url": "https://item.rakuten.co.jp/private/path?token=secret",
+                }
+            ),
+            json.dumps(
+                {
+                    "event": "public_source_diagnostic",
+                    "signal": "summary",
+                    "page_count": 2,
+                    "console_error_count": 0,
+                    "page_error_count": 0,
+                    "failed_request_count": 1,
+                    "popup_navigation_count": 1,
+                    "dropped_groups": 0,
+                    "token": "SECRET-FAKE",
+                }
+            ),
+        ]
+    )
+
+    events = PublicBrowserSource._metadata_events(raw)
+
+    assert events == [
+        {
+            "event": "public_source_diagnostic",
+            "signal": "page_error",
+            "stage": "product_navigation",
+            "row_index": 4,
+            "page_role": "popup",
+            "error_class": "TypeError",
+            "count": 2,
+        },
+        {
+            "event": "public_source_diagnostic",
+            "signal": "navigation_request",
+            "stage": "product_navigation",
+            "page_role": "popup",
+            "count": 1,
+            "first_elapsed_ms": 321,
+            "row_index": 4,
+            "host_class": "product",
+            "resource_type": "document",
+        },
+        {
+            "event": "public_source_diagnostic",
+            "signal": "navigation_response",
+            "stage": "product_navigation",
+            "page_role": "popup",
+            "count": 1,
+            "first_elapsed_ms": 654,
+            "row_index": 4,
+            "host_class": "product",
+            "resource_type": "document",
+            "status": 200,
+        },
+        {
+            "event": "public_source_diagnostic",
+            "signal": "summary",
+            "page_count": 2,
+            "console_error_count": 0,
+            "page_error_count": 0,
+            "failed_request_count": 1,
+            "popup_navigation_count": 1,
+            "dropped_groups": 0,
+        },
+    ]
+    assert "private" not in json.dumps(events)
+    assert "secret" not in json.dumps(events)
 
 
 def test_windows_colon_id_is_saved_in_ordinary_file_not_ads(tmp_path, ui_server):
