@@ -47,19 +47,25 @@ def room_html(
     query="調理器具",
     likes="300件",
     comments="コメント数指定なし",
+    direct_href=False,
 ):
     # Every ten source rows refer to the same item. All still occupy source slots.
     rows = "".join(
         f'<div class="items-search"><div class="item"><div class="detail"><div class="imgLink" onclick="openPreview({n})"><img alt="合成商品{n}"></div></div></div></div>'
         for n in range(1, min(initial, count) + 1)
     )
-    return f"""<input id="search-box" value="{query}"><div class="search-detail-wrap" onclick="document.querySelector('.itemSearch-popup').style.display='block'">詳細検索</div>
+    detail_control = (
+        '<a href="https://item.rakuten.co.jp/shop/item-1/">楽天市場で詳細を見る</a>'
+        if direct_href
+        else "<div class=\"market-detail-link\" onclick=\"window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')\">楽天市場で詳細を見る</div>"
+    )
+    return f"""<input id="search-box" value="{query}"><div class="search-detail-wrap" onclick="const popup=document.querySelector('.itemSearch-popup');popup.style.display=popup.style.display==='block'?'none':'block'">詳細検索</div>
     <div class="itemSearch-popup" style="display:none"><a class="close" onclick="this.parentElement.style.display='none'">閉じる</a>
     <div class="search-popup-project"><h4>いいね数</h4><div class="select"><div class="select-item">{likes}</div></div><span>以上</span></div>
     <div class="search-popup-project"><h4>コメント数</h4><div class="select"><div class="select-item">{comments}</div></div></div></div>
     <div id="rows">{rows}</div>
     <div id="end" style="display:none">検索結果は以上です</div>
-    <div id="modal" style="display:none"><div class="buy-button" onclick="window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')">楽天市場で詳細を見る</div><div class="close-button" onclick="document.querySelector('#modal').style.display='none'">閉じる</div></div>
+    <div id="modal" style="display:none">{detail_control}<div class="close-button" onclick="document.querySelector('#modal').style.display='none'">閉じる</div></div>
     <script>let current=1; function openPreview(n){{current=n;document.querySelector('#modal').style.display='block'}}
     function more(){{const rows=document.querySelector('#rows');if(rows.children.length<{count}){{for(let n=rows.children.length+1;n<={count};n++){{const e=document.createElement('div');e.className='items-search';e.innerHTML='<div class="item"><div class="detail"><div class="imgLink" onclick="openPreview('+n+')"><img alt="合成商品'+n+'"></div></div></div>';rows.appendChild(e)}}}} {'document.querySelector("#end").style.display="block";' if terminal else ''}}}
     window.addEventListener('scroll',more);document.body.style.height='3000px';
@@ -167,6 +173,17 @@ def test_explicit_room_end_preserves_normal_actual_count(tmp_path, ui_server, co
         and result.end_reached
         and result.end_reason == "exhausted"
     )
+
+
+def test_room_product_key_can_come_from_visible_market_link(tmp_path, ui_server):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, direct_href=True)
+    request = room_request()
+    payload = source(tmp_path, ui_server).search(request)
+    result = parse_room_response(payload, request)
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == 1
+    assert result.posts[0].offer_key == "shop:item-1"
+    assert result.posts[0].item_url == "https://item.rakuten.co.jp/shop/item-1/"
 
 
 def test_incomplete_room_is_failure_not_zero(tmp_path, ui_server):
@@ -399,8 +416,12 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
                 {
                     "event": "public_source_stage",
                     "stage": "room_resolve_products",
+                    "elapsed_ms": 1234,
                     "loaded_posts": 80,
                     "accepted_posts": 50,
+                    "row_index": 7,
+                    "popup_url_kind": "blank",
+                    "popup_url_length": 11,
                     "token": "SECRET-FAKE",
                 }
             ),
@@ -412,8 +433,12 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
         {
             "event": "public_source_stage",
             "stage": "room_resolve_products",
+            "elapsed_ms": 1234,
             "loaded_posts": 80,
             "accepted_posts": 50,
+            "row_index": 7,
+            "popup_url_kind": "blank",
+            "popup_url_length": 11,
         }
     ]
     assert "SECRET-FAKE" not in json.dumps(events)

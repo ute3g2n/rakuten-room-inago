@@ -312,7 +312,7 @@ class PublicBrowserSource:
     @staticmethod
     def _metadata_events(raw: str) -> list[dict[str, Any]]:
         events = []
-        for line in raw.splitlines()[:100]:
+        for line in raw.splitlines()[:1000]:
             try:
                 item = json.loads(line)
             except json.JSONDecodeError:
@@ -325,13 +325,68 @@ class PublicBrowserSource:
             ):
                 continue
             event = {"event": "public_source_stage", "stage": item["stage"]}
-            for key in ("loaded_posts", "accepted_posts"):
+            for key in ("loaded_posts", "accepted_posts", "row_index"):
                 if (
                     isinstance(item.get(key), int)
                     and not isinstance(item[key], bool)
                     and item[key] >= 0
                 ):
                     event[key] = item[key]
+            phase = item.get("phase")
+            if phase in {
+                "card_link",
+                "preview_click",
+                "detail_button_ready",
+                "detail_button_click",
+                "popup_wait",
+                "popup_initial_url",
+                "product_navigation",
+                "product_url_parse",
+            }:
+                event["phase"] = phase
+            popup_url_kind = item.get("popup_url_kind")
+            if popup_url_kind in {
+                "blank",
+                "empty",
+                "rakuten_item",
+                "rakuten_other",
+                "other_https",
+                "other_scheme",
+                "invalid",
+            }:
+                event["popup_url_kind"] = popup_url_kind
+            if (
+                isinstance(item.get("popup_url_length"), int)
+                and not isinstance(item["popup_url_length"], bool)
+                and item["popup_url_length"] >= 0
+            ):
+                event["popup_url_length"] = item["popup_url_length"]
+            element_tag = item.get("element_tag")
+            if element_tag in {"a", "button", "div", "span", "other"}:
+                event["element_tag"] = element_tag
+            if isinstance(item.get("has_href"), bool):
+                event["has_href"] = item["has_href"]
+            href_kind = item.get("href_kind")
+            if href_kind in {
+                "none",
+                "empty",
+                "blank",
+                "rakuten_item",
+                "rakuten_other",
+                "other_https",
+                "other_scheme",
+                "invalid",
+            }:
+                event["href_kind"] = href_kind
+            link_target = item.get("link_target")
+            if link_target in {"none", "_blank", "_self", "other"}:
+                event["link_target"] = link_target
+            if (
+                isinstance(item.get("elapsed_ms"), int)
+                and not isinstance(item["elapsed_ms"], bool)
+                and item["elapsed_ms"] >= 0
+            ):
+                event["elapsed_ms"] = item["elapsed_ms"]
             events.append(event)
         return events
 

@@ -10,8 +10,9 @@ const REF = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const allowedPeriods = new Set(['過去90日間', '過去3か月間', '過去3か月', '過去3ヶ月間', '過去3ヶ月']);
 const compact = value => value.normalize('NFKC').replace(/\s/g, '');
 const timestamp = () => new Date().toISOString();
+const processStartedAt = Date.now();
 function trace(stage, details = {}) {
-  process.stderr.write(JSON.stringify({event:'public_source_stage',stage,...details})+'\n');
+  process.stderr.write(JSON.stringify({event:'public_source_stage',stage,elapsed_ms:Date.now()-processStartedAt,...details})+'\n');
 }
 
 function validateInput(input) {
@@ -71,30 +72,100 @@ function productIds(raw) {
   } catch { return null; }
 }
 
-async function resolveProduct(page, card, check, deadline, access) {
+function safeUrlKind(raw) {
+  try {
+    if (typeof raw !== 'string') return 'invalid';
+    if (!raw.trim()) return 'empty';
+    const url = new URL(raw);
+    if (url.href === 'about:blank') return 'blank';
+    if (url.hostname === 'item.rakuten.co.jp') return 'rakuten_item';
+    if (url.hostname.endsWith('.rakuten.co.jp') || url.hostname.endsWith('.rakuten.com')) return 'rakuten_other';
+    if (url.protocol === 'https:') return 'other_https';
+    return 'other_scheme';
+  } catch { return 'invalid'; }
+}
+
+async function resolveProduct(page, card, check, deadline, access, rowIndex) {
   let popup;
+  let phase = 'card_link';
+  const detail = {row_index:rowIndex};
+  trace('room_product_begin',detail);
   try {
     const directLink = card.locator('a[href^="https://item.rakuten.co.jp/"]').first();
     const direct = await directLink.count() ? await directLink.getAttribute('href', {timeout:300}) : null;
-    if (direct && productIds(direct)) return productIds(direct);
+    if (direct && productIds(direct)) {
+      trace('room_product_direct_link',detail);
+      return productIds(direct);
+    }
+    phase = 'preview_click';
+    trace('room_preview_click_begin',detail);
     await card.locator('.imgLink').click({ timeout: Math.min(2000, Math.max(1, deadline-Date.now())) });
+    trace('room_preview_click_complete',detail);
     await check();
-    const button = page.locator('.buy-button').filter({ hasText: '楽天市場で詳細を見る' }).filter({ visible: true }).first();
+    phase = 'detail_button_ready';
+    // ROOM exposes this market-details control as visible text, but its DOM
+    // class is not stable across the public UI. Anchor to the rendered label.
+    const button = page.getByText('楽天市場で詳細を見る', {exact:true}).filter({visible:true}).first();
+    await button.waitFor({state:'visible',timeout:Math.min(1500,Math.max(1,deadline-Date.now()))});
+    trace('room_detail_button_ready',detail);
+    const control = await button.evaluate(el => ({
+      tag: el.tagName.toLowerCase(),
+      href: el instanceof HTMLAnchorElement ? el.href : null,
+      target: el instanceof HTMLAnchorElement ? el.target : null,
+    }));
+    const directProduct = control.href ? productIds(control.href) : null;
+    trace('room_detail_control_inspected',{
+      ...detail,
+      element_tag: ['a','button','div','span'].includes(control.tag) ? control.tag : 'other',
+      has_href: Boolean(control.href),
+      href_kind: control.href ? safeUrlKind(control.href) : 'none',
+      link_target: control.target === '_blank' ? '_blank' : control.target === '_self' ? '_self' : control.target ? 'other' : 'none',
+    });
+    if (directProduct) {
+      trace('room_product_resolved_visible_href',detail);
+      return directProduct;
+    }
     const popupPromise = page.waitForEvent('popup', { timeout: Math.min(5000, Math.max(1, deadline-Date.now())) }).catch(() => null);
     // Only the product-details control is clicked; no like/collect/buy action.
+    phase = 'detail_button_click';
+    trace('room_detail_button_click_begin',detail);
     await button.click({ timeout: Math.min(2000, Math.max(1, deadline-Date.now())) });
+    phase = 'popup_wait';
+    trace('room_popup_wait_begin',detail);
     popup = await popupPromise;
-    if (!popup) return null;
+    if (!popup) {
+      trace('room_popup_missing',detail);
+      return null;
+    }
+    const popupUrlKind = raw => ({popup_url_kind:safeUrlKind(raw),popup_url_length:typeof raw === 'string' ? raw.length : -1});
+    const popupMainFrame = popup.mainFrame();
+    popup.on('framenavigated', frame => {
+      if (frame === popupMainFrame) trace('room_popup_navigation_observed',{...detail,...popupUrlKind(frame.url())});
+    });
+    trace('room_popup_received',{...detail,...popupUrlKind(popup.url())});
+    phase = 'popup_initial_url';
+    const initialProduct = productIds(popup.url());
+    if (initialProduct) {
+      trace('room_product_resolved_initial_url',detail);
+      return initialProduct;
+    }
     const popupCheck = guardPage(popup, 'item.rakuten.co.jp', access);
     await popupCheck();
+    phase = 'product_navigation';
+    trace('room_product_navigation_begin',detail);
     await popup.waitForURL(url => url.hostname === 'item.rakuten.co.jp', {
       waitUntil: 'commit', timeout: Math.min(5000, Math.max(1, deadline-Date.now())),
     });
+    trace('room_product_navigation_complete',{...detail,...popupUrlKind(popup.url())});
     await popupCheck();
     await check();
-    return productIds(popup.url());
+    phase = 'product_url_parse';
+    const product = productIds(popup.url());
+    trace(product ? 'room_product_resolved' : 'room_product_url_unresolved',detail);
+    return product;
   } catch (error) {
     if (error instanceof SourceFailure) throw error;
+    trace(error?.name === 'TimeoutError' ? 'room_product_timeout' : 'room_product_unresolved',{...detail,phase});
     await check();
     return null; // An unresolved identity still occupies its original source slot.
   } finally {
@@ -110,20 +181,40 @@ export async function collectRoom(page, request, config, deadline, access) {
   const check = guardPage(page, url.hostname, access);
   trace('room_navigation');
   await page.goto(url.href, { waitUntil: 'domcontentloaded' });
+  trace('room_document_loaded');
   await check();
   await waitDOM(page, check, () => !!document.querySelector('#search-box'), null, deadline);
+  trace('room_search_box_ready');
   if (await page.locator('#search-box').inputValue() !== request.query ||
       new URL(page.url()).searchParams.get('like') !== '300' ||
       new URL(page.url()).searchParams.get('comment') !== '') throw new SourceFailure('query_not_reflected');
   trace('room_condition_controls');
   await page.locator('.search-detail-wrap').click();
+  trace('room_condition_popup_opened');
   await check();
   const conditionPopup = page.locator('.itemSearch-popup').filter({visible:true});
   const likeDisplay = await conditionPopup.locator('.search-popup-project').filter({hasText:'いいね数'}).locator('.select > .select-item').first().innerText();
   const commentDisplay = await conditionPopup.locator('.search-popup-project').filter({hasText:'コメント数'}).locator('.select > .select-item').first().innerText();
   if (compact(likeDisplay) !== '300件' || compact(commentDisplay) !== 'コメント数指定なし')
     throw new SourceFailure('search_conditions_unverified');
-  await conditionPopup.locator('a.close').click();
+  trace('room_conditions_verified');
+  let conditionPopupClosed = false;
+  trace('room_condition_toggle_close_begin');
+  await page.locator('.search-detail-wrap').click({timeout:1500}).catch(() => {});
+  try {
+    await conditionPopup.waitFor({state:'hidden',timeout:1500});
+    conditionPopupClosed = true;
+  } catch {}
+  if (!conditionPopupClosed) {
+    trace('room_condition_escape_close_begin');
+    await page.keyboard.press('Escape').catch(() => {});
+    try {
+      await conditionPopup.waitFor({state:'hidden',timeout:1500});
+      conditionPopupClosed = true;
+    } catch {}
+  }
+  if (!conditionPopupClosed) throw new SourceFailure('condition_popup_close_failed');
+  trace('room_condition_popup_closed');
   await check();
   const cards = page.locator('.items-search > .item');
   const endVisible = () => page.evaluate(() => Array.from(document.querySelectorAll('body *')).some(e =>
@@ -131,10 +222,15 @@ export async function collectRoom(page, request, config, deadline, access) {
     /^(検索結果は以上です|検索結果がありません|該当する商品がありません|検索結果はありません)$/.test(e.textContent.trim())));
   let loaded = 0;
   let exhausted = false;
+  let priorLoaded = -1;
   while (Date.now() < deadline) {
     await check();
     loaded = await cards.count();
     exhausted = await endVisible();
+    if (loaded !== priorLoaded) {
+      trace('room_list_progress',{loaded_posts:loaded});
+      priorLoaded = loaded;
+    }
     if (loaded >= 50 || exhausted) break;
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const before = loaded;
@@ -158,7 +254,8 @@ export async function collectRoom(page, request, config, deadline, access) {
     const card = cards.nth(index);
     const name = await card.locator('.imgLink img').first().getAttribute('alt').catch(() => null);
     const image = await card.locator('.imgLink img').first().getAttribute('src').catch(() => null);
-    const ids = await resolveProduct(page, card, check, deadline, access);
+    const ids = await resolveProduct(page, card, check, deadline, access, index+1);
+    trace('room_product_row_complete',{row_index:index+1,accepted_posts:index+1});
     const evidenceRef = `${request.attempt_id}:row:${index+1}`;
     posts.push({ internal_index: index+1, stable_room_id: null, room_url: null,
       likes: null, comments: null, item_url: ids?.url ?? null, observed_shop_id: ids?.shop ?? null,
@@ -284,10 +381,14 @@ export async function main(input) {
   validateInput(input);
   const {config,request,kind} = input;
   const deadline = Date.now()+config.timeout_seconds*1000;
+  trace('browser_launch_begin');
   const browser = await chromium.launch({executablePath:config.chrome_executable,headless:true});
+  trace('browser_launch_complete');
   const access = {code:null};
   try {
+    trace('browser_context_begin');
     const context = await browser.newContext({locale:'ja-JP'});
+    trace('browser_context_complete');
     // Installed before newPage/popup: even the first popup document and its
     // redirects are monitored. No response body or internal API is queried.
     context.on('response', response => {
@@ -303,7 +404,9 @@ export async function main(input) {
       if (url.hostname === 'item.rakuten.co.jp') return route.fulfill({status:200,contentType:'text/html',body:'<title>合成商品の詳細</title>'});
       return route.abort();
     });
+    trace('browser_page_begin');
     const page = await context.newPage();
+    trace('browser_page_complete');
     page.setDefaultTimeout(Math.min(10000,config.timeout_seconds*1000));
     page.setDefaultNavigationTimeout(Math.min(30000,config.timeout_seconds*1000));
     return await (kind === 'room' ? collectRoom(page,request,config,deadline,access) : collectTrends(page,request,config,deadline,access));
