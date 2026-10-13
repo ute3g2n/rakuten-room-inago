@@ -20,7 +20,6 @@ from automation.inago.clock import FakeClock
 from automation.inago.human_api import create_server
 from automation.inago.repository import initialize_database, validate_entity
 
-
 JST = ZoneInfo("Asia/Tokyo")
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 MAX_BODY_BYTES = 64 * 1024
@@ -316,11 +315,11 @@ def test_v1_migration_preserves_pending_report_and_adds_nullable_actual_time(
     )
 
     try:
-        assert initialize_database(connection) == 2
+        assert initialize_database(connection) == 3
         assert connection.execute(
             "SELECT version FROM schema_migration ORDER BY version"
-        ).fetchall() == [(1,), (2,)]
-        assert connection.execute("PRAGMA user_version").fetchone() == (2,)
+        ).fetchall() == [(1,), (2,), (3,)]
+        assert connection.execute("PRAGMA user_version").fetchone() == (3,)
         action = connection.execute(
             "SELECT action_id, reported_at, actual_posted_at, apply_status "
             "FROM human_action WHERE action_id = 'ACT-OLD'"
@@ -331,8 +330,8 @@ def test_v1_migration_preserves_pending_report_and_adds_nullable_actual_time(
             None,
             "pending",
         )
-        assert initialize_database(connection) == 2
-        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 2
+        assert initialize_database(connection) == 3
+        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 3
     finally:
         connection.close()
 

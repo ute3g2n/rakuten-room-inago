@@ -26,9 +26,8 @@ from automation.inago.contracts import (
     UnsupportedSchemaVersion,
 )
 
-
-CURRENT_SCHEMA_VERSION = 2
-READABLE_SCHEMA_VERSIONS = frozenset({2})
+CURRENT_SCHEMA_VERSION = 3
+READABLE_SCHEMA_VERSIONS = frozenset({3})
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "entities.schema.json"
@@ -37,6 +36,7 @@ _MIGRATION_SQL_PATHS = {
     2: Path(__file__).resolve().parent
     / "sql"
     / "002_human_action_actual_posted_at.sql",
+    3: Path(__file__).resolve().parent / "sql" / "003_search_rules_14.sql",
 }
 
 _ENTITY_TABLES = frozenset(
@@ -151,6 +151,10 @@ def _stored_schema_version(connection: sqlite3.Connection) -> int | None:
 def initialize_database(connection: sqlite3.Connection) -> int:
     """Initialize empty storage and atomically advance supported migrations."""
 
+    if connection.in_transaction:
+        raise PersistenceContractError(
+            "schema initialization requires an exclusively owned idle connection"
+        )
     existing_version = _stored_schema_version(connection)
     existing_tables = _user_tables(connection)
     if existing_version is not None:
@@ -166,6 +170,23 @@ def initialize_database(connection: sqlite3.Connection) -> int:
         raise UnsupportedSchemaVersion(
             "database has tables but no recognized schema version"
         )
+
+    if existing_version == 2:
+        _verify_rebuild_objects(connection)
+    foreign_keys = int(connection.execute("PRAGMA foreign_keys").fetchone()[0])
+    # SQLite's supported table-rebuild procedure requires this change outside
+    # BEGIN. It affects this owned connection only; checks run before each commit.
+    connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        return _advance_database_migrations(connection)
+    finally:
+        if connection.in_transaction:
+            connection.rollback()
+        connection.execute(f"PRAGMA foreign_keys = {foreign_keys}")
+
+
+def _advance_database_migrations(connection: sqlite3.Connection) -> int:
+    """Advance one atomic migration at a time on the caller's owned connection."""
 
     while True:
         connection.execute("BEGIN IMMEDIATE")
@@ -198,10 +219,13 @@ def initialize_database(connection: sqlite3.Connection) -> int:
                 )
 
             if version >= CURRENT_SCHEMA_VERSION:
+                _verify_foreign_keys(connection)
                 connection.commit()
                 return version
 
             next_version = version + 1
+            if next_version == 3:
+                _verify_rebuild_objects(connection)
             migration_path = _MIGRATION_SQL_PATHS.get(next_version)
             if migration_path is None or not migration_path.is_file():
                 raise UnsupportedSchemaVersion(
@@ -217,15 +241,40 @@ def initialize_database(connection: sqlite3.Connection) -> int:
                 (
                     next_version,
                     applied_at,
-                    "preserve actual posted time on pending human reports",
+                    {
+                        2: "preserve actual posted time on pending human reports",
+                        3: "Q1.4 search counts, query kinds and three-month observations",
+                    }[next_version],
                 ),
             )
             connection.execute(f"PRAGMA user_version = {next_version}")
+            _verify_foreign_keys(connection)
             connection.commit()
         except BaseException:
             if connection.in_transaction:
                 connection.rollback()
             raise
+
+
+def _verify_foreign_keys(connection: sqlite3.Connection) -> None:
+    """Reject migration commit if rebuilt tables lose a referenced record."""
+
+    if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
+        raise PersistenceContractError("migration would leave broken foreign keys")
+
+
+def _verify_rebuild_objects(connection: sqlite3.Connection) -> None:
+    """Keep unexpected user schema objects intact instead of dropping them."""
+
+    objects = connection.execute(
+        "SELECT type,name FROM sqlite_master WHERE sql IS NOT NULL "
+        "AND type IN ('index','trigger','view') "
+        "AND (tbl_name IN ('run','search_attempt','keyword_snapshot') OR type='view')"
+    ).fetchall()
+    if any(tuple(row) != ("index", "one_daily_run_per_target_date") for row in objects):
+        raise UnsupportedSchemaVersion(
+            "Q1.4 migration requires review of custom indexes, triggers or views"
+        )
 
 
 def open_database(paths: Any) -> sqlite3.Connection:

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/keywords-v1.schema.json",
+  "$id": "https://rakuten-room-inago.invalid/schemas/keywords-v2.schema.json",
   "title": "Observed Google Trends related Top fixture response",
   "description": "Data contract only. It does not authorize or implement browser access.",
   "type": "object",
@@ -35,11 +35,17 @@
     "language": {"const": "ja"},
     "geo": {"const": "JP"},
     "search_type": {"const": "web"},
-    "range": {"const": "90d"},
+    "range": {
+      "enum": [
+        "90d",
+        "3m"
+      ]
+    },
     "list_type": {"const": "Top"},
     "status": {"enum": ["observed", "unavailable"]},
     "fetched_at": {"type": ["string", "null"], "format": "date-time"},
     "error_code": {"type": ["string", "null"]},
+    "ui_period_label": {"type": ["string", "null"]},
     "words": {
       "type": "array",
       "items": {"$ref": "#/$defs/observedWord"}
@@ -47,25 +53,91 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
+      "if": {
+        "properties": {
+          "status": {
+            "const": "observed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "then": {
         "properties": {
-          "current_parent": {"type": "string", "minLength": 1},
-          "refresh_complete": {"const": true},
-          "fetched_at": {"type": "string", "format": "date-time"},
-          "error_code": {"type": "null"}
+          "current_parent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refresh_complete": {
+            "const": true
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_code": {
+            "type": "null"
+          }
         }
       }
     },
     {
-      "if": {"properties": {"status": {"const": "unavailable"}}, "required": ["status"]},
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unavailable"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "then": {
         "properties": {
-          "current_parent": {"type": "null"},
-          "refresh_complete": {"const": false},
-          "fetched_at": {"type": "null"},
-          "error_code": {"type": "string", "minLength": 1},
-          "words": {"maxItems": 0}
+          "current_parent": {
+            "type": "null"
+          },
+          "refresh_complete": {
+            "const": false
+          },
+          "fetched_at": {
+            "type": "null"
+          },
+          "error_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "words": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "range": {
+            "const": "3m"
+          },
+          "status": {
+            "const": "observed"
+          }
+        },
+        "required": [
+          "range",
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "ui_period_label"
+        ],
+        "properties": {
+          "ui_period_label": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

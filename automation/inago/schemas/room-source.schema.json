@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/room-source-v1.schema.json",
+  "$id": "https://rakuten-room-inago.invalid/schemas/room-source-v2.schema.json",
   "title": "Fixture ROOM public-search observation",
   "description": "A data contract only; it does not authorize browser, login, or network access.",
   "type": "object",
@@ -14,7 +14,14 @@
     "run_id": {"$ref": "#/$defs/id"},
     "query": {"type": "string", "minLength": 1, "maxLength": 500},
     "parent_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
-    "level": {"enum": ["combined", "parent"]},
+    "level": {
+      "enum": [
+        "combined",
+        "parent",
+        "related",
+        "theme_fallback"
+      ]
+    },
     "likes_min": {"const": 300},
     "max_posts": {"const": 50},
     "current_search_id": {"$ref": "#/$defs/nullableId"},
@@ -24,6 +31,11 @@
     "fetched_at": {"$ref": "#/$defs/nullableTimestamp"},
     "end_reached": {"type": "boolean"},
     "error_code": {"$ref": "#/$defs/nullableId"},
+    "condition_evidence_ref": {"$ref": "#/$defs/nullableId"},
+    "keyword_snapshot_ref": {"$ref": "#/$defs/nullableId"},
+    "loaded_posts": {"type": ["integer", "null"], "minimum": 0},
+    "query_kind": {"enum": ["related", "theme_fallback"]},
+    "selected_word_ref": {"$ref": "#/$defs/nullableId"},
     "posts": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/post"}}
   },
   "allOf": [

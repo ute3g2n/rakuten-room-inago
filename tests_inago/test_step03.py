@@ -29,7 +29,6 @@ from automation.inago.repository import (
     validate_entity,
 )
 
-
 JST = ZoneInfo("Asia/Tokyo")
 RUN_ID = "TEST-R1"
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
@@ -368,7 +367,7 @@ def test_initial_schema_maps_entities_and_sqlite_state_contract(
     assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     assert connection.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
     assert connection.execute("PRAGMA synchronous").fetchone()[0] == 2
-    assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_schema_version_rejects_an_unknown_reader_version(
@@ -379,7 +378,9 @@ def test_schema_version_rejects_an_unknown_reader_version(
         schema_version(runtime_case.connection)
 
 
-def test_schema_rejects_human_action_without_explicit_draft_and_receipt_versions() -> None:
+def test_schema_rejects_human_action_without_explicit_draft_and_receipt_versions() -> (
+    None
+):
     invalid_action = {
         "action_id": "ACTION-1",
         "action": "posted",

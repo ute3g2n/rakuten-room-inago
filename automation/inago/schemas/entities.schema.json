@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v2.schema.json",
+  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v3.schema.json",
   "title": "Inago SQLite entity contracts",
-  "description": "Schema version 2 contracts mapped from the Q1.3 entity dictionary.",
+  "description": "Schema version 3 contracts from Q1.4; old labels are retained for historical records.",
   "$defs": {
     "id": {"type": "string", "minLength": 1},
     "date": {"type": "string", "format": "date"},
@@ -92,38 +92,286 @@
     },
     "run": {
       "type": "object",
-      "required": ["run_id", "target_date", "mode", "status", "settings_version", "seed", "started_at", "draft_deadline", "end_deadline", "attempt_used", "committed_count", "checkpoint", "metrics_status", "finished_at"],
+      "required": [
+        "run_id",
+        "target_date",
+        "mode",
+        "status",
+        "settings_version",
+        "seed",
+        "started_at",
+        "draft_deadline",
+        "end_deadline",
+        "attempt_used",
+        "committed_count",
+        "checkpoint",
+        "metrics_status",
+        "finished_at"
+      ],
       "properties": {
-        "run_id": {"$ref": "#/$defs/id"},
-        "target_date": {"$ref": "#/$defs/date"},
-        "mode": {"enum": ["setup", "daily", "status", "recovery", "config-change", "export", "serve", "migrate", "backup", "restore-check", "acceptance"]},
-        "status": {"enum": ["created", "running", "complete", "partial", "failed", "shortfall", "missed"]},
-        "settings_version": {"$ref": "#/$defs/id"},
-        "seed": {"$ref": "#/$defs/id"},
-        "started_at": {"$ref": "#/$defs/timestamp"},
-        "draft_deadline": {"$ref": "#/$defs/timestamp"},
-        "end_deadline": {"$ref": "#/$defs/timestamp"},
-        "attempt_used": {"type": "integer", "minimum": 0, "maximum": 9},
-        "committed_count": {"type": "integer", "minimum": 0, "maximum": 15},
-        "checkpoint": {"$ref": "#/$defs/nullableString"},
-        "metrics_status": {"enum": ["pending", "observed", "partial", "unavailable", "not_started"]},
-        "finished_at": {"$ref": "#/$defs/nullableTimestamp"}
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "target_date": {
+          "$ref": "#/$defs/date"
+        },
+        "mode": {
+          "enum": [
+            "setup",
+            "daily",
+            "status",
+            "recovery",
+            "config-change",
+            "export",
+            "serve",
+            "migrate",
+            "backup",
+            "restore-check",
+            "acceptance"
+          ]
+        },
+        "status": {
+          "enum": [
+            "created",
+            "running",
+            "complete",
+            "partial",
+            "failed",
+            "shortfall",
+            "missed"
+          ]
+        },
+        "settings_version": {
+          "$ref": "#/$defs/id"
+        },
+        "seed": {
+          "$ref": "#/$defs/id"
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "draft_deadline": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "end_deadline": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "attempt_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "committed_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "metrics_status": {
+          "enum": [
+            "pending",
+            "observed",
+            "partial",
+            "unavailable",
+            "not_started"
+          ]
+        },
+        "finished_at": {
+          "$ref": "#/$defs/nullableTimestamp"
+        }
       },
       "additionalProperties": false
     },
     "search_attempt": {
       "type": "object",
-      "required": ["attempt_id", "run_id", "query", "parent_refs", "level", "attempt_no", "started_at", "ended_at", "source_status", "source_order", "max_posts", "retry_of", "error_code"],
+      "required": [
+        "attempt_id",
+        "run_id",
+        "query",
+        "parent_refs",
+        "level",
+        "attempt_no",
+        "started_at",
+        "ended_at",
+        "source_status",
+        "source_order",
+        "max_posts",
+        "retry_of",
+        "error_code"
+      ],
       "properties": {
-        "attempt_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
-        "query": {"$ref": "#/$defs/id"}, "parent_refs": {"type": "array", "items": {"$ref": "#/$defs/id"}},
-        "level": {"enum": ["combined", "parent"]}, "attempt_no": {"type": "integer", "minimum": 1, "maximum": 9},
-        "started_at": {"$ref": "#/$defs/timestamp"}, "ended_at": {"$ref": "#/$defs/nullableTimestamp"},
-        "source_status": {"enum": ["observed", "partial", "unavailable", "invalid"]},
-        "source_order": {"const": "internal"}, "max_posts": {"const": 50},
-        "retry_of": {"$ref": "#/$defs/nullableString"}, "error_code": {"$ref": "#/$defs/nullableString"}
+        "attempt_id": {
+          "$ref": "#/$defs/id"
+        },
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "query": {
+          "$ref": "#/$defs/id"
+        },
+        "parent_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "level": {
+          "enum": [
+            "combined",
+            "parent",
+            "related",
+            "theme_fallback"
+          ]
+        },
+        "attempt_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "ended_at": {
+          "$ref": "#/$defs/nullableTimestamp"
+        },
+        "source_status": {
+          "enum": [
+            "observed",
+            "partial",
+            "unavailable",
+            "invalid"
+          ]
+        },
+        "source_order": {
+          "const": "internal"
+        },
+        "max_posts": {
+          "const": 50
+        },
+        "retry_of": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "error_code": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "query_kind": {
+          "enum": [
+            "legacy",
+            "related",
+            "theme_fallback"
+          ]
+        },
+        "keyword_snapshot_ref": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "selected_word_ref": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "observed_posts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "loaded_posts": {
+          "$ref": "#/$defs/nullableInteger"
+        },
+        "end_reason": {
+          "enum": [
+            null,
+            "limit_reached",
+            "exhausted",
+            "deadline",
+            "error",
+            "invalid"
+          ]
+        },
+        "condition_evidence_ref": {
+          "$ref": "#/$defs/nullableString"
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "level"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "related",
+                  "theme_fallback"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "query_kind",
+              "keyword_snapshot_ref",
+              "selected_word_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "query_kind"
+            ],
+            "properties": {
+              "query_kind": {
+                "const": "related"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "keyword_snapshot_ref",
+              "selected_word_ref"
+            ],
+            "properties": {
+              "level": {
+                "const": "related"
+              },
+              "keyword_snapshot_ref": {
+                "$ref": "#/$defs/id"
+              },
+              "selected_word_ref": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "query_kind"
+            ],
+            "properties": {
+              "query_kind": {
+                "const": "theme_fallback"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "keyword_snapshot_ref",
+              "selected_word_ref"
+            ],
+            "properties": {
+              "level": {
+                "const": "theme_fallback"
+              },
+              "keyword_snapshot_ref": {
+                "type": "null"
+              },
+              "selected_word_ref": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "source_post": {
       "type": "object",
@@ -169,16 +417,95 @@
     },
     "keyword_snapshot": {
       "type": "object",
-      "required": ["snapshot_id", "parent_word", "source", "geo", "range", "search_type", "list_type", "words", "fetched_at", "availability", "filter_decisions"],
+      "required": [
+        "snapshot_id",
+        "parent_word",
+        "source",
+        "geo",
+        "range",
+        "search_type",
+        "list_type",
+        "words",
+        "fetched_at",
+        "availability",
+        "filter_decisions"
+      ],
       "properties": {
-        "snapshot_id": {"$ref": "#/$defs/id"}, "parent_word": {"$ref": "#/$defs/id"},
-        "source": {"$ref": "#/$defs/id"}, "geo": {"const": "JP"}, "range": {"const": "90d"},
-        "search_type": {"const": "web"}, "list_type": {"const": "Top"},
-        "words": {"type": "array", "items": {"$ref": "#/$defs/word"}},
-        "fetched_at": {"$ref": "#/$defs/nullableTimestamp"}, "availability": {"$ref": "#/$defs/availability"},
-        "filter_decisions": {"type": "array", "items": {"type": "object"}}
+        "snapshot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "parent_word": {
+          "$ref": "#/$defs/id"
+        },
+        "source": {
+          "$ref": "#/$defs/id"
+        },
+        "geo": {
+          "const": "JP"
+        },
+        "range": {
+          "enum": [
+            "90d",
+            "3m"
+          ]
+        },
+        "search_type": {
+          "const": "web"
+        },
+        "list_type": {
+          "const": "Top"
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/word"
+          }
+        },
+        "fetched_at": {
+          "$ref": "#/$defs/nullableTimestamp"
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "filter_decisions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "ui_period_label": {
+          "$ref": "#/$defs/nullableString"
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "range": {
+                "const": "3m"
+              },
+              "availability": {
+                "const": "observed"
+              }
+            },
+            "required": [
+              "range",
+              "availability"
+            ]
+          },
+          "then": {
+            "required": [
+              "ui_period_label"
+            ],
+            "properties": {
+              "ui_period_label": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      ]
     },
     "theme_selection": {
       "type": "object",
