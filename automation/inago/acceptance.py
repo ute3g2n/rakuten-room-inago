@@ -202,7 +202,9 @@ def _extract_extended_cases(
         module_paths = _existing_test_modules(project_root, _X_TEST_STEPS[case_id])
         objective_match = re.search(r"\*\*対応・目的\*\*：([^\n]+)", body)
         objective = objective_match.group(1) if objective_match else ""
-        expected_parts = re.findall(r"\*\*期待(?:出力|DB・件数・予約・版・ログ)\*\*：([^\n]+)", body)
+        expected_parts = re.findall(
+            r"\*\*期待(?:出力|DB・件数・予約・版・ログ)\*\*：([^\n]+)", body
+        )
         cases[case_id] = AcceptanceCase(
             case_id=case_id,
             name=name.strip(),
@@ -227,6 +229,16 @@ def _existing_test_modules(
 ) -> tuple[str, ...]:
     paths: list[str] = []
     for step_number in step_numbers:
+        if step_number == 21:
+            # Current Q1.4 contracts are split by responsibility within STEP21.
+            current = sorted((project_root / "tests_inago").glob("test_step21_*.py"))
+            if not current:
+                raise FileNotFoundError("STEP21 の新仕様契約テストがありません")
+            for path in current:
+                normalized = path.relative_to(project_root).as_posix()
+                if normalized not in paths:
+                    paths.append(normalized)
+            continue
         relative_path = Path("tests_inago") / f"test_step{step_number:02d}.py"
         if (project_root / relative_path).is_file():
             normalized = relative_path.as_posix()
@@ -366,15 +378,22 @@ def validate_document_contract(
     conflicts: list[str] = []
 
     if "confirmed-0.3-step46-all132" not in basic_serialized:
-        conflicts.append("採用済み基本版confirmed-0.3-step46-all132が初期設定引渡しにない")
+        conflicts.append(
+            "採用済み基本版confirmed-0.3-step46-all132が初期設定引渡しにない"
+        )
     if basic.get("status") != "confirmed" or basic.get("adopted") is not True:
         conflicts.append("初期設定引渡しがconfirmed/adoptedではない")
     owner_confirmation_version = basic.get("source_candidate_versions", {}).get(
         "owner_confirmation"
     )
     if owner_confirmation_version != "candidate-0.3-step43-all132":
-        conflicts.append("本人確認記録の採用対象版candidate-0.3-step43-all132と一致しない")
-    if "candidate-0.3-step43-all132" not in owner_record or "採用済み" not in owner_record:
+        conflicts.append(
+            "本人確認記録の採用対象版candidate-0.3-step43-all132と一致しない"
+        )
+    if (
+        "candidate-0.3-step43-all132" not in owner_record
+        or "採用済み" not in owner_record
+    ):
         conflicts.append("本人確認記録にcandidate-0.3-step43-all132の採用回答がない")
     if candidate.get("version") != "detailed-writing-rules-candidate-0.1-step68":
         conflicts.append("詳細書き方候補のversionが想定と異なる")
@@ -410,7 +429,9 @@ def validate_document_contract(
         ref for ref in precedence_refs if ref not in precedence_text
     ]
     if missing_precedence_refs:
-        conflicts.append("現行解釈の優先順位参照が欠落: " + ", ".join(missing_precedence_refs))
+        conflicts.append(
+            "現行解釈の優先順位参照が欠落: " + ", ".join(missing_precedence_refs)
+        )
     if not re.search(r"1\.3", html_text):
         conflicts.append("要件HTMLの版1.3を本文から確認できない")
 
@@ -576,7 +597,9 @@ def run_fixture_subset_for_selected_cases(
         raise ValueError(f"registryにないcase ID: {unknown}")
     invalid = [case_id for case_id in case_ids if registry[case_id].phase == "document"]
     if invalid:
-        raise ValueError(f"document_contract caseをfixture実行へ混ぜられません: {invalid}")
+        raise ValueError(
+            f"document_contract caseをfixture実行へ混ぜられません: {invalid}"
+        )
 
     modules = tuple(
         sorted(
@@ -715,8 +738,12 @@ def record_document_evidence(project_root: Path, report: dict[str, Any]) -> None
 def main(argv: list[str] | None = None) -> int:
     """Allow an acceptance case to be invoked alone with --case CASE-ID."""
 
-    parser = argparse.ArgumentParser(description="イナゴ STEP19 fixture acceptance runner")
-    parser.add_argument("--list", action="store_true", help="77件のcase IDとphaseを表示")
+    parser = argparse.ArgumentParser(
+        description="イナゴ STEP19 fixture acceptance runner"
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="77件のcase IDとphaseを表示"
+    )
     parser.add_argument("--case", choices=EXPECTED_CASE_IDS, help="単独実行するcase ID")
     args = parser.parse_args(argv)
     registry = load_acceptance_registry(PROJECT_ROOT)

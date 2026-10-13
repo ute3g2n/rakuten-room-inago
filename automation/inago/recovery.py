@@ -193,7 +193,7 @@ def _validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         raise RecoveryPlanError("target_date is invalid")
     search_attempts = _nonnegative_int(snapshot["search_attempts"], "search_attempts")
     committed_count = _nonnegative_int(snapshot["committed_count"], "committed_count")
-    if search_attempts > 9 or committed_count > 15:
+    if committed_count > 15:
         raise RecoveryPlanError("checkpoint exceeds the daily budget")
     attempts = snapshot["unfinished_generation_attempts"]
     if not isinstance(attempts, Mapping):
@@ -360,7 +360,7 @@ def plan_resume(
             ),
         )
         return base
-    can_add_search = preserved["search_attempts"] < 9
+    can_add_search = preserved["committed_count"] < 15
     can_add_draft = preserved["committed_count"] < 15 and any(
         attempts < 3
         for attempts in preserved["unfinished_generation_attempts"].values()

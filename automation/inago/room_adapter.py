@@ -148,6 +148,9 @@ class RoomSearchSession:
         parent_refs: Sequence[str],
         level: str,
         retry_of: str | None = None,
+        query_kind: str | None = None,
+        keyword_snapshot_ref: str | None = None,
+        selected_word_ref: str | None = None,
     ) -> RoomSearchResult:
         request = self._reserve(
             attempt_id=attempt_id,
@@ -156,6 +159,9 @@ class RoomSearchSession:
             parent_refs=parent_refs,
             level=level,
             retry_of=retry_of,
+            query_kind=query_kind,
+            keyword_snapshot_ref=keyword_snapshot_ref,
+            selected_word_ref=selected_word_ref,
         )
         try:
             response = self._port.search(request)
@@ -182,12 +188,30 @@ class RoomSearchSession:
         parent_refs: Sequence[str],
         level: str,
         retry_of: str | None,
+        query_kind: str | None,
+        keyword_snapshot_ref: str | None,
+        selected_word_ref: str | None,
     ) -> RoomSearchRequest:
         _safe_ref(attempt_id, "attempt_id")
         _safe_ref(run_id, "run_id")
         _required_text(query, "query", max_length=500)
-        if level not in {"combined", "parent"}:
-            raise RoomContractError("level must be combined or parent")
+        if level not in {"combined", "parent", "related", "theme_fallback"}:
+            raise RoomContractError("search level is invalid")
+        current = level in {"related", "theme_fallback"}
+        if current:
+            if query_kind != level:
+                raise RoomContractError("current query kind must match its level")
+            if level == "related":
+                _safe_ref(keyword_snapshot_ref, "keyword_snapshot_ref")
+                _safe_ref(selected_word_ref, "selected_word_ref")
+            elif keyword_snapshot_ref is not None or selected_word_ref is not None:
+                raise RoomContractError("theme fallback cannot claim a related word")
+        elif (
+            query_kind is not None
+            or keyword_snapshot_ref is not None
+            or selected_word_ref is not None
+        ):
+            raise RoomContractError("legacy search cannot be relabelled current")
         if retry_of is not None:
             _safe_ref(retry_of, "retry_of")
         refs = _validated_refs(parent_refs)
@@ -203,13 +227,47 @@ class RoomSearchSession:
         connection.execute("BEGIN IMMEDIATE")
         try:
             run = connection.execute(
-                "SELECT mode, status, attempt_used, draft_deadline FROM run WHERE run_id = ?",
+                "SELECT mode, status, attempt_used, draft_deadline,settings_version FROM run WHERE run_id = ?",
                 (run_id,),
             ).fetchone()
             if run is None or run["mode"] != "daily":
                 raise RoomContractError("ROOM search requires a known daily run")
             if run["status"] not in {"running", "partial"}:
                 raise RoomContractError("daily run is not accepting ROOM searches")
+            if current and level == "related":
+                from automation.inago.trends_adapter import (
+                    TrendsRequest,
+                    load_grouped_snapshot,
+                )
+
+                snapshot = connection.execute(
+                    "SELECT parent_word FROM keyword_snapshot WHERE snapshot_id=?",
+                    (keyword_snapshot_ref,),
+                ).fetchone()
+                if snapshot is None:
+                    raise RoomContractError("related snapshot is missing")
+                saved = load_grouped_snapshot(
+                    connection,
+                    keyword_snapshot_ref,
+                    request=TrendsRequest(
+                        keyword_snapshot_ref,
+                        run_id,
+                        run["settings_version"],
+                        snapshot[0],
+                        range="3m",
+                    ),
+                )
+                if (
+                    saved is None
+                    or saved.decisions is None
+                    or not any(
+                        item.word_id == selected_word_ref and item.raw == query
+                        for item in saved.selected
+                    )
+                ):
+                    raise RoomContractError(
+                        "related query is not a saved selected expression"
+                    )
             deadline_text = _aware_timestamp(run["draft_deadline"], "draft_deadline")
             if deadline_text is None:
                 raise RoomContractError("draft_deadline must be offset-aware")
@@ -225,7 +283,7 @@ class RoomSearchSession:
                 raise RoomContractError(
                     "daily search attempt counter disagrees with persisted attempts"
                 )
-            if attempts >= 9:
+            if not current and attempts >= 9:
                 raise RoomContractError("daily run already used 9 search attempts")
             if connection.execute(
                 "SELECT 1 FROM search_attempt WHERE attempt_id = ?", (attempt_id,)
@@ -235,6 +293,16 @@ class RoomSearchSession:
             if retry_of is None:
                 attempt_no = attempts + 1
             else:
+                previous = connection.execute(
+                    "SELECT query_kind,keyword_snapshot_ref,selected_word_ref FROM search_attempt WHERE attempt_id=?",
+                    (retry_of,),
+                ).fetchone()
+                if current and (
+                    previous is None
+                    or tuple(previous)
+                    != (query_kind, keyword_snapshot_ref, selected_word_ref)
+                ):
+                    raise RoomContractError("retry changed its selected word identity")
                 self._validate_retry(
                     retry_of,
                     run_id=run_id,
@@ -258,6 +326,15 @@ class RoomSearchSession:
                 "max_posts": 50,
                 "retry_of": retry_of,
                 "error_code": _RESERVATION_ERROR,
+                **(
+                    {
+                        "query_kind": query_kind,
+                        "keyword_snapshot_ref": keyword_snapshot_ref,
+                        "selected_word_ref": selected_word_ref,
+                    }
+                    if current
+                    else {}
+                ),
             }
             validate_entity("search_attempt", search_attempt_entity)
             connection.execute(
@@ -265,8 +342,8 @@ class RoomSearchSession:
                 INSERT INTO search_attempt
                     (attempt_id, run_id, query, parent_refs_json, level,
                      attempt_no, started_at, ended_at, source_status,
-                     source_order, max_posts, retry_of, error_code)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'invalid', 'internal', 50, ?, ?)
+                     source_order, max_posts, retry_of, error_code,query_kind,keyword_snapshot_ref,selected_word_ref)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'invalid', 'internal', 50, ?, ?, ?, ?, ?)
                 """,
                 (
                     attempt_id,
@@ -278,6 +355,9 @@ class RoomSearchSession:
                     started_at,
                     retry_of,
                     _RESERVATION_ERROR,
+                    query_kind if current else "legacy",
+                    keyword_snapshot_ref,
+                    selected_word_ref,
                 ),
             )
             updated_run = connection.execute(
@@ -303,6 +383,9 @@ class RoomSearchSession:
             attempt_no=attempt_no,
             retry_of=retry_of,
             deadline_at=run["draft_deadline"],
+            query_kind=query_kind,
+            keyword_snapshot_ref=keyword_snapshot_ref,
+            selected_word_ref=selected_word_ref,
         )
 
     def _validate_retry(
@@ -390,6 +473,15 @@ class RoomSearchSession:
                 "max_posts": 50,
                 "retry_of": result.request.retry_of,
                 "error_code": result.error_code,
+                **(
+                    {
+                        "query_kind": result.request.query_kind,
+                        "keyword_snapshot_ref": result.request.keyword_snapshot_ref,
+                        "selected_word_ref": result.request.selected_word_ref,
+                    }
+                    if result.request.query_kind
+                    else {}
+                ),
             },
         )
         connection.execute("BEGIN IMMEDIATE")
@@ -499,10 +591,19 @@ class RoomSearchSession:
             connection.execute(
                 """
                 UPDATE search_attempt
-                   SET ended_at = ?, source_status = ?, error_code = ?
+                   SET ended_at = ?, source_status = ?, error_code = ?,observed_posts=?,loaded_posts=?,end_reason=?,condition_evidence_ref=?
                  WHERE attempt_id = ? AND ended_at IS NULL
                 """,
-                (ended_at, result.status, result.error_code, result.request.attempt_id),
+                (
+                    ended_at,
+                    result.status,
+                    result.error_code,
+                    len(result.posts),
+                    result.loaded_posts,
+                    result.end_reason,
+                    result.condition_evidence_ref,
+                    result.request.attempt_id,
+                ),
             )
             connection.commit()
         except BaseException:
@@ -613,13 +714,9 @@ def _parse_current_room_response(
         loaded_posts=loaded,
         unused_posts=loaded - len(result.posts),
         end_reason=(
-            (
-                "limit_reached"
-                if at_limit
-                else "terminal" if actual_end else "incomplete"
-            )
+            ("limit_reached" if at_limit else "exhausted" if actual_end else "error")
             if result.status in {"observed", "partial"}
-            else "source_failure"
+            else "invalid" if result.status == "invalid" else "error"
         ),
         condition_evidence_ref=(
             response.get("condition_evidence_ref")

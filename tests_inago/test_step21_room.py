@@ -56,7 +56,7 @@ def test_terminal_actual_rows_are_success_even_under_fifty(count):
     result = parse_room_response(response(count, end=True), request())
     assert result.status == "observed" and len(result.posts) == count
     assert result.loaded_posts == count and result.unused_posts == 0
-    assert result.end_reason == ("limit_reached" if count == 50 else "terminal")
+    assert result.end_reason == ("limit_reached" if count == 50 else "exhausted")
 
 
 def test_known_condition_contradiction_is_invalid_but_unread_counts_are_valid():

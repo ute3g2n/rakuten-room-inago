@@ -54,7 +54,12 @@ RUN_ID = "STEP13-RUN"
 @pytest.fixture
 def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
     private_data_root = (
-        ROOT / "非公開作業データ" / "イナゴ実装試験" / "step-13" / tmp_path.name / "state"
+        ROOT
+        / "非公開作業データ"
+        / "イナゴ実装試験"
+        / "step-13"
+        / tmp_path.name
+        / "state"
     )
     paths = resolve_runtime_paths(
         data_root=private_data_root,
@@ -62,7 +67,9 @@ def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
+    basic = json.loads(
+        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
+    )
     details = json.loads(
         (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
     )
@@ -139,8 +146,10 @@ class FakeThemePlanner:
         untried: bool = False,
         fail_additional_once: bool = False,
         skip_first_theme_seed: bool = False,
+        clock: FakeClock | None = None,
     ) -> None:
         self.connection = connection
+        self.clock = clock or FakeClock(datetime.fromisoformat(NOW))
         self.untried = untried
         self.calls: list[tuple[str, str, int]] = []
         self.saved: dict[tuple[str, str, int], DailyThemePlan] = {}
@@ -173,42 +182,24 @@ class FakeThemePlanner:
             ):
                 for number in range(1, 6):
                     _insert_offer(connection, theme_id=theme_id, item_number=number)
-            word_ref = f"WORD-{theme_id}"
-            self.saved[key] = DailyThemePlan(
+            from types import SimpleNamespace
+            from tests_inago.fixtures_q14 import CurrentPlanner
+
+            count = (
+                2 if self.untried and event_kind == "initial" and ordinal == 1 else 1
+            )
+            planner = CurrentPlanner(
+                SimpleNamespace(connection=connection, clock=self.clock),
+                word_count=count,
+            )
+            self.saved[key] = planner.plan_theme(
+                connection,
+                run_id=run_id,
+                settings_version=settings_version,
+                event_kind=event_kind,
+                ordinal=ordinal,
                 theme_id=theme_id,
-                keyword_refs=(word_ref,),
-                combined=DailySearchPlan(
-                    task_id="combined",
-                    theme_id=theme_id,
-                    query=f"combined::{theme_id}",
-                    parent_refs=(word_ref,),
-                    level="combined",
-                    kind="combined",
-                ),
-                parents=(
-                    DailySearchPlan(
-                        task_id="parent-01",
-                        theme_id=theme_id,
-                        query=f"parent::{theme_id}",
-                        parent_refs=(word_ref,),
-                        level="parent",
-                        kind="parent",
-                    ),
-                ),
-                untried=(
-                    (
-                        DailySearchPlan(
-                            task_id="untried-01",
-                            theme_id=theme_id,
-                            query=f"untried::{theme_id}",
-                            parent_refs=(word_ref,),
-                            level="parent",
-                            kind="untried",
-                        ),
-                    )
-                    if self.untried and event_kind == "initial" and ordinal == 1
-                    else ()
-                ),
+                seed=seed,
             )
         return self.saved[key]
 
@@ -289,6 +280,19 @@ class FakeRoomPort:
             "end_reached": status == "observed",
             "error_code": "fixture_unavailable" if not available else None,
             "posts": posts,
+            **(
+                {
+                    "query_kind": request.query_kind,
+                    "keyword_snapshot_ref": request.keyword_snapshot_ref,
+                    "selected_word_ref": request.selected_word_ref,
+                    "loaded_posts": len(posts),
+                    "condition_evidence_ref": (
+                        f"COND-{request.attempt_no}" if available else None
+                    ),
+                }
+                if request.query_kind
+                else {}
+            ),
         }
 
 
@@ -455,6 +459,7 @@ def _make_ports(
         untried=untried,
         fail_additional_once=fail_additional_once,
         skip_first_theme_seed=skip_first_theme_seed,
+        clock=case.clock,
     )
     room = FakeRoomPort(
         case.clock,
@@ -1020,36 +1025,22 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     )
 
 
-def test_order_is_initial_combined_parent_then_untried_then_additional_and_nine_cap(
+def test_order_is_related_then_theme_fallback_and_all_untried_themes(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, untried=True, posts_per_search=0)
-
     outcome = _run(runtime_case, bundle)
-
     queries = [request.query for request in bundle.room.requests]
-    assert outcome.status == "shortfall"
-    assert outcome.committed_count == 0
-    assert outcome.attempt_used == 9
-    assert len(queries) == 9
-    assert len({request.attempt_no for request in bundle.room.requests}) == 9
-    first_three = queries[:6]
-    assert all(query.startswith(("combined::", "parent::")) for query in first_three)
-    initial_theme_ids = [
-        row[0]
-        for row in runtime_case.connection.execute(
-            "SELECT theme_id FROM theme_selection WHERE run_id=? AND event_kind='initial' ORDER BY selection_id",
-            (RUN_ID,),
-        ).fetchall()
+    assert outcome.status == "shortfall" and outcome.committed_count == 0
+    assert outcome.attempt_used == 61
+    assert len(queries) == 61 and len(set(queries)) == 61
+    assert len(set(bundle.planner.calls)) == 30
+    assert [item.query_kind for item in bundle.room.requests[:3]] == [
+        "related",
+        "related",
+        "theme_fallback",
     ]
-    assert len(initial_theme_ids) == 3
-    assert all(
-        any(theme_id in query for theme_id in initial_theme_ids)
-        for query in first_three
-    )
-    assert queries[6].startswith("untried::")
-    assert queries[7].startswith("combined::")
-    assert queries[8].startswith("parent::")
+    assert len({item.parent_refs[0] for item in bundle.room.requests[:3]}) == 1
     assert all(request.max_posts == 50 for request in bundle.room.requests)
     assert bundle.metrics.calls
 
@@ -1143,18 +1134,15 @@ def test_additional_theme_plan_failure_reuses_same_selection_event_on_resume(
     assert resumed_state["additional_events"] >= 1
 
 
-def test_unavailable_search_retries_same_query_three_times_and_never_searches_tenth(
+def test_unavailable_search_retries_same_query_three_times_then_stops_source(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, status="unavailable")
-
     outcome = _run(runtime_case, bundle)
-
     assert outcome.status == "failed"
-    assert outcome.attempt_used == 9
-    assert len(bundle.room.requests) == 9
-    assert len({request.query for request in bundle.room.requests[:3]}) == 1
-    assert [request.retry_of for request in bundle.room.requests[:3]] == [
+    assert outcome.attempt_used == 3 and len(bundle.room.requests) == 3
+    assert len({request.query for request in bundle.room.requests}) == 1
+    assert [request.retry_of for request in bundle.room.requests] == [
         None,
         bundle.room.requests[0].attempt_id,
         bundle.room.requests[1].attempt_id,
@@ -1163,7 +1151,7 @@ def test_unavailable_search_retries_same_query_three_times_and_never_searches_te
         runtime_case.connection.execute(
             "SELECT attempt_used FROM run WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
-        == 9
+        == 3
     )
     assert bundle.metrics.calls
 
@@ -1583,5 +1571,5 @@ def test_pending_historical_reports_are_applied_before_search(
         connection.execute(
             "SELECT COUNT(*) FROM search_attempt WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
-        == 9
+        == 60
     )

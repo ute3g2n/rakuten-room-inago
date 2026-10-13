@@ -978,6 +978,7 @@ def select_theme_batch(
     event_kind: str,
     selected_at: str,
     first_ordinal: int = 1,
+    exclude_theme_ids: frozenset[str] = frozenset(),
 ) -> tuple[ThemeSelectionEvent, ...]:
     """Choose and persist theme events under one SQLite write lock for safe resume."""
 
@@ -1066,7 +1067,11 @@ def select_theme_batch(
                 connection.execute(f"RELEASE SAVEPOINT {_EVENT_SAVEPOINT}_choose")
             return events
 
-        candidates = load_theme_candidates(connection, run_id)
+        candidates = tuple(
+            item
+            for item in load_theme_candidates(connection, run_id)
+            if item.theme_id not in exclude_theme_ids
+        )
         selected = choose_themes(candidates, seed=run["seed"], count=expected_count)
         if len(selected) != expected_count:
             raise RejectedContract("active themes cannot fill the requested selection")

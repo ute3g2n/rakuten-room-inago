@@ -34,12 +34,14 @@ from automation.inago.room_adapter import (
     RoomSearchSession,
 )
 from automation.inago.run_lock import RunLock, RunLockBusy
+from automation.inago.trends_adapter import TrendsRequest, load_grouped_snapshot
 from automation.inago.selection import (
     SourcePost,
     evaluate_sources,
     identify_offer_from_saved_url,
     load_offer_history,
     load_theme_selection_events,
+    load_theme_candidates,
     record_theme_result_word_refs,
     select_theme_batch,
 )
@@ -51,12 +53,11 @@ DRAFT_CUTOFF = time(17, 45)
 METRICS_CUTOFF = time(18, 0)
 DAILY_TARGET = 15
 PER_THEME_TARGET = 5
-MAX_SEARCH_ATTEMPTS = 9
 MAX_POSTS_PER_SEARCH = 50
 MAX_COPY_ATTEMPTS = 3
-MAX_ADDITIONAL_THEME_EVENTS = 30
 _DAILY_CHECKPOINT_KEY = "daily_orchestration"
-_DAILY_CHECKPOINT_VERSION = 1
+_DAILY_CHECKPOINT_VERSION = 2
+_DAILY_RULES_VERSION = "requirements-1.4"
 _SAFE_RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,79}\Z")
 _SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\Z")
 
@@ -165,6 +166,17 @@ class _DeadlineRoomSearchPort:
             "level": request.level,
             "likes_min": request.likes_min,
             "max_posts": request.max_posts,
+            **(
+                {
+                    "query_kind": request.query_kind,
+                    "keyword_snapshot_ref": request.keyword_snapshot_ref,
+                    "selected_word_ref": request.selected_word_ref,
+                    "loaded_posts": 0,
+                    "condition_evidence_ref": None,
+                }
+                if request.query_kind
+                else {}
+            ),
             "current_search_id": None,
             "search_loaded": False,
             "internal_order_confirmed": False,
@@ -224,25 +236,28 @@ class _DeadlineCopyRunner:
 
 @dataclass(frozen=True, slots=True)
 class DailySearchPlan:
-    """One query built only from a persisted theme and observed keyword refs."""
+    """One unmodified observed expression or the original theme fallback."""
 
     task_id: str
     theme_id: str
     query: str
     parent_refs: tuple[str, ...]
-    level: Literal["combined", "parent"]
-    kind: Literal["combined", "parent", "untried"]
+    level: Literal["related", "theme_fallback"]
+    kind: Literal["related", "theme_fallback"]
+    keyword_snapshot_ref: str | None = None
+    selected_word_ref: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class DailyThemePlan:
-    """Finite observed search work returned by the theme/keyword adapter."""
+    """The saved selected expression queue followed by one theme-only search."""
 
     theme_id: str
     keyword_refs: tuple[str, ...]
-    combined: DailySearchPlan | None
-    parents: tuple[DailySearchPlan, ...]
-    untried: tuple[DailySearchPlan, ...]
+    related: tuple[DailySearchPlan, ...]
+    fallback: DailySearchPlan
+    snapshot_ref: str
+    rules_version: str = "requirements-1.4"
 
 
 class ThemePlanner(Protocol):
@@ -371,12 +386,17 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
     if state is None:
         state = {
             "schema_version": _DAILY_CHECKPOINT_VERSION,
+            "rules_version": _DAILY_RULES_VERSION,
+            "initial_plan_index": 0,
+            "offer_theme_ids": {},
+            "theme_targets": {},
+            "used_queries": [],
+            "source_stopped": False,
             "phase": "initial",
             "initial_theme_ids": [],
             "plans": {},
             "tasks": [],
             "task_cursor": 0,
-            "untried_loaded": False,
             "additional_events": 0,
             "cancelled_at_draft_cutoff": False,
             "source_failures": 0,
@@ -389,11 +409,11 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
     if (
         not isinstance(state, dict)
         or state.get("schema_version") != _DAILY_CHECKPOINT_VERSION
+        or state.get("rules_version") != _DAILY_RULES_VERSION
     ):
         raise DailyOrchestrationError("daily_checkpoint_version_invalid")
     if state.get("phase") not in {
         "initial",
-        "untried",
         "additional",
         "finished",
     }:
@@ -405,6 +425,18 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
     cursor = state.get("task_cursor")
     if isinstance(cursor, bool) or not isinstance(cursor, int) or cursor < 0:
         raise DailyOrchestrationError("daily_checkpoint_cursor_invalid")
+    index = state.get("initial_plan_index")
+    if (
+        isinstance(index, bool)
+        or not isinstance(index, int)
+        or index < 0
+        or index > len(state.get("initial_theme_ids", []))
+    ):
+        raise DailyOrchestrationError("daily_checkpoint_theme_cursor_invalid")
+    if not isinstance(state.get("offer_theme_ids"), dict) or not isinstance(
+        state.get("used_queries"), list
+    ):
+        raise DailyOrchestrationError("daily_checkpoint_assignment_invalid")
     return root, state
 
 
@@ -612,63 +644,60 @@ def _outcome_from_run(row, *, resumed: bool = False, reason: str | None = None):
 def _validate_plan(plan: DailyThemePlan, theme_id: str) -> None:
     if not isinstance(plan, DailyThemePlan) or plan.theme_id != theme_id:
         raise DailyOrchestrationError("theme_plan_identity_mismatch")
+    if plan.rules_version != _DAILY_RULES_VERSION:
+        raise DailyOrchestrationError("theme_plan_rules_version_invalid")
     if (
         not isinstance(plan.keyword_refs, tuple)
-        or len(plan.keyword_refs) != len(set(plan.keyword_refs))
-        or any(not isinstance(ref, str) or not ref.strip() for ref in plan.keyword_refs)
+        or len(plan.keyword_refs) > 5
+        or len(set(plan.keyword_refs)) != len(plan.keyword_refs)
     ):
         raise DailyOrchestrationError("theme_plan_keyword_refs_invalid")
-    searches: list[DailySearchPlan] = []
-    if plan.combined is not None:
-        searches.append(plan.combined)
-    searches.extend(plan.parents)
-    searches.extend(plan.untried)
-    seen: set[tuple[str, str]] = set()
-    for search in searches:
+    if not isinstance(plan.related, tuple) or len(plan.related) != len(
+        plan.keyword_refs
+    ):
+        raise DailyOrchestrationError("theme_related_queue_invalid")
+    if not isinstance(plan.snapshot_ref, str) or not plan.snapshot_ref:
+        raise DailyOrchestrationError("theme_snapshot_ref_missing")
+    seen = set()
+    for search in (*plan.related, plan.fallback):
         if not isinstance(search, DailySearchPlan) or search.theme_id != theme_id:
             raise DailyOrchestrationError("theme_search_identity_mismatch")
-        if not _SAFE_TASK_ID.fullmatch(search.task_id):
-            raise DailyOrchestrationError("theme_search_task_id_invalid")
-        if not isinstance(search.query, str) or not search.query.strip():
-            raise DailyOrchestrationError("theme_search_query_invalid")
-        if search.level not in {"combined", "parent"} or search.kind not in {
-            "combined",
-            "parent",
-            "untried",
-        }:
-            raise DailyOrchestrationError("theme_search_kind_invalid")
-        if search.kind == "combined" and search.level != "combined":
-            raise DailyOrchestrationError("combined_search_level_invalid")
-        if search.kind in {"parent", "untried"} and search.level != "parent":
-            raise DailyOrchestrationError("parent_search_level_invalid")
         if (
-            not isinstance(search.parent_refs, tuple)
-            or not search.parent_refs
-            or len(search.parent_refs) != len(set(search.parent_refs))
-            or any(
-                not isinstance(ref, str)
-                or not ref.strip()
-                or ref not in plan.keyword_refs
-                for ref in search.parent_refs
-            )
+            not _SAFE_TASK_ID.fullmatch(search.task_id)
+            or not isinstance(search.query, str)
+            or not search.query.strip()
         ):
-            raise DailyOrchestrationError("theme_search_refs_invalid")
-        uniqueness_key = (search.kind, search.task_id)
-        if uniqueness_key in seen:
+            raise DailyOrchestrationError("theme_search_input_invalid")
+        if (
+            search.level != search.kind
+            or search.kind not in {"related", "theme_fallback"}
+            or search.parent_refs != (theme_id,)
+        ):
+            raise DailyOrchestrationError("theme_search_kind_or_refs_invalid")
+        if search.kind == "related":
+            if (
+                search.keyword_snapshot_ref != plan.snapshot_ref
+                or search.selected_word_ref not in plan.keyword_refs
+            ):
+                raise DailyOrchestrationError("theme_search_word_ref_invalid")
+        elif (
+            search.keyword_snapshot_ref is not None
+            or search.selected_word_ref is not None
+        ):
+            raise DailyOrchestrationError("theme_fallback_contains_related_ref")
+        if search.task_id in seen:
             raise DailyOrchestrationError("theme_search_task_duplicated")
-        seen.add(uniqueness_key)
-    if plan.combined is not None and plan.combined.kind != "combined":
-        raise DailyOrchestrationError("combined_search_kind_invalid")
-    if any(search.kind != "parent" for search in plan.parents):
-        raise DailyOrchestrationError("parent_search_kind_invalid")
-    if any(search.kind != "untried" for search in plan.untried):
-        raise DailyOrchestrationError("untried_search_kind_invalid")
+        seen.add(search.task_id)
+    if plan.fallback.kind != "theme_fallback" or any(
+        item.kind != "related" for item in plan.related
+    ):
+        raise DailyOrchestrationError("theme_search_queue_order_invalid")
+    if tuple(item.selected_word_ref for item in plan.related) != plan.keyword_refs:
+        raise DailyOrchestrationError("theme_selected_order_changed")
 
 
 def _plan_to_dict(plan: DailyThemePlan) -> dict[str, Any]:
-    def search_to_dict(search: DailySearchPlan | None):
-        if search is None:
-            return None
+    def search_to_dict(search):
         return {
             "task_id": search.task_id,
             "theme_id": search.theme_id,
@@ -676,61 +705,63 @@ def _plan_to_dict(plan: DailyThemePlan) -> dict[str, Any]:
             "parent_refs": list(search.parent_refs),
             "level": search.level,
             "kind": search.kind,
+            "keyword_snapshot_ref": search.keyword_snapshot_ref,
+            "selected_word_ref": search.selected_word_ref,
         }
 
     return {
         "theme_id": plan.theme_id,
         "keyword_refs": list(plan.keyword_refs),
-        "combined": search_to_dict(plan.combined),
-        "parents": [search_to_dict(item) for item in plan.parents],
-        "untried": [search_to_dict(item) for item in plan.untried],
+        "related": [search_to_dict(item) for item in plan.related],
+        "fallback": search_to_dict(plan.fallback),
+        "snapshot_ref": plan.snapshot_ref,
+        "rules_version": plan.rules_version,
     }
 
 
 def _plan_from_dict(value: object) -> DailyThemePlan:
-    if not isinstance(value, dict):
-        raise DailyOrchestrationError("saved_theme_plan_invalid")
-
-    def search_from_dict(item: object) -> DailySearchPlan | None:
-        if item is None:
-            return None
-        if not isinstance(item, dict) or set(item) != {
-            "task_id",
-            "theme_id",
-            "query",
-            "parent_refs",
-            "level",
-            "kind",
-        }:
-            raise DailyOrchestrationError("saved_search_plan_invalid")
-        if not isinstance(item["parent_refs"], list):
-            raise DailyOrchestrationError("saved_search_refs_invalid")
-        return DailySearchPlan(
-            task_id=str(item["task_id"]),
-            theme_id=str(item["theme_id"]),
-            query=str(item["query"]),
-            parent_refs=tuple(item["parent_refs"]),
-            level=item["level"],
-            kind=item["kind"],
-        )
-
-    if set(value) != {"theme_id", "keyword_refs", "combined", "parents", "untried"}:
+    if not isinstance(value, dict) or set(value) != {
+        "theme_id",
+        "keyword_refs",
+        "related",
+        "fallback",
+        "snapshot_ref",
+        "rules_version",
+    }:
         raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
-    if (
-        not isinstance(value["keyword_refs"], list)
-        or not isinstance(value["parents"], list)
-        or not isinstance(value["untried"], list)
+
+    def search_from_dict(item):
+        if (
+            not isinstance(item, dict)
+            or set(item)
+            != {
+                "task_id",
+                "theme_id",
+                "query",
+                "parent_refs",
+                "level",
+                "kind",
+                "keyword_snapshot_ref",
+                "selected_word_ref",
+            }
+            or not isinstance(item["parent_refs"], list)
+        ):
+            raise DailyOrchestrationError("saved_search_plan_invalid")
+        return DailySearchPlan(**{**item, "parent_refs": tuple(item["parent_refs"])})
+
+    if not isinstance(value["keyword_refs"], list) or not isinstance(
+        value["related"], list
     ):
         raise DailyOrchestrationError("saved_theme_plan_lists_invalid")
     plan = DailyThemePlan(
-        theme_id=str(value["theme_id"]),
+        theme_id=value["theme_id"],
         keyword_refs=tuple(value["keyword_refs"]),
-        combined=search_from_dict(value["combined"]),
-        parents=tuple(search_from_dict(item) for item in value["parents"]),
-        untried=tuple(search_from_dict(item) for item in value["untried"]),
+        related=tuple(search_from_dict(item) for item in value["related"]),
+        fallback=search_from_dict(value["fallback"]),
+        snapshot_ref=value["snapshot_ref"],
+        rules_version=value["rules_version"],
     )
-    if any(item is None for item in (*plan.parents, *plan.untried)):
-        raise DailyOrchestrationError("saved_theme_search_missing")
+    _validate_plan(plan, plan.theme_id)
     return plan
 
 
@@ -745,6 +776,9 @@ def _task(search: DailySearchPlan, *, phase: str, ordinal: int) -> dict[str, Any
         "parent_refs": list(search.parent_refs),
         "level": search.level,
         "kind": search.kind,
+        "query_kind": search.kind,
+        "keyword_snapshot_ref": search.keyword_snapshot_ref,
+        "selected_word_ref": search.selected_word_ref,
     }
 
 
@@ -765,6 +799,13 @@ def _get_plan(
     if raw is not None:
         plan = _plan_from_dict(raw)
         _validate_plan(plan, theme_id)
+        _validate_plan_snapshot(
+            connection,
+            plan,
+            run_id=run_id,
+            settings_version=settings_version,
+            seed=seed,
+        )
         return plan
     # The planner must return data tied to its persisted Trends/KEY snapshot;
     # live collection is owned by the later external-integration step.
@@ -778,6 +819,9 @@ def _get_plan(
         seed=seed,
     )
     _validate_plan(plan, theme_id)
+    _validate_plan_snapshot(
+        connection, plan, run_id=run_id, settings_version=settings_version, seed=seed
+    )
     event_id = f"theme-selection:{run_id}:{event_kind}:{ordinal:02d}"
     events = load_theme_selection_events(connection, run_id, event_kind=event_kind)
     event = next((item for item in events if item.count_event_id == event_id), None)
@@ -799,17 +843,30 @@ def _get_plan(
     return plan
 
 
+def _validate_plan_snapshot(
+    connection, plan, *, run_id, settings_version, seed
+) -> None:
+    request = TrendsRequest(
+        plan.snapshot_ref, run_id, settings_version, plan.fallback.query, range="3m"
+    )
+    saved = load_grouped_snapshot(connection, plan.snapshot_ref, request=request)
+    if (
+        saved is None
+        or saved.decisions is None
+        or saved.snapshot.status != "observed"
+        or saved.seed != seed
+    ):
+        raise DailyOrchestrationError("theme_plan_snapshot_not_adopted")
+    if tuple(item.word_id for item in saved.selected) != plan.keyword_refs or tuple(
+        item.raw for item in saved.selected
+    ) != tuple(item.query for item in plan.related):
+        raise DailyOrchestrationError("theme_plan_raw_or_order_changed")
+
+
 def _make_tasks(
     plans: Sequence[DailyThemePlan], *, phase: str, first_number: int
 ) -> list[dict[str, Any]]:
-    core: list[DailySearchPlan] = []
-    untried: list[DailySearchPlan] = []
-    for plan in plans:
-        if plan.combined is not None:
-            core.append(plan.combined)
-        core.extend(plan.parents)
-        untried.extend(plan.untried)
-    searches = core + untried
+    searches = [search for plan in plans for search in (*plan.related, plan.fallback)]
     return [
         _task(search, phase=phase, ordinal=first_number + offset)
         for offset, search in enumerate(searches)
@@ -817,75 +874,75 @@ def _make_tasks(
 
 
 def _ensure_initial_work(
-    connection: sqlite3.Connection,
-    *,
-    run_id: str,
-    settings_version: str,
-    seed: str,
-    state: dict[str, Any],
-    ports: DailyPorts,
-    clock: Clock,
+    connection, *, run_id, settings_version, seed, state, ports, clock
 ) -> None:
     if state.get("initial_ready") is True:
         return
     events = select_theme_batch(
-        connection,
-        run_id,
-        event_kind="initial",
-        selected_at=_now(clock).isoformat(),
+        connection, run_id, event_kind="initial", selected_at=_now(clock).isoformat()
     )
-    event_theme_ids = [event.theme_id for event in events]
-    saved_theme_ids = state.get("initial_theme_ids", [])
-    if saved_theme_ids and saved_theme_ids != event_theme_ids:
+    theme_ids = [item.theme_id for item in events]
+    saved = state.get("initial_theme_ids", [])
+    if saved and saved != theme_ids:
         raise DailyOrchestrationError("initial_theme_selection_changed")
-    state["initial_theme_ids"] = event_theme_ids
-    _save_state(connection, run_id, state)
-    plans = [
-        _get_plan(
-            connection,
-            run_id=run_id,
-            settings_version=settings_version,
-            seed=seed,
-            event_kind="initial",
-            ordinal=ordinal,
-            theme_id=event.theme_id,
-            state=state,
-            planner=ports.theme_planner,
-        )
-        for ordinal, event in enumerate(events, start=1)
-    ]
-    state["tasks"] = _make_tasks(plans, phase="initial", first_number=1)
+    state["initial_theme_ids"] = theme_ids
     state["initial_ready"] = True
     state["phase"] = "initial"
-    state["task_cursor"] = 0
     _save_state(connection, run_id, state)
+
+
+def _append_initial_theme(
+    connection, *, run_id, settings_version, seed, state, ports, clock
+) -> bool:
+    index = int(state["initial_plan_index"])
+    if index >= len(state["initial_theme_ids"]):
+        return False
+    theme_id = state["initial_theme_ids"][index]
+    plan = _get_plan(
+        connection,
+        run_id=run_id,
+        settings_version=settings_version,
+        seed=seed,
+        event_kind="initial",
+        ordinal=index + 1,
+        theme_id=theme_id,
+        state=state,
+        planner=ports.theme_planner,
+    )
+    state["tasks"].extend(
+        _make_tasks((plan,), phase="initial", first_number=len(state["tasks"]) + 1)
+    )
+    state["theme_targets"][theme_id] = PER_THEME_TARGET
+    state["initial_plan_index"] = index + 1
+    _save_state(connection, run_id, state)
+    return True
 
 
 def _add_additional_theme(
-    connection: sqlite3.Connection,
-    *,
-    run_id: str,
-    settings_version: str,
-    seed: str,
-    state: dict[str, Any],
-    ports: DailyPorts,
-    clock: Clock,
+    connection, *, run_id, settings_version, seed, state, ports, clock
 ) -> bool:
-    if int(state.get("additional_events", 0)) >= MAX_ADDITIONAL_THEME_EVENTS:
-        return False
     ordinal = int(state.get("additional_events", 0)) + 1
     event_id = f"theme-selection:{run_id}:additional:{ordinal:02d}"
-    events = load_theme_selection_events(connection, run_id, event_kind="additional")
+    events = load_theme_selection_events(connection, run_id)
     event = next((item for item in events if item.count_event_id == event_id), None)
     if event is None:
-        if len(events) != ordinal - 1:
-            raise DailyOrchestrationError("additional_theme_event_sequence_invalid")
+        used = frozenset(item.theme_id for item in events)
+        remaining = [
+            item
+            for item in load_theme_candidates(connection, run_id)
+            if item.state == "active" and item.theme_id not in used
+        ]
+        if not remaining:
+            state["themes_exhausted"] = True
+            _save_state(connection, run_id, state)
+            return False
         event = select_theme_batch(
             connection,
             run_id,
             event_kind="additional",
             selected_at=_now(clock).isoformat(),
             first_ordinal=ordinal,
+            exclude_theme_ids=used,
         )[0]
     plan = _get_plan(
         connection,
@@ -898,9 +955,12 @@ def _add_additional_theme(
         state=state,
         planner=ports.theme_planner,
     )
-    first_number = len(state["tasks"]) + 1
-    new_tasks = _make_tasks((plan,), phase="additional", first_number=first_number)
-    state["tasks"].extend(new_tasks)
+    state["tasks"].extend(
+        _make_tasks((plan,), phase="additional", first_number=len(state["tasks"]) + 1)
+    )
+    state["theme_targets"][event.theme_id] = min(
+        PER_THEME_TARGET, DAILY_TARGET - _draft_count(connection, run_id)
+    )
     state["additional_events"] = ordinal
     state["phase"] = "additional"
     _save_state(connection, run_id, state)
@@ -1074,8 +1134,20 @@ def _draft_count(connection: sqlite3.Connection, run_id: str) -> int:
 
 
 def _theme_draft_count(
-    connection: sqlite3.Connection, run_id: str, theme_id: str
+    connection: sqlite3.Connection,
+    run_id: str,
+    theme_id: str,
+    *,
+    state: Mapping[str, Any] | None = None,
 ) -> int:
+    if state is not None:
+        assignments = state.get("offer_theme_ids", {})
+        return sum(
+            assignments.get(row[0]) == theme_id
+            for row in connection.execute(
+                "SELECT DISTINCT offer_key FROM draft WHERE run_id=?", (run_id,)
+            )
+        )
     return int(
         connection.execute(
             """
@@ -1116,7 +1188,7 @@ def _intake_missing_offers(
     for row in rows:
         source_key = str(row["source_key"])
         offer_key = identities.get(source_key)
-        if offer_key is None or row["likes"] is None or int(row["likes"]) < 300:
+        if offer_key is None:
             continue
         existing = connection.execute(
             "SELECT 1 FROM offer WHERE offer_key=?", (offer_key,)
@@ -1223,11 +1295,15 @@ def _process_search_result(
             _append_error(state, "copy", "offer_record_missing")
             _save_state(connection, run_id, state)
             continue
-        theme_id = str(offer["main_theme_id"])
-        if _theme_draft_count(connection, run_id, theme_id) >= PER_THEME_TARGET:
-            _mark_offer_handled(state, offer_key)
+        if (
+            _theme_draft_count(connection, run_id, theme_id, state=state)
+            >= state["theme_targets"][theme_id]
+        ):
+            break
+        assigned = state.setdefault("offer_theme_ids", {})
+        if offer_key not in assigned:
+            assigned[offer_key] = theme_id
             _save_state(connection, run_id, state)
-            continue
         now = _now(clock)
         deadline_at = _at(date.fromisoformat(target_date), DRAFT_CUTOFF).isoformat()
         deadline_monotonic = clock.monotonic() + max(
@@ -1300,6 +1376,11 @@ def _search_task(
     data_root: Path,
 ) -> None:
     task_number = int(task["task_number"])
+    query = str(task["query"])
+    used_queries = state.setdefault("used_queries", [])
+    first_id = _task_attempt_id(run_id, task_number, 1)
+    if query in used_queries and _attempt_row(connection, first_id) is None:
+        return
     for local_attempt in range(1, 4):
         if _now(clock) >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF):
             return
@@ -1308,7 +1389,7 @@ def _search_task(
         run_row = connection.execute(
             "SELECT attempt_used FROM run WHERE run_id=?", (run_id,)
         ).fetchone()
-        if run_row is None or int(run_row["attempt_used"]) >= MAX_SEARCH_ATTEMPTS:
+        if run_row is None:
             return
         attempt_id = _task_attempt_id(run_id, task_number, local_attempt)
         retry_of = (
@@ -1325,9 +1406,18 @@ def _search_task(
                 parent_refs=tuple(task["parent_refs"]),
                 level=str(task["level"]),
                 retry_of=retry_of,
+                query_kind=task["query_kind"],
+                keyword_snapshot_ref=task["keyword_snapshot_ref"],
+                selected_word_ref=task["selected_word_ref"],
             )
             status = result.status
+            if query not in used_queries:
+                used_queries.append(query)
+                _save_state(connection, run_id, state)
         else:
+            if query not in used_queries:
+                used_queries.append(query)
+                _save_state(connection, run_id, state)
             if existing["ended_at"] is None:
                 _finalize_interrupted_search(connection, attempt_id, clock)
             elif (
@@ -1359,6 +1449,8 @@ def _search_task(
         )
         if status not in {"partial", "unavailable", "invalid"}:
             return
+    state["source_stopped"] = True
+    _save_state(connection, run_id, state)
 
 
 def _cancel_owned_work(
@@ -1672,6 +1764,7 @@ def run_daily(
         run_id = str(run["run_id"])
         if run["status"] in {"complete", "missed"}:
             return _outcome_from_run(run, resumed=resumed)
+        _daily_state(run["checkpoint"])
         _set_running_for_resume(connection, run_id)
         current = connection.execute(
             "SELECT * FROM run WHERE run_id=?", (run_id,)
@@ -1749,14 +1842,8 @@ def run_daily(
                     ports=ports,
                     clock=system_clock,
                 )
-                while (
-                    _draft_count(connection, run_id) < DAILY_TARGET
-                    and int(
-                        connection.execute(
-                            "SELECT attempt_used FROM run WHERE run_id=?", (run_id,)
-                        ).fetchone()[0]
-                    )
-                    < MAX_SEARCH_ATTEMPTS
+                while _draft_count(connection, run_id) < DAILY_TARGET and not state.get(
+                    "source_stopped"
                 ):
                     if _now(system_clock) >= _at(
                         date.fromisoformat(target_date), DRAFT_CUTOFF
@@ -1765,6 +1852,16 @@ def run_daily(
                     tasks = state["tasks"]
                     cursor = int(state["task_cursor"])
                     if cursor >= len(tasks):
+                        if _append_initial_theme(
+                            connection,
+                            run_id=run_id,
+                            settings_version=settings_version,
+                            seed=seed,
+                            state=state,
+                            ports=ports,
+                            clock=system_clock,
+                        ):
+                            continue
                         if not _add_additional_theme(
                             connection,
                             run_id=run_id,
@@ -1778,8 +1875,10 @@ def run_daily(
                         continue
                     task = tasks[cursor]
                     if (
-                        _theme_draft_count(connection, run_id, str(task["theme_id"]))
-                        >= PER_THEME_TARGET
+                        _theme_draft_count(
+                            connection, run_id, str(task["theme_id"]), state=state
+                        )
+                        >= state["theme_targets"][str(task["theme_id"])]
                     ):
                         state["task_cursor"] = cursor + 1
                         _save_state(connection, run_id, state)
@@ -1860,7 +1959,7 @@ def run_daily(
                 "draft_cutoff_1745"
                 if _now(system_clock)
                 >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
-                else "candidate_shortage_or_search_limit"
+                else "candidate_or_theme_exhausted"
             )
         outcome = _finish(
             connection,
