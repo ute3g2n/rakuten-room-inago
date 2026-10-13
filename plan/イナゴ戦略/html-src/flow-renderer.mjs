@@ -65,7 +65,10 @@ export function renderReadableFlow(flow) {
     content += arrow(id, `M 1070 ${geometry[2].middle} H 1116 V ${geometry[6].middle} H 1070`, true);
     content += arrow(id, `M 1070 ${geometry[6].y + geometry[6].height - 26} H 1170 V ${geometry[0].middle} H 1070`, true);
   }
-  if (id === 'F00') content += arrow(id, `M 1070 ${geometry[0].middle} H 1134 V ${geometry[2].middle} H 1074`);
+  if (id === 'F03') {
+    content += arrow(id, `M 1070 ${geometry[6].middle} H 1134 V ${geometry[4].middle} H 1070`, true);
+    content += arrow(id, `M 1070 ${geometry[6].y + geometry[6].height - 26} H 1170 V ${geometry[0].middle} H 1070`, true);
+  }
   if (id === 'F02') content += arrow(id, `M 1070 ${geometry[3].middle} H 1134 V ${geometry[2].middle} H 1074`, true);
   if (id === 'F00') {
     const lines = wrapText('日次制御プログラムは、前日の管理反映が完了した作業を日次フロー全体図の手順2へ渡し、今日のテーマ選択と語句更新を始めます。', 978, 20);
