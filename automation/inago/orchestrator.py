@@ -10,6 +10,7 @@ import sqlite3
 import threading
 import uuid
 from dataclasses import dataclass, replace
+from contextlib import ExitStack
 from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence
@@ -1726,7 +1727,7 @@ def run_daily(
             "locked", None, target_date, 0, 0, "not_started", reason="daily_lock_busy"
         )
 
-    with lock:
+    with lock, ExitStack() as daily_resources:
         existing = _run_by_date(connection, target_date)
         if now.time() >= METRICS_CUTOFF:
             if existing is not None:
@@ -1795,6 +1796,7 @@ def run_daily(
             0.0, (draft_deadline - _now(system_clock)).total_seconds()
         )
         cancel_run_work = _CancelRunWork(run_id, ports.cancel_owned_jobs)
+        original_copy_runner = ports.copy_runner
         ports = replace(
             ports,
             room_port=_DeadlineRoomSearchPort(
@@ -1833,6 +1835,26 @@ def run_daily(
             elif _now(system_clock) < _at(
                 date.fromisoformat(target_date), DRAFT_CUTOFF
             ):
+                if all(
+                    callable(getattr(original_copy_runner, name, None))
+                    for name in (
+                        "prepare_daily_run",
+                        "start_daily_root",
+                        "sync_daily_checkpoint",
+                        "close_daily_run",
+                    )
+                ):
+                    original_copy_runner.prepare_daily_run(connection, run_id)
+
+                    def close_root():
+                        original_copy_runner.close_daily_run()
+                        original_copy_runner.sync_daily_checkpoint(connection)
+
+                    daily_resources.callback(close_root)
+                    original_copy_runner.start_daily_root(
+                        deadline_monotonic=deadline_monotonic
+                    )
+                    original_copy_runner.sync_daily_checkpoint(connection)
                 _ensure_initial_work(
                     connection,
                     run_id=run_id,

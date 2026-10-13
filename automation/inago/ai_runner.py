@@ -360,12 +360,42 @@ def _read_rollout(path: Path) -> tuple[dict[str, Any], ...] | None:
     return tuple(events)
 
 
+def _read_rollout_header(path: Path) -> Mapping[str, Any] | None:
+    """Check parent identity before reading another session's messages."""
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            line = stream.readline(1024 * 1024 + 1)
+        if len(line) > 1024 * 1024:
+            return None
+        event = json.loads(line)
+        if not isinstance(event, Mapping) or event.get("type") != "session_meta":
+            return None
+        payload = event.get("payload")
+        return payload if isinstance(payload, Mapping) else None
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+
+
 def _rollout_meta(events: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
     for event in events:
         if event.get("type") == "session_meta":
             payload = event.get("payload")
             return payload if isinstance(payload, Mapping) else None
     return None
+
+
+def _rollout_in_window(
+    events: Sequence[Mapping[str, Any]], first: datetime, last: datetime
+) -> tuple[dict[str, Any], ...]:
+    selected = []
+    for event in events:
+        try:
+            stamp = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+        if stamp.tzinfo is not None and first <= stamp <= last:
+            selected.append(dict(event))
+    return tuple(selected)
 
 
 def _spawn_calls(
@@ -463,6 +493,7 @@ def _agent_payload_schema(agent_id: str) -> Path:
 
 
 class AIJobRunner:
+    trace_window_by_job = False
     """Run one isolated Codex CLI process for AI-O and validate its subagents.
 
     The runner never launches one CLI process per specialist. Specialists must
@@ -599,6 +630,9 @@ class AIJobRunner:
         if not isinstance(root_meta, Mapping) or root_meta.get("id") != thread_id:
             return None
 
+        if self.trace_window_by_job:
+            root_events = _rollout_in_window(root_events, first_time, last_time)
+
         calls = _spawn_calls(root_events)
         call_counts = Counter(str(call["agent_type"]).casefold() for call in calls)
         children: list[_ObservedSubagent] = []
@@ -608,6 +642,13 @@ class AIJobRunner:
             for path in directory.glob("rollout-*.jsonl"):
                 if path == root_paths[0]:
                     continue
+                header = _read_rollout_header(path)
+                if (
+                    header is None
+                    or header.get("parent_thread_id") != thread_id
+                    or header.get("thread_source") != "subagent"
+                ):
+                    continue
                 events = _read_rollout(path)
                 if events is None:
                     continue
@@ -616,6 +657,11 @@ class AIJobRunner:
                     not isinstance(meta, Mapping)
                     or meta.get("parent_thread_id") != thread_id
                     or meta.get("thread_source") != "subagent"
+                ):
+                    continue
+                if self.trace_window_by_job and not any(
+                    event.get("type") == "session_meta"
+                    for event in _rollout_in_window(events, first_time, last_time)
                 ):
                     continue
                 agent_type = meta.get("agent_role")
@@ -673,6 +719,48 @@ class AIJobRunner:
         except OSError as exc:
             raise AIJobInputError("job staging directory cannot be created") from exc
 
+    def _stage_agent_workspace(self, job_dir: Path, task_id: str) -> list[str]:
+        authorized_children = sorted(_ROOT_CHILDREN[task_id])
+        skill_names = [_ROOT_SKILL] + [
+            _AGENT_TASK_SKILLS[agent_id][task_id] for agent_id in authorized_children
+        ]
+        staged_skills = job_dir / ".agents" / "skills"
+        staged_skills.mkdir(parents=True)
+        staged_agents = job_dir / ".codex" / "agents"
+        if authorized_children:
+            staged_agents.mkdir(parents=True)
+        for skill_name in skill_names:
+            source = self.skill_root / skill_name
+            skill_file = source / "SKILL.md"
+            if (
+                not source.is_dir()
+                or source.is_symlink()
+                or not skill_file.is_file()
+                or skill_file.is_symlink()
+            ):
+                raise AIJobInputError(f"required skill is unavailable: {skill_name}")
+            resolved_source = source.resolve(strict=True)
+            if resolved_source.parent != self.skill_root.resolve(strict=True):
+                raise AIJobInputError("skill directory escaped the approved skill root")
+            for candidate in resolved_source.rglob("*"):
+                if candidate.is_symlink():
+                    raise AIJobInputError("skill bundle contains a symbolic link")
+            shutil.copytree(resolved_source, staged_skills / skill_name)
+        for agent_id in authorized_children:
+            agent_type = _AGENT_TASK_SKILLS[agent_id][task_id]
+            agent_file = self.agent_config_root / f"{agent_type}.toml"
+            if (
+                not agent_file.is_file()
+                or agent_file.is_symlink()
+                or agent_file.resolve(strict=True).parent
+                != self.agent_config_root.resolve(strict=True)
+            ):
+                raise AIJobInputError(
+                    f"required native agent definition is unavailable: {agent_type}"
+                )
+            shutil.copyfile(agent_file, staged_agents / agent_file.name)
+        return authorized_children
+
     def _stage_job(
         self, request: AIJobRequest, input_hash: str
     ) -> tuple[Path, Path, Path, bytes]:
@@ -688,50 +776,7 @@ class AIJobRunner:
             output_schema = job_dir / "ai-job.schema.json"
             shutil.copyfile(_SCHEMA_DIR / "ai-job.schema.json", output_schema)
             last_message = job_dir / "final.response"
-            authorized_children = sorted(_ROOT_CHILDREN[request.task_id])
-            skill_names = [_ROOT_SKILL] + [
-                _AGENT_TASK_SKILLS[agent_id][request.task_id]
-                for agent_id in authorized_children
-            ]
-            staged_skills = job_dir / ".agents" / "skills"
-            staged_skills.mkdir(parents=True)
-            staged_agents = job_dir / ".codex" / "agents"
-            if authorized_children:
-                staged_agents.mkdir(parents=True)
-            for skill_name in skill_names:
-                source = self.skill_root / skill_name
-                skill_file = source / "SKILL.md"
-                if (
-                    not source.is_dir()
-                    or source.is_symlink()
-                    or not skill_file.is_file()
-                    or skill_file.is_symlink()
-                ):
-                    raise AIJobInputError(
-                        f"required skill is unavailable: {skill_name}"
-                    )
-                resolved_source = source.resolve(strict=True)
-                if resolved_source.parent != self.skill_root.resolve(strict=True):
-                    raise AIJobInputError(
-                        "skill directory escaped the approved skill root"
-                    )
-                for candidate in resolved_source.rglob("*"):
-                    if candidate.is_symlink():
-                        raise AIJobInputError("skill bundle contains a symbolic link")
-                shutil.copytree(resolved_source, staged_skills / skill_name)
-            for agent_id in authorized_children:
-                agent_type = _AGENT_TASK_SKILLS[agent_id][request.task_id]
-                agent_file = self.agent_config_root / f"{agent_type}.toml"
-                if (
-                    not agent_file.is_file()
-                    or agent_file.is_symlink()
-                    or agent_file.resolve(strict=True).parent
-                    != self.agent_config_root.resolve(strict=True)
-                ):
-                    raise AIJobInputError(
-                        f"required native agent definition is unavailable: {agent_type}"
-                    )
-                shutil.copyfile(agent_file, staged_agents / agent_file.name)
+            authorized_children = self._stage_agent_workspace(job_dir, request.task_id)
             job_document = {
                 "protocol_version": "1",
                 "schema_version": "1",
@@ -826,6 +871,12 @@ class AIJobRunner:
         for key in _BILLING_OVERRIDE_ENV:
             environment.pop(key, None)
         return environment
+
+    def _transport_completion_valid(self, returncode: int | None) -> bool:
+        return returncode == 0
+
+    def _cleanup_job_dir(self, job_dir: Path) -> None:
+        shutil.rmtree(job_dir, ignore_errors=True)
 
     def _trace_path(self, request: AIJobRequest) -> Path:
         safe = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-"
@@ -1477,7 +1528,9 @@ class AIJobRunner:
                 return failed_result(
                     status="error",
                     adoption_status=(
-                        "rejected_contract" if returncode == 0 else "pending"
+                        "rejected_contract"
+                        if self._transport_completion_valid(returncode)
+                        else "pending"
                     ),
                     error_code="final_response_not_saved",
                     input_hash=input_hash,
@@ -1485,7 +1538,7 @@ class AIJobRunner:
                     started_at=started_at,
                     finished_at=finished_at,
                 )
-            if returncode != 0:
+            if not self._transport_completion_valid(returncode):
                 return failed_result(
                     status="error",
                     adoption_status="pending",
@@ -1653,7 +1706,7 @@ class AIJobRunner:
             )
         finally:
             if job_dir is not None:
-                shutil.rmtree(job_dir, ignore_errors=True)
+                self._cleanup_job_dir(job_dir)
 
     def _trace_result(
         self,

@@ -22,6 +22,8 @@ repository source schema `automation/inago/schemas/ai-job.schema.json`は、隔�
 
 ## 共通データ境界
 
+日次のrun/settings/seed/root threadはPythonが保存します。同じrootに複数のturnが届いても、各jobのID・deadline・参照・商品/本文版を個別に照合してください。前jobの出力を新jobへ転用せず、正常本文の保存失敗による再保存と再生成を混同しません。プロセスの終了とturn完了を区別し、実際に終了していないプロセスのexit codeはnullです。本人の会話や投稿報告を待つ進行にはしません。
+
 - 入力に含む`input_refs`と`evidence_refs`はjobが渡した値だけを使います。別商品、別run、別設定版の参照を作りません。
 - `input_hash`はAI runnerの業務入力対応契約です。ファイル成果物や計画の管理用ハッシュを新しく作る指示ではありません。
 - `result_status`や失敗理由を推測で埋めません。未取得・null・0・空結果・エラーを区別します。
