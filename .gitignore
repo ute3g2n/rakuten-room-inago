@@ -7,6 +7,7 @@ rakuten-room-kai/affiliate-report/*
 /非公開作業データ/
 
 # Local Python environments and caches
+/.venv-inago/
 /.venv/
 venv/
 __pycache__/
@@ -32,6 +33,8 @@ coverage.json
 htmlcov/
 
 # Generated Rakuten ROOM operation data and execution history
+/rakuten-room-inago/runtime/
+/rakuten-room-inago/backups/
 rakuten-room-kai/daily-plans/
 rakuten-room-kai/performance/
 rakuten-room-kai/room-metrics/

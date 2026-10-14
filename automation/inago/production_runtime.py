@@ -1,4 +1,4 @@
-"""Validate the private Windows runtime configuration for Inago production."""
+"""Validate repository-local Windows runtime configuration for Inago production."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ class ProductionRuntimeConfig:
 
     @property
     def codex_home(self) -> Path:
-        return self.runtime_root / "codex-home"
+        return self.user_profile_root / ".codex"
 
 
 def _has_reparse_point(path: Path) -> bool:
@@ -196,7 +196,7 @@ def load_production_config(
     local_app_data: str | Path | None = None,
     which: Callable[[str], str | None] = shutil.which,
 ) -> ProductionRuntimeConfig:
-    """Load only the explicitly provisioned per-user production profile."""
+    """Load repository-local configuration without deployment copies or ACL gates."""
 
     local_root = Path(local_app_data or os.environ.get("LOCALAPPDATA", "")).expanduser()
     if not local_root.is_absolute():
@@ -205,7 +205,7 @@ def load_production_config(
     if not profile_root.is_absolute():
         raise ProductionRuntimeError("USERPROFILE is unavailable")
     expected_root = _lexical_absolute_path(
-        profile_root / "InagoRuntime", "expected runtime root"
+        PROJECT_ROOT / "rakuten-room-inago" / "runtime", "expected runtime root"
     )
     runtime_root = _checked_private_path(data_root, "data_root")
     config_file = _checked_private_path(config_path, "config_path")
@@ -214,11 +214,34 @@ def load_production_config(
         config_file, expected_config
     ):
         raise ProductionRuntimeError(
-            "production paths must use the per-user runtime root"
+            "production paths must use the repository runtime root"
         )
     if not config_file.is_file():
         raise ProductionRuntimeError("production configuration file is missing")
     value = _document(config_file)
+    previous_database = profile_root / "InagoRuntime" / "state.sqlite"
+    if previous_database.is_file():
+        transferred = value.get("previous_runtime_transfer")
+        destination = runtime_root / "state.sqlite"
+        if (
+            not destination.is_file()
+            or not isinstance(transferred, dict)
+            or transferred.get("status") != "content_verified"
+            or transferred.get("history_and_pending_preserved") is not True
+            or not _same_path(
+                _absolute_path(transferred.get("source_database"), "previous source"),
+                previous_database,
+            )
+            or not _same_path(
+                _absolute_path(
+                    transferred.get("destination_database"), "previous destination"
+                ),
+                destination,
+            )
+        ):
+            raise ProductionRuntimeError(
+                "existing external Inago database must be transferred and content verified before repository setup"
+            )
     if (
         type(value.get("schema_version")) is not int
         or value["schema_version"] != 1
@@ -227,25 +250,15 @@ def load_production_config(
         raise ProductionRuntimeError("production configuration version is unsupported")
     configured_root = _checked_private_path(value.get("runtime_root"), "runtime_root")
     if not _same_path(configured_root, expected_root):
-        raise ProductionRuntimeError("configured runtime root is not the private root")
+        raise ProductionRuntimeError(
+            "configured runtime root is not the repository runtime root"
+        )
 
     application_root = _checked_private_path(
         value.get("application_root"), "application_root"
     )
-    try:
-        application_relative = application_root.relative_to(runtime_root)
-    except ValueError as exc:
-        raise ProductionRuntimeError(
-            "application root must be a protected runtime child"
-        ) from exc
-    if (
-        len(application_relative.parts) != 1
-        or not re.fullmatch(r"app-\d{8}-\d{6}", application_relative.name)
-        or not application_root.is_dir()
-    ):
-        raise ProductionRuntimeError(
-            "application root must be a protected versioned runtime child"
-        )
+    if not _same_path(application_root, PROJECT_ROOT) or not application_root.is_dir():
+        raise ProductionRuntimeError("application root must be the current repository")
 
     owner_url = _owner_url(value.get("owner_room_url"))
     start_date = value.get("start_date")
@@ -274,12 +287,12 @@ def load_production_config(
         raise ProductionRuntimeError("detailed rules must remain an inactive candidate")
 
     expected_backup = _lexical_absolute_path(
-        profile_root / "InagoRuntimeBackups", "expected backup root"
+        PROJECT_ROOT / "rakuten-room-inago" / "backups", "expected backup root"
     )
     backup_root = _checked_private_path(value.get("backup_root"), "backup_root")
     if not _same_path(backup_root, expected_backup):
         raise ProductionRuntimeError(
-            "backup root must use the protected per-user backup directory"
+            "backup root must use the repository backup directory"
         )
 
     browser = value.get("browser")
@@ -308,12 +321,10 @@ def load_production_config(
 
     node = browser.get("node_executable")
     command = codex.get("command")
-    expected_node = application_root / "tools" / "node.exe"
-    expected_codex = application_root / "tools" / "codex.exe"
     if (
         not isinstance(node, str)
         or not node.strip()
-        or not _same_path(Path(node), expected_node)
+        or not Path(node).is_absolute()
         or not Path(node).is_file()
         or not which(node)
     ):
@@ -322,51 +333,26 @@ def load_production_config(
         not isinstance(command, list)
         or not command
         or any(not isinstance(part, str) or not part.strip() for part in command)
-        or not _same_path(Path(command[0]), expected_codex)
+        or not Path(command[0]).is_absolute()
         or not Path(command[0]).is_file()
         or not which(command[0])
     ):
-        raise ProductionRuntimeError("Codex CLI must use the protected runtime copy")
+        raise ProductionRuntimeError("Codex CLI executable is unavailable")
 
-    expected_auth_state = runtime_root / "secrets" / "affiliate-auth-state.json"
     auth_state = _checked_private_path(
         metrics.get("affiliate_auth_state"), "affiliate_auth_state"
     )
-    if not _same_path(auth_state, expected_auth_state):
-        raise ProductionRuntimeError(
-            "Affiliate auth state must use the private runtime copy"
-        )
     if not auth_state.is_file() or _has_reparse_point(auth_state):
         raise ProductionRuntimeError(
             "read-only Affiliate auth reference is unavailable"
         )
 
-    manifest_path = _checked_private_path(
-        runtime_root / "config" / "install-manifest.json", "install manifest"
-    )
-    if not manifest_path.is_file() or _has_reparse_point(manifest_path):
-        raise ProductionRuntimeError("trusted installation manifest is unavailable")
-    manifest = _document(manifest_path)
-    if (
-        type(manifest.get("schema_version")) is not int
-        or manifest["schema_version"] != 1
-        or not _same_path(
-            _lexical_absolute_path(
-                manifest.get("application_root"), "manifest application root"
-            ),
-            application_root,
-        )
-    ):
-        raise ProductionRuntimeError("trusted installation manifest is inconsistent")
-    expected_legacy_root = _lexical_absolute_path(
-        manifest.get("legacy_source_root"), "manifest legacy source root"
-    )
     legacy_lexical = _lexical_absolute_path(
         legacy.get("source_root"), "legacy.source_root"
     )
-    if not _same_path(legacy_lexical, expected_legacy_root):
+    if not _same_path(legacy_lexical, PROJECT_ROOT / "rakuten-room-kai"):
         raise ProductionRuntimeError(
-            "legacy source root does not match the installed migration source"
+            "legacy source root must use the repository legacy directory"
         )
     if _has_reparse_point(legacy_lexical):
         raise ProductionRuntimeError("legacy source root cannot contain reparse points")
@@ -663,17 +649,14 @@ def _write_private_state(path: Path, value: Mapping[str, Any]) -> None:
 
 
 def _assert_production_roots(config: ProductionRuntimeConfig) -> None:
-    """Recheck private roots immediately before production writes."""
+    """Recheck repository data paths immediately before production writes."""
 
-    profile_root = config.user_profile_root
     expected_runtime = _lexical_absolute_path(
-        profile_root / "InagoRuntime", "expected runtime root"
+        PROJECT_ROOT / "rakuten-room-inago" / "runtime", "expected runtime root"
     )
     expected_backup = _lexical_absolute_path(
-        profile_root / "InagoRuntimeBackups", "expected backup root"
+        PROJECT_ROOT / "rakuten-room-inago" / "backups", "expected backup root"
     )
-    if _has_reparse_point(profile_root):
-        raise ProductionRuntimeError("user profile path cannot contain reparse points")
     for actual, expected, label in (
         (config.runtime_root, expected_runtime, "runtime_root"),
         (config.backup_root, expected_backup, "backup_root"),
@@ -820,7 +803,7 @@ def run_production_daily(
     *,
     clock: Clock | None = None,
 ) -> dict[str, Any]:
-    """Run one scheduled daily job against the explicit protected runtime root."""
+    """Run one scheduled daily job from the repository with local runtime data."""
 
     from dataclasses import asdict
     from datetime import date
@@ -838,16 +821,7 @@ def run_production_daily(
             "target_date": now.date().isoformat(),
             "committed_count": 0,
         }
-    setup_state = _read_private_setup_state(config, required=True)
-    assert setup_state is not None
-    if (
-        setup_state.get("status") != "ready"
-        or setup_state.get("migration_selection_allowed") is not True
-        or setup_state.get("settings_version") != BASE_SETTINGS_VERSION
-    ):
-        raise ProductionRuntimeError(
-            "migration/setting preconditions do not permit daily selection"
-        )
+    setup_state = require_production_ready(config)
 
     _assert_production_roots(config)
     connection = _open_production_database(config)
@@ -891,6 +865,22 @@ def run_production_daily(
         return asdict(result)
     finally:
         connection.close()
+
+
+def require_production_ready(config: ProductionRuntimeConfig) -> dict[str, Any]:
+    """Check daily prerequisites explicitly, including under optimized Python."""
+
+    state = _read_private_setup_state(config, required=True)
+    if (
+        state is None
+        or state.get("status") != "ready"
+        or state.get("migration_selection_allowed") is not True
+        or state.get("settings_version") != BASE_SETTINGS_VERSION
+    ):
+        raise ProductionRuntimeError(
+            "migration/setting preconditions do not permit daily selection"
+        )
+    return state
 
 
 def serve_human_api(config: ProductionRuntimeConfig) -> None:
@@ -950,29 +940,8 @@ def _ensure_human_api_token(config: ProductionRuntimeConfig) -> None:
 
 
 def _ensure_codex_home(config: ProductionRuntimeConfig) -> None:
-    source = config.user_profile_root / ".codex" / "auth.json"
-    destination = config.codex_home / "auth.json"
-    if _has_reparse_point(source):
-        raise ProductionRuntimeError(
-            "Codex authentication source contains a reparse point"
-        )
-    if destination.exists():
-        if not destination.is_file() or _has_reparse_point(destination):
-            raise ProductionRuntimeError("private Codex authentication copy is unsafe")
-        return
+    """Use the existing signed-in Codex home without copying credentials."""
+
+    source = config.codex_home / "auth.json"
     if not source.is_file():
         raise ProductionRuntimeError("Codex ChatGPT authentication is unavailable")
-    _assert_production_roots(config)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.name + ".tmp")
-    try:
-        temporary.write_bytes(source.read_bytes())
-        os.replace(temporary, destination)
-    except OSError as exc:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
-        raise ProductionRuntimeError(
-            "private Codex authentication copy failed"
-        ) from exc

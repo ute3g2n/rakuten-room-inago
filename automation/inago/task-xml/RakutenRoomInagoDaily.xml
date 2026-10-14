@@ -2,7 +2,7 @@
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
     <Author>RakutenRoomInago</Author>
-    <Description>Run the Python-controlled Inago daily workflow at 13:00 JST.</Description>
+    <Description>Run Inago directly from the repository Python environment at 13:00 JST.</Description>
   </RegistrationInfo>
   <Triggers>
     <CalendarTrigger>
@@ -35,7 +35,7 @@
     <Exec>
       <Command>{{PYTHON_EXE}}</Command>
       <Arguments>-B -m automation.inago.cli daily --environment production --config "{{CONFIG_PATH}}" --data-root "{{RUNTIME_ROOT}}"</Arguments>
-      <WorkingDirectory>{{WORKING_DIRECTORY}}</WorkingDirectory>
+      <WorkingDirectory>{{PROJECT_ROOT}}</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

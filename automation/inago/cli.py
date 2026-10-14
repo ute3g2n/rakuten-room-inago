@@ -1,4 +1,4 @@
-"""Explicit fixture and protected per-user production entry points."""
+"""Explicit fixture and repository-local production entry points."""
 
 from __future__ import annotations
 
@@ -105,9 +105,13 @@ def _append_production_log(
     """Append a private lifecycle event without arguments, URLs, or source text."""
 
     from datetime import timezone
+    from automation.inago.production_runtime import _checked_private_path
 
-    log_path = root / "logs" / "production-cli.jsonl"
+    log_path = _checked_private_path(
+        root / "logs" / "production-cli.jsonl", "lifecycle log"
+    )
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path = _checked_private_path(log_path, "lifecycle log")
     event: dict[str, object] = {
         "at": datetime.now(timezone.utc).isoformat(),
         "mode": mode,
@@ -126,6 +130,7 @@ def _append_production_log(
 
 def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
     from automation.inago.production_runtime import (
+        ProductionRuntimeError,
         initialize_production_runtime,
         load_production_config,
         run_production_daily,
@@ -134,6 +139,22 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
     from automation.inago.clock import SystemClock
 
     config = None
+
+    def record(status: str, reason: str | None = None) -> None:
+        try:
+            _append_production_log(
+                config.runtime_root, mode=args.mode, status=status, reason=reason
+            )
+        except (OSError, ProductionRuntimeError) as exc:
+            _emit(
+                error_output,
+                {
+                    "status": "log_unavailable",
+                    "mode": args.mode,
+                    "reason": type(exc).__name__,
+                },
+            )
+
     try:
         config = load_production_config(args.config, data_root=args.data_root)
         if args.mode == "setup":
@@ -141,15 +162,13 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                 config,
                 now=SystemClock().now_jst().isoformat(),
             )
-            _append_production_log(config.runtime_root, mode=args.mode, status="ready")
+            record("ready")
             _emit(output, {"status": "ready", **result})
             return 0
         if args.mode == "daily":
             result = run_production_daily(config)
             status = str(result.get("status", "failed"))
-            _append_production_log(
-                config.runtime_root,
-                mode=args.mode,
+            record(
                 status=status,
                 reason=(
                     result.get("reason")
@@ -160,24 +179,14 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             _emit(output, result)
             return EXIT_RUNTIME_ERROR if status in {"failed", "locked"} else 0
         if args.mode == "serve":
-            _append_production_log(
-                config.runtime_root, mode=args.mode, status="starting"
-            )
+            record("starting")
             serve_human_api(config)
             return 0
         _emit(output, {"status": "not_implemented", "mode": args.mode})
         return EXIT_NOT_IMPLEMENTED
     except Exception as exc:
         if config is not None:
-            try:
-                _append_production_log(
-                    config.runtime_root,
-                    mode=args.mode,
-                    status="failed",
-                    reason=type(exc).__name__,
-                )
-            except OSError:
-                pass
+            record("failed", reason=type(exc).__name__)
         _emit(error_output, {"status": "runtime_error", "reason": type(exc).__name__})
         return EXIT_RUNTIME_ERROR
 
