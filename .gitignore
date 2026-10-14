@@ -1,7 +1,31 @@
 node_modules/
 /.venv-kai/
 /rakuten-api.credentials.json
+
+# Legacy Bakemono local account data and operational state
+/rakuten-room/
 rakuten-room-kai/affiliate-report/*
+rakuten-room-kai/daily-plans/
+rakuten-room-kai/performance/
+rakuten-room-kai/room-metrics/
+rakuten-room-kai/research/api-results/
+rakuten-room-kai/orchestrator/runs/
+rakuten-room-kai/orchestrator/locks/
+rakuten-room-kai/orchestrator/status/
+rakuten-room-kai/orchestrator/history/
+rakuten-room-kai/implementation/model-smoke-runtime/runs/
+rakuten-room-kai/implementation/model-smoke-runtime/history/
+rakuten-room-kai/implementation/model-smoke-runtime/status/
+rakuten-room-kai/post-status.json
+rakuten-room-kai/dashboard-days.json
+rakuten-room-kai/dashboard-error.json
+rakuten-room-kai/drafts.json
+rakuten-room-kai/migration-report.json
+rakuten-room-kai/products.json
+rakuten-room-kai/posts-log.jsonl
+rakuten-room-kai/implementation/dashboard-e2e/
+rakuten-room-kai/implementation/step15-room-metrics/
+rakuten-room-kai/implementation/step*-task-xml/
 
 # Private raw evidence for the Inago preparation run
 /非公開作業データ/
@@ -32,22 +56,7 @@ coverage/
 coverage.json
 htmlcov/
 
-# Generated Rakuten ROOM operation data and execution history
-/rakuten-room-inago/runtime/
-/rakuten-room-inago/backups/
-rakuten-room-kai/daily-plans/
-rakuten-room-kai/performance/
-rakuten-room-kai/room-metrics/
-rakuten-room-kai/research/api-results/
-rakuten-room-kai/orchestrator/runs/
-rakuten-room-kai/orchestrator/locks/
-rakuten-room-kai/orchestrator/status/
-rakuten-room-kai/orchestrator/history/
-rakuten-room-kai/implementation/model-smoke-runtime/runs/
-rakuten-room-kai/implementation/model-smoke-runtime/history/
-rakuten-room-kai/implementation/model-smoke-runtime/status/
-
-# Generated logs, test reports, and step-by-step verification snapshots
+# Generated logs and test reports
 *.log
 rakuten-room-kai/implementation/step*.*
 rakuten-room-kai/implementation/*-step*.json
@@ -62,19 +71,9 @@ rakuten-room-kai/implementation/*-ledger*.json
 rakuten-room-kai/implementation/*.txt
 rakuten-room-kai/implementation/*.tap
 rakuten-room-kai/implementation/*.xml
-
-# Local account data and operational state
-rakuten-room/
-rakuten-room-kai/post-status.json
-rakuten-room-kai/dashboard-days.json
-rakuten-room-kai/dashboard-error.json
-rakuten-room-kai/drafts.json
-rakuten-room-kai/migration-report.json
-rakuten-room-kai/products.json
-rakuten-room-kai/posts-log.jsonl
-
-# Generated E2E artifacts, runtime snapshots, and temporary archives
-rakuten-room-kai/implementation/dashboard-e2e/
-rakuten-room-kai/implementation/step15-room-metrics/
-rakuten-room-kai/implementation/step*-task-xml/
+# Generated Inago runtime state is private and must stay local.
+/rakuten-room-inago/runtime/
+/rakuten-room-inago/backups/
+# Legacy local data and account state remain archived locally and untracked.
+/archive/legacy-bakemono-20261015/local-preserved/
 archive/legacy-skills/.staging/

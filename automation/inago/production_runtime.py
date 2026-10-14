@@ -92,6 +92,49 @@ def _has_reparse_point(path: Path) -> bool:
         cursor = cursor.parent
 
 
+def _validated_legacy_source_root(
+    config: ProductionRuntimeConfig,
+) -> Path:
+    """Revalidate the archived migration source immediately before use."""
+
+    expected = _lexical_absolute_path(
+        PROJECT_ROOT
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai",
+        "expected archived legacy source root",
+    )
+    lexical = _lexical_absolute_path(
+        config.legacy_source_root, "legacy.source_root"
+    )
+    if not _same_path(lexical, expected):
+        raise ProductionRuntimeError(
+            "legacy source root changed from the archived local-preserved directory"
+        )
+    if _has_reparse_point(lexical):
+        raise ProductionRuntimeError(
+            "legacy source root cannot contain reparse points"
+        )
+    try:
+        resolved = lexical.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise ProductionRuntimeError(
+            "archived legacy source is required for setup migration"
+        ) from exc
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ProductionRuntimeError("legacy source root cannot be resolved") from exc
+    if (
+        not _same_path(resolved, expected)
+        or _has_reparse_point(lexical)
+        or not resolved.is_dir()
+    ):
+        raise ProductionRuntimeError(
+            "legacy source root changed or is unavailable for setup migration"
+        )
+    return resolved
+
+
 def _absolute_path(value: object, name: str) -> Path:
     if not isinstance(value, (str, os.PathLike)) or not str(value).strip():
         raise ProductionRuntimeError(f"{name} is required")
@@ -445,9 +488,17 @@ def load_production_config(
     legacy_lexical = _lexical_absolute_path(
         legacy.get("source_root"), "legacy.source_root"
     )
-    if not _same_path(legacy_lexical, PROJECT_ROOT / "rakuten-room-kai"):
+    expected_legacy_root = _lexical_absolute_path(
+        PROJECT_ROOT
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai",
+        "expected archived legacy source root",
+    )
+    if not _same_path(legacy_lexical, expected_legacy_root):
         raise ProductionRuntimeError(
-            "legacy source root must use the repository legacy directory"
+            "legacy source root must use the archived local-preserved directory"
         )
     if _has_reparse_point(legacy_lexical):
         raise ProductionRuntimeError("legacy source root cannot contain reparse points")
@@ -455,8 +506,8 @@ def load_production_config(
         legacy_root = legacy_lexical.resolve(strict=False)
     except (OSError, RuntimeError, ValueError) as exc:
         raise ProductionRuntimeError("legacy source root cannot be resolved") from exc
-    if not legacy_root.is_dir():
-        raise ProductionRuntimeError("legacy source root is unavailable or unsafe")
+    if legacy_root.exists() and not legacy_root.is_dir():
+        raise ProductionRuntimeError("legacy source root must be a directory when present")
     legacy_paths = {
         key: legacy.get(key)
         for key in (
@@ -879,15 +930,26 @@ def initialize_production_runtime(
     from automation.inago.migrate import migrate_legacy_history
 
     _assert_production_roots(config)
-    _ensure_human_api_token(config)
-    _ensure_codex_home(config)
     existing = _read_private_setup_state(config, required=False)
-    connection = _open_production_database(config)
+    existing_status = existing.get("status") if existing is not None else None
+    if existing is not None and (
+        not isinstance(existing_status, str)
+        or existing_status not in {"ready", "blocked_supplementation"}
+    ):
+        raise ProductionRuntimeError("existing runtime setup has an unsupported state")
+    if existing_status != "ready":
+        _validated_legacy_source_root(config)
+        _ensure_human_api_token(config)
+        _ensure_codex_home(config)
+        connection = _open_production_database(config)
+    else:
+        connection = _open_existing_production_database(config)
     try:
+        if existing_status == "ready":
+            _ensure_human_api_token(config)
+            _ensure_codex_home(config)
         settings = register_production_settings(connection, config, now=now)
-        existing_status = None
         if existing is not None:
-            existing_status = existing.get("status")
             if existing_status == "ready":
                 if (
                     existing.get("settings_version") != settings.active_basic_version
@@ -903,7 +965,7 @@ def initialize_production_runtime(
                 )
         if existing_status != "ready":
             migration_args = {
-                "source_root": config.legacy_source_root,
+                "source_root": _validated_legacy_source_root(config),
                 "data_root": config.runtime_root,
                 "posts_log_path": config.legacy_paths["posts_log_path"],
                 "product_ledger_path": config.legacy_paths["product_ledger_path"],
@@ -935,6 +997,7 @@ def initialize_production_runtime(
                 raise ProductionRuntimeError(
                     f"legacy history needs {len(dry_run.supplementation_required)} owner confirmations before selection"
                 )
+            migration_args["source_root"] = _validated_legacy_source_root(config)
             applied = migrate_legacy_history(connection, mode="apply", **migration_args)
             if not applied.selection_allowed:
                 raise ProductionRuntimeError(

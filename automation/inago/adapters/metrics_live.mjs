@@ -12,8 +12,8 @@ import {
   extractInitialState,
   paginationLimitReached,
   validateRoomUrl,
-} from '../../../scripts/room-likes-lib.mjs';
-import { parseDailyTable } from '../../../scripts/affiliate-report-lib.mjs';
+} from './room-likes-lib.mjs';
+import { parseDailyTable } from './affiliate-report-lib.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const AFFILIATE_BASE = 'https://affiliate.rakuten.co.jp';

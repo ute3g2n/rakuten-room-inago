@@ -30,7 +30,15 @@ MigrationMode = Literal["dry_run", "apply"]
 MigrationClass = Literal[
     "legacy_evidence", "human_statement", "planned", "draft", "unknown"
 ]
-_LEGACY_SCHEMA_ROOT = PROJECT_ROOT / "rakuten-room-kai" / "orchestrator" / "schemas"
+_LEGACY_SCHEMA_ROOT = (
+    PROJECT_ROOT
+    / "archive"
+    / "legacy-bakemono-20261015"
+    / "source"
+    / "rakuten-room-kai"
+    / "orchestrator"
+    / "schemas"
+)
 _RESULT_SCHEMA_PATH = (
     Path(__file__).resolve().parent / "schemas" / "migration.schema.json"
 )
@@ -172,6 +180,24 @@ def _strict_child(path: Path, parent: Path) -> bool:
         return False
 
 
+def _has_reparse_point(path: Path) -> bool:
+    cursor = path
+    while True:
+        try:
+            info = cursor.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise MigrationInputError("migration path cannot be inspected") from exc
+        else:
+            attributes = getattr(info, "st_file_attributes", 0)
+            if cursor.is_symlink() or attributes & 0x400:
+                return True
+        if cursor.parent == cursor:
+            return False
+        cursor = cursor.parent
+
+
 def _roots(
     source_root: str | Path,
     data_root: str | Path,
@@ -180,8 +206,10 @@ def _roots(
 ) -> tuple[Path, Path]:
     raw_source = Path(source_root).expanduser()
     raw_destination = Path(data_root).expanduser()
-    if raw_source.is_symlink() or raw_destination.is_symlink():
-        raise MigrationInputError("source_root and data_root cannot be symbolic links")
+    if _has_reparse_point(raw_source) or _has_reparse_point(raw_destination):
+        raise MigrationInputError(
+            "source_root and data_root cannot contain reparse points"
+        )
     try:
         source = raw_source.resolve(strict=True)
         destination = raw_destination.resolve(strict=True)
@@ -242,8 +270,8 @@ def _source_file(source_root: Path, relative_path: str | Path) -> tuple[Path, st
     cursor = source_root
     for part in relative.parts:
         cursor = cursor / part
-        if cursor.is_symlink():
-            raise MigrationInputError("legacy source path contains a symbolic link")
+        if _has_reparse_point(cursor):
+            raise MigrationInputError("legacy source path contains a reparse point")
     try:
         path = candidate.resolve(strict=True)
         path.relative_to(source_root)

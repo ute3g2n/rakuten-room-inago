@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 import subprocess
 from types import SimpleNamespace
 import xml.etree.ElementTree as ET
@@ -18,6 +19,8 @@ from automation.inago.production_runtime import (
     _write_setup_state,
     load_human_api_config,
     load_production_config,
+    initialize_production_runtime,
+    require_production_ready,
     run_production_daily,
 )
 from automation.inago.cli import EXIT_RUNTIME_ERROR, main
@@ -55,8 +58,14 @@ def _write_config(root: Path, *, owner_room_url: str) -> Path:
     auth = root / "AffiliatePrivate" / "auth-state.json"
     auth.parent.mkdir(parents=True)
     auth.write_text("{}", encoding="utf-8")
-    legacy = root / "rakuten-room-kai"
-    legacy.mkdir()
+    legacy = (
+        root
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
+    legacy.mkdir(parents=True)
     document = {
         "schema_version": 1,
         "environment": "production",
@@ -118,6 +127,302 @@ def test_production_config_requires_exact_runtime_and_public_owner_room_url(
     assert config.start_date == "2026-10-15"
     assert config.detailed_rules_enabled is False
     assert "room_0123456789" not in repr(config)
+
+
+def test_ready_runtime_does_not_need_local_legacy_archive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    legacy_root = (
+        tmp_path
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    from automation.inago import backup, production_runtime
+
+    existing_connection = production_runtime._open_production_database(config)
+    existing_connection.close()
+    legacy_root.rmdir()
+    setup_state = config.runtime_root / "state" / "setup-status.json"
+    setup_state.parent.mkdir(parents=True)
+    setup_state.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "ready",
+                "migration_selection_allowed": True,
+                "settings_version": "confirmed-0.3-step46-all132",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert require_production_ready(config)["status"] == "ready"
+    assert config.legacy_source_root == legacy_root
+    assert not legacy_root.exists()
+
+    monkeypatch.setattr(
+        production_runtime, "_ensure_human_api_token", lambda _config: None
+    )
+    monkeypatch.setattr(
+        production_runtime, "_ensure_codex_home", lambda _config: None
+    )
+    monkeypatch.setattr(
+        production_runtime,
+        "register_production_settings",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            active_basic_version="confirmed-0.3-step46-all132"
+        ),
+    )
+    backup_directory = config.backup_root / "daily-20261015"
+    monkeypatch.setattr(backup, "list_daily_backups", lambda _root: ())
+    monkeypatch.setattr(
+        backup,
+        "create_daily_backup",
+        lambda *_args, **_kwargs: SimpleNamespace(directory=backup_directory),
+    )
+
+    result = initialize_production_runtime(
+        config, now="2026-10-15T12:00:00+09:00"
+    )
+
+    assert result["settings_version"] == "confirmed-0.3-step46-all132"
+    assert result["backup_generation"] == "daily-20261015"
+    assert result["migration"] == {}
+    assert not legacy_root.exists()
+
+
+def test_ready_runtime_rejects_missing_database_without_creating_one(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    legacy_root = (
+        tmp_path
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
+    legacy_root.rmdir()
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    setup_state = config.runtime_root / "state" / "setup-status.json"
+    setup_state.parent.mkdir(parents=True)
+    setup_state.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "ready",
+                "migration_selection_allowed": True,
+                "settings_version": "confirmed-0.3-step46-all132",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(sqlite3.OperationalError, match="database is unavailable"):
+        initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
+
+    assert not (config.runtime_root / "state.sqlite").exists()
+    assert not (config.runtime_root / "secrets" / "human-api-token.json").exists()
+    assert json.loads(setup_state.read_text(encoding="utf-8"))["status"] == "ready"
+
+
+def test_setup_migration_requires_archived_legacy_source(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    legacy_root = (
+        tmp_path
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
+    legacy_root.rmdir()
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    with pytest.raises(
+        ProductionRuntimeError, match="archived legacy source is required"
+    ):
+        initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
+
+    assert not (config.runtime_root / "state.sqlite").exists()
+    assert not (config.runtime_root / "secrets" / "human-api-token.json").exists()
+    assert not (config.runtime_root / "state" / "setup-status.json").exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows reparse-point contract")
+def test_setup_migration_rejects_legacy_junction_added_after_config_load(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    legacy_root = (
+        tmp_path
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
+    legacy_target = tmp_path / "redirected-legacy"
+    legacy_root.replace(legacy_target)
+    _create_junction(legacy_root, legacy_target)
+
+    with pytest.raises(ProductionRuntimeError, match="reparse points"):
+        initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
+
+    assert not (config.runtime_root / "state.sqlite").exists()
+    assert not (config.runtime_root / "secrets" / "human-api-token.json").exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows reparse-point contract")
+def test_migration_roots_reject_a_junction(
+    tmp_path: Path,
+) -> None:
+    from automation.inago.migrate import MigrationInputError, _roots
+
+    source_target = tmp_path / "source-target"
+    source_target.mkdir()
+    source_alias = tmp_path / "source-alias"
+    _create_junction(source_alias, source_target)
+    data_root = tmp_path / "data"
+    data_root.mkdir()
+
+    with pytest.raises(MigrationInputError, match="reparse points"):
+        _roots(source_alias, data_root, fixture_mode=False)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows reparse-point contract")
+def test_migration_source_file_rejects_nested_junction(tmp_path: Path) -> None:
+    from automation.inago.migrate import MigrationInputError, _source_file
+
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    external_directory = tmp_path / "external"
+    external_directory.mkdir()
+    (external_directory / "legacy.json").write_text("{}", encoding="utf-8")
+    _create_junction(source_root / "linked", external_directory)
+
+    with pytest.raises(MigrationInputError, match="reparse point"):
+        _source_file(source_root, "linked/legacy.json")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows reparse-point contract")
+def test_setup_migration_rechecks_source_before_apply(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    legacy_root = config.legacy_source_root
+    legacy_target = tmp_path / "redirected-legacy-after-dry-run"
+    from automation.inago import migrate, production_runtime
+
+    monkeypatch.setattr(
+        production_runtime, "_ensure_human_api_token", lambda _config: None
+    )
+    monkeypatch.setattr(
+        production_runtime, "_ensure_codex_home", lambda _config: None
+    )
+    monkeypatch.setattr(
+        production_runtime,
+        "register_production_settings",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            active_basic_version="confirmed-0.3-step46-all132"
+        ),
+    )
+    modes: list[str] = []
+
+    def fake_migrate(_connection, *, mode: str, **_kwargs):
+        modes.append(mode)
+        if mode == "dry_run":
+            legacy_root.replace(legacy_target)
+            _create_junction(legacy_root, legacy_target)
+            return SimpleNamespace(supplementation_required=())
+        pytest.fail("apply must not run after the archive source changes")
+
+    monkeypatch.setattr(migrate, "migrate_legacy_history", fake_migrate)
+
+    with pytest.raises(ProductionRuntimeError, match="reparse points"):
+        initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
+
+    assert modes == ["dry_run"]
+    assert not (config.runtime_root / "state" / "setup-status.json").exists()
+
+
+@pytest.mark.parametrize("status", [[], {"unexpected": "shape"}])
+def test_setup_migration_rejects_non_string_existing_status(
+    tmp_path: Path, status: object
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    setup_state = config.runtime_root / "state" / "setup-status.json"
+    setup_state.parent.mkdir(parents=True)
+    setup_state.write_text(
+        json.dumps({"schema_version": 1, "status": status}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ProductionRuntimeError, match="unsupported state"):
+        initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
+
+    assert not (config.runtime_root / "state.sqlite").exists()
+    assert not (config.runtime_root / "secrets" / "human-api-token.json").exists()
 
 
 def test_human_api_config_does_not_require_browser_or_ai_dependencies(
@@ -506,7 +811,7 @@ def test_production_config_rejects_legacy_source_outside_repository(
     document["legacy"]["source_root"] = str(alternate)
     config_path.write_text(json.dumps(document), encoding="utf-8")
 
-    with pytest.raises(ProductionRuntimeError, match="repository legacy"):
+    with pytest.raises(ProductionRuntimeError, match="archived local-preserved"):
         load_production_config(
             config_path,
             data_root=tmp_path / "rakuten-room-inago" / "runtime",
@@ -608,7 +913,13 @@ def test_production_config_rejects_legacy_junction_before_resolving_target(
         tmp_path,
         owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
     )
-    legacy_alias = tmp_path / "rakuten-room-kai"
+    legacy_alias = (
+        tmp_path
+        / "archive"
+        / "legacy-bakemono-20261015"
+        / "local-preserved"
+        / "rakuten-room-kai"
+    )
     legacy_target = tmp_path / "redirected-legacy"
     legacy_alias.replace(legacy_target)
     _create_junction(legacy_alias, legacy_target)
