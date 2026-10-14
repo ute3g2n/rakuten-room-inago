@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import threading
 from typing import Any
@@ -21,6 +22,7 @@ from urllib.parse import quote, urlsplit
 import uuid
 
 from automation.inago.room_adapter import RoomSearchRequest, _unavailable_response
+from automation.inago.retention import retention_expiry
 from automation.inago.trends_adapter import TrendsRequest
 from automation.atomic_io import atomic_write_json
 
@@ -29,6 +31,30 @@ SCRIPT = Path(__file__).resolve().parent / "adapters" / "public_sources.mjs"
 ACCESS_FAILURES = frozenset({"http_401", "http_403", "http_429", "access_denied"})
 STOP_FAILURES = ACCESS_FAILURES | {"owned_cleanup_unconfirmed"}
 SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
+MAX_SOURCE_TIMEOUT_SECONDS = 17100
+
+
+def _expiration_is_past(value: object) -> bool:
+    if not isinstance(value, str):
+        return True
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return True
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return True
+    return parsed.astimezone(timezone.utc) <= datetime.now(timezone.utc)
+
+
+def _observation_is_expired(record: dict[str, Any]) -> bool:
+    expires_at = record.get("retention_expires_at")
+    if expires_at is None:
+        recorded_at = record.get("recorded_at")
+        try:
+            expires_at = retention_expiry("raw", recorded_at).isoformat()
+        except (TypeError, ValueError):
+            return True
+    return _expiration_is_past(expires_at)
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,18 +62,32 @@ class PublicSourceConfig:
     chrome_executable: Path
     evidence_root: Path
     environment: str = "public_ui"
-    timeout_seconds: float = 300
+    timeout_seconds: float = MAX_SOURCE_TIMEOUT_SECONDS
     fixture_url: str | None = None
     node_executable: str = "node"
+    headless: bool = False
+    user_data_dir: Path | None = None
+    fixture_product_delay_ms: int = 0
+    fixture_browser_startup_delay_ms: int = 0
+    fixture_room_scroll_delay_ms: int = 0
+    fixture_expire_deadline_before_room_restore: bool = False
 
 
 def _trends_failure(request: TrendsRequest, code: str) -> dict[str, Any]:
     return {
-        **asdict(request),
+        "request_id": request.request_id,
         "snapshot_id": request.request_id,
+        "run_id": request.run_id,
+        "settings_version": request.settings_version,
         "source": "google_trends_public_ui",
+        "parent_word": request.parent_word,
         "current_parent": None,
         "refresh_complete": False,
+        "language": request.language,
+        "geo": request.geo,
+        "search_type": request.search_type,
+        "range": request.range,
+        "list_type": request.list_type,
         "ui_period_label": None,
         "status": "unavailable",
         "fetched_at": None,
@@ -57,22 +97,68 @@ def _trends_failure(request: TrendsRequest, code: str) -> dict[str, Any]:
 
 
 class PublicBrowserSource:
-    """One fresh, ordinary browser per request. No fallback after access denial."""
+    """Use an owned persistent public profile or an isolated fixture context."""
 
     fixture_only = False
 
     def __init__(self, config: PublicSourceConfig):
         if config.environment not in {"fixture", "public_ui"}:
             raise ValueError("unknown browser source environment")
+        if not isinstance(config.headless, bool):
+            raise ValueError("headless must be a boolean")
+        if (
+            isinstance(config.fixture_product_delay_ms, bool)
+            or not isinstance(config.fixture_product_delay_ms, int)
+            or config.fixture_product_delay_ms < 0
+            or (
+                config.environment != "fixture" and config.fixture_product_delay_ms != 0
+            )
+        ):
+            raise ValueError(
+                "fixture product delay must be a non-negative fixture value"
+            )
+        if (
+            isinstance(config.fixture_browser_startup_delay_ms, bool)
+            or not isinstance(config.fixture_browser_startup_delay_ms, int)
+            or config.fixture_browser_startup_delay_ms < 0
+            or (
+                config.environment != "fixture"
+                and config.fixture_browser_startup_delay_ms != 0
+            )
+        ):
+            raise ValueError(
+                "fixture browser startup delay must be a non-negative fixture value"
+            )
+        if (
+            isinstance(config.fixture_room_scroll_delay_ms, bool)
+            or not isinstance(config.fixture_room_scroll_delay_ms, int)
+            or config.fixture_room_scroll_delay_ms < 0
+            or (
+                config.environment != "fixture"
+                and config.fixture_room_scroll_delay_ms != 0
+            )
+        ):
+            raise ValueError(
+                "fixture ROOM scroll delay must be a non-negative fixture value"
+            )
+        if not isinstance(config.fixture_expire_deadline_before_room_restore, bool) or (
+            config.environment != "fixture"
+            and config.fixture_expire_deadline_before_room_restore
+        ):
+            raise ValueError("deadline expiry injection is fixture-only")
         if not config.chrome_executable.is_file():
             raise ValueError("explicit Chrome executable does not exist")
         if (
             not isinstance(config.timeout_seconds, (int, float))
             or isinstance(config.timeout_seconds, bool)
-            or not 1 <= config.timeout_seconds <= 900
+            or not 1 <= config.timeout_seconds <= MAX_SOURCE_TIMEOUT_SECONDS
         ):
-            raise ValueError("source timeout must be between 1 and 900 seconds")
+            raise ValueError(
+                f"source timeout must be between 1 and {MAX_SOURCE_TIMEOUT_SECONDS} seconds"
+            )
         if config.environment == "fixture":
+            if config.user_data_dir is not None:
+                raise ValueError("fixture mode cannot use a persistent user profile")
             url = urlsplit(config.fixture_url or "")
             if (
                 url.scheme != "http"
@@ -83,6 +169,11 @@ class PublicBrowserSource:
                 raise ValueError("fixture endpoint must be plain loopback HTTP")
         elif config.fixture_url is not None:
             raise ValueError("public UI does not accept a fixture endpoint")
+        self._user_data_dir = (
+            None
+            if config.environment == "fixture"
+            else self._resolve_owned_profile(config.user_data_dir)
+        )
         if shutil.which(config.node_executable) is None:
             raise ValueError("Node executable unavailable")
         self.config = config
@@ -98,6 +189,43 @@ class PublicBrowserSource:
         self._evidence.mkdir(parents=True, exist_ok=True)
         self._recover_access_stops()
 
+    @staticmethod
+    def _resolve_owned_profile(configured: Path | None) -> Path:
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            raise ValueError(
+                "public UI requires LOCALAPPDATA to resolve the owned profile"
+            )
+        owned_profile = Path(local_app_data) / "InagoPlaywrightProfile"
+        profile_env = os.environ.get("INAGO_PLAYWRIGHT_USER_DATA_DIR")
+        profile = configured or (Path(profile_env) if profile_env else owned_profile)
+        if PublicBrowserSource._has_reparse_point(profile) or (
+            PublicBrowserSource._has_reparse_point(owned_profile)
+        ):
+            raise ValueError(
+                "the owned Playwright profile cannot be a symlink or junction"
+            )
+        resolved = profile.expanduser().resolve()
+        resolved_owned = owned_profile.resolve()
+        if resolved != resolved_owned:
+            raise ValueError(
+                "public UI may use only LOCALAPPDATA\\InagoPlaywrightProfile"
+            )
+        if not resolved.is_dir():
+            raise ValueError("owned Playwright profile directory is unavailable")
+        return resolved
+
+    @staticmethod
+    def _has_reparse_point(path: Path) -> bool:
+        try:
+            metadata = path.lstat()
+        except OSError:
+            return False
+        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+        return path.is_symlink() or bool(
+            getattr(metadata, "st_file_attributes", 0) & reparse_flag
+        )
+
     def _recover_access_stops(self) -> None:
         # Legacy captures from the first probe also restore the denied run.
         records = (
@@ -112,8 +240,17 @@ class PublicBrowserSource:
             record = json.loads(path.read_text(encoding="utf-8"))
             if not isinstance(record, dict):
                 raise ValueError("source stop record is invalid")
-            run_id = record.get("run_id", record.get("request", {}).get("run_id"))
-            if record.get("error_code") in STOP_FAILURES:
+            request = record.get("request")
+            request = request if isinstance(request, dict) else {}
+            run_id = record.get("run_id", request.get("run_id"))
+            kind = record.get("kind")
+            request_id = request.get("request_id")
+            if record.get("error_code") in STOP_FAILURES and not (
+                kind == "trends"
+                and record.get("error_code") == "http_429"
+                and isinstance(request_id, str)
+                and re.search(r"-a[1-5]$", request_id)
+            ):
                 if not isinstance(run_id, str) or not SAFE_REF.fullmatch(run_id):
                     raise ValueError("source stop run identity is invalid")
                 self._stopped_runs.add(run_id)
@@ -140,13 +277,75 @@ class PublicBrowserSource:
     def fetch(self, request: TrendsRequest) -> dict[str, Any]:
         response = self._invoke("trends", request)
         if "response" not in response:
-            return _trends_failure(request, response["error_code"])
+            failure = _trends_failure(request, response["error_code"])
+            if isinstance(response.get("retry_after_seconds"), int):
+                failure["retry_after_seconds"] = response["retry_after_seconds"]
+            return failure
         return response["response"]
+
+    def load_saved_response(self, request_id: str) -> dict[str, Any] | None:
+        """Recover this exact request's private observation after a DB interruption."""
+
+        if not SAFE_REF.fullmatch(request_id):
+            raise ValueError("saved Trends request reference is unsafe")
+        found = None
+        for path in self._evidence.glob(
+            f"trends-{quote(request_id, safe='')}-observation-*.json"
+        ):
+            if path.is_symlink() or not path.resolve().is_relative_to(self._evidence):
+                raise ValueError("saved Trends response escapes evidence root")
+            record = json.loads(path.read_text(encoding="utf-8"))
+            request = record.get("request") if isinstance(record, dict) else None
+            if (
+                not isinstance(record, dict)
+                or record.get("kind") != "trends"
+                or not isinstance(request, dict)
+                or request.get("request_id") != request_id
+            ):
+                raise ValueError("saved Trends observation identity differs")
+            if _observation_is_expired(record):
+                raise ValueError("saved Trends observation expired")
+            saved_request = TrendsRequest(
+                request_id=request_id,
+                run_id=request.get("run_id"),
+                settings_version=request.get("settings_version"),
+                parent_word=request.get("parent_word"),
+                language=request.get("language", "ja"),
+                geo=request.get("geo", "JP"),
+                search_type=request.get("search_type", "web"),
+                range=request.get("range", "3m"),
+                list_type=request.get("list_type", "Top"),
+                deadline_at=request.get("deadline_at"),
+            )
+            response = record.get("response")
+            if isinstance(response, dict):
+                current = dict(response)
+            elif isinstance(record.get("error_code"), str):
+                current = _trends_failure(saved_request, record["error_code"])
+                retry_after = record.get("retry_after_seconds")
+                if (
+                    isinstance(retry_after, int)
+                    and not isinstance(retry_after, bool)
+                    and 0 <= retry_after <= 86400
+                ):
+                    current["retry_after_seconds"] = retry_after
+            else:
+                continue
+            if found is not None and found != current:
+                raise ValueError("saved Trends observations conflict for one request")
+            found = current
+        return found
 
     def product_fact(self, evidence_ref: str) -> dict[str, Any] | None:
         with self._lock:
             value = self._facts.get(evidence_ref)
             if value is not None:
+                try:
+                    expires_at = retention_expiry("raw", value.get("observed_at"))
+                except (TypeError, ValueError):
+                    return None
+                if expires_at.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+                    return None
                 return dict(value)
         attempt, marker, index = evidence_ref.rpartition(":row:")
         if not marker or not SAFE_REF.fullmatch(attempt) or not index.isdigit():
@@ -163,6 +362,8 @@ class PublicBrowserSource:
                 or record.get("request", {}).get("attempt_id") != attempt
             ):
                 raise ValueError("captured fact attempt differs")
+            if _observation_is_expired(record):
+                continue
             value = record.get("product_facts", {}).get(evidence_ref)
             if value is None:
                 continue
@@ -188,8 +389,28 @@ class PublicBrowserSource:
                 return {"error_code": "source_access_stopped"}
             if request.run_id in self._cancelled_runs:
                 return {"error_code": "source_cancelled"}
+        request_timeout = self._request_timeout_seconds(request)
+        # The Node adapter rejects timeouts below one second as an invalid
+        # request. At that point no useful browser work can start before the
+        # daily cutoff, so report an ordinary timeout without launching it.
+        if request_timeout < 1:
+            return {"error_code": "source_timeout"}
         config = asdict(self.config)
+        config["timeout_seconds"] = min(config["timeout_seconds"], request_timeout)
         config["chrome_executable"] = str(self.config.chrome_executable.resolve())
+        config["user_data_dir"] = (
+            str(self._user_data_dir) if self._user_data_dir is not None else None
+        )
+        config["fixture_product_delay_ms"] = self.config.fixture_product_delay_ms
+        config["fixture_browser_startup_delay_ms"] = (
+            self.config.fixture_browser_startup_delay_ms
+        )
+        config["fixture_room_scroll_delay_ms"] = (
+            self.config.fixture_room_scroll_delay_ms
+        )
+        config["fixture_expire_deadline_before_room_restore"] = (
+            self.config.fixture_expire_deadline_before_room_restore
+        )
         config.pop("evidence_root")
         config.pop("node_executable")
         payload = json.dumps(
@@ -208,6 +429,8 @@ class PublicBrowserSource:
             with self._lock:
                 if request.run_id in self._cancelled_runs:
                     return {"error_code": "source_cancelled"}
+                if self._request_timeout_seconds(request) < 1:
+                    return {"error_code": "source_timeout"}
                 process = subprocess.Popen(
                     [self.config.node_executable, str(SCRIPT)],
                     stdin=subprocess.PIPE,
@@ -220,11 +443,19 @@ class PublicBrowserSource:
                 )
                 self._active[process] = request.run_id
             output, node_stderr = process.communicate(
-                payload, timeout=self.config.timeout_seconds + 5
+                payload,
+                timeout=config["timeout_seconds"]
+                + (2 if getattr(request, "deadline_at", None) else 5),
             )
             result = json.loads(output)
+            error_shapes = {
+                frozenset({"error_code"}),
+                frozenset({"error_code", "diagnostics"}),
+                frozenset({"error_code", "retry_after_seconds"}),
+                frozenset({"error_code", "diagnostics", "retry_after_seconds"}),
+            }
             if not isinstance(result, dict) or not (
-                set(result) in ({"error_code"}, {"error_code", "diagnostics"})
+                frozenset(result) in error_shapes
                 or set(result) == {"response", "product_facts", "diagnostics"}
             ):
                 result = {"error_code": "source_response_invalid"}
@@ -237,6 +468,12 @@ class PublicBrowserSource:
                 process.returncode != 0
                 or not isinstance(result["response"], dict)
                 or not isinstance(result["product_facts"], dict)
+            ):
+                result = {"error_code": "source_response_invalid"}
+            elif "retry_after_seconds" in result and (
+                not isinstance(result["retry_after_seconds"], int)
+                or isinstance(result["retry_after_seconds"], bool)
+                or not 0 <= result["retry_after_seconds"] <= 86400
             ):
                 result = {"error_code": "source_response_invalid"}
         except subprocess.TimeoutExpired as exc:
@@ -265,12 +502,11 @@ class PublicBrowserSource:
                         self._cancelled_runs.add(request.run_id)
                         result = {"error_code": "owned_cleanup_unconfirmed"}
         with self._lock:
-            if (
-                request.run_id in self._cancelled_runs
-                and result.get("error_code") not in STOP_FAILURES
+            if request.run_id in self._cancelled_runs and not self._should_stop_run(
+                kind, request, result.get("error_code")
             ):
                 result = {"error_code": "source_cancelled"}
-            if result.get("error_code") in STOP_FAILURES:
+            if self._should_stop_run(kind, request, result.get("error_code")):
                 self._stopped_runs.add(request.run_id)
             if "response" in result:
                 self._facts.update(result["product_facts"])
@@ -294,7 +530,7 @@ class PublicBrowserSource:
             self._evidence
             / f"{kind}-{quote(identity, safe='')}-observation-{uuid.uuid4()}.json"
         )
-        if result.get("error_code") in STOP_FAILURES:
+        if self._should_stop_run(kind, request, result.get("error_code")):
             stop = self._evidence / f"access-stop-{quote(request.run_id, safe='')}.json"
             atomic_write_json(
                 stop,
@@ -309,10 +545,41 @@ class PublicBrowserSource:
         atomic_write_json(path, record)
         return result
 
+    def _request_timeout_seconds(self, request) -> float:
+        """Cap a browser process at the request's daily cutoff when supplied."""
+
+        request_deadline = getattr(request, "deadline_at", None)
+        if request_deadline is None:
+            return float(self.config.timeout_seconds)
+        try:
+            deadline = datetime.fromisoformat(request_deadline)
+        except (TypeError, ValueError):
+            return 0.0
+        if deadline.tzinfo is None or deadline.utcoffset() is None:
+            return 0.0
+        now = datetime.now(deadline.tzinfo)
+        return max(0.0, (deadline - now).total_seconds())
+
+    @staticmethod
+    def _should_stop_run(kind: str, request, error_code: object) -> bool:
+        if error_code not in STOP_FAILURES:
+            return False
+        # New durable Trends retries have a unique, persisted -a1..-a5 request
+        # identity. A 429 from one such request is retryable under that same
+        # public UI contract; legacy 429 records still stop old runs because
+        # their retry count cannot be reconstructed safely.
+        if (
+            kind == "trends"
+            and error_code == "http_429"
+            and re.search(r"-a[1-5]$", getattr(request, "request_id", ""))
+        ):
+            return False
+        return True
+
     @staticmethod
     def _metadata_events(raw: str) -> list[dict[str, Any]]:
         events = []
-        for line in raw.splitlines()[:1000]:
+        for line in raw.splitlines()[:5000]:
             try:
                 item = json.loads(line)
             except json.JSONDecodeError:
@@ -479,6 +746,67 @@ class PublicBrowserSource:
                     event["url_kind"] = url_kind
                 events.append(event)
                 continue
+            if isinstance(item, dict) and item.get("event") == "public_source_failure":
+                stage = item.get("stage")
+                error_code = item.get("error_code")
+                error_class = item.get("error_class")
+                error_kind = item.get("error_kind")
+                if (
+                    not isinstance(stage, str)
+                    or not SAFE_REF.fullmatch(stage)
+                    or not isinstance(error_code, str)
+                    or not SAFE_REF.fullmatch(error_code)
+                    or error_class
+                    not in {
+                        "SourceFailure",
+                        "Error",
+                        "TimeoutError",
+                        "TypeError",
+                        "ReferenceError",
+                        "SyntaxError",
+                        "RangeError",
+                        "URIError",
+                        "EvalError",
+                        "AggregateError",
+                        "TargetClosedError",
+                        "BrowserClosedError",
+                        "ProtocolError",
+                        "other",
+                    }
+                    or error_kind
+                    not in {
+                        "network_error",
+                        "timeout",
+                        "target_closed",
+                        "page_closed",
+                        "navigation_interrupted",
+                        "protocol_error",
+                        "browser_launch_error",
+                        "other_error",
+                    }
+                ):
+                    continue
+                event = {
+                    "event": "public_source_failure",
+                    "stage": stage,
+                    "error_code": error_code,
+                    "error_class": error_class,
+                    "error_kind": error_kind,
+                }
+                network_code = item.get("network_code")
+                if isinstance(network_code, str) and re.fullmatch(
+                    r"ERR_[A-Z0-9_]{1,64}", network_code
+                ):
+                    event["network_code"] = network_code
+                row_index = item.get("row_index")
+                if (
+                    isinstance(row_index, int)
+                    and not isinstance(row_index, bool)
+                    and 1 <= row_index <= 50
+                ):
+                    event["row_index"] = row_index
+                events.append(event)
+                continue
             if (
                 not isinstance(item, dict)
                 or item.get("event") != "public_source_stage"
@@ -487,13 +815,45 @@ class PublicBrowserSource:
             ):
                 continue
             event = {"event": "public_source_stage", "stage": item["stage"]}
-            for key in ("loaded_posts", "accepted_posts", "row_index"):
+            for key in (
+                "loaded_posts",
+                "accepted_posts",
+                "row_index",
+                "body_children",
+                "search_candidate_count",
+                "visible_input_count",
+                "label_locator_match_count",
+                "search_button_count",
+                "explore_button_count",
+                "period_option_count",
+                "retry_after_seconds",
+            ):
                 if (
                     isinstance(item.get(key), int)
                     and not isinstance(item[key], bool)
                     and item[key] >= 0
+                    and (key != "row_index" or 1 <= item[key] <= 50)
+                    and (
+                        key
+                        not in {
+                            "search_candidate_count",
+                            "visible_input_count",
+                            "label_locator_match_count",
+                            "search_button_count",
+                            "explore_button_count",
+                            "period_option_count",
+                        }
+                        or item[key] <= 100
+                    )
                 ):
                     event[key] = item[key]
+            document_ready_state = item.get("document_ready_state")
+            if document_ready_state in {"loading", "interactive", "complete"}:
+                event["document_ready_state"] = document_ready_state
+            if isinstance(item.get("body_text_nonempty"), bool):
+                event["body_text_nonempty"] = item["body_text_nonempty"]
+            if isinstance(item.get("retry_after_present"), bool):
+                event["retry_after_present"] = item["retry_after_present"]
             phase = item.get("phase")
             if phase in {
                 "card_link",

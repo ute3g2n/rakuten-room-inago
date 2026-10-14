@@ -5,10 +5,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import shutil
 import threading
 import time
 import subprocess
 from unittest.mock import Mock
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -23,6 +25,101 @@ CHROME = Path(
         "INAGO_TEST_CHROME", r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     )
 )
+CHROMIUM_RESTRICTED_PORTS = frozenset(
+    {
+        0,
+        1,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        20,
+        21,
+        22,
+        23,
+        25,
+        37,
+        42,
+        43,
+        53,
+        69,
+        77,
+        79,
+        87,
+        95,
+        101,
+        102,
+        103,
+        104,
+        109,
+        110,
+        111,
+        113,
+        115,
+        117,
+        119,
+        123,
+        135,
+        137,
+        139,
+        143,
+        161,
+        179,
+        389,
+        427,
+        465,
+        512,
+        513,
+        514,
+        515,
+        526,
+        530,
+        531,
+        532,
+        540,
+        548,
+        554,
+        556,
+        563,
+        587,
+        601,
+        636,
+        989,
+        990,
+        993,
+        995,
+        1719,
+        1720,
+        1723,
+        2049,
+        3659,
+        4045,
+        5060,
+        5061,
+        6000,
+        6566,
+        6665,
+        6666,
+        6667,
+        6668,
+        6669,
+        6697,
+        10080,
+    }
+)
+
+
+def _browser_safe_test_server(handler):
+    # Chromium refuses navigations to its restricted ports, including on loopback.
+    for _ in range(16):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        if server.server_port not in CHROMIUM_RESTRICTED_PORTS:
+            return server
+        server.server_close()
+    raise RuntimeError("could not allocate a Chromium-safe loopback test port")
 
 
 def room_request():
@@ -48,21 +145,40 @@ def room_html(
     likes="300件",
     comments="コメント数指定なし",
     direct_href=False,
+    card_direct_href=False,
     wrapped_href=False,
+    same_tab=False,
+    same_tab_delay_ms=0,
     detail_delay_ms=0,
+    scroll_marker=False,
 ):
     # Every ten source rows refer to the same item. All still occupy source slots.
+    card_link = (
+        '<a href="https://item.rakuten.co.jp/shop/item-1/">商品ページ</a>'
+        if card_direct_href
+        else ""
+    )
     rows = "".join(
-        f'<div class="items-search"><div class="item"><div class="detail"><div class="imgLink" onclick="openPreview({n})"><img alt="合成商品{n}"></div></div></div></div>'
+        f'<div class="items-search"><div class="item">{card_link}<div class="detail"><div class="imgLink" onclick="openPreview({n})"><img alt="合成商品{n}"></div></div></div></div>'
         for n in range(1, min(initial, count) + 1)
     )
     detail_control = (
-        '<a href="https://item.rakuten.co.jp/shop/item-1/">楽天市場で詳細を見る</a>'
-        if direct_href
+        (
+            f'<a target="_self" href="https://item.rakuten.co.jp/shop/item-1/" '
+            f"onclick=\"event.preventDefault();setTimeout(()=>location.href='https://item.rakuten.co.jp/shop/item-1/',{same_tab_delay_ms})\">"
+            "楽天市場で詳細を見る</a>"
+            if same_tab_delay_ms
+            else '<a target="_self" href="https://item.rakuten.co.jp/shop/item-1/">楽天市場で詳細を見る</a>'
+        )
+        if same_tab
         else (
-            '<a href="https://item.rakuten.co.jp/shop/item-1/"><div>楽天市場で詳細を見る</div></a>'
-            if wrapped_href
-            else "<div class=\"market-detail-link\" onclick=\"window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')\">楽天市場で詳細を見る</div>"
+            '<a target="_blank" href="https://item.rakuten.co.jp/shop/item-1/">楽天市場で詳細を見る</a>'
+            if direct_href
+            else (
+                '<a target="_blank" href="https://item.rakuten.co.jp/shop/item-1/"><div>楽天市場で詳細を見る</div></a>'
+                if wrapped_href
+                else "<div class=\"market-detail-link\" onclick=\"window.open('https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/')\">楽天市場で詳細を見る</div>"
+            )
         )
     )
     open_preview = (
@@ -80,6 +196,7 @@ def room_html(
     <script>let current=1; function openPreview(n){{current=n;{open_preview}}}
     function more(){{const rows=document.querySelector('#rows');if(rows.children.length<{count}){{for(let n=rows.children.length+1;n<={count};n++){{const e=document.createElement('div');e.className='items-search';e.innerHTML='<div class="item"><div class="detail"><div class="imgLink" onclick="openPreview('+n+')"><img alt="合成商品'+n+'"></div></div></div>';rows.appendChild(e)}}}} {'document.querySelector("#end").style.display="block";' if terminal else ''}}}
     window.addEventListener('scroll',more);document.body.style.height='3000px';
+    {'window.addEventListener("scroll",()=>fetch("/room-scroll-observed"));' if scroll_marker else ''}
     {'more();' if count == 0 else ''}</script>"""
 
 
@@ -93,13 +210,66 @@ def trends_html(*, query="電子レンジ", count=25, delay=0, rising_empty=Fals
     function render(){{let s='';for(let rank=page*5+1;rank<=Math.min({count},page*5+5);rank++)s+='<a class="progress-label transition-width"><div class="label-line-number">'+rank+'</div><div class="label-text"><span>'+ (topMode?'関連  語':'注目 語') +rank+'</span></div><div class="progress-value">'+(101-rank)+'</div></a>';if({str(rising_empty).lower()} && !topMode || {count}===0)s='<span>データがありません</span>';document.querySelector('#words').innerHTML=s;document.querySelector('button[aria-label="Next"]').disabled=(page+1)*5>={count}}}render()</script>"""
 
 
+def trends_home_html(*, input_delay_ms=0):
+    return f"""<form id="search-form"><input aria-label="検索"><button type="submit">検索</button></form>
+    <script>if ({input_delay_ms}) document.querySelector('input').addEventListener('input',()=>{{
+      const until=Date.now()+{input_delay_ms};while(Date.now()<until){{}}
+    }});
+    document.querySelector('#search-form').addEventListener('submit',event=>{{
+      event.preventDefault();const url=new URL('/trends/explore',location.origin);
+      url.searchParams.set('date','today 12-m');url.searchParams.set('geo','JP');
+      url.searchParams.set('q',document.querySelector('input').value);url.searchParams.set('hl','ja');
+      location.href=url.href;
+    }});</script>"""
+
+
+def trends_period_html(*, query="電子レンジ", count=20):
+    base = trends_html(query=query, count=count)
+    return trends_with_period_picker(base)
+
+
+def trends_with_period_picker(base):
+    base = base.replace(
+        '<md-select aria-label="Select time period">過去 90 日間</md-select>',
+        '<button aria-label="Select time period" onclick="openPeriod()">過去 12 か月</button>'
+        '<div id="period-menu" style="display:none"><md-menu-item role="option" '
+        'onclick="selectPeriod()">過去 90 日間</md-menu-item></div>',
+    )
+    return base.replace(
+        "</script>",
+        "</script><script>function openPeriod(){document.querySelector('#period-menu').style.display='block'}"
+        "function selectPeriod(){document.querySelector('button[aria-label^=\\\"Select time period\\\"]').textContent='過去 90 日間';"
+        "const url=new URL(location.href);url.searchParams.set('date','today 3-m');history.replaceState({},'',url);"
+        "document.querySelector('#period-menu').style.display='none'}</script>",
+    )
+
+
 @pytest.fixture
 def ui_server():
-    state = {"html": "", "status": 200, "requests": []}
+    state = {
+        "html": "",
+        "status": 200,
+        "requests": [],
+        "pages": {},
+        "retry_after": None,
+        "pending_request_started": threading.Event(),
+        "pending_request_release": threading.Event(),
+    }
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             state["requests"].append(self.path)
+            if urlsplit(self.path).path == "/hang-pending":
+                state["pending_request_started"].set()
+                state["pending_request_release"].wait(timeout=10)
+                try:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(b"released")
+                except OSError:
+                    pass
+                return
             if self.path.startswith("/hang-script.js"):
                 self.send_response(200)
                 self.send_header("Content-Type", "application/javascript")
@@ -113,17 +283,19 @@ def ui_server():
             )
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            if state.get("retry_after") is not None:
+                self.send_header("Retry-After", str(state["retry_after"]))
             self.end_headers()
-            self.wfile.write(
-                b"Forbidden"
-                if self.path.startswith("/product-")
-                else state["html"].encode()
-            )
+            if self.path.startswith("/product-"):
+                body = "Forbidden"
+            else:
+                body = state["pages"].get(urlsplit(self.path).path, state["html"])
+            self.wfile.write(body.encode())
 
         def log_message(self, *_):
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server = _browser_safe_test_server(Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     state["url"] = f"http://127.0.0.1:{server.server_port}/"
@@ -133,9 +305,43 @@ def ui_server():
     thread.join()
 
 
-def source(tmp_path, ui_server, timeout=25):
+def test_fixture_server_retries_chromium_restricted_loopback_port(monkeypatch):
+    allocated_ports = iter((6667, 49152))
+    servers = []
+
+    def fake_server(*_args):
+        server = Mock()
+        server.server_port = next(allocated_ports)
+        servers.append(server)
+        return server
+
+    monkeypatch.setitem(globals(), "ThreadingHTTPServer", fake_server)
+
+    selected = _browser_safe_test_server(Mock())
+
+    assert selected is servers[1]
+    servers[0].server_close.assert_called_once_with()
+    servers[1].server_close.assert_not_called()
+
+
+def source(
+    tmp_path,
+    ui_server,
+    timeout=25,
+    fixture_product_delay_ms=0,
+    fixture_browser_startup_delay_ms=0,
+    fixture_room_scroll_delay_ms=0,
+    fixture_expire_deadline_before_room_restore=False,
+):
     if not CHROME.is_file():
         pytest.fail("explicit test Chrome executable unavailable")
+    if ui_server["html"] and not ui_server["pages"]:
+        ui_server["pages"].update(
+            {
+                "/trends/": trends_home_html(),
+                "/trends/explore": trends_with_period_picker(ui_server["html"]),
+            }
+        )
     return PublicBrowserSource(
         PublicSourceConfig(
             chrome_executable=CHROME,
@@ -143,6 +349,13 @@ def source(tmp_path, ui_server, timeout=25):
             environment="fixture",
             timeout_seconds=timeout,
             fixture_url=ui_server["url"],
+            headless=True,
+            fixture_product_delay_ms=fixture_product_delay_ms,
+            fixture_browser_startup_delay_ms=fixture_browser_startup_delay_ms,
+            fixture_room_scroll_delay_ms=fixture_room_scroll_delay_ms,
+            fixture_expire_deadline_before_room_restore=(
+                fixture_expire_deadline_before_room_restore
+            ),
         )
     )
 
@@ -150,7 +363,329 @@ def source(tmp_path, ui_server, timeout=25):
 def test_default_source_timeout_covers_measured_50_row_scan(tmp_path):
     config = PublicSourceConfig(chrome_executable=CHROME, evidence_root=tmp_path)
 
-    assert config.timeout_seconds == 300
+    assert config.timeout_seconds == 17100
+
+
+def test_node_fixture_accepts_the_full_daily_source_timeout(tmp_path, ui_server):
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    port = PublicBrowserSource(
+        PublicSourceConfig(
+            chrome_executable=CHROME,
+            evidence_root=tmp_path / "observations",
+            environment="fixture",
+            timeout_seconds=17100,
+            fixture_url=ui_server["url"],
+            headless=True,
+        )
+    )
+
+    payload = port.search(room_request())
+
+    assert payload["status"] == "observed", payload.get("error_code")
+    assert len(payload["posts"]) == 1
+
+
+def test_expired_room_deadline_does_not_launch_a_browser(
+    tmp_path, ui_server, monkeypatch
+):
+    from datetime import datetime, timedelta, timezone
+
+    from automation.inago import live_sources
+
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    request = room_request()
+    expired = (datetime.now(timezone.utc) - timedelta(seconds=2)).isoformat()
+    request = RoomSearchRequest(
+        request.attempt_id,
+        request.run_id,
+        request.query,
+        request.parent_refs,
+        request.level,
+        request.attempt_no,
+        request.retry_of,
+        expired,
+        query_kind=request.query_kind,
+        keyword_snapshot_ref=request.keyword_snapshot_ref,
+        selected_word_ref=request.selected_word_ref,
+    )
+    port = source(tmp_path, ui_server)
+    monkeypatch.setattr(
+        live_sources.subprocess,
+        "Popen",
+        Mock(side_effect=AssertionError("expired request must not launch Node")),
+    )
+
+    payload = port.search(request)
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    assert ui_server["requests"] == []
+
+
+def test_deadline_with_less_than_one_second_does_not_launch_node(
+    tmp_path, ui_server, monkeypatch
+):
+    from automation.inago import live_sources
+
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    port = source(tmp_path, ui_server)
+    monkeypatch.setattr(port, "_request_timeout_seconds", lambda _request: 0.5)
+    monkeypatch.setattr(
+        live_sources.subprocess,
+        "Popen",
+        Mock(side_effect=AssertionError("sub-second request must not launch Node")),
+    )
+
+    payload = port.search(room_request())
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    assert ui_server["requests"] == []
+
+
+def test_deadline_crossing_before_popen_does_not_launch_node(
+    tmp_path, ui_server, monkeypatch
+):
+    from automation.inago import live_sources
+
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    port = source(tmp_path, ui_server)
+    monkeypatch.setattr(port, "_request_timeout_seconds", Mock(side_effect=[2.0, 0.5]))
+    monkeypatch.setattr(
+        live_sources.subprocess,
+        "Popen",
+        Mock(side_effect=AssertionError("expired recheck must not launch Node")),
+    )
+
+    payload = port.search(room_request())
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    assert ui_server["requests"] == []
+
+
+def test_node_deadline_check_precedes_browser_launch(tmp_path, ui_server):
+    from datetime import datetime, timedelta, timezone
+
+    request = asdict(room_request())
+    request["deadline_at"] = (
+        datetime.now(timezone.utc) - timedelta(seconds=2)
+    ).isoformat()
+    payload = {
+        "kind": "room",
+        "request": request,
+        "config": {
+            "chrome_executable": str(tmp_path / "must-not-launch-chrome.exe"),
+            "environment": "fixture",
+            "fixture_url": ui_server["url"],
+            "timeout_seconds": 10,
+            "headless": True,
+            "user_data_dir": None,
+            "fixture_product_delay_ms": 0,
+            "fixture_browser_startup_delay_ms": 0,
+        },
+    }
+    completed = subprocess.run(
+        [
+            shutil.which("node"),
+            str(ROOT / "automation" / "inago" / "adapters" / "public_sources.mjs"),
+        ],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    result = json.loads(completed.stdout)
+    assert result == {"error_code": "source_timeout"}
+    assert "deadline_reached_before_browser_launch" in completed.stderr
+    assert "browser_launch_begin" not in completed.stderr
+    assert ui_server["requests"] == []
+
+
+def test_node_startup_that_crosses_deadline_never_navigates(tmp_path, ui_server):
+    from datetime import datetime, timedelta, timezone
+
+    request = asdict(room_request())
+    request["deadline_at"] = (
+        datetime.now(timezone.utc) + timedelta(seconds=3)
+    ).isoformat()
+    payload = {
+        "kind": "room",
+        "request": request,
+        "config": {
+            "chrome_executable": str(CHROME),
+            "environment": "fixture",
+            "fixture_url": ui_server["url"],
+            "timeout_seconds": 10,
+            "headless": True,
+            "user_data_dir": None,
+            "fixture_product_delay_ms": 0,
+            "fixture_browser_startup_delay_ms": 2500,
+        },
+    }
+    completed = subprocess.run(
+        [
+            shutil.which("node"),
+            str(ROOT / "automation" / "inago" / "adapters" / "public_sources.mjs"),
+        ],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=8,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout) == {"error_code": "source_timeout"}
+    assert "browser_launch_complete" in completed.stderr
+    assert "browser_page_begin" not in completed.stderr
+    assert ui_server["requests"] == []
+
+
+def test_room_does_not_scroll_for_more_results_after_deadline(tmp_path, ui_server):
+    from dataclasses import replace
+    from datetime import datetime, timedelta, timezone
+
+    ui_server["html"] = room_html(
+        count=50, initial=1, terminal=False, scroll_marker=True
+    )
+    request = replace(
+        room_request(),
+        deadline_at=(datetime.now(timezone.utc) + timedelta(seconds=4)).isoformat(),
+    )
+    payload = source(
+        tmp_path,
+        ui_server,
+        timeout=10,
+        fixture_room_scroll_delay_ms=10000,
+    ).search(request)
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    assert "/room-scroll-observed" not in ui_server["requests"]
+
+
+def test_source_timeout_is_bounded_by_daily_window(tmp_path):
+    with pytest.raises(ValueError, match="source timeout"):
+        PublicBrowserSource(
+            PublicSourceConfig(
+                chrome_executable=CHROME,
+                evidence_root=tmp_path,
+                timeout_seconds=17101,
+            )
+        )
+
+
+def test_public_source_defaults_to_headed_and_allows_explicit_headless_mode(tmp_path):
+    default = PublicSourceConfig(chrome_executable=CHROME, evidence_root=tmp_path)
+    headless = PublicSourceConfig(
+        chrome_executable=CHROME, evidence_root=tmp_path, headless=True
+    )
+
+    assert default.headless is False
+    assert headless.headless is True
+
+
+def test_source_rejects_non_boolean_browser_mode(tmp_path):
+    with pytest.raises(ValueError, match="headless must be a boolean"):
+        PublicBrowserSource(
+            PublicSourceConfig(
+                chrome_executable=CHROME,
+                evidence_root=tmp_path,
+                headless="false",
+            )
+        )
+
+
+def test_public_source_uses_only_the_owned_persistent_profile(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    profile = tmp_path / "InagoPlaywrightProfile"
+    profile.mkdir()
+    port = PublicBrowserSource(
+        PublicSourceConfig(
+            chrome_executable=CHROME, evidence_root=tmp_path / "evidence"
+        )
+    )
+
+    assert port._user_data_dir == profile.resolve()
+    assert port.fixture_only is False
+
+
+def test_public_source_rejects_the_ordinary_chrome_profile(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    ordinary = tmp_path / "Google" / "Chrome" / "User Data"
+    ordinary.mkdir(parents=True)
+    with pytest.raises(ValueError, match="only LOCALAPPDATA"):
+        PublicBrowserSource(
+            PublicSourceConfig(
+                chrome_executable=CHROME,
+                evidence_root=tmp_path / "evidence",
+                user_data_dir=ordinary,
+            )
+        )
+
+
+def test_public_source_rejects_other_existing_profiles(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    owned_profile = tmp_path / "InagoPlaywrightProfile"
+    owned_profile.mkdir()
+    other_profile = tmp_path / "OtherAutomationProfile"
+    other_profile.mkdir()
+
+    with pytest.raises(ValueError, match="only LOCALAPPDATA"):
+        PublicBrowserSource(
+            PublicSourceConfig(
+                chrome_executable=CHROME,
+                evidence_root=tmp_path / "evidence",
+                user_data_dir=other_profile,
+            )
+        )
+
+
+def test_public_source_rejects_owned_profile_reparse_point(tmp_path, monkeypatch):
+    from automation.inago import live_sources
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    owned_profile = tmp_path / "InagoPlaywrightProfile"
+    owned_profile.mkdir()
+    real_lstat = Path.lstat
+    real_is_symlink = Path.is_symlink
+
+    class ReparseMetadata:
+        st_file_attributes = 0x400
+
+    monkeypatch.setattr(
+        Path,
+        "lstat",
+        lambda path: (ReparseMetadata() if path == owned_profile else real_lstat(path)),
+    )
+    monkeypatch.setattr(
+        Path,
+        "is_symlink",
+        lambda path: False if path == owned_profile else real_is_symlink(path),
+    )
+
+    with pytest.raises(ValueError, match="symlink or junction"):
+        PublicBrowserSource(
+            PublicSourceConfig(
+                chrome_executable=CHROME, evidence_root=tmp_path / "evidence"
+            )
+        )
+
+
+def test_reparse_point_detector_reads_windows_reparse_attribute(monkeypatch, tmp_path):
+    from automation.inago import live_sources
+
+    class ReparseMetadata:
+        st_file_attributes = 0x400
+
+    monkeypatch.setattr(Path, "lstat", lambda _path: ReparseMetadata())
+    monkeypatch.setattr(Path, "is_symlink", lambda _path: False)
+
+    assert live_sources.PublicBrowserSource._has_reparse_point(tmp_path / "profile")
 
 
 def test_room_30_to_80_uses_first_50_before_product_dedup(tmp_path, ui_server):
@@ -198,14 +733,66 @@ def test_room_resolves_visible_link_on_detail_label_ancestor(tmp_path, ui_server
         if event.get("stage") == "room_detail_control_inspected"
     )
     assert link_trace["link_scope"] == "ancestor"
+    stages = {event.get("stage") for event in record["node_events"]}
+    assert {
+        "room_preview_click_begin",
+        "room_detail_button_ready",
+        "room_detail_button_click_begin",
+        "room_product_page_rendered",
+    } <= stages
 
 
-def test_room_waits_for_detail_label_rendering_after_preview_click(tmp_path, ui_server):
-    ui_server["html"] = room_html(1, initial=1, terminal=True, detail_delay_ms=1800)
+def test_room_waits_over_two_seconds_for_detail_label_then_product_render(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, detail_delay_ms=12000)
     payload = source(tmp_path, ui_server).search(room_request())
 
     assert payload["status"] == "observed", payload.get("error_code")
     assert payload["posts"][0]["item_url"] == "https://item.rakuten.co.jp/shop/item-1/"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert {
+        "room_preview_click_begin",
+        "room_detail_button_ready",
+        "room_detail_button_click_begin",
+        "room_product_page_rendered",
+    } <= stages
+
+
+def test_room_product_navigation_waits_longer_than_old_fifteen_second_cap(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    request = room_request()
+    payload = source(tmp_path, ui_server, fixture_product_delay_ms=16000).search(
+        request
+    )
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == 1
+    assert result.posts[0].item_url == "https://item.rakuten.co.jp/shop/item-1/"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert {
+        "room_detail_button_ready",
+        "room_detail_button_click_begin",
+        "room_product_navigation_complete",
+        "room_product_page_rendered",
+    } <= stages
 
 
 @pytest.mark.parametrize("count", [0, 37])
@@ -221,8 +808,34 @@ def test_explicit_room_end_preserves_normal_actual_count(tmp_path, ui_server, co
     )
 
 
-def test_room_product_key_can_come_from_visible_market_link(tmp_path, ui_server):
-    ui_server["html"] = room_html(1, initial=1, terminal=True, direct_href=True)
+def test_short_nonterminal_room_batch_finishes_after_bounded_stable_scrolls(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=False)
+    request = room_request()
+
+    payload = source(tmp_path, ui_server, timeout=12).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == result.loaded_posts == 1
+    assert result.end_reached
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert record["diagnostics"]["end_evidence"] == "stable_no_progress"
+    assert any(
+        event.get("stage") == "room_short_batch_stable"
+        for event in record["node_events"]
+    )
+
+
+def test_room_card_item_url_still_uses_preview_and_market_details_route(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, card_direct_href=True)
     request = room_request()
     payload = source(tmp_path, ui_server).search(request)
     result = parse_room_response(payload, request)
@@ -230,6 +843,146 @@ def test_room_product_key_can_come_from_visible_market_link(tmp_path, ui_server)
     assert len(result.posts) == 1
     assert result.posts[0].offer_key == "shop:item-1"
     assert result.posts[0].item_url == "https://item.rakuten.co.jp/shop/item-1/"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {event.get("stage") for event in record["node_events"]}
+    assert {
+        "room_preview_click_begin",
+        "room_detail_button_ready",
+        "room_detail_button_click_begin",
+        "room_product_page_rendered",
+    } <= stages
+
+
+def test_room_detail_button_can_navigate_same_tab_and_restore_search_results(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(2, initial=2, terminal=True, same_tab=True)
+    payload = source(tmp_path, ui_server).search(room_request())
+    result = parse_room_response(payload, room_request())
+
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == 2
+    assert all(
+        post.item_url == "https://item.rakuten.co.jp/shop/item-1/"
+        for post in result.posts
+    )
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert {
+        "room_detail_button_ready",
+        "room_same_tab_navigation_observed",
+        "room_product_page_rendered",
+        "room_search_restored",
+    } <= stages
+
+
+def test_slow_same_tab_navigation_is_waited_for_after_detail_button(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(
+        1, initial=1, terminal=True, same_tab=True, same_tab_delay_ms=2500
+    )
+    payload = source(tmp_path, ui_server).search(room_request())
+    result = parse_room_response(payload, room_request())
+
+    assert result.status == "observed", payload.get("error_code")
+    assert result.posts[0].item_url == "https://item.rakuten.co.jp/shop/item-1/"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert {
+        "room_same_tab_navigation_observed",
+        "room_product_page_rendered",
+        "room_search_restored",
+    } <= stages
+
+
+def test_same_tab_navigation_after_click_timeout_restores_and_fails_source(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, same_tab=True)
+    payload = source(tmp_path, ui_server, fixture_product_delay_ms=16000).search(
+        room_request()
+    )
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert {
+        "room_same_tab_navigation_observed",
+        "room_search_restored",
+    } <= stages
+
+
+def test_same_tab_search_restore_is_skipped_after_room_deadline(tmp_path, ui_server):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, same_tab=True)
+    payload = source(
+        tmp_path,
+        ui_server,
+        fixture_expire_deadline_before_room_restore=True,
+    ).search(room_request())
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage") for event in record["node_events"] if isinstance(event, dict)
+    }
+    assert "room_same_tab_navigation_observed" in stages
+    assert "room_search_restore_skipped_deadline" in stages
+    assert "room_search_restored" not in stages
+
+
+def test_last_room_product_timeout_is_not_reported_as_success(tmp_path, ui_server):
+    from datetime import datetime, timedelta, timezone
+
+    ui_server["html"] = room_html(1, initial=1, terminal=True, detail_delay_ms=12000)
+    request = room_request()
+    deadline = (datetime.now(timezone.utc) + timedelta(seconds=3)).isoformat()
+    request = RoomSearchRequest(
+        request.attempt_id,
+        request.run_id,
+        request.query,
+        request.parent_refs,
+        request.level,
+        request.attempt_no,
+        request.retry_of,
+        deadline,
+        query_kind=request.query_kind,
+        keyword_snapshot_ref=request.keyword_snapshot_ref,
+        selected_word_ref=request.selected_word_ref,
+    )
+
+    payload = source(tmp_path, ui_server, timeout=25).search(request)
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "source_timeout"
 
 
 def test_incomplete_room_is_failure_not_zero(tmp_path, ui_server):
@@ -263,6 +1016,54 @@ def test_denial_stops_source_without_second_route(
     assert len(ui_server["requests"]) == before
 
 
+def test_durable_trends_http429_request_ids_can_retry_same_public_ui(
+    tmp_path, ui_server
+):
+    ui_server.update(status=429, html="Too Many Requests", retry_after="125")
+    port = source(tmp_path, ui_server)
+    first = TrendsRequest(
+        "RETRY-RUN:initial:01:T01-a1", "RETRY-RUN", "V1", "電子レンジ", range="3m"
+    )
+    second = TrendsRequest(
+        "RETRY-RUN:initial:01:T01-a2", "RETRY-RUN", "V1", "電子レンジ", range="3m"
+    )
+
+    first_result = port.fetch(first)
+    second_result = port.fetch(second)
+    assert first_result["error_code"] == "http_429"
+    assert first_result["retry_after_seconds"] == 125
+    assert second_result["error_code"] == "http_429"
+    assert sum(path == "/trends/" for path in ui_server["requests"]) == 2
+
+
+def test_trends_source_timeout_remains_retryable_after_response_validation(
+    tmp_path, ui_server
+):
+    from datetime import datetime, timedelta, timezone
+
+    port = source(tmp_path, ui_server)
+    request = TrendsRequest(
+        "TRENDS-TIMEOUT",
+        "RUN-TIMEOUT",
+        "V1",
+        "電子レンジ",
+        range="3m",
+        deadline_at=(
+            datetime.now(timezone.utc) + timedelta(milliseconds=700)
+        ).isoformat(),
+    )
+
+    response = port.fetch(request)
+    snapshot = parse_grouped_top_response(response, request)
+
+    assert response["status"] == "unavailable"
+    assert response["error_code"] == "source_timeout"
+    assert "deadline_at" not in response
+    assert snapshot.status == "unavailable"
+    assert snapshot.error_code == "source_timeout"
+    assert ui_server["requests"] == []
+
+
 def test_trends_popularity_only_original_top20_preserves_raw(tmp_path, ui_server):
     ui_server["html"] = trends_html()
     request = TrendsRequest("K1", "R1", "V1", "電子レンジ", range="3m")
@@ -273,6 +1074,304 @@ def test_trends_popularity_only_original_top20_preserves_raw(tmp_path, ui_server
     assert result.words[0].raw == "関連  語1"
     assert result.ui_period_label == "過去 90 日間"
     assert all(word.popularity_index == 101 - word.source_rank for word in result.words)
+
+
+def test_trends_top_rows_are_complete_without_network_idle(tmp_path, ui_server):
+    ui_server["html"] = trends_html(count=20).replace(
+        "topMode=true;render()",
+        "topMode=true;render();fetch('/hang-pending').catch(()=>{})",
+    )
+    port = source(tmp_path, ui_server, timeout=4)
+    request = TrendsRequest(
+        "TRENDS-NETWORKIDLE",
+        "RUN-TRENDS-NETWORKIDLE",
+        "V1",
+        "電子レンジ",
+        range="3m",
+    )
+
+    try:
+        response = port.fetch(request)
+    finally:
+        ui_server["pending_request_release"].set()
+
+    assert ui_server["pending_request_started"].is_set()
+    assert response["status"] == "observed", response.get("error_code")
+    assert len(response["words"]) == 20
+
+
+def test_trends_deadline_after_home_query_fill_does_not_submit_explore(
+    tmp_path, ui_server
+):
+    from datetime import datetime, timedelta, timezone
+
+    ui_server["pages"].update(
+        {
+            "/trends/": trends_home_html(input_delay_ms=8000),
+            "/trends/explore": trends_period_html(),
+        }
+    )
+    request = asdict(
+        TrendsRequest(
+            "K-DEADLINE",
+            "R1",
+            "V1",
+            "電子レンジ",
+            range="3m",
+            deadline_at=(datetime.now(timezone.utc) + timedelta(seconds=7)).isoformat(),
+        )
+    )
+    payload = {
+        "kind": "trends",
+        "request": request,
+        "config": {
+            "chrome_executable": str(CHROME),
+            "environment": "fixture",
+            "fixture_url": ui_server["url"],
+            "timeout_seconds": 25,
+            "headless": True,
+            "user_data_dir": None,
+            "fixture_product_delay_ms": 0,
+            "fixture_browser_startup_delay_ms": 0,
+        },
+    }
+    completed = subprocess.run(
+        [
+            shutil.which("node"),
+            str(ROOT / "automation" / "inago" / "adapters" / "public_sources.mjs"),
+        ],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout) == {"error_code": "source_timeout"}
+    assert "/trends/" in ui_server["requests"]
+    assert not any(
+        path.startswith("/trends/explore?") for path in ui_server["requests"]
+    )
+
+
+def test_trends_top_option_that_appears_after_deadline_is_not_clicked(
+    tmp_path, ui_server
+):
+    from datetime import datetime, timedelta, timezone
+
+    explore_html = (
+        trends_period_html()
+        .replace(
+            "onclick=\"document.querySelector('#choice').style.display='block'\"",
+            "onclick=\"setTimeout(()=>document.querySelector('#choice').style.display='block',9000)\"",
+        )
+        .replace(
+            "document.querySelector('md-select.bullets-view-selector').textContent='人気';",
+            "fetch('/trends-top').catch(()=>{});"
+            "document.querySelector('md-select.bullets-view-selector').textContent='人気';",
+        )
+    )
+    ui_server["pages"].update(
+        {"/trends/": trends_home_html(), "/trends/explore": explore_html}
+    )
+    request = asdict(
+        TrendsRequest(
+            "K-TOP-DEADLINE",
+            "R1",
+            "V1",
+            "電子レンジ",
+            range="3m",
+            deadline_at=(
+                datetime.now(timezone.utc) + timedelta(seconds=10)
+            ).isoformat(),
+        )
+    )
+    payload = {
+        "kind": "trends",
+        "request": request,
+        "config": {
+            "chrome_executable": str(CHROME),
+            "environment": "fixture",
+            "fixture_url": ui_server["url"],
+            "timeout_seconds": 25,
+            "headless": True,
+            "user_data_dir": None,
+            "fixture_product_delay_ms": 0,
+            "fixture_browser_startup_delay_ms": 0,
+        },
+    }
+    completed = subprocess.run(
+        [
+            shutil.which("node"),
+            str(ROOT / "automation" / "inago" / "adapters" / "public_sources.mjs"),
+        ],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout) == {"error_code": "source_timeout"}
+    assert "trends_switch_top" in completed.stderr
+    assert "/trends/" in ui_server["requests"]
+    assert any(path.startswith("/trends/explore?") for path in ui_server["requests"])
+    assert "/trends-top" not in ui_server["requests"]
+
+
+def test_trends_starts_from_home_searches_and_selects_rendered_90_day_period(
+    tmp_path, ui_server
+):
+    ui_server["pages"].update(
+        {
+            "/trends/": trends_home_html(),
+            "/trends/explore": trends_period_html(),
+        }
+    )
+    request = TrendsRequest("K-HOME", "R1", "V1", "電子レンジ", range="3m")
+
+    result = parse_grouped_top_response(
+        source(tmp_path, ui_server).fetch(request), request
+    )
+
+    assert result.status == "observed" and len(result.words) == 20
+    assert result.ui_period_label == "過去 90 日間"
+    explore_request = next(
+        path for path in ui_server["requests"] if path.startswith("/trends/explore?")
+    )
+    assert "/trends/" in ui_server["requests"]
+    assert "date=today+12-m" in explore_request
+    assert (
+        "geo=JP" in explore_request
+        and "q=%E9%9B%BB%E5%AD%90%E3%83%AC%E3%83%B3%E3%82%B8" in explore_request
+    )
+    record = json.loads(
+        next((tmp_path / "observations").glob("trends-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    home_navigation = [
+        event
+        for event in record["node_events"]
+        if event.get("event") == "public_source_diagnostic"
+        and event.get("host_class") in {"other", "trends"}
+        and event.get("page_role") == "main"
+        and event.get("stage")
+        in {"trends_home_navigation", "trends_home_commit_observed"}
+    ]
+    assert any(
+        event.get("signal") == "navigation_response" for event in home_navigation
+    )
+    assert any(
+        event.get("signal") == "navigation_finished" for event in home_navigation
+    )
+    stages = {
+        event.get("stage")
+        for event in record["node_events"]
+        if event.get("event") == "public_source_stage"
+    }
+    assert {
+        "trends_home_commit_observed",
+        "trends_home_search_wait_begin",
+        "trends_home_search_visible",
+        "trends_home_submit_control",
+        "trends_home_submit_sent",
+        "trends_period_menu_opened",
+        "trends_period_option_visible",
+        "trends_period_option_clicked",
+        "trends_period_reflected",
+    } <= stages
+
+
+def test_trends_home_search_ambiguity_fails_closed_with_safe_dom_counts(
+    tmp_path, ui_server
+):
+    ui_server["pages"].update(
+        {
+            "/trends/": (
+                '<form><input aria-label="検索"><input aria-label="検索"></form>'
+            ),
+            "/trends/explore": trends_period_html(),
+        }
+    )
+    request = TrendsRequest("K-HOME-AMBIGUOUS", "R1", "V1", "電子レンジ", range="3m")
+
+    payload = source(tmp_path, ui_server, timeout=10).fetch(request)
+
+    assert payload["status"] == "unavailable"
+    assert payload["error_code"] == "home_search_ambiguous"
+    record = json.loads(
+        next((tmp_path / "observations").glob("trends-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    probe = next(
+        event
+        for event in record["node_events"]
+        if event.get("stage") == "trends_home_search_candidates"
+    )
+    assert probe["search_candidate_count"] == 2
+    assert probe["visible_input_count"] == 2
+    assert probe["document_ready_state"] in {"interactive", "complete"}
+
+
+def test_trends_home_search_waits_for_open_shadow_dom_control(tmp_path, ui_server):
+    ui_server["pages"].update(
+        {
+            "/trends/": """<div id="search-host"></div><script>
+              const root = document.querySelector('#search-host').attachShadow({mode:'open'});
+              root.innerHTML = '<form><input aria-label="検索"><button type="submit">検索</button></form>';
+              root.querySelector('form').addEventListener('submit', event => {
+                event.preventDefault();
+                const url = new URL('/trends/explore', location.origin);
+                url.searchParams.set('date', 'today 12-m');
+                url.searchParams.set('geo', 'JP');
+                url.searchParams.set('q', root.querySelector('input').value);
+                location.href = url.href;
+              });
+            </script>""",
+            "/trends/explore": trends_period_html(),
+        }
+    )
+    request = TrendsRequest("K-HOME-SHADOW", "R1", "V1", "電子レンジ", range="3m")
+
+    payload = source(tmp_path, ui_server, timeout=10).fetch(request)
+
+    result = parse_grouped_top_response(payload, request)
+    assert result.status == "observed" and len(result.words) == 20
+    assert any(path.startswith("/trends/explore?") for path in ui_server["requests"])
+
+
+def test_trends_home_search_clicks_visible_explore_button_when_enter_does_not_submit(
+    tmp_path, ui_server
+):
+    ui_server["pages"].update(
+        {
+            "/trends/": """<input aria-label="検索"><button id="search" type="button">調べる</button>
+              <script>
+                document.querySelector('input').addEventListener('keydown', event => {
+                  if (event.key === 'Enter') event.preventDefault();
+                });
+                document.querySelector('#search').addEventListener('click', () => {
+                  const url = new URL('/trends/explore', location.origin);
+                  url.searchParams.set('date', 'today 12-m');
+                  url.searchParams.set('geo', 'JP');
+                  url.searchParams.set('q', document.querySelector('input').value);
+                  location.href = url.href;
+                });
+              </script>""",
+            "/trends/explore": trends_period_html(),
+        }
+    )
+    request = TrendsRequest("K-HOME-BUTTON", "R1", "V1", "電子レンジ", range="3m")
+
+    payload = source(tmp_path, ui_server, timeout=8).fetch(request)
+
+    result = parse_grouped_top_response(payload, request)
+    assert result.status == "observed" and len(result.words) == 20
+    assert any(path.startswith("/trends/explore?") for path in ui_server["requests"])
 
 
 @pytest.mark.parametrize("count", [0, 3])
@@ -346,12 +1445,15 @@ def test_fixture_rejects_remote_url_and_live_rejects_fixture_endpoint(tmp_path):
 def test_restart_loads_already_captured_product_fact_without_browser(
     tmp_path, ui_server
 ):
+    from datetime import datetime, timedelta, timezone
+
     port = source(tmp_path, ui_server)
     fact = {
         "offer_key": "shop:item-1",
         "name": "合成商品",
         "item_url": "https://item.rakuten.co.jp/shop/item-1/",
         "evidence_ref": "S1:row:1",
+        "observed_at": datetime.now(timezone.utc).isoformat(),
     }
     path = tmp_path / "observations" / "room-S1-observation-01.json"
     path.write_text(
@@ -359,6 +1461,10 @@ def test_restart_loads_already_captured_product_fact_without_browser(
             {
                 "kind": "room",
                 "request": {"attempt_id": "S1", "run_id": "R1"},
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+                "retention_expires_at": (
+                    datetime.now(timezone.utc) + timedelta(days=90)
+                ).isoformat(),
                 "product_facts": {"S1:row:1": fact},
             }
         ),
@@ -366,6 +1472,65 @@ def test_restart_loads_already_captured_product_fact_without_browser(
     )
     assert port.product_fact("S1:row:1") == fact
     assert port.active_process_count == 0 and ui_server["requests"] == []
+
+
+def test_expired_public_source_observation_cannot_be_replayed_or_used(
+    tmp_path, ui_server
+):
+    from datetime import datetime, timedelta, timezone
+
+    port = source(tmp_path, ui_server)
+    expired_at = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
+    root = tmp_path / "observations"
+    trends_record = root / "trends-K-EXPIRED-observation-01.json"
+    trends_record.write_text(
+        json.dumps(
+            {
+                "kind": "trends",
+                "request": {
+                    "request_id": "K-EXPIRED",
+                    "run_id": "R1",
+                    "settings_version": "V1",
+                    "parent_word": "電子レンジ",
+                },
+                "recorded_at": expired_at,
+                "retention_expires_at": expired_at,
+                "response": {"status": "observed", "words": []},
+            }
+        ),
+        encoding="utf-8",
+    )
+    room_record = root / "room-S-EXPIRED-observation-01.json"
+    room_record.write_text(
+        json.dumps(
+            {
+                "kind": "room",
+                "request": {"attempt_id": "S-EXPIRED", "run_id": "R1"},
+                "recorded_at": expired_at,
+                "retention_expires_at": expired_at,
+                "product_facts": {
+                    "S-EXPIRED:row:1": {
+                        "offer_key": "shop:item",
+                        "item_url": "https://item.rakuten.co.jp/shop/item/",
+                        "evidence_ref": "S-EXPIRED:row:1",
+                        "observed_at": expired_at,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="expired"):
+        port.load_saved_response("K-EXPIRED")
+    assert port.product_fact("S-EXPIRED:row:1") is None
+    port._facts["S-EXPIRED:row:1"] = {
+        "offer_key": "shop:item",
+        "item_url": "https://item.rakuten.co.jp/shop/item/",
+        "evidence_ref": "S-EXPIRED:row:1",
+        "observed_at": (datetime.now(timezone.utc) - timedelta(days=91)).isoformat(),
+    }
+    assert port.product_fact("S-EXPIRED:row:1") is None
 
 
 @pytest.mark.parametrize(
@@ -403,7 +1568,7 @@ def test_popup_initial_denial_stops_whole_source(tmp_path, ui_server, status):
         "'https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/'",
         f"'/product-{status}'",
     )
-    payload = source(tmp_path, ui_server, timeout=10).search(room_request())
+    payload = source(tmp_path, ui_server, timeout=30).search(room_request())
     assert (
         payload["status"] == "unavailable" and payload["error_code"] == f"http_{status}"
     )
@@ -461,11 +1626,12 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
             json.dumps(
                 {
                     "event": "public_source_stage",
-                    "stage": "room_resolve_products",
+                    "stage": "room_detail_button_ready",
                     "elapsed_ms": 1234,
                     "loaded_posts": 80,
                     "accepted_posts": 50,
                     "row_index": 7,
+                    "phase": "detail_button_ready",
                     "popup_url_kind": "blank",
                     "popup_url_length": 11,
                     "link_scope": "ancestor",
@@ -479,17 +1645,68 @@ def test_metadata_trace_excludes_raw_logs_and_unexpected_fields():
     assert events == [
         {
             "event": "public_source_stage",
-            "stage": "room_resolve_products",
+            "stage": "room_detail_button_ready",
             "elapsed_ms": 1234,
             "loaded_posts": 80,
             "accepted_posts": 50,
             "row_index": 7,
+            "phase": "detail_button_ready",
             "popup_url_kind": "blank",
             "popup_url_length": 11,
             "link_scope": "ancestor",
         }
     ]
     assert "SECRET-FAKE" not in json.dumps(events)
+
+
+def test_product_navigation_timeout_trace_keeps_only_safe_destination_metadata():
+    raw = json.dumps(
+        {
+            "event": "public_source_stage",
+            "stage": "room_product_timeout",
+            "row_index": 42,
+            "phase": "product_navigation",
+            "popup_url_kind": "rakuten_other",
+            "popup_url_length": 37,
+            "url": "https://example.invalid/private/path?token=secret",
+        }
+    )
+
+    events = PublicBrowserSource._metadata_events(raw)
+
+    assert events == [
+        {
+            "event": "public_source_stage",
+            "stage": "room_product_timeout",
+            "row_index": 42,
+            "phase": "product_navigation",
+            "popup_url_kind": "rakuten_other",
+            "popup_url_length": 37,
+        }
+    ]
+    assert "private" not in json.dumps(events)
+    assert "secret" not in json.dumps(events)
+
+
+def test_metadata_trace_keeps_records_beyond_old_one_thousand_line_cap():
+    raw = "\n".join(
+        json.dumps(
+            {
+                "event": "public_source_stage",
+                "stage": "room_product_timeout",
+                "row_index": index % 50 + 1,
+                "phase": "product_navigation",
+                "popup_url_kind": "rakuten_other",
+                "popup_url_length": 37,
+            }
+        )
+        for index in range(1501)
+    )
+
+    events = PublicBrowserSource._metadata_events(raw)
+
+    assert len(events) == 1501
+    assert events[-1]["row_index"] == 1
 
 
 def test_diagnostic_trace_keeps_only_allowlisted_browser_error_metadata():
@@ -598,6 +1815,36 @@ def test_diagnostic_trace_keeps_only_allowlisted_browser_error_metadata():
             "popup_navigation_count": 1,
             "dropped_groups": 0,
         },
+    ]
+    assert "private" not in json.dumps(events)
+    assert "secret" not in json.dumps(events)
+
+
+def test_source_failure_trace_keeps_only_safe_error_class_and_network_code():
+    raw = json.dumps(
+        {
+            "event": "public_source_failure",
+            "stage": "trends_home_navigation",
+            "error_code": "browser_adapter_error",
+            "error_class": "Error",
+            "error_kind": "network_error",
+            "network_code": "ERR_CONNECTION_RESET",
+            "message": "private page text",
+            "url": "https://example.invalid/private/path?token=secret",
+        }
+    )
+
+    events = PublicBrowserSource._metadata_events(raw)
+
+    assert events == [
+        {
+            "event": "public_source_failure",
+            "stage": "trends_home_navigation",
+            "error_code": "browser_adapter_error",
+            "error_class": "Error",
+            "error_kind": "network_error",
+            "network_code": "ERR_CONNECTION_RESET",
+        }
     ]
     assert "private" not in json.dumps(events)
     assert "secret" not in json.dumps(events)

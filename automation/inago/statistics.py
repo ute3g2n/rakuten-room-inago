@@ -18,7 +18,6 @@ from automation.inago.metrics import MetricTotal, MetricsSummary
 
 
 DAILY_TARGET = 15
-MAX_DAILY_SEARCHES = 9
 _SOURCE_STATUSES = frozenset({"observed", "partial", "unavailable", "invalid"})
 
 
@@ -53,8 +52,6 @@ def summarize_daily(
 
     if not isinstance(attempts, Sequence) or isinstance(attempts, (str, bytes)):
         raise RejectedContract("search attempts must be a sequence")
-    if len(attempts) > MAX_DAILY_SEARCHES:
-        raise RejectedContract("daily search attempt limit 9 has been reached")
     attempt_numbers = []
     seeds: set[str] = set()
     observed_posts = 0
@@ -68,9 +65,9 @@ def summarize_daily(
         if (
             isinstance(attempt.attempt_no, bool)
             or not isinstance(attempt.attempt_no, int)
-            or not 1 <= attempt.attempt_no <= MAX_DAILY_SEARCHES
+            or attempt.attempt_no < 1
         ):
-            raise RejectedContract("search attempt number must be between 1 and 9")
+            raise RejectedContract("search attempt number must be a positive integer")
         attempt_numbers.append(attempt.attempt_no)
         if (
             not isinstance(attempt.source_status, str)

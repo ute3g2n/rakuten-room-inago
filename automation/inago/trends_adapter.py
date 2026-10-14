@@ -13,14 +13,16 @@ import re
 import sqlite3
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
-from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema import Draft202012Validator, ValidationError
 
+from automation.inago.clock import Clock
 from automation.inago.contracts import IdempotencyConflict, RejectedContract
 from automation.inago.repository import validate_entity
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +75,7 @@ class TrendsRequest:
     search_type: str = "web"
     range: str = "90d"
     list_type: str = "Top"
+    deadline_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,7 +261,9 @@ def _browser_schema() -> Draft202012Validator:
     try:
         schema = json.loads(_BROWSER_SCHEMA_PATH.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
-        return Draft202012Validator(schema, format_checker=FormatChecker())
+        return Draft202012Validator(
+            schema, format_checker=rfc3339_format_checker()
+        )
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise TrendsContractError(
             "Trends browser response schema is unavailable"
@@ -1835,3 +1840,887 @@ class GroupKeywordSession:
         if result.status != "observed":
             self.stopped = True
         return result
+
+
+@dataclass(frozen=True, slots=True)
+class TrendsAcquisitionResult:
+    """Durable outcome for one run/theme/settings Trends acquisition."""
+
+    acquisition_id: str
+    status: str
+    attempts_used: int
+    snapshot: TrendsSnapshot | None
+    next_retry_at: str | None = None
+
+
+class DurableGroupKeywordSession:
+    """Fetch one theme's public Top20 at most five times across process restarts.
+
+    Every request is reserved in SQLite before the source is called. A successful
+    response is saved before it is returned so a later grouping/save failure can
+    resume from the same response without another browser request.
+    """
+
+    MAX_ATTEMPTS = 5
+    MIN_RETRY_SECONDS = 60
+    NON_RETRYABLE_SOURCE_ERRORS = frozenset(
+        {
+            "http_401",
+            "http_403",
+            "access_denied",
+            "source_access_stopped",
+            "source_cancelled",
+            "owned_cleanup_unconfirmed",
+        }
+    )
+    PROCESSING_ERROR_SOURCE_ERRORS = frozenset(
+        {
+            "invalid_request",
+            "source_response_invalid",
+            "source_process_error",
+            "browser_adapter_error",
+        }
+    )
+
+    def __init__(
+        self,
+        connection: sqlite3.Connection,
+        port: BrowserSnapshotPort,
+        clock: Clock,
+        *,
+        run_id: str,
+        settings_version: str,
+        event_kind: str,
+        ordinal: int,
+        theme_id: str,
+        seed: str,
+        deadline_at: str,
+        acquisition_id: str,
+    ) -> None:
+        self.connection = connection
+        self.port = port
+        self.clock = clock
+        self.run_id = _required_text(run_id, "run_id")
+        self.settings_version = _required_text(settings_version, "settings_version")
+        self.event_kind = event_kind
+        self.ordinal = ordinal
+        self.theme_id = _required_text(theme_id, "theme_id")
+        self.seed = _required_text(seed, "seed")
+        self.deadline_at = _parse_aware_datetime(deadline_at, "deadline_at")
+        self.acquisition_id = _required_text(acquisition_id, "acquisition_id")
+        for value, field in (
+            (self.run_id, "run_id"),
+            (self.settings_version, "settings_version"),
+            (self.theme_id, "theme_id"),
+            (self.seed, "seed"),
+            (self.acquisition_id, "acquisition_id"),
+        ):
+            _require_safe_ref(value, field)
+        if event_kind not in {"initial", "additional"}:
+            raise TrendsContractError("event_kind must be initial or additional")
+        if isinstance(ordinal, bool) or not isinstance(ordinal, int) or ordinal < 1:
+            raise TrendsContractError("theme ordinal must be a positive integer")
+        if connection.in_transaction:
+            raise TrendsContractError(
+                "durable Trends attempts require an idle, exclusively owned connection"
+            )
+
+    def fetch(self, query_word: str) -> TrendsAcquisitionResult:
+        query = _required_text(query_word, "query_word")
+        self._ensure_acquisition(query)
+        while True:
+            row = self._load_acquisition()
+            status = str(row["status"])
+            attempts_used = int(row["attempts_used"])
+            if status == "collecting":
+                pending_success = self.connection.execute(
+                    "SELECT 1 FROM trends_acquisition_attempt WHERE acquisition_id=? "
+                    "AND status='response_ready' LIMIT 1",
+                    (self.acquisition_id,),
+                ).fetchone()
+                if pending_success is not None:
+                    self._set_acquisition_status("response_ready", None, None)
+                    row = self._load_acquisition()
+                    status = "response_ready"
+            if status == "response_ready":
+                if self.expire_pending_response_at_deadline():
+                    row = self._load_acquisition()
+                    return TrendsAcquisitionResult(
+                        self.acquisition_id,
+                        "deadline",
+                        int(row["attempts_used"]),
+                        None,
+                        row["next_retry_at"],
+                    )
+                return self._saved_response(row)
+            if status in {"observed", "normal_zero"}:
+                return self._saved_adopted_snapshot(row)
+            if status in {"exhausted", "deadline"}:
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    status,
+                    attempts_used,
+                    None,
+                    row["next_retry_at"],
+                )
+            if status == "processing_error":
+                raise TrendsContractError(
+                    "saved Trends acquisition is a processing error and requires diagnosis"
+                )
+
+            self._mark_abandoned_attempt_if_any()
+            row = self._load_acquisition()
+            if row["status"] != "collecting":
+                continue
+            attempts_used = int(row["attempts_used"])
+            if attempts_used >= self.MAX_ATTEMPTS:
+                self._set_acquisition_status(
+                    "exhausted", None, "attempt_budget_exhausted"
+                )
+                return TrendsAcquisitionResult(
+                    self.acquisition_id, "exhausted", attempts_used, None
+                )
+
+            if attempts_used and row["next_retry_at"]:
+                retry_at = _parse_aware_datetime(row["next_retry_at"], "next_retry_at")
+                now = self.clock.now_jst()
+                if now.tzinfo is None or now.utcoffset() is None:
+                    raise TrendsContractError("retry clock must return an aware time")
+                now = now.astimezone(self.deadline_at.tzinfo)
+                if retry_at > self.deadline_at or now >= self.deadline_at:
+                    self._set_acquisition_status(
+                        "deadline", retry_at.isoformat(), "retry_after_deadline"
+                    )
+                    return TrendsAcquisitionResult(
+                        self.acquisition_id,
+                        "deadline",
+                        attempts_used,
+                        None,
+                        retry_at.isoformat(),
+                    )
+                self.clock.wait(max(0.0, (retry_at - now).total_seconds()))
+                now = self.clock.now_jst().astimezone(self.deadline_at.tzinfo)
+                if now >= self.deadline_at:
+                    self._set_acquisition_status(
+                        "deadline", retry_at.isoformat(), "retry_after_deadline"
+                    )
+                    return TrendsAcquisitionResult(
+                        self.acquisition_id,
+                        "deadline",
+                        attempts_used,
+                        None,
+                        retry_at.isoformat(),
+                    )
+
+            now = self.clock.now_jst()
+            if now.tzinfo is None or now.utcoffset() is None:
+                raise TrendsContractError("retry clock must return an aware time")
+            if now.astimezone(self.deadline_at.tzinfo) >= self.deadline_at:
+                self._set_acquisition_status("deadline", None, "daily_cutoff")
+                return TrendsAcquisitionResult(
+                    self.acquisition_id, "deadline", attempts_used, None
+                )
+
+            request = self._reserve_attempt(query, attempts_used + 1)
+            try:
+                response = self.port.fetch(request)
+            except TimeoutError:
+                response = _unavailable_group_response(request, "source_timeout")
+            except ConnectionError:
+                response = _unavailable_group_response(
+                    request, "source_connection_error"
+                )
+            except Exception as exc:
+                error_code = _safe_error_code(type(exc).__name__)
+                response = {"error_code": error_code}
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    error_code,
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=error_code,
+                )
+                raise TrendsContractError(
+                    "Trends source raised an unexpected implementation error"
+                ) from exc
+            retry_after = _retry_after_seconds(response)
+            if isinstance(response, Mapping) and "retry_after_seconds" in response:
+                response = {
+                    key: value
+                    for key, value in response.items()
+                    if key != "retry_after_seconds"
+                }
+            try:
+                snapshot = parse_grouped_top_response(response, request)
+            except Exception as exc:
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    _safe_error_code(type(exc).__name__),
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code="response_contract_invalid",
+                )
+                raise TrendsContractError(
+                    "Trends response could not be validated"
+                ) from exc
+
+            if snapshot.status == "invalid":
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    snapshot.error_code or "response_contract_invalid",
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=snapshot.error_code,
+                )
+                raise TrendsContractError(
+                    "Trends response identity, scope or shape mismatched"
+                )
+
+            source_error = snapshot.error_code or "source_unavailable"
+            if (
+                snapshot.status == "unavailable"
+                and source_error in self.NON_RETRYABLE_SOURCE_ERRORS
+            ):
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    source_error,
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=source_error,
+                )
+                raise KeywordAcquisitionStopped(
+                    "Trends access was denied or cancelled; do not retry through another route"
+                )
+
+            if (
+                snapshot.status == "unavailable"
+                and source_error in self.PROCESSING_ERROR_SOURCE_ERRORS
+            ):
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    source_error,
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=source_error,
+                )
+                raise TrendsContractError(
+                    "Trends source violated its request or response contract"
+                )
+
+            if self._deadline_reached():
+                self._finish_attempt(
+                    request.request_id,
+                    "deadline",
+                    (
+                        source_error
+                        if snapshot.status == "unavailable"
+                        else "daily_cutoff"
+                    ),
+                    response,
+                    None,
+                    acquisition_status="deadline",
+                    acquisition_error_code="daily_cutoff",
+                )
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    "deadline",
+                    attempts_used + 1,
+                    None,
+                )
+
+            if snapshot.status == "observed":
+                self._finish_attempt(
+                    request.request_id,
+                    "response_ready",
+                    None,
+                    response,
+                    None,
+                    acquisition_status="response_ready",
+                )
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    "response_ready",
+                    attempts_used + 1,
+                    snapshot,
+                )
+
+            wait_seconds = max(
+                self.MIN_RETRY_SECONDS, retry_after if retry_after is not None else 0
+            )
+            retry_at = self.clock.now_jst().astimezone(
+                self.deadline_at.tzinfo
+            ) + timedelta(seconds=wait_seconds)
+            next_retry = (
+                retry_at.isoformat() if attempts_used + 1 < self.MAX_ATTEMPTS else None
+            )
+            if attempts_used + 1 >= self.MAX_ATTEMPTS:
+                acquisition_status = "exhausted"
+                acquisition_next_retry_at = None
+                acquisition_error_code = source_error or "attempt_budget_exhausted"
+            elif retry_at > self.deadline_at:
+                acquisition_status = "deadline"
+                acquisition_next_retry_at = retry_at.isoformat()
+                acquisition_error_code = "retry_after_deadline"
+            else:
+                acquisition_status = "collecting"
+                acquisition_next_retry_at = retry_at.isoformat()
+                acquisition_error_code = snapshot.error_code
+            self._finish_attempt(
+                request.request_id,
+                "unavailable",
+                source_error,
+                response,
+                next_retry,
+                acquisition_status=acquisition_status,
+                acquisition_next_retry_at=acquisition_next_retry_at,
+                acquisition_error_code=acquisition_error_code,
+            )
+            if attempts_used + 1 >= self.MAX_ATTEMPTS:
+                return TrendsAcquisitionResult(
+                    self.acquisition_id, "exhausted", attempts_used + 1, None
+                )
+            if retry_at > self.deadline_at:
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    "deadline",
+                    attempts_used + 1,
+                    None,
+                    retry_at.isoformat(),
+                )
+
+    def adopt_snapshot(self, snapshot: TrendsSnapshot) -> None:
+        """Link the already persisted raw/grouped snapshot to its acquisition."""
+
+        if self.expire_pending_response_at_deadline():
+            raise TrendsContractError("Trends snapshot arrived after the daily cutoff")
+
+        row = self._load_acquisition()
+        if (
+            snapshot.request.run_id != self.run_id
+            or snapshot.request.settings_version != self.settings_version
+            or snapshot.request.parent_word != row["query_word"]
+            or snapshot.status != "observed"
+        ):
+            raise TrendsContractError("adopted snapshot does not match its acquisition")
+        if row["status"] in {"observed", "normal_zero"}:
+            if row["snapshot_id"] != snapshot.snapshot_id:
+                raise IdempotencyConflict(
+                    "acquisition was adopted with another snapshot"
+                )
+            return
+        if row["status"] != "response_ready":
+            raise TrendsContractError("only a saved successful response can be adopted")
+        response_row = self.connection.execute(
+            "SELECT request_id FROM trends_acquisition_attempt "
+            "WHERE acquisition_id=? AND status='response_ready' ORDER BY attempt_no DESC LIMIT 1",
+            (self.acquisition_id,),
+        ).fetchone()
+        if response_row is None or response_row["request_id"] != snapshot.snapshot_id:
+            raise TrendsContractError("snapshot request ID differs from saved response")
+        stored = load_grouped_snapshot(
+            self.connection, snapshot.snapshot_id, request=snapshot.request
+        )
+        if stored is None:
+            raise TrendsContractError("successful grouped snapshot is not persisted")
+        status = "normal_zero" if not stored.snapshot.words else "observed"
+        self._set_acquisition_status(status, None, None, snapshot.snapshot_id)
+
+    def expire_pending_response_at_deadline(self) -> bool:
+        """Discard a saved success if it is first resumed at or after 17:45."""
+
+        row = self._load_acquisition()
+        if row["status"] == "deadline":
+            return True
+        if row["status"] != "response_ready" or not self._deadline_reached():
+            return False
+        attempt = self.connection.execute(
+            "SELECT request_id FROM trends_acquisition_attempt WHERE acquisition_id=? "
+            "AND status='response_ready' ORDER BY attempt_no DESC LIMIT 1",
+            (self.acquisition_id,),
+        ).fetchone()
+        if attempt is None:
+            raise TrendsContractError("saved successful Trends response is missing")
+        now = self.clock.now_jst().isoformat()
+
+        def expire():
+            updated = self.connection.execute(
+                "UPDATE trends_acquisition_attempt SET status='deadline',ended_at=?,"
+                "error_code='daily_cutoff',next_retry_at=NULL WHERE request_id=? "
+                "AND status='response_ready'",
+                (now, attempt[0]),
+            ).rowcount
+            if updated != 1:
+                raise IdempotencyConflict("saved Trends response changed during cutoff")
+            self.connection.execute(
+                "UPDATE trends_acquisition SET status='deadline',next_retry_at=NULL,"
+                "snapshot_id=NULL,error_code='daily_cutoff',updated_at=? "
+                "WHERE acquisition_id=? AND status='response_ready'",
+                (now, self.acquisition_id),
+            )
+
+        self._transaction(expire)
+        return True
+
+    def _deadline_reached(self) -> bool:
+        now = self.clock.now_jst()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise TrendsContractError("retry clock must return an aware time")
+        return now.astimezone(self.deadline_at.tzinfo) >= self.deadline_at
+
+    def _ensure_acquisition(self, query: str) -> None:
+        event_id = f"theme-selection:{self.run_id}:{self.event_kind}:{self.ordinal:02d}"
+        self._transaction(
+            lambda: self._ensure_acquisition_in_transaction(query, event_id)
+        )
+
+    def _ensure_acquisition_in_transaction(self, query: str, event_id: str) -> None:
+        run = self.connection.execute(
+            "SELECT mode,status,settings_version,seed FROM run WHERE run_id=?",
+            (self.run_id,),
+        ).fetchone()
+        event = self.connection.execute(
+            "SELECT selection_id,theme_id,seed FROM theme_selection WHERE run_id=? "
+            "AND event_kind=? AND count_event_id=?",
+            (self.run_id, self.event_kind, event_id),
+        ).fetchone()
+        if (
+            run is None
+            or tuple(run) != ("daily", "running", self.settings_version, self.seed)
+            or event is None
+            or tuple(event) != (event_id, self.theme_id, self.seed)
+        ):
+            raise TrendsContractError(
+                "acquisition run, theme selection or settings identity differs"
+            )
+        current = self.connection.execute(
+            "SELECT acquisition_id,run_id,settings_version,event_kind,ordinal,theme_id,"
+            "query_word,seed FROM trends_acquisition WHERE acquisition_id=?",
+            (self.acquisition_id,),
+        ).fetchone()
+        expected = (
+            self.acquisition_id,
+            self.run_id,
+            self.settings_version,
+            self.event_kind,
+            self.ordinal,
+            self.theme_id,
+            query,
+            self.seed,
+        )
+        if current is not None:
+            if tuple(current) != expected:
+                raise IdempotencyConflict(
+                    "saved Trends acquisition identity or query changed"
+                )
+            return
+        now = self.clock.now_jst().isoformat()
+        self.connection.execute(
+            "INSERT INTO trends_acquisition (acquisition_id,run_id,settings_version,"
+            "event_kind,ordinal,theme_id,query_word,seed,status,attempts_used,next_retry_at,"
+            "snapshot_id,error_code,created_at,updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,'collecting',0,NULL,NULL,NULL,?,?)",
+            (*expected, now, now),
+        )
+
+    def _load_acquisition(self):
+        row = self.connection.execute(
+            "SELECT * FROM trends_acquisition WHERE acquisition_id=?",
+            (self.acquisition_id,),
+        ).fetchone()
+        if row is None:
+            raise TrendsContractError("durable Trends acquisition disappeared")
+        return row
+
+    def _reserve_attempt(self, query: str, attempt_no: int) -> TrendsRequest:
+        request_id = f"{self.acquisition_id}-a{attempt_no}"
+        _require_safe_ref(request_id, "request_id")
+        now = self.clock.now_jst().isoformat()
+
+        def reserve():
+            row = self._load_acquisition()
+            if row["status"] != "collecting" or row["attempts_used"] + 1 != attempt_no:
+                raise IdempotencyConflict("Trends attempt budget changed concurrently")
+            prior = self.connection.execute(
+                "SELECT request_id FROM trends_acquisition_attempt "
+                "WHERE acquisition_id=? ORDER BY attempt_no DESC LIMIT 1",
+                (self.acquisition_id,),
+            ).fetchone()
+            self.connection.execute(
+                "INSERT INTO trends_acquisition_attempt (request_id,acquisition_id,attempt_no,"
+                "retry_of,started_at,ended_at,status,error_code,evidence_ref,next_retry_at,response_json) "
+                "VALUES (?,?,?,?,?,NULL,'started',NULL,NULL,NULL,NULL)",
+                (
+                    request_id,
+                    self.acquisition_id,
+                    attempt_no,
+                    prior[0] if prior else None,
+                    now,
+                ),
+            )
+            self.connection.execute(
+                "UPDATE trends_acquisition SET attempts_used=?,next_retry_at=NULL,updated_at=? "
+                "WHERE acquisition_id=?",
+                (attempt_no, now, self.acquisition_id),
+            )
+
+        self._transaction(reserve)
+        return TrendsRequest(
+            request_id,
+            self.run_id,
+            self.settings_version,
+            query,
+            range="3m",
+            deadline_at=self.deadline_at.isoformat(),
+        )
+
+    def _mark_abandoned_attempt_if_any(self) -> None:
+        row = self.connection.execute(
+            "SELECT request_id,attempt_no FROM trends_acquisition_attempt WHERE acquisition_id=? "
+            "AND status='started' ORDER BY attempt_no DESC LIMIT 1",
+            (self.acquisition_id,),
+        ).fetchone()
+        if row is None:
+            return
+        now = self.clock.now_jst().isoformat()
+        saved_reader = getattr(self.port, "load_saved_response", None)
+        saved_response = (
+            saved_reader(row["request_id"]) if callable(saved_reader) else None
+        )
+        if isinstance(saved_response, Mapping):
+            acquisition = self._load_acquisition()
+            request = TrendsRequest(
+                row["request_id"],
+                self.run_id,
+                self.settings_version,
+                acquisition["query_word"],
+                range="3m",
+                deadline_at=self.deadline_at.isoformat(),
+            )
+            retry_after = _retry_after_seconds(saved_response)
+            response = {
+                key: value
+                for key, value in saved_response.items()
+                if key != "retry_after_seconds"
+            }
+            snapshot = parse_grouped_top_response(response, request)
+            if snapshot.status == "invalid":
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    snapshot.error_code or "response_contract_invalid",
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=snapshot.error_code,
+                )
+                return
+            if snapshot.status == "observed":
+                self._finish_attempt(
+                    request.request_id,
+                    "response_ready",
+                    None,
+                    response,
+                    None,
+                    acquisition_status="response_ready",
+                )
+                return
+            source_error = snapshot.error_code or "source_unavailable"
+            if source_error in self.NON_RETRYABLE_SOURCE_ERRORS:
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    source_error,
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=source_error,
+                )
+                return
+            if source_error in self.PROCESSING_ERROR_SOURCE_ERRORS:
+                self._finish_attempt(
+                    request.request_id,
+                    "processing_error",
+                    source_error,
+                    response,
+                    None,
+                    acquisition_status="processing_error",
+                    acquisition_error_code=source_error,
+                )
+                return
+            if self._deadline_reached():
+                self._finish_attempt(
+                    request.request_id,
+                    "deadline",
+                    (
+                        source_error
+                        if snapshot.status == "unavailable"
+                        else "daily_cutoff"
+                    ),
+                    response,
+                    None,
+                    acquisition_status="deadline",
+                    acquisition_error_code="daily_cutoff",
+                )
+                return
+            next_number = int(row["attempt_no"]) + 1
+            next_retry = None
+            retry_at = None
+            if next_number <= self.MAX_ATTEMPTS:
+                wait_seconds = max(
+                    self.MIN_RETRY_SECONDS,
+                    retry_after if retry_after is not None else 0,
+                )
+                retry_at = self.clock.now_jst().astimezone(
+                    self.deadline_at.tzinfo
+                ) + timedelta(seconds=wait_seconds)
+                if next_number <= self.MAX_ATTEMPTS:
+                    next_retry = retry_at.isoformat()
+            if next_number > self.MAX_ATTEMPTS:
+                acquisition_status = "exhausted"
+                acquisition_next_retry_at = None
+                acquisition_error_code = source_error
+            elif retry_at is not None and retry_at > self.deadline_at:
+                acquisition_status = "deadline"
+                acquisition_next_retry_at = retry_at.isoformat()
+                acquisition_error_code = "retry_after_deadline"
+            else:
+                acquisition_status = "collecting"
+                acquisition_next_retry_at = next_retry
+                acquisition_error_code = source_error
+            self._finish_attempt(
+                request.request_id,
+                "unavailable",
+                source_error,
+                response,
+                next_retry,
+                acquisition_status=acquisition_status,
+                acquisition_next_retry_at=acquisition_next_retry_at,
+                acquisition_error_code=acquisition_error_code,
+            )
+            return
+        retry_at = (
+            self.clock.now_jst().astimezone(self.deadline_at.tzinfo)
+            + timedelta(seconds=self.MIN_RETRY_SECONDS)
+        ).isoformat()
+
+        def mark():
+            self.connection.execute(
+                "UPDATE trends_acquisition_attempt SET status='interrupted',ended_at=?,"
+                "error_code='process_interrupted',next_retry_at=? "
+                "WHERE request_id=? AND status='started'",
+                (now, retry_at, row[0]),
+            )
+            self.connection.execute(
+                "UPDATE trends_acquisition SET next_retry_at=?,updated_at=? "
+                "WHERE acquisition_id=?",
+                (retry_at, now, self.acquisition_id),
+            )
+
+        self._transaction(mark)
+
+    def _finish_attempt(
+        self,
+        request_id: str,
+        status: str,
+        error_code: str | None,
+        response: object,
+        next_retry_at: str | None,
+        *,
+        acquisition_status: str | None = None,
+        acquisition_next_retry_at: str | None = None,
+        acquisition_error_code: str | None = None,
+    ) -> None:
+        now = self.clock.now_jst().isoformat()
+        response_json = (
+            _canonical_json(dict(response)) if isinstance(response, Mapping) else None
+        )
+
+        def finish():
+            updated = self.connection.execute(
+                "UPDATE trends_acquisition_attempt SET status=?,ended_at=?,error_code=?,"
+                "response_json=?,next_retry_at=? WHERE request_id=? AND status='started'",
+                (status, now, error_code, response_json, next_retry_at, request_id),
+            ).rowcount
+            if updated != 1:
+                raise IdempotencyConflict("reserved Trends attempt is no longer active")
+            if acquisition_status is None:
+                self.connection.execute(
+                    "UPDATE trends_acquisition SET updated_at=? WHERE acquisition_id=?",
+                    (now, self.acquisition_id),
+                )
+            else:
+                transitioned = self.connection.execute(
+                    "UPDATE trends_acquisition SET status=?,next_retry_at=?,error_code=?,"
+                    "snapshot_id=NULL,updated_at=? WHERE acquisition_id=?",
+                    (
+                        acquisition_status,
+                        acquisition_next_retry_at,
+                        acquisition_error_code,
+                        now,
+                        self.acquisition_id,
+                    ),
+                ).rowcount
+                if transitioned != 1:
+                    raise IdempotencyConflict(
+                        "Trends acquisition disappeared during attempt completion"
+                    )
+
+        self._transaction(finish)
+
+    def _set_acquisition_status(
+        self,
+        status: str,
+        next_retry_at: str | None,
+        error_code: str | None,
+        snapshot_id: str | None = None,
+    ) -> None:
+        now = self.clock.now_jst().isoformat()
+
+        def update():
+            self.connection.execute(
+                "UPDATE trends_acquisition SET status=?,next_retry_at=?,error_code=?,"
+                "snapshot_id=?,updated_at=? WHERE acquisition_id=?",
+                (
+                    status,
+                    next_retry_at,
+                    error_code,
+                    snapshot_id,
+                    now,
+                    self.acquisition_id,
+                ),
+            )
+
+        self._transaction(update)
+
+    def _saved_response(self, row) -> TrendsAcquisitionResult:
+        saved = self.connection.execute(
+            "SELECT request_id,response_json FROM trends_acquisition_attempt "
+            "WHERE acquisition_id=? AND status='response_ready' ORDER BY attempt_no DESC LIMIT 1",
+            (self.acquisition_id,),
+        ).fetchone()
+        if saved is None or not saved["response_json"]:
+            raise TrendsContractError("saved successful Trends response is missing")
+        request = TrendsRequest(
+            saved["request_id"],
+            self.run_id,
+            self.settings_version,
+            row["query_word"],
+            range="3m",
+            deadline_at=self.deadline_at.isoformat(),
+        )
+        snapshot = parse_grouped_top_response(
+            json.loads(saved["response_json"]), request
+        )
+        if snapshot.status != "observed":
+            raise TrendsContractError(
+                "saved successful Trends response no longer validates"
+            )
+        return TrendsAcquisitionResult(
+            self.acquisition_id,
+            "response_ready",
+            int(row["attempts_used"]),
+            snapshot,
+        )
+
+    def _saved_adopted_snapshot(self, row) -> TrendsAcquisitionResult:
+        latest = self.connection.execute(
+            "SELECT request_id FROM trends_acquisition_attempt WHERE acquisition_id=? "
+            "AND status='response_ready' ORDER BY attempt_no DESC LIMIT 1",
+            (self.acquisition_id,),
+        ).fetchone()
+        if latest is None:
+            raise TrendsContractError(
+                "adopted Trends acquisition has no successful request"
+            )
+        request = TrendsRequest(
+            latest[0],
+            self.run_id,
+            self.settings_version,
+            row["query_word"],
+            range="3m",
+            deadline_at=self.deadline_at.isoformat(),
+        )
+        stored = load_grouped_snapshot(
+            self.connection, row["snapshot_id"], request=request
+        )
+        if stored is None or stored.snapshot.status != "observed":
+            raise TrendsContractError("adopted Trends snapshot cannot be loaded")
+        return TrendsAcquisitionResult(
+            self.acquisition_id,
+            str(row["status"]),
+            int(row["attempts_used"]),
+            stored.snapshot,
+        )
+
+    def _transaction(self, operation) -> None:
+        if self.connection.in_transaction:
+            raise TrendsContractError(
+                "durable Trends state cannot be nested in a caller transaction"
+            )
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            operation()
+            self.connection.commit()
+        except BaseException:
+            if self.connection.in_transaction:
+                self.connection.rollback()
+            raise
+
+
+def _parse_aware_datetime(value: object, field: str) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise TrendsContractError(f"{field} must be an ISO timestamp")
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise TrendsContractError(f"{field} must be an ISO timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise TrendsContractError(f"{field} must include a timezone")
+    return parsed
+
+
+def _safe_error_code(value: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_").lower()
+    return normalized[:80] or "source_error"
+
+
+def _retry_after_seconds(response: object) -> int | None:
+    if not isinstance(response, Mapping):
+        return None
+    raw = response.get("retry_after_seconds")
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+        return None
+    return min(raw, 24 * 60 * 60)
+
+
+def _unavailable_group_response(request: TrendsRequest, code: str) -> dict[str, Any]:
+    return {
+        "request_id": request.request_id,
+        "snapshot_id": request.request_id,
+        "run_id": request.run_id,
+        "settings_version": request.settings_version,
+        "source": _BROWSER_SOURCE,
+        "parent_word": request.parent_word,
+        "current_parent": None,
+        "refresh_complete": False,
+        "language": "ja",
+        "geo": "JP",
+        "search_type": "web",
+        "range": request.range,
+        "list_type": "Top",
+        "ui_period_label": None,
+        "status": "unavailable",
+        "fetched_at": None,
+        "error_code": code,
+        "words": [],
+    }

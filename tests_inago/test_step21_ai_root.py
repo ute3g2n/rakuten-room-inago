@@ -66,6 +66,250 @@ def deadline():
     return time.monotonic() + 5
 
 
+def test_ai_raw_response_artifact_has_raw_retention_deadline(tmp_path):
+    from datetime import datetime
+
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.retention import retention_expiry
+    from tests_inago.test_step08 import _base_request
+
+    now = datetime.fromisoformat("2026-10-14T13:00:00+09:00")
+    clock = FakeClock(now)
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    message = tmp_path / "last-message.json"
+    message.write_text('{"ok":true}', encoding="utf-8")
+    runner = AIJobRunner(data_root=data_root, clock=clock)
+
+    artifact = runner._save_raw_response(_base_request(), message)
+
+    assert artifact is not None
+    assert artifact.source_kind == "daily"
+    assert (
+        artifact.retention_expires_at
+        == retention_expiry("raw", artifact.created_at).isoformat()
+    )
+
+
+def test_ai_job_runner_recovers_valid_success_after_return_before_db_index(tmp_path):
+    from datetime import datetime
+
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.artifact_io import write_temp_response_bytes
+    from automation.inago.clock import FakeClock
+    from automation.inago.retention import retention_expiry
+    from tests_inago.test_step08 import _base_request, _delegation, _root_response
+
+    request = _base_request()
+    key_payload = {
+        "snapshot_id": "KEYWORDS-01",
+        "query_word": "テーマ",
+        "decisions": [
+            {
+                "word_id": "WORD-01",
+                "decision": "candidate",
+                "group_ref": "WORD-01",
+                "reason": "fixture",
+            }
+        ],
+    }
+    response = _root_response(
+        request,
+        delegations=[_delegation("AG-KEY", "T02", "rr-inago-keywords", key_payload)],
+    )
+    now = datetime.fromisoformat("2026-10-14T13:00:00+09:00")
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    runner = AIJobRunner(data_root=data_root, clock=FakeClock(now))
+    artifact_ref = f"{request.job_id}-a{request.attempt}-response"
+    raw = json.dumps(response, ensure_ascii=False).encode("utf-8")
+    artifact = write_temp_response_bytes(
+        data_root=data_root,
+        artifact_ref=artifact_ref,
+        response=raw,
+        source_kind="daily",
+        created_at=now.isoformat(),
+        retention_expires_at=retention_expiry("raw", now.isoformat()).isoformat(),
+    )
+    child_trace = {
+        "agent_id": "AG-KEY",
+        "task_id": "T02",
+        "skill_name": "rr-inago-keywords",
+        "result_status": "success",
+        "resolved_model": "gpt-6.1-sol",
+        "reasoning_setting": "xhigh",
+        "auth_mode": "chatgpt",
+    }
+    observed_child = {
+        "agent_id": "AG-KEY",
+        "resolved_model": "gpt-6.1-sol",
+        "reasoning_setting": "xhigh",
+        "auth_mode": "chatgpt",
+    }
+    runner._trace_event(request, "job_started")
+    runner._trace_event(request, "auth_observed", auth_mode="chatgpt")
+    runner._trace_event(
+        request, "cli_finished", process_status="completed", process_returncode=0
+    )
+    runner._trace_event(request, "artifact_saved", artifact_ref=artifact_ref)
+    runner._trace_event(
+        request,
+        "session_trace_observed",
+        resolved_model="gpt-6.1-sol",
+        reasoning_setting="xhigh",
+        child_agents=[observed_child],
+        spawn_count=1,
+    )
+    runner._trace_event(
+        request,
+        "job_finished",
+        result_status="success",
+        adoption_status="pending",
+        auth_mode="chatgpt",
+        resolved_model="gpt-6.1-sol",
+        reasoning_setting="xhigh",
+        artifact_ref=artifact_ref,
+        process_returncode=0,
+        duration_ms=1200,
+        child_agents=[child_trace],
+    )
+    runner._trace_event(request, "job_started")
+    runner._trace_event(request, "auth_observed", auth_mode="chatgpt")
+    runner._trace_event(
+        request,
+        "job_finished",
+        result_status="error",
+        adoption_status="rejected_contract",
+        error_code="final_response_not_saved",
+        auth_mode="chatgpt",
+        resolved_model="gpt-6.1-sol",
+        reasoning_setting="xhigh",
+        artifact_ref=None,
+        process_returncode=0,
+        duration_ms=15,
+        child_agents=[],
+    )
+
+    recovered = runner.recover_successful_result(request)
+
+    assert recovered is not None
+    assert recovered.result_status == "success"
+    assert recovered.adoption_status == "pending"
+    assert recovered.artifact == artifact
+    assert recovered.subjobs[0].agent_id == "AG-KEY"
+    assert recovered.subjobs[0].payload == key_payload
+    assert recovered.resolved_model == "gpt-6.1-sol"
+
+
+def test_ai_job_runner_does_not_recover_response_without_terminal_success_trace(
+    tmp_path,
+):
+    from datetime import datetime
+
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.artifact_io import write_temp_response_bytes
+    from automation.inago.clock import FakeClock
+    from automation.inago.retention import retention_expiry
+    from tests_inago.test_step08 import _base_request, _root_response
+
+    request = _base_request()
+    now = datetime.fromisoformat("2026-10-14T13:00:00+09:00")
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    runner = AIJobRunner(data_root=data_root, clock=FakeClock(now))
+    artifact_ref = f"{request.job_id}-a{request.attempt}-response"
+    write_temp_response_bytes(
+        data_root=data_root,
+        artifact_ref=artifact_ref,
+        response=json.dumps(_root_response(request)).encode("utf-8"),
+        source_kind="daily",
+        created_at=now.isoformat(),
+        retention_expires_at=retention_expiry("raw", now.isoformat()).isoformat(),
+    )
+    runner._trace_event(request, "job_started")
+    runner._trace_event(request, "artifact_saved", artifact_ref=artifact_ref)
+
+    assert runner.recover_successful_result(request) is None
+
+
+def test_ai_job_runner_rejects_dangling_artifact_symlink_before_exists_check(
+    tmp_path,
+):
+    from datetime import datetime
+
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.contracts import PersistenceContractError
+    from automation.inago.clock import FakeClock
+    from tests_inago.test_step08 import _base_request
+
+    request = _base_request()
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    artifact_path = (
+        data_root
+        / "artifacts"
+        / request.source_kind
+        / f"{request.job_id}-a{request.attempt}-response.response"
+    )
+    artifact_path.parent.mkdir(parents=True)
+    try:
+        artifact_path.symlink_to(tmp_path / "missing-outside-artifact.response")
+    except OSError as exc:
+        pytest.skip(f"cannot create a dangling symlink fixture: {exc}")
+    current = datetime.fromisoformat("2026-10-14T13:00:00+09:00")
+    runner = AIJobRunner(data_root=data_root, clock=FakeClock(current))
+
+    with pytest.raises(PersistenceContractError, match="symbolic link"):
+        runner.recover_successful_result(request)
+
+
+def test_ai_trace_append_never_follows_dangling_trace_symlink(tmp_path):
+    from datetime import datetime
+
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.clock import FakeClock
+    from tests_inago.test_step08 import _base_request
+
+    request = _base_request()
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    outside_trace = tmp_path / "outside-trace.jsonl"
+    trace_path = (
+        data_root
+        / "logs"
+        / request.target_date
+        / f"{request.run_id}--{request.job_id}-a{request.attempt}.jsonl"
+    )
+    trace_path.parent.mkdir(parents=True)
+    try:
+        trace_path.symlink_to(outside_trace)
+    except OSError as exc:
+        pytest.skip(f"cannot create a dangling symlink fixture: {exc}")
+    current = datetime.fromisoformat("2026-10-14T13:00:00+09:00")
+    runner = AIJobRunner(data_root=data_root, clock=FakeClock(current))
+
+    runner._trace_event(request, "job_started")
+
+    assert trace_path.is_symlink()
+    assert not outside_trace.exists()
+
+
+def test_ai_job_runner_rejects_symlinked_data_root_before_resolving_it(tmp_path):
+    from automation.inago.ai_runner import AIJobRunner
+    from automation.inago.contracts import PersistenceContractError
+
+    target = tmp_path / "real-runtime"
+    target.mkdir()
+    linked_root = tmp_path / "runtime-link"
+    try:
+        linked_root.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"cannot create a data-root symlink fixture: {exc}")
+
+    with pytest.raises(PersistenceContractError, match="data root"):
+        AIJobRunner(data_root=linked_root)
+
+
 def test_two_jobs_share_one_process_and_root_but_have_distinct_turns(tmp_path):
     root = session(tmp_path)
     with root:

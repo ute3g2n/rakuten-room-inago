@@ -49,6 +49,25 @@ def test_acceptance_registry_covers_every_case(acceptance_registry):
 
 
 @pytest.mark.fixture_contract
+def test_step21_live_acceptance_mapping_matches_verified_evidence(
+    acceptance_registry,
+):
+    orchestrator = acceptance_registry["C-028"]
+    assert 21 in orchestrator.implementation_steps
+    assert "tests_inago/test_step21_daily.py" in orchestrator.module_paths
+    assert "未実証" not in orchestrator.live_evidence
+
+    ai_roles = acceptance_registry["A-02"]
+    assert "STEP20" in ai_roles.live_evidence
+    assert "未実証" not in ai_roles.live_evidence
+
+    for case_id in ("A-03", "A-10"):
+        live_source = acceptance_registry[case_id]
+        assert "STEP21" in live_source.live_evidence
+        assert "未実証" not in live_source.live_evidence
+
+
+@pytest.mark.fixture_contract
 @pytest.mark.parametrize(
     "case_id",
     FIXTURE_CASE_IDS,

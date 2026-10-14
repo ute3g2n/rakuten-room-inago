@@ -549,17 +549,17 @@ def test_search_at_or_after_draft_deadline_is_not_reserved_or_called(
         connection.close()
 
 
-def test_search_attempt_and_retry_budgets_stop_before_tenth_or_fourth_call(
+def test_search_attempts_are_unbounded_but_retries_remain_bounded(
     tmp_path: Path,
 ) -> None:
     connection = _database(tmp_path)
     try:
         responses = {
             f"attempt-{n}": _response(f"attempt-{n}", query=f"query-{n}")
-            for n in range(1, 10)
+            for n in range(1, 11)
         }
         session, port = _session(connection, responses)
-        for number in range(1, 10):
+        for number in range(1, 11):
             session.search(
                 attempt_id=f"attempt-{number}",
                 run_id="RUN-STEP11",
@@ -567,18 +567,13 @@ def test_search_attempt_and_retry_budgets_stop_before_tenth_or_fourth_call(
                 parent_refs=["theme-01"],
                 level="parent",
             )
-        with pytest.raises(RejectedContract, match="9 search attempts"):
-            session.search(
-                attempt_id="attempt-10",
-                run_id="RUN-STEP11",
-                query="query-10",
-                parent_refs=["theme-01"],
-                level="parent",
-            )
-        assert len(port.requests) == 9
+        assert len(port.requests) == 10
         assert (
-            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0] == 9
+            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0] == 10
         )
+        assert connection.execute(
+            "SELECT attempt_used FROM run WHERE run_id = 'RUN-STEP11'"
+        ).fetchone()[0] == 10
 
     finally:
         connection.close()

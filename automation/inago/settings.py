@@ -10,11 +10,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError, ValidationError
 
 from automation.inago.contracts import IdempotencyConflict, RejectedContract
 from automation.inago.repository import validate_entity
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 SETTINGS_SCHEMA_PATH = (
@@ -129,7 +130,9 @@ def _validate_document(name: str, document: Mapping[str, Any]) -> dict[str, Any]
         "$ref": f"#/$defs/{name}",
     }
     try:
-        Draft202012Validator(root_schema, format_checker=FormatChecker()).validate(
+        Draft202012Validator(
+            root_schema, format_checker=rfc3339_format_checker()
+        ).validate(
             dict(document)
         )
     except ValidationError as exc:

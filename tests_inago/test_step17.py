@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from automation.inago.repository import initialize_database
 from automation.inago.restore_check import RestoreCheckError, check_monthly_restore
 from automation.inago.retention import (
     ArtifactExpiredError,
+    RetentionError,
     apply_retention,
     retention_expiry,
 )
@@ -582,6 +585,255 @@ def test_retention_raw_detail_boundaries_cover_89_90_and_91_days(
         connection.close()
 
 
+def test_retention_scrubs_expired_trends_terms_and_classification_details(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    connection = _seed_retention_database(data_root)
+    try:
+        for age_days in (89, 90, 91):
+            observed_at = NOW - timedelta(days=age_days)
+            connection.execute(
+                """
+                INSERT INTO keyword_snapshot(
+                    snapshot_id,parent_word,source,geo,range,search_type,list_type,
+                    words_json,fetched_at,availability,filter_decisions_json,
+                    ui_period_label
+                ) VALUES (?,?, 'google_trends_public_ui','JP','3m','web','Top',
+                          ?,?,'observed',?,'過去3か月間')
+                """,
+                (
+                    f"TREND-RETENTION-{age_days}",
+                    f"theme-{age_days}",
+                    json.dumps(
+                        [{"word_id": f"W-{age_days}", "raw": "raw term"}],
+                        ensure_ascii=False,
+                    ),
+                    observed_at.isoformat(),
+                    json.dumps(
+                        [{"kind": "word", "raw": "raw term", "reason": "detail"}],
+                        ensure_ascii=False,
+                    ),
+                ),
+            )
+        connection.commit()
+
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        # The shared retention fixture also seeds one expired keyword snapshot.
+        assert result.expired_keyword_snapshots == 3
+        states = {
+            row[0]: (row[1], json.loads(row[2]), json.loads(row[3]))
+            for row in connection.execute(
+                "SELECT snapshot_id,availability,words_json,filter_decisions_json "
+                "FROM keyword_snapshot WHERE snapshot_id LIKE 'TREND-RETENTION-%'"
+            )
+        }
+        assert states["TREND-RETENTION-89"] == (
+            "observed",
+            [{"word_id": "W-89", "raw": "raw term"}],
+            [{"kind": "word", "raw": "raw term", "reason": "detail"}],
+        )
+        assert states["TREND-RETENTION-90"] == ("expired", [], [])
+        assert states["TREND-RETENTION-91"] == ("expired", [], [])
+    finally:
+        connection.close()
+
+
+def test_retention_deletes_expired_public_source_observations(tmp_path: Path) -> None:
+    data_root = tmp_path / "data"
+    connection = _connect_database(data_root)
+    observation_root = data_root / "observations"
+    observation_root.mkdir()
+    paths = {}
+    for age_days in (89, 90, 91):
+        observed_at = NOW - timedelta(days=age_days)
+        expiry = retention_expiry("raw", observed_at).isoformat()
+        path = observation_root / f"trends-request-{age_days}-observation-01.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "kind": "trends",
+                    "recorded_at": observed_at.isoformat(),
+                    "retention_expires_at": expiry,
+                    "response": {"words": ["fixture raw word"]},
+                }
+            ),
+            encoding="utf-8",
+        )
+        paths[age_days] = path
+    legacy_path = observation_root / "observation-legacy-room.json"
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "kind": "room",
+                "recorded_at": (NOW - timedelta(days=91)).isoformat(),
+                "product_facts": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    control_path = observation_root / "access-stop-RUN-2026-10-12.json"
+    control_path.write_text('{"run_id":"RUN-2026-10-12"}', encoding="utf-8")
+    connection.commit()
+
+    try:
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        assert result.expired_source_observation_files == 3
+        assert result.source_observation_deletion_failures == 0
+        assert paths[89].is_file()
+        assert not paths[90].exists() and not paths[91].exists()
+        assert not legacy_path.exists()
+        assert control_path.is_file()
+    finally:
+        connection.close()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction behavior")
+def test_retention_refuses_expired_observation_directory_junction(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    observation_root = data_root / "observations"
+    data_root.mkdir(parents=True)
+    external_observations = tmp_path / "external-observations"
+    external_observations.mkdir()
+    external_expired = external_observations / "room-old-observation-1.json"
+    external_expired.write_text(
+        json.dumps(
+            {
+                "kind": "room",
+                "retention_expires_at": "2026-10-12T12:59:59+09:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    junction = subprocess.run(
+        [
+            "cmd.exe",
+            "/d",
+            "/c",
+            "mklink",
+            "/J",
+            str(observation_root),
+            str(external_observations),
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if junction.returncode != 0:
+        pytest.skip(f"could not create a fixture junction: {junction.stderr}")
+
+    connection = _connect_database(data_root)
+    connection.commit()
+    try:
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        assert result.expired_source_observation_files == 0
+        assert result.source_observation_deletion_failures == 1
+        assert external_expired.is_file()
+    finally:
+        connection.close()
+        observation_root.rmdir()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction behavior")
+def test_retention_refuses_configured_data_root_junction_before_cleanup(
+    tmp_path: Path,
+) -> None:
+    target_root = tmp_path / "external-data"
+    observation_root = target_root / "observations"
+    observation_root.mkdir(parents=True)
+    external_expired = observation_root / "room-old-observation-1.json"
+    external_expired.write_text(
+        json.dumps(
+            {
+                "kind": "room",
+                "retention_expires_at": "2026-10-12T12:59:59+09:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    connection = _connect_database(target_root)
+    connection.commit()
+    configured_root = tmp_path / "configured-data"
+    junction = subprocess.run(
+        [
+            "cmd.exe",
+            "/d",
+            "/c",
+            "mklink",
+            "/J",
+            str(configured_root),
+            str(target_root),
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if junction.returncode != 0:
+        connection.close()
+        pytest.skip(f"could not create a fixture junction: {junction.stderr}")
+
+    try:
+        with pytest.raises(RetentionError, match="data root contains"):
+            apply_retention(connection, data_root=configured_root, now=NOW)
+        assert not connection.in_transaction
+        assert external_expired.is_file()
+    finally:
+        connection.close()
+        configured_root.rmdir()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction behavior")
+def test_retention_detects_dangling_observation_directory_junction(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "data"
+    data_root.mkdir()
+    observation_root = data_root / "observations"
+    target = tmp_path / "junction-target"
+    target.mkdir()
+    junction = subprocess.run(
+        [
+            "cmd.exe",
+            "/d",
+            "/c",
+            "mklink",
+            "/J",
+            str(observation_root),
+            str(target),
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if junction.returncode != 0:
+        pytest.skip(f"could not create a fixture junction: {junction.stderr}")
+    try:
+        target.rmdir()
+    except OSError as exc:
+        observation_root.rmdir()
+        pytest.skip(f"could not make a dangling fixture junction: {exc}")
+
+    connection = _connect_database(data_root)
+    connection.commit()
+    try:
+        result = apply_retention(connection, data_root=data_root, now=NOW)
+
+        assert result.expired_source_observation_files == 0
+        assert result.source_observation_deletion_failures == 1
+        assert getattr(observation_root.lstat(), "st_file_attributes", 0) & 0x400
+    finally:
+        connection.close()
+        observation_root.rmdir()
+
+
 def test_retention_never_deletes_an_artifact_outside_the_explicit_data_root(
     tmp_path: Path,
 ) -> None:
@@ -694,7 +946,7 @@ def test_daily_backup_is_consistent_keeps_seven_generations_and_bundles_artifact
         )
         latest = generations[-1]
         manifest = json.loads((latest / "manifest.json").read_text(encoding="utf-8"))
-        assert manifest["schema_version"] == 3
+        assert manifest["schema_version"] == 4
         assert manifest["table_counts"]["run"] == 1
         assert manifest["table_counts"]["draft"] == 17
         assert manifest["table_counts"]["backup"] == 7

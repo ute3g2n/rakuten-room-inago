@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -34,6 +35,9 @@ class RetentionResult:
     expired_detail_observations: int
     expired_source_posts: int
     expired_keyword_snapshots: int
+    expired_trends_responses: int
+    expired_source_observation_files: int
+    source_observation_deletion_failures: int
     deleted_revenue_orders: int
     file_deletion_failures: tuple[str, ...]
 
@@ -84,6 +88,29 @@ def _parse_jst(value: str | datetime, *, name: str = "timestamp") -> datetime:
     return parsed.astimezone(JST)
 
 
+def _is_reparse_or_symbolic_link(path: Path) -> bool:
+    """Detect Windows junctions and other reparse points as well as symlinks."""
+
+    try:
+        if path.is_symlink():
+            return True
+        is_junction = getattr(path, "is_junction", None)
+        if callable(is_junction) and is_junction():
+            return True
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    try:
+        result = path.lstat()
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    attributes = getattr(result, "st_file_attributes", 0)
+    return bool(attributes & getattr(os, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+
+
 def retention_expiry(
     retention_class: RetentionClass, observed_at: str | datetime
 ) -> datetime:
@@ -101,24 +128,50 @@ def retention_expiry(
         return observed.replace(year=observed.year + 1, day=28)
 
 
+def validate_data_root(data_root: str | Path, *, allow_missing: bool = False) -> Path:
+    """Reject reparse points in the configured path before resolving it."""
+
+    lexical_root = Path(os.path.abspath(Path(data_root).expanduser()))
+    cursor = Path(lexical_root.anchor)
+    for part in lexical_root.parts[1:]:
+        cursor = cursor / part
+        if _is_reparse_or_symbolic_link(cursor):
+            raise RetentionError("data root contains a symbolic link or reparse point")
+    try:
+        resolved = lexical_root.resolve(strict=not allow_missing)
+    except (OSError, RuntimeError) as exc:
+        raise RetentionError("data root cannot be resolved safely") from exc
+    if not allow_missing and not resolved.is_dir():
+        raise RetentionError("data_root must already exist as a directory")
+    return resolved
+
+
 def _safe_file_path(data_root: Path, value: str | Path) -> Path:
-    root = data_root.resolve()
+    lexical_root = Path(os.path.abspath(data_root.expanduser()))
+    root = validate_data_root(data_root)
     path = Path(os.path.abspath(Path(value).expanduser()))
     try:
-        relative = path.relative_to(root)
+        relative = path.relative_to(lexical_root)
     except (OSError, RuntimeError, ValueError) as exc:
         raise RetentionError("artifact path escaped the explicit data root") from exc
     if not relative.parts:
         raise RetentionError("artifact path is not a regular child file")
-    cursor = root
+    cursor = lexical_root
     for part in relative.parts:
         cursor = cursor / part
-        if cursor.is_symlink():
-            raise RetentionError("artifact path contains a symbolic link")
+        if _is_reparse_or_symbolic_link(cursor):
+            raise RetentionError(
+                "artifact path contains a symbolic link or reparse point"
+            )
     try:
-        return path.resolve(strict=False)
+        resolved = path.resolve(strict=False)
     except (OSError, RuntimeError) as exc:
         raise RetentionError("artifact path cannot be resolved safely") from exc
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise RetentionError("artifact path escaped the explicit data root") from exc
+    return resolved
 
 
 def _dict_rows(
@@ -205,13 +258,89 @@ def _record_expired_source_snapshots(
         connection.execute(
             """
             UPDATE keyword_snapshot
-            SET availability = 'expired', words_json = '[]'
+            SET availability = 'expired', words_json = '[]',
+                filter_decisions_json = '[]'
             WHERE snapshot_id = ?
             """,
             (row["snapshot_id"],),
         )
         expired_keywords += 1
     return expired_posts, expired_keywords
+
+
+def _record_expired_trends_responses(
+    connection: sqlite3.Connection, now: datetime
+) -> int:
+    """Drop retry payloads after raw retention while preserving attempt history."""
+
+    expired = 0
+    rows = _dict_rows(
+        connection,
+        "SELECT request_id, ended_at FROM trends_acquisition_attempt "
+        "WHERE response_json IS NOT NULL AND ended_at IS NOT NULL",
+    )
+    for row in rows:
+        if retention_expiry("raw", str(row["ended_at"])) > now:
+            continue
+        cursor = connection.execute(
+            "UPDATE trends_acquisition_attempt SET response_json=NULL "
+            "WHERE request_id=? AND response_json IS NOT NULL",
+            (row["request_id"],),
+        )
+        expired += max(0, cursor.rowcount)
+    return expired
+
+
+def _expire_public_source_observations(
+    data_root: Path, now: datetime
+) -> tuple[int, int]:
+    """Delete expired private ROOM/Trends captures under the data root only."""
+
+    observation_root = data_root / "observations"
+    if _is_reparse_or_symbolic_link(observation_root):
+        return 0, 1
+    if not observation_root.exists():
+        return 0, 0
+    if not observation_root.is_dir():
+        return 0, 1
+    candidates = {
+        *observation_root.glob("observation-*.json"),
+        *observation_root.glob("room-*-observation-*.json"),
+        *observation_root.glob("trends-*-observation-*.json"),
+    }
+    expired = 0
+    failures = 0
+    for candidate in candidates:
+        try:
+            path = _safe_file_path(data_root, candidate)
+            if not path.is_file():
+                failures += 1
+                continue
+            record = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(record, dict):
+                failures += 1
+                continue
+            if path.name.startswith("observation-"):
+                expected_kind = record.get("kind")
+            else:
+                expected_kind = "room" if path.name.startswith("room-") else "trends"
+            expiry = record.get("retention_expires_at")
+            if path.name.startswith("observation-") and expiry is None:
+                expiry = retention_expiry("raw", record.get("recorded_at")).isoformat()
+            if (
+                expected_kind not in {"room", "trends"}
+                or record.get("kind") != expected_kind
+                or not isinstance(expiry, str)
+            ):
+                failures += 1
+                continue
+            if _parse_jst(expiry, name="retention_expires_at") > now:
+                continue
+            path.unlink()
+            expired += 1
+        except (OSError, UnicodeError, json.JSONDecodeError, RetentionError):
+            failures += 1
+    return expired, failures
 
 
 def apply_retention(
@@ -227,10 +356,8 @@ def apply_retention(
     must reject it as live evidence; a later call can retry the physical cleanup.
     """
 
-    root = Path(data_root).expanduser().resolve()
+    root = validate_data_root(data_root)
     current = _parse_jst(now, name="now")
-    if not root.is_dir():
-        raise RetentionError("data_root must already exist")
 
     if connection.in_transaction:
         raise RetentionError("retention must own its SQLite transaction")
@@ -289,11 +416,16 @@ def apply_retention(
         expired_posts, expired_keywords = _record_expired_source_snapshots(
             connection, current
         )
+        expired_trends_responses = _record_expired_trends_responses(connection, current)
         connection.commit()
     except BaseException:
         if connection.in_transaction:
             connection.rollback()
         raise
+
+    expired_source_observations, source_observation_failures = (
+        _expire_public_source_observations(root, current)
+    )
 
     # A prior call may have committed the expired status before a file-system
     # failure. Retry cleanup from expired rows without making the evidence live.
@@ -324,6 +456,9 @@ def apply_retention(
         expired_detail_observations=expired_details,
         expired_source_posts=expired_posts,
         expired_keyword_snapshots=expired_keywords,
+        expired_trends_responses=expired_trends_responses,
+        expired_source_observation_files=expired_source_observations,
+        source_observation_deletion_failures=source_observation_failures,
         deleted_revenue_orders=deleted_orders,
         file_deletion_failures=tuple(failures),
     )

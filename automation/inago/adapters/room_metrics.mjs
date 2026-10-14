@@ -76,6 +76,6 @@ export function normalizeRoomMetricsResponse({
     roomUrl: normalizedRoomUrl,
     windowStart: startAt,
     posts: normalized,
-    errorCode: null,
+    errorCode: status === 'partial' ? errorCode : null,
   };
 }

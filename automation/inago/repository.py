@@ -11,11 +11,14 @@ from pathlib import Path
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from automation.inago.clock import Clock, SystemClock
+from automation.jsonschema_formats import rfc3339_format_checker
 from automation.inago.contracts import (
+    AIJobResult,
+    AISubjobResult,
     ArtifactRecord,
     DraftCommitRequest,
     DraftCommitResult,
@@ -26,8 +29,8 @@ from automation.inago.contracts import (
     UnsupportedSchemaVersion,
 )
 
-CURRENT_SCHEMA_VERSION = 3
-READABLE_SCHEMA_VERSIONS = frozenset({3})
+CURRENT_SCHEMA_VERSION = 4
+READABLE_SCHEMA_VERSIONS = frozenset({4})
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "entities.schema.json"
@@ -37,6 +40,7 @@ _MIGRATION_SQL_PATHS = {
     / "sql"
     / "002_human_action_actual_posted_at.sql",
     3: Path(__file__).resolve().parent / "sql" / "003_search_rules_14.sql",
+    4: Path(__file__).resolve().parent / "sql" / "004_trends_retry_state.sql",
 }
 
 _ENTITY_TABLES = frozenset(
@@ -64,6 +68,7 @@ _ENTITY_TABLES = frozenset(
         "ai_job",
     }
 )
+_SCHEMA_V4_TABLES = frozenset({"trends_acquisition", "trends_acquisition_attempt"})
 
 
 @lru_cache(maxsize=1)
@@ -90,7 +95,7 @@ def validate_entity(entity: str, value: Mapping[str, Any]) -> bool:
     try:
         Draft202012Validator(
             root_schema,
-            format_checker=FormatChecker(),
+            format_checker=rfc3339_format_checker(),
         ).validate(dict(value))
     except ValidationError as exc:
         field_path = ".".join(str(part) for part in exc.absolute_path) or entity
@@ -158,7 +163,12 @@ def initialize_database(connection: sqlite3.Connection) -> int:
     existing_version = _stored_schema_version(connection)
     existing_tables = _user_tables(connection)
     if existing_version is not None:
-        missing = _ENTITY_TABLES - existing_tables
+        required_tables = _ENTITY_TABLES | (
+            _SCHEMA_V4_TABLES
+            if existing_version == CURRENT_SCHEMA_VERSION
+            else frozenset()
+        )
+        missing = required_tables - existing_tables
         if missing:
             raise UnsupportedSchemaVersion(
                 f"schema v{existing_version} is missing required tables: "
@@ -211,7 +221,10 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                 version = 1
                 tables = _user_tables(connection)
 
-            missing = _ENTITY_TABLES - tables
+            required_tables = _ENTITY_TABLES | (
+                _SCHEMA_V4_TABLES if version >= CURRENT_SCHEMA_VERSION else frozenset()
+            )
+            missing = required_tables - tables
             if missing:
                 raise UnsupportedSchemaVersion(
                     f"schema v{version} is missing required tables: "
@@ -244,6 +257,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                     {
                         2: "preserve actual posted time on pending human reports",
                         3: "Q1.4 search counts, query kinds and three-month observations",
+                        4: "durable per-theme Google Trends retry state",
                     }[next_version],
                 ),
             )
@@ -1637,6 +1651,343 @@ def _insert_ai_job_record(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (record["job_id"], *values),
+    )
+
+
+def _key_job_records(
+    connection: sqlite3.Connection,
+    result: AIJobResult,
+    *,
+    adoption_status: str,
+    accepted_at: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if (
+        result.result_status != "success"
+        or result.adoption_status != "pending"
+        or result.task_id != "T02"
+        or result.agent_id != "AI-O"
+        or result.skill_name != "rakuten-room-inago"
+        or not isinstance(result.payload, Mapping)
+        or result.error is not None
+        or result.artifact is None
+        or result.artifact.source_kind != "daily"
+        or result.artifact.retention_expires_at is None
+        or result.artifact.artifact_ref
+        != f"{result.job_id}-a{result.attempt}-response"
+        or len(result.input_refs) != 1
+        or len(result.subjobs) != 1
+    ):
+        raise RejectedContract("successful KEY job result is incomplete or invalid")
+    child = result.subjobs[0]
+    if (
+        child.job_id != f"{result.job_id}-a{result.attempt}-child-01"
+        or child.parent_job_id != result.job_id
+        or child.run_id != result.run_id
+        or child.attempt != result.attempt
+        or child.task_id != "T02"
+        or child.agent_id != "AG-KEY"
+        or child.skill_name != "rr-inago-keywords"
+        or child.result_status != "success"
+        or child.settings_version != result.settings_version
+        or child.target_date != result.target_date
+        or child.input_refs != result.input_refs
+    ):
+        raise RejectedContract("successful KEY specialist result is mismatched")
+    run = connection.execute(
+        "SELECT target_date,settings_version,status FROM run WHERE run_id=?",
+        (result.run_id,),
+    ).fetchone()
+    if (
+        run is None
+        or run[0] != result.target_date
+        or run[1] != result.settings_version
+        or run[2] not in {"running", "partial"}
+    ):
+        raise RejectedContract("successful KEY job no longer matches its daily run")
+    if result.started_at is None or result.finished_at is None:
+        raise RejectedContract("successful KEY job timestamps are missing")
+    _timestamp(result.started_at, "started_at")
+    _timestamp(result.finished_at, "finished_at")
+    if accepted_at is not None:
+        _timestamp(accepted_at, "accepted_at")
+
+    common = {
+        "protocol_version": "1",
+        "schema_version": "1",
+        "attempt": result.attempt,
+        "target_date": result.target_date,
+        "settings_version": result.settings_version,
+        "deadline_at": result.deadline_at,
+        "started_at": result.started_at,
+        "finished_at": result.finished_at,
+        "artifact_ref": result.artifact.artifact_ref,
+        "accepted_at": accepted_at,
+        "adoption_status": adoption_status,
+        "error": None,
+    }
+    root_record = {
+        **common,
+        "job_id": result.job_id,
+        "run_id": result.run_id,
+        "task_id": result.task_id,
+        "agent_id": result.agent_id,
+        "skill_name": result.skill_name,
+        "input_refs": result.input_refs,
+        "evidence_refs": result.evidence_refs,
+        "input_hash": result.input_hash,
+        "resolved_model": result.resolved_model,
+        "reasoning_setting": result.reasoning_setting,
+        "auth_mode": result.auth_mode,
+        "result_status": result.result_status,
+        "payload": dict(result.payload),
+    }
+    child_record = {
+        **common,
+        "job_id": child.job_id,
+        "run_id": child.run_id,
+        "task_id": child.task_id,
+        "agent_id": child.agent_id,
+        "skill_name": child.skill_name,
+        "input_refs": child.input_refs,
+        "evidence_refs": child.evidence_refs,
+        "input_hash": child.input_hash,
+        "resolved_model": child.resolved_model,
+        "reasoning_setting": child.reasoning_setting,
+        "auth_mode": child.auth_mode,
+        "result_status": child.result_status,
+        "payload": dict(child.payload),
+    }
+    return root_record, child_record
+
+
+def _job_transaction(connection: sqlite3.Connection, savepoint: str) -> bool:
+    owns_transaction = not connection.in_transaction
+    connection.execute("BEGIN IMMEDIATE" if owns_transaction else f"SAVEPOINT {savepoint}")
+    return owns_transaction
+
+
+def persist_pending_key_job_result(
+    connection: sqlite3.Connection, result: AIJobResult
+) -> None:
+    """Save a successful KEY response as pending so interruption cannot lose it."""
+
+    root_record, child_record = _key_job_records(
+        connection, result, adoption_status="pending", accepted_at=None
+    )
+    savepoint = "inago_key_pending"
+    owns_transaction = _job_transaction(connection, savepoint)
+    try:
+        _insert_artifact(connection, result.artifact)
+        _insert_ai_job_record(connection, root_record)
+        _insert_ai_job_record(connection, child_record)
+        if owns_transaction:
+            connection.commit()
+        else:
+            connection.execute(f"RELEASE {savepoint}")
+    except BaseException:
+        if owns_transaction:
+            connection.rollback()
+        else:
+            connection.execute(f"ROLLBACK TO {savepoint}")
+            connection.execute(f"RELEASE {savepoint}")
+        raise
+
+
+def accept_pending_key_job_result(
+    connection: sqlite3.Connection,
+    result: AIJobResult,
+    *,
+    accepted_at: str,
+) -> None:
+    """Accept pending AI-O and AG-KEY rows inside snapshot-adoption transaction."""
+
+    if not connection.in_transaction:
+        raise PersistenceContractError(
+            "AI job adoption requires the caller's transaction"
+        )
+    root_record, child_record = _key_job_records(
+        connection, result, adoption_status="pending", accepted_at=None
+    )
+    _timestamp(accepted_at, "accepted_at")
+    _insert_artifact(connection, result.artifact)
+    for record in (root_record, child_record):
+        _insert_ai_job_record(connection, record)
+        updated = connection.execute(
+            "UPDATE ai_job SET adoption_status='accepted',accepted_at=? "
+            "WHERE job_id=? AND run_id=? AND attempt=? AND result_status='success' "
+            "AND adoption_status='pending' AND accepted_at IS NULL "
+            "AND artifact_ref=? AND input_hash=?",
+            (
+                accepted_at,
+                record["job_id"],
+                record["run_id"],
+                record["attempt"],
+                record["artifact_ref"],
+                record["input_hash"],
+            ),
+        )
+        if updated.rowcount != 1:
+            raise RejectedContract("pending KEY job changed before adoption")
+
+
+def load_pending_key_job_result(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    settings_version: str,
+    snapshot_id: str,
+    data_root: str | Path,
+) -> AIJobResult | None:
+    """Rebuild the one pending KEY result for a saved snapshot without AI rerun."""
+
+    expected_refs = json.dumps([snapshot_id], ensure_ascii=False, separators=(",", ":"))
+
+    def fetch_dicts(sql: str, parameters: tuple[Any, ...]) -> list[dict[str, Any]]:
+        cursor = connection.execute(sql, parameters)
+        names = [str(column[0]) for column in cursor.description or ()]
+        return [dict(zip(names, row)) for row in cursor.fetchall()]
+
+    roots = fetch_dicts(
+        "SELECT * FROM ai_job WHERE run_id=? AND target_date=? "
+        "AND settings_version=? AND task_id='T02' AND agent_id='AI-O' "
+        "AND skill_name='rakuten-room-inago' AND result_status='success' "
+        "AND adoption_status='pending' AND accepted_at IS NULL AND input_refs_json=?",
+        (run_id, target_date, settings_version, expected_refs),
+    )
+    if not roots:
+        return None
+    if len(roots) != 1:
+        raise RejectedContract("multiple pending KEY jobs match one snapshot")
+    root = roots[0]
+    try:
+        root_input_refs = json.loads(root["input_refs_json"])
+        root_evidence_refs = json.loads(root["evidence_refs_json"])
+        root_payload = json.loads(root["payload_json"])
+        root_error = json.loads(root["error_json"]) if root["error_json"] else None
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise RejectedContract("pending KEY root record is malformed") from exc
+    if (
+        root_input_refs != [snapshot_id]
+        or not isinstance(root_evidence_refs, list)
+        or not isinstance(root_payload, dict)
+        or root_error is not None
+        or root["artifact_ref"] is None
+    ):
+        raise RejectedContract("pending KEY root record cannot be resumed")
+    child_prefix = f"{root['job_id']}-a{root['attempt']}-child-%"
+    children = fetch_dicts(
+        "SELECT * FROM ai_job WHERE run_id=? AND target_date=? "
+        "AND settings_version=? AND task_id='T02' AND agent_id='AG-KEY' "
+        "AND skill_name='rr-inago-keywords' AND result_status='success' "
+        "AND adoption_status='pending' AND accepted_at IS NULL "
+        "AND artifact_ref=? AND job_id LIKE ?",
+        (
+            run_id,
+            target_date,
+            settings_version,
+            root["artifact_ref"],
+            child_prefix,
+        ),
+    )
+    if len(children) != 1:
+        raise RejectedContract("pending KEY specialist record is missing or ambiguous")
+    child = children[0]
+    try:
+        child_input_refs = json.loads(child["input_refs_json"])
+        child_evidence_refs = json.loads(child["evidence_refs_json"])
+        child_payload = json.loads(child["payload_json"])
+        child_error = json.loads(child["error_json"]) if child["error_json"] else None
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise RejectedContract("pending KEY specialist record is malformed") from exc
+    if (
+        child_input_refs != root_input_refs
+        or not isinstance(child_evidence_refs, list)
+        or not isinstance(child_payload, dict)
+        or child_error is not None
+    ):
+        raise RejectedContract("pending KEY specialist record cannot be resumed")
+    artifacts = fetch_dicts(
+        "SELECT * FROM artifact WHERE artifact_ref=?",
+        (root["artifact_ref"],),
+    )
+    if len(artifacts) != 1:
+        raise RejectedContract("pending KEY response artifact is missing")
+    artifact_row = artifacts[0]
+    if (
+        artifact_row["status"] != "available"
+        or artifact_row["source_kind"] != "daily"
+        or artifact_row["retention_expires_at"] is None
+    ):
+        raise RejectedContract("pending KEY response artifact is unavailable")
+    from automation.inago.retention import validate_data_root
+
+    root_path = validate_data_root(data_root)
+    path = Path(artifact_row["path"])
+    if path.is_symlink():
+        raise RejectedContract("pending KEY response artifact path is unsafe")
+    try:
+        resolved_path = path.resolve(strict=True)
+        resolved_path.relative_to(root_path)
+        content = resolved_path.read_bytes()
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise RejectedContract("pending KEY response artifact is unavailable") from exc
+    if hashlib.sha256(content).hexdigest() != artifact_row["hash"]:
+        raise RejectedContract("pending KEY response artifact content changed")
+
+    artifact = ArtifactRecord(
+        artifact_ref=str(artifact_row["artifact_ref"]),
+        path=resolved_path,
+        content_hash=str(artifact_row["hash"]),
+        source_kind=str(artifact_row["source_kind"]),
+        created_at=str(artifact_row["created_at"]),
+        retention_expires_at=str(artifact_row["retention_expires_at"]),
+        status=str(artifact_row["status"]),
+    )
+    subjob = AISubjobResult(
+        job_id=str(child["job_id"]),
+        parent_job_id=str(root["job_id"]),
+        run_id=str(child["run_id"]),
+        attempt=int(child["attempt"]),
+        task_id=str(child["task_id"]),
+        agent_id=str(child["agent_id"]),
+        skill_name=str(child["skill_name"]),
+        target_date=str(child["target_date"]),
+        settings_version=str(child["settings_version"]),
+        input_refs=tuple(child_input_refs),
+        evidence_refs=tuple(child_evidence_refs),
+        input_hash=str(child["input_hash"]),
+        deadline_at=str(child["deadline_at"]),
+        result_status="success",
+        payload=child_payload,
+        resolved_model=str(child["resolved_model"]),
+        reasoning_setting=str(child["reasoning_setting"]),
+        auth_mode=str(child["auth_mode"]),
+    )
+    return AIJobResult(
+        job_id=str(root["job_id"]),
+        run_id=str(root["run_id"]),
+        attempt=int(root["attempt"]),
+        task_id=str(root["task_id"]),
+        agent_id=str(root["agent_id"]),
+        skill_name=str(root["skill_name"]),
+        target_date=str(root["target_date"]),
+        settings_version=str(root["settings_version"]),
+        input_refs=tuple(root_input_refs),
+        evidence_refs=tuple(root_evidence_refs),
+        input_hash=str(root["input_hash"]),
+        deadline_at=str(root["deadline_at"]),
+        result_status="success",
+        adoption_status="pending",
+        payload=root_payload,
+        error=None,
+        artifact=artifact,
+        subjobs=(subjob,),
+        resolved_model=str(root["resolved_model"]),
+        reasoning_setting=str(root["reasoning_setting"]),
+        auth_mode=str(root["auth_mode"]),
+        started_at=str(root["started_at"]),
+        finished_at=str(root["finished_at"]),
     )
 
 

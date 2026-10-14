@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlsplit
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from automation.inago.clock import Clock, SystemClock
@@ -26,6 +26,7 @@ from automation.inago.repository import (
     ReceiptRevisionConflict,
     record_pending_human_action,
 )
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 MAX_REQUEST_BYTES = 64 * 1024
@@ -61,7 +62,9 @@ def _request_validator() -> Draft202012Validator:
         Draft202012Validator.check_schema(schema)
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise RuntimeError("human report request schema cannot be loaded") from exc
-    return Draft202012Validator(schema, format_checker=FormatChecker())
+    return Draft202012Validator(
+        schema, format_checker=rfc3339_format_checker()
+    )
 
 
 def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:

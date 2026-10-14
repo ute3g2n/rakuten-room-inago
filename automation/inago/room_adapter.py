@@ -17,12 +17,13 @@ from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 from urllib.parse import unquote, urlsplit
 
-from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema import Draft202012Validator, ValidationError
 
 from automation.inago.clock import Clock, SystemClock
 from automation.inago.contracts import RejectedContract
 from automation.inago.repository import validate_entity
 from automation.inago.selection import ProductIdentity, identify_offer
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +34,7 @@ _OBS_SCHEMA_PATH = (
     _ROOT / "automation" / "inago" / "schemas" / "ai-observation.schema.json"
 )
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
+MAX_PRODUCT_RESOLUTION_FAILURES = 10
 _OBSERVABLE_FIELDS = frozenset(
     {"query", "likes_min", "current_search_id", "search_loaded", "internal_order"}
 )
@@ -283,8 +285,6 @@ class RoomSearchSession:
                 raise RoomContractError(
                     "daily search attempt counter disagrees with persisted attempts"
                 )
-            if not current and attempts >= 9:
-                raise RoomContractError("daily run already used 9 search attempts")
             if connection.execute(
                 "SELECT 1 FROM search_attempt WHERE attempt_id = ?", (attempt_id,)
             ).fetchone():
@@ -702,6 +702,18 @@ def _parse_current_room_response(
     if at_limit and response["status"] == "observed":
         limited["end_reached"] = True
     result = _parse_legacy_room_response(limited, request)
+    product_resolution_failures = sum(
+        post.identity_status != "identified" for post in result.posts
+    )
+    if (
+        result.status == "observed"
+        and product_resolution_failures > MAX_PRODUCT_RESOLUTION_FAILURES
+    ):
+        result = replace(
+            result,
+            status="partial",
+            error_code="product_resolution_failures_exceeded",
+        )
     return replace(
         result,
         posts=tuple(
@@ -885,7 +897,9 @@ def validate_room_observations(
     _safe_ref(snapshot_id, "snapshot_id")
     try:
         schema = json.loads(_OBS_SCHEMA_PATH.read_text(encoding="utf-8"))
-        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        validator = Draft202012Validator(
+            schema, format_checker=rfc3339_format_checker()
+        )
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise RoomContractError("OBS response schema is unavailable") from exc
     if not isinstance(observations, Sequence) or isinstance(observations, (str, bytes)):
@@ -946,7 +960,7 @@ def _room_schema() -> Draft202012Validator:
     try:
         schema = json.loads(_ROOM_SCHEMA_PATH.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
-        return Draft202012Validator(schema, format_checker=FormatChecker())
+        return Draft202012Validator(schema, format_checker=rfc3339_format_checker())
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise RoomContractError("ROOM source response schema is unavailable") from exc
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v3.schema.json",
+  "$id": "https://rakuten-room-inago.invalid/schemas/entities-v4.schema.json",
   "title": "Inago SQLite entity contracts",
   "description": "Schema version 3 contracts from Q1.4; old labels are retained for historical records.",
   "$defs": {

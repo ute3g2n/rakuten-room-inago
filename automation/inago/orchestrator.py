@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import queue
 import re
 import secrets
@@ -29,6 +30,7 @@ from automation.inago.metrics import (
     commit_metrics_result,
 )
 from automation.inago.report_apply import apply_pending_reports
+from automation.inago.retention import apply_retention, validate_data_root
 from automation.inago.repository import validate_entity
 from automation.inago.room_adapter import (
     RoomSearchPort,
@@ -57,9 +59,10 @@ PER_THEME_TARGET = 5
 MAX_POSTS_PER_SEARCH = 50
 MAX_COPY_ATTEMPTS = 3
 _DAILY_CHECKPOINT_KEY = "daily_orchestration"
-_DAILY_CHECKPOINT_VERSION = 2
-_DAILY_RULES_VERSION = "requirements-1.4"
+_DAILY_CHECKPOINT_VERSION = 3
+_DAILY_RULES_VERSION = "requirements-1.5"
 _SAFE_RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,79}\Z")
+_SAFE_ACQUISITION_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\Z")
 
 
@@ -256,9 +259,11 @@ class DailyThemePlan:
     theme_id: str
     keyword_refs: tuple[str, ...]
     related: tuple[DailySearchPlan, ...]
-    fallback: DailySearchPlan
-    snapshot_ref: str
-    rules_version: str = "requirements-1.4"
+    fallback: DailySearchPlan | None
+    snapshot_ref: str | None
+    acquisition_status: str = "observed"
+    acquisition_ref: str | None = None
+    rules_version: str = "requirements-1.5"
 
 
 class ThemePlanner(Protocol):
@@ -381,6 +386,52 @@ def _strict_json_object(value: str | None) -> dict[str, Any]:
     return parsed
 
 
+def _migrate_daily_checkpoint_v2(state: object) -> dict[str, Any]:
+    if not isinstance(state, dict):
+        raise DailyOrchestrationError("daily_checkpoint_version_invalid")
+    if (
+        state.get("schema_version") != 2
+        or state.get("rules_version") != "requirements-1.4"
+    ):
+        raise DailyOrchestrationError("daily_checkpoint_version_invalid")
+    plans = state.get("plans")
+    if not isinstance(plans, dict):
+        raise DailyOrchestrationError("daily_checkpoint_work_invalid")
+    old_fields = {
+        "theme_id",
+        "keyword_refs",
+        "related",
+        "fallback",
+        "snapshot_ref",
+        "rules_version",
+    }
+    migrated_plans: dict[str, Any] = {}
+    for key, value in plans.items():
+        if (
+            not isinstance(key, str)
+            or not isinstance(value, dict)
+            or set(value) != old_fields
+            or value.get("rules_version") != "requirements-1.4"
+        ):
+            raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
+        migrated_plan = dict(value)
+        migrated_plan.update(
+            acquisition_status="observed",
+            acquisition_ref=None,
+            legacy_acquisition=True,
+            rules_version=_DAILY_RULES_VERSION,
+        )
+        migrated_plans[key] = migrated_plan
+    migrated = dict(state)
+    migrated.update(
+        schema_version=_DAILY_CHECKPOINT_VERSION,
+        rules_version=_DAILY_RULES_VERSION,
+        migrated_from_schema_version=2,
+        plans=migrated_plans,
+    )
+    return migrated
+
+
 def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]]:
     root = _strict_json_object(checkpoint)
     state = root.get(_DAILY_CHECKPOINT_KEY)
@@ -406,6 +457,13 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
             "handled_offer_keys": [],
             "errors": [],
         }
+        root[_DAILY_CHECKPOINT_KEY] = state
+    elif (
+        isinstance(state, dict)
+        and state.get("schema_version") == 2
+        and state.get("rules_version") == "requirements-1.4"
+    ):
+        state = _migrate_daily_checkpoint_v2(state)
         root[_DAILY_CHECKPOINT_KEY] = state
     if (
         not isinstance(state, dict)
@@ -642,7 +700,9 @@ def _outcome_from_run(row, *, resumed: bool = False, reason: str | None = None):
     )
 
 
-def _validate_plan(plan: DailyThemePlan, theme_id: str) -> None:
+def _validate_plan(
+    plan: DailyThemePlan, theme_id: str, *, allow_legacy_acquisition: bool = False
+) -> None:
     if not isinstance(plan, DailyThemePlan) or plan.theme_id != theme_id:
         raise DailyOrchestrationError("theme_plan_identity_mismatch")
     if plan.rules_version != _DAILY_RULES_VERSION:
@@ -653,14 +713,41 @@ def _validate_plan(plan: DailyThemePlan, theme_id: str) -> None:
         or len(set(plan.keyword_refs)) != len(plan.keyword_refs)
     ):
         raise DailyOrchestrationError("theme_plan_keyword_refs_invalid")
-    if not isinstance(plan.related, tuple) or len(plan.related) != len(
-        plan.keyword_refs
-    ):
+    if not isinstance(plan.related, tuple):
         raise DailyOrchestrationError("theme_related_queue_invalid")
-    if not isinstance(plan.snapshot_ref, str) or not plan.snapshot_ref:
-        raise DailyOrchestrationError("theme_snapshot_ref_missing")
+    if plan.acquisition_status not in {"observed", "exhausted", "deadline"}:
+        raise DailyOrchestrationError("theme_acquisition_status_invalid")
+    if plan.acquisition_ref is not None and not _SAFE_ACQUISITION_REF.fullmatch(
+        plan.acquisition_ref
+    ):
+        raise DailyOrchestrationError("theme_acquisition_ref_invalid")
+    if plan.acquisition_status == "observed":
+        if (
+            not isinstance(plan.snapshot_ref, str)
+            or not plan.snapshot_ref
+            or len(plan.related) != len(plan.keyword_refs)
+            or (plan.acquisition_ref is None and not allow_legacy_acquisition)
+        ):
+            raise DailyOrchestrationError("theme_snapshot_or_related_queue_missing")
+    else:
+        if (
+            plan.snapshot_ref is not None
+            or plan.acquisition_ref is None
+            or plan.keyword_refs
+            or plan.related
+        ):
+            raise DailyOrchestrationError("failed_theme_plan_claims_keyword_data")
+        if not _SAFE_ACQUISITION_REF.fullmatch(plan.acquisition_ref):
+            raise DailyOrchestrationError("theme_acquisition_ref_invalid")
+        if plan.acquisition_status == "exhausted" and plan.fallback is None:
+            raise DailyOrchestrationError("exhausted_theme_plan_missing_fallback")
+        if plan.acquisition_status == "deadline" and plan.fallback is not None:
+            raise DailyOrchestrationError("deadline_theme_plan_has_fallback")
+    searches = (*plan.related, *((plan.fallback,) if plan.fallback is not None else ()))
+    if plan.acquisition_status == "observed" and plan.fallback is None:
+        raise DailyOrchestrationError("observed_theme_plan_missing_fallback")
     seen = set()
-    for search in (*plan.related, plan.fallback):
+    for search in searches:
         if not isinstance(search, DailySearchPlan) or search.theme_id != theme_id:
             raise DailyOrchestrationError("theme_search_identity_mismatch")
         if (
@@ -689,11 +776,14 @@ def _validate_plan(plan: DailyThemePlan, theme_id: str) -> None:
         if search.task_id in seen:
             raise DailyOrchestrationError("theme_search_task_duplicated")
         seen.add(search.task_id)
-    if plan.fallback.kind != "theme_fallback" or any(
-        item.kind != "related" for item in plan.related
-    ):
+    if plan.fallback is not None and plan.fallback.kind != "theme_fallback":
+        raise DailyOrchestrationError("theme_fallback_kind_invalid")
+    if any(item.kind != "related" for item in plan.related):
         raise DailyOrchestrationError("theme_search_queue_order_invalid")
-    if tuple(item.selected_word_ref for item in plan.related) != plan.keyword_refs:
+    if (
+        plan.acquisition_status == "observed"
+        and tuple(item.selected_word_ref for item in plan.related) != plan.keyword_refs
+    ):
         raise DailyOrchestrationError("theme_selected_order_changed")
 
 
@@ -714,21 +804,38 @@ def _plan_to_dict(plan: DailyThemePlan) -> dict[str, Any]:
         "theme_id": plan.theme_id,
         "keyword_refs": list(plan.keyword_refs),
         "related": [search_to_dict(item) for item in plan.related],
-        "fallback": search_to_dict(plan.fallback),
+        "fallback": (
+            search_to_dict(plan.fallback) if plan.fallback is not None else None
+        ),
         "snapshot_ref": plan.snapshot_ref,
+        "acquisition_status": plan.acquisition_status,
+        "acquisition_ref": plan.acquisition_ref,
         "rules_version": plan.rules_version,
     }
 
 
-def _plan_from_dict(value: object) -> DailyThemePlan:
-    if not isinstance(value, dict) or set(value) != {
+def _plan_from_dict(
+    value: object, *, allow_legacy_acquisition: bool = False
+) -> DailyThemePlan:
+    current_fields = {
         "theme_id",
         "keyword_refs",
         "related",
         "fallback",
         "snapshot_ref",
+        "acquisition_status",
+        "acquisition_ref",
         "rules_version",
-    }:
+    }
+    legacy_fields = current_fields | {"legacy_acquisition"}
+    if not isinstance(value, dict) or not (
+        set(value) == current_fields
+        or (
+            allow_legacy_acquisition
+            and set(value) == legacy_fields
+            and value.get("legacy_acquisition") is True
+        )
+    ):
         raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
 
     def search_from_dict(item):
@@ -754,15 +861,22 @@ def _plan_from_dict(value: object) -> DailyThemePlan:
         value["related"], list
     ):
         raise DailyOrchestrationError("saved_theme_plan_lists_invalid")
+    fallback = (
+        search_from_dict(value["fallback"]) if value["fallback"] is not None else None
+    )
     plan = DailyThemePlan(
         theme_id=value["theme_id"],
         keyword_refs=tuple(value["keyword_refs"]),
         related=tuple(search_from_dict(item) for item in value["related"]),
-        fallback=search_from_dict(value["fallback"]),
+        fallback=fallback,
         snapshot_ref=value["snapshot_ref"],
+        acquisition_status=value["acquisition_status"],
+        acquisition_ref=value["acquisition_ref"],
         rules_version=value["rules_version"],
     )
-    _validate_plan(plan, plan.theme_id)
+    _validate_plan(
+        plan, plan.theme_id, allow_legacy_acquisition=allow_legacy_acquisition
+    )
     return plan
 
 
@@ -798,14 +912,22 @@ def _get_plan(
     key = f"{event_kind}:{ordinal:02d}"
     raw = state["plans"].get(key)
     if raw is not None:
-        plan = _plan_from_dict(raw)
-        _validate_plan(plan, theme_id)
+        legacy_plan = (
+            state.get("migrated_from_schema_version") == 2
+            and isinstance(raw, dict)
+            and raw.get("legacy_acquisition") is True
+        )
+        plan = _plan_from_dict(raw, allow_legacy_acquisition=legacy_plan)
+        _validate_plan(plan, theme_id, allow_legacy_acquisition=legacy_plan)
         _validate_plan_snapshot(
             connection,
             plan,
             run_id=run_id,
             settings_version=settings_version,
             seed=seed,
+            event_kind=event_kind,
+            ordinal=ordinal,
+            allow_legacy_acquisition=legacy_plan,
         )
         return plan
     # The planner must return data tied to its persisted Trends/KEY snapshot;
@@ -821,7 +943,13 @@ def _get_plan(
     )
     _validate_plan(plan, theme_id)
     _validate_plan_snapshot(
-        connection, plan, run_id=run_id, settings_version=settings_version, seed=seed
+        connection,
+        plan,
+        run_id=run_id,
+        settings_version=settings_version,
+        seed=seed,
+        event_kind=event_kind,
+        ordinal=ordinal,
     )
     event_id = f"theme-selection:{run_id}:{event_kind}:{ordinal:02d}"
     events = load_theme_selection_events(connection, run_id, event_kind=event_kind)
@@ -845,8 +973,95 @@ def _get_plan(
 
 
 def _validate_plan_snapshot(
-    connection, plan, *, run_id, settings_version, seed
+    connection,
+    plan,
+    *,
+    run_id,
+    settings_version,
+    seed,
+    event_kind,
+    ordinal,
+    allow_legacy_acquisition=False,
 ) -> None:
+    acquisition = None
+    if plan.acquisition_ref is None and not (
+        allow_legacy_acquisition and plan.acquisition_status == "observed"
+    ):
+        raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+    if plan.acquisition_ref is not None:
+        row = connection.execute(
+            "SELECT run_id,settings_version,event_kind,ordinal,theme_id,query_word,seed,"
+            "status,attempts_used,snapshot_id FROM trends_acquisition "
+            "WHERE acquisition_id=?",
+            (plan.acquisition_ref,),
+        ).fetchone()
+        if (
+            row is None
+            or tuple(row[:5])
+            != (run_id, settings_version, event_kind, ordinal, plan.theme_id)
+            or row["seed"] != seed
+            or not isinstance(row["query_word"], str)
+            or not row["query_word"].strip()
+            or (plan.fallback is not None and row["query_word"] != plan.fallback.query)
+            or (
+                plan.acquisition_status == "observed"
+                and (
+                    row["status"] not in {"observed", "normal_zero"}
+                    or row["snapshot_id"] != plan.snapshot_ref
+                    or not 1 <= row["attempts_used"] <= 5
+                )
+            )
+            or (
+                plan.acquisition_status != "observed"
+                and (
+                    row["status"] != plan.acquisition_status
+                    or row["snapshot_id"] is not None
+                )
+            )
+            or (plan.acquisition_status == "exhausted" and row["attempts_used"] != 5)
+            or (
+                plan.acquisition_status == "deadline"
+                and not 0 <= row["attempts_used"] <= 5
+            )
+        ):
+            raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+        attempt_rows = connection.execute(
+            "SELECT attempt_no,status FROM trends_acquisition_attempt "
+            "WHERE acquisition_id=? ORDER BY attempt_no",
+            (plan.acquisition_ref,),
+        ).fetchall()
+        if [item[0] for item in attempt_rows] != list(
+            range(1, row["attempts_used"] + 1)
+        ):
+            raise DailyOrchestrationError(
+                "theme_acquisition_attempt_history_incomplete"
+            )
+        if plan.acquisition_status == "observed":
+            if (
+                not attempt_rows
+                or attempt_rows[-1][1] != "response_ready"
+                or any(
+                    item[1] not in {"unavailable", "interrupted"}
+                    for item in attempt_rows[:-1]
+                )
+            ):
+                raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+            acquisition = row
+        else:
+            allowed_attempt_states = {"unavailable", "interrupted"}
+            if plan.acquisition_status == "deadline" and attempt_rows:
+                if attempt_rows[-1][1] == "deadline":
+                    allowed_attempt_states.add("deadline")
+            if any(item[1] not in allowed_attempt_states for item in attempt_rows):
+                error = (
+                    "theme_acquisition_exhaustion_unverified"
+                    if plan.acquisition_status == "exhausted"
+                    else "theme_acquisition_deadline_unverified"
+                )
+                raise DailyOrchestrationError(error)
+            return
+    if plan.fallback is None or plan.snapshot_ref is None:
+        raise DailyOrchestrationError("theme_snapshot_or_fallback_missing")
     request = TrendsRequest(
         plan.snapshot_ref, run_id, settings_version, plan.fallback.query, range="3m"
     )
@@ -858,6 +1073,11 @@ def _validate_plan_snapshot(
         or saved.seed != seed
     ):
         raise DailyOrchestrationError("theme_plan_snapshot_not_adopted")
+    if acquisition is not None and (
+        (acquisition["status"] == "normal_zero" and bool(saved.snapshot.words))
+        or (acquisition["status"] == "observed" and not saved.snapshot.words)
+    ):
+        raise DailyOrchestrationError("theme_acquisition_zero_status_mismatch")
     if tuple(item.word_id for item in saved.selected) != plan.keyword_refs or tuple(
         item.raw for item in saved.selected
     ) != tuple(item.query for item in plan.related):
@@ -867,7 +1087,14 @@ def _validate_plan_snapshot(
 def _make_tasks(
     plans: Sequence[DailyThemePlan], *, phase: str, first_number: int
 ) -> list[dict[str, Any]]:
-    searches = [search for plan in plans for search in (*plan.related, plan.fallback)]
+    searches = [
+        search
+        for plan in plans
+        for search in (
+            *plan.related,
+            *((plan.fallback,) if plan.fallback is not None else ()),
+        )
+    ]
     return [
         _task(search, phase=phase, ordinal=first_number + offset)
         for offset, search in enumerate(searches)
@@ -1701,8 +1928,10 @@ def run_daily(
         return DailyRunOutcome("not_due", None, target_date, 0, 0, "not_started")
     id_factory = run_id_factory or (lambda target: f"INAGO-{target.isoformat()}")
     actual_seed_factory = seed_factory or (lambda: secrets.token_urlsafe(24))
-    root = Path(data_root).expanduser().resolve()
+    requested_root = Path(data_root).expanduser()
+    root = validate_data_root(requested_root, allow_missing=True)
     root.mkdir(parents=True, exist_ok=True)
+    root = validate_data_root(requested_root)
     existing_before_lock = _run_by_date(connection, target_date)
     proposed_run_id = (
         str(existing_before_lock["run_id"])
@@ -1728,6 +1957,32 @@ def run_daily(
         )
 
     with lock, ExitStack() as daily_resources:
+        retention = apply_retention(
+            connection,
+            data_root=root,
+            now=_now(system_clock),
+        )
+        logging.getLogger(__name__).info(
+            "daily_retention_applied",
+            extra={
+                "run_id": proposed_run_id,
+                "expired_artifacts": retention.expired_artifacts,
+                "expired_source_posts": retention.expired_source_posts,
+                "expired_keyword_snapshots": retention.expired_keyword_snapshots,
+                "expired_trends_responses": retention.expired_trends_responses,
+                "expired_source_observation_files": (
+                    retention.expired_source_observation_files
+                ),
+                "source_observation_deletion_failures": (
+                    retention.source_observation_deletion_failures
+                ),
+            },
+        )
+        if (
+            retention.source_observation_deletion_failures
+            or retention.file_deletion_failures
+        ):
+            raise DailyOrchestrationError("daily_retention_cleanup_failed")
         existing = _run_by_date(connection, target_date)
         if now.time() >= METRICS_CUTOFF:
             if existing is not None:
@@ -1765,6 +2020,20 @@ def run_daily(
         run_id = str(run["run_id"])
         if run["status"] in {"complete", "missed"}:
             return _outcome_from_run(run, resumed=resumed)
+        saved_root = _strict_json_object(run["checkpoint"])
+        saved_daily = saved_root.get(_DAILY_CHECKPOINT_KEY)
+        if (
+            isinstance(saved_daily, dict)
+            and saved_daily.get("schema_version") == 2
+            and saved_daily.get("rules_version") == "requirements-1.4"
+        ):
+            _, migrated_state = _daily_state(run["checkpoint"])
+            _save_state(connection, run_id, migrated_state)
+            run = connection.execute(
+                "SELECT * FROM run WHERE run_id=?", (run_id,)
+            ).fetchone()
+            if run is None:
+                raise DailyOrchestrationError("daily_run_disappeared")
         _daily_state(run["checkpoint"])
         _set_running_for_resume(connection, run_id)
         current = connection.execute(

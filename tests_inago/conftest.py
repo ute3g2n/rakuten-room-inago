@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import FormatChecker, validate
+from jsonschema import validate
+
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -139,7 +141,7 @@ def validate_fixture_document(document: dict[str, object]) -> None:
     validate(
         instance=document,
         schema=FIXTURE_CONFIG_SCHEMA,
-        format_checker=FormatChecker(),
+        format_checker=rfc3339_format_checker(),
     )
 
 

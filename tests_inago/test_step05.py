@@ -315,11 +315,11 @@ def test_v1_migration_preserves_pending_report_and_adds_nullable_actual_time(
     )
 
     try:
-        assert initialize_database(connection) == 3
+        assert initialize_database(connection) == 4
         assert connection.execute(
             "SELECT version FROM schema_migration ORDER BY version"
-        ).fetchall() == [(1,), (2,), (3,)]
-        assert connection.execute("PRAGMA user_version").fetchone() == (3,)
+        ).fetchall() == [(1,), (2,), (3,), (4,)]
+        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
         action = connection.execute(
             "SELECT action_id, reported_at, actual_posted_at, apply_status "
             "FROM human_action WHERE action_id = 'ACT-OLD'"
@@ -330,8 +330,8 @@ def test_v1_migration_preserves_pending_report_and_adds_nullable_actual_time(
             None,
             "pending",
         )
-        assert initialize_database(connection) == 3
-        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 3
+        assert initialize_database(connection) == 4
+        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 4
     finally:
         connection.close()
 

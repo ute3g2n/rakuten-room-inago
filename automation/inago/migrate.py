@@ -11,12 +11,13 @@ from pathlib import Path
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from automation.inago.contracts import PersistenceContractError
 from automation.inago.paths import PROJECT_ROOT, SAFE_FIXTURE_BASE
 from automation.inago.repository import validate_entity
+from automation.jsonschema_formats import rfc3339_format_checker
 from automation.inago.selection import identify_offer, normalize_offer_url
 
 
@@ -266,7 +267,7 @@ def _schema_for(kind: str) -> dict[str, Any]:
 def _validate_legacy(kind: str, value: Any, *, location: str) -> None:
     try:
         Draft202012Validator(
-            _schema_for(kind), format_checker=FormatChecker()
+            _schema_for(kind), format_checker=rfc3339_format_checker()
         ).validate(value)
     except ValidationError as exc:
         raise MigrationInputError(
@@ -553,7 +554,9 @@ def _validate_result_document(document: dict[str, Any]) -> None:
     try:
         schema = json.loads(_RESULT_SCHEMA_PATH.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(schema, format_checker=FormatChecker()).validate(document)
+        Draft202012Validator(
+            schema, format_checker=rfc3339_format_checker()
+        ).validate(document)
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise MigrationInputError(
             "migration result does not satisfy its schema"

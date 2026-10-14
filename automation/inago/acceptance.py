@@ -269,11 +269,25 @@ def _live_status(case_id: str) -> str:
     if case_id == "C-026":
         return "registryのID/phaseのみ確認。全実観測はSTEP23で未実施。"
     if case_id == "C-028":
-        return "固定許可表とfixtureのみ。認証済みroot/native subagentはSTEP20で未実証。"
+        return (
+            "STEP20で認証済みAI-O root/native subagentを実証し、STEP21.4/21.5で"
+            "同rootのKEY委譲・採用を確認。13:00日次全体の実運転は未確認。"
+        )
     if case_id in {"A-02", "X-02"}:
-        return "固定契約のfixtureのみ。認証済みAI役割動作はSTEP20で未実証。"
-    if case_id in {"A-03", "A-10"}:
-        return "固定契約のfixtureのみ。Trends/ROOMの実取得はSTEP21で未実証。"
+        return (
+            "STEP20でChatGPT認証のAI-Oとnative専門役委譲を実証。"
+            "全日次実行と本番起動は未確認。"
+        )
+    if case_id == "A-03":
+        return (
+            "STEP21.5で公開Explore Top20取得・隔離保存と、AI-O/AG-KEYの"
+            "重複分類・採用を確認。日次全体への接続は未確認。"
+        )
+    if case_id == "A-10":
+        return (
+            "STEP21.5で公開ROOM検索条件反映と商品詳細描画を読み取り確認。"
+            "実行記録上の50件試験は50/50、別試験は20/20。日次intake確定は未確認。"
+        )
     if case_id == "X-07":
         return "匿名算術入力/結果の整合性だけ確認。市場成果・実運用供給は未実証。"
     return "STEP19はfixture/document範囲のみ。実AI・外部取得・本番接続は未実証。"
@@ -636,7 +650,7 @@ def run_fixture_subset_for_selected_cases(
             env=environment,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=600,
             check=False,
         )
         stdout_path.write_text(completed.stdout, encoding="utf-8")

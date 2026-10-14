@@ -13,7 +13,7 @@ from threading import Event, Thread
 from time import sleep
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 from automation.inago.ai_runner import (
     AIJobRequest,
@@ -24,6 +24,7 @@ from automation.inago.ai_runner import (
     _child_agent_type,
 )
 from automation.inago.clock import FakeClock, JST
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -554,6 +555,7 @@ def test_live_ai_case_registry_covers_seven_roles_with_synthetic_safe_inputs() -
         if case["task_id"] == "T02":
             assert case["trigger"] == "scheduled_daily"
             assert case["explicit_user_request"] is False
+            assert "search_limit" not in case["input_payload"]
             assert len({target["offer_key"] for target in case["copy_targets"]}) == len(
                 case["copy_targets"]
             )
@@ -746,7 +748,9 @@ def test_each_specialist_payload_schema_accepts_its_declared_shape(
     schema = json.loads(
         (SCHEMA_ROOT / f"ai-{name}.schema.json").read_text(encoding="utf-8")
     )
-    Draft202012Validator(schema, format_checker=FormatChecker()).validate(payload)
+    Draft202012Validator(
+        schema, format_checker=rfc3339_format_checker()
+    ).validate(payload)
 
 
 @pytest.mark.parametrize("task_id", ["T02", "T05", "T06", "T07", "T08", "T09", "T10"])

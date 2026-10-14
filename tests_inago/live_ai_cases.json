@@ -271,7 +271,6 @@
         "run_status": "partial",
         "checkpoint": "14 drafts committed; metrics retrieval pending",
         "attempts_used": 8,
-        "search_limit": 9,
         "error": {
           "code": "fixture_timeout",
           "secret_redacted": true

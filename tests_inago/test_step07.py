@@ -696,7 +696,7 @@ def test_q19_367_observations_42_representatives_38_distinct_and_D11() -> None:
     assert sum(summary.primary_reason_counts.values()) == 367
 
 
-def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bound() -> (
+def test_daily_statistics_count_failed_zero_attempts_without_search_cap() -> (
     None
 ):
     empty = evaluate_sources([], seed=RUN_SEED, history=OfferHistory())
@@ -712,12 +712,12 @@ def test_daily_statistics_count_failed_zero_attempts_and_enforce_daily_search_bo
     assert summary.search_attempts == 2
     assert summary.search_status_counts == {"observed": 1, "unavailable": 1}
     assert summary.observed_posts == 0
-    with pytest.raises(RejectedContract):
-        summarize_daily(
-            [SearchAttempt(n, "observed", empty) for n in range(1, 11)],
-            committed_count=0,
-            posted_count=0,
-        )
+    many_attempts = [SearchAttempt(n, "observed", empty) for n in range(1, 13)]
+    unbounded = summarize_daily(
+        many_attempts, committed_count=0, posted_count=0
+    )
+    assert unbounded.search_attempts == 12
+    assert unbounded.search_status_counts == {"observed": 12}
     with pytest.raises(RejectedContract):
         summarize_daily([], committed_count=16, posted_count=0)
     with pytest.raises(RejectedContract):

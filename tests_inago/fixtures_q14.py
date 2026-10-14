@@ -1,5 +1,7 @@
 """Current Q1.4 observed-word fixture planner; no external source access."""
 
+import json
+
 from automation.inago import orchestrator as daily
 from automation.inago import trends_adapter as trends
 
@@ -24,7 +26,10 @@ class CurrentPlanner:
         )
         if self.fail_at == len(self.calls):
             raise trends.KeywordAcquisitionStopped("fixture_http_429")
-        sid = f"KW-{theme}"
+        acquisition_id = (
+            f"ACQ-{values['run_id']}-{values['event_kind']}-{values['ordinal']:02d}"
+        )
+        sid = f"{acquisition_id}-a1"
         theme_word = f"theme::{theme}"
         request = trends.TrendsRequest(
             sid, values["run_id"], values["settings_version"], theme_word, range="3m"
@@ -77,6 +82,41 @@ class CurrentPlanner:
         trends.save_grouped_snapshot(
             connection, snapshot, decisions=decisions, seed=values["seed"]
         )
+        acquired_status = "normal_zero" if not snapshot.words else "observed"
+        stamp = self.case.clock.now_jst().isoformat()
+        connection.execute(
+            "INSERT INTO trends_acquisition (acquisition_id,run_id,settings_version,"
+            "event_kind,ordinal,theme_id,query_word,seed,status,attempts_used,"
+            "next_retry_at,snapshot_id,error_code,created_at,updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,1,NULL,?,NULL,?,?)",
+            (
+                acquisition_id,
+                values["run_id"],
+                values["settings_version"],
+                values["event_kind"],
+                values["ordinal"],
+                theme,
+                theme_word,
+                values["seed"],
+                acquired_status,
+                sid,
+                stamp,
+                stamp,
+            ),
+        )
+        connection.execute(
+            "INSERT INTO trends_acquisition_attempt (request_id,acquisition_id,"
+            "attempt_no,retry_of,started_at,ended_at,status,error_code,evidence_ref,"
+            "next_retry_at,response_json) VALUES (?,?,1,NULL,?,?,'response_ready',"
+            "NULL,NULL,NULL,?)",
+            (
+                sid,
+                acquisition_id,
+                stamp,
+                stamp,
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            ),
+        )
         stored = trends.load_grouped_snapshot(connection, sid, request=request)
         searches = tuple(
             daily.DailySearchPlan(
@@ -105,4 +145,6 @@ class CurrentPlanner:
             related=searches,
             fallback=fallback,
             snapshot_ref=sid,
+            acquisition_status="observed",
+            acquisition_ref=acquisition_id,
         )

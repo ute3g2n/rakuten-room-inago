@@ -9,6 +9,7 @@ import math
 import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -21,7 +22,7 @@ from threading import Event, Lock
 from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import quote
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from automation.inago.clock import Clock, SystemClock
@@ -35,6 +36,8 @@ from automation.inago.contracts import (
 )
 from automation.inago.artifact_io import write_temp_response_bytes
 from automation.inago.repository import validate_entity
+from automation.inago.retention import retention_expiry, validate_data_root
+from automation.jsonschema_formats import rfc3339_format_checker
 
 
 _AI_ROOT = Path(__file__).resolve().parent
@@ -102,6 +105,54 @@ _AGENT_TYPE_ALIASES: dict[str, frozenset[str]] = {
     if agent_id != "AI-O"
     for skill in task_map.values()
 }
+
+
+def _runtime_path_exists_without_links(data_root: Path, path: Path) -> bool:
+    """Check every existing path component before a runtime file is accessed.
+
+    ``Path.exists`` follows links and reports a dangling symlink as absent. The
+    component-wise ``lstat`` walk rejects symbolic links and Windows reparse
+    points before callers decide whether a missing path should be created.
+    Path-based operations also assume that production data_root and its
+    ancestors are private to the service account and trusted OS principals;
+    a process trusted with write access to that root is inside this boundary.
+    STEP24 must verify the configured Windows ACL before activating production.
+    """
+
+    # The runner writes its first trace event before creating data_root; validate
+    # every existing ancestor while allowing that final runtime directory to
+    # remain absent until the storage owner creates it.
+    validate_data_root(data_root, allow_missing=True)
+    root = Path(os.path.abspath(Path(data_root).expanduser()))
+    target = Path(os.path.abspath(Path(path).expanduser()))
+    try:
+        relative = target.relative_to(root)
+    except (OSError, ValueError) as exc:
+        raise PersistenceContractError(
+            "runtime file path escaped the explicit data root"
+        ) from exc
+    if not relative.parts:
+        raise PersistenceContractError("runtime file path is not a child file")
+
+    cursor = root
+    for part in relative.parts:
+        cursor = cursor / part
+        try:
+            details = cursor.lstat()
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            raise PersistenceContractError(
+                "runtime file path cannot be inspected safely"
+            ) from exc
+        attributes = getattr(details, "st_file_attributes", 0)
+        if stat.S_ISLNK(details.st_mode) or attributes & getattr(
+            os, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400
+        ):
+            raise PersistenceContractError(
+                "runtime file path contains a symbolic link or reparse point"
+            )
+    return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -453,7 +504,7 @@ def _parse_jsonl(stdout: bytes) -> tuple[list[dict[str, Any]], bool]:
 
 def _schema_errors(schema_path: Path, instance: Mapping[str, Any]) -> bool:
     schema = _load_schema(schema_path)
-    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    validator = Draft202012Validator(schema, format_checker=rfc3339_format_checker())
     return next(validator.iter_errors(dict(instance)), None) is not None
 
 
@@ -525,7 +576,7 @@ class AIJobRunner:
             raise ValueError("poll_interval_seconds must be positive and finite")
         if not isinstance(require_observed_metadata, bool):
             raise ValueError("require_observed_metadata must be a boolean")
-        self.data_root = Path(data_root).expanduser().resolve()
+        self.data_root = validate_data_root(data_root, allow_missing=True)
         self.skill_root = (
             Path(skill_root).expanduser().resolve()
             if skill_root is not None
@@ -886,6 +937,341 @@ class AIJobRunner:
         )
         return self.data_root / "logs" / request.target_date / filename
 
+    def recover_successful_result(self, request: AIJobRequest) -> AIJobResult | None:
+        """Rebuild a validated success lost between runner return and DB indexing.
+
+        The final allowlisted trace event is written only after response schema,
+        identity, and native-subagent validation succeeds. Paired with the raw
+        response artifact, it is sufficient to resume indexing without another
+        model call. An incomplete trace is not evidence of a completed job.
+        """
+
+        input_hash = _validate_request(request)
+        artifact_ref = f"{request.job_id}-a{request.attempt}-response"
+        root = validate_data_root(self.data_root)
+        artifact_path = (
+            root / "artifacts" / request.source_kind / f"{artifact_ref}.response"
+        )
+        trace_path = self._trace_path(request)
+        if not _runtime_path_exists_without_links(root, artifact_path):
+            return None
+        if not _runtime_path_exists_without_links(root, trace_path):
+            return None
+
+        def resolve_runtime_file(path: Path) -> Path:
+            try:
+                relative = Path(os.path.abspath(path)).relative_to(root)
+            except (OSError, ValueError) as exc:
+                raise PersistenceContractError(
+                    "recovery file escaped the explicit data root"
+                ) from exc
+            cursor = root
+            for part in relative.parts:
+                cursor = cursor / part
+                if cursor.is_symlink():
+                    raise PersistenceContractError(
+                        "recovery file path contains a symbolic link"
+                    )
+                try:
+                    if getattr(cursor.lstat(), "st_file_attributes", 0) & 0x400:
+                        raise PersistenceContractError(
+                            "recovery file path contains a reparse point"
+                        )
+                except FileNotFoundError as exc:
+                    raise PersistenceContractError("recovery file disappeared") from exc
+            try:
+                resolved = path.resolve(strict=True)
+                resolved.relative_to(root)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise PersistenceContractError(
+                    "recovery file is unavailable or escaped the explicit data root"
+                ) from exc
+            if not resolved.is_file():
+                raise PersistenceContractError("recovery path is not a regular file")
+            return resolved
+
+        resolved_artifact = resolve_runtime_file(artifact_path)
+        resolved_trace = resolve_runtime_file(trace_path)
+        try:
+            trace_records = [
+                json.loads(line)
+                for line in resolved_trace.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            raw = resolved_artifact.read_bytes()
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise PersistenceContractError(
+                "recovery artifact or trace is malformed"
+            ) from exc
+        if not raw or not trace_records:
+            return None
+        if any(not isinstance(item, dict) for item in trace_records):
+            raise PersistenceContractError("recovery trace contains a non-object event")
+
+        identity = {
+            "schema_version": "1",
+            "run_id": request.run_id,
+            "job_id": request.job_id,
+            "attempt": request.attempt,
+            "task_id": request.task_id,
+            "settings_version": request.settings_version,
+        }
+        if any(
+            any(record.get(key) != value for key, value in identity.items())
+            for record in trace_records
+        ):
+            raise PersistenceContractError("recovery trace identity does not match")
+
+        invocations: list[list[dict[str, Any]]] = []
+        for record in trace_records:
+            if record.get("event") == "job_started":
+                invocations.append([record])
+            elif invocations:
+                invocations[-1].append(record)
+        successful_invocations = []
+        for invocation in invocations:
+            terminal_events = [
+                record for record in invocation if record.get("event") == "job_finished"
+            ]
+            if (
+                len(terminal_events) == 1
+                and terminal_events[0].get("result_status") == "success"
+                and terminal_events[0].get("adoption_status") == "pending"
+                and terminal_events[0].get("artifact_ref") == artifact_ref
+                and terminal_events[0].get("process_returncode") == 0
+            ):
+                successful_invocations.append(invocation)
+        if not successful_invocations:
+            return None
+        # An earlier success remains recoverable if a later reused identity
+        # ended with an artifact collision or another rejected result.
+        trace_records = successful_invocations[-1]
+
+        def exactly_one(event_name: str) -> tuple[int, dict[str, Any]] | None:
+            matches = [
+                (index, record)
+                for index, record in enumerate(trace_records)
+                if record.get("event") == event_name
+            ]
+            return matches[0] if len(matches) == 1 else None
+
+        started = exactly_one("job_started")
+        auth = exactly_one("auth_observed")
+        cli_finished = exactly_one("cli_finished")
+        artifact_saved = exactly_one("artifact_saved")
+        session_observed = exactly_one("session_trace_observed")
+        job_finished = exactly_one("job_finished")
+        if any(
+            event is None
+            for event in (
+                started,
+                auth,
+                cli_finished,
+                artifact_saved,
+                session_observed,
+                job_finished,
+            )
+        ):
+            return None
+        assert started is not None
+        assert auth is not None
+        assert cli_finished is not None
+        assert artifact_saved is not None
+        assert session_observed is not None
+        assert job_finished is not None
+        event_indexes = [
+            started[0],
+            auth[0],
+            cli_finished[0],
+            artifact_saved[0],
+            session_observed[0],
+            job_finished[0],
+        ]
+        if event_indexes != sorted(event_indexes):
+            raise PersistenceContractError("recovery trace event order is invalid")
+        terminal = job_finished[1]
+        if (
+            auth[1].get("auth_mode") != "chatgpt"
+            or cli_finished[1].get("process_status") != "completed"
+            or cli_finished[1].get("process_returncode") != 0
+            or artifact_saved[1].get("artifact_ref") != artifact_ref
+            or terminal.get("result_status") != "success"
+            or terminal.get("adoption_status") != "pending"
+            or terminal.get("error_code") is not None
+            or terminal.get("auth_mode") != "chatgpt"
+            or terminal.get("artifact_ref") != artifact_ref
+            or terminal.get("process_returncode") != 0
+        ):
+            return None
+
+        root_model = terminal.get("resolved_model")
+        root_reasoning = terminal.get("reasoning_setting")
+        observed = session_observed[1]
+        if (
+            not isinstance(root_model, str)
+            or not root_model
+            or not isinstance(root_reasoning, str)
+            or not root_reasoning
+            or observed.get("resolved_model") != root_model
+            or observed.get("reasoning_setting") != root_reasoning
+        ):
+            raise PersistenceContractError("recovery root runtime metadata is invalid")
+        child_records = terminal.get("child_agents")
+        observed_children = observed.get("child_agents")
+        if (
+            not isinstance(child_records, list)
+            or not isinstance(observed_children, list)
+            or observed.get("spawn_count") != len(child_records)
+            or len(child_records) != len(observed_children)
+        ):
+            raise PersistenceContractError("recovery child-agent trace is incomplete")
+        for child, observed_child in zip(child_records, observed_children):
+            if not isinstance(child, dict) or not isinstance(observed_child, dict):
+                raise PersistenceContractError(
+                    "recovery child-agent metadata is invalid"
+                )
+            for field in (
+                "agent_id",
+                "resolved_model",
+                "reasoning_setting",
+                "auth_mode",
+            ):
+                if child.get(field) != observed_child.get(field):
+                    raise PersistenceContractError(
+                        "recovery child-agent metadata does not match"
+                    )
+
+        try:
+            response = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PersistenceContractError(
+                "recovery response is not valid JSON"
+            ) from exc
+        if (
+            not isinstance(response, dict)
+            or _schema_errors(_SCHEMA_DIR / "ai-job.schema.json", response)
+            or _validate_identity(request, input_hash, response) is not None
+            or response.get("result_status") != "success"
+            or response.get("error") is not None
+        ):
+            raise PersistenceContractError(
+                "recovery response violates the AI job contract"
+            )
+
+        session_child_values = [
+            {
+                "agent_id": item.get("agent_id"),
+                "resolved_model": item.get("resolved_model"),
+                "reasoning_setting": item.get("reasoning_setting"),
+                "auth_mode": item.get("auth_mode"),
+            }
+            for item in observed_children
+        ]
+        synthetic_events = []
+        child_traces = []
+        for index, child in enumerate(child_records, start=1):
+            agent_id = child.get("agent_id")
+            if (
+                not isinstance(agent_id, str)
+                or agent_id not in _AGENT_TYPE_ALIASES
+                or child.get("auth_mode") != "chatgpt"
+            ):
+                raise PersistenceContractError(
+                    "recovery child-agent identity is invalid"
+                )
+            alias = agent_id.casefold()
+            synthetic_events.append(
+                {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "arguments": {"agent_type": alias},
+                }
+            )
+            child_traces.append(
+                _ObservedSubagent(
+                    agent_type=alias,
+                    thread_id=f"recovered-{index}",
+                    model=child.get("resolved_model"),
+                    reasoning_setting=child.get("reasoning_setting"),
+                )
+            )
+        if session_child_values != [
+            {
+                "agent_id": child.get("agent_id"),
+                "resolved_model": child.get("resolved_model"),
+                "reasoning_setting": child.get("reasoning_setting"),
+                "auth_mode": child.get("auth_mode"),
+            }
+            for child in child_records
+        ]:
+            raise PersistenceContractError(
+                "recovery native-child trace is inconsistent"
+            )
+        subjobs, delegation_error = self._validate_delegations(
+            request,
+            input_hash,
+            response,
+            synthetic_events,
+            child_traces=child_traces,
+            auth_mode="chatgpt",
+        )
+        if delegation_error is not None:
+            raise PersistenceContractError(
+                f"recovery delegation violates the AI job contract: {delegation_error}"
+            )
+
+        started_at = started[1].get("at")
+        finished_at = terminal.get("at")
+        created_at = artifact_saved[1].get("at")
+        for value in (started_at, finished_at, created_at):
+            try:
+                timestamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise PersistenceContractError(
+                    "recovery trace timestamp is invalid"
+                ) from exc
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                raise PersistenceContractError(
+                    "recovery trace timestamp is not timezone-aware"
+                )
+
+        content_hash = hashlib.sha256(raw).hexdigest()
+        artifact = ArtifactRecord(
+            artifact_ref=artifact_ref,
+            path=resolved_artifact,
+            content_hash=content_hash,
+            source_kind=request.source_kind,
+            created_at=str(created_at),
+            retention_expires_at=retention_expiry("raw", str(created_at)).isoformat(),
+            status="available",
+        )
+        return AIJobResult(
+            job_id=request.job_id,
+            run_id=request.run_id,
+            attempt=request.attempt,
+            task_id=request.task_id,
+            agent_id="AI-O",
+            skill_name=_ROOT_SKILL,
+            target_date=request.target_date,
+            settings_version=request.settings_version,
+            input_refs=tuple(request.input_refs),
+            evidence_refs=tuple(request.evidence_refs),
+            input_hash=input_hash,
+            deadline_at=request.deadline_at,
+            result_status="success",
+            adoption_status="pending",
+            payload=dict(response["payload"]),
+            error=None,
+            artifact=artifact,
+            subjobs=subjobs,
+            resolved_model=root_model,
+            reasoning_setting=root_reasoning,
+            auth_mode="chatgpt",
+            process_returncode=0,
+            started_at=str(started_at),
+            finished_at=str(finished_at),
+        )
+
     def _trace_event(
         self,
         request: AIJobRequest,
@@ -896,7 +1282,7 @@ class AIJobRunner:
 
         record: dict[str, Any] = {
             "schema_version": "1",
-            "at": datetime.now().astimezone().isoformat(),
+            "at": self.clock.now_jst().isoformat(),
             "event": event,
             "run_id": request.run_id,
             "job_id": request.job_id,
@@ -996,22 +1382,43 @@ class AIJobRunner:
                 )
                 + "\n"
             ).encode("utf-8")
+            _runtime_path_exists_without_links(self.data_root, path)
             path.parent.mkdir(parents=True, exist_ok=True)
+            _runtime_path_exists_without_links(self.data_root, path)
             with _TRACE_LOCK:
+                _runtime_path_exists_without_links(self.data_root, path)
+                flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
+                flags |= getattr(os, "O_NOFOLLOW", 0)
+                flags |= getattr(os, "O_BINARY", 0)
                 descriptor = os.open(
                     path,
-                    os.O_APPEND | os.O_CREAT | os.O_WRONLY,
+                    flags,
                     0o600,
                 )
                 try:
+                    opened = os.fstat(descriptor)
+                    named = path.lstat()
+                    if (
+                        stat.S_ISLNK(named.st_mode)
+                        or getattr(named, "st_file_attributes", 0)
+                        & getattr(os, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+                        or not stat.S_ISREG(opened.st_mode)
+                        or not stat.S_ISREG(named.st_mode)
+                        or not os.path.samestat(opened, named)
+                    ):
+                        raise PersistenceContractError(
+                            "AI runner trace target changed during safe open"
+                        )
                     os.write(descriptor, encoded)
                 finally:
                     os.close(descriptor)
-        except (OSError, TypeError, ValueError):
+        except (OSError, TypeError, ValueError) as exc:
             logging.getLogger(__name__).warning(
-                "AI runner trace append failed for job %s event %s",
+                "AI runner trace append failed for job %s event %s error_type=%s errno=%s",
                 request.job_id,
                 event,
+                type(exc).__name__,
+                getattr(exc, "errno", None),
             )
 
     @staticmethod
@@ -1094,12 +1501,14 @@ class AIJobRunner:
             ):
                 return None
             raw = resolved.read_bytes()
+            created_at = _iso_timestamp(self.clock.now_jst())
             return write_temp_response_bytes(
                 data_root=self.data_root,
                 artifact_ref=f"{request.job_id}-a{request.attempt}-response",
                 response=raw,
                 source_kind=request.source_kind,
-                created_at=_iso_timestamp(self.clock.now_jst()),
+                created_at=created_at,
+                retention_expires_at=retention_expiry("raw", created_at).isoformat(),
             )
         except (OSError, PersistenceContractError, ValueError):
             return None

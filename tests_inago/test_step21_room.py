@@ -69,6 +69,27 @@ def test_known_condition_contradiction_is_invalid_but_unread_counts_are_valid():
 
 
 @pytest.mark.parametrize(
+    ("failed_product_rows", "expected_status"),
+    [(10, "observed"), (11, "partial")],
+)
+def test_up_to_ten_unresolved_product_rows_do_not_fail_a_room_search(
+    failed_product_rows, expected_status
+):
+    payload = response(50, end=True)
+    for row in payload["posts"][:failed_product_rows]:
+        row.update(item_url=None, observed_shop_id=None, observed_item_id=None)
+
+    result = parse_room_response(payload, request())
+
+    assert result.status == expected_status
+    assert len(result.posts) == 50
+    if failed_product_rows <= 10:
+        assert result.error_code is None
+    else:
+        assert result.error_code == "product_resolution_failures_exceeded"
+
+
+@pytest.mark.parametrize(
     "field,value",
     [
         ("likes_min", 0),
