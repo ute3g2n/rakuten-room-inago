@@ -901,11 +901,19 @@ def test_task_templates_bind_daily_and_human_api_to_safe_modes() -> None:
     human = ET.parse(task_root / "RakutenRoomInagoHumanApi.xml").getroot()
     daily_boundary = daily.find(".//t:CalendarTrigger/t:StartBoundary", namespace)
     human_logon = human.find(".//t:LogonTrigger", namespace)
+    daily_wake_to_run = daily.findtext(
+        ".//t:Settings/t:WakeToRun", namespaces=namespace
+    )
+    human_wake_to_run = human.findtext(
+        ".//t:Settings/t:WakeToRun", namespaces=namespace
+    )
     daily_args = daily.findtext(".//t:Actions/t:Exec/t:Arguments", namespaces=namespace)
     human_args = human.findtext(".//t:Actions/t:Exec/t:Arguments", namespaces=namespace)
 
     assert daily_boundary is not None and daily_boundary.text == "{{START_BOUNDARY}}"
     assert human_logon is not None
+    assert daily_wake_to_run == "true"
+    assert human_wake_to_run == "false"
     assert "daily --environment production" in (daily_args or "")
     assert "serve --environment production" in (human_args or "")
     assert "ROOM" not in (daily_args or "")
@@ -1448,6 +1456,8 @@ def test_task_render_uses_repository_and_leaves_scheduler_untouched(
         assert "--local-app-data" in arguments
         assert f'--user-profile "{user_profile}"' in arguments
         assert f'--local-app-data "{local_app_data}"' in arguments
+        wake_to_run = xml.findtext(".//t:Settings/t:WakeToRun", namespaces=namespace)
+        assert wake_to_run == ("false" if name == "HumanApiXml" else "true")
         if name == "HumanApiXml":
             principal_user = xml.findtext(
                 ".//t:Principal/t:UserId", namespaces=namespace
@@ -1520,6 +1530,7 @@ def test_lifecycle_log_rejects_junction_to_outside_repository(tmp_path: Path) ->
     "state,kind,expected",
     [
         ("Ready", "known", "replaced"),
+        ("Ready", "current_wake_disabled", "replaced"),
         ("Running", "known", "blocked"),
         ("Queued", "known", "blocked"),
         ("Unknown", "known", "blocked"),
@@ -1567,12 +1578,22 @@ $previousApp = Join-Path $previousRoot 'app-20261014-120000'
 $previousPython = Join-Path $previousApp '.venv-inago\Scripts\python.exe'
 $previousConfig = Join-Path $previousRoot 'config\settings.json'
 $previousArgs = "-B -m automation.inago.cli daily --environment production --config `"$previousConfig`" --data-root `"$previousRoot`""
-if ($Kind -eq 'custom') { $previousArgs = 'custom task' }
+$taskExecute = $previousPython
+$taskArgs = $previousArgs
+$taskWorkingDirectory = $previousApp
+$triggerBoundary = '2026-10-01T13:00:00+09:00'
+if ($Kind -eq 'custom') { $taskArgs = 'custom task' }
+if ($Kind -eq 'current_wake_disabled') {
+    $taskExecute = $pythonExe
+    $taskArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+    $taskWorkingDirectory = $applicationRoot
+    $triggerBoundary = $Boundary
+}
 $script:existing = [pscustomobject]@{
-    Actions = @([pscustomobject]@{Execute=$previousPython; Arguments=$previousArgs; WorkingDirectory=$previousApp})
+    Actions = @([pscustomobject]@{Execute=$taskExecute; Arguments=$taskArgs; WorkingDirectory=$taskWorkingDirectory})
     Principal = [pscustomobject]@{UserId=$identity.Name; LogonType='Interactive'; RunLevel='Limited'}
-    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true}
-    Triggers = @([pscustomobject]@{Enabled=$true; DaysInterval=1; StartBoundary='2026-10-01T13:00:00+09:00'; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskDailyTrigger'}})
+    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false}
+    Triggers = @([pscustomobject]@{Enabled=$true; DaysInterval=1; StartBoundary=$triggerBoundary; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskDailyTrigger'}})
     State = $State
 }
 $script:registered = @()
@@ -1688,7 +1709,7 @@ if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
 $script:existing = [pscustomobject]@{
     Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
     Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
-    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true}
+    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false}
     Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
     State = 'Ready'
 }

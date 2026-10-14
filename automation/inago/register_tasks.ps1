@@ -85,6 +85,9 @@ function New-TaskXml([string]$TemplateName, [string]$Mode, [bool]$Daily) {
     $args = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
     $exec.SelectSingleNode('t:Arguments', $manager).InnerText = $args
     $exec.SelectSingleNode('t:WorkingDirectory', $manager).InnerText = $applicationRoot
+    $wakeToRun = $document.SelectSingleNode('//t:Settings/t:WakeToRun', $manager)
+    if ($null -eq $wakeToRun) { throw 'Task template is missing its wake setting.' }
+    $wakeToRun.InnerText = $Daily.ToString().ToLowerInvariant()
     if ($Daily) {
         $boundary = $document.SelectSingleNode('//t:CalendarTrigger/t:StartBoundary', $manager)
         if ($null -eq $boundary) { throw 'Daily task template is missing its calendar boundary.' }
@@ -178,6 +181,16 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
         if ($matchesPrevious -or $matchesPreviousRepository) {
             if (@('Ready', 'Disabled') -notcontains $state) {
                 throw "Previous Inago task '$Name' is not idle; preserve its run before switching execution paths."
+            }
+            Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force -ErrorAction Stop | Out-Null
+            return
+        }
+        $expectedWakeToRun = ($Mode -eq 'daily')
+        $wakeSetting = $existing.Settings.PSObject.Properties['WakeToRun']
+        $wakeMatches = $null -ne $wakeSetting -and ([bool]$wakeSetting.Value -eq $expectedWakeToRun)
+        if (-not $wakeMatches) {
+            if (@('Ready', 'Disabled') -notcontains $state) {
+                throw "Task '$Name' has an unexpected wake setting and is not idle; it was left untouched."
             }
             Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force -ErrorAction Stop | Out-Null
             return
