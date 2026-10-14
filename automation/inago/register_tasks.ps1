@@ -10,7 +10,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-if (-not $env:USERPROFILE) { throw 'USERPROFILE is unavailable.' }
+if (-not $env:USERPROFILE -or -not $env:LOCALAPPDATA) { throw 'The interactive user profile paths are unavailable.' }
+$userProfile = [IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\')
+$localAppData = [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\')
 $projectRoot = [IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
 $runtimeRoot = Join-Path $projectRoot 'rakuten-room-inago\runtime'
 $backupRoot = Join-Path $projectRoot 'rakuten-room-inago\backups'
@@ -80,15 +82,41 @@ function New-TaskXml([string]$TemplateName, [string]$Mode, [bool]$Daily) {
     $exec = $document.SelectSingleNode('//t:Actions/t:Exec', $manager)
     if ($null -eq $exec) { throw 'Task template is missing its executable action.' }
     $exec.SelectSingleNode('t:Command', $manager).InnerText = $pythonExe
-    $args = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+    $args = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
     $exec.SelectSingleNode('t:Arguments', $manager).InnerText = $args
     $exec.SelectSingleNode('t:WorkingDirectory', $manager).InnerText = $applicationRoot
     if ($Daily) {
         $boundary = $document.SelectSingleNode('//t:CalendarTrigger/t:StartBoundary', $manager)
         if ($null -eq $boundary) { throw 'Daily task template is missing its calendar boundary.' }
         $boundary.InnerText = $StartBoundary
+    } else {
+        $logonTrigger = $document.SelectSingleNode('//t:LogonTrigger', $manager)
+        if ($null -eq $logonTrigger) { throw 'Human API task template is missing its logon trigger.' }
+        $logonUser = $logonTrigger.SelectSingleNode('t:UserId', $manager)
+        if ($null -eq $logonUser) {
+            $logonUser = $document.CreateElement('UserId', $namespace)
+            $logonTrigger.AppendChild($logonUser) | Out-Null
+        }
+        $logonUser.InnerText = $userId
+    }
+    $declaration = $document.FirstChild
+    if ($declaration -is [System.Xml.XmlDeclaration]) {
+        $document.RemoveChild($declaration) | Out-Null
     }
     return $document.OuterXml
+}
+
+function Resolve-TaskUserSid([object]$UserId) {
+    if ($null -eq $UserId -or [string]::IsNullOrWhiteSpace([string]$UserId)) { return $null }
+    $value = [string]$UserId
+    try {
+        if ($value -match '^S-1-') {
+            return ([Security.Principal.SecurityIdentifier]::new($value)).Value
+        }
+        return ([Security.Principal.NTAccount]::new($value)).Translate([Security.Principal.SecurityIdentifier]).Value
+    } catch {
+        return $null
+    }
 }
 
 function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
@@ -96,9 +124,11 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
     if ($null -ne $existing) {
         if ($existing.Actions.Count -ne 1) { throw "Existing task '$Name' has an unexpected action count." }
         $existingAction = $existing.Actions[0]
-        $expectedArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+        $expectedArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
         $matchesRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $existingAction.Arguments -ceq $expectedArgs -and $existingAction.WorkingDirectory -eq $applicationRoot)
-        $oldRoot = Join-Path $env:USERPROFILE 'InagoRuntime'
+        $previousRepositoryArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+        $matchesPreviousRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $existingAction.Arguments -ceq $previousRepositoryArgs -and $existingAction.WorkingDirectory -eq $applicationRoot)
+        $oldRoot = Join-Path $userProfile 'InagoRuntime'
         $oldApp = [IO.Path]::GetFullPath([string]$existingAction.WorkingDirectory).TrimEnd('\')
         $oldPython = Join-Path $oldApp '.venv-inago\Scripts\python.exe'
         $oldConfig = Join-Path $oldRoot 'config\settings.json'
@@ -108,13 +138,12 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
             (Split-Path -Leaf $oldApp) -match '^app-\d{8}-\d{6}$' -and
             [IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq $oldPython.ToLowerInvariant() -and
             $existingAction.Arguments -ceq $oldArgs)
-        if (-not $matchesRepository -and -not $matchesPrevious) {
+        if (-not $matchesRepository -and -not $matchesPreviousRepository -and -not $matchesPrevious) {
             throw "Existing task '$Name' differs from the reviewed Inago definition; it was left untouched."
         }
         $principal = $existing.Principal
-        try {
-            $existingSid = ([Security.Principal.NTAccount]::new($principal.UserId)).Translate([Security.Principal.SecurityIdentifier]).Value
-        } catch {
+        $existingSid = Resolve-TaskUserSid $principal.UserId
+        if (-not $existingSid) {
             throw "Existing task '$Name' has an unrecognized principal; it was left untouched."
         }
         if ($existingSid -ne $userId -or $principal.LogonType.ToString() -ne 'Interactive' -or $principal.RunLevel.ToString() -ne 'Limited') {
@@ -129,25 +158,56 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
         $trigger = $existing.Triggers[0]
         if ($Mode -eq 'daily') {
             if ($trigger.CimClass.CimClassName -ne 'MSFT_TaskDailyTrigger' -or $trigger.DaysInterval -ne 1 -or
-                ($matchesRepository -and $trigger.StartBoundary -cne $StartBoundary) -or
+                (($matchesRepository -or $matchesPreviousRepository) -and $trigger.StartBoundary -cne $StartBoundary) -or
                 ($matchesPrevious -and $trigger.StartBoundary -notmatch '^\d{4}-\d{2}-\d{2}T13:00:00\+09:00$')) {
                 throw "Existing task '$Name' does not match the requested 13:00 daily schedule; it was left untouched."
             }
-        } elseif ($trigger.CimClass.CimClassName -ne 'MSFT_TaskLogonTrigger') {
-            throw "Existing task '$Name' does not use the required logon trigger; it was left untouched."
+        } else {
+            if ($trigger.CimClass.CimClassName -ne 'MSFT_TaskLogonTrigger') {
+                throw "Existing task '$Name' does not use the required logon trigger; it was left untouched."
+            }
+            $triggerUserSid = Resolve-TaskUserSid $trigger.UserId
+            if ($matchesRepository -and $triggerUserSid -ne $userId) {
+                throw "Existing task '$Name' is not limited to the current user's logon; it was left untouched."
+            }
+            if ($matchesPreviousRepository -and $trigger.UserId -and $triggerUserSid -ne $userId) {
+                throw "Existing task '$Name' is not limited to the current user's logon; it was left untouched."
+            }
         }
         $state = $existing.State.ToString()
-        if ($matchesPrevious) {
+        if ($matchesPrevious -or $matchesPreviousRepository) {
             if (@('Ready', 'Disabled') -notcontains $state) {
                 throw "Previous Inago task '$Name' is not idle; preserve its run before switching execution paths."
             }
-            Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force | Out-Null
+            Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force -ErrorAction Stop | Out-Null
             return
         }
-        if ($state -eq 'Disabled') { Enable-ScheduledTask -TaskName $Name -TaskPath '\' | Out-Null }
+        if ($state -eq 'Disabled') { Enable-ScheduledTask -TaskName $Name -TaskPath '\' -ErrorAction Stop | Out-Null }
         return
     }
-    Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml | Out-Null
+    Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -ErrorAction Stop | Out-Null
+    if ($null -eq (Get-ScheduledTask -TaskName $Name -TaskPath '\' -ErrorAction Stop)) {
+        throw "Task '$Name' was not registered."
+    }
+}
+
+function Test-HumanApiLiveness([int]$Port) {
+    $request = [System.Net.HttpWebRequest]::Create("http://127.0.0.1:$Port/health")
+    $request.Proxy = $null
+    $request.Timeout = 500
+    $request.ReadWriteTimeout = 500
+    $request.AllowAutoRedirect = $false
+    $status = 0
+    try {
+        $response = $request.GetResponse()
+    } catch [System.Net.WebException] {
+        $response = $_.Exception.Response
+    }
+    if ($null -ne $response) {
+        $status = [int]$response.StatusCode
+        $response.Close()
+    }
+    return $status -eq 200
 }
 
 $dailyXml = New-TaskXml 'RakutenRoomInagoDaily.xml' 'daily' $true
@@ -188,23 +248,27 @@ foreach ($oldName in $oldTasks) {
 
 Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'
 Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'
-Enable-ScheduledTask -TaskName 'RakutenRoomInagoDaily' -TaskPath '\' | Out-Null
-Enable-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\' | Out-Null
+Enable-ScheduledTask -TaskName 'RakutenRoomInagoDaily' -TaskPath '\' -ErrorAction Stop | Out-Null
+Enable-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\' -ErrorAction Stop | Out-Null
 
 if ($StartHumanApi) {
-    Start-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\'
-    $started = $false
+    Start-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\' -ErrorAction Stop
+    $healthy = $false
     for ($attempt = 0; $attempt -lt 20; $attempt++) {
         Start-Sleep -Milliseconds 500
-        $current = Get-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\'
-        if ($current.State -eq 'Running') { $started = $true; break }
+        $current = Get-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\' -ErrorAction Stop
+        if ($current.State -eq 'Running' -and (Test-HumanApiLiveness -Port ([int]$config.human_api.port))) {
+            $healthy = $true
+            break
+        }
     }
-    if (-not $started) { throw 'Human API task did not enter Running state.' }
+    if (-not $healthy) { throw 'Human API task did not remain running and pass the authenticated loopback liveness check.' }
 }
 
 [pscustomobject]@{
-    DailyTask = (Get-ScheduledTask -TaskName 'RakutenRoomInagoDaily' -TaskPath '\').State.ToString()
-    HumanApiTask = (Get-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\').State.ToString()
+    DailyTask = (Get-ScheduledTask -TaskName 'RakutenRoomInagoDaily' -TaskPath '\' -ErrorAction Stop).State.ToString()
+    HumanApiTask = (Get-ScheduledTask -TaskName 'RakutenRoomInagoHumanApi' -TaskPath '\' -ErrorAction Stop).State.ToString()
     StartBoundary = $StartBoundary
     HumanApiStarted = [bool]$StartHumanApi
+    HumanApiHealthy = [bool]$StartHumanApi
 } | ConvertTo-Json -Compress

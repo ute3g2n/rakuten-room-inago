@@ -14,7 +14,11 @@ from typing import Sequence, TextIO
 
 from automation.inago.clock import Clock
 from automation.inago.orchestrator import DailyPorts, DailyRunOutcome
-from automation.inago.paths import PathContractError, resolve_runtime_paths
+from automation.inago.paths import (
+    PROJECT_ROOT,
+    PathContractError,
+    resolve_runtime_paths,
+)
 from automation.inago.trigger import run_scheduled_daily
 
 
@@ -53,6 +57,8 @@ def _parser() -> argparse.ArgumentParser:
         mode_parser = subparsers.add_parser(mode)
         mode_parser.add_argument("--config", required=True)
         mode_parser.add_argument("--data-root", required=True)
+        mode_parser.add_argument("--user-profile")
+        mode_parser.add_argument("--local-app-data")
         mode_parser.add_argument(
             "--environment", choices=("fixture", "production"), default="fixture"
         )
@@ -100,7 +106,13 @@ def _validate_fixture_ports(ports: DailyPorts) -> None:
 
 
 def _append_production_log(
-    root: Path, *, mode: str, status: str, reason: str | None = None
+    root: Path,
+    *,
+    mode: str,
+    status: str,
+    reason: str | None = None,
+    phase: str | None = None,
+    diagnostics: dict[str, object] | None = None,
 ) -> None:
     """Append a private lifecycle event without arguments, URLs, or source text."""
 
@@ -119,6 +131,10 @@ def _append_production_log(
     }
     if reason:
         event["reason"] = reason
+    if phase:
+        event["phase"] = phase
+    if diagnostics:
+        event["diagnostics"] = diagnostics
     encoded = (json.dumps(event, separators=(",", ":"), allow_nan=False) + "\n").encode(
         "utf-8"
     )
@@ -128,22 +144,101 @@ def _append_production_log(
         os.fsync(stream.fileno())
 
 
+def _preflight_log_root(data_root: object) -> Path | None:
+    """Allow pre-config diagnostics only under this repository's runtime root."""
+
+    try:
+        from automation.inago.production_runtime import (
+            ProductionRuntimeError,
+            _has_reparse_point,
+            _lexical_absolute_path,
+            _same_path,
+        )
+
+        expected = _lexical_absolute_path(
+            PROJECT_ROOT / "rakuten-room-inago" / "runtime",
+            "expected runtime root",
+        )
+        requested = _lexical_absolute_path(data_root, "data_root")
+        if not _same_path(requested, expected):
+            return None
+        if _has_reparse_point(expected) or _has_reparse_point(requested):
+            return None
+    except (OSError, ProductionRuntimeError, RuntimeError, TypeError, ValueError):
+        return None
+    if not expected.is_dir():
+        return None
+    return expected
+
+
+def _preflight_browser_profile_visibility(config_path: object) -> dict[str, object]:
+    """Record path visibility booleans without exposing profile paths or contents."""
+
+    try:
+        from automation.inago.production_runtime import (
+            ProductionRuntimeError,
+            _same_path,
+            _windows_known_folder,
+        )
+
+        expected_config = (
+            PROJECT_ROOT / "rakuten-room-inago" / "runtime" / "config" / "settings.json"
+        )
+        config_file = Path(config_path).expanduser()
+        if not config_file.is_absolute() or not _same_path(
+            config_file, expected_config
+        ):
+            return {}
+        document = json.loads(config_file.read_text(encoding="utf-8"))
+        browser = document.get("browser") if isinstance(document, dict) else None
+        configured_value = (
+            browser.get("user_data_dir") if isinstance(browser, dict) else None
+        )
+        if (
+            not isinstance(configured_value, str)
+            or not Path(configured_value).is_absolute()
+        ):
+            return {"configured_profile_path_valid": False}
+        configured = Path(configured_value)
+        known = _windows_known_folder("local_app_data") / "InagoPlaywrightProfile"
+        return {
+            "configured_profile_matches_current_local_app_data": _same_path(
+                configured, known
+            ),
+            "configured_profile_exists": configured.exists(),
+            "configured_profile_is_directory": configured.is_dir(),
+            "current_local_app_data_profile_exists": known.exists(),
+            "current_local_app_data_profile_is_directory": known.is_dir(),
+        }
+    except (OSError, ProductionRuntimeError, RuntimeError, TypeError, ValueError):
+        return {"profile_visibility_diagnostic_available": False}
+
+
 def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
     from automation.inago.production_runtime import (
         ProductionRuntimeError,
         initialize_production_runtime,
+        load_human_api_config,
         load_production_config,
+        require_production_ready,
         run_production_daily,
         serve_human_api,
     )
     from automation.inago.clock import SystemClock
 
     config = None
+    phase = "configuration"
 
-    def record(status: str, reason: str | None = None) -> None:
+    def record(
+        status: str, reason: str | None = None, current_phase: str | None = None
+    ) -> None:
         try:
             _append_production_log(
-                config.runtime_root, mode=args.mode, status=status, reason=reason
+                config.runtime_root,
+                mode=args.mode,
+                status=status,
+                reason=reason,
+                phase=current_phase or phase,
             )
         except (OSError, ProductionRuntimeError) as exc:
             _emit(
@@ -156,8 +251,20 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             )
 
     try:
-        config = load_production_config(args.config, data_root=args.data_root)
+        if args.mode == "serve":
+            config = load_human_api_config(
+                args.config,
+                data_root=args.data_root,
+            )
+        else:
+            config = load_production_config(
+                args.config,
+                data_root=args.data_root,
+                user_profile=args.user_profile,
+                local_app_data=args.local_app_data,
+            )
         if args.mode == "setup":
+            phase = "setup"
             result = initialize_production_runtime(
                 config,
                 now=SystemClock().now_jst().isoformat(),
@@ -166,6 +273,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             _emit(output, {"status": "ready", **result})
             return 0
         if args.mode == "daily":
+            phase = "daily"
             result = run_production_daily(config)
             status = str(result.get("status", "failed"))
             record(
@@ -179,14 +287,49 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             _emit(output, result)
             return EXIT_RUNTIME_ERROR if status in {"failed", "locked"} else 0
         if args.mode == "serve":
+            phase = "serve"
+            require_production_ready(config)
             record("starting")
             serve_human_api(config)
             return 0
         _emit(output, {"status": "not_implemented", "mode": args.mode})
         return EXIT_NOT_IMPLEMENTED
     except Exception as exc:
+        reason = (
+            str(exc)[:200]
+            if isinstance(exc, ProductionRuntimeError)
+            else type(exc).__name__
+        )
         if config is not None:
-            record("failed", reason=type(exc).__name__)
+            record("failed", reason=reason)
+        else:
+            root = _preflight_log_root(args.data_root)
+            if root is not None:
+                try:
+                    diagnostics = (
+                        _preflight_browser_profile_visibility(args.config)
+                        if args.mode in {"setup", "daily"}
+                        and phase == "configuration"
+                        and isinstance(exc, ProductionRuntimeError)
+                        else None
+                    )
+                    _append_production_log(
+                        root,
+                        mode=args.mode,
+                        status="failed",
+                        reason=reason,
+                        phase=phase,
+                        diagnostics=diagnostics,
+                    )
+                except (OSError, ProductionRuntimeError) as log_exc:
+                    _emit(
+                        error_output,
+                        {
+                            "status": "log_unavailable",
+                            "mode": args.mode,
+                            "reason": type(log_exc).__name__,
+                        },
+                    )
         _emit(error_output, {"status": "runtime_error", "reason": type(exc).__name__})
         return EXIT_RUNTIME_ERROR
 

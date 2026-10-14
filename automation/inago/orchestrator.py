@@ -31,7 +31,11 @@ from automation.inago.metrics import (
 )
 from automation.inago.report_apply import apply_pending_reports
 from automation.inago.retention import apply_retention, validate_data_root
-from automation.inago.repository import validate_entity
+from automation.inago.repository import (
+    LEGACY_UNASSIGNED_THEME_ID,
+    offer_needs_name_observation,
+    validate_entity,
+)
 from automation.inago.room_adapter import (
     RoomSearchPort,
     RoomSearchSession,
@@ -368,6 +372,16 @@ def _now(clock: Clock) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise DailyOrchestrationError("daily clock must return an aware datetime")
     return value.astimezone(JST)
+
+
+def _jst_date(value: object) -> date:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError) as exc:
+        raise DailyOrchestrationError("offer_intake_observation_time_invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise DailyOrchestrationError("offer_intake_observation_time_invalid")
+    return parsed.astimezone(JST).date()
 
 
 def _at(target: date, wall_time: time) -> datetime:
@@ -1419,10 +1433,17 @@ def _intake_missing_offers(
         if offer_key is None:
             continue
         existing = connection.execute(
-            "SELECT 1 FROM offer WHERE offer_key=?", (offer_key,)
+            "SELECT main_theme_id,facts_json,last_seen FROM offer WHERE offer_key=?",
+            (offer_key,),
         ).fetchone()
         if existing is not None:
-            continue
+            if not offer_needs_name_observation(existing[0], existing[1]):
+                continue
+            if existing[0] != LEGACY_UNASSIGNED_THEME_ID:
+                last_seen_day = _jst_date(existing[2])
+                observed_day = _jst_date(row["observed_at"])
+                if last_seen_day >= observed_day:
+                    continue
         if port is None:
             raise DailyOrchestrationError("offer_intake_required_for_new_identity")
         item_url = row["item_url"]
@@ -1442,6 +1463,11 @@ def _intake_missing_offers(
                 observed_at=str(row["observed_at"]),
             ),
         )
+        expected_theme_id = (
+            theme_id
+            if existing is None or existing[0] == LEGACY_UNASSIGNED_THEME_ID
+            else existing[0]
+        )
         persisted = connection.execute(
             "SELECT shop_id, item_id, main_theme_id FROM offer WHERE offer_key=?",
             (offer_key,),
@@ -1449,7 +1475,7 @@ def _intake_missing_offers(
         if (
             persisted is None
             or f"{persisted['shop_id']}:{persisted['item_id']}" != offer_key
-            or persisted["main_theme_id"] != theme_id
+            or persisted["main_theme_id"] != expected_theme_id
         ):
             raise DailyOrchestrationError("offer_intake_identity_not_persisted")
 

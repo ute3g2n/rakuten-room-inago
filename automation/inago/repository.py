@@ -31,6 +31,7 @@ from automation.inago.contracts import (
 
 CURRENT_SCHEMA_VERSION = 4
 READABLE_SCHEMA_VERSIONS = frozenset({4})
+LEGACY_UNASSIGNED_THEME_ID = "legacy-unassigned"
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "entities.schema.json"
@@ -193,6 +194,31 @@ def initialize_database(connection: sqlite3.Connection) -> int:
         if connection.in_transaction:
             connection.rollback()
         connection.execute(f"PRAGMA foreign_keys = {foreign_keys}")
+
+
+def offer_needs_name_observation(main_theme_id: object, facts_json: object) -> bool:
+    """Return whether an identity-only or name-unknown offer needs a later refresh."""
+
+    if main_theme_id == LEGACY_UNASSIGNED_THEME_ID:
+        return True
+    if not isinstance(facts_json, str):
+        raise PersistenceContractError("offer facts JSON is not text")
+    try:
+        facts = json.loads(facts_json)
+    except json.JSONDecodeError as exc:
+        raise PersistenceContractError("offer facts JSON is invalid") from exc
+    if not isinstance(facts, list):
+        raise PersistenceContractError("offer facts JSON is not an array")
+    for fact in facts:
+        if not isinstance(fact, dict) or fact.get("field") != "name":
+            continue
+        if (
+            fact.get("availability") != "observed"
+            or not isinstance(fact.get("value"), str)
+            or not fact["value"].strip()
+        ):
+            return True
+    return False
 
 
 def _advance_database_migrations(connection: sqlite3.Connection) -> int:
@@ -1672,8 +1698,7 @@ def _key_job_records(
         or result.artifact is None
         or result.artifact.source_kind != "daily"
         or result.artifact.retention_expires_at is None
-        or result.artifact.artifact_ref
-        != f"{result.job_id}-a{result.attempt}-response"
+        or result.artifact.artifact_ref != f"{result.job_id}-a{result.attempt}-response"
         or len(result.input_refs) != 1
         or len(result.subjobs) != 1
     ):
@@ -1762,7 +1787,9 @@ def _key_job_records(
 
 def _job_transaction(connection: sqlite3.Connection, savepoint: str) -> bool:
     owns_transaction = not connection.in_transaction
-    connection.execute("BEGIN IMMEDIATE" if owns_transaction else f"SAVEPOINT {savepoint}")
+    connection.execute(
+        "BEGIN IMMEDIATE" if owns_transaction else f"SAVEPOINT {savepoint}"
+    )
     return owns_transaction
 
 

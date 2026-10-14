@@ -16,9 +16,13 @@ from jsonschema.exceptions import ValidationError
 
 from automation.inago.contracts import PersistenceContractError
 from automation.inago.paths import PROJECT_ROOT, SAFE_FIXTURE_BASE
-from automation.inago.repository import validate_entity
+from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID, validate_entity
 from automation.jsonschema_formats import rfc3339_format_checker
-from automation.inago.selection import identify_offer, normalize_offer_url
+from automation.inago.selection import (
+    identify_offer,
+    identify_offer_from_saved_url,
+    normalize_offer_url,
+)
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -531,32 +535,34 @@ def _matching_offer(
         normalized = normalize_offer_url(product_url)
     except (TypeError, ValueError):
         return None, None, "legacy_product_url_unreadable"
-    matches: list[str] = []
-    rows = connection.execute(
-        "SELECT offer_key, shop_id, item_id FROM offer ORDER BY offer_key"
-    ).fetchall()
-    for row in rows:
-        identity = identify_offer(
-            normalized,
-            observed_shop_id=str(row["shop_id"]),
-            observed_item_id=str(row["item_id"]),
-        )
-        if identity.status == "identified" and identity.offer_key == row["offer_key"]:
-            matches.append(str(row["offer_key"]))
-    if not matches:
-        return None, normalized, "current_offer_missing"
-    if len(matches) != 1:
+    url_identity = identify_offer_from_saved_url(normalized)
+    if url_identity.status != "identified" or not url_identity.offer_key:
+        return None, normalized, "legacy_product_url_unreadable"
+    row = connection.execute(
+        "SELECT offer_key,shop_id,item_id FROM offer WHERE offer_key=?",
+        (url_identity.offer_key,),
+    ).fetchone()
+    if row is None:
+        # A legacy post may predate the new offer ledger. Its canonical Rakuten
+        # item URL still provides the shop/item identity required by the event FK.
+        return url_identity.offer_key, normalized, None
+    identity = identify_offer(
+        normalized,
+        observed_shop_id=str(row["shop_id"]),
+        observed_item_id=str(row["item_id"]),
+    )
+    if identity.status != "identified" or identity.offer_key != row["offer_key"]:
         return None, normalized, "ambiguous_current_offer"
-    return matches[0], normalized, None
+    return str(row["offer_key"]), normalized, None
 
 
 def _validate_result_document(document: dict[str, Any]) -> None:
     try:
         schema = json.loads(_RESULT_SCHEMA_PATH.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(
-            schema, format_checker=rfc3339_format_checker()
-        ).validate(document)
+        Draft202012Validator(schema, format_checker=rfc3339_format_checker()).validate(
+            document
+        )
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise MigrationInputError(
             "migration result does not satisfy its schema"
@@ -659,9 +665,11 @@ def _prepare_records(
                 supplementary_reason = (
                     match_reason
                     if matched_key is None
-                    else "human_status_inconsistent"
-                    if reason == "human_status_inconsistent"
-                    else "legacy_posting_state_unknown"
+                    else (
+                        "human_status_inconsistent"
+                        if reason == "human_status_inconsistent"
+                        else "legacy_posting_state_unknown"
+                    )
                 )
             supplementation.append(
                 {
@@ -684,6 +692,7 @@ def _prepare_records(
                 "outcome": outcome,
                 "reason": reason,
                 "event_id": event_id,
+                "_normalized_url": normalized_url,
             }
         )
 
@@ -759,6 +768,59 @@ def _apply_events_and_exclusions(
         connection.execute("BEGIN IMMEDIATE")
         changed_offers: set[str] = set()
         for item in ready:
+            offer_key = str(item["offer_key"])
+            normalized_url = item.get("_normalized_url")
+            identity = identify_offer_from_saved_url(
+                normalized_url if isinstance(normalized_url, str) else None
+            )
+            if identity.status != "identified" or identity.offer_key != offer_key:
+                raise MigrationConflictError(
+                    "legacy post identity no longer agrees with its product URL"
+                )
+            existing_offer = connection.execute(
+                "SELECT shop_id,item_id FROM offer WHERE offer_key=?",
+                (offer_key,),
+            ).fetchone()
+            if existing_offer is None:
+                placeholder = {
+                    "offer_key": offer_key,
+                    "shop_id": identity.shop_id,
+                    "item_id": identity.item_id,
+                    "name": "商品名未取得",
+                    "url": identity.normalized_url,
+                    "image_refs": [],
+                    "main_theme_id": LEGACY_UNASSIGNED_THEME_ID,
+                    "aux_theme_ids": [],
+                    "first_seen": now.isoformat(),
+                    "last_seen": now.isoformat(),
+                    "facts": [],
+                }
+                validate_entity("offer", placeholder)
+                connection.execute(
+                    """INSERT INTO offer(
+                           offer_key,shop_id,item_id,name,url,image_refs_json,
+                           main_theme_id,aux_theme_ids_json,first_seen,last_seen,facts_json
+                       ) VALUES (?,?,?,?,?,?,?,'[]',?,?,?)""",
+                    (
+                        offer_key,
+                        identity.shop_id,
+                        identity.item_id,
+                        placeholder["name"],
+                        identity.normalized_url,
+                        "[]",
+                        LEGACY_UNASSIGNED_THEME_ID,
+                        now.isoformat(),
+                        now.isoformat(),
+                        "[]",
+                    ),
+                )
+            elif (
+                str(existing_offer["shop_id"]) != identity.shop_id
+                or str(existing_offer["item_id"]) != identity.item_id
+            ):
+                raise MigrationConflictError(
+                    "legacy post identity conflicts with the current offer ledger"
+                )
             event_id = str(item["event_id"])
             event = item["_event"]
             existing = connection.execute(
@@ -912,6 +974,7 @@ def migrate_legacy_history(
     # Private event details are only transaction inputs, never report fields.
     for item in items:
         item.pop("_event", None)
+        item.pop("_normalized_url", None)
     selection_allowed = mode == "apply" and not supplementation
     result = MigrationResult(
         mode=mode,

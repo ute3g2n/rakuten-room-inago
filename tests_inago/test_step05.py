@@ -220,6 +220,10 @@ def test_production_style_human_api_requires_private_bearer_token(
     token = "private-test-token-" + ("x" * 40)
     clock = FakeClock(datetime(2026, 10, 15, 21, 0, tzinfo=JST))
     with _running_server(seeded_database.connect, clock, auth_token=token) as server:
+        health_status, health, _ = _json_request(server, "GET", path="/health")
+        assert health_status == 200
+        assert health == {"status": "ready"}
+
         unauthorized, body, _ = _json_request(server, "GET", path="/api/state")
         assert unauthorized == 401
         assert body == {"error": "authentication_required"}
@@ -242,6 +246,32 @@ def test_production_style_human_api_requires_private_bearer_token(
         assert state is not None
         assert "csrf_token" in state
         assert token not in json.dumps(state)
+
+
+def test_human_api_health_probe_reports_database_unavailable_without_details() -> None:
+    clock = FakeClock(datetime(2026, 10, 15, 21, 0, tzinfo=JST))
+
+    def unavailable_database():
+        raise sqlite3.OperationalError("private database path")
+
+    with _running_server(unavailable_database, clock, auth_token="x" * 40) as server:
+        status, payload, _ = _json_request(server, "GET", path="/health")
+
+    assert status == 503
+    assert payload == {"status": "unavailable"}
+
+
+def test_human_api_health_probe_rejects_database_without_dashboard_schema() -> None:
+    clock = FakeClock(datetime(2026, 10, 15, 21, 0, tzinfo=JST))
+
+    def uninitialized_database() -> sqlite3.Connection:
+        return sqlite3.connect(":memory:", isolation_level=None)
+
+    with _running_server(uninitialized_database, clock, auth_token="x" * 40) as server:
+        status, payload, _ = _json_request(server, "GET", path="/health")
+
+    assert status == 503
+    assert payload == {"status": "unavailable"}
 
 
 def _report(

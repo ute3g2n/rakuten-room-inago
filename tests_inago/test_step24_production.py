@@ -16,6 +16,7 @@ from automation.inago.metrics_live_port import metrics_result_from_documents
 from automation.inago.production_runtime import (
     ProductionRuntimeError,
     _write_setup_state,
+    load_human_api_config,
     load_production_config,
     run_production_daily,
 )
@@ -25,6 +26,14 @@ from automation.inago.cli import EXIT_RUNTIME_ERROR, main
 @pytest.fixture(autouse=True)
 def repository_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("automation.inago.production_runtime.PROJECT_ROOT", tmp_path)
+    from automation.inago import production_runtime
+
+    monkeypatch.setattr(
+        production_runtime,
+        "_windows_known_folder",
+        lambda name: tmp_path if name == "profile" else tmp_path / "LocalAppData",
+        raising=False,
+    )
 
 
 def _write_config(root: Path, *, owner_room_url: str) -> Path:
@@ -109,6 +118,293 @@ def test_production_config_requires_exact_runtime_and_public_owner_room_url(
     assert config.start_date == "2026-10-15"
     assert config.detailed_rules_enabled is False
     assert "room_0123456789" not in repr(config)
+
+
+def test_human_api_config_does_not_require_browser_or_ai_dependencies(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    value = json.loads(config_path.read_text(encoding="utf-8"))
+    value["browser"] = {"user_data_dir": str(tmp_path / "missing-profile")}
+    value["codex"] = {}
+    value["metrics"] = {}
+    value["legacy"] = {}
+    config_path.write_text(json.dumps(value), encoding="utf-8")
+
+    config = load_human_api_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+    )
+
+    assert config.runtime_root == tmp_path / "rakuten-room-inago" / "runtime"
+    assert config.human_api_port == 8765
+
+
+def test_human_api_config_rejects_unverified_previous_runtime_database(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    previous_database = tmp_path / "InagoRuntime" / "state.sqlite"
+    previous_database.parent.mkdir()
+    previous_database.write_bytes(b"legacy database sentinel")
+
+    with pytest.raises(
+        ProductionRuntimeError,
+        match="external Inago database must be transferred",
+    ):
+        load_human_api_config(
+            config_path,
+            data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        )
+
+    assert previous_database.read_bytes() == b"legacy database sentinel"
+    assert not (config_path.parents[1] / "state.sqlite").exists()
+
+
+def test_human_api_database_open_does_not_create_missing_database(
+    tmp_path: Path,
+) -> None:
+    import sqlite3
+    from automation.inago.production_runtime import _open_existing_production_database
+
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_human_api_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+    )
+
+    with pytest.raises(sqlite3.OperationalError):
+        _open_existing_production_database(config)
+
+    assert not (config.runtime_root / "state.sqlite").exists()
+
+
+def test_human_api_database_open_preserves_durable_write_settings(
+    tmp_path: Path,
+) -> None:
+    from automation.inago.production_runtime import _open_existing_production_database
+    from automation.inago.repository import SQLITE_BUSY_TIMEOUT_MS, open_database
+
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_human_api_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+    )
+    initialized = open_database(SimpleNamespace(data_root=config.runtime_root))
+    initialized.close()
+
+    connection = _open_existing_production_database(config)
+    try:
+        assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+        assert (
+            connection.execute("PRAGMA busy_timeout").fetchone()[0]
+            == SQLITE_BUSY_TIMEOUT_MS
+        )
+        assert connection.execute("PRAGMA synchronous").fetchone()[0] == 2
+    finally:
+        connection.close()
+
+
+def test_human_api_database_open_does_not_initialize_unrecognized_database(
+    tmp_path: Path,
+) -> None:
+    import sqlite3
+    from automation.inago.contracts import UnsupportedSchemaVersion
+    from automation.inago.production_runtime import _open_existing_production_database
+
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    config = load_human_api_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+    )
+    database_path = config.runtime_root / "state.sqlite"
+    database_path.touch()
+
+    with pytest.raises(UnsupportedSchemaVersion):
+        _open_existing_production_database(config)
+
+    connection = sqlite3.connect(database_path)
+    try:
+        tables = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+    finally:
+        connection.close()
+    assert tables == []
+
+
+def test_serve_cli_uses_minimal_human_api_configuration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+
+    captured: dict[str, object] = {}
+
+    def load_human(config_path, *, data_root):
+        captured["config_path"] = config_path
+        captured["data_root"] = data_root
+        return SimpleNamespace(runtime_root=tmp_path)
+
+    def reject_full_config(*args, **kwargs):
+        raise AssertionError("serve must not validate browser or AI dependencies")
+
+    monkeypatch.setattr(production, "load_human_api_config", load_human)
+    monkeypatch.setattr(production, "load_production_config", reject_full_config)
+    monkeypatch.setattr(production, "require_production_ready", lambda config: {})
+    monkeypatch.setattr(
+        production,
+        "serve_human_api",
+        lambda config: (_ for _ in ()).throw(RuntimeError("server fixture stopped")),
+    )
+    monkeypatch.setattr(
+        "automation.inago.cli._append_production_log", lambda *a, **k: None
+    )
+
+    result = main(
+        [
+            "serve",
+            "--environment",
+            "production",
+            "--config",
+            str(tmp_path / "settings.json"),
+            "--data-root",
+            str(tmp_path / "runtime"),
+        ],
+        stdout=io.StringIO(),
+        stderr=io.StringIO(),
+    )
+
+    assert result == EXIT_RUNTIME_ERROR
+    assert captured == {
+        "config_path": str(tmp_path / "settings.json"),
+        "data_root": str(tmp_path / "runtime"),
+    }
+
+
+def test_production_config_rejects_profile_outside_current_windows_user(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+
+    with pytest.raises(ProductionRuntimeError, match="current Windows user's profile"):
+        load_production_config(
+            config_path,
+            data_root=tmp_path / "rakuten-room-inago" / "runtime",
+            user_profile=tmp_path / "another-user-profile",
+            local_app_data=tmp_path / "LocalAppData",
+            which=lambda command: str(command) if Path(command).is_file() else None,
+        )
+
+
+def test_production_config_rejects_local_app_data_outside_current_windows_user(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+
+    with pytest.raises(
+        ProductionRuntimeError, match="current Windows user.*LocalAppData directory"
+    ):
+        load_production_config(
+            config_path,
+            data_root=tmp_path / "rakuten-room-inago" / "runtime",
+            user_profile=tmp_path,
+            local_app_data=tmp_path / "another-local-app-data",
+            which=lambda command: str(command) if Path(command).is_file() else None,
+        )
+
+
+def test_production_config_resolves_expected_dedicated_browser_profile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from automation.inago import production_runtime
+
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    resolved_profile = tmp_path / "PackagedLocalCache" / "InagoPlaywrightProfile"
+    resolved_profile.mkdir(parents=True)
+    expected_profile = tmp_path / "LocalAppData" / "InagoPlaywrightProfile"
+    original_check = production_runtime._checked_private_path
+
+    def resolve_packaged_profile(value: object, name: str) -> Path:
+        result = original_check(value, name)
+        if name in {"user_data_dir", "expected dedicated browser profile"} and (
+            Path(value) == expected_profile
+        ):
+            return resolved_profile
+        return result
+
+    monkeypatch.setattr(
+        production_runtime, "_checked_private_path", resolve_packaged_profile
+    )
+    config = load_production_config(
+        config_path,
+        data_root=tmp_path / "rakuten-room-inago" / "runtime",
+        user_profile=tmp_path,
+        local_app_data=tmp_path / "LocalAppData",
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+
+    assert config.user_data_dir == resolved_profile
+
+    document = json.loads(config_path.read_text(encoding="utf-8"))
+    document["browser"]["user_data_dir"] = str(tmp_path / "OtherProfile")
+    config_path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(ProductionRuntimeError):
+        load_production_config(
+            config_path,
+            data_root=tmp_path / "rakuten-room-inago" / "runtime",
+            user_profile=tmp_path,
+            local_app_data=tmp_path / "LocalAppData",
+            which=lambda command: str(command) if Path(command).is_file() else None,
+        )
+
+
+def test_production_config_reports_missing_dedicated_browser_profile(
+    tmp_path: Path,
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    profile = tmp_path / "LocalAppData" / "InagoPlaywrightProfile"
+    profile.rmdir()
+
+    with pytest.raises(
+        ProductionRuntimeError,
+        match="dedicated ROOM browser profile directory is missing",
+    ):
+        load_production_config(
+            config_path,
+            data_root=tmp_path / "rakuten-room-inago" / "runtime",
+            user_profile=tmp_path,
+            local_app_data=tmp_path / "LocalAppData",
+            which=lambda command: str(command) if Path(command).is_file() else None,
+        )
 
 
 @pytest.mark.parametrize(
@@ -632,6 +928,21 @@ def test_task_registration_uses_repository_python_without_acl_or_installer() -> 
     assert not (project_root / "automation/inago/install_runtime.ps1").exists()
 
 
+def test_human_api_task_liveness_does_not_send_or_read_bearer_token() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    source = (project_root / "automation" / "inago" / "register_tasks.ps1").read_text(
+        encoding="utf-8"
+    )
+    probe = source.split("function Test-HumanApiLiveness", 1)[1].split("$dailyXml", 1)[
+        0
+    ]
+
+    assert "/health" in probe
+    assert "Authorization" not in probe
+    assert "TokenPath" not in probe
+    assert "human-api-token.json" not in probe
+
+
 def test_task_registration_validates_setup_state_schema_before_registration() -> None:
     project_root = Path(__file__).resolve().parents[1]
     source = (project_root / "automation" / "inago" / "register_tasks.ps1").read_text(
@@ -811,6 +1122,193 @@ def test_production_cli_rejects_paths_outside_repository_runtime_before_opening_
     assert not (tmp_path / "state.sqlite").exists()
 
 
+def test_production_cli_passes_explicit_profile_roots_to_runtime_loader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+
+    captured: dict[str, object] = {}
+
+    def fake_load(config_path, *, data_root, user_profile=None, local_app_data=None):
+        captured.update(
+            config_path=config_path,
+            data_root=data_root,
+            user_profile=user_profile,
+            local_app_data=local_app_data,
+        )
+        return object()
+
+    monkeypatch.setattr(production, "load_production_config", fake_load)
+    config_path = tmp_path / "settings.json"
+    data_root = tmp_path / "runtime"
+    user_profile = tmp_path / "UserProfile"
+    local_app_data = tmp_path / "LocalAppData"
+
+    result = main(
+        [
+            "status",
+            "--environment",
+            "production",
+            "--config",
+            str(config_path),
+            "--data-root",
+            str(data_root),
+            "--user-profile",
+            str(user_profile),
+            "--local-app-data",
+            str(local_app_data),
+        ],
+        stdout=io.StringIO(),
+        stderr=io.StringIO(),
+    )
+
+    assert result == 3
+    assert captured == {
+        "config_path": str(config_path),
+        "data_root": str(data_root),
+        "user_profile": str(user_profile),
+        "local_app_data": str(local_app_data),
+    }
+
+
+def test_production_cli_logs_sanitized_preflight_failure_to_repository_runtime(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+    import automation.inago.cli as cli
+
+    runtime = tmp_path / "rakuten-room-inago" / "runtime"
+    runtime.mkdir(parents=True)
+    monkeypatch.setattr(cli, "PROJECT_ROOT", tmp_path, raising=False)
+
+    def fail_config(*args, **kwargs):
+        raise ProductionRuntimeError("production configuration is missing")
+
+    monkeypatch.setattr(production, "load_production_config", fail_config)
+    stdout, stderr = io.StringIO(), io.StringIO()
+    result = main(
+        [
+            "daily",
+            "--environment",
+            "production",
+            "--config",
+            str(runtime / "config" / "settings.json"),
+            "--data-root",
+            str(runtime),
+        ],
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    assert result == EXIT_RUNTIME_ERROR
+    assert json.loads(stderr.getvalue())["status"] == "runtime_error"
+    event = json.loads(
+        (runtime / "logs" / "production-cli.jsonl").read_text(encoding="utf-8")
+    )
+    assert event["mode"] == "daily"
+    assert event["status"] == "failed"
+    assert event["phase"] == "configuration"
+    assert event["reason"] == "production configuration is missing"
+    assert event["diagnostics"] == {"profile_visibility_diagnostic_available": False}
+
+
+def test_production_cli_logs_profile_visibility_as_booleans_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+    import automation.inago.cli as cli
+
+    config_path = _write_config(
+        tmp_path,
+        owner_room_url="https://room.rakuten.co.jp/room_0123456789/items",
+    )
+    runtime = config_path.parents[1]
+    monkeypatch.setattr(cli, "PROJECT_ROOT", tmp_path, raising=False)
+    monkeypatch.setattr(
+        production,
+        "_windows_known_folder",
+        lambda name: (
+            tmp_path / "OtherLocalAppData" if name == "local_app_data" else tmp_path
+        ),
+    )
+
+    def fail_profile(*args, **kwargs):
+        raise ProductionRuntimeError(
+            "dedicated ROOM browser profile directory is missing"
+        )
+
+    monkeypatch.setattr(production, "load_production_config", fail_profile)
+    result = main(
+        [
+            "daily",
+            "--environment",
+            "production",
+            "--config",
+            str(config_path),
+            "--data-root",
+            str(runtime),
+        ],
+        stdout=io.StringIO(),
+        stderr=io.StringIO(),
+    )
+
+    assert result == EXIT_RUNTIME_ERROR
+    event = json.loads(
+        (runtime / "logs" / "production-cli.jsonl").read_text(encoding="utf-8")
+    )
+    diagnostics = event["diagnostics"]
+    assert diagnostics["configured_profile_exists"] is True
+    assert diagnostics["configured_profile_is_directory"] is True
+    assert diagnostics["current_local_app_data_profile_exists"] is False
+    assert diagnostics["configured_profile_matches_current_local_app_data"] is False
+    assert str(tmp_path) not in json.dumps(diagnostics)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction protection")
+def test_production_cli_does_not_log_preflight_failure_through_runtime_junction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+    import automation.inago.cli as cli
+
+    runtime = tmp_path / "rakuten-room-inago" / "runtime"
+    runtime.parent.mkdir(parents=True)
+    outside = tmp_path / "outside-runtime"
+    outside.mkdir()
+    _create_junction(runtime, outside)
+    monkeypatch.setattr(cli, "PROJECT_ROOT", tmp_path, raising=False)
+
+    def fail_config(*args, **kwargs):
+        raise ProductionRuntimeError("production configuration is missing")
+
+    monkeypatch.setattr(
+        production,
+        "load_production_config",
+        fail_config,
+    )
+
+    result = main(
+        [
+            "serve",
+            "--environment",
+            "production",
+            "--config",
+            str(runtime / "config" / "settings.json"),
+            "--data-root",
+            str(runtime),
+        ],
+        stdout=io.StringIO(),
+        stderr=io.StringIO(),
+    )
+
+    assert result == EXIT_RUNTIME_ERROR
+    assert list(outside.iterdir()) == []
+
+
 def test_repository_config_needs_no_install_manifest_or_copied_tools(
     tmp_path: Path,
 ) -> None:
@@ -909,7 +1407,13 @@ def test_task_render_uses_repository_and_leaves_scheduler_untouched(
     python.parent.mkdir(parents=True)
     python.write_text("must not execute", encoding="utf-8")
     script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
-    environment = dict(os.environ, LOCALAPPDATA=str(tmp_path / "LocalAppData"))
+    user_profile = tmp_path / "UserProfile"
+    local_app_data = tmp_path / "LocalAppData"
+    environment = dict(
+        os.environ,
+        USERPROFILE=str(user_profile),
+        LOCALAPPDATA=str(local_app_data),
+    )
     process = subprocess.run(
         [
             powershell,
@@ -932,12 +1436,26 @@ def test_task_render_uses_repository_and_leaves_scheduler_untouched(
     assert rendered["Registered"] is False
     namespace = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
     for name in ("DailyXml", "HumanApiXml"):
+        assert not rendered[name].lstrip().startswith("<?xml")
         xml = ET.fromstring(rendered[name])
         working_directory = xml.find(".//t:WorkingDirectory", namespace)
         command = xml.find(".//t:Command", namespace)
+        arguments = xml.findtext(".//t:Arguments", namespaces=namespace) or ""
         assert working_directory is not None
         assert Path(working_directory.text) == tmp_path
         assert command is not None and Path(command.text) == python
+        assert "--user-profile" in arguments
+        assert "--local-app-data" in arguments
+        assert f'--user-profile "{user_profile}"' in arguments
+        assert f'--local-app-data "{local_app_data}"' in arguments
+        if name == "HumanApiXml":
+            principal_user = xml.findtext(
+                ".//t:Principal/t:UserId", namespaces=namespace
+            )
+            trigger_user = xml.findtext(
+                ".//t:LogonTrigger/t:UserId", namespaces=namespace
+            )
+            assert trigger_user == principal_user
     assert not (tmp_path / "InagoRuntime").exists()
     assert not (config_path.parent / "install-manifest.json").exists()
 
@@ -1059,7 +1577,7 @@ $script:existing = [pscustomobject]@{
 }
 $script:registered = @()
 function Get-ScheduledTask { param($TaskName,$TaskPath,$ErrorAction); return $script:existing }
-function Register-ScheduledTask { param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
 try { Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'; $status='replaced' } catch { $status='blocked' }
 [pscustomobject]@{Status=$status; Registrations=@($script:registered)} | ConvertTo-Json -Depth 5 -Compress
 """,
@@ -1109,6 +1627,117 @@ try { Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'; $status='rep
         )
     else:
         assert observed["Registrations"] == []
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+@pytest.mark.parametrize(
+    "definition,expected,registration_count",
+    [
+        ("previous", "accepted", 1),
+        ("current", "accepted", 0),
+        ("current_sid", "accepted", 0),
+        ("current_mismatch", "blocked", 0),
+        ("principal_mismatch", "blocked", 0),
+    ],
+)
+def test_previous_repository_human_task_without_trigger_user_is_updated(
+    tmp_path: Path, definition: str, expected: str, registration_count: int
+) -> None:
+    import shutil
+    from datetime import date
+
+    powershell = shutil.which("powershell.exe")
+    if powershell is None:
+        pytest.skip("PowerShell unavailable")
+    config_path = _write_config(
+        tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+    )
+    document = json.loads(config_path.read_text(encoding="utf-8"))
+    document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+    config_path.write_text(json.dumps(document), encoding="utf-8")
+    setup = config_path.parents[1] / "state/setup-status.json"
+    setup.parent.mkdir()
+    setup.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "ready",
+                "migration_selection_allowed": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    python = tmp_path / ".venv-inago/Scripts/python.exe"
+    python.parent.mkdir(parents=True)
+    python.write_text("not executable", encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+    harness = tmp_path / "human-api-task-switch-fixture.ps1"
+    harness.write_text(
+        r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$Definition)
+. $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+$previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+$triggerUser = $null
+if ($Definition -eq 'current' -or $Definition -eq 'current_sid' -or $Definition -eq 'current_mismatch' -or $Definition -eq 'principal_mismatch') {
+    $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+    $triggerUser = $userId
+}
+if ($Definition -eq 'current_mismatch') { $triggerUser = 'S-1-5-18' }
+$principalUser = $identity.Name
+if ($Definition -eq 'current_sid') { $principalUser = $userId }
+if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
+$script:existing = [pscustomobject]@{
+    Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
+    Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
+    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true}
+    Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
+    State = 'Ready'
+}
+$script:registered = @()
+function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+try { Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'; $status='accepted' } catch { $status='blocked' }
+[pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId} | ConvertTo-Json -Depth 5 -Compress
+""",
+        encoding="utf-8",
+    )
+    process = subprocess.run(
+        [
+            powershell,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(harness),
+            "-RegistrationScript",
+            str(script),
+            "-Root",
+            str(tmp_path),
+            "-Boundary",
+            document["start_date"] + "T13:00:00+09:00",
+            "-Definition",
+            definition,
+        ],
+        capture_output=True,
+        env=dict(
+            os.environ,
+            LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+            USERPROFILE=str(tmp_path / "UserProfile"),
+        ),
+        check=False,
+    )
+
+    assert process.returncode == 0, process.stderr
+    observed = json.loads(process.stdout.decode("utf-8-sig"))
+    assert observed["Status"] == expected
+    assert len(observed["Registrations"]) == registration_count
+    if registration_count:
+        registration = observed["Registrations"][0]
+        assert registration["Force"] is True
+        xml = ET.fromstring(registration["Xml"])
+        namespace = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+        assert (
+            xml.findtext(".//t:LogonTrigger/t:UserId", namespaces=namespace)
+            == observed["User"]
+        )
 
 
 def test_new_database_file_alone_does_not_prove_external_history_transfer(
@@ -1208,6 +1837,7 @@ from pathlib import Path
 import automation.inago.production_runtime as p
 root=Path(sys.argv[1])
 p.PROJECT_ROOT=root
+p._windows_known_folder=lambda name: root if name=='profile' else root/'LocalAppData'
 config=p.load_production_config(root/'rakuten-room-inago/runtime/config/settings.json',data_root=root/'rakuten-room-inago/runtime',user_profile=root,local_app_data=root/'LocalAppData',which=lambda command:str(command) if Path(command).is_file() else None)
 p.require_production_ready(config)
 """,
@@ -1267,5 +1897,10 @@ def test_content_verified_external_database_transfer_is_accepted(
         local_app_data=tmp_path / "LocalAppData",
         which=lambda command: str(command) if Path(command).is_file() else None,
     )
+    human_config = load_human_api_config(
+        config_path,
+        data_root=config.runtime_root,
+    )
     assert config.runtime_root / "state.sqlite" == destination_path
+    assert human_config.runtime_root == config.runtime_root
     assert (old_root / "state.sqlite").is_file()

@@ -116,6 +116,90 @@ def test_missing_label_is_explicitly_unknown_and_does_not_block_offer_intake(
     ]
 
 
+def test_public_observation_enriches_legacy_identity_placeholder(runtime_case):
+    connection = runtime_case.connection
+    connection.execute(
+        """
+        INSERT INTO offer(
+            offer_key,shop_id,item_id,name,url,image_refs_json,main_theme_id,
+            aux_theme_ids_json,first_seen,last_seen,facts_json
+        ) VALUES (
+            'shop-a:item-a','shop-a','item-a','\u5546\u54c1\u540d\u672a\u53d6\u5f97',
+            'https://item.rakuten.co.jp/shop-a/item-a/','[]',
+            'legacy-unassigned','[]','2026-10-01T00:00:00+09:00',
+            '2026-10-01T00:00:00+09:00','[]'
+        )
+        """
+    )
+    connection.commit()
+
+    SQLitePublicOfferIntake(FixtureProductFactSource(_fact())).persist_offer(
+        connection, _request()
+    )
+
+    row = connection.execute(
+        "SELECT name,url,image_refs_json,main_theme_id,first_seen,last_seen,facts_json "
+        "FROM offer WHERE offer_key='shop-a:item-a'"
+    ).fetchone()
+    assert row[0] == "\u4fdd\u5b58\u5bb9\u5668\u30bb\u30c3\u30c8"
+    assert row[1] == "https://item.rakuten.co.jp/shop-a/item-a/"
+    assert json.loads(row[2]) == ["https://image.example/item-a.jpg"]
+    assert row[3] == "G01-T01"
+    assert row[4] == "2026-10-01T00:00:00+09:00"
+    assert row[5] == OBSERVED_AT
+    assert json.loads(row[6])[0]["availability"] == "observed"
+
+
+def test_name_unknown_legacy_offer_can_be_completed_by_later_observation(runtime_case):
+    connection = runtime_case.connection
+    connection.execute(
+        """
+        INSERT INTO offer(
+            offer_key,shop_id,item_id,name,url,image_refs_json,main_theme_id,
+            aux_theme_ids_json,first_seen,last_seen,facts_json
+        ) VALUES (
+            'shop-a:item-a','shop-a','item-a','legacy identity only',
+            'https://item.rakuten.co.jp/shop-a/item-a/','[]',
+            'legacy-unassigned','[]','2026-10-01T00:00:00+09:00',
+            '2026-10-01T00:00:00+09:00','[]'
+        )
+        """
+    )
+    connection.commit()
+    intake = SQLitePublicOfferIntake(FixtureProductFactSource(_fact(name=None)))
+    intake.persist_offer(connection, _request())
+
+    after_unknown = connection.execute(
+        "SELECT main_theme_id,facts_json,last_seen FROM offer "
+        "WHERE offer_key='shop-a:item-a'"
+    ).fetchone()
+    assert after_unknown[0] == "G01-T01"
+    assert json.loads(after_unknown[1])[0]["availability"] == "unknown"
+    assert after_unknown[2] == OBSERVED_AT
+
+    next_observed_at = "2026-10-13T13:00:00+09:00"
+    next_request = _request(
+        theme_id="G02-T05",
+        evidence_ref="SEARCH-2:row:1",
+        observed_at=next_observed_at,
+    )
+    next_fact = _fact(
+        evidence_ref=next_request.evidence_ref, observed_at=next_observed_at
+    )
+    SQLitePublicOfferIntake(FixtureProductFactSource(next_fact)).persist_offer(
+        connection, next_request
+    )
+
+    after_observed = connection.execute(
+        "SELECT name,facts_json,last_seen,main_theme_id FROM offer "
+        "WHERE offer_key='shop-a:item-a'"
+    ).fetchone()
+    assert after_observed[0] == next_fact["name"]
+    assert json.loads(after_observed[1])[0]["availability"] == "observed"
+    assert after_observed[2] == next_observed_at
+    assert after_observed[3] == "G01-T01"
+
+
 @pytest.mark.parametrize(
     "request_value,fact,reason",
     [

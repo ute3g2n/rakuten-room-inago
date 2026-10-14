@@ -11,6 +11,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import stat
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Callable, Mapping
 from urllib.parse import urlsplit
@@ -63,6 +64,16 @@ class ProductionRuntimeConfig:
         return self.user_profile_root / ".codex"
 
 
+@dataclass(frozen=True, slots=True)
+class HumanApiRuntimeConfig:
+    """Minimal repository-local settings needed by the independent report API."""
+
+    application_root: Path
+    runtime_root: Path
+    backup_root: Path
+    human_api_port: int
+
+
 def _has_reparse_point(path: Path) -> bool:
     cursor = path
     while True:
@@ -111,6 +122,66 @@ def _same_path(left: Path, right: Path) -> bool:
     left_text = os.path.normcase(os.path.abspath(os.path.normpath(str(left))))
     right_text = os.path.normcase(os.path.abspath(os.path.normpath(str(right))))
     return left_text == right_text
+
+
+def _windows_known_folder(name: str) -> Path:
+    """Resolve a Windows known folder for the current process identity."""
+
+    folder_ids = {
+        "profile": "5E6C858F-0E22-4760-9AFE-EA3317B67173",
+        "local_app_data": "F1B32785-6FBA-4FCF-9D55-7B8E7F157091",
+    }
+    folder_id = folder_ids.get(name)
+    if folder_id is None:
+        raise ProductionRuntimeError("Windows known-folder name is unsupported")
+    if os.name != "nt":
+        raise ProductionRuntimeError("current Windows user folders are unavailable")
+
+    import ctypes
+    from ctypes import wintypes
+    from uuid import UUID
+
+    class GUID(ctypes.Structure):
+        _fields_ = [
+            ("Data1", wintypes.DWORD),
+            ("Data2", wintypes.WORD),
+            ("Data3", wintypes.WORD),
+            ("Data4", wintypes.BYTE * 8),
+        ]
+
+    shell32 = ctypes.windll.shell32
+    ole32 = ctypes.windll.ole32
+    shell32.SHGetKnownFolderPath.argtypes = [
+        ctypes.POINTER(GUID),
+        wintypes.DWORD,
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.LPWSTR),
+    ]
+    shell32.SHGetKnownFolderPath.restype = ctypes.c_long
+    ole32.CoTaskMemFree.argtypes = [ctypes.c_void_p]
+    ole32.CoTaskMemFree.restype = None
+    guid = GUID.from_buffer_copy(UUID(folder_id).bytes_le)
+    result = wintypes.LPWSTR()
+    status = shell32.SHGetKnownFolderPath(
+        ctypes.byref(guid), 0, None, ctypes.byref(result)
+    )
+    if status != 0 or not result.value:
+        raise ProductionRuntimeError("current Windows user folders are unavailable")
+    try:
+        return Path(result.value)
+    finally:
+        ole32.CoTaskMemFree(ctypes.cast(result, ctypes.c_void_p))
+
+
+def _current_user_root(value: str | Path | None, *, name: str, folder: str) -> Path:
+    expected = _absolute_path(_windows_known_folder(folder), f"current {name}")
+    selected = expected if value is None else _absolute_path(value, name)
+    if not _same_path(selected, expected):
+        label = "profile" if folder == "profile" else "LocalAppData directory"
+        raise ProductionRuntimeError(
+            f"{name} must match current Windows user's {label}"
+        )
+    return selected
 
 
 def _checked_private_path(value: object, name: str) -> Path:
@@ -188,6 +259,37 @@ def _document(path: Path) -> dict[str, Any]:
     return value
 
 
+def _validate_previous_runtime_transfer(
+    value: Mapping[str, Any], *, profile_root: Path, runtime_root: Path
+) -> None:
+    """Refuse to serve or initialize an empty repository DB over old history."""
+
+    previous_database = profile_root / "InagoRuntime" / "state.sqlite"
+    if not previous_database.is_file():
+        return
+    transferred = value.get("previous_runtime_transfer")
+    destination = runtime_root / "state.sqlite"
+    if (
+        not destination.is_file()
+        or not isinstance(transferred, dict)
+        or transferred.get("status") != "content_verified"
+        or transferred.get("history_and_pending_preserved") is not True
+        or not _same_path(
+            _absolute_path(transferred.get("source_database"), "previous source"),
+            previous_database,
+        )
+        or not _same_path(
+            _absolute_path(
+                transferred.get("destination_database"), "previous destination"
+            ),
+            destination,
+        )
+    ):
+        raise ProductionRuntimeError(
+            "existing external Inago database must be transferred and content verified before repository runtime use"
+        )
+
+
 def load_production_config(
     config_path: str | Path,
     *,
@@ -198,12 +300,12 @@ def load_production_config(
 ) -> ProductionRuntimeConfig:
     """Load repository-local configuration without deployment copies or ACL gates."""
 
-    local_root = Path(local_app_data or os.environ.get("LOCALAPPDATA", "")).expanduser()
-    if not local_root.is_absolute():
-        raise ProductionRuntimeError("LOCALAPPDATA is unavailable")
-    profile_root = Path(user_profile or os.environ.get("USERPROFILE", "")).expanduser()
-    if not profile_root.is_absolute():
-        raise ProductionRuntimeError("USERPROFILE is unavailable")
+    local_root = _current_user_root(
+        local_app_data, name="local_app_data", folder="local_app_data"
+    )
+    profile_root = _current_user_root(
+        user_profile, name="user_profile", folder="profile"
+    )
     expected_root = _lexical_absolute_path(
         PROJECT_ROOT / "rakuten-room-inago" / "runtime", "expected runtime root"
     )
@@ -219,29 +321,9 @@ def load_production_config(
     if not config_file.is_file():
         raise ProductionRuntimeError("production configuration file is missing")
     value = _document(config_file)
-    previous_database = profile_root / "InagoRuntime" / "state.sqlite"
-    if previous_database.is_file():
-        transferred = value.get("previous_runtime_transfer")
-        destination = runtime_root / "state.sqlite"
-        if (
-            not destination.is_file()
-            or not isinstance(transferred, dict)
-            or transferred.get("status") != "content_verified"
-            or transferred.get("history_and_pending_preserved") is not True
-            or not _same_path(
-                _absolute_path(transferred.get("source_database"), "previous source"),
-                previous_database,
-            )
-            or not _same_path(
-                _absolute_path(
-                    transferred.get("destination_database"), "previous destination"
-                ),
-                destination,
-            )
-        ):
-            raise ProductionRuntimeError(
-                "existing external Inago database must be transferred and content verified before repository setup"
-            )
+    _validate_previous_runtime_transfer(
+        value, profile_root=profile_root, runtime_root=runtime_root
+    )
     if (
         type(value.get("schema_version")) is not int
         or value["schema_version"] != 1
@@ -307,14 +389,27 @@ def load_production_config(
 
     chrome = _approved_chrome_executable(browser.get("chrome_executable"), local_root)
     user_data = _checked_private_path(browser.get("user_data_dir"), "user_data_dir")
-    expected_user_data = local_root / "InagoPlaywrightProfile"
+    expected_user_data = _checked_private_path(
+        local_root / "InagoPlaywrightProfile",
+        "expected dedicated browser profile",
+    )
     if not _same_path(user_data, expected_user_data):
         raise ProductionRuntimeError(
             "ROOM browser must use the dedicated Inago profile"
         )
-    if not user_data.is_dir():
+    try:
+        user_data_mode = user_data.stat().st_mode
+    except FileNotFoundError as exc:
         raise ProductionRuntimeError(
-            "Chrome or the dedicated browser profile is unavailable"
+            "dedicated ROOM browser profile directory is missing"
+        ) from exc
+    except OSError as exc:
+        raise ProductionRuntimeError(
+            "dedicated ROOM browser profile directory cannot be inspected"
+        ) from exc
+    if not stat.S_ISDIR(user_data_mode):
+        raise ProductionRuntimeError(
+            "dedicated ROOM browser profile path is not a directory"
         )
     if _has_reparse_point(user_data):
         raise ProductionRuntimeError("Browser profile cannot contain reparse points")
@@ -400,6 +495,71 @@ def load_production_config(
         affiliate_auth_state=auth_state,
         legacy_source_root=legacy_root,
         legacy_paths=legacy_paths,
+        human_api_port=port,
+    )
+
+
+def load_human_api_config(
+    config_path: str | Path,
+    *,
+    data_root: str | Path,
+) -> HumanApiRuntimeConfig:
+    """Load only repository and loopback API settings; no browser or AI tools."""
+
+    expected_root = _lexical_absolute_path(
+        PROJECT_ROOT / "rakuten-room-inago" / "runtime", "expected runtime root"
+    )
+    expected_config = expected_root / "config" / "settings.json"
+    runtime_root = _checked_private_path(data_root, "data_root")
+    config_file = _checked_private_path(config_path, "config_path")
+    if not _same_path(runtime_root, expected_root) or not _same_path(
+        config_file, expected_config
+    ):
+        raise ProductionRuntimeError(
+            "Human API paths must use the repository runtime root"
+        )
+    if not config_file.is_file():
+        raise ProductionRuntimeError("production configuration file is missing")
+    value = _document(config_file)
+    profile_root = _current_user_root(None, name="user_profile", folder="profile")
+    _validate_previous_runtime_transfer(
+        value, profile_root=profile_root, runtime_root=runtime_root
+    )
+    if (
+        type(value.get("schema_version")) is not int
+        or value["schema_version"] != 1
+        or value.get("environment") != "production"
+    ):
+        raise ProductionRuntimeError("production configuration version is unsupported")
+
+    application_root = _checked_private_path(
+        value.get("application_root"), "application_root"
+    )
+    if not _same_path(application_root, PROJECT_ROOT) or not application_root.is_dir():
+        raise ProductionRuntimeError("application root must be the current repository")
+    configured_root = _checked_private_path(value.get("runtime_root"), "runtime_root")
+    if not _same_path(configured_root, expected_root):
+        raise ProductionRuntimeError(
+            "configured runtime root is not the repository runtime root"
+        )
+    expected_backup = _lexical_absolute_path(
+        PROJECT_ROOT / "rakuten-room-inago" / "backups", "expected backup root"
+    )
+    backup_root = _checked_private_path(value.get("backup_root"), "backup_root")
+    if not _same_path(backup_root, expected_backup):
+        raise ProductionRuntimeError(
+            "backup root must use the repository backup directory"
+        )
+    human_api = value.get("human_api")
+    if not isinstance(human_api, dict) or human_api.get("bind_host") != "127.0.0.1":
+        raise ProductionRuntimeError("Human API must bind to loopback only")
+    port = human_api.get("port")
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise ProductionRuntimeError("Human API port is invalid")
+    return HumanApiRuntimeConfig(
+        application_root=application_root,
+        runtime_root=runtime_root,
+        backup_root=backup_root,
         human_api_port=port,
     )
 
@@ -581,17 +741,57 @@ def build_public_daily_components(
     }
 
 
-def _open_production_database(config: ProductionRuntimeConfig) -> sqlite3.Connection:
+def _open_production_database(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> sqlite3.Connection:
     from automation.inago.repository import open_database
 
     return open_database(SimpleNamespace(data_root=config.runtime_root))
 
 
-def _setup_state_path(config: ProductionRuntimeConfig) -> Path:
+def _open_existing_production_database(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> sqlite3.Connection:
+    """Open an already migrated runtime DB without creating or upgrading it."""
+
+    from automation.inago.repository import SQLITE_BUSY_TIMEOUT_MS, schema_version
+
+    _assert_production_roots(config)
+    database_path = config.runtime_root / "state.sqlite"
+    if _has_reparse_point(database_path) or not database_path.is_file():
+        raise sqlite3.OperationalError("production database is unavailable")
+    try:
+        database_uri = f"{database_path.resolve(strict=True).as_uri()}?mode=rw"
+        connection = sqlite3.connect(
+            database_uri,
+            uri=True,
+            timeout=SQLITE_BUSY_TIMEOUT_MS / 1_000,
+            isolation_level=None,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise sqlite3.OperationalError("production database is unavailable") from exc
+
+    connection.row_factory = sqlite3.Row
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+        connection.execute("PRAGMA synchronous = FULL")
+        schema_version(connection)
+    except BaseException:
+        connection.close()
+        raise
+    return connection
+
+
+def _setup_state_path(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> Path:
     return config.runtime_root / "state" / "setup-status.json"
 
 
-def _checked_setup_state_path(config: ProductionRuntimeConfig) -> Path:
+def _checked_setup_state_path(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> Path:
     """Check the entire setup-state path before each read or write."""
 
     _assert_production_roots(config)
@@ -604,7 +804,7 @@ def _checked_setup_state_path(config: ProductionRuntimeConfig) -> Path:
 
 
 def _read_private_setup_state(
-    config: ProductionRuntimeConfig, *, required: bool
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig, *, required: bool
 ) -> dict[str, Any] | None:
     path = _checked_setup_state_path(config)
     if not path.is_file():
@@ -648,7 +848,9 @@ def _write_private_state(path: Path, value: Mapping[str, Any]) -> None:
     atomic_write_json(path, dict(value))
 
 
-def _assert_production_roots(config: ProductionRuntimeConfig) -> None:
+def _assert_production_roots(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> None:
     """Recheck repository data paths immediately before production writes."""
 
     expected_runtime = _lexical_absolute_path(
@@ -867,7 +1069,9 @@ def run_production_daily(
         connection.close()
 
 
-def require_production_ready(config: ProductionRuntimeConfig) -> dict[str, Any]:
+def require_production_ready(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> dict[str, Any]:
     """Check daily prerequisites explicitly, including under optimized Python."""
 
     state = _read_private_setup_state(config, required=True)
@@ -883,13 +1087,21 @@ def require_production_ready(config: ProductionRuntimeConfig) -> dict[str, Any]:
     return state
 
 
-def serve_human_api(config: ProductionRuntimeConfig) -> None:
+def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> None:
     """Serve the owner dashboard and pending-report API on authenticated loopback."""
 
     from automation.inago.human_api import create_server
 
     def connection_factory():
-        return _open_production_database(config)
+        return _open_existing_production_database(config)
+
+    initial_connection = connection_factory()
+    try:
+        from automation.inago.export import build_dashboard_state
+
+        build_dashboard_state(initial_connection)
+    finally:
+        initial_connection.close()
 
     token_path = _human_api_token_path(config)
     if not token_path.is_file() or _has_reparse_point(token_path):
@@ -912,7 +1124,9 @@ def serve_human_api(config: ProductionRuntimeConfig) -> None:
     server.serve_forever(poll_interval=0.5)
 
 
-def _human_api_token_path(config: ProductionRuntimeConfig) -> Path:
+def _human_api_token_path(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> Path:
     return config.runtime_root / "secrets" / "human-api-token.json"
 
 

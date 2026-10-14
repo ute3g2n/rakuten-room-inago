@@ -246,6 +246,18 @@ def _create_database(data_root: Path) -> sqlite3.Connection:
     return connection
 
 
+def _create_empty_offer_database(data_root: Path) -> sqlite3.Connection:
+    """Create a fresh production-shaped database without current offer rows."""
+
+    data_root.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(data_root / "state.sqlite")
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    initialize_database(connection)
+    connection.commit()
+    return connection
+
+
 def _snapshot(connection: sqlite3.Connection) -> dict[str, object]:
     return {
         "run": tuple(connection.execute("SELECT * FROM run").fetchone()),
@@ -270,6 +282,7 @@ def _migrate(
     data_root: Path,
     *,
     mode: str,
+    fixture_mode: bool = True,
 ):
     return migrate_legacy_history(
         connection,
@@ -281,7 +294,7 @@ def _migrate(
         drafts_path="drafts.json",
         now=NOW,
         mode=mode,
-        fixture_mode=True,
+        fixture_mode=fixture_mode,
     )
 
 
@@ -398,6 +411,85 @@ def test_apply_and_reapply_import_only_evidence_and_preserve_old_and_new_sources
             == "committed"
         )
         assert {p.name: p.read_bytes() for p in source_root.iterdir()} == source_bytes
+    finally:
+        connection.close()
+
+
+def test_confirmed_legacy_posts_import_from_product_url_without_current_offer_rows(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "legacy-source"
+    data_root = tmp_path / "new-data"
+    source_bytes = _write_sources(source_root)
+    connection = _create_empty_offer_database(data_root)
+    try:
+        dry_run = _migrate(
+            connection,
+            source_root,
+            data_root,
+            mode="dry_run",
+            fixture_mode=False,
+        )
+        assert not any(
+            item["reason"] == "current_offer_missing"
+            for item in dry_run.supplementation_required
+        )
+        assert {
+            item["legacy_product_ref"]
+            for item in dry_run.items
+            if item["outcome"] == "would_import"
+        } == {"P01", "P02"}
+        assert connection.execute("SELECT COUNT(*) FROM offer").fetchone()[0] == 0
+
+        applied = _migrate(
+            connection,
+            source_root,
+            data_root,
+            mode="apply",
+            fixture_mode=False,
+        )
+        assert applied.created_publications == 2
+        assert applied.created_exclusions == 2
+        assert (
+            applied.selection_allowed is False
+        )  # unrelated unknown legacy state remains unresolved
+        placeholders = connection.execute(
+            "SELECT offer_key,name,url,image_refs_json,main_theme_id,facts_json "
+            "FROM offer ORDER BY offer_key"
+        ).fetchall()
+        assert [row[0] for row in placeholders] == [
+            "shop_test:item_A",
+            "shop_test:item_B",
+        ]
+        for row in placeholders:
+            assert row[1] == "\u5546\u54c1\u540d\u672a\u53d6\u5f97"
+            assert row[3] == "[]"
+            assert row[4] == "legacy-unassigned"
+            assert row[5] == "[]"
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM publication_event WHERE valid=1"
+            ).fetchone()[0]
+            == 2
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM exclusion_key WHERE effective=1"
+            ).fetchone()[0]
+            == 2
+        )
+        assert {p.name: p.read_bytes() for p in source_root.iterdir()} == source_bytes
+
+        reapplied = _migrate(
+            connection,
+            source_root,
+            data_root,
+            mode="apply",
+            fixture_mode=False,
+        )
+        assert reapplied.created_publications == 0
+        assert reapplied.created_exclusions == 0
+        assert connection.execute("SELECT COUNT(*) FROM offer").fetchone()[0] == 2
     finally:
         connection.close()
 

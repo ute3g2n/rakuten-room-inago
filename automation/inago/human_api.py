@@ -211,6 +211,24 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
                 {"error": "origin_rejected"},
             )
             return
+        if self.path == "/health":
+            connection: sqlite3.Connection | None = None
+            try:
+                connection = self._api_server.connection_factory()
+                from automation.inago.repository import schema_version
+
+                schema_version(connection)
+                build_dashboard_state(connection)
+                self._send_json(HTTPStatus.OK, {"status": "ready"})
+            except Exception:
+                self._send_json(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    {"status": "unavailable"},
+                )
+            finally:
+                if connection is not None:
+                    connection.close()
+            return
         static_file = _DASHBOARD_FILES.get(self.path)
         if static_file is not None:
             self._send_static_file(*static_file)

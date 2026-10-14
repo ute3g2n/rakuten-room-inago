@@ -7,7 +7,11 @@ import sqlite3
 from typing import Any, Mapping, Protocol
 
 from automation.inago.orchestrator import OfferIntakeRequest
-from automation.inago.repository import validate_entity
+from automation.inago.repository import (
+    LEGACY_UNASSIGNED_THEME_ID,
+    offer_needs_name_observation,
+    validate_entity,
+)
 from automation.inago.selection import (
     identify_offer_from_saved_url,
     normalize_offer_url,
@@ -84,7 +88,9 @@ class SQLitePublicOfferIntake:
             connection.execute(f"SAVEPOINT {self._SAVEPOINT}")
         try:
             existing = connection.execute(
-                "SELECT shop_id,item_id,url FROM offer WHERE offer_key=?",
+                "SELECT shop_id,item_id,url,main_theme_id,first_seen,facts_json,"
+                "image_refs_json "
+                "FROM offer WHERE offer_key=?",
                 (request.offer_key,),
             ).fetchone()
             if existing is not None:
@@ -94,6 +100,41 @@ class SQLitePublicOfferIntake:
                     or normalize_offer_url(str(existing[2])) != validated["url"]
                 ):
                     raise OfferIntakeError("persisted_identity_mismatch")
+                if offer_needs_name_observation(existing[3], existing[5]):
+                    existing_images = json.loads(existing[6])
+                    observed_images = list(
+                        dict.fromkeys([*existing_images, *entity["image_refs"]])
+                    )
+                    enriched = {
+                        **entity,
+                        "image_refs": observed_images,
+                        "first_seen": str(existing[4]),
+                    }
+                    validate_entity("offer", enriched)
+                    encoded_updated_images = json.dumps(
+                        observed_images,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        allow_nan=False,
+                    )
+                    connection.execute(
+                        """UPDATE offer SET name=?,url=?,image_refs_json=?,
+                               main_theme_id=?,last_seen=?,facts_json=?
+                           WHERE offer_key=?""",
+                        (
+                            name,
+                            validated["url"],
+                            encoded_updated_images,
+                            (
+                                request.theme_id
+                                if existing[3] == LEGACY_UNASSIGNED_THEME_ID
+                                else existing[3]
+                            ),
+                            request.observed_at,
+                            encoded_facts,
+                            request.offer_key,
+                        ),
+                    )
             else:
                 connection.execute(
                     """

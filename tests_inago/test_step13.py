@@ -37,9 +37,11 @@ from automation.inago.orchestrator import (
     DailyPorts,
     DailySearchPlan,
     DailyThemePlan,
+    _intake_missing_offers,
     run_daily,
 )
 from automation.inago.orchestrator import OfferIntakeRequest
+from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -1080,6 +1082,157 @@ def test_missing_offer_is_intaken_from_fixture_snapshot_before_copy(
             "SELECT COUNT(*) FROM draft WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
         == 15
+    )
+
+
+def test_legacy_identity_offer_is_refreshed_before_candidate_selection(
+    runtime_case: RuntimeCase,
+) -> None:
+    connection = runtime_case.connection
+    connection.execute(
+        """INSERT INTO run(
+               run_id,target_date,mode,status,settings_version,seed,started_at,
+               draft_deadline,end_deadline,attempt_used,committed_count,checkpoint,
+               metrics_status,finished_at
+           ) VALUES (
+               'RUN-LEGACY-INTAKE','2026-10-12','daily','running',?, 'seed',
+               ?,?,?,0,0,NULL,'not_started',NULL
+           )""",
+        (SETTINGS_VERSION, NOW, NOW, NOW),
+    )
+    connection.execute(
+        """INSERT INTO search_attempt(
+               attempt_id,run_id,query,parent_refs_json,level,attempt_no,started_at,
+               ended_at,source_status,source_order,max_posts,retry_of,error_code
+           ) VALUES (
+               'SEARCH-LEGACY-INTAKE','RUN-LEGACY-INTAKE','query','[]','parent',
+               1,?,?, 'observed','internal',50,NULL,NULL
+           )""",
+        (NOW, NOW),
+    )
+    connection.execute(
+        """INSERT INTO source_post(
+               source_key,stable_room_id,room_url,attempt_id,order_index,likes,
+               comments,item_url,image_ref,actor_ref,published_at,evidence_ref,
+               observed_at,availability
+           ) VALUES (
+               'source-legacy-1','ROOM-1','https://room.rakuten.co.jp/test/item/1',
+               'SEARCH-LEGACY-INTAKE',1,300,NULL,
+               'https://item.rakuten.co.jp/shop-a/item-a/','image-1',NULL,NULL,
+               'search-row-1',?,'observed'
+           )""",
+        (NOW,),
+    )
+    connection.execute(
+        """INSERT INTO offer(
+               offer_key,shop_id,item_id,name,url,image_refs_json,main_theme_id,
+               aux_theme_ids_json,first_seen,last_seen,facts_json
+           ) VALUES (
+               'shop-a:item-a','shop-a','item-a','legacy identity only',
+               'https://item.rakuten.co.jp/shop-a/item-a/','[]',
+               ?,'[]',?,?, '[]'
+           )""",
+        (LEGACY_UNASSIGNED_THEME_ID, NOW, NOW),
+    )
+    connection.commit()
+
+    class RefreshingIntake:
+        fixture_only = True
+
+        def __init__(self) -> None:
+            self.requests: list[OfferIntakeRequest] = []
+
+        def persist_offer(self, db, request: OfferIntakeRequest) -> None:
+            self.requests.append(request)
+            existing_theme = db.execute(
+                "SELECT main_theme_id FROM offer WHERE offer_key=?",
+                (request.offer_key,),
+            ).fetchone()[0]
+            assigned_theme = (
+                request.theme_id
+                if existing_theme == LEGACY_UNASSIGNED_THEME_ID
+                else existing_theme
+            )
+            db.execute(
+                "UPDATE offer SET main_theme_id=?,last_seen=?,facts_json=? "
+                "WHERE offer_key=?",
+                (
+                    assigned_theme,
+                    request.observed_at,
+                    json.dumps(
+                        [
+                            {
+                                "field": "name",
+                                "value": None,
+                                "availability": "unknown",
+                                "source_ref": request.evidence_ref,
+                                "observed_at": request.observed_at,
+                                "original_display": None,
+                            }
+                        ]
+                    ),
+                    request.offer_key,
+                ),
+            )
+
+    intake = RefreshingIntake()
+    _intake_missing_offers(
+        connection,
+        run_id="RUN-LEGACY-INTAKE",
+        settings_version=SETTINGS_VERSION,
+        theme_id="G01-T01",
+        attempt_id="SEARCH-LEGACY-INTAKE",
+        identities={"source-legacy-1": "shop-a:item-a"},
+        port=intake,
+    )
+
+    assert len(intake.requests) == 1
+    assert intake.requests[0].offer_key == "shop-a:item-a"
+    assert intake.requests[0].item_url == "https://item.rakuten.co.jp/shop-a/item-a/"
+    assert (
+        connection.execute(
+            "SELECT main_theme_id FROM offer WHERE offer_key='shop-a:item-a'"
+        ).fetchone()[0]
+        == "G01-T01"
+    )
+    _intake_missing_offers(
+        connection,
+        run_id="RUN-LEGACY-INTAKE",
+        settings_version=SETTINGS_VERSION,
+        theme_id="G01-T01",
+        attempt_id="SEARCH-LEGACY-INTAKE",
+        identities={"source-legacy-1": "shop-a:item-a"},
+        port=intake,
+    )
+    assert len(intake.requests) == 1
+
+    # The saved observation is still October 13 in JST, while the next search
+    # timestamp has a UTC date of October 13 but is already October 14 in JST.
+    connection.execute(
+        "UPDATE offer SET last_seen='2026-10-13T23:59:00+09:00' "
+        "WHERE offer_key='shop-a:item-a'"
+    )
+    connection.execute(
+        "UPDATE source_post SET observed_at='2026-10-13T15:00:00+00:00' "
+        "WHERE source_key='source-legacy-1'"
+    )
+    connection.commit()
+    _intake_missing_offers(
+        connection,
+        run_id="RUN-LEGACY-INTAKE",
+        settings_version=SETTINGS_VERSION,
+        theme_id="G02-T05",
+        attempt_id="SEARCH-LEGACY-INTAKE",
+        identities={"source-legacy-1": "shop-a:item-a"},
+        port=intake,
+    )
+    assert len(intake.requests) == 2
+    assert intake.requests[-1].observed_at == "2026-10-13T15:00:00+00:00"
+    assert (
+        connection.execute(
+            "SELECT main_theme_id FROM offer WHERE offer_key='shop-a:item-a'"
+        ).fetchone()[0]
+        == "G01-T01"
     )
 
 
