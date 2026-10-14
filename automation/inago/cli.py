@@ -1,9 +1,11 @@
-"""Safe CLI shell; execution modes remain explicit unimplemented stubs."""
+"""Explicit fixture and protected per-user production entry points."""
 
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
+import os
 import sqlite3
 import sys
 from dataclasses import dataclass
@@ -51,6 +53,9 @@ def _parser() -> argparse.ArgumentParser:
         mode_parser = subparsers.add_parser(mode)
         mode_parser.add_argument("--config", required=True)
         mode_parser.add_argument("--data-root", required=True)
+        mode_parser.add_argument(
+            "--environment", choices=("fixture", "production"), default="fixture"
+        )
     return parser
 
 
@@ -94,6 +99,89 @@ def _validate_fixture_ports(ports: DailyPorts) -> None:
             raise PathContractError(f"daily CLI adapter {name} is not fixture-only")
 
 
+def _append_production_log(
+    root: Path, *, mode: str, status: str, reason: str | None = None
+) -> None:
+    """Append a private lifecycle event without arguments, URLs, or source text."""
+
+    from datetime import timezone
+
+    log_path = root / "logs" / "production-cli.jsonl"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    event: dict[str, object] = {
+        "at": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "status": status,
+    }
+    if reason:
+        event["reason"] = reason
+    encoded = (json.dumps(event, separators=(",", ":"), allow_nan=False) + "\n").encode(
+        "utf-8"
+    )
+    with log_path.open("ab") as stream:
+        stream.write(encoded)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
+    from automation.inago.production_runtime import (
+        initialize_production_runtime,
+        load_production_config,
+        run_production_daily,
+        serve_human_api,
+    )
+    from automation.inago.clock import SystemClock
+
+    config = None
+    try:
+        config = load_production_config(args.config, data_root=args.data_root)
+        if args.mode == "setup":
+            result = initialize_production_runtime(
+                config,
+                now=SystemClock().now_jst().isoformat(),
+            )
+            _append_production_log(config.runtime_root, mode=args.mode, status="ready")
+            _emit(output, {"status": "ready", **result})
+            return 0
+        if args.mode == "daily":
+            result = run_production_daily(config)
+            status = str(result.get("status", "failed"))
+            _append_production_log(
+                config.runtime_root,
+                mode=args.mode,
+                status=status,
+                reason=(
+                    result.get("reason")
+                    if isinstance(result.get("reason"), str)
+                    else None
+                ),
+            )
+            _emit(output, result)
+            return EXIT_RUNTIME_ERROR if status in {"failed", "locked"} else 0
+        if args.mode == "serve":
+            _append_production_log(
+                config.runtime_root, mode=args.mode, status="starting"
+            )
+            serve_human_api(config)
+            return 0
+        _emit(output, {"status": "not_implemented", "mode": args.mode})
+        return EXIT_NOT_IMPLEMENTED
+    except Exception as exc:
+        if config is not None:
+            try:
+                _append_production_log(
+                    config.runtime_root,
+                    mode=args.mode,
+                    status="failed",
+                    reason=type(exc).__name__,
+                )
+            except OSError:
+                pass
+        _emit(error_output, {"status": "runtime_error", "reason": type(exc).__name__})
+        return EXIT_RUNTIME_ERROR
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -111,6 +199,9 @@ def main(
     output = stdout if stdout is not None else sys.stdout
     error_output = stderr if stderr is not None else sys.stderr
     args = _parser().parse_args(argv)
+
+    if args.environment == "production":
+        return _run_production(args, output=output, error_output=error_output)
 
     try:
         paths = resolve_runtime_paths(

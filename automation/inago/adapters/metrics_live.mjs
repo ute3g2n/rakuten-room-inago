@@ -1,4 +1,4 @@
-import { appendFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, lstat, mkdir, writeFile } from 'node:fs/promises';
 import { lstatSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,7 +10,6 @@ import { normalizeRoomMetricsResponse } from './room_metrics.mjs';
 import {
   deduplicateObservations,
   extractInitialState,
-  findRoomUrlInText,
   paginationLimitReached,
   validateRoomUrl,
 } from '../../../scripts/room-likes-lib.mjs';
@@ -63,15 +62,28 @@ function safeErrorCode(error) {
 }
 
 function chromeExecutable() {
+  const configured = process.env.INAGO_BROWSER_EXECUTABLE?.trim();
+  if (configured) {
+    if (!path.isAbsolute(configured)) throw new Error('configured_browser_path_invalid');
+    try {
+      if (statSync(configured).isFile()) return path.resolve(configured);
+    } catch {
+      // Fail closed rather than silently switching the production browser.
+    }
+    throw new Error('configured_browser_unavailable');
+  }
   const candidates = [
+    process.env['PROGRAMFILES(X86)']
+      ? path.join(process.env['PROGRAMFILES(X86)'], 'Google', 'Chrome', 'Application', 'chrome.exe')
+      : null,
+    process.env.PROGRAMFILES
+      ? path.join(process.env.PROGRAMFILES, 'Google', 'Chrome', 'Application', 'chrome.exe')
+      : null,
     process.env['PROGRAMFILES(X86)']
       ? path.join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe')
       : null,
     process.env.PROGRAMFILES
       ? path.join(process.env.PROGRAMFILES, 'Microsoft', 'Edge', 'Application', 'msedge.exe')
-      : null,
-    process.env.PROGRAMFILES
-      ? path.join(process.env.PROGRAMFILES, 'Google', 'Chrome', 'Application', 'chrome.exe')
       : null,
   ].filter(Boolean);
   for (const candidate of candidates) {
@@ -83,6 +95,8 @@ function chromeExecutable() {
   }
   throw new Error('supported_browser_unavailable');
 }
+
+export { chromeExecutable };
 
 function validateDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -452,20 +466,13 @@ async function collectAffiliate({ browserExecutable, authStatePath, targetDate, 
   }
 }
 
-async function readRoomUrl() {
-  const accountFiles = [
-    path.join(PROJECT_ROOT, 'rakuten-room-kai', 'account.md'),
-    path.join(PROJECT_ROOT, 'rakuten-room', 'account.md'),
-  ];
-  for (const accountFile of accountFiles) {
-    try {
-      const roomUrl = findRoomUrlInText(await readFile(accountFile, 'utf8'));
-      if (roomUrl) return validateRoomUrl(roomUrl);
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
+export function resolveOwnerRoomUrl(value = process.env.INAGO_OWNER_ROOM_URL) {
+  if (typeof value !== 'string' || !value.trim()) throw new Error('room_url_unavailable');
+  try {
+    return validateRoomUrl(value);
+  } catch {
+    throw new Error('room_url_unavailable');
   }
-  throw new Error('room_url_unavailable');
 }
 
 async function collectRoom({ browserExecutable, roomUrl, observedAt, deadlineEpochMs, logEvent }) {
@@ -569,8 +576,11 @@ function hasReparsePoint(candidate) {
 
 function validateOutputRoot(root) {
   const localAppData = process.env.LOCALAPPDATA;
-  if (!localAppData) throw new Error('local_app_data_unavailable');
-  const expected = path.resolve(localAppData, 'InagoStep22Private', 'step-22');
+  const runtimeRoot = process.env.INAGO_RUNTIME_ROOT;
+  if (!localAppData && !runtimeRoot) throw new Error('local_app_data_unavailable');
+  const expected = runtimeRoot
+    ? path.resolve(runtimeRoot, 'artifacts', 'metrics')
+    : path.resolve(localAppData, 'InagoStep22Private', 'step-22');
   const resolved = path.resolve(root);
   if (resolved.toLowerCase() !== expected.toLowerCase() || hasReparsePoint(resolved)) {
     throw new Error('private_output_root_rejected');
@@ -609,8 +619,9 @@ export async function runStep22Collection({ outputRoot, targetDate = jstDate(), 
   };
   const deadlineEpochMs = Date.now() + deadlineSeconds * 1000;
   const browserExecutable = chromeExecutable();
-  const authStatePath = path.resolve(PROJECT_ROOT, '..', 'rakuten-room-bakemono-private', 'auth-state.json');
-  const roomUrl = await readRoomUrl();
+  const authStatePath = path.resolve(process.env.INAGO_AFFILIATE_AUTH_STATE
+    || path.resolve(PROJECT_ROOT, '..', 'rakuten-room-bakemono-private', 'auth-state.json'));
+  const roomUrl = resolveOwnerRoomUrl();
   const affiliateStartedAt = isoNow();
   let affiliate;
   await logEvent('affiliate', 'source_started', {});
@@ -710,12 +721,28 @@ function isMain() {
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length !== 2 || args[0] !== '--output-root') {
-    process.stderr.write('Usage: node metrics_live.mjs --output-root <LOCALAPPDATA>\\InagoStep22Private\\step-22\n');
+  const options = new Map();
+  for (let index = 0; index < args.length; index += 2) {
+    if (!args[index]?.startsWith('--') || !args[index + 1]) {
+      process.stderr.write('Usage: node metrics_live.mjs --output-root <private-root> [--target-date YYYY-MM-DD] [--deadline-seconds N]\n');
+      process.exitCode = 2;
+      return;
+    }
+    options.set(args[index], args[index + 1]);
+  }
+  if (!options.has('--output-root')
+    || [...options.keys()].some((key) => !['--output-root', '--target-date', '--deadline-seconds'].includes(key))) {
+    process.stderr.write('Usage: node metrics_live.mjs --output-root <private-root> [--target-date YYYY-MM-DD] [--deadline-seconds N]\n');
     process.exitCode = 2;
     return;
   }
-  const result = await runStep22Collection({ outputRoot: args[1] });
+  const deadlineSeconds = options.has('--deadline-seconds')
+    ? Number(options.get('--deadline-seconds')) : 1200;
+  const result = await runStep22Collection({
+    outputRoot: options.get('--output-root'),
+    targetDate: options.get('--target-date') || jstDate(),
+    deadlineSeconds,
+  });
   process.stdout.write(`${JSON.stringify({ attemptDir: result.attemptDir, manifest: result.manifest })}\n`);
 }
 

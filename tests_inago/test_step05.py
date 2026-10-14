@@ -134,9 +134,16 @@ def _seed_fifteen_drafts(connection: sqlite3.Connection) -> None:
 
 @contextmanager
 def _running_server(
-    connection_factory: Callable[[], sqlite3.Connection], clock: FakeClock
+    connection_factory: Callable[[], sqlite3.Connection],
+    clock: FakeClock,
+    *,
+    auth_token: str | None = None,
 ) -> Iterator[Any]:
-    server = create_server(connection_factory=connection_factory, clock=clock)
+    server = create_server(
+        connection_factory=connection_factory,
+        clock=clock,
+        auth_token=auth_token,
+    )
     thread = threading.Thread(
         target=server.serve_forever,
         kwargs={"poll_interval": 0.01},
@@ -205,6 +212,36 @@ def _get_state(server: Any) -> tuple[dict[str, Any], str]:
     assert status == 200
     assert payload is not None
     return payload, str(payload["csrf_token"])
+
+
+def test_production_style_human_api_requires_private_bearer_token(
+    seeded_database: DatabaseFixture,
+) -> None:
+    token = "private-test-token-" + ("x" * 40)
+    clock = FakeClock(datetime(2026, 10, 15, 21, 0, tzinfo=JST))
+    with _running_server(seeded_database.connect, clock, auth_token=token) as server:
+        unauthorized, body, _ = _json_request(server, "GET", path="/api/state")
+        assert unauthorized == 401
+        assert body == {"error": "authentication_required"}
+
+        wrong, _, _ = _json_request(
+            server,
+            "GET",
+            path="/api/state",
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+        assert wrong == 401
+
+        accepted, state, _ = _json_request(
+            server,
+            "GET",
+            path="/api/state",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert accepted == 200
+        assert state is not None
+        assert "csrf_token" in state
+        assert token not in json.dumps(state)
 
 
 def _report(

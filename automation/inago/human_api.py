@@ -62,9 +62,7 @@ def _request_validator() -> Draft202012Validator:
         Draft202012Validator.check_schema(schema)
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise RuntimeError("human report request schema cannot be loaded") from exc
-    return Draft202012Validator(
-        schema, format_checker=rfc3339_format_checker()
-    )
+    return Draft202012Validator(schema, format_checker=rfc3339_format_checker())
 
 
 def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -137,6 +135,26 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         self.close_connection = True
         self.wfile.write(body)
 
+    def _authentication_is_valid(self) -> bool:
+        expected = self._api_server.auth_token
+        if expected is None:
+            return True
+        scheme, separator, supplied = self.headers.get("Authorization", "").partition(
+            " "
+        )
+        return (
+            separator == " "
+            and scheme.casefold() == "bearer"
+            and bool(supplied)
+            and hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+        )
+
+    def _require_authentication(self) -> bool:
+        if self._authentication_is_valid():
+            return True
+        self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "authentication_required"})
+        return False
+
     def _send_static_file(self, path: Path, content_type: str) -> None:
         try:
             resolved = path.resolve(strict=True)
@@ -185,6 +203,8 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
             return False
 
     def do_GET(self) -> None:
+        if self.path.startswith("/api/") and not self._require_authentication():
+            return
         if not self._origin_is_valid(require_origin=False):
             self._send_json(
                 HTTPStatus.FORBIDDEN,
@@ -267,6 +287,8 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         return raw
 
     def do_POST(self) -> None:
+        if not self._require_authentication():
+            return
         if not self._origin_is_valid():
             self._send_json(
                 HTTPStatus.FORBIDDEN,
@@ -347,6 +369,7 @@ def create_server(
     clock: Clock | None = None,
     bind_host: str = "127.0.0.1",
     port: int = 0,
+    auth_token: str | None = None,
 ) -> ThreadingHTTPServer:
     """Create the explicit local report server; it cannot bind off-loopback."""
 
@@ -354,11 +377,16 @@ def create_server(
         raise ValueError("human report API must bind only to 127.0.0.1")
     if not callable(connection_factory):
         raise TypeError("connection_factory must be callable")
+    if auth_token is not None and (
+        not isinstance(auth_token, str) or len(auth_token) < 32
+    ):
+        raise ValueError("human report API auth token must be at least 32 characters")
     csrf_token = secrets.token_urlsafe(32)
     server = _LoopbackHTTPServer((bind_host, port), _HumanAPIHandler)
     actual_port = int(server.server_address[1])
     server.origin = f"http://127.0.0.1:{actual_port}"
     server.csrf_token = csrf_token
+    server.auth_token = auth_token
     server.clock = clock or SystemClock()
     server.connection_factory = connection_factory
     return server

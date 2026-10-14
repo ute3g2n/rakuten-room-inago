@@ -30,6 +30,7 @@ export function messageForApiError(code) {
     invalid_report: '入力を保存できませんでした。選択内容と必須項目を確認してください。',
     not_found: '保存先が見つかりません。画面を再読み込みしてください。',
     connection_unavailable: '保存サーバーに接続できません。報告操作は無効です。',
+    authentication_required: '本人確認用トークンが必要です。案内されたローカルファイルを確認してください。',
   };
   return messages[code] || '保存できませんでした。状態を確認してから再試行してください。';
 }
@@ -87,7 +88,7 @@ function reportPayload(item, action, article, revision) {
   };
 }
 
-async function postReport(payload, csrfToken, fetchImpl) {
+async function postReport(payload, csrfToken, fetchImpl, authToken = null) {
   let response;
   try {
     response = await fetchImpl(API_REPORTS, {
@@ -98,6 +99,7 @@ async function postReport(payload, csrfToken, fetchImpl) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -286,11 +288,28 @@ export async function startDashboard(root, { fetchImpl = fetch, clipboard = navi
   const connectionStatus = root.querySelector('#connection-status');
   const actionMessage = root.querySelector('#action-message');
   let state = null;
+  let authToken = null;
   const setMessage = (message) => { actionMessage.textContent = message; };
+  const apiFetch = async (url, options) => {
+    const send = (token) => fetchImpl(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    let response = await send(authToken);
+    if (response.status === 401 && !authToken && typeof window !== 'undefined' && typeof window.prompt === 'function') {
+      const entered = window.prompt('本人確認が必要です。ローカル設定の secrets\\human-api-token.json にある token を入力してください。');
+      authToken = typeof entered === 'string' ? entered.trim() : '';
+      if (authToken) response = await send(authToken);
+    }
+    return response;
+  };
   const refresh = async () => {
     let response;
     try {
-      response = await fetchImpl(API_STATE, {
+      response = await apiFetch(API_STATE, {
         method: 'GET',
         credentials: 'same-origin',
         cache: 'no-store',
@@ -316,7 +335,7 @@ export async function startDashboard(root, { fetchImpl = fetch, clipboard = navi
     const article = button.closest('article[data-offer-key]');
     try {
       const payload = reportPayload(item, action, article, state.receipt_revisions[offerKey] ?? 0);
-      await postReport(payload, state.csrf_token, fetchImpl);
+      await postReport(payload, state.csrf_token, apiFetch, authToken);
       setMessage('報告を受け付けました。管理への反映は翌日の日次処理で行います。');
       try {
         await refresh();
