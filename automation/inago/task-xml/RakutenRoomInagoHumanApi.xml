@@ -26,6 +26,10 @@
     <Enabled>true</Enabled>
     <Hidden>true</Hidden>
     <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
     <Priority>7</Priority>
   </Settings>
   <Actions Context="Author">

@@ -267,9 +267,10 @@ def test_daily_does_not_create_a_database_removed_after_preflight(
         def now_jst(self) -> datetime:
             return datetime(2026, 10, 15, 13, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    with pytest.raises(sqlite3.OperationalError):
-        production_runtime.run_production_daily(config, clock=DueClock())
+    result = production_runtime.run_production_daily(config, clock=DueClock())
 
+    assert result["status"] == "failed"
+    assert result["reason"] == "OperationalError"
     assert not (runtime / "state.sqlite").exists()
 
 

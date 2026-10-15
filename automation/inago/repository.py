@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
@@ -29,8 +29,8 @@ from automation.inago.contracts import (
     UnsupportedSchemaVersion,
 )
 
-CURRENT_SCHEMA_VERSION = 4
-READABLE_SCHEMA_VERSIONS = frozenset({4})
+CURRENT_SCHEMA_VERSION = 5
+READABLE_SCHEMA_VERSIONS = frozenset({5})
 LEGACY_UNASSIGNED_THEME_ID = "legacy-unassigned"
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
@@ -42,6 +42,7 @@ _MIGRATION_SQL_PATHS = {
     / "002_human_action_actual_posted_at.sql",
     3: Path(__file__).resolve().parent / "sql" / "003_search_rules_14.sql",
     4: Path(__file__).resolve().parent / "sql" / "004_trends_retry_state.sql",
+    5: Path(__file__).resolve().parent / "sql" / "005_pending_post_correction_ref.sql",
 }
 
 _ENTITY_TABLES = frozenset(
@@ -166,7 +167,7 @@ def initialize_database(connection: sqlite3.Connection) -> int:
     if existing_version is not None:
         required_tables = _ENTITY_TABLES | (
             _SCHEMA_V4_TABLES
-            if existing_version == CURRENT_SCHEMA_VERSION
+            if existing_version >= 4
             else frozenset()
         )
         missing = required_tables - existing_tables
@@ -248,7 +249,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                 tables = _user_tables(connection)
 
             required_tables = _ENTITY_TABLES | (
-                _SCHEMA_V4_TABLES if version >= CURRENT_SCHEMA_VERSION else frozenset()
+                _SCHEMA_V4_TABLES if version >= 4 else frozenset()
             )
             missing = required_tables - tables
             if missing:
@@ -284,6 +285,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                         2: "preserve actual posted time on pending human reports",
                         3: "Q1.4 search counts, query kinds and three-month observations",
                         4: "durable per-theme Google Trends retry state",
+                        5: "preserve corrections that refer to pending posted reports",
                     }[next_version],
                 ),
             )
@@ -399,6 +401,8 @@ def record_pending_human_action(
     request: Mapping[str, Any],
     *,
     clock: Clock | None = None,
+    reported_at: str | None = None,
+    transaction_managed: bool = False,
 ) -> dict[str, Any]:
     """Atomically save one night report without changing managed posting state."""
 
@@ -479,9 +483,24 @@ def record_pending_human_action(
     now = system_clock.now_jst()
     if now.tzinfo is None or now.utcoffset() is None:
         raise RejectedContract("report clock must return an offset-aware time")
-    reported_at = now.astimezone(JST).isoformat()
+    if not isinstance(transaction_managed, bool):
+        raise TypeError("transaction_managed must be boolean")
+    if reported_at is None:
+        reported_at_text = now.astimezone(JST).isoformat()
+    else:
+        queued_at = _timestamp(reported_at, "reported_at")
+        if queued_at > now + timedelta(minutes=5):
+            raise RejectedContract("reported_at cannot be in the future")
+        reported_at_text = queued_at.astimezone(JST).isoformat()
 
-    connection.execute("BEGIN IMMEDIATE")
+    if transaction_managed:
+        if not connection.in_transaction:
+            raise PersistenceContractError(
+                "caller-managed report receipt requires an open transaction"
+            )
+    else:
+        connection.execute("BEGIN IMMEDIATE")
+
     try:
         existing = connection.execute(
             "SELECT * FROM human_action WHERE action_id = ?", (action_id,)
@@ -495,18 +514,19 @@ def record_pending_human_action(
                 existing["draft_version"],
                 existing["prior_revision"],
                 existing["reason"],
-                existing["old_event_ref"],
+                existing["old_event_ref"] or existing["correction_action_ref"],
                 existing["actual_posted_at"],
             )
             if existing_key != request_key:
                 raise IdempotencyConflict(
                     "action_id was reused with different report content"
                 )
-            connection.commit()
+            if not transaction_managed:
+                connection.commit()
             return {
                 "action_id": existing["action_id"],
                 "receipt_revision": int(existing["receipt_revision"]),
-                "apply_status": "pending",
+                "apply_status": str(existing["apply_status"]),
                 "saved": True,
             }
 
@@ -520,6 +540,8 @@ def record_pending_human_action(
         if draft is None:
             raise RejectedContract("report does not identify an existing draft version")
 
+        old_event_ref = correction_ref
+        correction_action_ref = None
         if correction_ref is not None:
             event = connection.execute(
                 """
@@ -529,9 +551,21 @@ def record_pending_human_action(
                 (correction_ref, offer_key),
             ).fetchone()
             if event is None:
-                raise RejectedContract(
-                    "correction_ref does not identify an event for this offer"
-                )
+                posted_report = connection.execute(
+                    """
+                    SELECT 1 FROM human_action
+                     WHERE action_id=? AND action='posted' AND offer_key=?
+                       AND draft_id=? AND draft_version=?
+                       AND apply_status IN ('pending', 'applied')
+                    """,
+                    (correction_ref, offer_key, draft_id, draft_version),
+                ).fetchone()
+                if posted_report is None:
+                    raise RejectedContract(
+                        "correction_ref does not identify a post for this draft"
+                    )
+                old_event_ref = None
+                correction_action_ref = correction_ref
 
         current_revision = int(
             connection.execute(
@@ -553,9 +587,10 @@ def record_pending_human_action(
             "prior_revision": current_revision,
             "receipt_revision": next_revision,
             "reason": reason,
-            "reported_at": reported_at,
+            "reported_at": reported_at_text,
             "actual_posted_at": actual_posted_at,
-            "old_event_ref": correction_ref,
+            "old_event_ref": old_event_ref,
+            "correction_action_ref": correction_action_ref,
             "new_body": None,
             "apply_status": "pending",
             "applied_at": None,
@@ -568,9 +603,10 @@ def record_pending_human_action(
             INSERT INTO human_action
                 (action_id, action, offer_key, draft_id, draft_version,
                  prior_revision, receipt_revision, reason, reported_at,
-                 actual_posted_at, old_event_ref, new_body, apply_status,
+                 actual_posted_at, old_event_ref, correction_action_ref,
+                 new_body, apply_status,
                  applied_at, applied_run_id, apply_error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 action_id,
@@ -581,9 +617,10 @@ def record_pending_human_action(
                 current_revision,
                 next_revision,
                 reason,
-                reported_at,
+                reported_at_text,
                 actual_posted_at,
-                correction_ref,
+                old_event_ref,
+                correction_action_ref,
                 None,
                 "pending",
                 None,
@@ -591,7 +628,8 @@ def record_pending_human_action(
                 None,
             ),
         )
-        connection.commit()
+        if not transaction_managed:
+            connection.commit()
         return {
             "action_id": action_id,
             "receipt_revision": next_revision,
@@ -599,7 +637,7 @@ def record_pending_human_action(
             "saved": True,
         }
     except BaseException:
-        if connection.in_transaction:
+        if connection.in_transaction and not transaction_managed:
             connection.rollback()
         raise
 
@@ -647,14 +685,14 @@ def read_human_action_state(connection: sqlite3.Connection) -> dict[str, Any]:
                 "reason": row["reason"],
                 "reported_at": row["reported_at"],
                 "actual_posted_at": row["actual_posted_at"],
-                "correction_ref": row["old_event_ref"],
+                "correction_ref": row["old_event_ref"] or row["correction_action_ref"],
                 "apply_status": row["apply_status"],
             }
             for row in connection.execute(
                 """
                 SELECT action_id, action, offer_key, draft_id, draft_version,
                        receipt_revision, reason, reported_at, actual_posted_at,
-                       old_event_ref, apply_status
+                       old_event_ref, correction_action_ref, apply_status
                   FROM human_action
                  WHERE apply_status = 'pending'
                  ORDER BY reported_at, receipt_revision, action_id
@@ -820,8 +858,27 @@ def apply_human_action_in_transaction(
         refresh_exclusion()
 
     elif action_kind == "correction":
+        correction_action_ref = action["correction_action_ref"]
         event_ref = action["old_event_ref"]
         reason = action["reason"]
+        if correction_action_ref:
+            posted_report = connection.execute(
+                """
+                SELECT action, offer_key, draft_id, draft_version, apply_status
+                  FROM human_action WHERE action_id=?
+                """,
+                (correction_action_ref,),
+            ).fetchone()
+            if (
+                posted_report is None
+                or posted_report["action"] != "posted"
+                or posted_report["offer_key"] != offer_key
+                or posted_report["draft_id"] != draft_id
+                or int(posted_report["draft_version"]) != draft_version
+                or posted_report["apply_status"] != "applied"
+            ):
+                raise RejectedContract("correction action has not been applied")
+            event_ref = f"PUB-{correction_action_ref}"
         if not isinstance(reason, str) or not reason.strip() or not event_ref:
             raise RejectedContract("correction reason or reference is missing")
         event = connection.execute(

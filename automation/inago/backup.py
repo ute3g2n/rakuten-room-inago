@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from automation.inago.contracts import PersistenceContractError
 from automation.inago.paths import SAFE_FIXTURE_BASE
@@ -21,6 +21,7 @@ from automation.inago.retention import _parse_jst
 
 
 _DAILY_DIRECTORY = re.compile(r"daily-(\d{8})\Z")
+_FINAL_DAILY_DIRECTORY = re.compile(r"daily-final-(\d{8})-([0-9a-f]{32})\Z")
 _ARTIFACT_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 _MANIFEST_VERSION = 1
 _GENERATION_LIMIT = 7
@@ -159,9 +160,9 @@ def _artifact_manifest(
                 "artifact_ref": artifact_ref,
                 "source_kind": str(row["source_kind"]),
                 "created_at": str(row["created_at"]),
-                "retention_expires_at": str(expires_at)
-                if expires_at is not None
-                else None,
+                "retention_expires_at": (
+                    str(expires_at) if expires_at is not None else None
+                ),
                 "bundle_path": relative_bundle_path.as_posix(),
             }
         )
@@ -171,9 +172,12 @@ def _artifact_manifest(
 def _read_backup_manifest(directory: Path) -> dict[str, Any] | None:
     if directory.is_symlink() or not directory.is_dir():
         return None
-    match = _DAILY_DIRECTORY.fullmatch(directory.name)
-    if match is None:
+    start_match = _DAILY_DIRECTORY.fullmatch(directory.name)
+    final_match = _FINAL_DAILY_DIRECTORY.fullmatch(directory.name)
+    if start_match is None and final_match is None:
         return None
+    match = start_match or final_match
+    generation_stage = "start" if start_match is not None else "final"
     manifest_path = directory / "manifest.json"
     database_path = directory / "state.sqlite"
     if manifest_path.is_symlink() or database_path.is_symlink():
@@ -187,6 +191,7 @@ def _read_backup_manifest(directory: Path) -> dict[str, Any] | None:
         or manifest.get("manifest_version") != _MANIFEST_VERSION
         or manifest.get("backup_type") != "daily-sqlite"
         or manifest.get("database_file") != "state.sqlite"
+        or manifest.get("generation_stage", "start") != generation_stage
         or not database_path.is_file()
         or not isinstance(manifest.get("table_counts"), dict)
         or not isinstance(manifest.get("settings_versions"), list)
@@ -208,18 +213,43 @@ def _read_backup_manifest(directory: Path) -> dict[str, Any] | None:
     return manifest
 
 
-def list_daily_backups(backup_root: str | Path) -> tuple[Path, ...]:
-    """Return valid application-created daily backup generations, oldest first."""
+def list_daily_backups(
+    backup_root: str | Path,
+    *,
+    generation_stage: Literal["start", "final"] = "start",
+) -> tuple[Path, ...]:
+    """Return valid daily start or final generations, oldest first."""
+
+    return _list_daily_backups(backup_root, generation_stage=generation_stage)
+
+
+def list_final_daily_backups(backup_root: str | Path) -> tuple[Path, ...]:
+    """Return valid end-of-day generations, oldest first."""
+
+    return _list_daily_backups(backup_root, generation_stage="final")
+
+
+def _list_daily_backups(
+    backup_root: str | Path,
+    *,
+    generation_stage: Literal["start", "final"],
+) -> tuple[Path, ...]:
+    if generation_stage not in {"start", "final"}:
+        raise BackupError("backup generation stage is invalid")
 
     root = Path(backup_root).expanduser().resolve()
     if not root.is_dir():
         return ()
-    entries = [
-        (path.name, path.resolve())
-        for path in root.iterdir()
-        if _read_backup_manifest(path) is not None
-    ]
-    return tuple(path for _name, path in sorted(entries))
+    entries: list[tuple[str, str, Path]] = []
+    for path in root.iterdir():
+        manifest = _read_backup_manifest(path)
+        if (
+            manifest is None
+            or manifest.get("generation_stage", "start") != generation_stage
+        ):
+            continue
+        entries.append((str(manifest["created_at"]), path.name, path.resolve()))
+    return tuple(path for _created_at, _name, path in sorted(entries))
 
 
 def _atomic_write_json(path: Path, document: dict[str, Any]) -> None:
@@ -244,8 +274,10 @@ def _atomic_write_json(path: Path, document: dict[str, Any]) -> None:
 
 def _prune_old_generations(
     backup_root: Path,
+    *,
+    generation_stage: Literal["start", "final"] = "start",
 ) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
-    existing = list_daily_backups(backup_root)
+    existing = list_daily_backups(backup_root, generation_stage=generation_stage)
     excess = existing[:-_GENERATION_LIMIT]
     for generation in excess:
         if generation.is_symlink() or _read_backup_manifest(generation) is None:
@@ -256,7 +288,7 @@ def _prune_old_generations(
             raise BackupError(
                 "an old daily backup generation could not be pruned"
             ) from exc
-    retained = list_daily_backups(backup_root)
+    retained = list_daily_backups(backup_root, generation_stage=generation_stage)
     return retained, tuple(excess)
 
 
@@ -295,12 +327,13 @@ def _record_backup_status(
     backup_path: Path | None,
     validation: dict[str, Any],
     cause: str,
+    checkpoint: str = "daily_generation",
 ) -> None:
     entity = {
         "operation_id": operation_id,
         "type": "backup",
         "run_ref": None,
-        "checkpoint": "daily_generation",
+        "checkpoint": checkpoint,
         "cause": cause,
         "owner": "automation.inago.backup",
         "status": status,
@@ -344,6 +377,7 @@ def create_daily_backup(
     backup_root: str | Path,
     now: str | datetime,
     fixture_mode: bool = True,
+    generation_stage: Literal["start", "final"] = "start",
 ) -> BackupResult:
     """Publish one consistent daily backup through SQLite's backup API.
 
@@ -352,6 +386,8 @@ def create_daily_backup(
     backup path on behalf of the caller.
     """
 
+    if generation_stage not in {"start", "final"}:
+        raise BackupError("backup generation stage is invalid")
     current = _parse_jst(now, name="now")
     root = Path(data_root).expanduser().resolve()
     destination_root = Path(backup_root).expanduser().resolve()
@@ -375,7 +411,12 @@ def create_daily_backup(
         raise BackupError("backup must start outside an active database transaction")
 
     operation_id = str(uuid.uuid4())
-    daily_name = f"daily-{current.strftime('%Y%m%d')}"
+    date_name = current.strftime("%Y%m%d")
+    daily_name = (
+        f"daily-{date_name}"
+        if generation_stage == "start"
+        else f"daily-final-{date_name}-{uuid.uuid4().hex}"
+    )
     final_directory = destination_root / daily_name
     stage_directory = destination_root / f".{daily_name}.{uuid.uuid4().hex}.staging"
     validation: dict[str, Any] = {
@@ -388,7 +429,9 @@ def create_daily_backup(
         destination_root.mkdir(parents=True, exist_ok=True)
         if destination_root.is_symlink():
             raise BackupError("backup_root cannot be a symbolic link")
-        if final_directory.exists() or final_directory.is_symlink():
+        if generation_stage == "start" and (
+            final_directory.exists() or final_directory.is_symlink()
+        ):
             raise BackupError("a daily backup generation already exists for this date")
         stage_directory.mkdir()
         staged_db = stage_directory / "state.sqlite"
@@ -430,6 +473,7 @@ def create_daily_backup(
         manifest: dict[str, Any] = {
             "manifest_version": _MANIFEST_VERSION,
             "backup_type": "daily-sqlite",
+            "generation_stage": generation_stage,
             "created_at": current.isoformat(),
             "database_file": "state.sqlite",
             "schema_version": schema_version,
@@ -442,7 +486,14 @@ def create_daily_backup(
         }
         _atomic_write_json(stage_directory / "manifest.json", manifest)
         os.replace(stage_directory, final_directory)
-        retained, pruned = _prune_old_generations(destination_root)
+        retained, pruned = _prune_old_generations(
+            destination_root, generation_stage=generation_stage
+        )
+        cause = (
+            "daily_generation"
+            if generation_stage == "start"
+            else "daily_final_generation"
+        )
         _record_backup_status(
             source,
             operation_id=operation_id,
@@ -450,7 +501,8 @@ def create_daily_backup(
             status="complete",
             backup_path=final_directory,
             validation=validation,
-            cause="daily_generation",
+            cause=cause,
+            checkpoint=cause,
         )
     except BaseException as exc:
         if stage_directory.exists():
@@ -466,7 +518,16 @@ def create_daily_backup(
                 status="failed",
                 backup_path=final_directory if final_directory.is_dir() else None,
                 validation=failure_status,
-                cause="daily_generation_failed",
+                cause=(
+                    "daily_generation_failed"
+                    if generation_stage == "start"
+                    else "daily_final_generation_failed"
+                ),
+                checkpoint=(
+                    "daily_generation"
+                    if generation_stage == "start"
+                    else "daily_final_generation"
+                ),
             )
         except BackupError as record_exc:
             raise BackupError(

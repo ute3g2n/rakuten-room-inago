@@ -652,14 +652,14 @@
     },
     "human_action": {
       "type": "object",
-      "required": ["action_id", "action", "offer_key", "draft_id", "draft_version", "prior_revision", "receipt_revision", "reason", "reported_at", "actual_posted_at", "old_event_ref", "new_body", "apply_status", "applied_at", "applied_run_id", "apply_error"],
+      "required": ["action_id", "action", "offer_key", "draft_id", "draft_version", "prior_revision", "receipt_revision", "reason", "reported_at", "actual_posted_at", "old_event_ref", "correction_action_ref", "new_body", "apply_status", "applied_at", "applied_run_id", "apply_error"],
       "properties": {
         "action_id": {"$ref": "#/$defs/id"}, "action": {"enum": ["posted", "skipped", "correction", "edit"]},
         "offer_key": {"$ref": "#/$defs/id"}, "draft_id": {"$ref": "#/$defs/nullableString"},
         "draft_version": {"$ref": "#/$defs/positiveInteger"}, "prior_revision": {"$ref": "#/$defs/nonNegativeInteger"},
         "receipt_revision": {"$ref": "#/$defs/positiveInteger"}, "reason": {"$ref": "#/$defs/nullableString"},
         "reported_at": {"$ref": "#/$defs/timestamp"}, "actual_posted_at": {"$ref": "#/$defs/nullableTimestamp"},
-        "old_event_ref": {"$ref": "#/$defs/nullableString"},
+        "old_event_ref": {"$ref": "#/$defs/nullableString"}, "correction_action_ref": {"$ref": "#/$defs/nullableString"},
         "new_body": {"$ref": "#/$defs/nullableString"},
         "apply_status": {"enum": ["pending", "applied", "rejected"]},
         "applied_at": {"$ref": "#/$defs/nullableTimestamp"}, "applied_run_id": {"$ref": "#/$defs/nullableString"},

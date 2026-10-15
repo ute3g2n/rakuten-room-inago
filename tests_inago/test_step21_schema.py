@@ -86,16 +86,18 @@ def saved_rows(connection: sqlite3.Connection) -> dict[str, list[tuple]]:
 
 def test_forward_migration_preserves_bodies_reports_reservations_and_budget(legacy_v2):
     before = saved_rows(legacy_v2)
-    assert repository.initialize_database(legacy_v2) == 4
-    assert saved_rows(legacy_v2) == before
+    assert repository.initialize_database(legacy_v2) == 5
+    expected = dict(before)
+    expected["human_action"] = [(*row, None) for row in before["human_action"]]
+    assert saved_rows(legacy_v2) == expected
     assert legacy_v2.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     assert legacy_v2.execute("PRAGMA foreign_key_check").fetchall() == []
     assert legacy_v2.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     assert legacy_v2.execute(
         "SELECT parent_word,range FROM keyword_snapshot WHERE snapshot_id='K1'"
     ).fetchone()[:] == ("テーマ", "90d")
-    assert repository.initialize_database(legacy_v2) == 4
-    assert legacy_v2.execute("SELECT COUNT(*) FROM schema_migration").fetchone()[0] == 4
+    assert repository.initialize_database(legacy_v2) == 5
+    assert legacy_v2.execute("SELECT COUNT(*) FROM schema_migration").fetchone()[0] == 5
     with pytest.raises(sqlite3.IntegrityError):
         legacy_v2.execute("DELETE FROM run WHERE run_id='R1'")
 
@@ -209,9 +211,9 @@ def test_initialization_does_not_commit_callers_transaction(legacy_v2):
 def test_empty_database_initializes_v3_idempotently(tmp_path):
     with sqlite3.connect(tmp_path / "empty.sqlite", isolation_level=None) as connection:
         connection.execute("PRAGMA foreign_keys=ON")
-        assert repository.initialize_database(connection) == 4
-        assert repository.initialize_database(connection) == 4
-        assert repository.schema_version(connection) == 4
+        assert repository.initialize_database(connection) == 5
+        assert repository.initialize_database(connection) == 5
+        assert repository.schema_version(connection) == 5
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 

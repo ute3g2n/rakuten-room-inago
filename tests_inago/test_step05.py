@@ -382,23 +382,25 @@ def test_v1_migration_preserves_pending_report_and_adds_nullable_actual_time(
     )
 
     try:
-        assert initialize_database(connection) == 4
+        assert initialize_database(connection) == 5
         assert connection.execute(
             "SELECT version FROM schema_migration ORDER BY version"
-        ).fetchall() == [(1,), (2,), (3,), (4,)]
-        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
+        ).fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+        assert connection.execute("PRAGMA user_version").fetchone() == (5,)
         action = connection.execute(
-            "SELECT action_id, reported_at, actual_posted_at, apply_status "
+            "SELECT action_id, reported_at, actual_posted_at, "
+            "correction_action_ref, apply_status "
             "FROM human_action WHERE action_id = 'ACT-OLD'"
         ).fetchone()
         assert tuple(action) == (
             "ACT-OLD",
             "2026-10-12T21:30:00+09:00",
             None,
+            None,
             "pending",
         )
-        assert initialize_database(connection) == 4
-        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 4
+        assert initialize_database(connection) == 5
+        assert _count(connection, "SELECT COUNT(*) FROM schema_migration") == 5
     finally:
         connection.close()
 
@@ -416,6 +418,7 @@ def test_human_action_entity_contract_requires_nullable_actual_posted_at() -> No
         "reported_at": "2026-10-12T21:30:00+09:00",
         "actual_posted_at": None,
         "old_event_ref": None,
+        "correction_action_ref": None,
         "new_body": None,
         "apply_status": "pending",
         "applied_at": None,

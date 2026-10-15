@@ -52,6 +52,34 @@ _MATRIX_CASE_IDS = (
 )
 EXPECTED_CASE_IDS = (*_MATRIX_CASE_IDS, *(f"X-{number:02d}" for number in range(1, 9)))
 DAILY_COMPLETION_CASE_IDS = tuple(f"H-{number:02d}" for number in range(1, 9))
+_DAILY_COMPLETION_TEST_MODULES: dict[str, tuple[str, ...]] = {
+    "H-01": (
+        "tests_inago/test_step23_03_html.py",
+        "tests_inago/test_step23_04_dates.py",
+    ),
+    "H-02": ("tests_inago/test_step23_04_dates.py",),
+    "H-03": (
+        "tests_inago/test_step23_03_html.py",
+        "tests_inago/test_step23_04_dates.py",
+    ),
+    "H-04": ("tests_inago/test_step23_04_dates.py",),
+    "H-05": (
+        "tests_inago/test_step23_05_export_flow.py",
+        "tests_inago/test_step23_12_daily_e2e.py",
+    ),
+    "H-06": (
+        "tests_inago/test_step23_03_html.py",
+        "tests_inago/test_step23_05_export_flow.py",
+        "tests_inago/test_step23_12_daily_e2e.py",
+    ),
+    "H-07": (
+        "tests_inago/test_step23_09_reports.py",
+        "tests_inago/test_step23_12_history_interactions.py",
+        "tests_inago/test_step23_12_report_import.py",
+        "tests_inago/test_step23_12_daily_e2e.py",
+    ),
+    "H-08": ("tests_inago/test_step23_12_daily_e2e.py",),
+}
 ALL_ACCEPTANCE_CASE_IDS = (*EXPECTED_CASE_IDS, *DAILY_COMPLETION_CASE_IDS)
 FIXTURE_CASE_IDS = tuple(
     case_id for case_id in EXPECTED_CASE_IDS if case_id not in DOCUMENT_CASE_IDS
@@ -226,7 +254,9 @@ def _extract_extended_cases(
     return cases
 
 
-def _extract_daily_completion_cases(plan_text: str) -> dict[str, AcceptanceCase]:
+def _extract_daily_completion_cases(
+    plan_text: str, project_root: Path
+) -> dict[str, AcceptanceCase]:
     """Parse the eight H cases without treating planned work as passed evidence."""
 
     start = plan_text.find("| 追加受入ID |")
@@ -255,7 +285,11 @@ def _extract_daily_completion_cases(plan_text: str) -> dict[str, AcceptanceCase]
             test_refs=(case_id,),
             expected_observation=cells[1],
             phase="planned",
-            module_paths=(),
+            module_paths=tuple(
+                module
+                for module in _DAILY_COMPLETION_TEST_MODULES[case_id]
+                if (project_root / module).is_file()
+            ),
             live_evidence="未実証。23.xx実装・結合・通常Windows確認は未完了。",
         )
     return cases
@@ -351,7 +385,7 @@ def load_acceptance_registry(
         raise ValueError(f"追加受入ID不一致: missing={missing}, extra={extra}")
 
     cases.update(extended_cases)
-    daily_completion_cases = _extract_daily_completion_cases(plan_text)
+    daily_completion_cases = _extract_daily_completion_cases(plan_text, project_root)
     if set(daily_completion_cases) != set(DAILY_COMPLETION_CASE_IDS):
         missing = sorted(set(DAILY_COMPLETION_CASE_IDS) - set(daily_completion_cases))
         extra = sorted(set(daily_completion_cases) - set(DAILY_COMPLETION_CASE_IDS))

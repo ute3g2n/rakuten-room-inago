@@ -176,9 +176,7 @@ def test_ready_runtime_does_not_need_local_legacy_archive(
     monkeypatch.setattr(
         production_runtime, "_ensure_human_api_token", lambda _config: None
     )
-    monkeypatch.setattr(
-        production_runtime, "_ensure_codex_home", lambda _config: None
-    )
+    monkeypatch.setattr(production_runtime, "_ensure_codex_home", lambda _config: None)
     monkeypatch.setattr(
         production_runtime,
         "register_production_settings",
@@ -194,9 +192,7 @@ def test_ready_runtime_does_not_need_local_legacy_archive(
         lambda *_args, **_kwargs: SimpleNamespace(directory=backup_directory),
     )
 
-    result = initialize_production_runtime(
-        config, now="2026-10-15T12:00:00+09:00"
-    )
+    result = initialize_production_runtime(config, now="2026-10-15T12:00:00+09:00")
 
     assert result["settings_version"] == "confirmed-0.3-step46-all132"
     assert result["backup_generation"] == "daily-20261015"
@@ -367,9 +363,7 @@ def test_setup_migration_rechecks_source_before_apply(
     monkeypatch.setattr(
         production_runtime, "_ensure_human_api_token", lambda _config: None
     )
-    monkeypatch.setattr(
-        production_runtime, "_ensure_codex_home", lambda _config: None
-    )
+    monkeypatch.setattr(production_runtime, "_ensure_codex_home", lambda _config: None)
     monkeypatch.setattr(
         production_runtime,
         "register_production_settings",
@@ -582,6 +576,7 @@ def test_serve_cli_uses_minimal_human_api_configuration(
         "automation.inago.cli._append_production_log", lambda *a, **k: None
     )
 
+    stdout, stderr = io.StringIO(), io.StringIO()
     result = main(
         [
             "serve",
@@ -1027,8 +1022,10 @@ def test_production_daily_rejects_setup_state_parent_junction(tmp_path: Path) ->
         def now_jst() -> datetime:
             return datetime(2026, 10, 15, 13, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    with pytest.raises(ProductionRuntimeError, match="setup state.*reparse"):
-        run_production_daily(config, clock=DueClock())
+    result = run_production_daily(config, clock=DueClock())
+
+    assert result["status"] == "failed"
+    assert result["reason"] == "ProductionRuntimeError"
     assert not (config.runtime_root / "state.sqlite").exists()
 
 
@@ -1092,8 +1089,10 @@ def test_production_daily_rejects_missing_or_unsupported_setup_state_schema(
         def now_jst() -> datetime:
             return datetime(2026, 10, 15, 13, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    with pytest.raises(ProductionRuntimeError, match="schema is unsupported"):
-        run_production_daily(config, clock=DueClock())
+    result = run_production_daily(config, clock=DueClock())
+
+    assert result["status"] == "failed"
+    assert result["reason"] == "ProductionRuntimeError"
     assert not (config.runtime_root / "state.sqlite").exists()
 
 
@@ -1120,8 +1119,10 @@ def test_production_daily_reports_invalid_utf8_setup_state_as_unreadable(
         def now_jst() -> datetime:
             return datetime(2026, 10, 15, 13, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    with pytest.raises(ProductionRuntimeError, match="setup state is unreadable"):
-        run_production_daily(config, clock=DueClock())
+    result = run_production_daily(config, clock=DueClock())
+
+    assert result["status"] == "failed"
+    assert result["reason"] == "ProductionRuntimeError"
     assert not (config.runtime_root / "state.sqlite").exists()
 
 
@@ -1437,7 +1438,10 @@ def test_production_cli_rejects_paths_outside_repository_runtime_before_opening_
     )
 
     assert result == EXIT_RUNTIME_ERROR
-    assert json.loads(stderr.getvalue())["status"] == "runtime_error"
+    report = json.loads(stdout.getvalue())
+    assert report["status"] == "blocked"
+    assert report["failed_checks"]
+    assert not stderr.getvalue()
     assert not (tmp_path / "state.sqlite").exists()
 
 
@@ -1456,9 +1460,14 @@ def test_production_cli_passes_explicit_profile_roots_to_runtime_loader(
             user_profile=user_profile,
             local_app_data=local_app_data,
         )
-        return object()
+        return SimpleNamespace(runtime_root=tmp_path)
 
     monkeypatch.setattr(production, "load_production_config", fake_load)
+    monkeypatch.setattr(
+        production,
+        "initialize_production_runtime",
+        lambda *_args, **_kwargs: {"settings_version": "fixture-settings"},
+    )
     config_path = tmp_path / "settings.json"
     data_root = tmp_path / "runtime"
     user_profile = tmp_path / "UserProfile"
@@ -1466,7 +1475,7 @@ def test_production_cli_passes_explicit_profile_roots_to_runtime_loader(
 
     result = main(
         [
-            "status",
+            "setup",
             "--environment",
             "production",
             "--config",
@@ -1482,7 +1491,7 @@ def test_production_cli_passes_explicit_profile_roots_to_runtime_loader(
         stderr=io.StringIO(),
     )
 
-    assert result == 3
+    assert result == 0
     assert captured == {
         "config_path": str(config_path),
         "data_root": str(data_root),
@@ -1522,15 +1531,18 @@ def test_production_cli_logs_sanitized_preflight_failure_to_repository_runtime(
     )
 
     assert result == EXIT_RUNTIME_ERROR
-    assert json.loads(stderr.getvalue())["status"] == "runtime_error"
+    report = json.loads(stdout.getvalue())
+    assert report["status"] == "blocked"
+    assert "configuration_invalid" in report["failed_checks"]
+    assert not stderr.getvalue()
     event = json.loads(
         (runtime / "logs" / "production-cli.jsonl").read_text(encoding="utf-8")
     )
     assert event["mode"] == "daily"
-    assert event["status"] == "failed"
-    assert event["phase"] == "configuration"
-    assert event["reason"] == "production configuration is missing"
-    assert event["diagnostics"] == {"profile_visibility_diagnostic_available": False}
+    assert event["status"] == "blocked"
+    assert event["phase"] == "preflight"
+    assert event["reason"] == "startup_preflight_blocked"
+    assert event["diagnostics"] == {"failed_checks": ["configuration_invalid"]}
 
 
 def test_production_cli_logs_profile_visibility_as_booleans_only(
@@ -1560,6 +1572,7 @@ def test_production_cli_logs_profile_visibility_as_booleans_only(
         )
 
     monkeypatch.setattr(production, "load_production_config", fail_profile)
+    stdout, stderr = io.StringIO(), io.StringIO()
     result = main(
         [
             "daily",
@@ -1570,15 +1583,22 @@ def test_production_cli_logs_profile_visibility_as_booleans_only(
             "--data-root",
             str(runtime),
         ],
-        stdout=io.StringIO(),
-        stderr=io.StringIO(),
+        stdout=stdout,
+        stderr=stderr,
     )
 
     assert result == EXIT_RUNTIME_ERROR
+    report = json.loads(stdout.getvalue())
+    assert report["status"] == "blocked"
+    assert "browser_profile_missing" in report["failed_checks"]
+    assert not stderr.getvalue()
     event = json.loads(
         (runtime / "logs" / "production-cli.jsonl").read_text(encoding="utf-8")
     )
     diagnostics = event["diagnostics"]
+    assert event["status"] == "blocked"
+    assert event["phase"] == "preflight"
+    assert "browser_profile_missing" in diagnostics["failed_checks"]
     assert diagnostics["configured_profile_exists"] is True
     assert diagnostics["configured_profile_is_directory"] is True
     assert diagnostics["current_local_app_data_profile_exists"] is False
@@ -2115,6 +2135,11 @@ def test_successful_production_result_survives_lifecycle_log_failure(
         production,
         "run_production_daily",
         lambda *args, **kwargs: {"status": "completed", "committed_count": 15},
+    )
+    monkeypatch.setattr(
+        production,
+        "run_production_startup_preflight",
+        lambda *args, **kwargs: {"status": "ready", "failed_checks": []},
     )
 
     def fail_log(*args, **kwargs):

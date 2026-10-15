@@ -129,7 +129,7 @@ def _report_row(row: sqlite3.Row) -> dict[str, Any]:
         "settings_version": str(row["settings_version"]),
         "receipt_revision": int(row["receipt_revision"]),
         "reason": row["reason"],
-        "correction_ref": row["old_event_ref"],
+        "correction_ref": row["old_event_ref"] or row["correction_action_ref"],
         "actual_posted_at": row["actual_posted_at"],
         "reported_at": str(row["reported_at"]),
         "apply_status": str(row["apply_status"]),
@@ -254,6 +254,7 @@ def build_dashboard_state(connection: sqlite3.Connection) -> dict[str, Any]:
                        d.body, d.pattern_id, d.pattern_version,
                        run.settings_version AS settings_version,
                        h.receipt_revision, h.reason, h.old_event_ref,
+                       h.correction_action_ref,
                        h.actual_posted_at, h.reported_at, h.apply_status,
                        h.applied_at, h.apply_error
                   FROM human_action AS h
@@ -276,6 +277,7 @@ def build_dashboard_state(connection: sqlite3.Connection) -> dict[str, Any]:
                        d.body, d.pattern_id, d.pattern_version,
                        run.settings_version AS settings_version,
                        h.receipt_revision, h.reason, h.old_event_ref,
+                       h.correction_action_ref,
                        h.actual_posted_at, h.reported_at, h.apply_status,
                        h.applied_at, h.apply_error
                   FROM human_action AS h

@@ -80,6 +80,16 @@ class ProcessObservation:
     reason: str
 
 
+@dataclass(frozen=True, slots=True)
+class ProcessTreeObservation:
+    """Read-only list of live descendants for one owner PID."""
+
+    status: Literal["observed", "unknown"]
+    parent_pid: int
+    child_pids: tuple[int, ...]
+    reason: str
+
+
 def read_lock_owner(path: str | Path) -> LockOwnerObservation:
     """Read owner metadata without trying to acquire, release, or repair a lock."""
 
@@ -198,7 +208,10 @@ def process_start_time(pid: int) -> str:
     class FileTime(ctypes.Structure):
         _fields_ = [("low", ctypes.c_uint32), ("high", ctypes.c_uint32)]
 
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None:
+        raise RunLockError("the Windows process observer is unavailable")
+    kernel32 = win_dll("kernel32", use_last_error=True)
     kernel32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
     kernel32.OpenProcess.restype = ctypes.c_void_p
     kernel32.GetProcessTimes.argtypes = [
@@ -247,6 +260,130 @@ def process_start_time(pid: int) -> str:
     unix_seconds = (ticks - 116_444_736_000_000_000) / 10_000_000
     return datetime.fromtimestamp(unix_seconds, timezone.utc).isoformat(
         timespec="microseconds"
+    )
+
+
+def _windows_process_tree(parent_pid: int) -> tuple[int, ...]:
+    """Snapshot process ancestry with Toolhelp; return descendant PIDs only."""
+
+    if os.name != "nt":
+        raise RunLockError("the process tree observer requires Windows")
+
+    class ProcessEntry32W(ctypes.Structure):
+        _fields_ = [
+            ("dwSize", ctypes.c_uint32),
+            ("cntUsage", ctypes.c_uint32),
+            ("th32ProcessID", ctypes.c_uint32),
+            ("th32DefaultHeapID", ctypes.c_size_t),
+            ("th32ModuleID", ctypes.c_uint32),
+            ("cntThreads", ctypes.c_uint32),
+            ("th32ParentProcessID", ctypes.c_uint32),
+            ("pcPriClassBase", ctypes.c_int32),
+            ("dwFlags", ctypes.c_uint32),
+            ("szExeFile", ctypes.c_wchar * 260),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateToolhelp32Snapshot.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    kernel32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p
+    kernel32.Process32FirstW.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ProcessEntry32W),
+    ]
+    kernel32.Process32FirstW.restype = ctypes.c_int
+    kernel32.Process32NextW.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ProcessEntry32W),
+    ]
+    kernel32.Process32NextW.restype = ctypes.c_int
+    kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+    kernel32.CloseHandle.restype = ctypes.c_int
+
+    invalid_handle = ctypes.c_void_p(-1).value
+    snapshot = kernel32.CreateToolhelp32Snapshot(0x00000002, 0)
+    if not snapshot or snapshot == invalid_handle:
+        raise OSError(ctypes.get_last_error(), "process snapshot unavailable")
+    try:
+        entry = ProcessEntry32W()
+        entry.dwSize = ctypes.sizeof(ProcessEntry32W)
+        if not kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
+            error = ctypes.get_last_error()
+            if error == 18:  # ERROR_NO_MORE_FILES
+                return ()
+            raise OSError(error, "process snapshot could not be read")
+        parents: dict[int, int] = {}
+        while True:
+            pid = int(entry.th32ProcessID)
+            parents[pid] = int(entry.th32ParentProcessID)
+            entry.dwSize = ctypes.sizeof(ProcessEntry32W)
+            if not kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
+                error = ctypes.get_last_error()
+                if error != 18:  # ERROR_NO_MORE_FILES
+                    raise OSError(error, "process snapshot ended unexpectedly")
+                break
+        descendants: set[int] = set()
+        frontier = {parent_pid}
+        while frontier:
+            children = {
+                pid
+                for pid, parent in parents.items()
+                if parent in frontier and pid != parent_pid
+            }
+            children.difference_update(descendants)
+            if not children:
+                break
+            descendants.update(children)
+            frontier = children
+            if len(descendants) > 4096:
+                raise RunLockError("process tree exceeds the observation limit")
+        return tuple(sorted(descendants))
+    finally:
+        kernel32.CloseHandle(snapshot)
+
+
+def observe_process_tree(
+    parent_pid: int,
+    *,
+    process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
+) -> ProcessTreeObservation:
+    """Observe descendants without terminating or changing any process."""
+
+    if (
+        isinstance(parent_pid, bool)
+        or not isinstance(parent_pid, int)
+        or parent_pid < 1
+    ):
+        return ProcessTreeObservation("unknown", 0, (), "parent_pid_invalid")
+    reader = process_tree_reader or _windows_process_tree
+    try:
+        raw_children = reader(parent_pid)
+    except (
+        AttributeError,
+        OSError,
+        RunLockError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        return ProcessTreeObservation(
+            "unknown", parent_pid, (), "process_tree_observation_failed"
+        )
+    if not isinstance(raw_children, (tuple, list)) or len(raw_children) > 4096:
+        return ProcessTreeObservation("unknown", parent_pid, (), "process_tree_invalid")
+    children: set[int] = set()
+    for child_pid in raw_children:
+        if (
+            isinstance(child_pid, bool)
+            or not isinstance(child_pid, int)
+            or child_pid < 1
+            or child_pid == parent_pid
+        ):
+            return ProcessTreeObservation(
+                "unknown", parent_pid, (), "process_tree_invalid"
+            )
+        children.add(child_pid)
+    return ProcessTreeObservation(
+        "observed", parent_pid, tuple(sorted(children)), "process_tree_observed"
     )
 
 
@@ -326,8 +463,21 @@ class RunLock:
         lock = Path(lock_path).expanduser().resolve()
         owner_file = Path(owner_path).expanduser().resolve()
         lock.parent.mkdir(parents=True, exist_ok=True)
-        lock_handle = lock.open("a+b")
+        owner_file.parent.mkdir(parents=True, exist_ok=True)
+        pending_marker = tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=owner_file.parent,
+            prefix=f"{owner_file.name}.pending.",
+            delete=True,
+        )
+        lock_handle = None
+        lock_acquired = False
+        owner_publish_attempted = False
+        acquisition_error: BaseException | None = None
         try:
+            pending_marker.flush()
+            os.fsync(pending_marker.fileno())
+            lock_handle = lock.open("a+b")
             if lock.stat().st_size == 0:
                 lock_handle.write(b"\0")
                 lock_handle.flush()
@@ -339,15 +489,73 @@ class RunLock:
                 msvcrt.locking(lock_handle.fileno(), msvcrt.LK_NBLCK, 1)
             except OSError as exc:
                 raise RunLockBusy(_read_owner(owner_file)) from exc
+            lock_acquired = True
+            owner_publish_attempted = True
+            _write_owner_atomically(owner_file, owner)
+        except BaseException as exc:
+            acquisition_error = exc
+
+        marker_close_error: OSError | None = None
+        try:
+            pending_marker.close()
+        except OSError as exc:
+            marker_close_error = exc
+
+        cleanup_errors: list[OSError] = []
+        if marker_close_error is not None:
             try:
-                _write_owner_atomically(owner_file, owner)
-            except BaseException:
-                lock_handle.seek(0)
-                msvcrt.locking(lock_handle.fileno(), msvcrt.LK_UNLCK, 1)
-                raise
-        except BaseException:
-            lock_handle.close()
-            raise
+                Path(pending_marker.name).unlink()
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                cleanup_errors.append(exc)
+
+        should_release_lock = (
+            marker_close_error is not None or acquisition_error is not None
+        )
+        if should_release_lock:
+            if (
+                marker_close_error is None
+                and acquisition_error is not None
+                and lock_acquired
+                and owner_publish_attempted
+                and _read_owner(owner_file) == owner
+            ):
+                try:
+                    owner_file.unlink()
+                except FileNotFoundError:
+                    pass
+                except OSError as exc:
+                    cleanup_errors.append(exc)
+            if lock_acquired and lock_handle is not None:
+                try:
+                    import msvcrt
+
+                    lock_handle.seek(0)
+                    msvcrt.locking(lock_handle.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError as exc:
+                    cleanup_errors.append(exc)
+            if lock_handle is not None:
+                try:
+                    lock_handle.close()
+                except OSError as exc:
+                    cleanup_errors.append(exc)
+
+        if cleanup_errors:
+            if marker_close_error is not None:
+                raise RunLockError(
+                    "failed to clean up the daily lock after closing its marker"
+                ) from marker_close_error
+            raise RunLockError(
+                "failed to clean up a failed daily lock acquisition"
+            ) from cleanup_errors[0]
+        if marker_close_error is not None:
+            raise RunLockError(
+                "could not close the pending daily lock marker"
+            ) from marker_close_error
+        if acquisition_error is not None:
+            raise acquisition_error.with_traceback(acquisition_error.__traceback__)
+        assert lock_handle is not None
         return cls(lock_handle, lock, owner_file, owner)
 
     def release(self) -> None:

@@ -23,13 +23,14 @@ from automation.inago.copy_service import (
     CopyRunner,
     generate_and_commit_copy,
 )
-from automation.inago.contracts import AIJobRequest, AIJobResult
+from automation.inago.contracts import AIJobRequest, AIJobResult, RejectedContract
 from automation.inago.metrics import (
     MetricsCollectionResult,
     MetricsDeadlineExceeded,
     commit_metrics_result,
 )
 from automation.inago.report_apply import apply_pending_reports
+from automation.inago.report_import import import_offline_report_batches
 from automation.inago.retention import apply_retention, validate_data_root
 from automation.inago.repository import (
     LEGACY_UNASSIGNED_THEME_ID,
@@ -72,6 +73,31 @@ _SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\Z")
 
 class DailyOrchestrationError(RuntimeError):
     """A daily phase cannot continue without violating its persisted contract."""
+
+
+_COPY_SPEC_REJECTION_CODES = {
+    "copy evidence references must be available inputs": (
+        "copy_evidence_refs_not_input"
+    ),
+    "copy evidence references must be unique": "copy_evidence_refs_not_unique",
+    "copy input references must be non-empty and unique": ("copy_input_refs_invalid"),
+    "copy references must be safe non-empty identifiers": ("copy_refs_unsafe"),
+    "copy input payload does not match the requested offer/version": (
+        "copy_offer_version_mismatch"
+    ),
+}
+
+
+class _CopySpecContractRejected(DailyOrchestrationError):
+    """A copy-spec contract rejection with safe, structured diagnostic fields."""
+
+    def __init__(self, *, run_id: str, offer_key: str, rejection: RejectedContract):
+        self.phase = "copy_spec"
+        self.error_code = _COPY_SPEC_REJECTION_CODES.get(
+            str(rejection), "copy_spec_contract_rejected"
+        )
+        self.references = {"run_id": run_id, "offer_key": offer_key}
+        super().__init__(self.error_code)
 
 
 class _CancelRunWork:
@@ -545,7 +571,11 @@ def _save_state(
 
 
 def _append_error(
-    state: dict[str, Any], phase: str, code: str, detail: str | None = None
+    state: dict[str, Any],
+    phase: str,
+    code: str,
+    detail: str | None = None,
+    references: Mapping[str, str] | None = None,
 ) -> None:
     errors = state.setdefault("errors", [])
     if not isinstance(errors, list):
@@ -553,7 +583,36 @@ def _append_error(
     item = {"phase": phase, "code": code}
     if detail:
         item["detail"] = detail[:300]
+    if references:
+        run_id = references.get("run_id")
+        offer_key = references.get("offer_key")
+        safe_references = {}
+        if isinstance(run_id, str) and _SAFE_RUN_ID.fullmatch(run_id):
+            safe_references["run_id"] = run_id
+        if isinstance(offer_key, str) and _SAFE_ACQUISITION_REF.fullmatch(offer_key):
+            safe_references["offer_key"] = offer_key
+        if safe_references:
+            item["references"] = safe_references
     errors.append(item)
+
+
+def _record_orchestration_error(state: dict[str, Any], exc: Exception) -> None:
+    if isinstance(exc, _CopySpecContractRejected):
+        _append_error(
+            state,
+            exc.phase,
+            exc.error_code,
+            references=exc.references,
+        )
+        return
+    if isinstance(exc, sqlite3.Error):
+        _append_error(state, "save", "save_error")
+        return
+    _append_error(
+        state,
+        "orchestration",
+        f"step13_error_{type(exc).__name__}",
+    )
 
 
 def _run_by_date(connection: sqlite3.Connection, target_date: str):
@@ -1494,6 +1553,7 @@ def _process_search_result(
     ports: DailyPorts,
     clock: Clock,
     data_root: Path,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> None:
     row = _attempt_row(connection, attempt_id)
     if row is None or row["ended_at"] is None:
@@ -1564,16 +1624,21 @@ def _process_search_result(
             0.0,
             (_at(date.fromisoformat(target_date), DRAFT_CUTOFF) - now).total_seconds(),
         )
-        spec = ports.copy_spec_factory(
-            connection,
-            run_id=run_id,
-            offer_key=offer_key,
-            theme_id=theme_id,
-            target_date=target_date,
-            settings_version=settings_version,
-            deadline_at=deadline_at,
-            deadline_monotonic=deadline_monotonic,
-        )
+        try:
+            spec = ports.copy_spec_factory(
+                connection,
+                run_id=run_id,
+                offer_key=offer_key,
+                theme_id=theme_id,
+                target_date=target_date,
+                settings_version=settings_version,
+                deadline_at=deadline_at,
+                deadline_monotonic=deadline_monotonic,
+            )
+        except RejectedContract as exc:
+            raise _CopySpecContractRejected(
+                run_id=run_id, offer_key=offer_key, rejection=exc
+            ) from None
         if spec is None:
             _mark_offer_handled(state, offer_key)
             state["error_count"] = int(state.get("error_count", 0)) + 1
@@ -1588,16 +1653,23 @@ def _process_search_result(
             or spec.deadline_at != deadline_at
         ):
             raise DailyOrchestrationError("copy_spec_run_identity_mismatch")
-        outcome = generate_and_commit_copy(
-            connection,
-            spec,
-            ports.copy_runner,
-            data_root=data_root,
-            clock=clock,
-        )
+        try:
+            outcome = generate_and_commit_copy(
+                connection,
+                spec,
+                ports.copy_runner,
+                data_root=data_root,
+                clock=clock,
+            )
+        except RejectedContract as exc:
+            raise _CopySpecContractRejected(
+                run_id=run_id, offer_key=offer_key, rejection=exc
+            ) from None
         if outcome.status in {"committed", "already_committed"}:
             _mark_offer_handled(state, offer_key)
             _save_state(connection, run_id, state)
+            if on_draft_commit is not None:
+                on_draft_commit(connection)
         elif outcome.status in {"pending_commit", "saved_response", "in_progress"}:
             raise DailyOrchestrationError(
                 f"copy_resume_required:{outcome.error_code or outcome.status}"
@@ -1628,6 +1700,7 @@ def _search_task(
     ports: DailyPorts,
     clock: Clock,
     data_root: Path,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> None:
     task_number = int(task["task_number"])
     query = str(task["query"])
@@ -1700,6 +1773,7 @@ def _search_task(
             ports=ports,
             clock=clock,
             data_root=data_root,
+            on_draft_commit=on_draft_commit,
         )
         if status not in {"partial", "unavailable", "invalid"}:
             return
@@ -1891,6 +1965,13 @@ def _collect_metrics(
             else:
                 status = result
                 if isinstance(result, MetricsCollectionResult):
+                    if any(
+                        isinstance(snapshot.payload, Mapping)
+                        and snapshot.payload.get("error_code")
+                        == "authentication_required"
+                        for snapshot in result.snapshots
+                    ):
+                        _append_error(state, "authentication", "auth_wait")
                     if result.status == "not_started":
                         status = "not_started"
                         _persist_metrics_status(
@@ -1944,6 +2025,7 @@ def run_daily(
     clock: Clock | None = None,
     run_id_factory: Callable[[date], str] | None = None,
     seed_factory: Callable[[], str] | None = None,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> DailyRunOutcome:
     """Run or resume today's finite daily flow under the real Windows lock."""
 
@@ -2110,6 +2192,16 @@ def run_daily(
 
         orchestration_failed = False
         try:
+            report_import = import_offline_report_batches(
+                connection,
+                runtime_root=root,
+                clock=system_clock,
+            )
+            state["report_import"] = {
+                "files_processed": report_import.files_processed,
+                "reports_received": report_import.reports_received,
+            }
+            _save_state(connection, run_id, state)
             report_result = apply_pending_reports(
                 connection, run_id=run_id, clock=system_clock
             )
@@ -2211,6 +2303,7 @@ def run_daily(
                         ports=ports,
                         clock=system_clock,
                         data_root=root,
+                        on_draft_commit=on_draft_commit,
                     )
                     if _now(system_clock) >= _at(
                         date.fromisoformat(target_date), DRAFT_CUTOFF
@@ -2241,11 +2334,7 @@ def run_daily(
             orchestration_failed = True
             state["error_count"] = int(state.get("error_count", 0)) + 1
             state["recoverable_error_pending"] = True
-            _append_error(
-                state,
-                "orchestration",
-                f"step13_error_{type(exc).__name__}",
-            )
+            _record_orchestration_error(state, exc)
             _save_state(connection, run_id, state)
 
         metric_status = _collect_metrics(

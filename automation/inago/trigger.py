@@ -19,6 +19,7 @@ def run_scheduled_daily(
     clock: Clock | None = None,
     run_id_factory: Callable[[date], str] | None = None,
     seed_factory: Callable[[], str] | None = None,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> DailyRunOutcome:
     """Run one schedule invocation; this function does not register a task."""
 
@@ -29,6 +30,7 @@ def run_scheduled_daily(
         clock=clock,
         run_id_factory=run_id_factory,
         seed_factory=seed_factory,
+        on_draft_commit=on_draft_commit,
     )
 
 
@@ -44,6 +46,7 @@ def run_public_scheduled_daily(
     clock: Clock | None = None,
     run_id_factory: Callable[[date], str] | None = None,
     seed_factory: Callable[[], str] | None = None,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> DailyRunOutcome:
     """Compose public runtime ports and invoke one scheduled daily run.
 
@@ -69,4 +72,5 @@ def run_public_scheduled_daily(
         clock=clock,
         run_id_factory=run_id_factory,
         seed_factory=seed_factory,
+        on_draft_commit=on_draft_commit,
     )

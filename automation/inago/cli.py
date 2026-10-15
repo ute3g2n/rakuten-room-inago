@@ -63,6 +63,15 @@ def _parser() -> argparse.ArgumentParser:
         mode_parser.add_argument(
             "--environment", choices=("fixture", "production"), default="fixture"
         )
+        if mode in {"status", "recovery"}:
+            mode_parser.add_argument("--run-id")
+        if mode == "recovery":
+            mode_parser.add_argument("--owner-confirmed", action="store_true")
+            mode_parser.add_argument("--cause-resolved", action="store_true")
+            mode_parser.add_argument("--export-only-failed", action="store_true")
+        if mode == "daily":
+            mode_parser.add_argument("--resume-confirmed", action="store_true")
+            mode_parser.add_argument("--cause-resolved", action="store_true")
     return parser
 
 
@@ -222,8 +231,13 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
         load_human_api_config,
         load_production_config,
         require_production_ready,
+        run_production_dashboard_export,
         run_production_daily,
+        run_production_backup,
+        run_production_monthly_restore_check,
         run_production_startup_preflight,
+        run_production_status,
+        run_production_recovery,
         serve_human_api,
     )
     from automation.inago.clock import SystemClock
@@ -232,7 +246,10 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
     phase = "configuration"
 
     def record(
-        status: str, reason: str | None = None, current_phase: str | None = None
+        status: str,
+        reason: str | None = None,
+        current_phase: str | None = None,
+        diagnostics: dict[str, object] | None = None,
     ) -> None:
         try:
             _append_production_log(
@@ -241,6 +258,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                 status=status,
                 reason=reason,
                 phase=current_phase or phase,
+                diagnostics=diagnostics,
             )
         except (OSError, ProductionRuntimeError) as exc:
             _emit(
@@ -282,13 +300,29 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                             if isinstance(failures, list)
                             else []
                         )
+                        diagnostics: dict[str, object] = {
+                            "failed_checks": safe_failures
+                        }
+                        if any(
+                            item
+                            in {
+                                "browser_profile_missing",
+                                "browser_profile_unavailable",
+                                "browser_profile_invalid",
+                                "browser_profile_mismatch",
+                            }
+                            for item in safe_failures
+                        ):
+                            diagnostics.update(
+                                _preflight_browser_profile_visibility(args.config)
+                            )
                         _append_production_log(
                             root,
                             mode="daily",
                             status="blocked",
                             reason="startup_preflight_blocked",
                             phase="preflight",
-                            diagnostics={"failed_checks": safe_failures},
+                            diagnostics=diagnostics,
                         )
                     except (OSError, ProductionRuntimeError) as log_exc:
                         _emit(
@@ -303,7 +337,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                 return EXIT_RUNTIME_ERROR
 
         phase = "configuration"
-        if args.mode == "serve":
+        if args.mode in {"serve", "export", "status", "recovery"}:
             config = load_human_api_config(
                 args.config,
                 data_root=args.data_root,
@@ -324,20 +358,161 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             record("ready")
             _emit(output, {"status": "ready", **result})
             return 0
+        if args.mode == "export":
+            phase = "export"
+            result = run_production_dashboard_export(config)
+            status = str(result.get("status", "failed"))
+            diagnostics: dict[str, object] = {
+                "dashboard_export_status": status,
+                "daily_runs": result.get("run_count"),
+                "draft_count": result.get("draft_count"),
+                "error_code": result.get("error_code"),
+            }
+            output_path = result.get("path")
+            if isinstance(output_path, str):
+                diagnostics["file_name"] = Path(output_path).name
+            record(
+                status="ready" if status == "ready" else "failed",
+                reason=(
+                    result.get("error_code")
+                    if isinstance(result.get("error_code"), str)
+                    else None
+                ),
+                diagnostics=diagnostics,
+            )
+            _emit(output, {**result, "mode": "export"})
+            return 0 if status == "ready" else EXIT_RUNTIME_ERROR
+        if args.mode == "backup":
+            phase = "backup"
+            result = run_production_backup(config)
+            status = str(result.get("status", "failed"))
+            backup_result = result.get("backup")
+            diagnostics: dict[str, object] = {
+                "backup_status": status,
+            }
+            monthly_result = result.get("monthly_restore")
+            if isinstance(monthly_result, dict):
+                diagnostics["monthly_restore_status"] = monthly_result.get("status")
+            if isinstance(backup_result, dict):
+                diagnostics["error_code"] = backup_result.get("error_code")
+                backup_path = backup_result.get("path")
+                if isinstance(backup_path, str):
+                    diagnostics["file_name"] = Path(backup_path).name
+            if isinstance(monthly_result, dict):
+                diagnostics["monthly_restore_error"] = monthly_result.get("error_code")
+            record(
+                "ready" if status == "ready" else "failed",
+                reason=(
+                    backup_result.get("error_code")
+                    if isinstance(backup_result, dict)
+                    and isinstance(backup_result.get("error_code"), str)
+                    else (
+                        monthly_result.get("error_code")
+                        if isinstance(monthly_result, dict)
+                        and isinstance(monthly_result.get("error_code"), str)
+                        else None
+                    )
+                ),
+                diagnostics=diagnostics,
+            )
+            _emit(output, result)
+            return 0 if status == "ready" else EXIT_RUNTIME_ERROR
+        if args.mode == "restore-check":
+            phase = "restore-check"
+            result = run_production_monthly_restore_check(config)
+            status = str(result.get("status", "failed"))
+            diagnostics = {
+                "restore_check_status": status,
+                "already_checked": result.get("already_checked") is True,
+                "error_code": result.get("reason_code"),
+            }
+            restore_path = result.get("path")
+            if isinstance(restore_path, str):
+                diagnostics["file_name"] = Path(restore_path).name
+            record(
+                "ready" if status in {"ready", "already_checked"} else "failed",
+                reason=(
+                    result.get("reason_code")
+                    if isinstance(result.get("reason_code"), str)
+                    else None
+                ),
+                diagnostics=diagnostics,
+            )
+            _emit(output, result)
+            return 0 if status in {"ready", "already_checked"} else EXIT_RUNTIME_ERROR
+        if args.mode == "status":
+            result = run_production_status(config, run_id=args.run_id)
+            _emit(output, result)
+            return 0
+        if args.mode == "recovery":
+            result = run_production_recovery(
+                config,
+                run_id=args.run_id,
+                owner_confirmed=args.owner_confirmed,
+                cause_resolved=args.cause_resolved,
+                export_only_failed=args.export_only_failed,
+            )
+            _emit(output, result)
+            return 0
         if args.mode == "daily":
             phase = "daily"
-            result = run_production_daily(config)
+            result = run_production_daily(
+                config,
+                resume_confirmed=args.resume_confirmed,
+                cause_resolved=args.cause_resolved,
+            )
             status = str(result.get("status", "failed"))
+            export_result = result.get("export")
+            diagnostics: dict[str, object] = {
+                "daily_status": result.get("daily_status"),
+            }
+            if isinstance(export_result, dict):
+                diagnostics["dashboard_export_status"] = export_result.get("status")
+                diagnostics["daily_runs"] = export_result.get("run_count")
+                diagnostics["draft_count"] = export_result.get("draft_count")
+                diagnostics["error_code"] = export_result.get("error_code")
+                output_path = export_result.get("path")
+                if isinstance(output_path, str):
+                    diagnostics["file_name"] = Path(output_path).name
+            preservation_result = result.get("preservation")
+            if isinstance(preservation_result, dict):
+                diagnostics["preservation_status"] = preservation_result.get("status")
+                end_backup = preservation_result.get("end_backup")
+                monthly_restore = preservation_result.get("monthly_restore")
+                if isinstance(end_backup, dict):
+                    diagnostics["end_backup_status"] = end_backup.get("status")
+                    diagnostics["end_backup_error"] = end_backup.get("error_code")
+                if isinstance(monthly_restore, dict):
+                    diagnostics["monthly_restore_status"] = monthly_restore.get(
+                        "status"
+                    )
             record(
                 status=status,
                 reason=(
-                    result.get("reason")
-                    if isinstance(result.get("reason"), str)
-                    else None
+                    "dashboard_export_failed"
+                    if status == "export_failed"
+                    else (
+                        result.get("reason")
+                        if isinstance(result.get("reason"), str)
+                        else None
+                    )
                 ),
+                diagnostics=diagnostics,
             )
             _emit(output, result)
-            return EXIT_RUNTIME_ERROR if status in {"failed", "locked"} else 0
+            return (
+                EXIT_RUNTIME_ERROR
+                if status
+                in {
+                    "failed",
+                    "locked",
+                    "export_failed",
+                    "preservation_failed",
+                    "recovery_confirmation_required",
+                    "recovery_required",
+                }
+                else 0
+            )
         if args.mode == "serve":
             phase = "serve"
             require_production_ready(config)
@@ -350,11 +525,12 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
         reason = (
             str(exc)[:200]
             if isinstance(exc, ProductionRuntimeError)
+            and args.mode not in {"status", "recovery"}
             else type(exc).__name__
         )
-        if config is not None:
+        if config is not None and args.mode not in {"status", "recovery"}:
             record("failed", reason=reason)
-        else:
+        elif config is None and args.mode not in {"status", "recovery"}:
             root = _preflight_log_root(args.data_root)
             if root is not None:
                 try:

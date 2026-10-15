@@ -1,0 +1,836 @@
+(() => {
+  const API_ORIGIN = document.documentElement.dataset.apiOrigin || "";
+  let data = JSON.parse(document.getElementById("dashboard-history-data").textContent);
+  const navigation = document.getElementById("date-navigation");
+  const selectedDate = document.getElementById("selected-date");
+  const runStatus = document.getElementById("run-status");
+  const dailyCount = document.getElementById("daily-count");
+  const committedCount = document.getElementById("committed-count");
+  const postedCount = document.getElementById("posted-count");
+  const sqlitePendingCount = document.getElementById("sqlite-pending-count");
+  const sqliteAppliedCount = document.getElementById("sqlite-applied-count");
+  const sqliteRejectedCount = document.getElementById("sqlite-rejected-count");
+  const dayOutboxCount = document.getElementById("browser-outbox-day-count");
+  const list = document.getElementById("draft-list");
+  const message = document.getElementById("history-message");
+  const connectionStatus = document.getElementById("history-connection");
+  const authForm = document.getElementById("history-auth");
+  const authTokenInput = document.getElementById("history-api-token");
+  const authSubmitButton = document.getElementById("history-auth-submit");
+  const reconnectButton = document.getElementById("history-reconnect");
+  const outboxButton = document.getElementById("export-outbox");
+  const outboxCount = document.getElementById("outbox-count");
+  const RECONNECT_INTERVAL_MS = 5000;
+  let activeDate = null;
+  let apiState = null;
+  let authToken = null;
+  let authRequired = false;
+  let outboxDb = null;
+  let outboxEntries = [];
+  let reconnectTimer = null;
+  let refreshInFlight = null;
+  let reportSubmissionsInFlight = 0;
+
+  function updatePostedCount() {
+    postedCount.textContent = String(list.querySelectorAll(".posted-checkbox:checked").length);
+  }
+
+  function updateDayReportCounts(day) {
+    const reportCounts = (data.report_counts_by_date || []).find(
+      (entry) => entry.target_date === day.target_date
+    ) || {};
+    sqlitePendingCount.textContent = String(reportCounts.pending_report_count || 0);
+    sqliteAppliedCount.textContent = String(reportCounts.applied_report_count || 0);
+    sqliteRejectedCount.textContent = String(reportCounts.rejected_report_count || 0);
+    dayOutboxCount.textContent = String(outboxEntries.filter((entry) => (
+      day.items.some((item) => (
+        entry.report.offer_key === item.offer_key
+        && entry.report.draft_id === item.draft_id
+        && entry.report.draft_version === item.draft_version
+      ))
+    )).length);
+    for (const action of ["posted", "skipped", "correction", "edit"]) {
+      for (const status of ["pending", "applied", "rejected"]) {
+        const cell = document.getElementById(`report-count-${action}-${status}`);
+        cell.textContent = String(reportCounts.action_counts?.[action]?.[status] || 0);
+      }
+    }
+  }
+
+  const apiErrorMessage = (code) => ({
+    authentication_required: "Human API tokenを確認してください。",
+    origin_rejected: "保存元を確認できませんでした。許可された履歴HTMLから開き直してください。",
+    csrf_rejected: "画面の確認情報が古くなりました。再読み込みしてください。",
+    stale_revision: "別の報告が先に受付されました。最新状態を読み直してください。",
+    action_id_conflict: "報告IDが競合しました。最新状態を読み直してください。",
+    storage_unavailable: "SQLiteへ保存できませんでした。接続状態を確認してください。",
+    invalid_report: "報告を保存できませんでした。入力内容を確認してください。",
+  }[code] || "SQLite保存APIに接続できません。");
+
+  function setConnection(state, text) {
+    connectionStatus.dataset.historyConnection = state;
+    connectionStatus.textContent = text;
+    reconnectButton.hidden = !["unavailable", "outbox"].includes(state) || !API_ORIGIN;
+  }
+
+  function requireAuthentication() {
+    authRequired = true;
+    authToken = null;
+    authTokenInput.value = "";
+    authForm.hidden = false;
+    setConnection("auth-required", "Human APIの本人確認が必要です。tokenを入力してください。");
+  }
+
+  function openOutbox() {
+    return new Promise((resolve, reject) => {
+      if (!globalThis.indexedDB) {
+        reject(new Error("このブラウザーはIndexedDBを利用できません。"));
+        return;
+      }
+      const request = indexedDB.open("inago-history-outbox-v1", 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains("browser-outbox")) {
+          request.result.createObjectStore("browser-outbox", { keyPath: "action_id" });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("IndexedDBを開けません。"));
+      request.onblocked = () => reject(new Error("別の履歴画面が開いています。"));
+    });
+  }
+
+  function outboxTransaction(mode, operation) {
+    return new Promise((resolve, reject) => {
+      if (!outboxDb) {
+        reject(new Error("ブラウザー内の保留領域を利用できません。"));
+        return;
+      }
+      const transaction = outboxDb.transaction("browser-outbox", mode);
+      const store = transaction.objectStore("browser-outbox");
+      let result;
+      try {
+        result = operation(store);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      transaction.oncomplete = () => resolve(result?.result);
+      transaction.onerror = () => reject(transaction.error || new Error("保留報告を保存できません。"));
+      transaction.onabort = () => reject(transaction.error || new Error("保留報告の保存を取り消しました。"));
+    });
+  }
+
+  async function reloadOutbox() {
+    if (outboxDb) {
+      outboxEntries = (await outboxTransaction("readonly", (store) => store.getAll())) || [];
+    }
+    outboxEntries.sort((left, right) => left.queued_at.localeCompare(right.queued_at));
+    outboxButton.hidden = outboxEntries.length === 0;
+    outboxCount.textContent = outboxEntries.length
+      ? `ブラウザー保留 ${outboxEntries.length}件（SQLite未受付）`
+      : "";
+    return outboxEntries;
+  }
+
+  function reportsFor(item) {
+    const saved = apiState
+      ? [...(apiState.pending_reports || []), ...(apiState.recent_reports || [])]
+      : [];
+    const browserQueued = outboxEntries.map((entry) => ({
+      ...entry.report,
+      receipt_revision: entry.report.expected_receipt_revision + 1,
+      apply_status: "pending",
+      browser_outbox: true,
+    }));
+    return [...saved, ...browserQueued]
+      .filter((report) => report.offer_key === item.offer_key
+        && report.draft_id === item.draft_id
+        && report.draft_version === item.draft_version)
+      .sort((left, right) => right.receipt_revision - left.receipt_revision);
+  }
+
+  function revisionFor(item) {
+    const serverRevision = apiState?.receipt_revisions?.[item.offer_key];
+    const base = Number.isInteger(serverRevision) ? serverRevision : item.receipt_revision || 0;
+    return outboxEntries.reduce((revision, entry) => (
+      entry.report.offer_key === item.offer_key
+        ? Math.max(revision, entry.report.expected_receipt_revision + 1)
+        : revision
+    ), base);
+  }
+
+  function activeEvents(item) {
+    return Array.isArray(item.events) ? item.events.filter((event) => event?.event_id) : [];
+  }
+
+  function setControls(card, item) {
+    const posted = card.querySelector("input[data-report-posted-draft-id]");
+    const skip = card.querySelector('button[data-report-action="skipped"]');
+    const correctionButton = card.querySelector('button[data-report-action="correction"]');
+    const reportStatus = card.querySelector("[data-report-status]");
+    const reports = reportsFor(item);
+    const latest = reports[0] || null;
+    const pending = latest?.apply_status === "pending";
+    const events = activeEvents(item);
+    const appliedSkipped = item.status === "見送り反映済み";
+    const pendingPosted = pending && latest.action === "posted";
+    const appliedPosted = events.length > 0
+      || (!latest && item.status === "投稿反映済み")
+      || (latest?.action === "posted" && latest.apply_status === "applied");
+    const canReport = Boolean(outboxDb || (API_ORIGIN && apiState)) && !pending;
+    const canPost = canReport && !appliedPosted && !appliedSkipped
+      && item.status !== "既投稿のため後続版は投稿対象外";
+    const canUndo = Boolean(API_ORIGIN && (apiState || outboxDb))
+      && (pendingPosted || (!pending && appliedPosted));
+    const canCorrectPendingPost = pendingPosted && Boolean(API_ORIGIN && apiState);
+    posted.checked = pending ? pendingPosted : appliedPosted;
+    posted.disabled = !(canPost || canUndo);
+    skip.disabled = !canPost;
+    if (correctionButton) {
+      correctionButton.disabled = !(canReport && events.length > 0) && !canCorrectPendingPost;
+    }
+    for (const control of card.querySelectorAll(
+      "[data-correction-ref], [data-correction-reason], [data-actual-posted-at]"
+    )) {
+      control.disabled = !(canReport || canCorrectPendingPost) || appliedSkipped;
+    }
+    if (pending) {
+      const actionName = latest.action === "posted" ? "投稿" : latest.action === "skipped" ? "見送り" : "訂正";
+      reportStatus.textContent = latest.browser_outbox
+        ? `ブラウザー保留・SQLite未受付（${actionName}）`
+        : `SQLite受付済み・翌日反映待ち（${actionName}）`;
+      if (pendingPosted) reportStatus.textContent += "。チェックを外すと理由入力なしで訂正を送信します。";
+    } else if (appliedPosted) {
+      reportStatus.textContent = "SQLite管理反映済みの投稿。チェックを外すと訂正を送信します（理由入力不要）。";
+    } else if (appliedSkipped) {
+      reportStatus.textContent = "SQLite管理反映済みの見送り";
+    } else if (latest?.action === "correction" && latest.apply_status === "applied") {
+      reportStatus.textContent = "訂正はSQLite管理へ反映済み";
+    } else {
+      reportStatus.textContent = apiState
+        ? "投稿後にチェックするとSQLiteへ即時保存します。"
+        : "接続できない場合はブラウザーに保留し、JSONから翌日取り込めます。";
+    }
+
+    const correctionSelect = card.querySelector("[data-correction-ref]");
+    if (correctionSelect) {
+      const selected = correctionSelect.value;
+      correctionSelect.replaceChildren();
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "投稿記録を選択";
+      correctionSelect.append(emptyOption);
+      for (const event of events) {
+        const option = document.createElement("option");
+        option.value = event.event_id;
+        option.textContent = `${event.event_id}・${event.actual_posted_at || "時刻不明"}`;
+        correctionSelect.append(option);
+      }
+      for (const report of reports.filter((entry) => entry.action === "posted")) {
+        const option = document.createElement("option");
+        option.value = report.action_id;
+        option.textContent = `${report.action_id}・受付済み投稿`;
+        correctionSelect.append(option);
+      }
+      if ([...correctionSelect.options].some((option) => option.value === selected)) {
+        correctionSelect.value = selected;
+      }
+    }
+  }
+
+  async function apiFetch(path, options = {}) {
+    if (!API_ORIGIN) throw new Error("このHTMLにSQLite保存APIの接続先がありません。");
+    const send = (token) => fetch(`${API_ORIGIN}${path}`, {
+      ...options,
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      referrerPolicy: "no-referrer",
+      headers: {
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    const response = await send(authToken);
+    if (response.status === 401) requireAuthentication();
+    return response;
+  }
+
+  async function queueOfflineReport(report) {
+    const entry = { action_id: report.action_id, queued_at: new Date().toISOString(), report };
+    await outboxTransaction("readwrite", (store) => store.put(entry));
+    await reloadOutbox();
+    return entry;
+  }
+
+  async function sendReport(report) {
+    if (!apiState) throw new TypeError("SQLite保存APIの接続状態を確認できません。");
+    return apiFetch("/api/reports", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-Token": apiState.csrf_token,
+      },
+      body: JSON.stringify(report),
+    });
+  }
+
+  async function flushOutbox() {
+    if (!apiState || outboxEntries.length === 0) return 0;
+    let saved = 0;
+    for (const entry of [...outboxEntries]) {
+      const response = await sendReport(entry.report);
+      const receipt = await response.json().catch(() => ({}));
+      if (!response.ok || receipt.saved !== true
+        || !["pending", "applied"].includes(receipt.apply_status)) {
+        const error = new Error(apiErrorMessage(receipt.error));
+        error.apiCode = receipt.error;
+        error.status = response.status;
+        throw error;
+      }
+      await outboxTransaction("readwrite", (store) => store.delete(entry.action_id));
+      apiState.receipt_revisions[entry.report.offer_key] = receipt.receipt_revision;
+      saved += 1;
+      await reloadOutbox();
+    }
+    return saved;
+  }
+
+  function selectedCorrectionRef(item) {
+    const reports = reportsFor(item);
+    const latest = reports[0];
+    if (latest?.action === "posted" && latest.apply_status === "pending") {
+      return latest.action_id;
+    }
+    const selected = list.querySelector(
+      `article[data-draft-id="${CSS.escape(item.draft_id)}"] [data-correction-ref]`
+    )?.value;
+    if (selected) return selected;
+    return activeEvents(item)[0]?.event_id || null;
+  }
+
+  function createActionId() {
+    return `ACT-${globalThis.crypto?.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
+  }
+
+  async function submitReport(item, action, card, posted, options = {}) {
+    if (!item.offer_key || (!API_ORIGIN && !outboxDb)) {
+      posted.checked = Boolean(options.previousChecked);
+      updatePostedCount();
+      message.textContent = "この履歴には報告先が設定されていません。";
+      return;
+    }
+    const reason = options.reason
+      || card.querySelector("[data-correction-reason]")?.value?.trim()
+      || null;
+    const correctionRef = options.correctionRef
+      || card.querySelector("[data-correction-ref]")?.value
+      || null;
+    if (action === "correction" && (!correctionRef || (options.requireReason && !reason))) {
+      posted.checked = Boolean(options.previousChecked);
+      updatePostedCount();
+      message.textContent = options.requireReason
+        ? "訂正理由と対象の投稿記録を入力してください。"
+        : "訂正対象の投稿記録が見つかりません。状態を確認してください。";
+      return;
+    }
+    const localPostedAt = card.querySelector("[data-actual-posted-at]")?.value || "";
+    const parsedPostedAt = localPostedAt ? new Date(localPostedAt) : null;
+    if (parsedPostedAt && Number.isNaN(parsedPostedAt.getTime())) {
+      posted.checked = Boolean(options.previousChecked);
+      updatePostedCount();
+      message.textContent = "投稿時刻の形式を確認してください。";
+      return;
+    }
+    const report = {
+      action_id: createActionId(),
+      offer_key: item.offer_key,
+      draft_id: item.draft_id,
+      draft_version: item.draft_version,
+      expected_receipt_revision: revisionFor(item),
+      action,
+      reason: action === "correction" ? reason : null,
+      correction_ref: action === "correction" ? correctionRef : null,
+      actual_posted_at: action === "posted" && parsedPostedAt ? parsedPostedAt.toISOString() : null,
+    };
+    const reportButtons = card.querySelectorAll("button[data-report-action]");
+    reportSubmissionsInFlight += 1;
+    posted.disabled = true;
+    for (const button of reportButtons) button.disabled = true;
+    const actionLabel = action === "posted" ? "投稿" : action === "skipped" ? "見送り" : "訂正";
+    message.textContent = `${actionLabel}報告を送信しています。SQLiteの受付を待っています。`;
+    try {
+      const response = await sendReport(report);
+      const receipt = await response.json().catch(() => ({}));
+      if (!response.ok || receipt.saved !== true || receipt.apply_status !== "pending") {
+        const error = new Error(apiErrorMessage(receipt.error));
+        error.apiCode = receipt.error;
+        error.status = response.status;
+        throw error;
+      }
+      posted.checked = action === "posted";
+      updatePostedCount();
+      await refreshConnectedState();
+      message.textContent = "SQLite受付済み・翌日の日次管理反映待ち";
+    } catch (error) {
+      const transientServerFailure = Number.isInteger(error?.status)
+        && error.status >= 500 && error.status <= 599;
+      const storageUnavailable = error?.apiCode === "storage_unavailable";
+      if ((error instanceof TypeError || transientServerFailure || storageUnavailable) && outboxDb) {
+        try {
+          await queueOfflineReport(report);
+          posted.checked = action === "posted";
+          updatePostedCount();
+          setConnection("outbox", "API停止中のため、報告をブラウザー内に保留しました。SQLiteにはまだ受付されていません。");
+          renderDays();
+          message.textContent = "ブラウザー保留に保存しました。JSONを書き出し、翌日の日次取込フォルダーへ置いてください。";
+          return;
+        } catch (queueError) {
+          message.textContent = queueError instanceof Error
+            ? queueError.message
+            : "ブラウザー保留にも保存できませんでした。";
+        }
+      } else {
+        message.textContent = error instanceof Error
+          ? error.message
+          : "報告を保存できませんでした。状態を確認してください。";
+      }
+      posted.checked = Boolean(options.previousChecked);
+      updatePostedCount();
+      const latest = reportsFor(item)[0] || null;
+      setControls(card, item, latest);
+    } finally {
+      reportSubmissionsInFlight = Math.max(0, reportSubmissionsInFlight - 1);
+    }
+  }
+
+  function appendReportControls(card, item) {
+    const controls = document.createElement("section");
+    controls.className = "report-controls";
+    controls.setAttribute("aria-label", "投稿報告");
+    const postedLabel = document.createElement("label");
+    postedLabel.className = "posted-control";
+    const posted = document.createElement("input");
+    posted.type = "checkbox";
+    posted.className = "posted-checkbox";
+    posted.dataset.reportPostedDraftId = item.draft_id;
+    posted.setAttribute("aria-label", `${item.draft_id} ${item.draft_version}版の投稿済み状態`);
+    posted.disabled = true;
+    const postedText = document.createElement("span");
+    postedText.textContent = "ROOMに投稿済み";
+    postedLabel.append(posted, postedText);
+    controls.append(postedLabel);
+
+    const actualPostedLabel = document.createElement("label");
+    actualPostedLabel.className = "meta";
+    actualPostedLabel.textContent = "本人が申告する投稿時刻（任意）";
+    const actualPostedAt = document.createElement("input");
+    actualPostedAt.type = "datetime-local";
+    actualPostedAt.className = "actual-posted-at";
+    actualPostedAt.dataset.actualPostedAt = "true";
+    actualPostedAt.disabled = true;
+    actualPostedLabel.append(actualPostedAt);
+    controls.append(actualPostedLabel);
+
+    const skip = document.createElement("button");
+    skip.type = "button";
+    skip.className = "report-button";
+    skip.dataset.reportAction = "skipped";
+    skip.dataset.reportDraftId = item.draft_id;
+    skip.textContent = "見送りを報告";
+    skip.disabled = true;
+    controls.append(skip);
+
+    const details = document.createElement("details");
+    details.className = "correction-controls";
+    const summary = document.createElement("summary");
+    summary.textContent = "投稿報告を訂正する";
+    details.append(summary);
+    const eventLabel = document.createElement("label");
+    eventLabel.textContent = "訂正対象の投稿記録";
+    const eventSelect = document.createElement("select");
+    eventSelect.dataset.correctionRef = "true";
+    eventSelect.disabled = true;
+    eventLabel.append(eventSelect);
+    details.append(eventLabel);
+    const reasonLabel = document.createElement("label");
+    reasonLabel.textContent = "訂正理由";
+    const reason = document.createElement("textarea");
+    reason.rows = 3;
+    reason.dataset.correctionReason = "true";
+    reason.disabled = true;
+    reasonLabel.append(reason);
+    details.append(reasonLabel);
+    const correct = document.createElement("button");
+    correct.type = "button";
+    correct.className = "report-button";
+    correct.dataset.reportAction = "correction";
+    correct.dataset.reportDraftId = item.draft_id;
+    correct.textContent = "訂正報告を送信";
+    correct.disabled = true;
+    details.append(correct);
+    controls.append(details);
+
+    const reportStatus = document.createElement("p");
+    reportStatus.className = "report-status";
+    reportStatus.dataset.reportStatus = "true";
+    controls.append(reportStatus);
+    card.append(controls);
+
+    setControls(card, item);
+    posted.addEventListener("change", () => {
+      updatePostedCount();
+      if (posted.checked) {
+        submitReport(item, "posted", card, posted, { previousChecked: false });
+        return;
+      }
+      const correctionRef = selectedCorrectionRef(item);
+      if (!correctionRef) {
+        posted.checked = true;
+        updatePostedCount();
+        message.textContent = "訂正対象の投稿記録が見つかりません。チェック状態を戻しました。";
+        return;
+      }
+      submitReport(item, "correction", card, posted, {
+        correctionRef,
+        reason: "投稿済みチェック解除（本人操作）",
+        previousChecked: true,
+      });
+    });
+    skip.addEventListener("click", () => submitReport(item, "skipped", card, posted));
+    correct.addEventListener("click", () => submitReport(item, "correction", card, posted, {
+      requireReason: true,
+      previousChecked: posted.checked,
+    }));
+  }
+
+  function captureCorrectionInputState() {
+    const states = new Map();
+    for (const card of Array.from(list.children)) {
+      const details = card.querySelector("details.correction-controls");
+      const correctionRef = card.querySelector("[data-correction-ref]");
+      const reason = card.querySelector("[data-correction-reason]");
+      const actualPostedAt = card.querySelector("[data-actual-posted-at]");
+      if (!details || (!details.open && !correctionRef?.value && !reason?.value
+        && !actualPostedAt?.value)) continue;
+      states.set(`${card.dataset.draftId}:${card.dataset.draftVersion}`, {
+        open: details.open,
+        correctionRef: correctionRef?.value || "",
+        reason: reason?.value || "",
+        actualPostedAt: actualPostedAt?.value || "",
+      });
+    }
+    return states;
+  }
+
+  function restoreCorrectionInputState(card, state) {
+    if (!state) return;
+    const posted = card.querySelector("input[data-report-posted-draft-id]");
+    if (!posted?.checked) return;
+    const details = card.querySelector("details.correction-controls");
+    const correctionRef = card.querySelector("[data-correction-ref]");
+    const reason = card.querySelector("[data-correction-reason]");
+    const actualPostedAt = card.querySelector("[data-actual-posted-at]");
+    if (!details || !reason) return;
+    if (correctionRef && state.correctionRef
+      && Array.from(correctionRef.options).some((option) => option.value === state.correctionRef)) {
+      correctionRef.value = state.correctionRef;
+    }
+    reason.value = state.reason;
+    if (actualPostedAt) actualPostedAt.value = state.actualPostedAt;
+    details.open = state.open;
+  }
+
+  function renderDay(day) {
+    const correctionInputStates = activeDate === day.target_date
+      ? captureCorrectionInputState()
+      : new Map();
+    if (activeDate !== day.target_date) message.textContent = "";
+    activeDate = day.target_date;
+    selectedDate.textContent = `${day.target_date}の投稿内容`;
+    runStatus.textContent = day.run_status;
+    dailyCount.textContent = String(day.items.length);
+    committedCount.textContent = String(day.committed_count);
+    list.replaceChildren();
+    updatePostedCount();
+    for (const item of day.items) {
+      const card = document.createElement("article");
+      card.className = "draft-card";
+      card.dataset.draftId = item.draft_id;
+      card.dataset.draftVersion = String(item.draft_version);
+      const status = document.createElement("p");
+      status.className = "status";
+      status.textContent = item.status;
+      card.append(status);
+      const title = document.createElement("h3");
+      title.textContent = item.product_name;
+      card.append(title);
+      const meta = document.createElement("p");
+      meta.className = "meta";
+      meta.textContent = `下書きID ${item.draft_id}・${item.draft_version}版・${item.target_date}`;
+      card.append(meta);
+      if (item.product_url) {
+        const link = document.createElement("a");
+        link.href = item.product_url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "商品ページを開く";
+        card.append(link);
+      } else {
+        const unavailable = document.createElement("p");
+        unavailable.className = "meta";
+        unavailable.textContent = "商品URLを安全に表示できないため、リンクを省略しました。";
+        card.append(unavailable);
+      }
+      const body = document.createElement("textarea");
+      body.className = "body-text";
+      body.readOnly = true;
+      body.setAttribute("aria-label", `${item.draft_id} ${item.draft_version}版の投稿本文`);
+      body.value = item.body;
+      card.append(body);
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "copy-button";
+      copy.dataset.copyDraftId = item.draft_id;
+      copy.dataset.copyVersion = String(item.draft_version);
+      copy.textContent = `${item.draft_version}版の本文をコピー`;
+      copy.addEventListener("click", async () => {
+        try {
+          if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+            throw new Error("clipboard unavailable");
+          }
+          await navigator.clipboard.writeText(item.body);
+          message.textContent = `${item.draft_id} ${item.draft_version}版の本文をコピーしました。`;
+        } catch {
+          body.focus();
+          body.select();
+          message.textContent = "クリップボードを使えません。選択中の本文を Ctrl+C でコピーしてください。";
+        }
+      });
+      card.append(copy);
+      appendReportControls(card, item);
+      const correctionInputState = correctionInputStates.get(
+        `${item.draft_id}:${item.draft_version}`
+      );
+      restoreCorrectionInputState(card, correctionInputState);
+      list.append(card);
+    }
+    updatePostedCount();
+    updateDayReportCounts(day);
+    if (day.items.length === 0 && !message.textContent) {
+      message.textContent = "この日は保存された投稿本文はありません。";
+    }
+    for (const button of navigation.querySelectorAll("button[data-target-date]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.targetDate === activeDate));
+    }
+  }
+
+  function renderDays() {
+    navigation.replaceChildren();
+    for (const day of data.days) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.targetDate = day.target_date;
+      button.textContent = `${day.target_date}　${day.run_status}　${day.items.length}件`;
+      button.setAttribute("aria-label", `${day.target_date}の日次履歴を表示`);
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => renderDay(day));
+      navigation.append(button);
+    }
+    const selected = data.days.find((day) => day.target_date === activeDate) || data.days[0];
+    if (selected) {
+      renderDay(selected);
+    } else {
+      activeDate = null;
+      selectedDate.textContent = "日次履歴はありません";
+      runStatus.textContent = "";
+      dailyCount.textContent = "0";
+      committedCount.textContent = "0";
+      postedCount.textContent = "0";
+      updateDayReportCounts({ target_date: null, items: [] });
+      message.textContent = "表示できる日次runはありません。";
+    }
+  }
+
+  async function refreshConnectedStateInternal() {
+    const response = await apiFetch("/api/history-state", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    const next = await response.json().catch(() => ({}));
+    if (!response.ok || !Array.isArray(next.days) || !next.receipt_revisions) {
+      const error = new Error(apiErrorMessage(next.error));
+      error.apiCode = next.error;
+      throw error;
+    }
+    apiState = next;
+    data = next;
+    await reloadOutbox();
+    let flushed = 0;
+    try {
+      flushed = await flushOutbox();
+    } catch (error) {
+      renderDays();
+      throw error;
+    }
+    if (flushed) {
+      const updated = await apiFetch("/api/history-state", {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const updatedState = await updated.json().catch(() => ({}));
+      if (!updated.ok || !Array.isArray(updatedState.days)) {
+        const error = new Error(apiErrorMessage(updatedState.error));
+        error.apiCode = updatedState.error;
+        throw error;
+      }
+      apiState = updatedState;
+      data = updatedState;
+      await reloadOutbox();
+    }
+    authRequired = false;
+    authForm.hidden = true;
+    authTokenInput.value = "";
+    setConnection("ready", "バックグラウンドAPIへ接続中。チェック操作はSQLiteへ即時保存され、翌日の日次処理で管理へ反映されます。");
+    renderDays();
+  }
+
+  function refreshConnectedState() {
+    if (refreshInFlight) return refreshInFlight;
+    const pending = refreshConnectedStateInternal().finally(() => {
+      if (refreshInFlight === pending) refreshInFlight = null;
+    });
+    refreshInFlight = pending;
+    return pending;
+  }
+
+  function hasOpenCorrectionForm() {
+    return Array.from(list.querySelectorAll("details.correction-controls"))
+      .some((details) => details.open);
+  }
+
+  async function attemptApiReconnect() {
+    if (!API_ORIGIN || reportSubmissionsInFlight > 0 || hasOpenCorrectionForm()
+      || (authRequired && !authToken)) return;
+    try {
+      await refreshConnectedState();
+    } catch (error) {
+      apiState = null;
+      await reloadOutbox().catch(() => {});
+      if (error?.apiCode === "authentication_required") {
+        requireAuthentication();
+        renderDays();
+        return;
+      }
+      setConnection(
+        "unavailable",
+        `${error instanceof Error ? error.message : "APIに接続できません。"}。報告はブラウザー内に保留し、接続復旧後に再送します。`
+      );
+      renderDays();
+    }
+  }
+
+  function startReconnectLoop() {
+    if (reconnectTimer !== null || !API_ORIGIN) return;
+    reconnectTimer = window.setInterval(() => {
+      if (document.visibilityState === "hidden" || reportSubmissionsInFlight > 0
+        || (authRequired && !authToken)) return;
+      void attemptApiReconnect();
+    }, RECONNECT_INTERVAL_MS);
+    window.addEventListener("online", () => {
+      if (reportSubmissionsInFlight === 0 && !(authRequired && !authToken)) {
+        void attemptApiReconnect();
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "hidden" && reportSubmissionsInFlight === 0
+        && !(authRequired && !authToken)) {
+        void attemptApiReconnect();
+      }
+    });
+    authSubmitButton.addEventListener("click", () => {
+      const entered = authTokenInput.value.trim();
+      authTokenInput.value = "";
+      if (!entered) {
+        authForm.hidden = false;
+        setConnection("auth-required", "Human API tokenを入力してください。");
+        authTokenInput.focus();
+        return;
+      }
+      authToken = entered;
+      authRequired = false;
+      authForm.hidden = true;
+      setConnection("connecting", "Human APIの本人確認をしています。");
+      void attemptApiReconnect();
+    });
+    reconnectButton.addEventListener("click", () => {
+      setConnection("connecting", "SQLite保存APIへの接続を再試行しています。");
+      void attemptApiReconnect();
+    });
+  }
+
+  async function exportOutbox() {
+    const entries = await reloadOutbox();
+    if (!entries.length) return;
+    const batch = {
+      schema_version: 1,
+      reports: entries.map((entry) => ({ queued_at: entry.queued_at, report: entry.report })),
+    };
+    const json = JSON.stringify(batch, null, 2);
+    const name = `human-reports-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    if (typeof window.showSaveFilePicker === "function") {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: name,
+        types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+    } else {
+      const blobUrl = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    }
+    message.textContent = "JSONを書き出しました。runtime\\incoming-human-reports に置くと翌日の日次処理がSQLiteへ取り込みます。";
+  }
+
+  outboxButton.addEventListener("click", () => {
+    exportOutbox().catch((error) => {
+      message.textContent = error instanceof Error ? error.message : "JSONを書き出せませんでした。";
+    });
+  });
+  renderDays();
+  if (API_ORIGIN) {
+    setConnection("connecting", "バックグラウンドのSQLite保存APIへ接続しています。");
+    openOutbox().then(async (database) => {
+      outboxDb = database;
+      await reloadOutbox();
+      renderDays();
+      startReconnectLoop();
+      await attemptApiReconnect();
+    }).catch(async (error) => {
+      outboxDb = null;
+      setConnection(
+        "unavailable",
+        `${error instanceof Error ? error.message : "ブラウザー保留領域を利用できません。"}。SQLite APIへの接続を試します。`
+      );
+      startReconnectLoop();
+      await attemptApiReconnect();
+    });
+  } else {
+    setConnection("unavailable", "SQLite API接続先がありません。報告はブラウザーに保留し、JSONから翌日取り込めます。");
+    openOutbox().then(async (database) => {
+      outboxDb = database;
+      await reloadOutbox();
+      renderDays();
+    }).catch(() => {
+      outboxDb = null;
+    });
+  }
+})();

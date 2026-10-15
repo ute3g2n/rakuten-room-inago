@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 import json
 import os
 from pathlib import Path
@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 from automation.inago.clock import Clock
+from automation.inago.clock import JST
 from automation.inago.paths import PROJECT_ROOT
 from automation.inago.settings import (
     BASE_SETTINGS_VERSION,
@@ -30,6 +31,28 @@ if TYPE_CHECKING:
 
 class ProductionRuntimeError(ValueError):
     """A production path or setting is missing, unsafe, or inconsistent."""
+
+
+class _DailyResumeBlocked(RuntimeError):
+    """A daily invocation was prevented from replaying an unfinished run."""
+
+    def __init__(
+        self,
+        *,
+        status: str,
+        run_id: str,
+        target_date: str,
+        committed_count: int,
+        attempt_used: int,
+        reason_code: str,
+    ) -> None:
+        self.status = status
+        self.run_id = run_id
+        self.target_date = target_date
+        self.committed_count = committed_count
+        self.attempt_used = attempt_used
+        self.reason_code = reason_code
+        super().__init__(reason_code)
 
 
 @dataclass(frozen=True, slots=True)
@@ -718,7 +741,7 @@ def _make_copy_spec_factory(
             draft_version=draft_version,
             target_date=target_date,
             settings_version=settings_version,
-            input_refs=(f"offer:{offer_key}",),
+            input_refs=tuple(dict.fromkeys((f"offer:{offer_key}", *evidence_refs))),
             evidence_refs=evidence_refs,
             input_payload=payload,
             deadline_at=deadline_at,
@@ -1061,10 +1084,737 @@ def initialize_production_runtime(
         connection.close()
 
 
+def _open_readonly_operations_database(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> tuple[sqlite3.Connection, str]:
+    """Open status data without migrations, journal changes, or recovery writes."""
+
+    from automation.inago.operations import open_readonly_operations_connection
+    from automation.inago.repository import schema_version
+
+    _assert_production_roots(config)
+    database_path = config.runtime_root / "state.sqlite"
+    if _has_reparse_point(database_path) or not database_path.is_file():
+        raise sqlite3.OperationalError("production database is unavailable")
+    connection = open_readonly_operations_connection(database_path, timeout=5)
+    try:
+        result = connection.execute("PRAGMA quick_check(1)").fetchone()
+        if result is None or str(result[0]).lower() != "ok":
+            return connection, "corrupt"
+        schema_version(connection)
+        connection.execute("BEGIN")
+        return connection, "ok"
+    except BaseException:
+        connection.close()
+        raise
+
+
+def _select_daily_run(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str | None,
+    target_date: str,
+) -> sqlite3.Row | None:
+    columns = """
+        run_id, target_date, status, settings_version, seed, started_at,
+        draft_deadline, end_deadline, attempt_used, committed_count,
+        checkpoint, metrics_status, finished_at
+    """
+    if run_id is not None:
+        return connection.execute(
+            f"SELECT {columns} FROM run WHERE mode='daily' AND run_id=?",
+            (run_id,),
+        ).fetchone()
+    return connection.execute(
+        f"SELECT {columns} FROM run WHERE mode='daily' AND target_date=?",
+        (target_date,),
+    ).fetchone()
+
+
+def _operations_now(now: datetime | None) -> datetime:
+    current = now or datetime.now(timezone.utc).astimezone(JST)
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise ValueError("operations clock must return an offset-aware time")
+    return current.astimezone(JST)
+
+
+def _validated_daily_checkpoint(checkpoint: str | None) -> dict[str, Any] | None:
+    from automation.inago.orchestrator import (
+        DailyOrchestrationError,
+        _daily_state,
+    )
+
+    try:
+        _, state = _daily_state(checkpoint)
+    except (DailyOrchestrationError, TypeError, ValueError):
+        return None
+    return state
+
+
+def _daily_checkpoint_contains_state(checkpoint: str | None) -> bool:
+    if not checkpoint:
+        return False
+    try:
+        root = json.loads(checkpoint)
+    except (TypeError, json.JSONDecodeError, RecursionError):
+        return True
+    return isinstance(root, dict) and root.get("daily_orchestration") is not None
+
+
+def _daily_run_has_work_evidence(
+    connection: sqlite3.Connection, row: sqlite3.Row
+) -> bool:
+    if (
+        str(row["status"]) != "running"
+        or row["finished_at"] is not None
+        or int(row["attempt_used"]) != 0
+        or int(row["committed_count"]) != 0
+        or str(row["metrics_status"]) != "not_started"
+    ):
+        return True
+    run_id = str(row["run_id"])
+    for table in (
+        "search_attempt",
+        "candidate_decision",
+        "theme_selection",
+        "draft",
+        "generation_attempt",
+        "trends_acquisition",
+        "ai_job",
+    ):
+        if connection.execute(
+            f"SELECT 1 FROM {table} WHERE run_id=? LIMIT 1", (run_id,)
+        ).fetchone():
+            return True
+    return False
+
+
+def _daily_checkpoint_is_usable(
+    connection: sqlite3.Connection, row: sqlite3.Row
+) -> bool:
+    if _validated_daily_checkpoint(row["checkpoint"]) is None:
+        return False
+    if _daily_checkpoint_contains_state(row["checkpoint"]):
+        return True
+    return not _daily_run_has_work_evidence(connection, row)
+
+
+def _production_lock_observation(config):
+    from automation.inago.run_lock import LockOwnerObservation, read_lock_owner
+
+    owner_path = config.runtime_root / ".daily-run-owner.json"
+    try:
+        if _has_reparse_point(owner_path):
+            return LockOwnerObservation("invalid", None, "owner_path_invalid")
+        return read_lock_owner(owner_path)
+    except (OSError, ProductionRuntimeError, RuntimeError, ValueError):
+        return LockOwnerObservation("unknown", None, "owner_observation_failed")
+
+
+def _operations_file_signature(path: Path) -> tuple[object, ...]:
+    try:
+        if _has_reparse_point(path):
+            return (path.name, "reparse")
+        info = path.stat()
+    except FileNotFoundError:
+        return (path.name, "missing")
+    except (OSError, ProductionRuntimeError, RuntimeError, ValueError):
+        return (path.name, "unavailable")
+    signature: tuple[object, ...] = (
+        path.name,
+        "file",
+        info.st_dev,
+        info.st_ino,
+        info.st_size,
+        info.st_mode,
+    )
+    if path.name in {"state.sqlite", ".daily-run-owner.json"} or path.name.endswith(
+        ("-wal", "-journal")
+    ):
+        signature += (info.st_mtime_ns, info.st_ctime_ns)
+    return signature
+
+
+@dataclass(frozen=True, slots=True)
+class _OperationsSourceSnapshot:
+    file_signatures: tuple[tuple[object, ...], ...]
+    owner_status: str
+    owner: object | None
+    owner_reason: str
+    pending_owner_markers: tuple[tuple[object, ...], ...] = ()
+
+
+def _operations_source_snapshot(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> _OperationsSourceSnapshot:
+    database_path = config.runtime_root / "state.sqlite"
+    owner_path = config.runtime_root / ".daily-run-owner.json"
+    lock_path = config.runtime_root / ".daily-run.lock"
+    paths = (
+        database_path,
+        Path(f"{database_path}-wal"),
+        Path(f"{database_path}-shm"),
+        Path(f"{database_path}-journal"),
+        owner_path,
+        lock_path,
+    )
+    owner = _production_lock_observation(config)
+    try:
+        with os.scandir(config.runtime_root) as entries:
+            pending_names = sorted(
+                entry.name
+                for entry in entries
+                if entry.name.startswith(f"{owner_path.name}.pending.")
+            )
+        pending_markers = tuple(
+            _operations_file_signature(config.runtime_root / name)
+            for name in pending_names
+        )
+    except (OSError, ProductionRuntimeError, RuntimeError, ValueError):
+        pending_markers = (("pending_owner_marker", "unavailable"),)
+    return _OperationsSourceSnapshot(
+        tuple(_operations_file_signature(path) for path in paths),
+        owner.status,
+        owner.owner,
+        owner.reason,
+        pending_markers,
+    )
+
+
+def _operations_source_is_stable(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+    initial: _OperationsSourceSnapshot,
+) -> bool:
+    try:
+        current = _operations_source_snapshot(config)
+        if current != initial:
+            return False
+        if current.pending_owner_markers:
+            return False
+        return all(
+            signature[1] in {"file", "missing"} for signature in current.file_signatures
+        )
+    except (OSError, ProductionRuntimeError, RuntimeError, TypeError, ValueError):
+        return False
+
+
+def _daily_state_changed_result(
+    *, mode: str, observed_at: str | None = None
+) -> dict[str, Any]:
+    if mode == "status":
+        return {
+            "mode": "status",
+            "observed_at": observed_at,
+            "status": "unknown",
+            "reason_codes": ["daily_state_changed_during_observation"],
+            "fields": {},
+            "previous_snapshot_reused": False,
+            "permissions": {
+                "kill_process": False,
+                "release_lock": False,
+                "restore_database": False,
+                "send_notification": False,
+            },
+        }
+    return {
+        "mode": "recovery",
+        "status": "blocked",
+        "action": "daily_state_review_required",
+        "reason_code": "daily_state_changed_during_observation",
+        "execution_requested": False,
+        "permissions": {
+            "kill_process": False,
+            "release_lock": False,
+            "restore_database": False,
+            "send_notification": False,
+        },
+    }
+
+
+def run_production_status(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+    *,
+    run_id: str | None = None,
+    now: datetime | None = None,
+    process_start_time_reader: Callable[[int], str] | None = None,
+    process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
+) -> dict[str, Any]:
+    """Return a side-effect-free status snapshot for today's or a selected run."""
+
+    from automation.inago.operations import read_operations_observation
+    from automation.inago.run_lock import observe_process_tree, process_start_time
+    from automation.inago.status import build_status_snapshot
+
+    current = _operations_now(now)
+    base = {"mode": "status", "observed_at": current.isoformat(timespec="seconds")}
+    connection: sqlite3.Connection | None = None
+    try:
+        _assert_production_roots(config)
+        source_snapshot = _operations_source_snapshot(config)
+        connection, integrity = _open_readonly_operations_database(config)
+        if integrity != "ok":
+            return {
+                **base,
+                "status": "unknown",
+                "reason_codes": ["database_integrity_not_confirmed"],
+                "fields": {},
+                "permissions": {
+                    "kill_process": False,
+                    "release_lock": False,
+                    "restore_database": False,
+                    "send_notification": False,
+                },
+            }
+        row = _select_daily_run(
+            connection,
+            run_id=run_id,
+            target_date=current.date().isoformat(),
+        )
+        if not _operations_source_is_stable(config, source_snapshot):
+            return _daily_state_changed_result(
+                mode="status", observed_at=str(base["observed_at"])
+            )
+        if row is None:
+            if source_snapshot.owner_status != "missing":
+                result = _daily_state_changed_result(
+                    mode="status", observed_at=str(base["observed_at"])
+                )
+                result["reason_codes"] = ["daily_owner_without_run_record"]
+                return result
+            return {**base, "status": "no_run", "reason_codes": ["daily_run_not_found"]}
+        if not _daily_checkpoint_is_usable(connection, row):
+            if not _operations_source_is_stable(config, source_snapshot):
+                return _daily_state_changed_result(
+                    mode="status", observed_at=str(base["observed_at"])
+                )
+            return {
+                **base,
+                "status": "unknown",
+                "reason_codes": ["daily_checkpoint_invalid"],
+                "fields": {},
+                "previous_snapshot_reused": False,
+                "permissions": {
+                    "kill_process": False,
+                    "release_lock": False,
+                    "restore_database": False,
+                    "send_notification": False,
+                },
+            }
+
+        observation_path = config.runtime_root / "state" / "daily-operations.json"
+        operations = (
+            None
+            if _has_reparse_point(observation_path)
+            else read_operations_observation(observation_path)
+        )
+        if (
+            operations is None
+            or operations.get("run_id") != str(row["run_id"])
+            or operations.get("target_date") != str(row["target_date"])
+        ):
+            operations = None
+        lock_observation = _production_lock_observation(config)
+        process_reader = process_start_time_reader or process_start_time
+        snapshot = build_status_snapshot(
+            run_id=str(row["run_id"]),
+            run_status=str(row["status"]),
+            now=current,
+            heartbeat_at=operations.get("heartbeat_at") if operations else None,
+            progress_at=operations.get("progress_at") if operations else None,
+            # This invocation is itself a fresh, read-only monitor observation.
+            monitor_updated_at=current,
+            lock_observation=lock_observation,
+            process_start_time_reader=process_reader,
+            failure_kind=(
+                str(operations["failure_kind"])
+                if operations
+                and operations.get("failure_kind") in {"auth_wait", "save_error"}
+                else None
+            ),
+            database_integrity=integrity,
+        )
+        process_tree = (
+            observe_process_tree(
+                lock_observation.owner.pid,
+                process_tree_reader=process_tree_reader,
+            )
+            if lock_observation.owner is not None
+            else None
+        )
+        if (
+            process_tree is not None
+            and process_tree.status == "unknown"
+            and snapshot["fields"]["process"]["status"] == "alive"
+        ):
+            snapshot["status"] = "unknown"
+            snapshot["reason_codes"] = ["child_process_observation_unavailable"]
+        lock_path = config.runtime_root / ".daily-run.lock"
+        lock_file_present = lock_path.is_file() and not _has_reparse_point(lock_path)
+        result = {
+            **snapshot,
+            "mode": "status",
+            "monitor_observation_source": "read_only_status_cli",
+            "operations_observation_available": operations is not None,
+            "lock_file_present": lock_file_present,
+            "run": {
+                "target_date": str(row["target_date"]),
+                "settings_version": str(row["settings_version"]),
+                "started_at": str(row["started_at"]),
+                "draft_deadline": str(row["draft_deadline"]),
+                "end_deadline": str(row["end_deadline"]),
+                "attempt_used": int(row["attempt_used"]),
+                "committed_count": int(row["committed_count"]),
+                "finished_at": (
+                    str(row["finished_at"]) if row["finished_at"] is not None else None
+                ),
+            },
+            "lock_owner": (
+                lock_observation.owner.to_dict()
+                if lock_observation.owner is not None
+                else None
+            ),
+            "child_processes": (
+                {
+                    "status": process_tree.status,
+                    "count": len(process_tree.child_pids),
+                    "pids": list(process_tree.child_pids),
+                    "reason": process_tree.reason,
+                }
+                if process_tree is not None
+                else {
+                    "status": "unknown",
+                    "count": None,
+                    "pids": [],
+                    "reason": "owner_unavailable",
+                }
+            ),
+        }
+        if not _operations_source_is_stable(config, source_snapshot):
+            return _daily_state_changed_result(
+                mode="status", observed_at=str(base["observed_at"])
+            )
+        return result
+    except (
+        OSError,
+        ProductionRuntimeError,
+        sqlite3.Error,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ):
+        return {
+            **base,
+            "status": "unknown",
+            "reason_codes": ["status_observation_unavailable"],
+            "fields": {},
+            "previous_snapshot_reused": False,
+            "permissions": {
+                "kill_process": False,
+                "release_lock": False,
+                "restore_database": False,
+                "send_notification": False,
+            },
+        }
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def run_production_recovery(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+    *,
+    run_id: str | None = None,
+    now: datetime | None = None,
+    owner_confirmed: bool = False,
+    cause_resolved: bool = False,
+    export_only_failed: bool = False,
+    process_start_time_reader: Callable[[int], str] | None = None,
+    process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
+) -> dict[str, Any]:
+    """Build a redacted, advisory same-run recovery plan; never execute it."""
+
+    from automation.inago.recovery import plan_resume
+    from automation.inago.run_lock import (
+        observe_process_tree,
+        observe_process_owner,
+        process_start_time,
+    )
+
+    current = _operations_now(now)
+    connection: sqlite3.Connection | None = None
+    try:
+        _assert_production_roots(config)
+        source_snapshot = _operations_source_snapshot(config)
+        connection, integrity = _open_readonly_operations_database(config)
+        if integrity != "ok":
+            return {
+                "mode": "recovery",
+                "status": "blocked",
+                "action": "database_integrity_review_required",
+                "reason_code": "database_integrity_not_confirmed",
+                "execution_requested": False,
+                "permissions": {
+                    "kill_process": False,
+                    "release_lock": False,
+                    "restore_database": False,
+                    "send_notification": False,
+                },
+            }
+        row = _select_daily_run(
+            connection,
+            run_id=run_id,
+            target_date=current.date().isoformat(),
+        )
+        if not _operations_source_is_stable(config, source_snapshot):
+            return _daily_state_changed_result(mode="recovery")
+        if row is None:
+            if source_snapshot.owner_status != "missing":
+                result = _daily_state_changed_result(mode="recovery")
+                result["reason_code"] = "daily_owner_without_run_record"
+                return result
+            return {
+                "mode": "recovery",
+                "status": "no_run",
+                "reason_code": "daily_run_not_found",
+                "execution_requested": False,
+            }
+        checkpoint_state = _validated_daily_checkpoint(row["checkpoint"])
+        if not _daily_checkpoint_is_usable(connection, row):
+            if not _operations_source_is_stable(config, source_snapshot):
+                return _daily_state_changed_result(mode="recovery")
+            return {
+                "mode": "recovery",
+                "status": "blocked",
+                "action": "daily_checkpoint_review_required",
+                "reason_code": "daily_checkpoint_invalid",
+                "run_id": str(row["run_id"]),
+                "execution_requested": False,
+            }
+        expected_draft_deadline = f"{row['target_date']}T17:45:00+09:00"
+        expected_end_deadline = f"{row['target_date']}T18:00:00+09:00"
+        if (
+            str(row["draft_deadline"]) != expected_draft_deadline
+            or str(row["end_deadline"]) != expected_end_deadline
+        ):
+            if not _operations_source_is_stable(config, source_snapshot):
+                return _daily_state_changed_result(mode="recovery")
+            return {
+                "mode": "recovery",
+                "status": "blocked",
+                "action": "daily_checkpoint_review_required",
+                "reason_code": "daily_run_deadline_mismatch",
+                "run_id": str(row["run_id"]),
+                "execution_requested": False,
+            }
+        run_key = str(row["run_id"])
+        in_progress = connection.execute(
+            """
+            SELECT offer_key, MAX(attempt_no) AS attempts
+              FROM generation_attempt
+             WHERE run_id=? AND outcome='in_progress'
+             GROUP BY offer_key
+            """,
+            (run_key,),
+        ).fetchall()
+        search_attempts = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM search_attempt WHERE run_id=?", (run_key,)
+            ).fetchone()[0]
+        )
+        if not _operations_source_is_stable(config, source_snapshot):
+            return _daily_state_changed_result(mode="recovery")
+        snapshot = {
+            "run_id": run_key,
+            "target_date": str(row["target_date"]),
+            "settings_version": str(row["settings_version"]),
+            "seed": str(row["seed"]),
+            "search_attempts": search_attempts,
+            "unfinished_generation_attempts": {
+                str(item["offer_key"]): int(item["attempts"]) for item in in_progress
+            },
+            "committed_count": int(row["committed_count"]),
+            "run_status": str(row["status"]),
+            "metrics_pending": str(row["metrics_status"]) in {"pending", "not_started"},
+        }
+        lock_observation = _production_lock_observation(config)
+        owner = lock_observation.owner
+        process_reader = process_start_time_reader or process_start_time
+        process_state = (
+            observe_process_owner(owner, start_time_reader=process_reader)
+            if lock_observation.status == "present" and owner is not None
+            else None
+        )
+        process_tree = (
+            observe_process_tree(
+                owner.pid,
+                process_tree_reader=process_tree_reader,
+            )
+            if owner is not None
+            else None
+        )
+        lock_path = config.runtime_root / ".daily-run.lock"
+        lock_file_present = lock_path.is_file() and not _has_reparse_point(lock_path)
+
+        if process_state is not None and process_state.status == "alive":
+            owner_state = "active"
+            blocked_reason = "daily_owner_process_still_active"
+        elif process_state is not None and process_state.status == "dead":
+            owner_state = "stopped"
+            blocked_reason = None
+        elif process_state is not None and process_state.status == "reused":
+            owner_state = "unknown"
+            blocked_reason = "daily_owner_pid_reused"
+        elif lock_observation.status == "missing" and str(row["status"]) != "running":
+            owner_state = "stopped"
+            blocked_reason = None
+        else:
+            owner_state = "unknown"
+            blocked_reason = "daily_owner_state_unconfirmed"
+        if owner is not None and owner.run_id != run_key:
+            owner_state = "unknown"
+            blocked_reason = "daily_lock_run_mismatch"
+        if not lock_file_present and str(row["status"]) == "running":
+            owner_state = "unknown"
+            blocked_reason = "daily_lock_file_unavailable"
+        if process_tree is not None and process_state is not None:
+            if process_tree.status != "observed":
+                owner_state = "unknown"
+                blocked_reason = "daily_child_process_state_unavailable"
+            elif process_state.status == "dead" and process_tree.child_pids:
+                owner_state = "children_running"
+                blocked_reason = "daily_child_processes_still_active"
+
+        decision = plan_resume(
+            snapshot,
+            now=current,
+            database_integrity=integrity,
+            owner_confirmed=owner_confirmed,
+            cause_resolved=cause_resolved,
+            export_only_failed=export_only_failed,
+        )
+        terminal_status = str(row["status"])
+        if (
+            checkpoint_state.get("phase") == "finished"
+            and terminal_status in {"failed", "shortfall", "missed"}
+            and decision.get("action")
+            in {"resume_remaining", "draft_cutoff_metrics_only"}
+        ):
+            if checkpoint_state.get("terminal_status") != terminal_status:
+                if not _operations_source_is_stable(config, source_snapshot):
+                    return _daily_state_changed_result(mode="recovery")
+                return {
+                    "mode": "recovery",
+                    "status": "blocked",
+                    "action": "daily_checkpoint_review_required",
+                    "reason_code": "daily_terminal_checkpoint_mismatch",
+                    "run_id": run_key,
+                    "execution_requested": False,
+                }
+            decision.update(
+                action="terminal_result_saved",
+                reason_code="saved_terminal_result_exists",
+                allowed={
+                    **decision["allowed"],
+                    "search": False,
+                    "generation": False,
+                    "metrics": False,
+                    "saved_export": True,
+                },
+                execution_requested=False,
+            )
+        if blocked_reason is not None:
+            decision.update(
+                action={
+                    "active": "wait_for_daily_owner",
+                    "children_running": "wait_for_daily_children",
+                }.get(owner_state, "process_state_unconfirmed"),
+                reason_code=blocked_reason,
+                allowed={
+                    **decision["allowed"],
+                    "search": False,
+                    "generation": False,
+                    "metrics": False,
+                    "saved_export": False,
+                },
+                execution_requested=False,
+            )
+        preserved = dict(decision.get("preserved", {}))
+        seed_present = bool(preserved.pop("seed", None))
+        preserved["seed_preserved"] = seed_present
+        preserved["draft_deadline"] = str(row["draft_deadline"])
+        preserved["end_deadline"] = str(row["end_deadline"])
+        result = {
+            "mode": "recovery",
+            "status": "blocked" if blocked_reason else "advisory",
+            "run_id": run_key,
+            "owner_state": owner_state,
+            "lock_file_present": lock_file_present,
+            "owner_process": (
+                {
+                    "status": process_state.status,
+                    "pid": process_state.pid,
+                    "reason": process_state.reason,
+                }
+                if process_state is not None
+                else {
+                    "status": lock_observation.status,
+                    "reason": lock_observation.reason,
+                }
+            ),
+            "child_processes": (
+                {
+                    "status": process_tree.status,
+                    "count": len(process_tree.child_pids),
+                    "pids": list(process_tree.child_pids),
+                    "reason": process_tree.reason,
+                }
+                if process_tree is not None
+                else {
+                    "status": "unknown",
+                    "count": None,
+                    "pids": [],
+                    "reason": "owner_unavailable",
+                }
+            ),
+            "decision": {**decision, "preserved": preserved},
+            "resume_entrypoint": (
+                "daily"
+                if decision.get("action") == "resume_remaining"
+                and owner_state == "stopped"
+                else None
+            ),
+        }
+        if not _operations_source_is_stable(config, source_snapshot):
+            return _daily_state_changed_result(mode="recovery")
+        return result
+    except (
+        OSError,
+        ProductionRuntimeError,
+        sqlite3.Error,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ):
+        return {
+            "mode": "recovery",
+            "status": "blocked",
+            "action": "recovery_observation_unavailable",
+            "reason_code": "recovery_observation_unavailable",
+            "execution_requested": False,
+        }
+    finally:
+        if connection is not None:
+            connection.close()
+
+
 def run_production_daily(
     config: ProductionRuntimeConfig,
     *,
     clock: Clock | None = None,
+    resume_confirmed: bool = False,
+    cause_resolved: bool = False,
+    process_start_time_reader: Callable[[int], str] | None = None,
+    process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
     """Run one scheduled daily job from the repository with local runtime data."""
 
@@ -1084,11 +1834,93 @@ def run_production_daily(
             "target_date": now.date().isoformat(),
             "committed_count": 0,
         }
-    setup_state = require_production_ready(config)
+    connection: sqlite3.Connection | None = None
+    daily_result: dict[str, Any]
+    daily_status = "failed"
+    start_backup_ready = False
 
-    _assert_production_roots(config)
-    connection = _open_existing_production_database(config)
+    def refresh_history_after_commit(_connection: sqlite3.Connection) -> None:
+        # The committed draft is durable before this callback; export errors are
+        # surfaced separately and do not trigger another AI generation.
+        run_production_dashboard_export(config)
+
     try:
+        setup_state = require_production_ready(config)
+        _assert_production_roots(config)
+        connection = _open_existing_production_database(config)
+
+        existing_run = connection.execute(
+            """
+            SELECT run_id, target_date, status, committed_count, attempt_used
+              FROM run WHERE mode='daily' AND target_date=?
+            """,
+            (now.date().isoformat(),),
+        ).fetchone()
+        if existing_run is not None:
+            existing_status = str(existing_run["status"])
+            terminal = existing_status in {"complete", "missed"}
+            recovery = run_production_recovery(
+                config,
+                run_id=str(existing_run["run_id"]),
+                now=selected_clock.now_jst(),
+                owner_confirmed=resume_confirmed or terminal,
+                cause_resolved=cause_resolved or terminal,
+                process_start_time_reader=process_start_time_reader,
+                process_tree_reader=process_tree_reader,
+            )
+            decision = recovery.get("decision")
+            reason_code = str(
+                recovery.get("reason_code")
+                or (
+                    decision.get("reason_code")
+                    if isinstance(decision, dict)
+                    else "recovery_observation_unavailable"
+                )
+            )
+            if recovery.get("status") == "blocked":
+                action = str(
+                    decision.get("action")
+                    if isinstance(decision, dict)
+                    else recovery.get("action", "")
+                )
+                blocked_status = (
+                    "locked"
+                    if action in {"wait_for_daily_owner", "wait_for_daily_children"}
+                    else "recovery_required"
+                )
+                raise _DailyResumeBlocked(
+                    status=blocked_status,
+                    run_id=str(existing_run["run_id"]),
+                    target_date=str(existing_run["target_date"]),
+                    committed_count=int(existing_run["committed_count"]),
+                    attempt_used=int(existing_run["attempt_used"]),
+                    reason_code=reason_code,
+                )
+            if not terminal:
+                action = (
+                    str(decision.get("action"))
+                    if isinstance(decision, dict)
+                    else "recovery_observation_unavailable"
+                )
+                if not resume_confirmed or not cause_resolved:
+                    raise _DailyResumeBlocked(
+                        status="recovery_confirmation_required",
+                        run_id=str(existing_run["run_id"]),
+                        target_date=str(existing_run["target_date"]),
+                        committed_count=int(existing_run["committed_count"]),
+                        attempt_used=int(existing_run["attempt_used"]),
+                        reason_code="explicit_resume_confirmation_required",
+                    )
+                if action not in {"resume_remaining", "draft_cutoff_metrics_only"}:
+                    raise _DailyResumeBlocked(
+                        status="recovery_required",
+                        run_id=str(existing_run["run_id"]),
+                        target_date=str(existing_run["target_date"]),
+                        committed_count=int(existing_run["committed_count"]),
+                        attempt_used=int(existing_run["attempt_used"]),
+                        reason_code=reason_code,
+                    )
+
         active_settings = connection.execute(
             "SELECT version FROM settings_version ORDER BY rowid DESC LIMIT 1"
         ).fetchone()
@@ -1122,24 +1954,394 @@ def run_production_daily(
                 now=now,
                 fixture_mode=False,
             )
+        start_backup_ready = True
         components = build_public_daily_components(
             config,
             connection,
             clock=selected_clock,
         )
-        result = run_public_scheduled_daily(
+        from automation.inago.operations import DailyOperationsMonitor
+
+        operations_monitor = DailyOperationsMonitor(
+            config.runtime_root / "state.sqlite",
+            config.runtime_root / "state" / "daily-operations.json",
+            target_date=now.date().isoformat(),
+            now=selected_clock.now_jst,
+        )
+        operations_monitor.start()
+        try:
+            outcome = run_public_scheduled_daily(
+                connection,
+                data_root=config.runtime_root,
+                source=components["source"],
+                ai_root=components["ai_root"],
+                copy_spec_factory=components["copy_spec_factory"],
+                metrics_port=components["metrics_port"],
+                cancel_metrics_job=components["cancel_metrics_job"],
+                clock=selected_clock,
+                on_draft_commit=refresh_history_after_commit,
+            )
+        finally:
+            operations_monitor.stop()
+        daily_result = asdict(outcome)
+        daily_status = str(outcome.status)
+    except _DailyResumeBlocked as exc:
+        daily_status = exc.status
+        daily_result = {
+            "status": exc.status,
+            "run_id": exc.run_id,
+            "target_date": exc.target_date,
+            "committed_count": exc.committed_count,
+            "attempt_used": exc.attempt_used,
+            "metrics_status": "unknown",
+            "resumed": False,
+            "reason": exc.reason_code,
+        }
+    except Exception as exc:
+        if connection is not None and connection.in_transaction:
+            try:
+                connection.rollback()
+            except sqlite3.Error:
+                pass
+        current_run = None
+        if connection is not None:
+            try:
+                current_run = connection.execute(
+                    """
+                    SELECT run_id, target_date, committed_count, attempt_used
+                      FROM run WHERE mode='daily' AND target_date=?
+                    """,
+                    (now.date().isoformat(),),
+                ).fetchone()
+            except sqlite3.Error:
+                current_run = None
+        daily_status = "failed"
+        daily_result = {
+            "status": "failed",
+            "run_id": str(current_run["run_id"]) if current_run else None,
+            "target_date": (
+                str(current_run["target_date"])
+                if current_run
+                else now.date().isoformat()
+            ),
+            "committed_count": (
+                int(current_run["committed_count"]) if current_run else 0
+            ),
+            "attempt_used": int(current_run["attempt_used"]) if current_run else 0,
+            "metrics_status": "unknown",
+            "resumed": False,
+            "reason": type(exc).__name__,
+        }
+    finally:
+        if connection is not None:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                if daily_status != "failed":
+                    daily_status = "failed"
+                    daily_result = {
+                        "status": "failed",
+                        "run_id": None,
+                        "target_date": now.date().isoformat(),
+                        "committed_count": 0,
+                        "attempt_used": 0,
+                        "metrics_status": "unknown",
+                        "resumed": False,
+                        "reason": "DatabaseCloseError",
+                    }
+
+    preservation_result: dict[str, Any] = {
+        "status": "not_run",
+        "end_backup": {"status": "not_run", "error_code": None},
+        "monthly_restore": {"status": "not_run", "already_checked": False},
+    }
+    blocked_before_resume = daily_status in {
+        "locked",
+        "recovery_confirmation_required",
+        "recovery_required",
+    }
+    if blocked_before_resume:
+        export_result = {
+            "status": "not_run",
+            "reason_code": "daily_recovery_not_confirmed",
+        }
+    else:
+        export_result = run_production_dashboard_export(config)
+    if start_backup_ready and not blocked_before_resume:
+        preservation_result = run_production_end_of_day_preservation(
+            config,
+            now=selected_clock.now_jst(),
+            run_id=(
+                str(daily_result["run_id"])
+                if daily_result.get("run_id") is not None
+                else None
+            ),
+        )
+    final_status = daily_status
+    if daily_status not in {
+        "failed",
+        "locked",
+        "recovery_confirmation_required",
+        "recovery_required",
+    }:
+        if export_result.get("status") != "ready":
+            final_status = "export_failed"
+        elif preservation_result.get("status") != "ready":
+            final_status = "preservation_failed"
+    return {
+        **daily_result,
+        "status": final_status,
+        "daily_status": daily_status,
+        "export": export_result,
+        "preservation": preservation_result,
+    }
+
+
+def run_production_end_of_day_preservation(
+    config: ProductionRuntimeConfig,
+    *,
+    now: datetime,
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    """Create a final daily generation and monthly restore check under the run lock."""
+
+    from automation.inago.backup import create_daily_backup
+    from automation.inago.restore_check import check_monthly_restore
+    from automation.inago.run_lock import RunLock
+
+    end_backup_result: dict[str, Any] = {
+        "status": "not_run",
+        "path": None,
+        "error_code": None,
+    }
+    monthly_result: dict[str, Any] = {
+        "status": "not_run",
+        "path": None,
+        "already_checked": False,
+        "error_code": None,
+    }
+    connection: sqlite3.Connection | None = None
+    lock = None
+    try:
+        _assert_production_roots(config)
+        preservation_run_id = (
+            run_id or f"BACKUP-{now.date().strftime('%Y%m%d')}-{secrets.token_hex(8)}"
+        )
+        lock = RunLock.acquire(
+            config.runtime_root / ".daily-run.lock",
+            config.runtime_root / ".daily-run-owner.json",
+            run_id=preservation_run_id,
+        )
+        connection = _open_existing_production_database(config)
+        backup = create_daily_backup(
             connection,
             data_root=config.runtime_root,
-            source=components["source"],
-            ai_root=components["ai_root"],
-            copy_spec_factory=components["copy_spec_factory"],
-            metrics_port=components["metrics_port"],
-            cancel_metrics_job=components["cancel_metrics_job"],
-            clock=selected_clock,
+            backup_root=config.backup_root,
+            now=now,
+            fixture_mode=False,
+            generation_stage="final",
         )
-        return asdict(result)
-    finally:
+        end_backup_result = {
+            "status": "ready",
+            "path": str(backup.directory),
+            "operation_id": backup.operation_id,
+            "artifact_count": backup.artifact_count,
+            "error_code": None,
+        }
         connection.close()
+        connection = None
+        restore = check_monthly_restore(
+            backup.directory,
+            backup_root=config.backup_root,
+            now=now,
+            fixture_mode=False,
+            reuse_existing=True,
+        )
+        monthly_result = {
+            "status": "already_checked" if restore.already_checked else "ready",
+            "path": str(restore.directory),
+            "already_checked": restore.already_checked,
+            "selection_allowed": restore.selection_allowed,
+            "requires_supplementation": restore.requires_supplementation,
+            "error_code": None,
+        }
+    except Exception as exc:
+        if end_backup_result["status"] != "ready":
+            end_backup_result = {
+                "status": "failed",
+                "path": None,
+                "error_code": type(exc).__name__,
+            }
+        else:
+            monthly_result = {
+                "status": "failed",
+                "path": None,
+                "already_checked": False,
+                "error_code": type(exc).__name__,
+            }
+    finally:
+        if connection is not None:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                if end_backup_result["status"] == "ready":
+                    monthly_result = {
+                        "status": "failed",
+                        "path": None,
+                        "already_checked": False,
+                        "error_code": "DatabaseCloseError",
+                    }
+        if lock is not None:
+            try:
+                lock.release()
+            except Exception as exc:
+                monthly_result = {
+                    "status": "failed",
+                    "path": None,
+                    "already_checked": False,
+                    "error_code": type(exc).__name__,
+                }
+    return {
+        "status": (
+            "ready"
+            if end_backup_result["status"] == "ready"
+            and monthly_result["status"] in {"ready", "already_checked"}
+            else "failed"
+        ),
+        "end_backup": end_backup_result,
+        "monthly_restore": monthly_result,
+    }
+
+
+def run_production_backup(
+    config: ProductionRuntimeConfig,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Create an explicit final-state generation without starting daily work."""
+
+    from automation.inago.clock import SystemClock
+
+    preservation = run_production_end_of_day_preservation(
+        config,
+        now=now or SystemClock().now_jst(),
+    )
+    return {
+        "mode": "backup",
+        "status": preservation["status"],
+        "backup": preservation["end_backup"],
+        "monthly_restore": preservation["monthly_restore"],
+    }
+
+
+def run_production_monthly_restore_check(
+    config: ProductionRuntimeConfig,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Run or reuse this month's isolated check against a final backup generation."""
+
+    from automation.inago.backup import list_daily_backups
+    from automation.inago.clock import SystemClock
+    from automation.inago.restore_check import check_monthly_restore
+
+    current = now or SystemClock().now_jst()
+    try:
+        _assert_production_roots(config)
+        generations = list_daily_backups(config.backup_root, generation_stage="final")
+        if not generations:
+            return {
+                "mode": "restore-check",
+                "status": "blocked",
+                "reason_code": "final_daily_backup_missing",
+                "already_checked": False,
+                "path": None,
+            }
+        result = check_monthly_restore(
+            generations[-1],
+            backup_root=config.backup_root,
+            now=current,
+            fixture_mode=False,
+            reuse_existing=True,
+        )
+        return {
+            "mode": "restore-check",
+            "status": "already_checked" if result.already_checked else "ready",
+            "reason_code": None,
+            "already_checked": result.already_checked,
+            "path": str(result.directory),
+            "selection_allowed": result.selection_allowed,
+            "requires_supplementation": result.requires_supplementation,
+        }
+    except Exception as exc:
+        return {
+            "mode": "restore-check",
+            "status": "failed",
+            "reason_code": type(exc).__name__,
+            "already_checked": False,
+            "path": None,
+        }
+
+
+def run_production_dashboard_export(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> dict[str, Any]:
+    """Refresh the standalone history using a read-only SQLite connection."""
+
+    from automation.inago.dashboard_history import export_dashboard_history_html
+    from automation.inago.repository import schema_version
+
+    database_path = config.runtime_root / "state.sqlite"
+    output_path = config.runtime_root / "posting-history.html"
+    connection: sqlite3.Connection | None = None
+    try:
+        _assert_production_roots(config)
+        report_inbox = config.runtime_root / "incoming-human-reports"
+        if _has_reparse_point(report_inbox) or (
+            report_inbox.exists() and not report_inbox.is_dir()
+        ):
+            raise ProductionRuntimeError("offline report inbox is unavailable")
+        report_inbox.mkdir(exist_ok=True)
+        if _has_reparse_point(database_path) or not database_path.is_file():
+            raise ProductionRuntimeError("production database is unavailable")
+        database_uri = f"{database_path.resolve(strict=True).as_uri()}?mode=ro"
+        connection = sqlite3.connect(
+            database_uri,
+            uri=True,
+            timeout=5,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only = ON")
+        schema_version(connection)
+        exported = export_dashboard_history_html(
+            connection,
+            output_path=output_path,
+            runtime_root=config.runtime_root,
+            api_origin=(
+                f"http://127.0.0.1:{config.human_api_port}"
+                if isinstance(getattr(config, "human_api_port", None), int)
+                else None
+            ),
+        )
+        return {
+            "status": "ready",
+            "path": str(exported.path),
+            "run_count": exported.run_count,
+            "draft_count": exported.draft_count,
+            "error_code": None,
+        }
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "path": str(output_path),
+            "run_count": None,
+            "draft_count": None,
+            "error_code": type(exc).__name__,
+        }
+    finally:
+        if connection is not None:
+            connection.close()
 
 
 def require_production_ready(
@@ -1400,6 +2602,7 @@ def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> 
         bind_host="127.0.0.1",
         port=config.human_api_port,
         auth_token=token,
+        allow_file_origin=True,
     )
     server.serve_forever(poll_interval=0.5)
 

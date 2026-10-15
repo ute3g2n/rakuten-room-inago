@@ -20,6 +20,7 @@ from automation.inago.retention import RetentionResult, _parse_jst, apply_retent
 
 
 _DAILY_DIRECTORY = re.compile(r"daily-\d{8}\Z")
+_FINAL_DAILY_DIRECTORY = re.compile(r"daily-final-\d{8}-[0-9a-f]{32}\Z")
 _ARTIFACT_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 _REPORT_VERSION = 1
 
@@ -110,8 +111,9 @@ def _validate_bundle(bundle: Path, backup_root: Path) -> dict[str, Any]:
         if isinstance(exc, RestoreCheckError):
             raise
         raise RestoreCheckError("backup bundle or root cannot be resolved") from exc
-    if resolved_bundle.parent != resolved_root or not _DAILY_DIRECTORY.fullmatch(
-        resolved_bundle.name
+    if resolved_bundle.parent != resolved_root or not (
+        _DAILY_DIRECTORY.fullmatch(resolved_bundle.name)
+        or _FINAL_DAILY_DIRECTORY.fullmatch(resolved_bundle.name)
     ):
         raise RestoreCheckError(
             "restore-check input must be one daily backup generation"
@@ -449,6 +451,7 @@ def check_monthly_restore(
     backup_root: str | Path,
     now: str | datetime,
     fixture_mode: bool = True,
+    reuse_existing: bool = False,
 ) -> RestoreCheckResult:
     """Copy a daily backup to a separate monthly directory and validate it.
 
@@ -473,32 +476,55 @@ def check_monthly_restore(
         raise RestoreCheckError("restore-check root is not a regular directory")
     restore_root.mkdir(parents=True, exist_ok=True)
     final_directory = restore_root / month
-    if final_directory.is_symlink():
-        raise RestoreCheckError(
-            "monthly restore-check directory cannot be a symbolic link"
-        )
     report_path = final_directory / "report.json"
-    if report_path.is_file() and not report_path.is_symlink():
-        try:
-            report = json.loads(report_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+
+    def existing_result() -> RestoreCheckResult | None:
+        if final_directory.is_symlink():
             raise RestoreCheckError(
-                "existing monthly restore-check report cannot be read"
-            ) from exc
-        if Path(str(report.get("backup_directory", ""))).resolve() != bundle:
-            raise RestoreCheckError(
-                "this month already has a restore-check for another backup"
+                "monthly restore-check directory cannot be a symbolic link"
             )
-        return _result_from_report(
-            report,
-            directory=final_directory,
-            backup_directory=bundle,
-            already_checked=True,
-        )
-    if final_directory.exists() or final_directory.is_symlink():
-        raise RestoreCheckError(
-            "a partial monthly restore-check exists; refusing to overwrite it"
-        )
+        if report_path.is_file() and not report_path.is_symlink():
+            try:
+                report = json.loads(report_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise RestoreCheckError(
+                    "existing monthly restore-check report cannot be read"
+                ) from exc
+            try:
+                reported_bundle = Path(
+                    str(report.get("backup_directory", ""))
+                ).resolve()
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise RestoreCheckError(
+                    "existing monthly restore-check backup cannot be resolved"
+                ) from exc
+            if reported_bundle != bundle:
+                if not reuse_existing:
+                    raise RestoreCheckError(
+                        "this month already has a restore-check for another backup"
+                    )
+                if reported_bundle.parent != root or not (
+                    _DAILY_DIRECTORY.fullmatch(reported_bundle.name)
+                    or _FINAL_DAILY_DIRECTORY.fullmatch(reported_bundle.name)
+                ):
+                    raise RestoreCheckError(
+                        "existing monthly restore-check references an unsafe backup"
+                    )
+            return _result_from_report(
+                report,
+                directory=final_directory,
+                backup_directory=reported_bundle,
+                already_checked=True,
+            )
+        if final_directory.exists() or final_directory.is_symlink():
+            raise RestoreCheckError(
+                "a partial monthly restore-check exists; refusing to overwrite it"
+            )
+        return None
+
+    completed = existing_result()
+    if completed is not None:
+        return completed
 
     lock_directory = restore_root / f".{month}.lock"
     try:
@@ -509,6 +535,9 @@ def check_monthly_restore(
         ) from exc
     stage_directory = restore_root / f".{month}.{uuid.uuid4().hex}.staging"
     try:
+        completed = existing_result()
+        if completed is not None:
+            return completed
         stage_directory.mkdir()
         (
             retention,

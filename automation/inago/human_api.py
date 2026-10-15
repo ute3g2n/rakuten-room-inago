@@ -22,6 +22,7 @@ from automation.inago.contracts import (
     RejectedContract,
 )
 from automation.inago.export import build_dashboard_state
+from automation.inago.dashboard_history import _read_history_state
 from automation.inago.repository import (
     ReceiptRevisionConflict,
     record_pending_human_action,
@@ -53,6 +54,15 @@ _CONTENT_SECURITY_POLICY = (
     "img-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; "
     "form-action 'self'; frame-ancestors 'none'"
 )
+_FILE_ORIGIN_ROUTES = {
+    ("GET", "/api/history-state"): {"accept", "authorization"},
+    ("POST", "/api/reports"): {
+        "accept",
+        "authorization",
+        "content-type",
+        "x-csrf-token",
+    },
+}
 
 
 @lru_cache(maxsize=1)
@@ -130,6 +140,9 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if self._allows_file_origin_request():
+            self.send_header("Access-Control-Allow-Origin", "null")
+            self.send_header("Vary", "Origin")
         self.send_header("Connection", "close")
         self.end_headers()
         self.close_connection = True
@@ -186,6 +199,8 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin")
         if origin is None:
             return not require_origin
+        if origin == "null":
+            return self._api_server.allow_file_origin and self._allows_file_origin_request()
         try:
             parsed = urlsplit(origin)
             return (
@@ -201,6 +216,51 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
             )
         except ValueError:
             return False
+
+    def _allows_file_origin_request(self) -> bool:
+        if (
+            self.headers.get("Origin") != "null"
+            or not self._api_server.allow_file_origin
+        ):
+            return False
+        method = self.command
+        if method == "OPTIONS":
+            method = self.headers.get("Access-Control-Request-Method", "").upper()
+        return (method, self.path) in _FILE_ORIGIN_ROUTES
+
+    def do_OPTIONS(self) -> None:
+        requested_method = self.headers.get("Access-Control-Request-Method", "").upper()
+        allowed_headers = _FILE_ORIGIN_ROUTES.get((requested_method, self.path))
+        requested_headers = {
+            item.strip().casefold()
+            for item in self.headers.get("Access-Control-Request-Headers", "").split(",")
+            if item.strip()
+        }
+        if (
+            not self._api_server.allow_file_origin
+            or not self._origin_is_valid()
+            or allowed_headers is None
+            or not requested_headers.issubset(allowed_headers)
+        ):
+            self._send_json(HTTPStatus.FORBIDDEN, {"error": "origin_rejected"})
+            return
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "null")
+        self.send_header("Access-Control-Allow-Methods", requested_method)
+        if requested_headers:
+            self.send_header(
+                "Access-Control-Allow-Headers",
+                ", ".join(sorted(requested_headers)),
+            )
+        self.send_header("Access-Control-Max-Age", "300")
+        self.send_header(
+            "Vary",
+            "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        )
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
 
     def do_GET(self) -> None:
         if self.path.startswith("/api/") and not self._require_authentication():
@@ -232,6 +292,30 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         static_file = _DASHBOARD_FILES.get(self.path)
         if static_file is not None:
             self._send_static_file(*static_file)
+            return
+        if self.path == "/api/history-state":
+            connection: sqlite3.Connection | None = None
+            try:
+                connection = self._api_server.connection_factory()
+                state = _read_history_state(connection)
+                dashboard = build_dashboard_state(connection)
+                state["receipt_revisions"] = dashboard["receipt_revisions"]
+                state["pending_reports"] = dashboard["pending_reports"]
+                state["recent_reports"] = dashboard["recent_reports"]
+                state["csrf_token"] = self._api_server.csrf_token
+                self._send_json(HTTPStatus.OK, state)
+            except (sqlite3.Error, OSError):
+                self._send_json(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    {"error": "storage_unavailable"},
+                )
+            except Exception:
+                self._send_json(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "internal_error"}
+                )
+            finally:
+                if connection is not None:
+                    connection.close()
             return
         if self.path != "/api/state":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
@@ -388,6 +472,7 @@ def create_server(
     bind_host: str = "127.0.0.1",
     port: int = 0,
     auth_token: str | None = None,
+    allow_file_origin: bool = False,
 ) -> ThreadingHTTPServer:
     """Create the explicit local report server; it cannot bind off-loopback."""
 
@@ -399,12 +484,17 @@ def create_server(
         not isinstance(auth_token, str) or len(auth_token) < 32
     ):
         raise ValueError("human report API auth token must be at least 32 characters")
+    if not isinstance(allow_file_origin, bool):
+        raise TypeError("allow_file_origin must be boolean")
+    if allow_file_origin and auth_token is None:
+        raise ValueError("file-origin access requires bearer authentication")
     csrf_token = secrets.token_urlsafe(32)
     server = _LoopbackHTTPServer((bind_host, port), _HumanAPIHandler)
     actual_port = int(server.server_address[1])
     server.origin = f"http://127.0.0.1:{actual_port}"
     server.csrf_token = csrf_token
     server.auth_token = auth_token
+    server.allow_file_origin = allow_file_origin
     server.clock = clock or SystemClock()
     server.connection_factory = connection_factory
     return server
