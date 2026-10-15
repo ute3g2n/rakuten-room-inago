@@ -51,6 +51,8 @@ _MATRIX_CASE_IDS = (
     *(f"A-{number:02d}" for number in range(1, 11)),
 )
 EXPECTED_CASE_IDS = (*_MATRIX_CASE_IDS, *(f"X-{number:02d}" for number in range(1, 9)))
+DAILY_COMPLETION_CASE_IDS = tuple(f"H-{number:02d}" for number in range(1, 9))
+ALL_ACCEPTANCE_CASE_IDS = (*EXPECTED_CASE_IDS, *DAILY_COMPLETION_CASE_IDS)
 FIXTURE_CASE_IDS = tuple(
     case_id for case_id in EXPECTED_CASE_IDS if case_id not in DOCUMENT_CASE_IDS
 )
@@ -74,7 +76,7 @@ class AcceptanceCase:
 
 @dataclass(frozen=True)
 class FixtureRunResult:
-    """Aggregate result for the selected case modules executed in an isolated child pytest."""
+    """Aggregate results from selected modules in an isolated pytest child."""
 
     selected_case_ids: tuple[str, ...]
     module_paths: tuple[str, ...]
@@ -224,6 +226,41 @@ def _extract_extended_cases(
     return cases
 
 
+def _extract_daily_completion_cases(plan_text: str) -> dict[str, AcceptanceCase]:
+    """Parse the eight H cases without treating planned work as passed evidence."""
+
+    start = plan_text.find("| 追加受入ID |")
+    end = plan_text.find("\n\n### STEP 23.01", start)
+    if start < 0 or end < 0:
+        raise ValueError("23.xx追加受入表を特定できません")
+
+    cases: dict[str, AcceptanceCase] = {}
+    for line in plan_text[start:end].splitlines():
+        if not line.startswith("| H-"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) != 7 or cells[0] not in DAILY_COMPLETION_CASE_IDS:
+            raise ValueError(f"23.xx追加受入行の形式が不正です: {line[:40]}")
+        case_id = cells[0]
+        requirement_refs = tuple(dict.fromkeys(_REQUIREMENT_PATTERN.findall(cells[3])))
+        acceptance_refs = tuple(dict.fromkeys(_ACCEPTANCE_PATTERN.findall(cells[4])))
+        if not requirement_refs or not acceptance_refs or not cells[5].strip():
+            raise ValueError(f"23.xx追加受入のtraceが不足しています: {case_id}")
+        cases[case_id] = AcceptanceCase(
+            case_id=case_id,
+            name=f"{case_id} 日次全体追加受入",
+            requirement_refs=requirement_refs,
+            acceptance_refs=acceptance_refs,
+            implementation_steps=(23,),
+            test_refs=(case_id,),
+            expected_observation=cells[1],
+            phase="planned",
+            module_paths=(),
+            live_evidence="未実証。23.xx実装・結合・通常Windows確認は未完了。",
+        )
+    return cases
+
+
 def _existing_test_modules(
     project_root: Path, step_numbers: Iterable[int]
 ) -> tuple[str, ...]:
@@ -296,7 +333,7 @@ def _live_status(case_id: str) -> str:
 def load_acceptance_registry(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, AcceptanceCase]:
-    """Parse the 69-row acceptance matrix plus the eight X cases from the plan."""
+    """Parse established cases and the planned H acceptance cases from the plan."""
 
     plan_text = _read_text(project_root / PLAN_RELATIVE_PATH)
     cases = _extract_table_cases(plan_text, project_root)
@@ -314,6 +351,12 @@ def load_acceptance_registry(
         raise ValueError(f"追加受入ID不一致: missing={missing}, extra={extra}")
 
     cases.update(extended_cases)
+    daily_completion_cases = _extract_daily_completion_cases(plan_text)
+    if set(daily_completion_cases) != set(DAILY_COMPLETION_CASE_IDS):
+        missing = sorted(set(DAILY_COMPLETION_CASE_IDS) - set(daily_completion_cases))
+        extra = sorted(set(daily_completion_cases) - set(DAILY_COMPLETION_CASE_IDS))
+        raise ValueError(f"日次全体追加受入ID不一致: missing={missing}, extra={extra}")
+    cases.update(daily_completion_cases)
     for case_id in EXPECTED_CASE_IDS:
         case = cases[case_id]
         if not case.expected_observation.strip():
@@ -753,12 +796,14 @@ def main(argv: list[str] | None = None) -> int:
     """Allow an acceptance case to be invoked alone with --case CASE-ID."""
 
     parser = argparse.ArgumentParser(
-        description="イナゴ STEP19 fixture acceptance runner"
+        description="イナゴ受入ケースの確認 runner"
     )
     parser.add_argument(
-        "--list", action="store_true", help="77件のcase IDとphaseを表示"
+        "--list", action="store_true", help="既存と計画中のcase ID/phaseを表示"
     )
-    parser.add_argument("--case", choices=EXPECTED_CASE_IDS, help="単独実行するcase ID")
+    parser.add_argument(
+        "--case", choices=ALL_ACCEPTANCE_CASE_IDS, help="単独実行するcase ID"
+    )
     args = parser.parse_args(argv)
     registry = load_acceptance_registry(PROJECT_ROOT)
 
@@ -772,7 +817,7 @@ def main(argv: list[str] | None = None) -> int:
                         "test_modules": list(registry[case_id].module_paths),
                         "live_evidence": registry[case_id].live_evidence,
                     }
-                    for case_id in EXPECTED_CASE_IDS
+                    for case_id in ALL_ACCEPTANCE_CASE_IDS
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -783,6 +828,18 @@ def main(argv: list[str] | None = None) -> int:
     if not args.case:
         parser.error("--listまたは--case CASE-IDを指定してください")
     case = registry[args.case]
+    if case.phase == "planned":
+        print(
+            json.dumps(
+                {
+                    "case_id": args.case,
+                    "status": "not_run",
+                    "reason": case.live_evidence,
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 3
     if case.phase == "document":
         report = validate_document_contract(PROJECT_ROOT, args.case)
         _write_document_evidence(PROJECT_ROOT, report)

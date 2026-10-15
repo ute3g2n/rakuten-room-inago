@@ -9,6 +9,7 @@ from automation.inago.acceptance import (
     FIXTURE_CASE_IDS,
     EXPECTED_CASE_IDS,
     load_acceptance_registry,
+    main as acceptance_main,
     record_document_evidence,
     run_fixture_subset_for_selected_cases,
     validate_document_contract,
@@ -60,6 +61,28 @@ def test_daily_completion_acceptance_cases_are_registered(acceptance_registry):
         assert case.test_refs == (case_id,)
         assert case.expected_observation.strip()
         assert "未実証" in case.live_evidence
+
+
+@pytest.mark.fixture_contract
+def test_daily_completion_cases_preserve_ir_at_and_gap_trace(acceptance_registry):
+    expected_ids = {f"H-{number:02d}" for number in range(1, 9)}
+
+    for case_id in expected_ids:
+        case = acceptance_registry[case_id]
+        assert case.requirement_refs
+        assert all(ref.startswith("IR-") for ref in case.requirement_refs)
+        assert case.acceptance_refs
+        assert all(ref.startswith("AT-") for ref in case.acceptance_refs)
+        assert case.expected_observation.strip()
+
+
+@pytest.mark.fixture_contract
+def test_planned_daily_acceptance_case_does_not_report_fixture_pass(capsys):
+    result = acceptance_main(["--case", "H-01"])
+    output = capsys.readouterr().out
+
+    assert result == 3
+    assert '"status": "not_run"' in output
 
 
 @pytest.mark.fixture_contract

@@ -9,9 +9,14 @@ from automation.inago.acceptance import load_acceptance_registry
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_PATH = PROJECT_ROOT / "automation" / "inago" / "templates" / "posting-dashboard.html"
+TEMPLATE_PATH = (
+    PROJECT_ROOT / "automation" / "inago" / "templates" / "posting-dashboard.html"
+)
 APP_PATH = PROJECT_ROOT / "rakuten-room-inago" / "dashboard-assets" / "app.js"
 UI_TEST_PATH = PROJECT_ROOT / "tests_inago" / "test_step22_ui.py"
+FILE_BROWSER_TEST_PATH = (
+    PROJECT_ROOT / "tests_inago" / "test_step23_04_dashboard_history.py"
+)
 
 DAILY_ACCEPTANCE_IDS = tuple(f"H-{number:02d}" for number in range(1, 9))
 
@@ -42,7 +47,11 @@ def test_dashboard_has_date_navigation_and_day_scoped_rendering() -> None:
 
 
 def test_browser_e2e_opens_generated_dashboard_as_a_file() -> None:
-    source = UI_TEST_PATH.read_text(encoding="utf-8")
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (UI_TEST_PATH, FILE_BROWSER_TEST_PATH)
+        if path.is_file()
+    )
 
     assert "as_uri()" in source
     assert re.search(r"page\.goto\([^\n]*as_uri\(\)", source)
