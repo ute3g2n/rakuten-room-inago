@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import io
 import json
 from pathlib import Path
+import sqlite3
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -214,6 +217,60 @@ def test_preflight_accepts_a_ready_database_without_writing_it(
     assert database_path.read_bytes() == database_before
     assert "AUTH_SENTINEL_MUST_NOT_BE_READ" not in repr(report)
     assert "room_0123456789" not in repr(report)
+
+
+def test_daily_does_not_create_a_database_removed_after_preflight(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from automation.inago.repository import open_database
+
+    config_path, runtime, local_app_data, _ = _write_environment(
+        tmp_path / "repo", monkeypatch
+    )
+    _write_ready_setup_state(runtime)
+    connection = open_database(SimpleNamespace(data_root=runtime))
+    connection.execute(
+        """
+        INSERT INTO settings_version (
+            version, confirmed_at, genres_json, themes_json,
+            pattern_refs_json, change_reason, created_at
+        ) VALUES (?, ?, '[]', '[]', '[]', NULL, ?)
+        """,
+        (
+            production_runtime.BASE_SETTINGS_VERSION,
+            "2026-10-15T00:00:00+09:00",
+            "2026-10-15T00:00:00+09:00",
+        ),
+    )
+    connection.commit()
+    connection.close()
+    config = production_runtime.load_production_config(
+        config_path,
+        data_root=runtime,
+        user_profile=local_app_data.parent.parent,
+        local_app_data=local_app_data,
+        which=lambda command: str(command) if Path(command).is_file() else None,
+    )
+    preflight = _preflight(config_path, runtime, local_app_data)
+    assert preflight["status"] == "ready"
+    (runtime / "state.sqlite").unlink()
+    monkeypatch.setattr(
+        production_runtime,
+        "register_production_settings",
+        lambda *args, **kwargs: pytest.fail(
+            "daily created a missing database before startup validation"
+        ),
+    )
+
+    class DueClock:
+        def now_jst(self) -> datetime:
+            return datetime(2026, 10, 15, 13, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
+
+    with pytest.raises(sqlite3.OperationalError):
+        production_runtime.run_production_daily(config, clock=DueClock())
+
+    assert not (runtime / "state.sqlite").exists()
 
 
 def test_preflight_mode_is_registered_and_does_not_dispatch_daily() -> None:
