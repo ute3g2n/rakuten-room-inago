@@ -105,17 +105,13 @@ def _validated_legacy_source_root(
         / "rakuten-room-kai",
         "expected archived legacy source root",
     )
-    lexical = _lexical_absolute_path(
-        config.legacy_source_root, "legacy.source_root"
-    )
+    lexical = _lexical_absolute_path(config.legacy_source_root, "legacy.source_root")
     if not _same_path(lexical, expected):
         raise ProductionRuntimeError(
             "legacy source root changed from the archived local-preserved directory"
         )
     if _has_reparse_point(lexical):
-        raise ProductionRuntimeError(
-            "legacy source root cannot contain reparse points"
-        )
+        raise ProductionRuntimeError("legacy source root cannot contain reparse points")
     try:
         resolved = lexical.resolve(strict=True)
     except FileNotFoundError as exc:
@@ -507,7 +503,9 @@ def load_production_config(
     except (OSError, RuntimeError, ValueError) as exc:
         raise ProductionRuntimeError("legacy source root cannot be resolved") from exc
     if legacy_root.exists() and not legacy_root.is_dir():
-        raise ProductionRuntimeError("legacy source root must be a directory when present")
+        raise ProductionRuntimeError(
+            "legacy source root must be a directory when present"
+        )
     legacy_paths = {
         key: legacy.get(key)
         for key in (
@@ -1089,8 +1087,20 @@ def run_production_daily(
     setup_state = require_production_ready(config)
 
     _assert_production_roots(config)
-    connection = _open_production_database(config)
+    connection = _open_existing_production_database(config)
     try:
+        active_settings = connection.execute(
+            "SELECT version FROM settings_version ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        expected_settings_version = str(config.adopted_settings.get("version", ""))
+        if (
+            active_settings is None
+            or str(active_settings["version"]) != expected_settings_version
+            or expected_settings_version != str(setup_state["settings_version"])
+        ):
+            raise ProductionRuntimeError(
+                "existing database does not contain the ready adopted settings"
+            )
         settings = register_production_settings(
             connection,
             config,
@@ -1148,6 +1158,213 @@ def require_production_ready(
             "migration/setting preconditions do not permit daily selection"
         )
     return state
+
+
+def _startup_preflight_side_effects() -> dict[str, bool]:
+    return {
+        "database_created": False,
+        "database_written": False,
+        "browser_started": False,
+        "network_requested": False,
+        "auth_contents_read": False,
+        "daily_started": False,
+    }
+
+
+def _startup_preflight_config_failure(exc: ProductionRuntimeError) -> tuple[str, str]:
+    message = str(exc)
+    mappings = (
+        (
+            "dedicated ROOM browser profile directory is missing",
+            "browser_profile",
+            "browser_profile_missing",
+        ),
+        (
+            "dedicated ROOM browser profile directory cannot be inspected",
+            "browser_profile",
+            "browser_profile_unavailable",
+        ),
+        (
+            "dedicated ROOM browser profile path is not a directory",
+            "browser_profile",
+            "browser_profile_invalid",
+        ),
+        (
+            "ROOM browser must use the dedicated Inago profile",
+            "browser_profile",
+            "browser_profile_mismatch",
+        ),
+        ("Chrome executable is unavailable", "chrome", "chrome_unavailable"),
+        ("Node executable is unavailable", "node", "node_unavailable"),
+        ("Codex CLI executable is unavailable", "codex", "codex_unavailable"),
+        (
+            "read-only Affiliate auth reference is unavailable",
+            "affiliate_auth_reference",
+            "affiliate_auth_reference_unavailable",
+        ),
+        ("current Windows user's", "process_identity", "process_identity_mismatch"),
+        (
+            "production configuration file is missing",
+            "configuration",
+            "configuration_missing",
+        ),
+        (
+            "production configuration is unreadable",
+            "configuration",
+            "configuration_unreadable",
+        ),
+        (
+            "adopted basic settings version is not confirmed",
+            "adopted_settings",
+            "adopted_settings_invalid",
+        ),
+        (
+            "detailed rules must remain an inactive candidate",
+            "adopted_settings",
+            "adopted_settings_invalid",
+        ),
+    )
+    for fragment, check_name, failure_code in mappings:
+        if fragment in message:
+            return check_name, failure_code
+    return "configuration", "configuration_invalid"
+
+
+def _startup_preflight_setup_failure(exc: ProductionRuntimeError) -> str:
+    message = str(exc)
+    if "setup has not completed" in message:
+        return "setup_state_missing"
+    if "setup state" in message or "setup state schema" in message:
+        return "setup_state_invalid"
+    if "migration/setting preconditions" in message:
+        return "setup_not_ready"
+    return "setup_state_unavailable"
+
+
+def _startup_preflight_database(
+    config: ProductionRuntimeConfig,
+) -> tuple[str | None, str | None]:
+    """Inspect SQLite without recovery, journal creation, or schema mutation."""
+
+    from automation.inago.repository import schema_version
+
+    connection: sqlite3.Connection | None = None
+    database_path = config.runtime_root / "state.sqlite"
+    try:
+        _assert_production_roots(config)
+        if _has_reparse_point(database_path):
+            return "database_path_invalid", None
+        if not database_path.is_file():
+            return "database_missing", None
+        for suffix in ("-wal", "-journal"):
+            sidecar = Path(f"{database_path}{suffix}")
+            if sidecar.is_file() and sidecar.stat().st_size > 0:
+                return "database_recovery_pending", None
+        database_uri = (
+            f"{database_path.resolve(strict=True).as_uri()}?mode=ro&immutable=1"
+        )
+        connection = sqlite3.connect(
+            database_uri,
+            uri=True,
+            timeout=5,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only = ON")
+        quick_check = connection.execute("PRAGMA quick_check(1)").fetchone()
+        if quick_check is None or str(quick_check[0]).lower() != "ok":
+            return "database_schema_invalid", None
+        schema_version(connection)
+        active_settings = connection.execute(
+            "SELECT version FROM settings_version ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        if active_settings is None:
+            return None, "adopted_settings_missing"
+        expected_version = str(config.adopted_settings.get("version", ""))
+        if str(active_settings["version"]) != expected_version:
+            return None, "adopted_settings_mismatch"
+        return None, None
+    except (sqlite3.Error, OSError, RuntimeError, ValueError):
+        return "database_schema_invalid", None
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def run_production_startup_preflight(
+    config_path: str | Path,
+    *,
+    data_root: str | Path,
+    user_profile: str | Path | None = None,
+    local_app_data: str | Path | None = None,
+    which: Callable[[str], str | None] = shutil.which,
+) -> dict[str, object]:
+    """Report scheduler-identity readiness without launching or changing runtime state."""
+
+    checks: dict[str, str] = {}
+    failed_checks: list[str] = []
+    side_effects = _startup_preflight_side_effects()
+    try:
+        config = load_production_config(
+            config_path,
+            data_root=data_root,
+            user_profile=user_profile,
+            local_app_data=local_app_data,
+            which=which,
+        )
+    except Exception as exc:
+        if isinstance(exc, ProductionRuntimeError):
+            check_name, failure_code = _startup_preflight_config_failure(exc)
+        else:
+            check_name, failure_code = "configuration", "configuration_invalid"
+        checks["configuration"] = "failed"
+        checks[check_name] = "failed"
+        failed_checks.append(failure_code)
+        return {
+            "status": "blocked",
+            "checks": checks,
+            "failed_checks": failed_checks,
+            "side_effects": side_effects,
+        }
+
+    checks.update(
+        {
+            "configuration": "ready",
+            "process_identity": "ready",
+            "browser_profile": "ready",
+            "chrome": "ready",
+            "node": "ready",
+            "codex": "ready",
+            "affiliate_auth_reference": "ready",
+            "adopted_settings": "ready",
+        }
+    )
+    try:
+        require_production_ready(config)
+        checks["setup_state"] = "ready"
+    except ProductionRuntimeError as exc:
+        checks["setup_state"] = "failed"
+        failed_checks.append(_startup_preflight_setup_failure(exc))
+
+    database_failure, settings_failure = _startup_preflight_database(config)
+    if database_failure is None:
+        checks["database_schema"] = "ready"
+    else:
+        checks["database_schema"] = "failed"
+        failed_checks.append(database_failure)
+    if settings_failure is not None:
+        checks["adopted_settings"] = "failed"
+        failed_checks.append(settings_failure)
+    checks["database_adopted_settings"] = (
+        "ready" if database_failure is None and settings_failure is None else "failed"
+    )
+
+    return {
+        "status": "ready" if not failed_checks else "blocked",
+        "checks": checks,
+        "failed_checks": failed_checks,
+        "side_effects": side_effects,
+    }
 
 
 def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> None:

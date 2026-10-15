@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('setup', 'daily', 'serve')]
+    [ValidateSet('setup', 'daily', 'serve', 'preflight')]
     [string]$Mode = 'daily'
 )
 

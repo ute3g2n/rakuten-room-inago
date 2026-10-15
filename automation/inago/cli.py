@@ -30,6 +30,7 @@ SUPPORTED_MODES = (
     "config-change",
     "export",
     "serve",
+    "preflight",
     "migrate",
     "backup",
     "restore-check",
@@ -222,6 +223,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
         load_production_config,
         require_production_ready,
         run_production_daily,
+        run_production_startup_preflight,
         serve_human_api,
     )
     from automation.inago.clock import SystemClock
@@ -251,6 +253,56 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             )
 
     try:
+        if args.mode == "preflight":
+            phase = "preflight"
+            report = run_production_startup_preflight(
+                args.config,
+                data_root=args.data_root,
+                user_profile=args.user_profile,
+                local_app_data=args.local_app_data,
+            )
+            _emit(output, report)
+            return 0 if report.get("status") == "ready" else EXIT_RUNTIME_ERROR
+
+        if args.mode == "daily":
+            phase = "preflight"
+            report = run_production_startup_preflight(
+                args.config,
+                data_root=args.data_root,
+                user_profile=args.user_profile,
+                local_app_data=args.local_app_data,
+            )
+            if report.get("status") != "ready":
+                root = _preflight_log_root(args.data_root)
+                if root is not None:
+                    try:
+                        failures = report.get("failed_checks", [])
+                        safe_failures = (
+                            [item for item in failures if isinstance(item, str)]
+                            if isinstance(failures, list)
+                            else []
+                        )
+                        _append_production_log(
+                            root,
+                            mode="daily",
+                            status="blocked",
+                            reason="startup_preflight_blocked",
+                            phase="preflight",
+                            diagnostics={"failed_checks": safe_failures},
+                        )
+                    except (OSError, ProductionRuntimeError) as log_exc:
+                        _emit(
+                            error_output,
+                            {
+                                "status": "log_unavailable",
+                                "mode": "daily",
+                                "reason": type(log_exc).__name__,
+                            },
+                        )
+                _emit(output, report)
+                return EXIT_RUNTIME_ERROR
+
+        phase = "configuration"
         if args.mode == "serve":
             config = load_human_api_config(
                 args.config,

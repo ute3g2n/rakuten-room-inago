@@ -277,10 +277,7 @@ def test_preflight_mode_is_registered_and_does_not_dispatch_daily() -> None:
     from automation.inago.cli import SUPPORTED_MODES
 
     script = (
-        Path(__file__).resolve().parents[1]
-        / "automation"
-        / "inago"
-        / "run.ps1"
+        Path(__file__).resolve().parents[1] / "automation" / "inago" / "run.ps1"
     ).read_text(encoding="utf-8")
     registration = (
         Path(__file__).resolve().parents[1]
@@ -336,4 +333,57 @@ def test_preflight_cli_mode_only_runs_the_diagnostic(
 
     assert result == 0
     assert json.loads(output.getvalue())["status"] == "ready"
+    assert not error.getvalue()
+
+
+def test_cli_daily_stops_when_startup_preflight_is_blocked(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from automation.inago import cli
+
+    preflight_calls: list[str] = []
+    monkeypatch.setattr(
+        production_runtime,
+        "run_production_startup_preflight",
+        lambda *args, **kwargs: preflight_calls.append("preflight")
+        or {
+            "status": "blocked",
+            "checks": {"database_schema": "failed"},
+            "failed_checks": ["database_missing"],
+            "side_effects": {"daily_started": False},
+        },
+    )
+    monkeypatch.setattr(
+        production_runtime,
+        "load_production_config",
+        lambda *args, **kwargs: pytest.fail(
+            "daily loaded production configuration after blocked preflight"
+        ),
+    )
+    monkeypatch.setattr(
+        production_runtime,
+        "run_production_daily",
+        lambda *args, **kwargs: pytest.fail("blocked daily was dispatched"),
+    )
+    output = io.StringIO()
+    error = io.StringIO()
+
+    result = cli.main(
+        [
+            "daily",
+            "--environment",
+            "production",
+            "--config",
+            str(tmp_path / "unused-settings.json"),
+            "--data-root",
+            str(tmp_path / "unused-runtime"),
+        ],
+        stdout=output,
+        stderr=error,
+    )
+
+    assert result == cli.EXIT_RUNTIME_ERROR
+    assert preflight_calls == ["preflight"]
+    assert json.loads(output.getvalue())["failed_checks"] == ["database_missing"]
     assert not error.getvalue()

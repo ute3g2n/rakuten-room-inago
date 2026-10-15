@@ -236,12 +236,15 @@ if ($RenderOnly) {
     return
 }
 
-# Validate input contracts through the repository Python, without ACL changes,
-# source copying, DB migration, browser launch, or installation.
+# Validate the normal scheduler identity and existing runtime state without DB
+# writes, browser launch, network access, or task execution.
 Push-Location $applicationRoot
 try {
-    & $pythonExe -B -c 'import sys; from automation.inago.production_runtime import load_production_config, require_production_ready; c=load_production_config(sys.argv[1], data_root=sys.argv[2]); require_production_ready(c)' $configPath $expectedRoot
-    if ($LASTEXITCODE -ne 0) { throw 'Repository production preflight failed; no tasks were registered.' }
+    $preflightOutput = & $pythonExe -B -c 'import json,sys; from automation.inago.production_runtime import run_production_startup_preflight; r=run_production_startup_preflight(sys.argv[1], data_root=sys.argv[2], user_profile=sys.argv[3], local_app_data=sys.argv[4]); print(json.dumps(r, ensure_ascii=False, separators=(",",":"))); sys.exit(0 if r["status"] == "ready" else 4)' $configPath $expectedRoot $userProfile $localAppData
+    $preflightExitCode = $LASTEXITCODE
+    if ($preflightExitCode -ne 0) { throw 'Repository production preflight is blocked; no tasks were registered.' }
+    $preflightReport = ($preflightOutput -join "`n") | ConvertFrom-Json
+    if ($preflightReport.status -cne 'ready') { throw 'Repository production preflight is blocked; no tasks were registered.' }
 } finally {
     Pop-Location
 }
