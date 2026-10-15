@@ -49,6 +49,20 @@ def test_acceptance_registry_covers_every_case(acceptance_registry):
 
 
 @pytest.mark.fixture_contract
+def test_daily_completion_acceptance_cases_are_registered(acceptance_registry):
+    expected_ids = {f"H-{number:02d}" for number in range(1, 9)}
+
+    assert expected_ids.issubset(acceptance_registry)
+    for case_id in expected_ids:
+        case = acceptance_registry[case_id]
+        assert case.phase == "planned"
+        assert case.implementation_steps == (23,)
+        assert case.test_refs == (case_id,)
+        assert case.expected_observation.strip()
+        assert "未実証" in case.live_evidence
+
+
+@pytest.mark.fixture_contract
 def test_step21_live_acceptance_mapping_matches_verified_evidence(
     acceptance_registry,
 ):
