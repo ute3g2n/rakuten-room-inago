@@ -553,7 +553,7 @@ def test_windows_process_tree_observer_sees_and_does_not_own_fixture_child() -> 
         child.wait(timeout=5)
 
 
-def test_status_and_recovery_reject_invalid_checkpoint_or_changed_deadline(
+def test_status_rejects_invalid_checkpoint_and_recovery_treats_deadlines_as_history(
     tmp_path: Path, monkeypatch
 ) -> None:
     import sqlite3
@@ -596,11 +596,17 @@ def test_status_and_recovery_reject_invalid_checkpoint_or_changed_deadline(
         )
     finally:
         connection.close()
-    deadline_mismatch = production_runtime.run_production_recovery(
+    historical_deadline = production_runtime.run_production_recovery(
         second_config, run_id=RUN_ID, now=NOW
     )
-    assert deadline_mismatch["status"] == "blocked"
-    assert deadline_mismatch["reason_code"] == "daily_run_deadline_mismatch"
+    assert historical_deadline["status"] == "blocked"
+    assert (
+        historical_deadline["decision"]["reason_code"]
+        == "daily_owner_state_unconfirmed"
+    )
+    assert historical_deadline["decision"]["preserved"]["end_deadline"] == (
+        "2026-10-15T18:01:00+09:00"
+    )
 
 
 def test_production_daily_requires_explicit_confirmation_to_resume_same_run(

@@ -12,7 +12,7 @@ import re
 import sqlite3
 import uuid
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 from urllib.parse import unquote, urlsplit
@@ -35,6 +35,7 @@ _OBS_SCHEMA_PATH = (
 )
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_PRODUCT_RESOLUTION_FAILURES = 10
+ROOM_REQUEST_TIMEOUT_SECONDS = 480
 _OBSERVABLE_FIELDS = frozenset(
     {"query", "likes_min", "current_search_id", "search_loaded", "internal_order"}
 )
@@ -103,12 +104,12 @@ class RoomSearchPort(Protocol):
     def search(self, request: RoomSearchRequest) -> Mapping[str, Any]:
         """Return one data-only observation for exactly this reserved attempt.
 
-        The orchestrator invokes this port on an owned worker thread so it can
-        enforce the 17:45 deadline. Implementations must not use the caller's
-        SQLite connection and must support cancellation from the corresponding
-        ``cancel_owned_jobs`` port. A browser adapter must establish that its
-        supported browser driver is safe to use from this execution model before
-        it is connected here; no browser integration is assumed by this contract.
+        The orchestrator invokes this port on an owned worker thread and enforces
+        a finite per-request timeout. Implementations must not use the caller's
+        SQLite connection and must support cancellation of the active request.
+        A browser adapter must establish that its supported browser driver is
+        safe to use from this execution model before it is connected here; no
+        browser integration is assumed by this contract.
         """
 
 
@@ -229,7 +230,7 @@ class RoomSearchSession:
         connection.execute("BEGIN IMMEDIATE")
         try:
             run = connection.execute(
-                "SELECT mode, status, attempt_used, draft_deadline,settings_version FROM run WHERE run_id = ?",
+                "SELECT mode, status, attempt_used, settings_version FROM run WHERE run_id = ?",
                 (run_id,),
             ).fetchone()
             if run is None or run["mode"] != "daily":
@@ -270,12 +271,6 @@ class RoomSearchSession:
                     raise RoomContractError(
                         "related query is not a saved selected expression"
                     )
-            deadline_text = _aware_timestamp(run["draft_deadline"], "draft_deadline")
-            if deadline_text is None:
-                raise RoomContractError("draft_deadline must be offset-aware")
-            deadline = datetime.fromisoformat(deadline_text.replace("Z", "+00:00"))
-            if now >= deadline.astimezone(now.tzinfo):
-                raise RoomContractError("ROOM search deadline has passed")
             attempts = int(
                 connection.execute(
                     "SELECT COUNT(*) FROM search_attempt WHERE run_id = ?", (run_id,)
@@ -382,7 +377,9 @@ class RoomSearchSession:
             level=level,
             attempt_no=attempt_no,
             retry_of=retry_of,
-            deadline_at=run["draft_deadline"],
+            deadline_at=(
+                now + timedelta(seconds=ROOM_REQUEST_TIMEOUT_SECONDS)
+            ).isoformat(),
             query_kind=query_kind,
             keyword_snapshot_ref=keyword_snapshot_ref,
             selected_word_ref=selected_word_ref,
@@ -728,7 +725,9 @@ def _parse_current_room_response(
         end_reason=(
             ("limit_reached" if at_limit else "exhausted" if actual_end else "error")
             if result.status in {"observed", "partial"}
-            else "invalid" if result.status == "invalid" else "error"
+            else "invalid"
+            if result.status == "invalid"
+            else "error"
         ),
         condition_evidence_ref=(
             response.get("condition_evidence_ref")

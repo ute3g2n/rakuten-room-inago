@@ -220,10 +220,10 @@
           "$ref": "#/$defs/timestamp"
         },
         "draft_deadline": {
-          "$ref": "#/$defs/timestamp"
+          "$ref": "#/$defs/nullableTimestamp"
         },
         "end_deadline": {
-          "$ref": "#/$defs/timestamp"
+          "$ref": "#/$defs/nullableTimestamp"
         },
         "attempt_used": {
           "type": "integer",

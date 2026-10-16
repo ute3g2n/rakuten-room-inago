@@ -516,7 +516,7 @@ def test_transport_failure_is_unavailable_and_retries_use_new_attempt_rows(
         connection.close()
 
 
-def test_search_at_or_after_draft_deadline_is_not_reserved_or_called(
+def test_search_at_old_draft_cutoff_is_still_reserved_and_called(
     tmp_path: Path,
 ) -> None:
     connection = _database(tmp_path)
@@ -527,23 +527,25 @@ def test_search_at_or_after_draft_deadline_is_not_reserved_or_called(
             port,
             clock=FakeClock(datetime.fromisoformat(DEADLINE)),
         )
-        with pytest.raises(RejectedContract, match="search deadline has passed"):
-            session.search(
-                attempt_id="attempt-after-deadline",
-                run_id="RUN-STEP11",
-                query="揚げ物",
-                parent_refs=["theme-01"],
-                level="parent",
-            )
-        assert port.requests == []
+        result = session.search(
+            attempt_id="attempt-after-deadline",
+            run_id="RUN-STEP11",
+            query="揚げ物",
+            parent_refs=["theme-01"],
+            level="parent",
+        )
+        assert result.status == "unavailable"
+        assert [request.attempt_id for request in port.requests] == [
+            "attempt-after-deadline"
+        ]
         assert (
-            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0] == 0
+            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0] == 1
         )
         assert (
             connection.execute(
                 "SELECT attempt_used FROM run WHERE run_id = 'RUN-STEP11'"
             ).fetchone()[0]
-            == 0
+            == 1
         )
     finally:
         connection.close()
@@ -569,11 +571,15 @@ def test_search_attempts_are_unbounded_but_retries_remain_bounded(
             )
         assert len(port.requests) == 10
         assert (
-            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0] == 10
+            connection.execute("SELECT COUNT(*) FROM search_attempt").fetchone()[0]
+            == 10
         )
-        assert connection.execute(
-            "SELECT attempt_used FROM run WHERE run_id = 'RUN-STEP11'"
-        ).fetchone()[0] == 10
+        assert (
+            connection.execute(
+                "SELECT attempt_used FROM run WHERE run_id = 'RUN-STEP11'"
+            ).fetchone()[0]
+            == 10
+        )
 
     finally:
         connection.close()

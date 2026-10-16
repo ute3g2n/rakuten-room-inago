@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.12、§8・§27.6～27.12・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F07/F08/F11、STEP R03/R05/R06/R07/R08/R09。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
+正本：要件定義書HTML 2.14、§8・§27.6～27.13・§28.4/28.7。対応：IR-004/008/010/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F13、STEP R03/R05/R06/R07/R08/R09/R10。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
 
 ## 共通イベント
 
@@ -101,3 +101,11 @@ copy lifecycle traceは`ai_result_received`、`ai_contract_rejected`、再開時
 | `tests_inago/test_daily_fix_trace.py::test_n29` | event/byte/file quota、thread/process同時file quota、90日期限、partial append、保持rewrite、JSONL I/Oエラー | quota超過を`suppression_marker_count=1`のmarkerとdegradedで示す。期限当日にraw event/fileが失効し、rewrite後の権限を維持する。append/rewrite失敗を成功に数えず、partial append後は追記を止める。trace I/O失敗はunavailableを返し、独立SQLiteのcommit済みsentinelは変化しない。 |
 
 各nodeの結果はM §14.5とT/R03のcase ledgerに完全node ID・attempt・証拠参照と共に記録する。PASS後はR15の最終全回帰まで再実行しない。pytest cacheだけを合否根拠にしない。
+
+## 日次最終結果（STEP R10）
+
+`daily_target`、初期/追加allocation、`committed_count`、`shortfall_count`、`actual_posted_count`、`source_failures`、`error_count`を別々に保持する。`primary_error`は最初の未解消理由、`secondary_errors`は他の診断理由を示す。`daily`、`metrics`、`export`、`preservation`のstatusを`phase_results`として個別に示し、metric/export/backup/restoreの失敗を本文不足や正常statusへ畳み込まない。blocked recoveryで工程を実行しなかった`not_run`を失敗理由として数えない。overall failureの`reason`にはprimary error codeを使い、日次目標到達/不足の理由は`daily_reason`へ残す。正常fallbackの利用だけでprocessing errorを作らない。
+
+OS日次終了コードは完全成功/not_due=0、処理error/contract/recovery/lock/postprocessing failure=4、処理errorのないpartial/shortfall=5。partial/shortfallに未解消processing errorまたはmetrics未完了がある場合は4を優先する。完全成功にはdaily complete、metrics observed、export ready、preservation ready/end backup ready、monthly restore readyまたはalready_checkedが必要。Windows wrapperの子Python終了コードを実プロセス終了コードとして検証する。
+
+17:45/18:00のrun-wide deadlineとWindows Task Schedulerのrun-wide実行時間上限は停止判定へ使わない。daily task XMLは`ExecutionTimeLimit=PT0S`とする。各AI/ROOM/metrics requestの有限timeoutを個別に適用し、期限後応答を成功へ採用しない。ROOM/AI timeoutのcancel scopeはrequest/job単位とし、run IDに加えてROOMの`attempt_id`またはAIの`job_id`で対象を特定する。取消確認後は後続request/retryを続ける。ROOM requestが直列実行待ち・worker登録前・プロセス起動前に取消された場合も、対象IDの取消を記録し、後から起動しないことを確認する。取消未確認なら同runの後続処理を停止し、phase/codeを記録する。新runの`run.draft_deadline`/`run.end_deadline`はnull、旧値は監査履歴として保持し、schema v5→v6で値を変換せず、run参照子行も保持する。完了済みrunにmetrics pending/not_startedがある場合はRecoveryで旧owner停止を確認し、pending jobを停止できた後にmetricsのみ再開する。取消未確認時は新metrics requestを起動せず異常を記録する。検索/本文生成/報告反映を再生しない。

@@ -12,8 +12,6 @@ from typing import Any
 
 _JST = timezone(timedelta(hours=9), name="JST")
 _DAILY_START = time(13, 0)
-_DRAFT_CUTOFF = time(17, 45)
-_METRICS_CUTOFF = time(18, 0)
 _SECRET_KEY = re.compile(
     r"(?:authorization|cookie|credential|password|private[_-]?key|secret|token|apikey)",
     re.IGNORECASE,
@@ -328,10 +326,7 @@ def plan_resume(
             action="completed_run_status_or_export",
             reason_code="completed_run_is_not_replayed",
             allowed=_allowed(
-                metrics=(
-                    preserved["metrics_pending"]
-                    and current.timetz().replace(tzinfo=None) < _METRICS_CUTOFF
-                ),
+                metrics=preserved["metrics_pending"],
                 saved_export=True,
             ),
         )
@@ -341,23 +336,6 @@ def plan_resume(
             action="daily_start_not_reached",
             reason_code="daily_start_1300",
             allowed=_allowed(saved_export=True),
-        )
-        return base
-    if current.timetz().replace(tzinfo=None) >= _METRICS_CUTOFF:
-        base.update(
-            action="daily_deadline_reached",
-            reason_code="metrics_deadline_1800",
-            allowed=_allowed(saved_export=True),
-        )
-        return base
-    if current.timetz().replace(tzinfo=None) >= _DRAFT_CUTOFF:
-        base.update(
-            action="draft_cutoff_metrics_only",
-            reason_code="draft_deadline_1745",
-            allowed=_allowed(
-                metrics=preserved["metrics_pending"],
-                saved_export=True,
-            ),
         )
         return base
     can_add_search = preserved["committed_count"] < 15

@@ -39,6 +39,10 @@ class DailyAIRootRunner(AIJobRunner):
         self._retained_dirs: set[Path] = set()
         self._guard = threading.Lock()
         self._job_guard = threading.Lock()
+        self._active_job_lock = threading.Lock()
+        self._active_job_run_id: str | None = None
+        self._active_job_id: str | None = None
+        self._active_job_cancel_event: threading.Event | None = None
         self.process_starts = 0
 
     def prepare_daily_run(self, connection: sqlite3.Connection, run_id: str):
@@ -192,9 +196,19 @@ class DailyAIRootRunner(AIJobRunner):
             raise AppServerError("job_does_not_match_bound_daily_root")
         if not self._job_guard.acquire(blocking=False):
             raise AppServerError("concurrent_daily_ai_job")
+        active_cancel_event = cancel_event or threading.Event()
+        with self._active_job_lock:
+            self._active_job_run_id = request.run_id
+            self._active_job_id = request.job_id
+            self._active_job_cancel_event = active_cancel_event
         try:
-            return super().run(request, cancel_event=cancel_event)
+            return super().run(request, cancel_event=active_cancel_event)
         finally:
+            with self._active_job_lock:
+                if self._active_job_cancel_event is active_cancel_event:
+                    self._active_job_run_id = None
+                    self._active_job_id = None
+                    self._active_job_cancel_event = None
             self._job_guard.release()
 
     def _cleanup_job_dir(self, job_dir: Path):
@@ -213,6 +227,8 @@ class DailyAIRootRunner(AIJobRunner):
         last_message = job_dir / "final.response"
         try:
             with self._guard:
+                if cancel_event is not None and cancel_event.is_set():
+                    return "cancelled", None, b"", b""
                 if self.session is None or self.session.is_closed:
                     self.session = self.session_factory(
                         command=(
@@ -238,6 +254,9 @@ class DailyAIRootRunner(AIJobRunner):
                         self.context["root_thread_id"] = thread_id
                     finally:
                         self.process_starts += self.session.starts
+                if cancel_event is not None and cancel_event.is_set():
+                    self.session.close()
+                    return "cancelled", None, b"", b""
             instruction = (
                 "\nContinue this Python-controlled daily root. Treat this turn as a "
                 "new job whose identity comes only from this turn's job-input.json. "
@@ -309,6 +328,22 @@ class DailyAIRootRunner(AIJobRunner):
             return False
         self.close_daily_run()
         return self.session is None or self.session.is_closed
+
+    def cancel_active_request(self, run_id: str, job_id: str) -> bool:
+        """Stop the current AI turn while retaining its run for later turns."""
+
+        with self._active_job_lock:
+            if (
+                self._active_job_run_id != run_id
+                or self._active_job_id != job_id
+                or self._active_job_cancel_event is None
+            ):
+                return False
+            self._active_job_cancel_event.set()
+        with self._guard:
+            if self.session is not None and not self.session.is_closed:
+                self.session.close()
+            return self.session is None or self.session.is_closed
 
     def close_daily_run(self):
         if self.session is not None:

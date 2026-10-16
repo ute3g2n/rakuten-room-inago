@@ -56,12 +56,7 @@ RUN_ID = "STEP13-RUN"
 @pytest.fixture
 def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
     private_data_root = (
-        ROOT
-        / "非公開作業データ"
-        / "イナゴ実装試験"
-        / "step-13"
-        / tmp_path.name
-        / "state"
+        ROOT / "非公開作業データ" / "イナゴ実装試験" / "step-13" / tmp_path.name / "state"
     )
     paths = resolve_runtime_paths(
         data_root=private_data_root,
@@ -69,9 +64,7 @@ def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic = json.loads(
-        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
-    )
+    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
     details = json.loads(
         (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
     )
@@ -535,7 +528,7 @@ def _make_ports(
     current_settings_version.fixture_only = True
     make_copy_spec.fixture_only = True
 
-    def cancel_owned(run_id: str) -> bool:
+    def cancel_owned(run_id: str, request_id: str | None = None) -> bool:
         cancellations.append(run_id)
         return True
 
@@ -556,6 +549,8 @@ def _make_ports(
         cancel_metrics_job=cancel_metrics,
         offer_intake=intake,
         fixture_only=True,
+        cancel_room_request=cancel_owned,
+        cancel_ai_request=cancel_owned,
     )
     return PortsBundle(ports, planner, room, runner, metrics, cancellations, intake)
 
@@ -696,7 +691,7 @@ def test_run_lock_owner_is_atomic_and_same_process_reentry_is_rejected(
     assert not owner_path.exists()
 
 
-def test_daily_before_1300_does_nothing_and_after_1800_records_missed(
+def test_daily_before_1300_does_nothing_and_after_1800_runs(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case)
@@ -712,19 +707,23 @@ def test_daily_before_1300_does_nothing_and_after_1800_records_missed(
     assert bundle.metrics.calls == []
 
     runtime_case.clock.current = datetime(2026, 10, 12, 18, 0, tzinfo=JST)
-    missed = _run(runtime_case, bundle)
+    after_end = _run(runtime_case, bundle)
 
-    assert missed.status == "missed"
-    assert missed.committed_count == 0
-    assert bundle.room.requests == []
-    assert bundle.metrics.calls == []
+    assert after_end.status != "missed"
+    assert after_end.committed_count == 0
+    assert bundle.room.requests
+    assert len(bundle.metrics.calls) == 1
     row = runtime_case.connection.execute(
         "SELECT target_date, status, attempt_used, committed_count, metrics_status FROM run"
     ).fetchone()
-    assert tuple(row) == ("2026-10-12", "missed", 0, 0, "not_started")
+    assert row[0] == "2026-10-12"
+    assert row[1] != "missed"
+    assert row[2] > 0
+    assert row[3] == 0
+    assert row[4] == "observed"
 
 
-def test_1750_start_applies_reports_then_runs_metrics_without_exploration(
+def test_1750_start_applies_reports_then_continues_daily_search(
     runtime_case: RuntimeCase,
 ) -> None:
     runtime_case.clock.current = datetime(2026, 10, 12, 17, 50, tzinfo=JST)
@@ -733,8 +732,8 @@ def test_1750_start_applies_reports_then_runs_metrics_without_exploration(
     outcome = _run(runtime_case, bundle)
 
     assert outcome.status == "shortfall"
-    assert outcome.attempt_used == 0
-    assert bundle.room.requests == []
+    assert outcome.attempt_used > 0
+    assert bundle.room.requests
     assert bundle.runner.requests == []
     assert bundle.metrics.started_at == ["2026-10-12T17:50:00+09:00"]
     assert (
@@ -899,7 +898,7 @@ def test_expired_pending_metrics_are_finalized_on_restart_without_recollection(
     )
 
 
-def test_metrics_call_is_read_only_cancelled_at_1800_and_late_value_is_ignored(
+def test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_is_ignored(
     runtime_case: RuntimeCase,
 ) -> None:
     runtime_case.clock.current = datetime(2026, 10, 12, 17, 59, tzinfo=JST)
@@ -946,7 +945,7 @@ def test_metrics_call_is_read_only_cancelled_at_1800_and_late_value_is_ignored(
             started.wait(timeout=3)
             and runtime_case.clock.advance(
                 (
-                    datetime(2026, 10, 12, 18, 0, tzinfo=JST)
+                    datetime(2026, 10, 12, 18, 4, tzinfo=JST)
                     - runtime_case.clock.now_jst()
                 ).total_seconds()
             )
@@ -967,7 +966,7 @@ def test_metrics_call_is_read_only_cancelled_at_1800_and_late_value_is_ignored(
         ).fetchone()[0]
         == "unavailable"
     )
-    assert bundle.metrics.calls == [(RUN_ID, "2026-10-12T18:00:00+09:00")]
+    assert bundle.metrics.calls == [(RUN_ID, "2026-10-12T18:04:00+09:00")]
 
 
 def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
@@ -988,7 +987,7 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     assert len(bundle.room.requests) == 3
     assert len(bundle.runner.requests) == 15
     assert bundle.metrics.started_at == ["2026-10-12T13:20:00+09:00"]
-    assert bundle.metrics.calls[0][1] == "2026-10-12T18:00:00+09:00"
+    assert bundle.metrics.calls[0][1] == "2026-10-12T13:25:00+09:00"
     assert (
         runtime_case.connection.execute(
             "SELECT COUNT(*) FROM theme_selection WHERE run_id=? AND event_kind='initial'",
@@ -1401,7 +1400,7 @@ def test_fourteen_committed_bodies_resume_same_run_seed_and_search_results(
     )
 
 
-def test_1745_discards_late_search_result_and_1800_does_not_start_metrics(
+def test_daily_flow_continues_after_1745_and_1800(
     runtime_case: RuntimeCase,
 ) -> None:
     runtime_case.clock.current = datetime(2026, 10, 12, 17, 44, 30, tzinfo=JST)
@@ -1414,12 +1413,12 @@ def test_1745_discards_late_search_result_and_1800_does_not_start_metrics(
 
     outcome = _run(runtime_case, bundle)
 
-    assert outcome.status == "shortfall"
-    assert outcome.committed_count == 0
-    assert outcome.attempt_used == 1
-    assert len(bundle.room.requests) == 1
-    assert bundle.runner.requests == []
-    assert bundle.cancellations == [RUN_ID]
+    assert outcome.status == "complete"
+    assert outcome.committed_count == 15
+    assert outcome.attempt_used >= 3
+    assert len(bundle.room.requests) >= 3
+    assert len(bundle.runner.requests) == 15
+    assert bundle.cancellations == []
     assert bundle.metrics.started_at == ["2026-10-12T17:45:00+09:00"]
 
     later_case = RuntimeCase(
@@ -1429,20 +1428,19 @@ def test_1745_discards_late_search_result_and_1800_does_not_start_metrics(
     )
     later_bundle = _make_ports(later_case)
     after_end = _run(later_case, later_bundle, run_id="STEP13-RUN-NEXT")
-    assert after_end.status == "missed"
-    assert later_bundle.room.requests == []
-    assert later_bundle.metrics.calls == []
+    assert after_end.status != "missed"
+    assert later_bundle.room.requests
+    assert len(later_bundle.metrics.calls) == 1
 
 
-def _advance_clock_to_draft_cutoff(
+def _advance_clock_past_request_timeout(
     runtime_case: RuntimeCase, started: threading.Event
 ) -> None:
     assert started.wait(timeout=3), "owned job did not start"
-    cutoff = datetime(2026, 10, 12, 17, 45, tzinfo=JST)
-    runtime_case.clock.advance((cutoff - runtime_case.clock.now_jst()).total_seconds())
+    runtime_case.clock.advance(480)
 
 
-def test_blocked_room_call_is_cancelled_at_1745_and_late_posts_are_ignored(
+def test_blocked_room_call_uses_request_timeout_and_ignores_late_posts(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=5)
@@ -1461,30 +1459,31 @@ def test_blocked_room_call_is_cancelled_at_1745_and_late_posts_are_ignored(
 
     bundle.room.search = blocked_search
 
-    def cancel(run_id: str) -> bool:
+    def cancel(run_id: str, request_id: str) -> bool:
         bundle.cancellations.append(run_id)
         cancelled.set()
         return True
 
-    bundle.ports = replace(bundle.ports, cancel_owned_jobs=cancel)
+    bundle.ports = replace(bundle.ports, cancel_room_request=cancel)
     clock_driver = threading.Thread(
-        target=_advance_clock_to_draft_cutoff,
+        target=_advance_clock_past_request_timeout,
         args=(runtime_case, started),
         daemon=True,
     )
     clock_driver.start()
     outcome = _run(runtime_case, bundle)
     assert cancelled.is_set()
-    assert outcome.committed_count == 0
-    assert bundle.runner.requests == []
-    assert bundle.metrics.started_at == ["2026-10-12T17:45:00+09:00"]
+    assert outcome.committed_count == 15
+    assert len(bundle.room.requests) > 1
+    assert len(bundle.runner.requests) == 15
+    assert bundle.metrics.started_at == ["2026-10-12T13:08:00+09:00"]
     attempt = runtime_case.connection.execute(
         "SELECT ended_at, source_status, error_code FROM search_attempt WHERE run_id=?",
         (RUN_ID,),
     ).fetchone()
     assert attempt["ended_at"] is not None
     assert attempt["source_status"] == "unavailable"
-    assert attempt["error_code"] == "daily_deadline_exceeded"
+    assert attempt["error_code"] == "room_request_timeout"
     assert (
         runtime_case.connection.execute(
             "SELECT COUNT(*) FROM source_post WHERE attempt_id=(SELECT attempt_id FROM search_attempt WHERE run_id=?)",
@@ -1519,15 +1518,17 @@ def test_unconfirmed_owned_job_cancellation_is_recorded_as_failure(
         finally:
             late_returned.set()
 
-    def cancel_without_confirmation(run_id: str) -> bool:
+    def cancel_without_confirmation(run_id: str, request_id: str) -> bool:
         bundle.cancellations.append(run_id)
         cancel_requested.set()
         return False
 
     bundle.room.search = blocked_search
-    bundle.ports = replace(bundle.ports, cancel_owned_jobs=cancel_without_confirmation)
+    bundle.ports = replace(
+        bundle.ports, cancel_room_request=cancel_without_confirmation
+    )
     clock_driver = threading.Thread(
-        target=_advance_clock_to_draft_cutoff,
+        target=_advance_clock_past_request_timeout,
         args=(runtime_case, started),
         daemon=True,
     )
@@ -1544,13 +1545,14 @@ def test_unconfirmed_owned_job_cancellation_is_recorded_as_failure(
         ).fetchone()[0]
     )["daily_orchestration"]["errors"]
     assert any(
-        error["phase"] == "cutoff" and error["code"] == "owned_job_cancel_failed"
+        error["phase"] == "room"
+        and error["code"] == "room_request_timeout_cancel_failed"
         for error in errors
     )
     assert late_returned.wait(timeout=3)
 
 
-def test_blocked_ai_copy_is_cancelled_at_1745_and_late_body_is_not_committed(
+def test_blocked_ai_copy_uses_request_timeout_and_discards_late_body(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=1)
@@ -1569,22 +1571,24 @@ def test_blocked_ai_copy_is_cancelled_at_1745_and_late_body_is_not_committed(
 
     bundle.runner.run = blocked_run
 
-    def cancel(run_id: str) -> bool:
+    def cancel(run_id: str, request_id: str) -> bool:
         bundle.cancellations.append(run_id)
         cancelled.set()
         return True
 
-    bundle.ports = replace(bundle.ports, cancel_owned_jobs=cancel)
+    bundle.ports = replace(bundle.ports, cancel_ai_request=cancel)
     clock_driver = threading.Thread(
-        target=_advance_clock_to_draft_cutoff,
+        target=_advance_clock_past_request_timeout,
         args=(runtime_case, started),
         daemon=True,
     )
     clock_driver.start()
     outcome = _run(runtime_case, bundle)
     assert cancelled.is_set()
-    assert outcome.committed_count == 0
-    assert bundle.metrics.started_at == ["2026-10-12T17:45:00+09:00"]
+    assert outcome.committed_count > 0
+    assert len(bundle.room.requests) > 1
+    assert len(bundle.runner.requests) > 1
+    assert bundle.metrics.started_at == ["2026-10-12T13:08:00+09:00"]
     attempt = runtime_case.connection.execute(
         "SELECT outcome, error_code FROM generation_attempt WHERE run_id=?",
         (RUN_ID,),

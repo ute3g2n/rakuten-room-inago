@@ -303,21 +303,21 @@ def test_owner_confirmed_resume_preserves_run_and_consumed_budgets() -> None:
     [
         (
             datetime(2026, 10, 13, 17, 45, tzinfo=JST),
-            "draft_cutoff_metrics_only",
-            False,
-            False,
+            "resume_remaining",
+            True,
+            True,
             True,
         ),
         (
             datetime(2026, 10, 13, 18, 0, tzinfo=JST),
-            "daily_deadline_reached",
-            False,
-            False,
-            False,
+            "resume_remaining",
+            True,
+            True,
+            True,
         ),
     ],
 )
-def test_resume_respects_draft_and_metrics_deadlines(
+def test_resume_after_1745_and_1800_keeps_daily_work_available(
     now, expected_action, allow_search, allow_generation, allow_metrics
 ) -> None:
     decision = plan_resume(

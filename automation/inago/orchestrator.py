@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import queue
 import re
 import secrets
@@ -12,7 +13,7 @@ import threading
 import uuid
 from dataclasses import dataclass, replace
 from contextlib import ExitStack
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence
 from zoneinfo import ZoneInfo
@@ -38,6 +39,7 @@ from automation.inago.repository import (
     validate_entity,
 )
 from automation.inago.room_adapter import (
+    ROOM_REQUEST_TIMEOUT_SECONDS,
     RoomSearchPort,
     RoomSearchSession,
 )
@@ -58,10 +60,10 @@ from automation.inago.selection import (
 
 JST = ZoneInfo("Asia/Tokyo")
 DAILY_START = time(13, 0)
-DRAFT_CUTOFF = time(17, 45)
-METRICS_CUTOFF = time(18, 0)
 DAILY_TARGET = 15
 PER_THEME_TARGET = 5
+AI_REQUEST_TIMEOUT_SECONDS = 480
+METRICS_REQUEST_TIMEOUT_SECONDS = 300
 MAX_POSTS_PER_SEARCH = 50
 MAX_COPY_ATTEMPTS = 3
 _DAILY_CHECKPOINT_KEY = "daily_orchestration"
@@ -156,6 +158,19 @@ class _CancelRunWork:
             return self.confirmed
 
 
+def _cancel_request_job(
+    callback: Callable[[str, str], bool] | None, run_id: str, request_id: str
+) -> bool:
+    """Cancel only the active ROOM or AI request; missing support is unconfirmed."""
+
+    if callback is None:
+        return False
+    try:
+        return callback(run_id, request_id) is True
+    except Exception:
+        return False
+
+
 def _call_before_deadline(
     callback: Callable[[], Any],
     *,
@@ -195,28 +210,93 @@ def _call_before_deadline(
         return True, value
 
 
-class _DeadlineRoomSearchPort:
-    """Enforce the run's 17:45 cutoff around one ROOM observation request."""
+class _DeadlineCopyRunner:
+    """Discard an AI-O result that arrives at or after its request deadline."""
+
+    def __init__(
+        self,
+        runner: CopyRunner,
+        *,
+        clock: Clock,
+        cancel: Callable[[AIJobRequest], Any],
+    ) -> None:
+        self._runner = runner
+        self._clock = clock
+        self._cancel = cancel
+        self.last_cancel_confirmed: bool | None = None
+
+    def run(self, request: AIJobRequest) -> AIJobResult:
+        self.last_cancel_confirmed = None
+
+        def cancel_request() -> bool:
+            self.last_cancel_confirmed = self._cancel(request) is True
+            return self.last_cancel_confirmed
+
+        completed, result = _call_before_deadline(
+            lambda: self._runner.run(request),
+            deadline_monotonic=request.deadline_monotonic,
+            clock=self._clock,
+            cancel=cancel_request,
+        )
+        if completed:
+            return result
+        error_code = (
+            "ai_request_timeout"
+            if self.last_cancel_confirmed
+            else "ai_request_timeout_cancel_unconfirmed"
+        )
+        return AIJobResult(
+            job_id=request.job_id,
+            run_id=request.run_id,
+            attempt=request.attempt,
+            task_id=request.task_id,
+            agent_id="AI-O",
+            skill_name="rakuten-room-inago",
+            target_date=request.target_date,
+            settings_version=request.settings_version,
+            input_refs=request.input_refs,
+            evidence_refs=request.evidence_refs,
+            input_hash="deadline-discarded",
+            deadline_at=request.deadline_at,
+            result_status="timed_out",
+            adoption_status="pending",
+            payload=None,
+            error={"code": error_code},
+            artifact=None,
+            started_at=None,
+            finished_at=_now(self._clock).isoformat(),
+        )
+
+
+class _RequestTimeoutRoomSearchPort:
+    """Enforce one finite timeout for each ROOM observation request."""
 
     def __init__(
         self,
         port: RoomSearchPort,
         *,
-        deadline_monotonic: float,
+        timeout_seconds: int,
         clock: Clock,
-        cancel: Callable[[], Any],
+        cancel: Callable[[Any], Any],
     ) -> None:
         self._port = port
-        self._deadline = deadline_monotonic
+        self._timeout_seconds = timeout_seconds
         self._clock = clock
         self._cancel = cancel
 
     def search(self, request):
+        cancellation_confirmed = True
+
+        def cancel_request() -> bool:
+            nonlocal cancellation_confirmed
+            cancellation_confirmed = self._cancel(request) is True
+            return cancellation_confirmed
+
         completed, response = _call_before_deadline(
             lambda: self._port.search(request),
-            deadline_monotonic=self._deadline,
+            deadline_monotonic=self._clock.monotonic() + self._timeout_seconds,
             clock=self._clock,
-            cancel=self._cancel,
+            cancel=cancel_request,
         )
         if completed:
             return response
@@ -245,55 +325,13 @@ class _DeadlineRoomSearchPort:
             "status": "unavailable",
             "fetched_at": None,
             "end_reached": False,
-            "error_code": "daily_deadline_exceeded",
+            "error_code": (
+                "room_request_timeout"
+                if cancellation_confirmed
+                else "room_request_timeout_cancel_unconfirmed"
+            ),
             "posts": [],
         }
-
-
-class _DeadlineCopyRunner:
-    """Discard an AI-O result that arrives at or after its request deadline."""
-
-    def __init__(
-        self,
-        runner: CopyRunner,
-        *,
-        clock: Clock,
-        cancel: Callable[[], Any],
-    ) -> None:
-        self._runner = runner
-        self._clock = clock
-        self._cancel = cancel
-
-    def run(self, request: AIJobRequest) -> AIJobResult:
-        completed, result = _call_before_deadline(
-            lambda: self._runner.run(request),
-            deadline_monotonic=request.deadline_monotonic,
-            clock=self._clock,
-            cancel=self._cancel,
-        )
-        if completed:
-            return result
-        return AIJobResult(
-            job_id=request.job_id,
-            run_id=request.run_id,
-            attempt=request.attempt,
-            task_id=request.task_id,
-            agent_id="AI-O",
-            skill_name="rakuten-room-inago",
-            target_date=request.target_date,
-            settings_version=request.settings_version,
-            input_refs=request.input_refs,
-            evidence_refs=request.evidence_refs,
-            input_hash="deadline-discarded",
-            deadline_at=request.deadline_at,
-            result_status="timed_out",
-            adoption_status="pending",
-            payload=None,
-            error={"code": "daily_deadline_exceeded"},
-            artifact=None,
-            started_at=None,
-            finished_at=_now(self._clock).isoformat(),
-        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -392,9 +430,9 @@ class MetricsPort(Protocol):
 class DailyPorts:
     """Explicit runtime ports; tests supply local fixture implementations.
 
-    Both cancellation callbacks must return True only after all work owned by
-    that run has stopped; None, False, or an exception means cancellation could
-    not be confirmed and is persisted as an operational error.
+    ``cancel_owned_jobs`` stops the whole run for explicit run cancellation.
+    Request timeout callbacks stop only the active ROOM or AI job so a bounded
+    retry can continue. Missing or unconfirmed request cancellation is fatal.
     """
 
     current_settings_version: Callable[[sqlite3.Connection], str]
@@ -407,6 +445,8 @@ class DailyPorts:
     cancel_metrics_job: Callable[[str], bool]
     offer_intake: OfferIntakePort | None = None
     fixture_only: bool = False
+    cancel_room_request: Callable[[str, str], bool] | None = None
+    cancel_ai_request: Callable[[str, str], bool] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -419,6 +459,15 @@ class DailyRunOutcome:
     metrics_status: str
     resumed: bool = False
     reason: str | None = None
+    daily_target: int = DAILY_TARGET
+    initial_allocation_count: int = 0
+    supplemental_allocation_count: int = 0
+    shortfall_count: int = 0
+    actual_posted_count: int = 0
+    source_failures: int = 0
+    error_count: int = 0
+    primary_error: Mapping[str, Any] | None = None
+    secondary_errors: tuple[Mapping[str, Any], ...] = ()
 
 
 def _now(clock: Clock) -> datetime:
@@ -515,11 +564,11 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
             "source_stopped_reason": None,
             "phase": "initial",
             "initial_theme_ids": [],
+            "primary_error": None,
             "plans": {},
             "tasks": [],
             "task_cursor": 0,
             "additional_events": 0,
-            "cancelled_at_draft_cutoff": False,
             "source_failures": 0,
             "error_count": 0,
             "processed_attempts": [],
@@ -641,15 +690,18 @@ def _record_orchestration_error(state: dict[str, Any], exc: Exception) -> None:
             exc.error_code,
             references=exc.references,
         )
+        state["primary_error"] = dict(state["errors"][-1])
         return
     if isinstance(exc, sqlite3.Error):
         _append_error(state, "save", "save_error")
+        state["primary_error"] = dict(state["errors"][-1])
         return
     _append_error(
         state,
         "orchestration",
         f"step13_error_{type(exc).__name__}",
     )
+    state["primary_error"] = dict(state["errors"][-1])
 
 
 def _run_by_date(connection: sqlite3.Connection, target_date: str):
@@ -666,7 +718,6 @@ def _create_run(
     ports: DailyPorts,
     run_id_factory: Callable[[date], str],
     seed_factory: Callable[[], str],
-    missed: bool,
 ):
     existing = _run_by_date(connection, target_date)
     if existing is not None:
@@ -689,8 +740,8 @@ def _create_run(
     if not isinstance(seed, str) or not seed.strip() or seed != seed.strip():
         raise DailyOrchestrationError("daily_seed_invalid")
     started_at = now.isoformat()
-    status = "missed" if missed else "running"
-    finished_at = started_at if missed else None
+    status = "running"
+    finished_at = None
     connection.execute("BEGIN IMMEDIATE")
     try:
         existing = _run_by_date(connection, target_date)
@@ -712,8 +763,8 @@ def _create_run(
                 settings_version,
                 seed,
                 started_at,
-                _at(run_date, DRAFT_CUTOFF).isoformat(),
-                _at(run_date, METRICS_CUTOFF).isoformat(),
+                None,
+                None,
                 finished_at,
             ),
         )
@@ -786,27 +837,84 @@ def _finish(
             connection.rollback()
         raise
     row = connection.execute("SELECT * FROM run WHERE run_id=?", (run_id,)).fetchone()
-    return DailyRunOutcome(
-        status=status,
-        run_id=run_id,
-        target_date=str(row["target_date"]),
-        committed_count=int(row["committed_count"]),
-        attempt_used=int(row["attempt_used"]),
-        metrics_status=str(row["metrics_status"]),
-        reason=reason,
+    return _outcome_from_run(row, connection=connection, reason=reason)
+
+
+def _outcome_from_run(
+    row,
+    *,
+    connection: sqlite3.Connection | None = None,
+    resumed: bool = False,
+    reason: str | None = None,
+):
+    _, state = _daily_state(row["checkpoint"])
+    initial_theme_ids = state.get("initial_theme_ids", [])
+    if not isinstance(initial_theme_ids, list):
+        initial_theme_ids = []
+    initial_allocations = min(DAILY_TARGET, len(initial_theme_ids) * PER_THEME_TARGET)
+    targets = state.get("theme_targets", {})
+    if not isinstance(targets, Mapping):
+        targets = {}
+    supplemental_allocations = sum(
+        value
+        for theme_id, value in targets.items()
+        if theme_id not in initial_theme_ids
+        and isinstance(value, int)
+        and not isinstance(value, bool)
+        and value > 0
     )
-
-
-def _outcome_from_run(row, *, resumed: bool = False, reason: str | None = None):
+    errors = state.get("errors", [])
+    if not isinstance(errors, list):
+        errors = []
+    error_count = int(state.get("error_count", 0))
+    primary_error = state.get("primary_error")
+    if not isinstance(primary_error, Mapping):
+        primary_error = None
+    if primary_error is None and errors and isinstance(errors[0], Mapping):
+        primary_error = dict(errors[0])
+    if primary_error is None and (str(row["status"]) == "failed" or error_count > 0):
+        primary_error = {
+            "phase": "daily",
+            "code": reason or "daily_processing_error",
+        }
+    if error_count == 0:
+        primary_error = None
+    secondary_errors = tuple(
+        dict(item)
+        for item in errors
+        if isinstance(item, Mapping) and dict(item) != primary_error
+    )
+    actual_posted_count = 0
+    if connection is not None:
+        actual_posted_count = int(
+            connection.execute(
+                "SELECT COUNT(DISTINCT event.event_id) "
+                "FROM publication_event AS event "
+                "JOIN draft ON draft.draft_id=event.draft_id "
+                "AND draft.version=event.draft_version "
+                "WHERE draft.run_id=? AND event.valid=1",
+                (str(row["run_id"]),),
+            ).fetchone()[0]
+        )
+    committed_count = int(row["committed_count"])
     return DailyRunOutcome(
         status=str(row["status"]),
         run_id=str(row["run_id"]),
         target_date=str(row["target_date"]),
-        committed_count=int(row["committed_count"]),
+        committed_count=committed_count,
         attempt_used=int(row["attempt_used"]),
         metrics_status=str(row["metrics_status"]),
         resumed=resumed,
         reason=reason,
+        daily_target=DAILY_TARGET,
+        initial_allocation_count=initial_allocations,
+        supplemental_allocation_count=supplemental_allocations,
+        shortfall_count=max(0, DAILY_TARGET - committed_count),
+        actual_posted_count=actual_posted_count,
+        source_failures=int(state.get("source_failures", 0)),
+        error_count=error_count,
+        primary_error=(dict(primary_error) if primary_error is not None else None),
+        secondary_errors=secondary_errors,
     )
 
 
@@ -1632,11 +1740,11 @@ def _process_search_result(
     )
     handled = set(state.get("handled_offer_keys", []))
     for representative in evaluation.eligible_representatives:
+        if state.get("source_stopped"):
+            break
         offer_key = representative.offer_key
         if offer_key in handled or _draft_count(connection, run_id) >= DAILY_TARGET:
             continue
-        if _now(clock) >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF):
-            break
         offer = connection.execute(
             "SELECT main_theme_id FROM offer WHERE offer_key=?", (offer_key,)
         ).fetchone()
@@ -1656,11 +1764,8 @@ def _process_search_result(
             assigned[offer_key] = theme_id
             _save_state(connection, run_id, state)
         now = _now(clock)
-        deadline_at = _at(date.fromisoformat(target_date), DRAFT_CUTOFF).isoformat()
-        deadline_monotonic = clock.monotonic() + max(
-            0.0,
-            (_at(date.fromisoformat(target_date), DRAFT_CUTOFF) - now).total_seconds(),
-        )
+        deadline_at = (now + timedelta(seconds=AI_REQUEST_TIMEOUT_SECONDS)).isoformat()
+        deadline_monotonic = clock.monotonic() + AI_REQUEST_TIMEOUT_SECONDS
         try:
             spec = ports.copy_spec_factory(
                 connection,
@@ -1719,6 +1824,23 @@ def _process_search_result(
                 cause_code=outcome.cause_code,
                 artifact_ref=outcome.artifact_ref,
             )
+        elif outcome.status == "expired" and outcome.error_code == "timed_out":
+            _mark_offer_handled(state, offer_key)
+            confirmed = (
+                getattr(ports.copy_runner, "last_cancel_confirmed", None) is True
+            )
+            error_code = (
+                "ai_request_timeout"
+                if confirmed
+                else "ai_request_timeout_cancel_failed"
+            )
+            state["error_count"] = int(state.get("error_count", 0)) + 1
+            _append_error(state, "copy", error_code)
+            if not confirmed:
+                state["source_stopped"] = True
+                state["source_stopped_reason"] = error_code
+                state["primary_error"] = dict(state["errors"][-1])
+            _save_state(connection, run_id, state)
         else:
             _mark_offer_handled(state, offer_key)
             state["error_count"] = int(state.get("error_count", 0)) + 1
@@ -1754,7 +1876,7 @@ def _search_task(
     if query in used_queries and _attempt_row(connection, first_id) is None:
         return
     for local_attempt in range(1, 4):
-        if _now(clock) >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF):
+        if state.get("source_stopped"):
             return
         if _draft_count(connection, run_id) >= DAILY_TARGET:
             return
@@ -1801,10 +1923,6 @@ def _search_task(
                 raise DailyOrchestrationError("saved_search_input_changed")
             refreshed = _attempt_row(connection, attempt_id)
             status = str(refreshed["source_status"])
-        if _now(clock) >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF):
-            state.setdefault("late_search_attempts", []).append(attempt_id)
-            _save_state(connection, run_id, state)
-            return
         _process_search_result(
             connection,
             run_id=run_id,
@@ -1820,50 +1938,23 @@ def _search_task(
             data_root=data_root,
             on_draft_commit=on_draft_commit,
         )
+        attempt = _attempt_row(connection, attempt_id)
+        if (
+            attempt is not None
+            and attempt["error_code"] == "room_request_timeout_cancel_unconfirmed"
+        ):
+            state["error_count"] = int(state.get("error_count", 0)) + 1
+            state["source_stopped"] = True
+            state["source_stopped_reason"] = "room_request_timeout_cancel_failed"
+            _append_error(state, "room", "room_request_timeout_cancel_failed")
+            state["primary_error"] = dict(state["errors"][-1])
+            _save_state(connection, run_id, state)
+            return
         if status not in {"partial", "unavailable", "invalid"}:
             return
     state["source_stopped"] = True
     state["source_stopped_reason"] = "attempt_budget_exhausted"
     _save_state(connection, run_id, state)
-
-
-def _cancel_owned_work(
-    connection: sqlite3.Connection,
-    *,
-    run_id: str,
-    state: dict[str, Any],
-    ports: DailyPorts,
-    force: bool = False,
-) -> None:
-    if state.get("cancelled_at_draft_cutoff") is True:
-        return
-    state["cancelled_at_draft_cutoff"] = True
-    _save_state(connection, run_id, state)
-    pending_search = connection.execute(
-        "SELECT 1 FROM search_attempt WHERE run_id=? AND ended_at IS NULL LIMIT 1",
-        (run_id,),
-    ).fetchone()
-    pending_copy = connection.execute(
-        "SELECT 1 FROM generation_attempt WHERE run_id=? AND outcome='in_progress' LIMIT 1",
-        (run_id,),
-    ).fetchone()
-    if force or pending_search or pending_copy:
-        try:
-            cancellation_confirmed = ports.cancel_owned_jobs(run_id)
-        except Exception as exc:
-            cancellation_error = type(exc).__name__
-            cancellation_confirmed = False
-        else:
-            cancellation_error = "cancel_not_confirmed"
-        if not cancellation_confirmed:
-            state["error_count"] = int(state.get("error_count", 0)) + 1
-            _append_error(
-                state,
-                "cutoff",
-                "owned_job_cancel_failed",
-                cancellation_error,
-            )
-            _save_state(connection, run_id, state)
 
 
 def _main_database_path(connection: sqlite3.Connection) -> Path:
@@ -1941,7 +2032,7 @@ def _collect_metrics(
     data_root: Path,
 ) -> str:
     row = connection.execute(
-        "SELECT metrics_status, end_deadline FROM run WHERE run_id=?", (run_id,)
+        "SELECT metrics_status FROM run WHERE run_id=?", (run_id,)
     ).fetchone()
     if row is None:
         raise DailyOrchestrationError("daily_run_missing_before_metrics")
@@ -1953,9 +2044,24 @@ def _collect_metrics(
         "not_started",
     } and state.get("metrics_started_at"):
         return current_status
-    deadline = _at(date.fromisoformat(target_date), METRICS_CUTOFF)
-    if _now(clock) >= deadline:
-        if current_status == "pending":
+    if current_status == "pending":
+        # A prior process may have stopped after starting this request. Its late
+        # answer must not be duplicated or re-adopted on a restart.
+        status = "unavailable"
+    else:
+        state["metrics_started_at"] = _now(clock).isoformat()
+        timeout_value = getattr(
+            ports.metrics_port,
+            "timeout_seconds",
+            METRICS_REQUEST_TIMEOUT_SECONDS,
+        )
+        if (
+            isinstance(timeout_value, bool)
+            or not isinstance(timeout_value, (int, float))
+            or not math.isfinite(float(timeout_value))
+            or float(timeout_value) <= 0
+        ):
+            _append_error(state, "metrics", "metrics_request_timeout_invalid")
             _persist_metrics_status(
                 connection,
                 run_id=run_id,
@@ -1963,20 +2069,14 @@ def _collect_metrics(
                 status="unavailable",
             )
             return "unavailable"
-        return current_status
-    if current_status == "pending":
-        # A prior process may have stopped after starting this request. Its late
-        # answer must not be duplicated or re-adopted on a restart.
-        status = "unavailable"
-    else:
-        state["metrics_started_at"] = _now(clock).isoformat()
+        request_timeout = float(timeout_value)
+        deadline = _now(clock) + timedelta(seconds=request_timeout)
+        request_deadline_at = deadline.isoformat()
         connection.execute(
             "UPDATE run SET metrics_status='pending' WHERE run_id=?", (run_id,)
         )
         _save_state(connection, run_id, state)
-        deadline_monotonic = clock.monotonic() + max(
-            0.0, (deadline - _now(clock)).total_seconds()
-        )
+        deadline_monotonic = clock.monotonic() + request_timeout
         cancel_metrics = _CancelRunWork(run_id, ports.cancel_metrics_job)
         metrics_database_path = _main_database_path(connection)
 
@@ -1986,7 +2086,7 @@ def _collect_metrics(
                 return ports.metrics_port.collect(
                     metrics_connection,
                     run_id=run_id,
-                    deadline_at=str(row["end_deadline"]),
+                    deadline_at=request_deadline_at,
                 )
             finally:
                 metrics_connection.close()
@@ -2057,8 +2157,6 @@ def _collect_metrics(
         except Exception as exc:
             status = "unavailable"
             _append_error(state, "metrics", "metrics_port_error", type(exc).__name__)
-        if _now(clock) >= _at(date.fromisoformat(target_date), METRICS_CUTOFF):
-            status = "partial" if status == "observed" else "unavailable"
     _persist_metrics_status(connection, run_id=run_id, state=state, status=status)
     return status
 
@@ -2105,7 +2203,12 @@ def run_daily(
     except RunLockBusy:
         existing = _run_by_date(connection, target_date)
         if existing is not None:
-            return _outcome_from_run(existing, resumed=True, reason="daily_lock_busy")
+            return _outcome_from_run(
+                existing,
+                connection=connection,
+                resumed=True,
+                reason="daily_lock_busy",
+            )
         return DailyRunOutcome(
             "locked", None, target_date, 0, 0, "not_started", reason="daily_lock_busy"
         )
@@ -2185,29 +2288,6 @@ def run_daily(
         ):
             raise DailyOrchestrationError("daily_retention_cleanup_failed")
         existing = _run_by_date(connection, target_date)
-        if now.time() >= METRICS_CUTOFF:
-            if existing is not None:
-                if str(existing["metrics_status"]) == "pending":
-                    _, state = _daily_state(existing["checkpoint"])
-                    _persist_metrics_status(
-                        connection,
-                        run_id=str(existing["run_id"]),
-                        state=state,
-                        status="unavailable",
-                    )
-                    existing = _run_by_date(connection, target_date)
-                return _outcome_from_run(existing, reason="run_already_started_today")
-            missed = _create_run(
-                connection,
-                target_date=target_date,
-                now=now,
-                ports=ports,
-                run_id_factory=lambda _target: proposed_run_id,
-                seed_factory=actual_seed_factory,
-                missed=True,
-            )
-            return _outcome_from_run(missed, reason="scheduled_start_after_1800")
-
         resumed = existing is not None
         run = existing or _create_run(
             connection,
@@ -2216,11 +2296,69 @@ def run_daily(
             ports=ports,
             run_id_factory=lambda _target: proposed_run_id,
             seed_factory=actual_seed_factory,
-            missed=False,
         )
         run_id = str(run["run_id"])
         if run["status"] in {"complete", "missed"}:
-            return _outcome_from_run(run, resumed=resumed)
+            if run["status"] == "complete" and run["metrics_status"] in {
+                "pending",
+                "not_started",
+            }:
+                _, state = _daily_state(run["checkpoint"])
+                state.pop("metrics_started_at", None)
+                if run["metrics_status"] == "pending":
+                    cancel_metrics = _CancelRunWork(run_id, ports.cancel_metrics_job)
+                    if not cancel_metrics(run_id):
+                        state["error_count"] = int(state.get("error_count", 0)) + 1
+                        _append_error(
+                            state,
+                            "metrics",
+                            "metrics_previous_request_cancel_failed",
+                            cancel_metrics.error_code,
+                        )
+                        state["primary_error"] = dict(state["errors"][-1])
+                        _persist_metrics_status(
+                            connection,
+                            run_id=run_id,
+                            state=state,
+                            status="unavailable",
+                        )
+                        current = connection.execute(
+                            "SELECT * FROM run WHERE run_id=?", (run_id,)
+                        ).fetchone()
+                        return _outcome_from_run(
+                            current,
+                            connection=connection,
+                            resumed=True,
+                            reason="metrics_previous_request_cancel_failed",
+                        )
+                _persist_metrics_status(
+                    connection,
+                    run_id=run_id,
+                    state=state,
+                    status="not_started",
+                )
+                metric_status = _collect_metrics(
+                    connection,
+                    run_id=run_id,
+                    target_date=target_date,
+                    state=state,
+                    ports=ports,
+                    clock=system_clock,
+                    data_root=root,
+                )
+                current = connection.execute(
+                    "SELECT * FROM run WHERE run_id=?", (run_id,)
+                ).fetchone()
+                return replace(
+                    _outcome_from_run(
+                        current,
+                        connection=connection,
+                        resumed=True,
+                        reason="completed_run_metrics_resumed",
+                    ),
+                    metrics_status=metric_status,
+                )
+            return _outcome_from_run(run, connection=connection, resumed=resumed)
         saved_root = _strict_json_object(run["checkpoint"])
         saved_daily = saved_root.get(_DAILY_CHECKPOINT_KEY)
         if (
@@ -2261,24 +2399,27 @@ def run_daily(
         if state.pop("recoverable_error_pending", False):
             state["error_count"] = max(0, int(state.get("error_count", 0)) - 1)
             _save_state(connection, run_id, state)
-        draft_deadline = _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
-        deadline_monotonic = system_clock.monotonic() + max(
-            0.0, (draft_deadline - _now(system_clock)).total_seconds()
+        startup_deadline_monotonic = (
+            system_clock.monotonic() + AI_REQUEST_TIMEOUT_SECONDS
         )
         cancel_run_work = _CancelRunWork(run_id, ports.cancel_owned_jobs)
         original_copy_runner = ports.copy_runner
         ports = replace(
             ports,
-            room_port=_DeadlineRoomSearchPort(
+            room_port=_RequestTimeoutRoomSearchPort(
                 ports.room_port,
-                deadline_monotonic=deadline_monotonic,
+                timeout_seconds=ROOM_REQUEST_TIMEOUT_SECONDS,
                 clock=system_clock,
-                cancel=lambda: cancel_run_work(run_id),
+                cancel=lambda request: _cancel_request_job(
+                    ports.cancel_room_request, request.run_id, request.attempt_id
+                ),
             ),
             copy_runner=_DeadlineCopyRunner(
                 ports.copy_runner,
                 clock=system_clock,
-                cancel=lambda: cancel_run_work(run_id),
+                cancel=lambda request: _cancel_request_job(
+                    ports.cancel_ai_request, request.run_id, request.job_id
+                ),
             ),
             cancel_owned_jobs=cancel_run_work,
         )
@@ -2313,9 +2454,7 @@ def run_daily(
                     "reports",
                     report_result.error or "pending_reports_block_exploration",
                 )
-            elif _now(system_clock) < _at(
-                date.fromisoformat(target_date), DRAFT_CUTOFF
-            ):
+            else:
                 if all(
                     callable(getattr(original_copy_runner, name, None))
                     for name in (
@@ -2333,7 +2472,7 @@ def run_daily(
 
                     daily_resources.callback(close_root)
                     original_copy_runner.start_daily_root(
-                        deadline_monotonic=deadline_monotonic
+                        deadline_monotonic=startup_deadline_monotonic
                     )
                     original_copy_runner.sync_daily_checkpoint(connection)
                 _ensure_initial_work(
@@ -2348,10 +2487,6 @@ def run_daily(
                 while _draft_count(connection, run_id) < DAILY_TARGET and not state.get(
                     "source_stopped"
                 ):
-                    if _now(system_clock) >= _at(
-                        date.fromisoformat(target_date), DRAFT_CUTOFF
-                    ):
-                        break
                     tasks = state["tasks"]
                     cursor = int(state["task_cursor"])
                     if cursor >= len(tasks):
@@ -2399,31 +2534,8 @@ def run_daily(
                         data_root=root,
                         on_draft_commit=on_draft_commit,
                     )
-                    if _now(system_clock) >= _at(
-                        date.fromisoformat(target_date), DRAFT_CUTOFF
-                    ):
-                        _cancel_owned_work(
-                            connection,
-                            run_id=run_id,
-                            state=state,
-                            ports=ports,
-                            force=True,
-                        )
-                        break
                     state["task_cursor"] = cursor + 1
                     _save_state(connection, run_id, state)
-
-            if (
-                _now(system_clock) >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
-                and state.get("cancelled_at_draft_cutoff") is not True
-            ):
-                _cancel_owned_work(
-                    connection,
-                    run_id=run_id,
-                    state=state,
-                    ports=ports,
-                    force=False,
-                )
         except Exception as exc:
             orchestration_failed = True
             if isinstance(exc, _CopyContractRejected):
@@ -2447,12 +2559,7 @@ def run_daily(
             status, reason = "complete", "daily_target_reached"
         elif count > 0:
             status = "partial"
-            reason = contract_error_reason or (
-                "draft_cutoff_1745"
-                if _now(system_clock)
-                >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
-                else "daily_interrupted_or_candidate_shortage"
-            )
+            reason = contract_error_reason or "daily_interrupted_or_candidate_shortage"
         elif int(state.get("error_count", 0)) or int(state.get("source_failures", 0)):
             status, reason = (
                 "failed",
@@ -2460,12 +2567,7 @@ def run_daily(
             )
         else:
             status = "shortfall"
-            reason = (
-                "draft_cutoff_1745"
-                if _now(system_clock)
-                >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
-                else "candidate_or_theme_exhausted"
-            )
+            reason = "candidate_or_theme_exhausted"
         outcome = _finish(
             connection,
             run_id=run_id,
@@ -2475,13 +2577,10 @@ def run_daily(
             reason=reason,
             preserve_checkpoint=orchestration_failed,
         )
-        return DailyRunOutcome(
-            outcome.status,
-            outcome.run_id,
-            outcome.target_date,
-            outcome.committed_count,
-            attempts,
-            metric_status,
+        return replace(
+            outcome,
+            attempt_used=attempts,
+            metrics_status=metric_status,
             resumed=resumed,
             reason=reason,
         )

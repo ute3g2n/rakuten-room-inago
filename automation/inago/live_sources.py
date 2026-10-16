@@ -306,6 +306,9 @@ class PublicBrowserSource:
         self._lock = threading.Lock()
         self._serial = threading.Lock()
         self._active: dict[subprocess.Popen, str] = {}
+        self._active_request_tokens: dict[subprocess.Popen, tuple[str, str]] = {}
+        self._pending_requests: dict[tuple[str, str], threading.Event] = {}
+        self._cancelled_requests: set[tuple[str, str]] = set()
         self._cancelled_runs: set[str] = set()
         self._stopped_runs: set[str] = set()
         self._uncertain_processes: set[subprocess.Popen] = set()
@@ -860,11 +863,35 @@ class PublicBrowserSource:
         return None
 
     def _invoke(self, kind: str, request) -> dict[str, Any]:
-        # A denial cannot race with another request starting on this connector.
-        with self._serial:
-            return self._invoke_serial(kind, request)
+        request_id = getattr(request, "request_id", None) or getattr(
+            request, "attempt_id", None
+        )
+        if not isinstance(request.run_id, str) or not isinstance(request_id, str):
+            return {"error_code": "source_request_identity_invalid"}
+        request_key = (request.run_id, request_id)
+        request_token = threading.Event()
+        with self._lock:
+            if request_key in self._pending_requests:
+                return {"error_code": "source_request_identity_duplicate"}
+            if request_key in self._cancelled_requests:
+                request_token.set()
+            self._pending_requests[request_key] = request_token
+        try:
+            # A denial cannot race with another request starting on this connector.
+            with self._serial:
+                return self._invoke_serial(kind, request, request_token, request_key)
+        finally:
+            with self._lock:
+                if self._pending_requests.get(request_key) is request_token:
+                    self._pending_requests.pop(request_key, None)
 
-    def _invoke_serial(self, kind: str, request) -> dict[str, Any]:
+    def _invoke_serial(
+        self,
+        kind: str,
+        request,
+        request_token: threading.Event,
+        request_key: tuple[str, str],
+    ) -> dict[str, Any]:
         trace_session = self._new_trace_session(kind, request)
         trace_started_at = datetime.now(JST)
         if trace_session is not None:
@@ -873,6 +900,9 @@ class PublicBrowserSource:
                 session=trace_session,
             )
         with self._lock:
+            if request_token.is_set():
+                self._trace_error(trace_session, "source_cancelled", kind, cancel=True)
+                return {"error_code": "source_cancelled"}
             if request.run_id in self._stopped_runs:
                 self._trace_error(trace_session, "source_access_stopped", kind)
                 return {"error_code": "source_access_stopped"}
@@ -881,8 +911,7 @@ class PublicBrowserSource:
                 return {"error_code": "source_cancelled"}
         request_timeout = self._request_timeout_seconds(request)
         # The Node adapter rejects timeouts below one second as an invalid
-        # request. At that point no useful browser work can start before the
-        # daily cutoff, so report an ordinary timeout without launching it.
+        # request, so report an ordinary timeout without launching it.
         if request_timeout < 1:
             self._trace_error(trace_session, "source_timeout", kind)
             return {"error_code": "source_timeout"}
@@ -893,15 +922,15 @@ class PublicBrowserSource:
             str(self._user_data_dir) if self._user_data_dir is not None else None
         )
         config["fixture_product_delay_ms"] = self.config.fixture_product_delay_ms
-        config["fixture_browser_startup_delay_ms"] = (
-            self.config.fixture_browser_startup_delay_ms
-        )
-        config["fixture_room_scroll_delay_ms"] = (
-            self.config.fixture_room_scroll_delay_ms
-        )
-        config["fixture_expire_deadline_before_room_restore"] = (
-            self.config.fixture_expire_deadline_before_room_restore
-        )
+        config[
+            "fixture_browser_startup_delay_ms"
+        ] = self.config.fixture_browser_startup_delay_ms
+        config[
+            "fixture_room_scroll_delay_ms"
+        ] = self.config.fixture_room_scroll_delay_ms
+        config[
+            "fixture_expire_deadline_before_room_restore"
+        ] = self.config.fixture_expire_deadline_before_room_restore
         config.pop("evidence_root")
         config.pop("node_executable")
         payload = json.dumps(
@@ -918,6 +947,11 @@ class PublicBrowserSource:
                 else 0
             )
             with self._lock:
+                if request_token.is_set():
+                    self._trace_error(
+                        trace_session, "source_cancelled", kind, cancel=True
+                    )
+                    return {"error_code": "source_cancelled"}
                 if request.run_id in self._cancelled_runs:
                     self._trace_error(
                         trace_session, "source_cancelled", kind, cancel=True
@@ -937,6 +971,7 @@ class PublicBrowserSource:
                     start_new_session=not hasattr(subprocess, "CREATE_NO_WINDOW"),
                 )
                 self._active[process] = request.run_id
+                self._active_request_tokens[process] = request_key
             output, node_stderr = process.communicate(
                 payload,
                 timeout=config["timeout_seconds"]
@@ -992,6 +1027,7 @@ class PublicBrowserSource:
                 with self._lock:
                     if confirmed:
                         self._active.pop(process, None)
+                        self._active_request_tokens.pop(process, None)
                     else:
                         self._uncertain_processes.add(process)
                         self._cancelled_runs.add(request.run_id)
@@ -1920,8 +1956,44 @@ class PublicBrowserSource:
     def cancel_owned_jobs(self, run_id: str) -> bool:
         with self._lock:
             self._cancelled_runs.add(run_id)
+            for (owned_run, _), token in self._pending_requests.items():
+                if owned_run == run_id:
+                    token.set()
+            self._cancelled_requests = {
+                request_key
+                for request_key in self._cancelled_requests
+                if request_key[0] != run_id
+            }
             processes = [
                 p for p, owned_run in self._active.items() if owned_run == run_id
+            ]
+        confirmed = True
+        for process in processes:
+            if process in self._uncertain_processes or not self._terminate_tree(
+                process
+            ):
+                confirmed = False
+                with self._lock:
+                    self._uncertain_processes.add(process)
+        return confirmed
+
+    def cancel_active_request(self, run_id: str, request_id: str) -> bool:
+        """Stop only currently running public requests owned by this daily run."""
+
+        request_key = (run_id, request_id)
+        with self._lock:
+            request_token = self._pending_requests.get(request_key)
+            if request_token is not None:
+                request_token.set()
+            else:
+                # The timeout can beat the worker to _invoke(); fence that ID
+                # so a later worker cannot launch after confirmed cancellation.
+                self._cancelled_requests.add(request_key)
+            processes = [
+                process
+                for process, owned_run in self._active.items()
+                if owned_run == run_id
+                and self._active_request_tokens.get(process) == request_key
             ]
         confirmed = True
         for process in processes:

@@ -38,8 +38,7 @@ def retry_case(tmp_path):
         "INSERT INTO run (run_id,target_date,mode,status,settings_version,seed,"
         "started_at,draft_deadline,end_deadline,attempt_used,committed_count,"
         "checkpoint,metrics_status,finished_at) VALUES (?, '2026-10-14','daily',"
-        "'running', ?, 'SEED-1', ?, '2026-10-14T17:45:00+09:00',"
-        "'2026-10-14T18:00:00+09:00',0,0,NULL,'pending',NULL)",
+        "'running', ?, 'SEED-1', ?, NULL,NULL,0,0,NULL,'pending',NULL)",
         (RUN_ID, SETTINGS_VERSION, NOW),
     )
     connection.execute(
@@ -124,7 +123,7 @@ class SequencePort:
         return self.saved_responses.get(request_id)
 
 
-def session(connection, clock, port):
+def session(connection, clock, port, *, deadline_at=None):
     return trends.DurableGroupKeywordSession(
         connection,
         port,
@@ -135,7 +134,7 @@ def session(connection, clock, port):
         ordinal=1,
         theme_id=THEME_ID,
         seed="SEED-1",
-        deadline_at="2026-10-14T17:45:00+09:00",
+        deadline_at=deadline_at,
         acquisition_id=ACQUISITION_ID,
     )
 
@@ -175,13 +174,13 @@ def test_retries_twice_then_returns_first_success_and_persists_each_attempt(retr
     assert clock.now_jst().isoformat() == "2026-10-14T13:02:00+09:00"
 
 
-def test_reserved_trends_request_carries_the_daily_cutoff(retry_case):
+def test_daily_trends_request_has_no_run_wide_deadline(retry_case):
     connection, clock = retry_case
     port = SequencePort([response_for])
 
     session(connection, clock, port).fetch(THEME_WORD)
 
-    assert port.requests[0].deadline_at == "2026-10-14T17:45:00+09:00"
+    assert port.requests[0].deadline_at is None
 
 
 def test_retry_after_is_honored_when_longer_than_default(retry_case):
@@ -435,11 +434,12 @@ def test_exhausted_acquisition_produces_only_exact_theme_fallback(retry_case):
 
 def test_deadline_acquisition_is_saved_without_fallback_or_room_task(retry_case):
     connection, clock = retry_case
-    clock.advance(4 * 60 * 60 + 44 * 60 + 30)
+    clock.advance(30)
     acquired = session(
         connection,
         clock,
         SequencePort([response_for_dummy_unavailable("source_timeout")]),
+        deadline_at="2026-10-14T13:01:00+09:00",
     ).fetch(THEME_WORD)
     plan = daily.DailyThemePlan(
         theme_id=THEME_ID,
@@ -688,13 +688,17 @@ def test_browser_implementation_errors_do_not_retry_or_trigger_theme_fallback(
     assert attempts(connection)[0][2:4] == ("processing_error", error_code)
 
 
-def test_retry_wait_that_crosses_1745_records_deadline_without_starting_next_attempt(
+def test_retry_wait_beyond_request_deadline_skips_next_attempt(
     retry_case,
 ):
     connection, clock = retry_case
-    clock.advance(4 * 60 * 60 + 44 * 60 + 30)
     port = SequencePort([response_for_dummy_unavailable("source_timeout")])
-    result = session(connection, clock, port).fetch(THEME_WORD)
+    result = session(
+        connection,
+        clock,
+        port,
+        deadline_at="2026-10-14T13:00:30+09:00",
+    ).fetch(THEME_WORD)
 
     assert result.status == "deadline"
     assert result.attempts_used == 1
@@ -702,15 +706,20 @@ def test_retry_wait_that_crosses_1745_records_deadline_without_starting_next_att
     assert [row[2] for row in attempts(connection)] == ["unavailable"]
 
 
-def test_success_returned_after_1745_is_recorded_but_never_adopted(retry_case):
+def test_success_returned_after_request_deadline_is_not_adopted(retry_case):
     connection, clock = retry_case
 
     def response_after_cutoff(request):
-        clock.advance(4 * 60 * 60 + 45 * 60)
+        clock.advance(60)
         return response_for(request)
 
     port = SequencePort([response_after_cutoff])
-    result = session(connection, clock, port).fetch(THEME_WORD)
+    result = session(
+        connection,
+        clock,
+        port,
+        deadline_at="2026-10-14T13:00:30+09:00",
+    ).fetch(THEME_WORD)
 
     assert result.status == "deadline" and result.snapshot is None
     assert len(port.requests) == 1
@@ -726,7 +735,7 @@ def test_success_returned_after_1745_is_recorded_but_never_adopted(retry_case):
     )
 
 
-def test_saved_success_recovered_after_1745_is_not_reused(retry_case):
+def test_saved_success_after_request_deadline_is_not_reused(retry_case):
     connection, clock = retry_case
 
     class SourceEvidencePort:
@@ -742,10 +751,20 @@ def test_saved_success_recovered_after_1745_is_not_reused(retry_case):
 
     source = SourceEvidencePort()
     with pytest.raises(KeyboardInterrupt):
-        session(connection, clock, source).fetch(THEME_WORD)
-    clock.advance(4 * 60 * 60 + 45 * 60)
+        session(
+            connection,
+            clock,
+            source,
+            deadline_at="2026-10-14T13:00:30+09:00",
+        ).fetch(THEME_WORD)
+    clock.advance(60)
 
-    resumed = session(connection, clock, SequencePort([], source.saved))
+    resumed = session(
+        connection,
+        clock,
+        SequencePort([], source.saved),
+        deadline_at="2026-10-14T13:00:30+09:00",
+    )
     result = resumed.fetch(THEME_WORD)
 
     assert result.status == "deadline" and result.snapshot is None
@@ -770,7 +789,7 @@ def test_acquisition_query_cannot_change_when_request_id_changes(retry_case):
         ordinal=1,
         theme_id=THEME_ID,
         seed="SEED-1",
-        deadline_at="2026-10-14T17:45:00+09:00",
+        deadline_at=None,
         acquisition_id=ACQUISITION_ID,
     )
     with pytest.raises(trends.IdempotencyConflict):

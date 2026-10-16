@@ -57,7 +57,7 @@ _SECRET_KEY_PARTS = (
 
 
 class MetricsDeadlineExceeded(PersistenceContractError):
-    """Metrics data reached storage after the daily 18:00 cutoff."""
+    """Metrics data reached storage after its individual request deadline."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -917,7 +917,9 @@ def commit_metrics_result(
         _timestamp(s.observed_at, "snapshot observed_at") >= deadline
         for s in snapshots.values()
     ):
-        raise MetricsDeadlineExceeded("source response timestamp is at or after cutoff")
+        raise MetricsDeadlineExceeded(
+            "source response timestamp is at or after request deadline"
+        )
     _check_deadline(clock, deadline)
     run = connection.execute(
         "SELECT target_date FROM run WHERE run_id=?", (active_run_id,)
@@ -927,7 +929,7 @@ def commit_metrics_result(
     result_time = _timestamp(result.observed_at, "metrics observed_at")
     if result_time >= deadline:
         raise MetricsDeadlineExceeded(
-            "metrics response timestamp is at or after cutoff"
+            "metrics response timestamp is at or after request deadline"
         )
     if result_time.date().isoformat() != str(run["target_date"]):
         raise RejectedContract("metrics result date does not match the active run")
@@ -986,7 +988,7 @@ def commit_metrics_result(
             )
         if _timestamp(observation.observed_at, "daily observed_at") >= deadline:
             raise MetricsDeadlineExceeded(
-                "daily observation timestamp is at or after cutoff"
+                "daily observation timestamp is at or after request deadline"
             )
     for order in result.orders:
         if snapshots[order.source_key].source != "affiliate" or snapshots[
@@ -995,7 +997,7 @@ def commit_metrics_result(
             raise RejectedContract("unavailable affiliate source cannot contain orders")
         if _timestamp(order.observed_at, "order observed_at") >= deadline:
             raise MetricsDeadlineExceeded(
-                "order observation timestamp is at or after cutoff"
+                "order observation timestamp is at or after request deadline"
             )
     for order_window in result.order_windows:
         source = snapshots[order_window.source_key]
@@ -1003,7 +1005,7 @@ def commit_metrics_result(
             raise RejectedContract("order windows must refer to an affiliate source")
         if _timestamp(order_window.observed_at, "order window observed_at") >= deadline:
             raise MetricsDeadlineExceeded(
-                "order window timestamp is at or after cutoff"
+                "order window timestamp is at or after request deadline"
             )
         if order_window.count is not None and (
             isinstance(order_window.count, bool)
@@ -1039,7 +1041,7 @@ def commit_metrics_result(
             )
         if _timestamp(post.observed_at, "ROOM observed_at") >= deadline:
             raise MetricsDeadlineExceeded(
-                "ROOM observation timestamp is at or after cutoff"
+                "ROOM observation timestamp is at or after request deadline"
             )
     if len({obs.source_key for obs in result.daily_observations} - set(snapshots)):
         raise RejectedContract("daily observations have an invalid source key")

@@ -29,8 +29,8 @@ from automation.inago.contracts import (
     UnsupportedSchemaVersion,
 )
 
-CURRENT_SCHEMA_VERSION = 5
-READABLE_SCHEMA_VERSIONS = frozenset({5})
+CURRENT_SCHEMA_VERSION = 6
+READABLE_SCHEMA_VERSIONS = frozenset({5, 6})
 LEGACY_UNASSIGNED_THEME_ID = "legacy-unassigned"
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
@@ -43,6 +43,7 @@ _MIGRATION_SQL_PATHS = {
     3: Path(__file__).resolve().parent / "sql" / "003_search_rules_14.sql",
     4: Path(__file__).resolve().parent / "sql" / "004_trends_retry_state.sql",
     5: Path(__file__).resolve().parent / "sql" / "005_pending_post_correction_ref.sql",
+    6: Path(__file__).resolve().parent / "sql" / "006_nullable_run_deadlines.sql",
 }
 
 _ENTITY_TABLES = frozenset(
@@ -166,9 +167,7 @@ def initialize_database(connection: sqlite3.Connection) -> int:
     existing_tables = _user_tables(connection)
     if existing_version is not None:
         required_tables = _ENTITY_TABLES | (
-            _SCHEMA_V4_TABLES
-            if existing_version >= 4
-            else frozenset()
+            _SCHEMA_V4_TABLES if existing_version >= 4 else frozenset()
         )
         missing = required_tables - existing_tables
         if missing:
@@ -264,7 +263,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                 return version
 
             next_version = version + 1
-            if next_version == 3:
+            if next_version in {3, 6}:
                 _verify_rebuild_objects(connection)
             migration_path = _MIGRATION_SQL_PATHS.get(next_version)
             if migration_path is None or not migration_path.is_file():
@@ -286,6 +285,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                         3: "Q1.4 search counts, query kinds and three-month observations",
                         4: "durable per-theme Google Trends retry state",
                         5: "preserve corrections that refer to pending posted reports",
+                        6: "make historical run deadlines nullable and audit-only",
                     }[next_version],
                 ),
             )
@@ -1438,8 +1438,6 @@ def reserve_generation_attempt(
             raise RejectedContract("copy generation requires a running daily run")
         if run["settings_version"] != settings_version:
             raise RejectedContract("copy settings version differs from the started run")
-        if now.astimezone(JST) >= _timestamp(run["draft_deadline"], "draft_deadline"):
-            raise RejectedContract("copy generation deadline has passed")
         if int(run["committed_count"]) >= 15:
             raise RejectedContract("daily committed_count limit 15 has been reached")
         if (
@@ -2118,8 +2116,6 @@ def commit_draft(
             raise RejectedContract(
                 "draft settings version differs from the started run"
             )
-        if now.astimezone(JST) >= _timestamp(run["draft_deadline"], "draft_deadline"):
-            raise RejectedContract("draft deadline has passed")
         if int(run["committed_count"]) >= 15:
             raise RejectedContract("daily committed_count limit 15 has been reached")
 

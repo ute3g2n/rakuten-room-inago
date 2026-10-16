@@ -864,8 +864,6 @@ def generate_and_commit_copy(
         raise RejectedContract("copy settings version differs from the started run")
     if state["run"]["target_date"] != spec.target_date:
         raise RejectedContract("copy target date differs from the started run")
-    if state["run"]["draft_deadline"] != spec.deadline_at:
-        raise RejectedContract("copy deadline differs from the started run")
     prior = read_existing_draft_result(
         connection, run_id=spec.run_id, offer_key=spec.offer_key
     )

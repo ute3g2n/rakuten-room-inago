@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Protocol
 
 from automation.inago.clock import Clock
 from automation.inago.contracts import AIJobRequest, AIJobResult
 from automation.inago.orchestrator import (
+    AI_REQUEST_TIMEOUT_SECONDS,
     DailyOrchestrationError,
     DailySearchPlan,
     DailyThemePlan,
@@ -71,14 +72,13 @@ class DurableTrendsThemePlanner:
         seed: str,
     ) -> DailyThemePlan:
         run = connection.execute(
-            "SELECT target_date,draft_deadline,settings_version,status FROM run "
-            "WHERE run_id=?",
+            "SELECT target_date,settings_version,status FROM run " "WHERE run_id=?",
             (run_id,),
         ).fetchone()
         if (
             run is None
-            or run[2] != settings_version
-            or run[3] != "running"
+            or run[1] != settings_version
+            or run[2] != "running"
             or event_kind not in {"initial", "additional"}
             or isinstance(ordinal, bool)
             or not isinstance(ordinal, int)
@@ -254,12 +254,6 @@ class DurableTrendsThemePlanner:
         snapshot,
         key_input: dict[str, Any],
     ) -> tuple[dict[str, Any], AIJobResult]:
-        now = self.clock.now_jst()
-        deadline_at = datetime.fromisoformat(str(run[1]))
-        deadline_seconds = max(
-            0.0,
-            (deadline_at.astimezone(now.tzinfo) - now).total_seconds(),
-        )
         target_date = str(run[0])
         base_job_id = (
             f"KEY-{target_date.replace('-', '')}-"
@@ -273,6 +267,8 @@ class DurableTrendsThemePlanner:
         )
 
         def build_request(job_attempt: int, job_identity: str) -> AIJobRequest:
+            now = self.clock.now_jst()
+            deadline_at = now + timedelta(seconds=AI_REQUEST_TIMEOUT_SECONDS)
             return AIJobRequest(
                 job_id=job_identity,
                 run_id=run_id,
@@ -283,7 +279,9 @@ class DurableTrendsThemePlanner:
                 input_refs=(snapshot.snapshot_id,),
                 evidence_refs=(),
                 deadline_at=deadline_at.isoformat(),
-                deadline_monotonic=self.clock.monotonic() + deadline_seconds,
+                deadline_monotonic=(
+                    self.clock.monotonic() + AI_REQUEST_TIMEOUT_SECONDS
+                ),
                 input_payload={
                     "keywords": key_input,
                     "word_ids": [item["word_id"] for item in key_input["words"]],

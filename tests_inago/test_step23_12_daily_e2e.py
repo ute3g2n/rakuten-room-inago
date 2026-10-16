@@ -58,8 +58,14 @@ def test_h07_registry_maps_new_report_count_nodes() -> None:
     module_text = (PROJECT_ROOT / module_path).read_text(encoding="utf-8")
 
     assert module_path in registry["H-07"].module_paths
-    assert "def test_history_html_displays_separate_day_scoped_report_and_outbox_counts" in module_text
-    assert "def test_history_report_counts_are_day_action_status_scoped_and_not_recent_limited" in module_text
+    assert (
+        "def test_history_html_displays_separate_day_scoped_report_and_outbox_counts"
+        in module_text
+    )
+    assert (
+        "def test_history_report_counts_are_day_action_status_scoped_and_not_recent_limited"
+        in module_text
+    )
 
 
 class _FixturePublicSource:
@@ -83,14 +89,18 @@ class _FixturePublicSource:
     def fetch(self, request: Any) -> dict[str, Any]:
         self.trends_requests.append(request)
         unavailable = self.mode == "trends_unavailable"
-        words = [] if self.mode == "zero_supply" else [
-            {
-                "word_id": "W-01",
-                "raw": f"{request.parent_word} fixture",
-                "source_rank": 1,
-                "popularity_index": None,
-            }
-        ]
+        words = (
+            []
+            if self.mode == "zero_supply"
+            else [
+                {
+                    "word_id": "W-01",
+                    "raw": f"{request.parent_word} fixture",
+                    "source_rank": 1,
+                    "popularity_index": None,
+                }
+            ]
+        )
         return {
             "request_id": request.request_id,
             "snapshot_id": request.request_id,
@@ -238,7 +248,11 @@ class _FixtureAIRoot:
                 request,
                 input_refs=(
                     *request.evidence_refs,
-                    *(ref for ref in request.input_refs if ref not in request.evidence_refs),
+                    *(
+                        ref
+                        for ref in request.input_refs
+                        if ref not in request.evidence_refs
+                    ),
                 ),
             )
             result = self.copy_runner.run(evidence_first)
@@ -396,7 +410,9 @@ def _make_daily_fixture(
         "require_production_ready",
         lambda _config: {"settings_version": SETTINGS_VERSION},
     )
-    monkeypatch.setattr(production_runtime, "_assert_production_roots", lambda _config: None)
+    monkeypatch.setattr(
+        production_runtime, "_assert_production_roots", lambda _config: None
+    )
     monkeypatch.setattr(
         production_runtime,
         "_open_existing_production_database",
@@ -533,17 +549,27 @@ def test_daily_imports_browser_reports_before_applying_pending_actions(
             "WHERE action_id='ACT-IMPORT-TO-DAILY'"
         ).fetchone()
         assert tuple(action) == ("applied", "2026-10-14T21:05:00+09:00")
-        assert connection.execute(
-            "SELECT status FROM draft WHERE draft_id='D-PRIOR'"
-        ).fetchone()[0] == "posted"
-        assert connection.execute(
-            "SELECT json_extract(checkpoint, '$.daily_orchestration.report_apply.applied_count') "
-            "FROM run WHERE run_id=?",
-            (RUN_ID,),
-        ).fetchone()[0] == 1
+        assert (
+            connection.execute(
+                "SELECT status FROM draft WHERE draft_id='D-PRIOR'"
+            ).fetchone()[0]
+            == "posted"
+        )
+        assert (
+            connection.execute(
+                "SELECT json_extract(checkpoint, '$.daily_orchestration.report_apply.applied_count') "
+                "FROM run WHERE run_id=?",
+                (RUN_ID,),
+            ).fetchone()[0]
+            == 1
+        )
     finally:
         connection.close()
-    assert (config.runtime_root / "processed-human-reports" / "human-reports-2026-10-14.json").is_file()
+    assert (
+        config.runtime_root
+        / "processed-human-reports"
+        / "human-reports-2026-10-14.json"
+    ).is_file()
 
 
 def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
@@ -568,12 +594,14 @@ def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
     )
     assert result["target_date"] == "2026-10-15"
     assert result["metrics_status"] == "observed"
-    assert metrics.calls == [(RUN_ID, "2026-10-15T18:00:00+09:00")]
+    assert metrics.calls == [(RUN_ID, "2026-10-15T13:20:00+09:00")]
     assert len(source.trends_requests) == 3
     assert len(source.search_requests) == 3
     assert len(source.facts) == 15
     assert len(ai_root.copy_runner.requests) == 15
-    assert len([request for request in ai_root.requests if not request.copy_targets]) == 3
+    assert (
+        len([request for request in ai_root.requests if not request.copy_targets]) == 3
+    )
     assert ai_root.lifecycle[0] == ("prepare", RUN_ID)
     assert ai_root.lifecycle[1][0] == "start"
     assert ai_root.lifecycle[-2][0] == "close"
@@ -588,17 +616,26 @@ def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
         assert tuple(run) == ("complete", 15, "observed")
         assert connection.execute("SELECT COUNT(*) FROM offer").fetchone()[0] == 15
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
-        assert connection.execute(
-            "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ).fetchone()[0] == 15
-        assert connection.execute(
-            "SELECT COUNT(*) FROM ai_job WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0] == 30
-        assert connection.execute(
-            "SELECT json_extract(checkpoint, '$.daily_orchestration.report_apply.applied_count') "
-            "FROM run WHERE run_id=?",
-            (RUN_ID,),
-        ).fetchone()[0] == 0
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            ).fetchone()[0]
+            == 15
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM ai_job WHERE run_id=?", (RUN_ID,)
+            ).fetchone()[0]
+            == 30
+        )
+        assert (
+            connection.execute(
+                "SELECT json_extract(checkpoint, '$.daily_orchestration.report_apply.applied_count') "
+                "FROM run WHERE run_id=?",
+                (RUN_ID,),
+            ).fetchone()[0]
+            == 0
+        )
     finally:
         connection.close()
 
@@ -610,12 +647,17 @@ def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
     assert result["preservation"]["status"] == "ready"
     assert result["preservation"]["end_backup"]["status"] == "ready"
     assert result["preservation"]["monthly_restore"]["status"] == "ready"
-    backup_database = Path(result["preservation"]["end_backup"]["path"]) / "state.sqlite"
+    backup_database = (
+        Path(result["preservation"]["end_backup"]["path"]) / "state.sqlite"
+    )
     backup_connection = sqlite3.connect(backup_database)
     try:
-        assert backup_connection.execute(
-            "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0] == 15
+        assert (
+            backup_connection.execute(
+                "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
+            ).fetchone()[0]
+            == 15
+        )
     finally:
         backup_connection.close()
     assert not (config.runtime_root / ".daily-run-owner.json").exists()
@@ -625,11 +667,11 @@ def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
     ("now", "expected_status", "metrics_calls"),
     (
         ("2026-10-15T17:45:00+09:00", "shortfall", 1),
-        ("2026-10-15T18:00:00+09:00", "missed", 0),
+        ("2026-10-15T18:00:00+09:00", "shortfall", 1),
     ),
-    ids=("draft-cutoff-1745", "end-cutoff-1800"),
+    ids=("continues-after-1745", "continues-after-1800"),
 )
-def test_scheduler_composition_obeys_daily_cutoff_boundaries(
+def test_scheduler_composition_continues_after_former_daily_cutoffs(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     now: str,
@@ -647,14 +689,11 @@ def test_scheduler_composition_obeys_daily_cutoff_boundaries(
     assert result["daily_status"] == expected_status
     assert result["run_id"] == RUN_ID
     assert result["committed_count"] == 0
-    assert source.search_requests == []
-    assert source.trends_requests == []
+    assert source.search_requests
+    assert source.trends_requests
     assert ai_root.requests == []
     assert len(metrics.calls) == metrics_calls
-    if expected_status == "missed":
-        assert result["reason"] == "scheduled_start_after_1800"
-    else:
-        assert result["reason"] == "draft_cutoff_1745"
+    assert result["reason"] == "candidate_or_theme_exhausted"
 
 
 def test_observed_zero_supply_is_a_shortfall_with_an_empty_day_html(
@@ -788,18 +827,27 @@ def test_copy_generation_failure_keeps_zero_commits_and_exports_failure(
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 0
-        assert connection.execute(
-            "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ).fetchone()[0] == 0
-        assert connection.execute(
-            "SELECT COUNT(*) FROM generation_attempt WHERE outcome='error'"
-        ).fetchone()[0] == 3
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM generation_attempt WHERE outcome='error'"
+            ).fetchone()[0]
+            == 3
+        )
     finally:
         connection.close()
     assert result["export"]["status"] == "ready"
-    assert _read_html_payload(config.runtime_root / "posting-history.html")["days"][0][
-        "item_count"
-    ] == 0
+    assert (
+        _read_html_payload(config.runtime_root / "posting-history.html")["days"][0][
+            "item_count"
+        ]
+        == 0
+    )
 
 
 def test_copy_save_failure_rolls_back_draft_and_reservation(
@@ -828,12 +876,18 @@ def test_copy_save_failure_rolls_back_draft_and_reservation(
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 0
-        assert connection.execute(
-            "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ).fetchone()[0] == 0
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0] == 0
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
+            ).fetchone()[0]
+            == 0
+        )
     finally:
         connection.close()
     assert result["export"]["status"] == "ready"
@@ -859,9 +913,12 @@ def test_metrics_failure_does_not_erase_completed_drafts(
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0] == 15
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
+            ).fetchone()[0]
+            == 15
+        )
     finally:
         connection.close()
     assert result["export"]["draft_count"] == 15
@@ -896,9 +953,12 @@ def test_html_failure_preserves_prior_html_and_committed_drafts(
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
-        assert connection.execute(
-            "SELECT COUNT(*) FROM reservation WHERE status='active'"
-        ).fetchone()[0] == 15
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM reservation WHERE status='active'"
+            ).fetchone()[0]
+            == 15
+        )
     finally:
         connection.close()
 
@@ -926,9 +986,12 @@ def test_final_backup_failure_keeps_daily_result_and_html(
     assert result["status"] == "preservation_failed"
     assert result["preservation"]["end_backup"]["status"] == "failed"
     assert result["export"]["status"] == "ready"
-    assert _read_html_payload(config.runtime_root / "posting-history.html")["days"][0][
-        "item_count"
-    ] == 15
+    assert (
+        _read_html_payload(config.runtime_root / "posting-history.html")["days"][0][
+            "item_count"
+        ]
+        == 15
+    )
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
@@ -976,13 +1039,19 @@ def test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy(
     assert resumed["run_id"] == first["run_id"]
     assert resumed["resumed"] is True
     assert resumed["committed_count"] == 1
-    assert sum(bool(request.copy_targets) for request in ai_root.requests) == first_copy_count
+    assert (
+        sum(bool(request.copy_targets) for request in ai_root.requests)
+        == first_copy_count
+    )
     assert len(source.search_requests) == 1
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 1
-        assert connection.execute(
-            "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0] == 1
+        assert (
+            connection.execute(
+                "SELECT committed_count FROM run WHERE run_id=?", (RUN_ID,)
+            ).fetchone()[0]
+            == 1
+        )
     finally:
         connection.close()

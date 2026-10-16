@@ -93,8 +93,18 @@ def compose_public_daily_ports(
             pass
         return source_stopped and root_stopped
 
+    def cancel_room_request(run_id: str, request_id: str) -> bool:
+        callback = getattr(source, "cancel_active_request", None)
+        return callback(run_id, request_id) is True if callable(callback) else False
+
+    def cancel_ai_request(run_id: str, request_id: str) -> bool:
+        callback = getattr(ai_root, "cancel_active_request", None)
+        return callback(run_id, request_id) is True if callable(callback) else False
+
     current_settings_version.fixture_only = fixture_only
     cancel_owned_jobs.fixture_only = fixture_only
+    cancel_room_request.fixture_only = fixture_only
+    cancel_ai_request.fixture_only = fixture_only
     return DailyPorts(
         current_settings_version=current_settings_version,
         theme_planner=DurableTrendsThemePlanner(source, ai_root, selected_clock),
@@ -106,4 +116,6 @@ def compose_public_daily_ports(
         cancel_metrics_job=cancel_metrics_job,
         offer_intake=SQLitePublicOfferIntake(source),
         fixture_only=fixture_only,
+        cancel_room_request=cancel_room_request,
+        cancel_ai_request=cancel_ai_request,
     )

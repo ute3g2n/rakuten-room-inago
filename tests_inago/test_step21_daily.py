@@ -269,7 +269,8 @@ class LateFixtureKeywordRoot(FixtureKeywordRoot):
 
     def run(self, request):
         result = super().run(request)
-        self.clock.advance(4 * 60 * 60 + 45 * 60)
+        if len(self.requests) == 1:
+            self.clock.advance(5 * 60 * 60)
         return result
 
 
@@ -818,7 +819,7 @@ def test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search(
     )
 
 
-def test_late_key_result_after_1745_is_not_saved_as_an_adopted_theme_plan(
+def test_late_key_result_after_1745_is_adopted_and_daily_continues(
     runtime_case,
 ):
     from automation.inago.daily_theme_planner import DurableTrendsThemePlanner
@@ -834,16 +835,17 @@ def test_late_key_result_after_1745_is_not_saved_as_an_adopted_theme_plan(
 
     outcome = _run(runtime_case, bundle)
 
-    assert outcome.committed_count == 0
-    assert runtime_case.clock.now_jst().isoformat() == "2026-10-12T17:45:00+09:00"
-    assert len(trends_port.requests) == len(key_root.requests) == 1
-    assert room.requests == []
+    assert outcome.status == "complete"
+    assert outcome.committed_count == 15
+    assert runtime_case.clock.now_jst().isoformat() >= "2026-10-12T18:00:00+09:00"
+    assert len(trends_port.requests) == len(key_root.requests) == 3
+    assert len(room.requests) == 3
     acquisition = runtime_case.connection.execute(
         "SELECT status,attempts_used,snapshot_id FROM trends_acquisition WHERE run_id=?",
         (RUN_ID,),
     ).fetchone()
-    assert acquisition[0:2] == ("deadline", 1)
-    assert acquisition[2] is None
+    assert acquisition[0:2] == ("observed", 1)
+    assert acquisition[2] is not None
     snapshot_id = trends_port.requests[0].request_id
     raw = trends.load_grouped_snapshot(
         runtime_case.connection,
@@ -856,7 +858,7 @@ def test_late_key_result_after_1745_is_not_saved_as_an_adopted_theme_plan(
             range="3m",
         ),
     )
-    assert raw is not None and raw.decisions is None and raw.selected == ()
+    assert raw is not None and raw.decisions is not None and raw.selected
 
 
 def test_each_theme_uses_related_queue_then_theme_fallback_before_next_theme(

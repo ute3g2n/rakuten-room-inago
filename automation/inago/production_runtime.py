@@ -1460,8 +1460,16 @@ def run_production_status(
                 "target_date": str(row["target_date"]),
                 "settings_version": str(row["settings_version"]),
                 "started_at": str(row["started_at"]),
-                "draft_deadline": str(row["draft_deadline"]),
-                "end_deadline": str(row["end_deadline"]),
+                "draft_deadline": (
+                    str(row["draft_deadline"])
+                    if row["draft_deadline"] is not None
+                    else None
+                ),
+                "end_deadline": (
+                    str(row["end_deadline"])
+                    if row["end_deadline"] is not None
+                    else None
+                ),
                 "attempt_used": int(row["attempt_used"]),
                 "committed_count": int(row["committed_count"]),
                 "finished_at": (
@@ -1590,22 +1598,6 @@ def run_production_recovery(
                 "run_id": str(row["run_id"]),
                 "execution_requested": False,
             }
-        expected_draft_deadline = f"{row['target_date']}T17:45:00+09:00"
-        expected_end_deadline = f"{row['target_date']}T18:00:00+09:00"
-        if (
-            str(row["draft_deadline"]) != expected_draft_deadline
-            or str(row["end_deadline"]) != expected_end_deadline
-        ):
-            if not _operations_source_is_stable(config, source_snapshot):
-                return _daily_state_changed_result(mode="recovery")
-            return {
-                "mode": "recovery",
-                "status": "blocked",
-                "action": "daily_checkpoint_review_required",
-                "reason_code": "daily_run_deadline_mismatch",
-                "run_id": str(row["run_id"]),
-                "execution_requested": False,
-            }
         run_key = str(row["run_id"])
         in_progress = connection.execute(
             """
@@ -1696,8 +1688,7 @@ def run_production_recovery(
         if (
             checkpoint_state.get("phase") == "finished"
             and terminal_status in {"failed", "shortfall", "missed"}
-            and decision.get("action")
-            in {"resume_remaining", "draft_cutoff_metrics_only"}
+            and decision.get("action") == "resume_remaining"
         ):
             if checkpoint_state.get("terminal_status") != terminal_status:
                 if not _operations_source_is_stable(config, source_snapshot):
@@ -1741,8 +1732,12 @@ def run_production_recovery(
         preserved = dict(decision.get("preserved", {}))
         seed_present = bool(preserved.pop("seed", None))
         preserved["seed_preserved"] = seed_present
-        preserved["draft_deadline"] = str(row["draft_deadline"])
-        preserved["end_deadline"] = str(row["end_deadline"])
+        preserved["draft_deadline"] = (
+            str(row["draft_deadline"]) if row["draft_deadline"] is not None else None
+        )
+        preserved["end_deadline"] = (
+            str(row["end_deadline"]) if row["end_deadline"] is not None else None
+        )
         result = {
             "mode": "recovery",
             "status": "blocked" if blocked_reason else "advisory",
@@ -1911,7 +1906,7 @@ def run_production_daily(
                         attempt_used=int(existing_run["attempt_used"]),
                         reason_code="explicit_resume_confirmation_required",
                     )
-                if action not in {"resume_remaining", "draft_cutoff_metrics_only"}:
+                if action != "resume_remaining":
                     raise _DailyResumeBlocked(
                         status="recovery_required",
                         run_id=str(existing_run["run_id"]),
@@ -2077,21 +2072,135 @@ def run_production_daily(
                 else None
             ),
         )
-    final_status = daily_status
-    if daily_status not in {
-        "failed",
+    metrics_status = str(daily_result.get("metrics_status", "unknown"))
+    daily_error_count = daily_result.get("error_count", 0)
+    try:
+        daily_error_count = int(daily_error_count)
+    except (TypeError, ValueError):
+        daily_error_count = 1
+    daily_primary_error = daily_result.get("primary_error")
+    if not isinstance(daily_primary_error, dict):
+        daily_primary_error = None
+    if daily_primary_error is None and (
+        daily_status in {"failed", "locked"}
+        or daily_status.startswith("recovery_")
+        or daily_error_count > 0
+    ):
+        daily_primary_error = {
+            "phase": "daily",
+            "code": str(daily_result.get("reason") or "daily_processing_error"),
+        }
+
+    end_backup = preservation_result.get("end_backup")
+    monthly_restore = preservation_result.get("monthly_restore")
+    end_backup_status = (
+        end_backup.get("status") if isinstance(end_backup, dict) else "unknown"
+    )
+    monthly_restore_status = (
+        monthly_restore.get("status")
+        if isinstance(monthly_restore, dict)
+        else "unknown"
+    )
+    phase_errors: list[dict[str, str]] = []
+    if daily_primary_error is not None:
+        phase_errors.append(dict(daily_primary_error))
+    if daily_error_count > 0 and daily_primary_error is None:
+        phase_errors.append({"phase": "daily", "code": "daily_processing_error"})
+    if metrics_status not in {"observed"} and daily_status not in {
         "locked",
         "recovery_confirmation_required",
         "recovery_required",
     }:
-        if export_result.get("status") != "ready":
-            final_status = "export_failed"
-        elif preservation_result.get("status") != "ready":
-            final_status = "preservation_failed"
+        phase_errors.append({"phase": "metrics", "code": f"metrics_{metrics_status}"})
+    if not blocked_before_resume and export_result.get("status") not in {
+        "ready",
+        "not_run",
+    }:
+        export_code = (
+            export_result.get("error_code")
+            or export_result.get("reason_code")
+            or "dashboard_export_failed"
+        )
+        phase_errors.append({"phase": "export", "code": str(export_code)[:128]})
+    preservation_ready = (
+        preservation_result.get("status") == "ready"
+        and end_backup_status == "ready"
+        and monthly_restore_status in {"ready", "already_checked"}
+    )
+    if not preservation_ready and not blocked_before_resume:
+        preserve_code = (
+            (end_backup.get("error_code") if isinstance(end_backup, dict) else None)
+            or (
+                monthly_restore.get("error_code")
+                if isinstance(monthly_restore, dict)
+                else None
+            )
+            or "preservation_failed"
+        )
+        phase_errors.append({"phase": "preservation", "code": str(preserve_code)[:128]})
+
+    daily_secondary_errors = daily_result.get("secondary_errors", [])
+    primary_error = phase_errors[0] if phase_errors else None
+    secondary_errors = list(phase_errors[1:])
+    if daily_status in {
+        "locked",
+        "recovery_confirmation_required",
+        "recovery_required",
+    }:
+        final_status = daily_status
+    elif daily_status == "failed" or daily_error_count > 0:
+        final_status = "failed"
+    elif export_result.get("status") != "ready":
+        final_status = "export_failed"
+    elif not preservation_ready:
+        final_status = "preservation_failed"
+    elif metrics_status != "observed":
+        final_status = "metrics_failed"
+    elif daily_status in {"partial", "shortfall"}:
+        final_status = daily_status
+    elif daily_status == "complete":
+        final_status = "complete"
+    else:
+        final_status = "failed"
+
+    if isinstance(daily_secondary_errors, (list, tuple)):
+        secondary_errors.extend(
+            dict(item) for item in daily_secondary_errors if isinstance(item, dict)
+        )
+    daily_reason = daily_result.get("reason")
+    overall_reason = (
+        str(primary_error.get("code"))
+        if isinstance(primary_error, dict)
+        else (str(daily_reason) if isinstance(daily_reason, str) else None)
+    )
+    phase_results = {
+        "daily": {
+            "status": daily_status,
+            "committed_count": daily_result.get("committed_count"),
+            "shortfall_count": daily_result.get("shortfall_count"),
+            "source_failures": daily_result.get("source_failures"),
+            "error_count": daily_error_count,
+            "primary_error": daily_primary_error,
+            "secondary_errors": daily_secondary_errors,
+        },
+        "metrics": {"status": metrics_status},
+        "export": {"status": export_result.get("status")},
+        "preservation": {
+            "status": preservation_result.get("status"),
+            "end_backup_status": end_backup_status,
+            "monthly_restore_status": monthly_restore_status,
+        },
+    }
     return {
         **daily_result,
         "status": final_status,
         "daily_status": daily_status,
+        "daily_reason": daily_reason,
+        "reason": overall_reason,
+        "overall_status": final_status,
+        "primary_error": primary_error,
+        "secondary_errors": secondary_errors,
+        "phase_results": phase_results,
         "export": export_result,
         "preservation": preservation_result,
     }

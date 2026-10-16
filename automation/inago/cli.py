@@ -8,6 +8,7 @@ import json
 import os
 import sqlite3
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence, TextIO
@@ -39,6 +40,86 @@ SUPPORTED_MODES = (
 EXIT_INVALID_INPUT = 2
 EXIT_NOT_IMPLEMENTED = 3
 EXIT_RUNTIME_ERROR = 4
+EXIT_DAILY_UNMET = 5
+
+
+def production_daily_exit_code(result: Mapping[str, object]) -> int:
+    """Map the complete production daily result to a truthful Windows status."""
+
+    status = result.get("overall_status", result.get("status"))
+    if status == "not_due":
+        return 0
+    daily_status = result.get("daily_status", status)
+    error_count = result.get("error_count", 0)
+    if isinstance(error_count, bool) or not isinstance(error_count, int):
+        error_count = 1
+    primary_error = result.get("primary_error")
+    if (
+        status
+        in {
+            "failed",
+            "locked",
+            "export_failed",
+            "preservation_failed",
+            "metrics_failed",
+            "recovery_confirmation_required",
+            "recovery_required",
+        }
+        or daily_status
+        in {
+            "failed",
+            "locked",
+            "recovery_confirmation_required",
+            "recovery_required",
+        }
+        or error_count > 0
+        or isinstance(primary_error, Mapping)
+    ):
+        return EXIT_RUNTIME_ERROR
+    if status in {"partial", "shortfall"} or daily_status in {
+        "partial",
+        "shortfall",
+    }:
+        return EXIT_DAILY_UNMET
+    if status == "complete":
+        metrics = result.get("metrics_status")
+        export = result.get("export")
+        preservation = result.get("preservation")
+        if not isinstance(export, Mapping) or not isinstance(preservation, Mapping):
+            return EXIT_RUNTIME_ERROR
+        end_backup = preservation.get("end_backup")
+        monthly_restore = preservation.get("monthly_restore")
+        if (
+            daily_status != "complete"
+            or metrics != "observed"
+            or export.get("status") != "ready"
+            or preservation.get("status") != "ready"
+            or not isinstance(end_backup, Mapping)
+            or end_backup.get("status") != "ready"
+            or not isinstance(monthly_restore, Mapping)
+            or monthly_restore.get("status") not in {"ready", "already_checked"}
+        ):
+            return EXIT_RUNTIME_ERROR
+        return 0
+    return EXIT_RUNTIME_ERROR
+
+
+def daily_run_exit_code(result: DailyRunOutcome) -> int:
+    """Map fixture daily outcomes without production-only export phases."""
+
+    if result.status == "not_due":
+        return 0
+    if result.status in {"failed", "locked"} or result.error_count > 0:
+        return EXIT_RUNTIME_ERROR
+    if result.primary_error is not None:
+        return EXIT_RUNTIME_ERROR
+    if result.metrics_status != "observed":
+        return EXIT_RUNTIME_ERROR
+    if result.status in {"partial", "shortfall"}:
+        return EXIT_DAILY_UNMET
+    if result.status == "complete":
+        return 0
+    return EXIT_RUNTIME_ERROR
 
 
 @dataclass(frozen=True, slots=True)
@@ -461,10 +542,21 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                 resume_confirmed=args.resume_confirmed,
                 cause_resolved=args.cause_resolved,
             )
-            status = str(result.get("status", "failed"))
+            status = str(result.get("overall_status", result.get("status", "failed")))
+            exit_code = production_daily_exit_code(result)
             export_result = result.get("export")
             diagnostics: dict[str, object] = {
+                "overall_status": status,
                 "daily_status": result.get("daily_status"),
+                "daily_reason": result.get("daily_reason"),
+                "reason": result.get("reason"),
+                "committed_count": result.get("committed_count"),
+                "shortfall_count": result.get("shortfall_count"),
+                "source_failures": result.get("source_failures"),
+                "error_count": result.get("error_count"),
+                "primary_error": result.get("primary_error"),
+                "secondary_errors": result.get("secondary_errors"),
+                "phase_results": result.get("phase_results"),
             }
             if isinstance(export_result, dict):
                 diagnostics["dashboard_export_status"] = export_result.get("status")
@@ -489,30 +581,22 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             record(
                 status=status,
                 reason=(
-                    "dashboard_export_failed"
-                    if status == "export_failed"
+                    result.get("reason")
+                    if isinstance(result.get("reason"), str)
                     else (
-                        result.get("reason")
-                        if isinstance(result.get("reason"), str)
-                        else None
+                        "daily_target_unmet"
+                        if status in {"partial", "shortfall"}
+                        else (
+                            "daily_result_failed"
+                            if exit_code == EXIT_RUNTIME_ERROR
+                            else None
+                        )
                     )
                 ),
                 diagnostics=diagnostics,
             )
             _emit(output, result)
-            return (
-                EXIT_RUNTIME_ERROR
-                if status
-                in {
-                    "failed",
-                    "locked",
-                    "export_failed",
-                    "preservation_failed",
-                    "recovery_confirmation_required",
-                    "recovery_required",
-                }
-                else 0
-            )
+            return exit_code
         if args.mode == "serve":
             phase = "serve"
             require_production_ready(config)
@@ -645,9 +729,18 @@ def main(
                 "metrics_status": result.metrics_status,
                 "resumed": result.resumed,
                 "reason": result.reason,
+                "daily_target": result.daily_target,
+                "initial_allocation_count": result.initial_allocation_count,
+                "supplemental_allocation_count": result.supplemental_allocation_count,
+                "shortfall_count": result.shortfall_count,
+                "actual_posted_count": result.actual_posted_count,
+                "source_failures": result.source_failures,
+                "error_count": result.error_count,
+                "primary_error": result.primary_error,
+                "secondary_errors": result.secondary_errors,
             },
         )
-        return EXIT_RUNTIME_ERROR if result.status in {"failed", "locked"} else 0
+        return daily_run_exit_code(result)
 
     _emit(output, {"status": "not_implemented", "mode": args.mode})
     return EXIT_NOT_IMPLEMENTED
