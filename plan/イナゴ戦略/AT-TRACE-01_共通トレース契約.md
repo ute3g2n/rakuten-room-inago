@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.14、§8・§27.6～27.13・§28.4/28.7。対応：IR-004/008/010/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F13、STEP R03/R05/R06/R07/R08/R09/R10。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
+正本：要件定義書HTML 2.16、§8・§27.6～27.14・§28.4/28.7。対応：IR-004/008/010/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F13、STEP R03/R05/R06/R07/R08/R09/R10/R11。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
 
 ## 共通イベント
 
@@ -109,3 +109,23 @@ copy lifecycle traceは`ai_result_received`、`ai_contract_rejected`、再開時
 OS日次終了コードは完全成功/not_due=0、処理error/contract/recovery/lock/postprocessing failure=4、処理errorのないpartial/shortfall=5。partial/shortfallに未解消processing errorまたはmetrics未完了がある場合は4を優先する。完全成功にはdaily complete、metrics observed、export ready、preservation ready/end backup ready、monthly restore readyまたはalready_checkedが必要。Windows wrapperの子Python終了コードを実プロセス終了コードとして検証する。
 
 17:45/18:00のrun-wide deadlineとWindows Task Schedulerのrun-wide実行時間上限は停止判定へ使わない。daily task XMLは`ExecutionTimeLimit=PT0S`とする。各AI/ROOM/metrics requestの有限timeoutを個別に適用し、期限後応答を成功へ採用しない。ROOM/AI timeoutのcancel scopeはrequest/job単位とし、run IDに加えてROOMの`attempt_id`またはAIの`job_id`で対象を特定する。取消確認後は後続request/retryを続ける。ROOM requestが直列実行待ち・worker登録前・プロセス起動前に取消された場合も、対象IDの取消を記録し、後から起動しないことを確認する。取消未確認なら同runの後続処理を停止し、phase/codeを記録する。新runの`run.draft_deadline`/`run.end_deadline`はnull、旧値は監査履歴として保持し、schema v5→v6で値を変換せず、run参照子行も保持する。完了済みrunにmetrics pending/not_startedがある場合はRecoveryで旧owner停止を確認し、pending jobを停止できた後にmetricsのみ再開する。取消未確認時は新metrics requestを起動せず異常を記録する。検索/本文生成/報告反映を再生しない。
+
+
+## 日次共有coreの工程trace（STEP R11）
+
+`daily_pipeline` componentの許可operationは`preflight`、`database_open`、`prepare`、`start_backup`、`operations_monitor`、`daily`、`operations_monitor_stop`、`database_close`、`export`、`preservation`。各実行stageは`phase=begin/end/error`の順序付きeventとし、同runのpipeline spanをroot run spanへ結ぶ。`event_kind=stage`、`active_stage`、`last_completed_stage`、elapsed、許可済みstatus、失敗時safe `primary_error_code`だけを保存する。自由文・例外message・path絶対値・商品/投稿本文・URL/query/DOM・資格情報を含めない。
+
+`phase_results`はpreflight/database_open/prepare/start_backup/daily/metrics/operations_monitor/database_close/export/preservation/traceを別statusで返す。保全はend_backupとmonthly_restoreの内訳を保持し、実行条件が成立せず飛ばした工程を`not_run`として示す。operations monitorのstart failure後にstop cleanupが成功してもoperations_monitorはfailedのままにし、stop eventの成功とstart phaseの失敗を別にする。日次数到達やmetrics statusとHTML/保全statusを混同しない。
+
+`pipeline_trace`のstatusはhealthy/degraded/unavailable/not_written、event_countは非負整数、referenceはdata root相対、error_codeは許可されたsafe identifierだけとする。TraceWriterへの書込失敗はtrace stateをunavailable/degradedにし、既にcommitしたSQLite業務状態をrollbackせず、日次主例外を上書きしない。report apply途中失敗は同じrunのcheckpointから再開し、pending全件の管理反映確認前に探索を開始しない。17:45/18:00やScheduler時間上限は日次停止判定に使わず、各request/jobだけに有限timeoutを適用する。
+
+| Node | 注入 | 合格条件 |
+|---|---|---|
+| `tests_inago/test_daily_fix_pipeline.py::test_n22_probe_executes_daily_html_backup_and_restore_as_one_pipeline` | isolated probeの正常15供給 | 共通core全工程、HTML、metrics、backup、隔離restoreが同一runで成功し、DB integrity/FKが保たれる。 |
+| `tests_inago/test_daily_fix_pipeline.py::test_n22b_production_entry_uses_shared_core_after_production_guards` | production ready/root guardとcore entry | guard後に一度共有coreへ入り、phase結果とhealthy trace、15 commitを確認する。 |
+| `tests_inago/test_daily_fix_pipeline.py::test_n22c_monitor_start_failure_survives_successful_stop_status` | monitor start failure、stop cleanup成功 | operations_monitor statusはfailedを保ち、daily未起動、cleanup stopは完了として区別される。 |
+| `tests_inago/test_daily_fix_pipeline.py::test_n24a_report_apply_restarts_same_fourteen_run_across_old_cutoffs` | 報告反映途中失敗と17:45/18:00後の再開 | 14件/run identityを維持し、全報告反映後に探索を再開、15件へ到達する。 |
+| `tests_inago/test_daily_fix_pipeline.py::test_n24b_late_ai_response_is_discarded_and_next_offer_continues` | 個別AI timeoutと遅延応答 | 取消確認済みrequestの期限後応答採用0、別候補の進行は許可される。 |
+| `tests_inago/test_daily_fix_pipeline.py::test_n25_partial_metrics_and_full_retention_preserve_only_supported_evidence` | partial metrics、raw expiry、7世代・restore | null/0とscope/status、expired raw非復活、予約/投稿/pending/除外履歴を検証する。 |
+
+N22/N22b/N22c/N23a/N23b/N24a/N24b/N25の隔離証拠はM §14.15とT/R11へ保存する。PASS済みnodeはR15最終全回帰まで再実行しない。R11結合fixtureは本番日次の実運転・Scheduler有効化を証明しない。

@@ -2448,13 +2448,19 @@ def run_daily(
             }
             _save_state(connection, run_id, state)
             if not report_result.exploration_allowed:
-                state["error_count"] = int(state.get("error_count", 0)) + 1
-                _append_error(
-                    state,
-                    "reports",
-                    report_result.error or "pending_reports_block_exploration",
-                )
+                if not state.get("report_apply_error_pending"):
+                    state["error_count"] = int(state.get("error_count", 0)) + 1
+                    _append_error(
+                        state,
+                        "reports",
+                        report_result.error or "pending_reports_block_exploration",
+                    )
+                state["report_apply_error_pending"] = True
+                _save_state(connection, run_id, state)
             else:
+                if state.pop("report_apply_error_pending", False):
+                    state["error_count"] = max(0, int(state.get("error_count", 0)) - 1)
+                    _save_state(connection, run_id, state)
                 if all(
                     callable(getattr(original_copy_runner, name, None))
                     for name in (

@@ -1811,14 +1811,17 @@ def run_production_daily(
     process_start_time_reader: Callable[[int], str] | None = None,
     process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
-    """Run one scheduled daily job from the repository with local runtime data."""
+    """Run the shared daily pipeline after production readiness and root guards."""
 
-    from dataclasses import asdict
     from datetime import date
 
-    from automation.inago.backup import create_daily_backup, list_daily_backups
     from automation.inago.clock import SystemClock
-    from automation.inago.trigger import run_public_scheduled_daily
+    from automation.inago import daily_pipeline
+    from automation.inago.daily_pipeline import (
+        DailyExecutionPorts,
+        _default_failure_result,
+        ensure_daily_start_backup,
+    )
 
     selected_clock = clock or SystemClock()
     now = selected_clock.now_jst()
@@ -1829,27 +1832,27 @@ def run_production_daily(
             "target_date": now.date().isoformat(),
             "committed_count": 0,
         }
-    connection: sqlite3.Connection | None = None
-    daily_result: dict[str, Any]
-    daily_status = "failed"
-    start_backup_ready = False
 
-    def refresh_history_after_commit(_connection: sqlite3.Connection) -> None:
-        # The committed draft is durable before this callback; export errors are
-        # surfaced separately and do not trigger another AI generation.
-        run_production_dashboard_export(config)
-
-    try:
+    def preflight(current: datetime) -> dict[str, Any]:
         setup_state = require_production_ready(config)
         _assert_production_roots(config)
-        connection = _open_existing_production_database(config)
+        return setup_state
 
+    def open_database() -> sqlite3.Connection:
+        _assert_production_roots(config)
+        return _open_existing_production_database(config)
+
+    def prepare(
+        connection: sqlite3.Connection,
+        current: datetime,
+        setup_state: Mapping[str, Any],
+    ) -> dict[str, Any]:
         existing_run = connection.execute(
             """
             SELECT run_id, target_date, status, committed_count, attempt_used
               FROM run WHERE mode='daily' AND target_date=?
             """,
-            (now.date().isoformat(),),
+            (current.date().isoformat(),),
         ).fetchone()
         if existing_run is not None:
             existing_status = str(existing_run["status"])
@@ -1936,274 +1939,107 @@ def run_production_daily(
         if settings.active_basic_version != setup_state["settings_version"]:
             raise ProductionRuntimeError("runtime settings changed after setup")
         _assert_production_roots(config)
-        today_backup = config.backup_root / f"daily-{now.date().strftime('%Y%m%d')}"
-        if today_backup.resolve(strict=False) not in set(
-            list_daily_backups(config.backup_root)
-        ):
-            if today_backup.exists():
-                raise ProductionRuntimeError("today's backup exists but is invalid")
-            create_daily_backup(
-                connection,
-                data_root=config.runtime_root,
-                backup_root=config.backup_root,
-                now=now,
-                fixture_mode=False,
-            )
-        start_backup_ready = True
+        return {"settings_version": settings.active_basic_version}
+
+    def start_backup(
+        connection: sqlite3.Connection,
+        _context: Any,
+        current: datetime,
+    ) -> Mapping[str, Any]:
+        _assert_production_roots(config)
+        return ensure_daily_start_backup(
+            connection,
+            data_root=config.runtime_root,
+            backup_root=config.backup_root,
+            now=current,
+            fixture_mode=False,
+        )
+
+    def operations_monitor(
+        _connection: sqlite3.Connection,
+        _context: Any,
+        target_date: str,
+    ) -> Any:
+        from automation.inago.operations import DailyOperationsMonitor
+
+        return DailyOperationsMonitor(
+            config.runtime_root / "state.sqlite",
+            config.runtime_root / "state" / "daily-operations.json",
+            target_date=target_date,
+            now=selected_clock.now_jst,
+        )
+
+    def run_daily(
+        connection: sqlite3.Connection,
+        _context: Any,
+        on_draft_commit: Callable[[sqlite3.Connection], Any],
+    ) -> Any:
+        from automation.inago.trigger import run_public_scheduled_daily
+
+        _assert_production_roots(config)
         components = build_public_daily_components(
             config,
             connection,
             clock=selected_clock,
         )
-        from automation.inago.operations import DailyOperationsMonitor
-
-        operations_monitor = DailyOperationsMonitor(
-            config.runtime_root / "state.sqlite",
-            config.runtime_root / "state" / "daily-operations.json",
-            target_date=now.date().isoformat(),
-            now=selected_clock.now_jst,
+        return run_public_scheduled_daily(
+            connection,
+            data_root=config.runtime_root,
+            source=components["source"],
+            ai_root=components["ai_root"],
+            copy_spec_factory=components["copy_spec_factory"],
+            metrics_port=components["metrics_port"],
+            cancel_metrics_job=components["cancel_metrics_job"],
+            clock=selected_clock,
+            on_draft_commit=on_draft_commit,
         )
-        operations_monitor.start()
-        try:
-            outcome = run_public_scheduled_daily(
-                connection,
-                data_root=config.runtime_root,
-                source=components["source"],
-                ai_root=components["ai_root"],
-                copy_spec_factory=components["copy_spec_factory"],
-                metrics_port=components["metrics_port"],
-                cancel_metrics_job=components["cancel_metrics_job"],
-                clock=selected_clock,
-                on_draft_commit=refresh_history_after_commit,
-            )
-        finally:
-            operations_monitor.stop()
-        daily_result = asdict(outcome)
-        daily_status = str(outcome.status)
-    except _DailyResumeBlocked as exc:
-        daily_status = exc.status
-        daily_result = {
-            "status": exc.status,
-            "run_id": exc.run_id,
-            "target_date": exc.target_date,
-            "committed_count": exc.committed_count,
-            "attempt_used": exc.attempt_used,
-            "metrics_status": "unknown",
-            "resumed": False,
-            "reason": exc.reason_code,
-        }
-    except Exception as exc:
-        if connection is not None and connection.in_transaction:
-            try:
-                connection.rollback()
-            except sqlite3.Error:
-                pass
-        current_run = None
-        if connection is not None:
-            try:
-                current_run = connection.execute(
-                    """
-                    SELECT run_id, target_date, committed_count, attempt_used
-                      FROM run WHERE mode='daily' AND target_date=?
-                    """,
-                    (now.date().isoformat(),),
-                ).fetchone()
-            except sqlite3.Error:
-                current_run = None
-        daily_status = "failed"
-        daily_result = {
-            "status": "failed",
-            "run_id": str(current_run["run_id"]) if current_run else None,
-            "target_date": (
-                str(current_run["target_date"])
-                if current_run
-                else now.date().isoformat()
-            ),
-            "committed_count": (
-                int(current_run["committed_count"]) if current_run else 0
-            ),
-            "attempt_used": int(current_run["attempt_used"]) if current_run else 0,
-            "metrics_status": "unknown",
-            "resumed": False,
-            "reason": type(exc).__name__,
-        }
-    finally:
-        if connection is not None:
-            try:
-                connection.close()
-            except sqlite3.Error:
-                if daily_status != "failed":
-                    daily_status = "failed"
-                    daily_result = {
-                        "status": "failed",
-                        "run_id": None,
-                        "target_date": now.date().isoformat(),
-                        "committed_count": 0,
-                        "attempt_used": 0,
-                        "metrics_status": "unknown",
-                        "resumed": False,
-                        "reason": "DatabaseCloseError",
-                    }
 
-    preservation_result: dict[str, Any] = {
-        "status": "not_run",
-        "end_backup": {"status": "not_run", "error_code": None},
-        "monthly_restore": {"status": "not_run", "already_checked": False},
-    }
-    blocked_before_resume = daily_status in {
-        "locked",
-        "recovery_confirmation_required",
-        "recovery_required",
-    }
-    if blocked_before_resume:
-        export_result = {
-            "status": "not_run",
-            "reason_code": "daily_recovery_not_confirmed",
-        }
-    else:
-        export_result = run_production_dashboard_export(config)
-    if start_backup_ready and not blocked_before_resume:
-        preservation_result = run_production_end_of_day_preservation(
+    def export_dashboard(_context: Any) -> Mapping[str, Any]:
+        return run_production_dashboard_export(config)
+
+    def preserve_end_of_day(
+        _context: Any,
+        current: datetime,
+        run_id: str | None,
+    ) -> Mapping[str, Any]:
+        return run_production_end_of_day_preservation(
             config,
-            now=selected_clock.now_jst(),
-            run_id=(
-                str(daily_result["run_id"])
-                if daily_result.get("run_id") is not None
-                else None
-            ),
+            now=current,
+            run_id=run_id,
         )
-    metrics_status = str(daily_result.get("metrics_status", "unknown"))
-    daily_error_count = daily_result.get("error_count", 0)
-    try:
-        daily_error_count = int(daily_error_count)
-    except (TypeError, ValueError):
-        daily_error_count = 1
-    daily_primary_error = daily_result.get("primary_error")
-    if not isinstance(daily_primary_error, dict):
-        daily_primary_error = None
-    if daily_primary_error is None and (
-        daily_status in {"failed", "locked"}
-        or daily_status.startswith("recovery_")
-        or daily_error_count > 0
-    ):
-        daily_primary_error = {
-            "phase": "daily",
-            "code": str(daily_result.get("reason") or "daily_processing_error"),
-        }
 
-    end_backup = preservation_result.get("end_backup")
-    monthly_restore = preservation_result.get("monthly_restore")
-    end_backup_status = (
-        end_backup.get("status") if isinstance(end_backup, dict) else "unknown"
-    )
-    monthly_restore_status = (
-        monthly_restore.get("status")
-        if isinstance(monthly_restore, dict)
-        else "unknown"
-    )
-    phase_errors: list[dict[str, str]] = []
-    if daily_primary_error is not None:
-        phase_errors.append(dict(daily_primary_error))
-    if daily_error_count > 0 and daily_primary_error is None:
-        phase_errors.append({"phase": "daily", "code": "daily_processing_error"})
-    if metrics_status not in {"observed"} and daily_status not in {
-        "locked",
-        "recovery_confirmation_required",
-        "recovery_required",
-    }:
-        phase_errors.append({"phase": "metrics", "code": f"metrics_{metrics_status}"})
-    if not blocked_before_resume and export_result.get("status") not in {
-        "ready",
-        "not_run",
-    }:
-        export_code = (
-            export_result.get("error_code")
-            or export_result.get("reason_code")
-            or "dashboard_export_failed"
-        )
-        phase_errors.append({"phase": "export", "code": str(export_code)[:128]})
-    preservation_ready = (
-        preservation_result.get("status") == "ready"
-        and end_backup_status == "ready"
-        and monthly_restore_status in {"ready", "already_checked"}
-    )
-    if not preservation_ready and not blocked_before_resume:
-        preserve_code = (
-            (end_backup.get("error_code") if isinstance(end_backup, dict) else None)
-            or (
-                monthly_restore.get("error_code")
-                if isinstance(monthly_restore, dict)
-                else None
-            )
-            or "preservation_failed"
-        )
-        phase_errors.append({"phase": "preservation", "code": str(preserve_code)[:128]})
+    def failure_result(
+        error: Exception,
+        connection: sqlite3.Connection | None,
+        target_date: str,
+        phase: str,
+    ) -> Mapping[str, Any]:
+        if isinstance(error, _DailyResumeBlocked):
+            return {
+                "status": error.status,
+                "run_id": error.run_id,
+                "target_date": error.target_date,
+                "committed_count": error.committed_count,
+                "attempt_used": error.attempt_used,
+                "metrics_status": "unknown",
+                "resumed": False,
+                "reason": error.reason_code,
+            }
+        return _default_failure_result(error, connection, target_date, phase)
 
-    daily_secondary_errors = daily_result.get("secondary_errors", [])
-    primary_error = phase_errors[0] if phase_errors else None
-    secondary_errors = list(phase_errors[1:])
-    if daily_status in {
-        "locked",
-        "recovery_confirmation_required",
-        "recovery_required",
-    }:
-        final_status = daily_status
-    elif daily_status == "failed" or daily_error_count > 0:
-        final_status = "failed"
-    elif export_result.get("status") != "ready":
-        final_status = "export_failed"
-    elif not preservation_ready:
-        final_status = "preservation_failed"
-    elif metrics_status != "observed":
-        final_status = "metrics_failed"
-    elif daily_status in {"partial", "shortfall"}:
-        final_status = daily_status
-    elif daily_status == "complete":
-        final_status = "complete"
-    else:
-        final_status = "failed"
-
-    if isinstance(daily_secondary_errors, (list, tuple)):
-        secondary_errors.extend(
-            dict(item) for item in daily_secondary_errors if isinstance(item, dict)
-        )
-    daily_reason = daily_result.get("reason")
-    overall_reason = (
-        str(primary_error.get("code"))
-        if isinstance(primary_error, dict)
-        else (str(daily_reason) if isinstance(daily_reason, str) else None)
+    ports = DailyExecutionPorts(
+        data_root=config.runtime_root,
+        preflight=preflight,
+        open_database=open_database,
+        prepare=prepare,
+        start_backup=start_backup,
+        operations_monitor=operations_monitor,
+        run_daily=run_daily,
+        export_dashboard=export_dashboard,
+        preserve_end_of_day=preserve_end_of_day,
+        failure_result=failure_result,
     )
-    phase_results = {
-        "daily": {
-            "status": daily_status,
-            "committed_count": daily_result.get("committed_count"),
-            "shortfall_count": daily_result.get("shortfall_count"),
-            "source_failures": daily_result.get("source_failures"),
-            "error_count": daily_error_count,
-            "primary_error": daily_primary_error,
-            "secondary_errors": daily_secondary_errors,
-        },
-        "metrics": {"status": metrics_status},
-        "export": {"status": export_result.get("status")},
-        "preservation": {
-            "status": preservation_result.get("status"),
-            "end_backup_status": end_backup_status,
-            "monthly_restore_status": monthly_restore_status,
-        },
-    }
-    return {
-        **daily_result,
-        "status": final_status,
-        "daily_status": daily_status,
-        "daily_reason": daily_reason,
-        "reason": overall_reason,
-        "overall_status": final_status,
-        "primary_error": primary_error,
-        "secondary_errors": secondary_errors,
-        "phase_results": phase_results,
-        "export": export_result,
-        "preservation": preservation_result,
-    }
+    return daily_pipeline.run_daily_execution_core(ports, clock=selected_clock)
 
 
 def run_production_end_of_day_preservation(
