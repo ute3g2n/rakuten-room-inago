@@ -7,6 +7,7 @@ import re
 import sqlite3
 import subprocess
 from types import SimpleNamespace
+from typing import TypedDict, cast
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -1981,6 +1982,241 @@ try { Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'; $status='rep
         assert observed["Registrations"] == []
 
 
+class _DailyTaskRegistration(TypedDict):
+    Name: str
+    Xml: str
+    Force: bool
+
+
+class _DailyTaskRegistrationObservation(TypedDict):
+    Status: str
+    Registrations: list[_DailyTaskRegistration]
+    User: str
+    Error: str | None
+
+
+def _prepare_daily_task_limit_drift_fixture(
+    tmp_path: Path,
+) -> tuple[str, Path, Path]:
+    from datetime import date
+
+    config_path = _write_config(
+        tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+    )
+    document = json.loads(config_path.read_text(encoding="utf-8"))
+    start_date = (date.today() + timedelta(days=1)).isoformat()
+    document["start_date"] = start_date
+    config_path.write_text(json.dumps(document), encoding="utf-8")
+    setup = config_path.parents[1] / "state/setup-status.json"
+    setup.parent.mkdir()
+    setup.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "ready",
+                "migration_selection_allowed": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    python = tmp_path / ".venv-inago/Scripts/python.exe"
+    python.parent.mkdir(parents=True)
+    python.write_text("not executable", encoding="utf-8")
+    return f"{start_date}T13:00:00+09:00", config_path, python
+
+
+def _write_daily_task_limit_drift_harness(tmp_path: Path) -> Path:
+    harness = tmp_path / "daily-task-limit-drift-fixture.ps1"
+    harness.write_text(
+        r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$ExecutionLimit,[string]$State)
+. $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+$expectedArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+$script:existing = [pscustomobject]@{
+    Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$expectedArgs; WorkingDirectory=$applicationRoot})
+    Principal = [pscustomobject]@{UserId=$userId; LogonType='Interactive'; RunLevel='Limited'}
+    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$true; ExecutionTimeLimit=$ExecutionLimit}
+    Triggers = @([pscustomobject]@{Enabled=$true; DaysInterval=1; StartBoundary=$Boundary; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskDailyTrigger'}})
+    State = $State
+}
+$script:registered = @()
+function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+try {
+    Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'
+    $status = if ($script:registered.Count -gt 0) { 'replaced' } else { 'accepted' }
+} catch { $status='blocked'; $errorMessage = $_.Exception.Message }
+[pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId; Error=$errorMessage} | ConvertTo-Json -Depth 5 -Compress
+""",
+        encoding="utf-8",
+    )
+    return harness
+
+
+def _run_daily_task_limit_drift_harness(
+    tmp_path: Path,
+    harness: Path,
+    script: Path,
+    boundary: str,
+    execution_limit: str,
+    state: str,
+    powershell: str,
+) -> _DailyTaskRegistrationObservation:
+    process = subprocess.run(
+        [
+            powershell,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(harness),
+            "-RegistrationScript",
+            str(script),
+            "-Root",
+            str(tmp_path),
+            "-Boundary",
+            boundary,
+            "-ExecutionLimit",
+            execution_limit,
+            "-State",
+            state,
+        ],
+        capture_output=True,
+        env=dict(
+            os.environ,
+            LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+            USERPROFILE=str(tmp_path / "UserProfile"),
+        ),
+        check=False,
+        timeout=30,
+    )
+    assert process.returncode == 0, process.stderr
+    result = json.loads(process.stdout.decode("utf-8-sig"))
+    assert isinstance(result, dict)
+    assert isinstance(result.get("Status"), str)
+    assert isinstance(result.get("Registrations"), list)
+    assert isinstance(result.get("User"), str)
+    assert result.get("Error") is None or isinstance(result["Error"], str)
+    for registration in result["Registrations"]:
+        assert isinstance(registration, dict)
+        assert isinstance(registration.get("Name"), str)
+        assert isinstance(registration.get("Xml"), str)
+        assert isinstance(registration.get("Force"), bool)
+    return cast(_DailyTaskRegistrationObservation, result)
+
+
+def _assert_daily_task_action_xml(
+    xml: ET.Element,
+    namespace: dict[str, str],
+    tmp_path: Path,
+    config_path: Path,
+    python: Path,
+) -> None:
+    runtime_root = config_path.parents[1]
+    assert (
+        Path(xml.findtext(".//t:Actions/t:Exec/t:Command", namespaces=namespace))
+        == python
+    )
+    assert xml.findtext(
+        ".//t:Actions/t:Exec/t:WorkingDirectory", namespaces=namespace
+    ) == str(tmp_path)
+    expected_args = (
+        "-B -m automation.inago.cli daily --environment production --config "
+        f'"{runtime_root / "config/settings.json"}" --data-root "{runtime_root}" '
+        f'--user-profile "{tmp_path / "UserProfile"}" '
+        f'--local-app-data "{tmp_path / "LocalAppData"}"'
+    )
+    assert (
+        xml.findtext(".//t:Actions/t:Exec/t:Arguments", namespaces=namespace)
+        == expected_args
+    )
+
+
+def _assert_daily_task_trigger_xml(
+    xml: ET.Element, namespace: dict[str, str], boundary: str
+) -> None:
+    assert (
+        xml.findtext(
+            ".//t:Triggers/t:CalendarTrigger/t:ScheduleByDay/t:DaysInterval",
+            namespaces=namespace,
+        )
+        == "1"
+    )
+    assert (
+        xml.findtext(
+            ".//t:Triggers/t:CalendarTrigger/t:StartBoundary", namespaces=namespace
+        )
+        == boundary
+    )
+
+
+def _assert_daily_task_replacement_xml(
+    observed: _DailyTaskRegistrationObservation,
+    tmp_path: Path,
+    config_path: Path,
+    python: Path,
+    boundary: str,
+) -> None:
+    registration = observed["Registrations"][0]
+    assert registration["Name"] == "RakutenRoomInagoDaily"
+    assert registration["Force"] is True
+    xml = ET.fromstring(registration["Xml"])
+    namespace = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+    assert (
+        xml.findtext(".//t:Settings/t:ExecutionTimeLimit", namespaces=namespace)
+        == "PT0S"
+    )
+    assert xml.findtext(".//t:Settings/t:WakeToRun", namespaces=namespace) == "true"
+    assert (
+        xml.findtext(".//t:Principal/t:UserId", namespaces=namespace)
+        == observed["User"]
+    )
+    assert (
+        xml.findtext(".//t:Principal/t:RunLevel", namespaces=namespace)
+        == "LeastPrivilege"
+    )
+    _assert_daily_task_action_xml(xml, namespace, tmp_path, config_path, python)
+    _assert_daily_task_trigger_xml(xml, namespace, boundary)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+@pytest.mark.parametrize(
+    "execution_limit,state,expected,registration_count",
+    [
+        ("PT6H", "Ready", "replaced", 1),
+        ("PT6H", "Disabled", "replaced", 1),
+        ("PT6H", "Running", "blocked", 0),
+        ("PT0S", "Ready", "accepted", 0),
+        ("00:00:00", "Ready", "accepted", 0),
+    ],
+)
+def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+    tmp_path: Path,
+    execution_limit: str,
+    state: str,
+    expected: str,
+    registration_count: int,
+) -> None:
+    import shutil
+
+    powershell = shutil.which("powershell.exe")
+    if powershell is None:
+        pytest.skip("PowerShell unavailable")
+    boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+    script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+    harness = _write_daily_task_limit_drift_harness(tmp_path)
+    observed = _run_daily_task_limit_drift_harness(
+        tmp_path, harness, script, boundary, execution_limit, state, powershell
+    )
+
+    assert observed["Status"] == expected, observed.get("Error")
+    assert len(observed["Registrations"]) == registration_count
+    if registration_count:
+        _assert_daily_task_replacement_xml(
+            observed, tmp_path, config_path, python, boundary
+        )
+    else:
+        assert observed["Registrations"] == []
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
 @pytest.mark.parametrize(
     "definition,expected,registration_count",
@@ -2040,7 +2276,7 @@ if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
 $script:existing = [pscustomobject]@{
     Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
     Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
-    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false}
+    Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false; ExecutionTimeLimit='PT0S'}
     Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
     State = 'Ready'
 }
