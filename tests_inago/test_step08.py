@@ -337,6 +337,12 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
     assert Path(recorded["output_schema"]).parent == Path(recorded["cwd"])
     job_document = json.loads(recorded["stdin"].splitlines()[-1])
     assert job_document["agent_id"] == "AI-O"
+    assert (
+        "Copy protocol_version, schema_version, run_id, job_id, attempt, task_id, "
+        "agent_id, skill_name, target_date, settings_version, input_refs, "
+        "evidence_refs, input_hash, and deadline_at exactly from job-input.json; "
+        "never recompute or replace input_hash."
+    ) in recorded["stdin"]
     assert recorded["skill_dirs"] == [
         "rakuten-room-inago",
         "rr-inago-copywriter",
@@ -383,8 +389,10 @@ def test_runner_persists_sanitized_per_job_trace_events(tmp_path: Path) -> None:
 
     assert result.result_status == "success"
     trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
-    assert len(trace_files) == 1
-    trace_text = trace_files[0].read_text(encoding="utf-8")
+    assert len(trace_files) == 2
+    job_trace_files = [path for path in trace_files if request.job_id in path.stem]
+    assert len(job_trace_files) == 1
+    trace_text = job_trace_files[0].read_text(encoding="utf-8")
     records = [json.loads(line) for line in trace_text.splitlines()]
     assert [record["event"] for record in records] == [
         "job_started",
@@ -420,10 +428,12 @@ def test_api_key_auth_is_rejected_before_cli_start(tmp_path: Path) -> None:
     assert result.auth_mode == "api_key"
     assert not record_path.exists()
     trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
-    assert len(trace_files) == 1
+    assert len(trace_files) == 2
+    job_trace_files = [path for path in trace_files if request.job_id in path.stem]
+    assert len(job_trace_files) == 1
     records = [
         json.loads(line)
-        for line in trace_files[0].read_text(encoding="utf-8").splitlines()
+        for line in job_trace_files[0].read_text(encoding="utf-8").splitlines()
     ]
     assert [record["event"] for record in records] == [
         "job_started",
