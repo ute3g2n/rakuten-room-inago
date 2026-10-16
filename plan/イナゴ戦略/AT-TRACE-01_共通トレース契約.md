@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.17、§8・§27.6～27.15・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
+正本：要件定義書HTML 2.18、§8・§27.6～27.16・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
 
 ## 共通イベント
 
@@ -145,3 +145,9 @@ TraceWriterが診断eventを書けない場合も、既にcommitしたreceipt/�
 | `tests_inago/test_daily_fix_history.py::test_n27_browser_outbox_json_import_and_next_day_apply_trace` | API停止/復帰、IndexedDB reload、JSON export/import、翌日apply | 同じaction_idのACK後だけoutboxを消し、JSON取込は冪等。重複/逆順/競合/旧版/不正JSONを拒否し、翌日のDB反映は一回だけ。report_import/apply trace、reservation・revision・applied stateの対応を確認する。 |
 
 N26/N27の完全node、隔離root、command、期待/実測、SQLite件数・reservation/posted状態、action/revision trace、localhost画面操作証拠はM §14.16とT/R12へ保存する。PASS済みnodeはR15最終全回帰まで再実行しない。HTML/fixture PASSは本番日次実行、本人の実投稿、Scheduler有効化を証明しない。
+
+## Scheduler設定の実接続確認（STEP R13）
+
+日次の終了期限はJSONL traceへ混ぜず、Windows Task Scheduler APIから実設定を取得してprivate execution evidenceへ記録する。許可する証拠項目はtask名、state、principal SID、logon type、run level、ExecutionTimeLimit、restart設定、command/arguments/working directoryの期待値比較結果、trigger種別、前後設定の同一性だけとする。アカウント名・環境変数値・認証情報・任意の外部データは公開traceへ記録しない。
+
+日次taskのExecutionTimeLimitはPT0Sでなければならない。登録処理は実登録値とテンプレートを照合し、Ready/Disabledで値が異なる場合だけ定義済みXMLへ再登録する。実行中taskは変更しない。修復後にprincipal/action/working directory/triggerが保持されたことをScheduler APIで確認する。N30は現行の実日次taskと一時taskの設定を読み、通常主体から隔離probeを実行する。L04は同主体でread-only Human API healthおよびmetrics接続を実証する。これらは実production日次の実行・投稿を示さない。

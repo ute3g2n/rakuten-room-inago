@@ -155,6 +155,8 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
         if ($existing.Settings.MultipleInstances.ToString() -ne 'IgnoreNew' -or -not $existing.Settings.Hidden) {
             throw "Existing task '$Name' has unexpected scheduler settings; it was left untouched."
         }
+        $executionTimeLimit = [string]$existing.Settings.ExecutionTimeLimit
+        $executionTimeLimitMatches = $executionTimeLimit -in @('PT0S', '00:00:00')
         if ($existing.Triggers.Count -ne 1 -or $existing.Triggers[0].Enabled -ne $true) {
             throw "Existing task '$Name' has unexpected triggers; it was left untouched."
         }
@@ -188,9 +190,9 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
         $expectedWakeToRun = ($Mode -eq 'daily')
         $wakeSetting = $existing.Settings.PSObject.Properties['WakeToRun']
         $wakeMatches = $null -ne $wakeSetting -and ([bool]$wakeSetting.Value -eq $expectedWakeToRun)
-        if (-not $wakeMatches) {
+        if (-not $wakeMatches -or -not $executionTimeLimitMatches) {
             if (@('Ready', 'Disabled') -notcontains $state) {
-                throw "Task '$Name' has an unexpected wake setting and is not idle; it was left untouched."
+                throw "Task '$Name' has an unexpected wake/execution time limit and is not idle; it was left untouched."
             }
             Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force -ErrorAction Stop | Out-Null
             return
