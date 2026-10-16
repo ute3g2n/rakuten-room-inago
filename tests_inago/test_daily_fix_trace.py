@@ -687,3 +687,65 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
         second.write(trace.make_trace_event(run_id="RUN-N29-F2", **event_fields)).status
         == "unavailable"
     )
+
+
+def test_n08d_trends_widget_selector_versions_keep_trace_healthy(
+    tmp_path: Path,
+) -> None:
+    """Accept current and historical Trends selectors in common trace events."""
+
+    trace = _trace_api()
+    live_sources = importlib.import_module("automation.inago.live_sources")
+    clock = FakeClock(datetime.fromisoformat("2026-10-16T16:00:00+09:00"))
+    adapter = object.__new__(live_sources.PublicBrowserSource)
+
+    for version in ("related-widget-v4", "related-widget-v2", "related-widget-v3"):
+        writer = trace.TraceWriter(
+            tmp_path / version,
+            f"RUN-N08D-{version[-2:]}",
+            "2026-10-16",
+            clock=clock,
+        )
+        session = trace.TraceSession(
+            writer,
+            component="public_source",
+            request_id=f"TR-N08D-{version[-2:]}",
+            task_id="daily",
+            clock=clock,
+        )
+        session.start(operation="trends_request")
+        session.record_stage("trends_related_widget_wait_begin", phase="begin")
+        adapter._trace_node_events(
+            session,
+            [
+                {
+                    "stage": "trends_related_widget_wait_ready",
+                    "elapsed_ms": 25,
+                    "widget_scope": "explore_related_queries",
+                    "widget_selector_version": version,
+                    "widget_kind": "related_keywords",
+                    "widget_dom_count": 3,
+                    "widget_visible_count": 3,
+                    "widget_match_count": 1,
+                    "widget_match_visible_count": 1,
+                    "widget_wrong_visible_count": 2,
+                    "related_widget_generation": 1,
+                    "generation_before_period": 0,
+                    "widget_empty_evidence": "none",
+                    "widget_outcome": "ready",
+                    "widget_period_refresh_required": True,
+                }
+            ],
+            started_at=clock.now_jst(),
+        )
+
+        assert session.snapshot()["health"] == "healthy"
+        events = trace.read_trace_events(writer.path)
+        ready = next(
+            event
+            for event in events
+            if event["operation"] == "trends_related_widget_wait_ready"
+        )
+        assert ready["widget_selector_version"] == version
+        assert ready["widget_kind"] == "related_keywords"
+        assert ready["widget_match_visible_count"] == 1
