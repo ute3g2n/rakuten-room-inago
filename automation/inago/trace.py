@@ -98,7 +98,11 @@ _ERROR_KINDS = {
     "other_error",
 }
 _WIDGET_SCOPE = {"explore_related_queries"}
-_WIDGET_SELECTOR_VERSIONS = {"related-widget-v2"}
+_WIDGET_SELECTOR_VERSIONS = {
+    "related-widget-v2",
+    "related-widget-v3",
+    "related-widget-v4",
+}
 _WIDGET_KINDS = {"related_keywords", "related_topics", "unknown", "multiple"}
 _WIDGET_EMPTY_EVIDENCE = {"none", "explicit_no_data"}
 _WIDGET_OUTCOMES = {"ready", "deadline", "ambiguous", "contract_mismatch"}
