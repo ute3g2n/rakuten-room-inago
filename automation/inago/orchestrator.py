@@ -485,6 +485,7 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
             "theme_targets": {},
             "used_queries": [],
             "source_stopped": False,
+            "source_stopped_reason": None,
             "phase": "initial",
             "initial_theme_ids": [],
             "plans": {},
@@ -1779,6 +1780,7 @@ def _search_task(
         if status not in {"partial", "unavailable", "invalid"}:
             return
     state["source_stopped"] = True
+    state["source_stopped_reason"] = "attempt_budget_exhausted"
     _save_state(connection, run_id, state)
 
 

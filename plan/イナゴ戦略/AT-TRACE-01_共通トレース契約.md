@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.10、§8・§27.6～27.11・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06/R07。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
+正本：要件定義書HTML 2.11、§8・§27.6～27.12・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06/R07/R08。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
 
 ## 共通イベント
 
@@ -53,6 +53,24 @@ click errorの後に遷移待ちのtimeoutを追加しない。destination wait 
 | L02 | 許可された正規の公開ROOM UI port | likes=300/コメント指定なしを確認し、通常操作で実商品URL/keyへ到達、popup/same-tab別の遷移traceと一覧復帰・順序をprivate evidenceで確認する。未到達やcondition close failureをPASSへ置き換えない。 |
 
 各nodeの結果はM §14.11およびT/R07のcase ledgerに完全node ID・attempt・観測・trace参照と共に保存する。PASS済みnodeはR15の最終全回帰まで再実行しない。L02の実接続で必要な正常経路を確認できなければR07を未完了として保持する。
+
+## ROOM商品行失敗・検索全体失敗・一覧完了の安全な診断（STEP R08）
+
+ROOM詳細解決は受理した元の先頭50枠を維持する。個別行のclick/商品遷移timeoutは、共有query deadlineが残り、元一覧を回復できる場合だけその行を`unresolved`として残し、次の行へ進む。10件以下の行失敗は検索を継続し、11件以上はsearch attemptを`partial`にする。失敗枠は元order_indexを持ったまま先頭50内を消費し、51件目以降で穴埋めしない。認証・条件不成立・stale query・共有deadline・元一覧復帰不能はquery failureとして保持し、行失敗数へ足さない。例外を一律行失敗に変換しない。
+
+許可fieldは`scope=row|query|run`、`row_status=identified|unresolved`、`row_failure_count`と`identified_row_count`（各integer 0..50）、`stable_round`（integer 0..3）、`end_evidence=explicit_no_results|explicit_end|stable_no_progress|first_50`。row-indexが付いたdeadline/auth/condition/restore failureも明示`scope=query`を優先して投影する。`room_product_resolution_summary`はquery scopeでloaded/accepted/row failure/identified countを記録する。`room_product_row_complete`はrow scopeと元row_index/statusを記録する。
+
+一覧の0件は、明示された「検索結果がありません」「該当する商品がありません」「検索結果はありません」だけを正常0とする。「検索結果は以上です」は正数表示後の終了表示であり、0件成功の根拠ではない。1件以上の短い一覧は、各最大2秒待機を伴うスクロールで3回続けて増加しなければ実表示件数で完了する。表示0で終了証拠なし、古いquery、一覧障害は`incomplete_search`または`query_not_reflected`等のquery failureにする。
+
+`source_failures`は`source_status != observed`で確定したsearch attempt単位の件数であり、attemptごとに最大1増やす。`observed`のまま終わった10件以下の商品行失敗は`source_failures`を増やさず、行数は`row_failure_count`と各post identityで数える。partial/unavailable/invalidは各search attemptの1失敗である。3回のquery attemptを使い切った時は`source_stopped=true`、`source_stopped_reason=attempt_budget_exhausted`とし、attempt/retry_ofと失敗理由を保つ。回復成功では停止理由を残さない。
+
+失敗観測artifactは許可済みのROOM stage IDと`condition_popup_close_failed`、`product_row_timeout`、`product_resolution_failures_exceeded`、`room_search_restore_failed`、`query_not_reflected`、`incomplete_search`等の有限codeだけを保持する。raw query/URL/DOM/本文/資格情報/例外messageを記録しない。scope・row index・count・enumは共通trace側で型と範囲を再検証する。
+
+| Node | 注入 | 合格条件 |
+|---|---|---|
+| N14 | 1行/10行のdetail click TimeoutError、後続行は成功 | row scopeで未解決行を元位置に残し、残行を続ける。summary failure/identified countとhealthy common traceが一致する。 |
+| N15 | 11行失敗と50行目失敗を含む80行一覧 | 11件でpartial、50番目の失敗枠を保持し、51番目以降で穴埋めしない。 |
+| N16 | shared deadline/auth/condition/restore/stale/empty/short-listと同task再試行 | query failureはrow scopeへ落とさず、明示0件・3回安定終了・3attempt停止理由を正確に保持する。 |
 
 ## 受入node
 

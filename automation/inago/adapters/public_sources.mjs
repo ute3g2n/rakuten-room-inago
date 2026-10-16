@@ -62,7 +62,8 @@ function trace(stage, details = {}) {
     elapsed_ms:Math.max(0,Date.now()-processStartedAt),
   };
   const integerFields = [
-    'loaded_posts','accepted_posts','row_index','body_children',
+    'loaded_posts','accepted_posts','row_index','body_children','stable_round',
+    'row_failure_count','identified_row_count',
     'search_candidate_count','visible_input_count','label_locator_match_count',
     'search_button_count','explore_button_count','period_option_count',
     'retry_after_seconds','popup_url_length','widget_dom_count',
@@ -74,7 +75,10 @@ function trace(stage, details = {}) {
   ];
   for (const key of integerFields) {
     const value = details[key];
-    if (Number.isInteger(value) && value >= 0 && (key !== 'row_index' || value <= 50))
+    const maximum = key === 'stable_round' ? 3 : 50;
+    if (Number.isInteger(value) && value >= 0 &&
+        (key !== 'row_index' || value <= 50) &&
+        (!['stable_round','row_failure_count','identified_row_count'].includes(key) || value <= maximum))
       safe[key] = value;
   }
   for (const key of [
@@ -89,6 +93,8 @@ function trace(stage, details = {}) {
   if (details.widget_selector_version === TRENDS_WIDGET_SELECTOR_VERSION)
     safe.widget_selector_version = TRENDS_WIDGET_SELECTOR_VERSION;
   const enums = {
+    scope:['row','query','run'],
+    row_status:['identified','unresolved'],
     document_ready_state:['loading','interactive','complete'],
     phase:['card_link','preview_click','detail_button_ready','detail_button_click','product_destination_wait','popup_wait','popup_initial_url','product_navigation','product_url_parse','room_search_restore'],
     popup_url_kind:['blank','empty','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
@@ -108,6 +114,7 @@ function trace(stage, details = {}) {
     widget_kind:['related_keywords','related_topics','unknown','multiple'],
     widget_empty_evidence:['none','explicit_no_data'],
     widget_outcome:['ready','deadline','ambiguous','contract_mismatch'],
+    end_evidence:['explicit_no_results','explicit_end','stable_no_progress','first_50'],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (allowed.includes(details[key])) safe[key] = details[key];
@@ -399,7 +406,9 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     let remaining = deadline - Date.now();
     if (remaining <= 0) {
       sameTabNavigation = false;
-      trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
+      trace('room_search_restore_skipped_deadline',{
+        ...detail,phase:'room_search_restore',scope:'query',
+      });
       return false;
     }
     try {
@@ -408,7 +417,9 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
         remaining = deadline - Date.now();
         if (remaining <= 0) {
           sameTabNavigation = false;
-          trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
+          trace('room_search_restore_skipped_deadline',{
+            ...detail,phase:'room_search_restore',scope:'query',
+          });
           return false;
         }
         await page.waitForURL(url => url.href === roomUrl, {
@@ -417,7 +428,9 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       }
       if (Date.now() >= deadline) {
         sameTabNavigation = false;
-        trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
+        trace('room_search_restore_skipped_deadline',{
+          ...detail,phase:'room_search_restore',scope:'query',
+        });
         return false;
       }
       if (page.url() !== roomUrl) throw new SourceFailure('room_search_restore_failed');
@@ -433,6 +446,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       trace('room_search_restore_error',{
         ...detail,
         phase:'room_search_restore',
+        scope:'query',
         error_class:safeThrownErrorClass(error),
         failed_operation:'room_search_restore_begin',
         wait_elapsed_ms:Math.max(0,Date.now()-restoreStartedAt),
@@ -603,6 +617,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       trace('room_detail_button_click_error',{
         ...detail,
         phase:'detail_button_click',
+        scope:error instanceof SourceFailure || Date.now() >= deadline ? 'query' : 'row',
         error_class:safeThrownErrorClass(error),
         failed_operation:'room_detail_button_click_begin',
         timeout_ms:clickTimeoutMs,
@@ -625,7 +640,8 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
         trace('room_same_tab_navigation_observed',detail);
       }
       if (error instanceof SourceFailure) throw error;
-      if (error?.name === 'TimeoutError') throw new SourceFailure('source_timeout');
+      if (error?.name === 'TimeoutError')
+        throw new SourceFailure(Date.now() >= deadline ? 'source_timeout' : 'product_row_timeout');
       throw error;
     }
     trace('room_detail_button_click_complete',{
@@ -651,6 +667,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       trace('room_product_destination_wait_error',{
         ...detail,
         phase:'product_destination_wait',
+        scope:Date.now() >= deadline ? 'query' : 'row',
         error_class:'TimeoutError',
         failed_operation:'room_product_destination_wait_begin',
         timeout_ms:destinationWaitTimeoutMs,
@@ -658,7 +675,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       });
       stageErrorRecorded = true;
       if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
-      return null;
+      throw new SourceFailure('product_row_timeout');
     }
     destinationMonitor.cancel();
     trace('room_product_destination_wait_complete',{
@@ -697,7 +714,11 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     await waitDOM(productPage,productCheck,() => Boolean(document.body?.children.length && document.body.innerText.trim()),null,deadline);
     trace('room_product_page_rendered',detail);
     const product = productIds(productPage.url());
-    trace(product ? 'room_product_resolved' : 'room_product_url_unresolved',detail);
+    trace(product ? 'room_product_resolved' : 'room_product_url_unresolved',{
+      ...detail,
+      scope:'row',
+      row_status:product ? 'identified' : 'unresolved',
+    });
     if (
       sameTabNavigation &&
       config.environment === 'fixture' &&
@@ -706,7 +727,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     if (sameTabNavigation) {
       phase = 'room_search_restore';
       if (!(await restoreSearchBeforeDeadline()))
-        throw new SourceFailure('source_timeout');
+        throw new SourceFailure(Date.now() >= deadline ? 'source_timeout' : 'room_search_restore_failed');
       await waitDOM(page,check,() => Boolean(document.querySelector('#search-box')),null,deadline);
     }
     return product;
@@ -734,10 +755,15 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
         : phase === 'room_search_restore'
           ? 'room_search_restore_begin'
           : null;
+    const rowTimeout = (error instanceof SourceFailure && error.code === 'product_row_timeout') ||
+      (error?.name === 'TimeoutError' && Date.now() < deadline &&
+        ['preview_click','detail_button_click','product_navigation'].includes(phase));
+    const queryFailure = !rowTimeout || Date.now() >= deadline || phase === 'room_search_restore';
     if (!stageErrorRecorded && phase === 'detail_button_click') {
       trace('room_detail_button_click_error',{
         ...detail,
         phase:'detail_button_click',
+        scope:queryFailure ? 'query' : 'row',
         error_class:errorClass,
         failed_operation:failedOperation,
         timeout_ms:clickTimeoutMs,
@@ -749,6 +775,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       trace('room_product_destination_wait_error',{
         ...detail,
         phase:'product_destination_wait',
+        scope:queryFailure ? 'query' : 'row',
         error_class:errorClass,
         failed_operation:failedOperation,
         timeout_ms:destinationWaitTimeoutMs,
@@ -763,29 +790,61 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
         ...detail,
         ...(diagnosticPage ? popupUrlMetadata(diagnosticPage) : {}),
         phase,
+        scope:queryFailure ? 'query' : 'row',
         error_class:errorClass,
         ...(failedOperation ? {failed_operation:failedOperation} : {}),
       },
     );
-    if (error instanceof SourceFailure) throw error;
-    if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
+    if (queryFailure) {
+      if (Date.now() >= deadline &&
+          (!(error instanceof SourceFailure) || error.code === 'product_row_timeout'))
+        throw new SourceFailure('source_timeout');
+      throw error;
+    }
     await check();
+    trace('room_product_row_unresolved',{
+      ...detail,
+      scope:'row',
+      phase,
+      error_class:rowTimeout ? 'TimeoutError' : errorClass,
+      ...(failedOperation ? {failed_operation:failedOperation} : {}),
+    });
     return null; // An unresolved identity still occupies its original source slot.
   } finally {
     destinationMonitor?.cancel();
     if (popup && !popup.isClosed()) await popup.close().catch(() => {});
     if (sameTabNavigation && !page.isClosed()) {
       try {
-        await restoreSearchBeforeDeadline();
-      } catch {
+        if (!(await restoreSearchBeforeDeadline()))
+          throw new SourceFailure(Date.now() >= deadline ? 'source_timeout' : 'room_search_restore_failed');
+        await waitDOM(page,check,() => Boolean(document.querySelector('#search-box')),null,deadline);
+      } catch (error) {
+        if (error instanceof SourceFailure) throw error;
         throw new SourceFailure('room_search_restore_failed');
       }
     }
     if (Date.now() < deadline) {
       const close = page.locator('.close-button').filter({visible:true}).first();
-      if (await close.count()) await close.click({timeout:Math.min(1000,deadline-Date.now())}).catch(() => {});
+      if (await close.count()) {
+        trace('room_product_modal_close_begin',{...detail,scope:'row'});
+        try {
+          await close.click({timeout:Math.min(1000,deadline-Date.now())});
+        } catch (error) {
+          trace('room_product_modal_close_error',{
+            ...detail,scope:'query',error_class:safeThrownErrorClass(error),
+          });
+          throw new SourceFailure('room_search_restore_failed');
+        }
+        if (await page.locator('.close-button').filter({visible:true}).count()) {
+          trace('room_product_modal_close_error',{
+            ...detail,scope:'query',error_class:'Error',
+          });
+          throw new SourceFailure('room_search_restore_failed');
+        }
+        trace('room_product_modal_close_complete',{...detail,scope:'row'});
+      }
     } else {
-      trace('room_modal_close_skipped_deadline',detail);
+      trace('room_modal_close_skipped_deadline',{...detail,scope:'query'});
     }
   }
 }
@@ -1000,6 +1059,7 @@ export async function closeConditionPopup(page, popup, deadline) {
   }
   const finalState = await conditionPopupState(popup);
   trace('room_condition_popup_close_failed', {
+    scope:'query',
     room_condition_close_method:'none',
     room_condition_close_control_count:closeControlCount,
     room_condition_search_control_count:searchControlCount,
@@ -1065,24 +1125,27 @@ export async function collectRoom(page, request, config, deadline, access) {
     room_conditions_comments_verified:commentsVerified,
   });
   trace('room_results_scan_begin', {
+    scope:'query',
     room_condition_popup_state:popupState,
     room_condition_close_method:closeResult.method,
   });
   const cards = page.locator('.items-search > .item');
-  const endVisible = () => page.evaluate(() => Array.from(document.querySelectorAll('body *')).some(e =>
+  const readEndMarker = () => page.evaluate(() => Array.from(document.querySelectorAll('body *')).find(e =>
     e.children.length === 0 && !e.closest('.items-search, .item-preview') && e.getClientRects().length > 0 &&
-    /^(検索結果は以上です|検索結果がありません|該当する商品がありません|検索結果はありません)$/.test(e.textContent.trim())));
+    /^(検索結果は以上です|検索結果がありません|該当する商品がありません|検索結果はありません)$/.test(e.textContent.trim()))?.textContent.trim() ?? null);
   let loaded = 0;
   let exhausted = false;
+  let endMarker = null;
   let stableShortBatch = false;
   let stableNoProgressRounds = 0;
   let priorLoaded = -1;
   while (Date.now() < deadline) {
     await check();
     loaded = await cards.count();
-    exhausted = await endVisible();
+    endMarker = await readEndMarker();
+    exhausted = endMarker !== null;
     if (loaded !== priorLoaded) {
-      trace('room_list_progress',{loaded_posts:loaded});
+      trace('room_list_progress',{scope:'query',loaded_posts:loaded});
       priorLoaded = loaded;
     }
     if (loaded >= 50 || exhausted) break;
@@ -1093,7 +1156,7 @@ export async function collectRoom(page, request, config, deadline, access) {
     await check();
     const scrollRemaining = deadline-Date.now();
     if (scrollRemaining <= 0) {
-      trace('room_scroll_deadline_expired');
+      trace('room_scroll_deadline_expired',{scope:'query'});
       throw new SourceFailure('source_timeout');
     }
     const scrolled = await page.evaluate(cutoff => {
@@ -1102,7 +1165,7 @@ export async function collectRoom(page, request, config, deadline, access) {
       return true;
     },deadline);
     if (!scrolled) {
-      trace('room_scroll_deadline_expired');
+      trace('room_scroll_deadline_expired',{scope:'query'});
       throw new SourceFailure('source_timeout');
     }
     const before = loaded;
@@ -1117,7 +1180,8 @@ export async function collectRoom(page, request, config, deadline, access) {
     }
     await check();
     loaded = await cards.count();
-    exhausted = await endVisible();
+    endMarker = await readEndMarker();
+    exhausted = endMarker !== null;
     if (loaded > before) {
       stableNoProgressRounds = 0;
     } else if (exhausted) {
@@ -1125,12 +1189,14 @@ export async function collectRoom(page, request, config, deadline, access) {
     } else if (loaded > 0) {
       stableNoProgressRounds += 1;
       trace('room_list_no_progress', {
+        scope:'query',
         loaded_posts: loaded,
         stable_round: stableNoProgressRounds,
       });
       if (stableNoProgressRounds >= 3) {
         stableShortBatch = true;
         trace('room_short_batch_stable', {
+          scope:'query',
           loaded_posts: loaded,
           stable_round: stableNoProgressRounds,
         });
@@ -1138,9 +1204,24 @@ export async function collectRoom(page, request, config, deadline, access) {
       }
     }
   }
+  const explicitNoResult = new Set([
+    '検索結果がありません','該当する商品がありません','検索結果はありません',
+  ]).has(endMarker);
+  if (loaded === 0 && exhausted && !explicitNoResult)
+    throw new SourceFailure('incomplete_search');
   if (loaded < 50 && !exhausted && !stableShortBatch)
     throw new SourceFailure('incomplete_search');
-  trace('room_resolve_products',{loaded_posts:loaded,accepted_posts:Math.min(50,loaded)});
+  const endEvidence = loaded === 0 ? 'explicit_no_results' :
+    exhausted ? 'explicit_end' : stableShortBatch ? 'stable_no_progress' : 'first_50';
+  trace('room_results_complete',{
+    scope:'query',
+    loaded_posts:loaded,
+    accepted_posts:Math.min(50,loaded),
+    end_evidence:endEvidence,
+  });
+  trace('room_resolve_products',{
+    scope:'query',loaded_posts:loaded,accepted_posts:Math.min(50,loaded),
+  });
   const fetched = timestamp();
   const posts = [];
   const facts = {};
@@ -1152,7 +1233,12 @@ export async function collectRoom(page, request, config, deadline, access) {
     const image = await card.locator('.imgLink img').first().getAttribute('src').catch(() => null);
     const ids = await resolveProduct(page, card, check, deadline, access, index+1, config);
     if (!ids) productResolutionFailures += 1;
-    trace('room_product_row_complete',{row_index:index+1,accepted_posts:index+1});
+    trace('room_product_row_complete',{
+      scope:'row',
+      row_index:index+1,
+      accepted_posts:index+1,
+      row_status:ids ? 'identified' : 'unresolved',
+    });
     const evidenceRef = `${request.attempt_id}:row:${index+1}`;
     posts.push({ internal_index: index+1, stable_room_id: null, room_url: null,
       likes: null, comments: null, item_url: ids?.url ?? null, observed_shop_id: ids?.shop ?? null,
@@ -1164,6 +1250,13 @@ export async function collectRoom(page, request, config, deadline, access) {
   }
   await check();
   if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
+  trace('room_product_resolution_summary',{
+    scope:'query',
+    loaded_posts:loaded,
+    accepted_posts:posts.length,
+    row_failure_count:productResolutionFailures,
+    identified_row_count:posts.length-productResolutionFailures,
+  });
   const tooManyProductResolutionFailures =
     productResolutionFailures > PRODUCT_RESOLUTION_FAILURE_LIMIT;
   return { response: { ...Object.fromEntries(['attempt_id','run_id','query','parent_refs','level','likes_min','max_posts','query_kind','keyword_snapshot_ref','selected_word_ref'].map(k => [k,request[k] ?? null])),
@@ -1176,7 +1269,7 @@ export async function collectRoom(page, request, config, deadline, access) {
       product_resolution_failures: productResolutionFailures,
       unused_posts: Math.max(0,loaded-posts.length), condition: { query: request.query, like: 300, comment: null,
         like_display:likeDisplay.trim(),comment_display:commentDisplay.trim() },
-      end_evidence: exhausted ? 'explicit_public_end_text' : stableShortBatch ? 'stable_no_progress' : 'first_50' } };
+      end_evidence: endEvidence } };
 }
 
 async function emptyEvidence(widget) {
@@ -1685,6 +1778,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       error_code:errorCode,
       error_class:error instanceof SourceFailure ? 'SourceFailure' : safeThrownErrorClass(error),
       error_kind:safeErrorKind(error),
+      scope:'query',
     };
     if (Number.isInteger(activeTrace.row_index) && activeTrace.row_index >= 1 && activeTrace.row_index <= 50)
       failureEvent.row_index = activeTrace.row_index;

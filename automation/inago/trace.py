@@ -105,6 +105,11 @@ _EVENT_FIELDS = {
     "destination_kind",
     "timeout_ms",
     "wait_elapsed_ms",
+    "row_failure_count",
+    "identified_row_count",
+    "stable_round",
+    "row_status",
+    "end_evidence",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -133,6 +138,18 @@ _WIDGET_COUNT_FIELDS = {
     "widget_match_count",
     "widget_match_visible_count",
     "widget_wrong_visible_count",
+}
+_ROOM_COUNT_FIELDS = {
+    "row_failure_count",
+    "identified_row_count",
+    "stable_round",
+}
+_ROOM_ROW_STATUSES = {"identified", "unresolved"}
+_ROOM_END_EVIDENCE = {
+    "explicit_no_results",
+    "explicit_end",
+    "stable_no_progress",
+    "first_50",
 }
 _WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
 _ROOM_CONDITION_CLOSE_METHODS = {
@@ -405,6 +422,11 @@ def make_trace_event(
             if type(value) is not int or not 0 <= value <= 100:
                 raise TraceContractError(f"{key} must be an integer from 0 to 100")
             event[key] = value
+        elif key in _ROOM_COUNT_FIELDS:
+            maximum = 3 if key == "stable_round" else 50
+            if type(value) is not int or not 0 <= value <= maximum:
+                raise TraceContractError(f"{key} is outside its safe range")
+            event[key] = value
         elif key in _WIDGET_GENERATION_FIELDS:
             if type(value) is not int or not 0 <= value <= 10000000:
                 raise TraceContractError(
@@ -481,6 +503,14 @@ def make_trace_event(
             if value not in {"popup", "same_tab"}:
                 raise TraceContractError("destination_kind is outside the safe enum")
             event[key] = value
+        elif key == "row_status":
+            if not isinstance(value, str) or value not in _ROOM_ROW_STATUSES:
+                raise TraceContractError("row_status is outside the safe enum")
+            event[key] = value
+        elif key == "end_evidence":
+            if not isinstance(value, str) or value not in _ROOM_END_EVIDENCE:
+                raise TraceContractError("end_evidence is outside the safe enum")
+            event[key] = value
         elif key in {
             "active_stage",
             "last_completed_stage",
@@ -554,7 +584,9 @@ def make_trace_event(
             if value is not None:
                 event[key] = value
         elif key == "scope":
-            if value is not None and value not in _SCOPES:
+            if value is not None and (
+                not isinstance(value, str) or value not in _SCOPES
+            ):
                 raise TraceContractError("scope is outside the trace contract")
             if value is not None:
                 event[key] = value

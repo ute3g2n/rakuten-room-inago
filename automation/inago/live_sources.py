@@ -67,6 +67,36 @@ _FAILURE_ARTIFACT_STAGES = frozenset(
         "trends_top_rows_wait",
         "trends_top_rows_updated",
         "trends_top_rows_wait_begin",
+        "room_navigation",
+        "room_document_loaded",
+        "room_search_box_ready",
+        "room_condition_controls",
+        "room_condition_popup_open_begin",
+        "room_condition_popup_opened",
+        "room_conditions_verified",
+        "room_condition_close_control_error",
+        "room_condition_close_wait_error",
+        "room_condition_escape_close_error",
+        "room_condition_search_submit_error",
+        "room_condition_popup_closed",
+        "room_condition_popup_close_failed",
+        "room_detail_button_click_error",
+        "room_list_no_progress",
+        "room_list_progress",
+        "room_results_scan_begin",
+        "room_scroll_deadline_expired",
+        "room_product_destination_wait_error",
+        "room_product_row_complete",
+        "room_product_resolution_summary",
+        "room_product_row_unresolved",
+        "room_product_timeout",
+        "room_product_unresolved",
+        "room_results_complete",
+        "room_search_restore_begin",
+        "room_search_restore_error",
+        "room_search_restore_skipped_deadline",
+        "room_search_restored",
+        "room_short_batch_stable",
     }
 )
 _FAILURE_ARTIFACT_CODES = frozenset(
@@ -74,13 +104,16 @@ _FAILURE_ARTIFACT_CODES = frozenset(
         "access_denied",
         "attempt_budget_exhausted",
         "browser_adapter_error",
+        "condition_popup_close_failed",
         "daily_cutoff",
         "http_401",
         "http_403",
         "http_429",
         "invalid_request",
+        "incomplete_search",
         "owned_cleanup_unconfirmed",
         "query_widget_ambiguous",
+        "query_not_reflected",
         "response_contract_invalid",
         "response_not_object",
         "response_schema_invalid",
@@ -97,6 +130,11 @@ _FAILURE_ARTIFACT_CODES = frozenset(
         "source_unavailable",
         "unknown",
         "word_identity_invalid",
+        "product_row_timeout",
+        "product_resolution_failures_exceeded",
+        "room_search_restore_failed",
+        "search_condition_contradicted",
+        "search_conditions_unverified",
     }
 )
 
@@ -1110,10 +1148,19 @@ class PublicBrowserSource:
     ) -> None:
         operation = event.get("stage", f"{kind}_request")
         error_code = event.get("error_code")
+        selected_scope = event.get("scope")
+        if not isinstance(selected_scope, str) or selected_scope not in {
+            "row",
+            "query",
+            "request",
+            "job",
+            "run",
+        }:
+            selected_scope = "row" if "row_index" in event else "request"
         fields: dict[str, Any] = {
             "event_kind": "stage_failure",
             "failed_operation": operation,
-            "scope": "row" if "row_index" in event else "request",
+            "scope": selected_scope,
         }
         if isinstance(error_code, str) and SAFE_REF.fullmatch(error_code):
             fields["primary_error_code"] = error_code
@@ -1203,9 +1250,23 @@ class PublicBrowserSource:
                 phase = "status"
             row_index = event.get("row_index")
             fields = {"event_kind": "source_stage"}
+            explicit_scope = event.get("scope")
+            valid_scope = isinstance(explicit_scope, str) and explicit_scope in {
+                "row",
+                "query",
+                "request",
+                "job",
+                "run",
+            }
+            if valid_scope:
+                fields["scope"] = explicit_scope
             if isinstance(row_index, int) and not isinstance(row_index, bool):
                 fields["row_index"] = row_index
-                fields["scope"] = "row"
+                if not (
+                    isinstance(explicit_scope, str)
+                    and explicit_scope in {"query", "request", "job", "run"}
+                ):
+                    fields["scope"] = "row"
             for key in (
                 "widget_scope",
                 "widget_selector_version",
@@ -1224,6 +1285,11 @@ class PublicBrowserSource:
                 "widget_empty_evidence",
                 "widget_period_refresh_required",
                 "widget_outcome",
+                "end_evidence",
+                "row_status",
+                "row_failure_count",
+                "identified_row_count",
+                "stable_round",
                 "room_condition_close_method",
                 "room_condition_popup_state",
                 "room_conditions_likes_verified",
@@ -1243,6 +1309,7 @@ class PublicBrowserSource:
                 "link_target",
                 "link_scope",
                 "failed_operation",
+                "scope",
             ):
                 if key in event:
                     fields[key] = event[key]
@@ -1532,6 +1599,15 @@ class PublicBrowserSource:
                     and 1 <= row_index <= 50
                 ):
                     event["row_index"] = row_index
+                scope = item.get("scope")
+                if isinstance(scope, str) and scope in {
+                    "row",
+                    "query",
+                    "request",
+                    "job",
+                    "run",
+                }:
+                    event["scope"] = scope
                 events.append(event)
                 continue
             if (
@@ -1582,6 +1658,9 @@ class PublicBrowserSource:
                 "accepted_posts",
                 "body_children",
                 "row_index",
+                "row_failure_count",
+                "identified_row_count",
+                "stable_round",
                 "retry_after_seconds",
                 "widget_dom_count",
                 "widget_visible_count",
@@ -1602,6 +1681,9 @@ class PublicBrowserSource:
                 "loaded_posts",
                 "accepted_posts",
                 "row_index",
+                "row_failure_count",
+                "identified_row_count",
+                "stable_round",
                 "body_children",
                 "search_candidate_count",
                 "visible_input_count",
@@ -1627,6 +1709,12 @@ class PublicBrowserSource:
                     and not isinstance(item[key], bool)
                     and item[key] >= 0
                     and (key != "row_index" or 1 <= item[key] <= 50)
+                    and (
+                        item[key] <= 3
+                        if key == "stable_round"
+                        else key not in {"row_failure_count", "identified_row_count"}
+                        or item[key] <= 50
+                    )
                     and (
                         key in unbounded_count_fields
                         or key in bounded_count_fields
@@ -1715,6 +1803,17 @@ class PublicBrowserSource:
                     {"ready", "deadline", "ambiguous", "contract_mismatch"},
                 ),
                 (
+                    "end_evidence",
+                    {
+                        "explicit_no_results",
+                        "explicit_end",
+                        "stable_no_progress",
+                        "first_50",
+                    },
+                ),
+                ("row_status", {"identified", "unresolved"}),
+                ("scope", {"row", "query", "request", "job", "run"}),
+                (
                     "room_condition_close_method",
                     {
                         "close_control",
@@ -1753,10 +1852,11 @@ class PublicBrowserSource:
                     },
                 ),
             ):
-                if item.get(key) in allowed:
-                    event[key] = item[key]
+                value = item.get(key)
+                if isinstance(value, str) and value in allowed:
+                    event[key] = value
             href_kind = item.get("href_kind")
-            if href_kind in {
+            if isinstance(href_kind, str) and href_kind in {
                 "none",
                 "empty",
                 "blank",
@@ -1768,10 +1868,21 @@ class PublicBrowserSource:
             }:
                 event["href_kind"] = href_kind
             link_target = item.get("link_target")
-            if link_target in {"none", "_blank", "_self", "other"}:
+            if isinstance(link_target, str) and link_target in {
+                "none",
+                "_blank",
+                "_self",
+                "other",
+            }:
                 event["link_target"] = link_target
             link_scope = item.get("link_scope")
-            if link_scope in {"none", "self", "ancestor", "descendant", "other"}:
+            if isinstance(link_scope, str) and link_scope in {
+                "none",
+                "self",
+                "ancestor",
+                "descendant",
+                "other",
+            }:
                 event["link_scope"] = link_scope
             if (
                 isinstance(item.get("elapsed_ms"), int)
