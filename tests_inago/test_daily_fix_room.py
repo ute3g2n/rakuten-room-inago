@@ -105,30 +105,6 @@ class BrowserRoomSequence:
         ).search(request)
 
 
-class DeniedRoomSequence:
-    fixture_only = True
-
-    def __init__(
-        self, data_root: Path, ui_server, *, denied_attempts: set[int]
-    ) -> None:
-        self.data_root = data_root
-        self.ui_server = ui_server
-        self.denied_attempts = denied_attempts
-        self.requests = []
-
-    def search(self, request):
-        self.requests.append(request)
-        if request.attempt_no in self.denied_attempts:
-            self.ui_server["html"] = "<main>アクセスが拒否されました</main>"
-        else:
-            self.ui_server["html"] = _empty_results_room_html(request.query)
-        return source(
-            self.data_root / f"attempt-{request.attempt_no}",
-            self.ui_server,
-            timeout=2,
-        ).search(request)
-
-
 def _room_ports(room_port) -> DailyPorts:
     def current_settings_version(connection):
         return SETTINGS_VERSION
@@ -1177,9 +1153,7 @@ def test_n16(tmp_path, ui_server):
     assert empty_result.status == "observed"
     assert empty_result.posts == ()
     assert empty_result.end_reached is True
-    assert empty_observation["diagnostics"]["end_evidence"] == (
-        "explicit_public_end_text"
-    )
+    assert empty_observation["diagnostics"]["end_evidence"] == "explicit_no_results"
 
     no_signal_result, no_signal_observation, _ = observe_case(
         "empty-without-end",
@@ -1212,8 +1186,8 @@ def test_n16(tmp_path, ui_server):
     recovered_root = tmp_path / "one-failure-recovers"
     recovered_run_id = "R08-N16-RECOVERY"
     recovered_connection = _insert_isolated_run(recovered_root, recovered_run_id)
-    recovered_room = DeniedRoomSequence(
-        recovered_root / "public-source", ui_server, denied_attempts={1}
+    recovered_room = BrowserRoomSequence(
+        recovered_root / "public-source", ui_server, fail_attempts={1}
     )
     recovered_state = daily._daily_state(None)[1]
     recovered_state["tasks"] = [task]
@@ -1236,7 +1210,10 @@ def test_n16(tmp_path, ui_server):
             (recovered_run_id,),
         ).fetchall()
         assert [row[0] for row in recovered_rows] == [1, 2]
-        assert recovered_rows[0][2:] == ("unavailable", "access_denied")
+        assert recovered_rows[0][2:] == (
+            "unavailable",
+            "condition_popup_close_failed",
+        )
         assert recovered_rows[1][2:] == ("observed", None)
         assert recovered_rows[1][1] == recovered_room.requests[0].attempt_id
         assert recovered_state["source_failures"] == 1
@@ -1248,8 +1225,8 @@ def test_n16(tmp_path, ui_server):
     stopped_root = tmp_path / "three-query-failures"
     stopped_run_id = "R08-N16-STOPPED"
     stopped_connection = _insert_isolated_run(stopped_root, stopped_run_id)
-    stopped_room = DeniedRoomSequence(
-        stopped_root / "public-source", ui_server, denied_attempts={1, 2, 3}
+    stopped_room = BrowserRoomSequence(
+        stopped_root / "public-source", ui_server, fail_attempts={1, 2, 3}
     )
     stopped_state = daily._daily_state(None)[1]
     stopped_state["tasks"] = [task]
@@ -1277,7 +1254,10 @@ def test_n16(tmp_path, ui_server):
             stopped_room.requests[0].attempt_id,
             stopped_room.requests[1].attempt_id,
         ]
-        assert all(row[2:] == ("unavailable", "access_denied") for row in stopped_rows)
+        assert all(
+            row[2:] == ("unavailable", "condition_popup_close_failed")
+            for row in stopped_rows
+        )
         assert stopped_state["source_failures"] == 3
         assert stopped_state["source_stopped"] is True
         assert stopped_state["source_stopped_reason"] == "attempt_budget_exhausted"
@@ -1301,7 +1281,7 @@ def test_n16(tmp_path, ui_server):
             ]
             assert any(
                 event.get("scope") == "query"
-                and event.get("primary_error_code") == "access_denied"
+                and event.get("primary_error_code") == "condition_popup_close_failed"
                 for event in common_trace
             )
     finally:
