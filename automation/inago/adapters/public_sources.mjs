@@ -24,7 +24,7 @@ const PRODUCT_DESTINATION_TIMEOUT_MS = 30000;
 const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
-const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v3';
+const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v4';
 let activeTrace = {stage:'startup',row_index:null};
 let traceEventCount = 0;
 let traceSuppressionWritten = false;
@@ -727,13 +727,33 @@ async function emptyEvidence(widget) {
 async function installTrendsWidgetObserver(page) {
   await page.addInitScript(() => {
     const kindFor = widget => {
-      const heading = widget.querySelector('h2,h3,[role="heading"]')?.textContent ?? '';
-      const label = heading.normalize('NFKC').replace(/\s/g,'').toLocaleLowerCase('ja');
-      if ((label.includes('関連') && label.includes('トピック')) ||
-          /related.*topics?/i.test(label)) return 'related_topics';
-      if ((label.includes('関連') && /キーワード|検索|クエリ/.test(label)) ||
-          /related.*(?:keywords?|queries|search(?:es)?)/i.test(label))
-        return 'related_keywords';
+      const visible = element => {
+        if (!element.isConnected) return false;
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          style.opacity !== '0' && element.getClientRects().length > 0;
+      };
+      const candidates = Array.from(widget.querySelectorAll(
+        'h1,h2,h3,h4,h5,h6,[role="heading"],[class*="title"],[class*="heading"]',
+      )).filter(visible);
+      if (widget.hasAttribute('aria-label')) candidates.unshift(widget);
+      const labelledBy = widget.getAttribute('aria-labelledby');
+      if (labelledBy) {
+        for (const id of labelledBy.trim().split(/\s+/)) {
+          const label = document.getElementById(id);
+          if (label && visible(label)) candidates.unshift(label);
+        }
+      }
+      const kinds = new Set();
+      for (const candidate of new Set(candidates)) {
+        const text = candidate.getAttribute('aria-label') || candidate.textContent || '';
+        const label = text.normalize('NFKC').replace(/\s/g,'').toLocaleLowerCase('ja');
+        const topics = label.includes('トピック') || /topics?/i.test(label);
+        const keywords = /キーワード|検索|クエリ/.test(label) ||
+          /keywords?|queries|search(?:es)?/i.test(label);
+        if (topics !== keywords) kinds.add(topics ? 'related_topics' : 'related_keywords');
+      }
+      if (kinds.size === 1) return kinds.values().next().value;
       return 'unknown';
     };
     window.__inagoTrendsWidgetKind = kindFor;
@@ -830,21 +850,23 @@ async function waitForRelatedWidget(page, check, deadline, generationBeforePerio
     const periodUpdated = generationBeforePeriod === null ||
       state.related_widget_generation > generationBeforePeriod;
     if (state.widget_match_visible_count === 1 && periodUpdated) {
-      const widget = page.locator('.fe-related-queries').filter({
-        has:page.getByRole('heading',{
-          name:/関連.*(?:キーワード|検索|クエリ)|related.*(?:keywords?|queries|search(?:es)?)/i,
-        }),
-      }).filter({visible:true});
-      if (await widget.count() !== 1) {
+      const visibleWidgets = page.locator('.fe-related-queries').filter({visible:true});
+      const matchingIndexes = [];
+      for (let index = 0; index < await visibleWidgets.count(); index += 1) {
+        if (await visibleWidgets.nth(index).evaluate(
+          element => window.__inagoTrendsWidgetKind?.(element) === 'related_keywords',
+        )) matchingIndexes.push(index);
+      }
+      if (matchingIndexes.length !== 1) {
         trace('trends_related_widget_contract_error',{
-          ...details(),widget_outcome:'ambiguous',
+          ...details(),widget_outcome:'contract_mismatch',
         });
-        throw new SourceFailure('query_widget_ambiguous');
+        throw new SourceFailure('query_widget_contract_mismatch');
       }
       trace('trends_related_widget_wait_ready',{
         ...details(),widget_outcome:'ready',
       });
-      return widget;
+      return visibleWidgets.nth(matchingIndexes[0]);
     }
     await page.waitForTimeout(Math.min(100,Math.max(1,deadline-Date.now())));
   }

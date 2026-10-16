@@ -1627,7 +1627,10 @@ class PublicBrowserSource:
                 ]
             for key, allowed in (
                 ("widget_scope", {"explore_related_queries"}),
-                ("widget_selector_version", {"related-widget-v2", "related-widget-v3"}),
+                (
+                    "widget_selector_version",
+                    {"related-widget-v2", "related-widget-v3", "related-widget-v4"},
+                ),
                 (
                     "widget_kind",
                     {"related_keywords", "related_topics", "unknown", "multiple"},

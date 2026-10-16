@@ -593,3 +593,63 @@ def test_n08b_related_keyword_heading_alias_and_semantic_level(tmp_path, ui_serv
     assert ready["widget_selector_version"] == "related-widget-v3"
     assert ready["widget_kind"] == "related_keywords"
     assert ready["related_widget_generation"] > ready["generation_before_period"]
+
+
+def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_server):
+    """Use a semantic title container while keeping unrelated labels unmatched."""
+
+    title_alias = browser_fixtures.trends_html(count=20).replace(
+        '<div class="fe-related-queries"><h2>関連キーワード</h2>',
+        '<div class="fe-related-queries"><div class="fe-related-queries-title">関連するクエリ</div>',
+    )
+    title_page = _n08_period_page(
+        title_alias,
+        on_period_selected=(
+            "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
+            ".find(item=>item.querySelector('.fe-related-queries-title'));"
+            "if(widget)widget.querySelectorAll('.label-text span').forEach((row,index)=>"
+            "row.textContent='期間反映語'+(index+1))},50)"
+        ),
+    )
+    snapshot, response, events = _n08_fetch(
+        tmp_path, ui_server, "title-container", title_page
+    )
+    assert snapshot.status == "observed", response.get("error_code")
+    assert [word.source_rank for word in snapshot.words] == list(range(1, 21))
+    ready = next(
+        event
+        for event in events
+        if event.get("stage") == "trends_related_widget_wait_ready"
+    )
+    assert ready["widget_selector_version"] == "related-widget-v4"
+    assert ready["widget_kind"] == "related_keywords"
+    assert ready["related_widget_generation"] > ready["generation_before_period"]
+
+    unknown_title = browser_fixtures.trends_html(count=20).replace(
+        '<div class="fe-related-queries"><h2>関連キーワード</h2>',
+        '<div class="fe-related-queries"><div class="fe-related-queries-title">人気</div>',
+    )
+    unknown_page = _n08_period_page(
+        unknown_title,
+        on_period_selected=(
+            "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
+            ".find(item=>item.querySelector('.fe-related-queries-title'));"
+            "if(widget)widget.querySelectorAll('.label-text span').forEach((row,index)=>"
+            "row.textContent='期間反映語'+(index+1))},50)"
+        ),
+    )
+    unknown_snapshot, unknown_response, unknown_events = _n08_fetch(
+        tmp_path, ui_server, "unknown-title", unknown_page
+    )
+    assert unknown_snapshot.status == "unavailable"
+    assert unknown_response["error_code"] == "query_widget_contract_mismatch"
+    mismatch = next(
+        event
+        for event in unknown_events
+        if event.get("stage") == "trends_related_widget_contract_error"
+    )
+    assert mismatch["widget_selector_version"] == "related-widget-v4"
+    assert mismatch["widget_match_count"] == 0
+    assert mismatch["widget_visible_count"] == 2
+    assert mismatch["widget_wrong_visible_count"] == 2
+    assert mismatch["widget_empty_evidence"] == "none"
