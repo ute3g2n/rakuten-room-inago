@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Anonymous daily-fix replay summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "test_only",
+    "replay_id",
+    "target_date",
+    "settings_version",
+    "fixture_ids",
+    "entity_counts",
+    "foreign_key_counts",
+    "trends",
+    "room",
+    "copy",
+    "cli"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "test_only": { "type": "boolean", "const": true },
+    "replay_id": { "type": "string", "const": "R02-N02" },
+    "target_date": { "type": "string", "const": "2026-10-16" },
+    "settings_version": {
+      "type": "string",
+      "const": "confirmed-0.3-step46-all132"
+    },
+    "fixture_ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "trends_attempt_ids", "room_attempt_ids", "copy_attempt_id"],
+      "properties": {
+        "run_id": { "type": "string", "pattern": "^RUN-N02-[A-Z0-9-]+$" },
+        "trends_attempt_ids": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^TR-N02-[0-9]{3}$" }
+        },
+        "room_attempt_ids": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^ROOM-N02-[0-9]{3}$" }
+        },
+        "copy_attempt_id": { "type": "string", "pattern": "^COPY-N02-[0-9]{3}$" }
+      }
+    },
+    "entity_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run", "trends_attempt", "room_attempt", "copy_attempt", "draft"],
+      "properties": {
+        "run": { "type": "integer", "const": 1 },
+        "trends_attempt": { "type": "integer", "const": 20 },
+        "room_attempt": { "type": "integer", "const": 7 },
+        "copy_attempt": { "type": "integer", "const": 1 },
+        "draft": { "type": "integer", "const": 0 }
+      }
+    },
+    "foreign_key_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trends_to_run", "room_to_run", "copy_to_run"],
+      "properties": {
+        "trends_to_run": { "type": "integer", "const": 20 },
+        "room_to_run": { "type": "integer", "const": 7 },
+        "copy_to_run": { "type": "integer", "const": 1 }
+      }
+    },
+    "trends": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groups", "attempts_per_group", "attempts", "last_completed_stage", "reason_counts"],
+      "properties": {
+        "groups": { "type": "integer", "const": 4 },
+        "attempts_per_group": { "type": "integer", "const": 5 },
+        "attempts": { "type": "integer", "const": 20 },
+        "last_completed_stage": { "type": "string", "const": "trends_period_reflected" },
+        "reason_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_timeout", "query_widget_ambiguous"],
+          "properties": {
+            "source_timeout": { "type": "integer", "const": 19 },
+            "query_widget_ambiguous": { "type": "integer", "const": 1 }
+          }
+        }
+      }
+    },
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["search_attempts", "successes", "condition_popup", "product_detail_click_timeouts"],
+      "properties": {
+        "search_attempts": { "type": "integer", "const": 7 },
+        "successes": { "type": "integer", "const": 3 },
+        "condition_popup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["failed_close_attempts", "recovered_on_next_attempt"],
+          "properties": {
+            "failed_close_attempts": { "type": "integer", "const": 1 },
+            "recovered_on_next_attempt": { "type": "boolean", "const": true }
+          }
+        },
+        "product_detail_click_timeouts": { "type": "integer", "const": 3 }
+      }
+    },
+    "copy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempts", "contract_status", "reason", "expected_input_hash", "observed_input_hash", "draft_saved"],
+      "properties": {
+        "attempts": { "type": "integer", "const": 1 },
+        "contract_status": { "type": "string", "const": "rejected" },
+        "reason": { "type": "string", "const": "input_hash_mismatch" },
+        "expected_input_hash": { "type": "string", "const": "fixture-hash-expected" },
+        "observed_input_hash": { "type": "string", "const": "fixture-hash-observed" },
+        "draft_saved": { "type": "boolean", "const": false }
+      }
+    },
+    "cli": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["daily_target", "committed_count", "shortfall", "daily_status", "os_exit_code"],
+      "properties": {
+        "daily_target": { "type": "integer", "const": 15 },
+        "committed_count": { "type": "integer", "const": 12 },
+        "shortfall": { "type": "integer", "const": 3 },
+        "daily_status": { "type": "string", "const": "partial" },
+        "os_exit_code": { "type": "integer", "const": 0 }
+      }
+    }
+  }
+}

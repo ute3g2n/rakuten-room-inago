@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/daily-probe.schema.json",
+  "title": "Isolated Inago daily probe configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "environment",
+    "network_allowed",
+    "test_only",
+    "probe_id",
+    "probe_root"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "environment": { "type": "string", "const": "isolated_probe" },
+    "network_allowed": { "type": "boolean", "const": false },
+    "test_only": { "type": "boolean", "const": true },
+    "probe_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "probe_root": { "type": "string", "minLength": 1 }
+  }
+}
