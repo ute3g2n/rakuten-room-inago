@@ -85,10 +85,26 @@ _EVENT_FIELDS = {
     "widget_period_refresh_required",
     "widget_outcome",
     "room_condition_close_control_count",
+    "room_condition_search_control_count",
     "room_condition_close_method",
     "room_condition_popup_state",
     "room_conditions_likes_verified",
     "room_conditions_comments_verified",
+    "element_tag",
+    "element_role",
+    "element_visible",
+    "element_enabled",
+    "element_obscured",
+    "handler_kind",
+    "handler_tag",
+    "handler_scope",
+    "has_href",
+    "href_kind",
+    "link_target",
+    "link_scope",
+    "destination_kind",
+    "timeout_ms",
+    "wait_elapsed_ms",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -119,13 +135,20 @@ _WIDGET_COUNT_FIELDS = {
     "widget_wrong_visible_count",
 }
 _WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
-_ROOM_CONDITION_CLOSE_METHODS = {"close_control", "escape", "already_closed", "none"}
+_ROOM_CONDITION_CLOSE_METHODS = {
+    "close_control",
+    "search_submit",
+    "escape",
+    "already_closed",
+    "none",
+}
 _ROOM_CONDITION_POPUP_STATES = {"visible", "hidden", "unknown"}
 _HEALTH_ORDER = {"healthy": 0, "degraded": 1, "unavailable": 2}
 _COMPLETION_STAGE_ALIASES = {
     "trends_period_reflected": "trends_period_reflection_wait",
     "trends_top_rows_updated": "trends_top_rows_wait",
     "trends_related_widget_wait_ready": "trends_related_widget_wait",
+    "room_search_restored": "room_search_restore",
 }
 
 
@@ -388,11 +411,75 @@ def make_trace_event(
                     f"{key} is outside the widget generation range"
                 )
             event[key] = value
-        elif key == "room_condition_close_control_count":
+        elif key in {
+            "room_condition_close_control_count",
+            "room_condition_search_control_count",
+        }:
             if type(value) is not int or not 0 <= value <= 100:
-                raise TraceContractError(
-                    "room_condition_close_control_count must be from 0 to 100"
-                )
+                raise TraceContractError(f"{key} must be from 0 to 100")
+            event[key] = value
+        elif key in {"timeout_ms", "wait_elapsed_ms"}:
+            if (
+                type(value) is not int
+                or not 0 <= value <= 17_100_000
+                or key == "timeout_ms"
+                and value > 60_000
+            ):
+                raise TraceContractError(f"{key} is outside the bounded wait range")
+            event[key] = value
+        elif key in {
+            "element_visible",
+            "element_enabled",
+            "element_obscured",
+            "has_href",
+        }:
+            if type(value) is not bool:
+                raise TraceContractError(f"{key} must be a boolean")
+            event[key] = value
+        elif key == "element_tag":
+            if value not in {"a", "button", "div", "span", "other"}:
+                raise TraceContractError("element_tag is outside the safe enum")
+            event[key] = value
+        elif key == "element_role":
+            if value not in {"link", "button", "other"}:
+                raise TraceContractError("element_role is outside the safe enum")
+            event[key] = value
+        elif key == "handler_kind":
+            if value not in {"link", "button", "role", "onclick", "none"}:
+                raise TraceContractError("handler_kind is outside the safe enum")
+            event[key] = value
+        elif key == "handler_tag":
+            if value not in {"a", "button", "div", "span", "other"}:
+                raise TraceContractError("handler_tag is outside the safe enum")
+            event[key] = value
+        elif key == "handler_scope":
+            if value not in {"self", "ancestor", "none"}:
+                raise TraceContractError("handler_scope is outside the safe enum")
+            event[key] = value
+        elif key == "href_kind":
+            if value not in {
+                "none",
+                "empty",
+                "blank",
+                "rakuten_item",
+                "rakuten_other",
+                "other_https",
+                "other_scheme",
+                "invalid",
+            }:
+                raise TraceContractError("href_kind is outside the safe enum")
+            event[key] = value
+        elif key == "link_target":
+            if value not in {"none", "_blank", "_self", "other"}:
+                raise TraceContractError("link_target is outside the safe enum")
+            event[key] = value
+        elif key == "link_scope":
+            if value not in {"none", "self", "ancestor", "descendant", "other"}:
+                raise TraceContractError("link_scope is outside the safe enum")
+            event[key] = value
+        elif key == "destination_kind":
+            if value not in {"popup", "same_tab"}:
+                raise TraceContractError("destination_kind is outside the safe enum")
             event[key] = value
         elif key in {
             "active_stage",

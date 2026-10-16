@@ -138,6 +138,9 @@ class PublicSourceConfig:
     fixture_browser_startup_delay_ms: int = 0
     fixture_room_scroll_delay_ms: int = 0
     fixture_expire_deadline_before_room_restore: bool = False
+    fixture_detail_click_timeout_ms: int = 0
+    fixture_product_destination_timeout_ms: int = 0
+    fixture_request_deadline_ms: int = 0
 
 
 def _trends_failure(request: TrendsRequest, code: str) -> dict[str, Any]:
@@ -213,6 +216,23 @@ class PublicBrowserSource:
             and config.fixture_expire_deadline_before_room_restore
         ):
             raise ValueError("deadline expiry injection is fixture-only")
+        for name, value, maximum in (
+            ("detail click", config.fixture_detail_click_timeout_ms, 60_000),
+            (
+                "product destination",
+                config.fixture_product_destination_timeout_ms,
+                60_000,
+            ),
+            ("request deadline", config.fixture_request_deadline_ms, 60_000),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 0 <= value <= maximum
+                or config.environment != "fixture"
+                and value != 0
+            ):
+                raise ValueError(f"fixture {name} timing injection is invalid")
         if not config.chrome_executable.is_file():
             raise ValueError("explicit Chrome executable does not exist")
         if (
@@ -1161,6 +1181,7 @@ class PublicBrowserSource:
                 "trends_period_reflected",
                 "trends_top_rows_updated",
                 "trends_related_widget_wait_ready",
+                "room_search_restored",
             }:
                 phase = "end"
                 active = session.active_stage
@@ -1173,6 +1194,7 @@ class PublicBrowserSource:
                     "trends_period_reflected": "trends_period_reflection_wait",
                     "trends_top_rows_updated": "trends_top_rows_wait",
                     "trends_related_widget_wait_ready": "trends_related_widget_wait",
+                    "room_search_restored": "room_search_restore",
                 }
                 completed_base = completion_aliases.get(stage, stage.rsplit("_", 1)[0])
                 if active_base not in {None, stage} and active_base != completed_base:
@@ -1194,6 +1216,9 @@ class PublicBrowserSource:
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
                 "room_condition_close_control_count",
+                "room_condition_search_control_count",
+                "timeout_ms",
+                "wait_elapsed_ms",
                 "related_widget_generation",
                 "generation_before_period",
                 "widget_empty_evidence",
@@ -1204,6 +1229,20 @@ class PublicBrowserSource:
                 "room_conditions_likes_verified",
                 "room_conditions_comments_verified",
                 "error_class",
+                "element_tag",
+                "element_role",
+                "handler_kind",
+                "handler_tag",
+                "handler_scope",
+                "destination_kind",
+                "element_visible",
+                "element_enabled",
+                "element_obscured",
+                "has_href",
+                "href_kind",
+                "link_target",
+                "link_scope",
+                "failed_operation",
             ):
                 if key in event:
                     fields[key] = event[key]
@@ -1550,11 +1589,15 @@ class PublicBrowserSource:
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
                 "room_condition_close_control_count",
+                "room_condition_search_control_count",
+                "timeout_ms",
+                "wait_elapsed_ms",
             }
             generation_fields = {
                 "related_widget_generation",
                 "generation_before_period",
             }
+            duration_fields = {"timeout_ms", "wait_elapsed_ms"}
             for key in (
                 "loaded_posts",
                 "accepted_posts",
@@ -1573,6 +1616,9 @@ class PublicBrowserSource:
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
                 "room_condition_close_control_count",
+                "room_condition_search_control_count",
+                "timeout_ms",
+                "wait_elapsed_ms",
                 "related_widget_generation",
                 "generation_before_period",
             ):
@@ -1585,6 +1631,8 @@ class PublicBrowserSource:
                         key in unbounded_count_fields
                         or key in bounded_count_fields
                         and item[key] <= 100
+                        or key in duration_fields
+                        and item[key] <= MAX_SOURCE_TIMEOUT_SECONDS * 1000
                         or key in generation_fields
                         and item[key] <= 10000000
                     )
@@ -1597,6 +1645,9 @@ class PublicBrowserSource:
                 event["body_text_nonempty"] = item["body_text_nonempty"]
             if isinstance(item.get("retry_after_present"), bool):
                 event["retry_after_present"] = item["retry_after_present"]
+            for key in ("element_visible", "element_enabled", "element_obscured"):
+                if isinstance(item.get(key), bool):
+                    event[key] = item[key]
             for key in (
                 "room_conditions_likes_verified",
                 "room_conditions_comments_verified",
@@ -1609,10 +1660,12 @@ class PublicBrowserSource:
                 "preview_click",
                 "detail_button_ready",
                 "detail_button_click",
+                "product_destination_wait",
                 "popup_wait",
                 "popup_initial_url",
                 "product_navigation",
                 "product_url_parse",
+                "room_search_restore",
             }:
                 event["phase"] = phase
             popup_url_kind = item.get("popup_url_kind")
@@ -1637,6 +1690,11 @@ class PublicBrowserSource:
                 event["element_tag"] = element_tag
             if isinstance(item.get("has_href"), bool):
                 event["has_href"] = item["has_href"]
+            failed_operation = item.get("failed_operation")
+            if isinstance(failed_operation, str) and SAFE_REF.fullmatch(
+                failed_operation
+            ):
+                event["failed_operation"] = failed_operation
             if isinstance(item.get("widget_period_refresh_required"), bool):
                 event["widget_period_refresh_required"] = item[
                     "widget_period_refresh_required"
@@ -1658,12 +1716,23 @@ class PublicBrowserSource:
                 ),
                 (
                     "room_condition_close_method",
-                    {"close_control", "escape", "already_closed", "none"},
+                    {
+                        "close_control",
+                        "search_submit",
+                        "escape",
+                        "already_closed",
+                        "none",
+                    },
                 ),
                 (
                     "room_condition_popup_state",
                     {"visible", "hidden", "unknown"},
                 ),
+                ("element_role", {"link", "button", "other"}),
+                ("handler_kind", {"link", "button", "role", "onclick", "none"}),
+                ("handler_tag", {"a", "button", "div", "span", "other"}),
+                ("handler_scope", {"self", "ancestor", "none"}),
+                ("destination_kind", {"popup", "same_tab"}),
                 (
                     "error_class",
                     {

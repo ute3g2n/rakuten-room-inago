@@ -1,4 +1,4 @@
-"""R06-only ROOM condition popup and retry contract cases."""
+"""ROOM condition popup and detail-resolution contract cases."""
 
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from automation.inago.clock import FakeClock
 from automation.inago import orchestrator as daily
 from automation.inago.repository import initialize_database
 from automation.inago.orchestrator import DailyPorts
+from automation.inago.live_sources import PublicBrowserSource, PublicSourceConfig
+from automation.inago.room_adapter import parse_room_response
 from tests_inago import test_step21_browser as browser_fixtures
 from tests_inago.test_step21_browser import room_request, source, ui_server
 
@@ -60,6 +62,20 @@ def _empty_results_room_html(query: str) -> str:
 
 def _uncloseable_room_html(query: str) -> str:
     html = browser_fixtures.room_html(0, initial=0, terminal=True, query=query)
+    close_control = '<a class="close" onclick="this.parentElement.style.display=\'none\'">閉じる</a>'
+    return html.replace(close_control, "")
+
+
+def _search_submit_room_html() -> str:
+    html = browser_fixtures.room_html(1, initial=1, terminal=True)
+    popup_end = '</div></div>\n    <div id="rows">'
+    popup_with_search = (
+        '</div><button type="button" onclick="fetch(\'/condition-apply-used\');'
+        "this.closest('.itemSearch-popup').style.display='none'\">検索</button></div>\n"
+        '    <div id="rows">'
+    )
+    assert popup_end in html
+    html = html.replace(popup_end, popup_with_search, 1)
     close_control = '<a class="close" onclick="this.parentElement.style.display=\'none\'">閉じる</a>'
     return html.replace(close_control, "")
 
@@ -163,6 +179,80 @@ def _ambiguous_close_room_html() -> str:
         "document.querySelector('.itemSearch-popup').style.display='none';"
         "fetch('/escape-close-used')}});</script>",
     )
+
+
+def _room_observation(root: Path, attempt_id: str) -> dict[str, object]:
+    path = next((root / "observations").glob(f"room-{attempt_id}-observation-*.json"))
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _timed_fixture_source(
+    root: Path,
+    ui_server,
+    *,
+    timeout: float = 8,
+    click_timeout_ms: int = 0,
+    destination_timeout_ms: int = 0,
+    request_deadline_ms: int = 0,
+    scroll_delay_ms: int = 0,
+) -> PublicBrowserSource:
+    return PublicBrowserSource(
+        PublicSourceConfig(
+            chrome_executable=browser_fixtures.CHROME,
+            evidence_root=root / "observations",
+            environment="fixture",
+            timeout_seconds=timeout,
+            fixture_url=ui_server["url"],
+            headless=True,
+            fixture_room_scroll_delay_ms=scroll_delay_ms,
+            fixture_detail_click_timeout_ms=click_timeout_ms,
+            fixture_product_destination_timeout_ms=destination_timeout_ms,
+            fixture_request_deadline_ms=request_deadline_ms,
+        )
+    )
+
+
+def _unique_same_tab_room_html() -> str:
+    html = browser_fixtures.room_html(80, initial=80, terminal=True)
+    default_control = (
+        '<div class="market-detail-link" onclick="window.open('
+        "'https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/'"
+        ')">楽天市場で詳細を見る</div>'
+    )
+    row_link_control = (
+        '<div class="market-detail-link" onclick="location.href='
+        "'https://item.rakuten.co.jp/shop/item-'+current+'/'"
+        '">楽天市場で詳細を見る</div>'
+    )
+    assert default_control in html
+    return html.replace(default_control, row_link_control)
+
+
+def _obscured_detail_room_html(*, late_popup_delay_ms: int = 0) -> str:
+    html = browser_fixtures.room_html(1, initial=1, terminal=True)
+    html = html.replace(
+        '<input id="search-box"',
+        "<style>#modal{position:relative}.click-shield{position:absolute;inset:0;z-index:10}</style>"
+        '<input id="search-box"',
+    )
+    html = html.replace(
+        "<div class=\"close-button\" onclick=\"document.querySelector('#modal').style.display='none'\">閉じる</div>",
+        "<div class=\"close-button\" onclick=\"document.querySelector('#modal').style.display='none'\">閉じる</div>"
+        '<div class="click-shield" aria-hidden="true"></div>',
+    )
+    if late_popup_delay_ms:
+        original = (
+            "function openPreview(n){current=n;"
+            "document.querySelector('#modal').style.display='block'}"
+        )
+        delayed = (
+            "function openPreview(n){current=n;"
+            "document.querySelector('#modal').style.display='block';"
+            f"setTimeout(()=>window.open('https://item.rakuten.co.jp/shop/late-item/'),{late_popup_delay_ms})}}"
+        )
+        assert original in html
+        html = html.replace(original, delayed)
+    return html
 
 
 def test_n09(tmp_path, ui_server):
@@ -279,6 +369,54 @@ def test_n09b_already_closed_and_ambiguous_controls(tmp_path, ui_server):
     assert common_close["room_condition_popup_state"] == "hidden"
     assert common_close["room_conditions_likes_verified"] is True
     assert common_close["room_conditions_comments_verified"] is True
+
+
+def test_n09c_public_search_action_applies_verified_conditions(tmp_path, ui_server):
+    """An explicit search action closes the conditions sheet and starts results."""
+
+    attempt_id = "R06-N09C-SEARCH-SUBMIT"
+    ui_server["html"] = _search_submit_room_html()
+    request = replace(room_request(), attempt_id=attempt_id, run_id=f"{attempt_id}-RUN")
+
+    response = source(tmp_path, ui_server, timeout=8).search(request)
+
+    assert response["status"] == "observed", response.get("error_code")
+    observation_path = next(
+        (tmp_path / "observations").glob(f"room-{attempt_id}-observation-*.json")
+    )
+    observation = json.loads(observation_path.read_text(encoding="utf-8"))
+    assert observation["trace_state"] == "healthy"
+    events = [
+        event
+        for event in observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    submitted = next(
+        event
+        for event in events
+        if event["stage"] == "room_condition_search_submit_complete"
+    )
+    assert submitted["room_condition_close_method"] == "search_submit"
+    assert submitted["room_condition_search_control_count"] == 1
+    assert submitted["room_condition_popup_state"] == "hidden"
+    assert events.index(submitted) < next(
+        index
+        for index, event in enumerate(events)
+        if event["stage"] == "room_results_scan_begin"
+    )
+    assert ui_server["requests"].count("/condition-apply-used") == 1
+    common_trace = [
+        json.loads(line)
+        for line in (tmp_path / observation["trace_ref"])
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    common_submit = next(
+        event
+        for event in common_trace
+        if event.get("operation") == "room_condition_search_submit_complete"
+    )
+    assert common_submit["room_condition_close_method"] == "search_submit"
 
 
 def test_n10(tmp_path, ui_server):
@@ -400,3 +538,300 @@ def test_n10(tmp_path, ui_server):
             assert failure["stage"] == "room_condition_popup_close_failed"
     finally:
         failed_connection.close()
+
+
+def test_n11(tmp_path, ui_server):
+    """Normal clicks resolve both an ancestor link and an href-less public handler."""
+
+    cases = (
+        (
+            "ancestor-link",
+            browser_fixtures.room_html(1, initial=1, terminal=True, wrapped_href=True),
+            "ancestor",
+            True,
+        ),
+        (
+            "handler-div",
+            browser_fixtures.room_html(1, initial=1, terminal=True),
+            "none",
+            False,
+        ),
+    )
+    for case_name, html, expected_scope, has_href in cases:
+        case_root = tmp_path / case_name
+        ui_server["html"] = html
+        ui_server["pages"].clear()
+        request = replace(
+            room_request(),
+            attempt_id=f"R07N11-{case_name.upper()}",
+            run_id=f"R07N11-{case_name.upper()}-RUN",
+        )
+
+        payload = source(case_root, ui_server, timeout=12).search(request)
+        result = parse_room_response(payload, request)
+
+        assert result.status == "observed", payload.get("error_code")
+        assert len(result.posts) == 1
+        assert result.posts[0].item_url == ("https://item.rakuten.co.jp/shop/item-1/")
+        assert result.posts[0].offer_key == "shop:item-1"
+        observation = _room_observation(case_root, request.attempt_id)
+        assert observation["trace_state"] == "healthy"
+        events = [
+            event
+            for event in observation["node_events"]
+            if event.get("event") == "public_source_stage"
+        ]
+        inspected = next(
+            event
+            for event in events
+            if event["stage"] == "room_detail_control_inspected"
+        )
+        assert inspected["element_tag"] == "div"
+        assert inspected["element_role"] == "other"
+        assert inspected["element_visible"] is True
+        assert inspected["element_enabled"] is True
+        assert inspected["element_obscured"] is False
+        assert inspected["link_scope"] == expected_scope
+        assert inspected["has_href"] is has_href
+        if not has_href:
+            assert inspected["handler_kind"] == "onclick"
+            assert inspected["handler_tag"] == "div"
+        stages = [event["stage"] for event in events]
+        assert stages.index("room_detail_button_click_begin") < stages.index(
+            "room_detail_button_click_complete"
+        )
+        assert stages.index("room_product_destination_wait_begin") < stages.index(
+            "room_product_destination_wait_complete"
+        )
+        assert "room_popup_received" in stages
+        assert "room_product_resolved" in stages
+
+        common_trace = [
+            json.loads(line)
+            for line in (case_root / observation["trace_ref"])
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        assert any(
+            event.get("operation") == "room_detail_button_click_begin"
+            and event.get("phase") == "begin"
+            for event in common_trace
+        )
+        assert any(
+            event.get("operation") == "room_detail_button_click_complete"
+            and event.get("phase") == "end"
+            for event in common_trace
+        )
+
+
+def test_n12(tmp_path, ui_server):
+    """Same-tab product routes restore the original first-50 source order."""
+
+    attempt_id = "R07-N12-80-SAME-TAB"
+    ui_server["html"] = _unique_same_tab_room_html()
+    request = replace(room_request(), attempt_id=attempt_id, run_id=f"{attempt_id}-RUN")
+    payload = source(tmp_path, ui_server, timeout=90).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == 50
+    assert [post.order_index for post in result.posts] == list(range(1, 51))
+    assert [post.offer_key for post in result.posts] == [
+        f"shop:item-{index}" for index in range(1, 51)
+    ]
+    assert result.posts[1].offer_key == "shop:item-2"
+    assert result.posts[49].offer_key == "shop:item-50"
+
+    observation = _room_observation(tmp_path, attempt_id)
+    assert observation["trace_state"] == "healthy"
+    events = [
+        event
+        for event in observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    assert (
+        sum(event["stage"] == "room_same_tab_navigation_observed" for event in events)
+        == 50
+    )
+    assert sum(event["stage"] == "room_search_restored" for event in events) == 50
+    assert (
+        sum(event["stage"] == "room_detail_button_click_complete" for event in events)
+        == 50
+    )
+    assert not any(
+        event["stage"] == "room_product_destination_wait_error" for event in events
+    )
+    common_trace = [
+        json.loads(line)
+        for line in (tmp_path / observation["trace_ref"])
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert (
+        len(
+            [
+                event
+                for event in common_trace
+                if event.get("operation") == "room_search_restored"
+                and event.get("phase") == "end"
+            ]
+        )
+        == 50
+    )
+
+
+def test_n13(tmp_path, ui_server):
+    """Click and destination deadlines stay separate and late popups are discarded."""
+
+    click_attempt = "R07-N13-CLICK-TIMEOUT"
+    ui_server["html"] = _obscured_detail_room_html(late_popup_delay_ms=80)
+    request = replace(
+        room_request(), attempt_id=click_attempt, run_id=f"{click_attempt}-RUN"
+    )
+    click_root = tmp_path / "click-timeout"
+    click_payload = _timed_fixture_source(
+        click_root,
+        ui_server,
+        timeout=8,
+        click_timeout_ms=150,
+        destination_timeout_ms=1500,
+    ).search(request)
+    click_result = parse_room_response(click_payload, request)
+
+    assert click_result.status == "unavailable"
+    assert click_payload["error_code"] == "source_timeout"
+    click_observation = _room_observation(click_root, click_attempt)
+    assert click_observation["trace_state"] == "healthy"
+    click_events = [
+        event
+        for event in click_observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    click_error = next(
+        event
+        for event in click_events
+        if event["stage"] == "room_detail_button_click_error"
+    )
+    assert click_error["error_class"] == "TimeoutError"
+    assert click_error["failed_operation"] == "room_detail_button_click_begin"
+    assert click_error["element_obscured"] is True
+    assert "room_product_destination_wait_begin" not in {
+        event["stage"] for event in click_events
+    }
+    assert "room_popup_received" not in {event["stage"] for event in click_events}
+    inspected = next(
+        event
+        for event in click_events
+        if event["stage"] == "room_detail_control_inspected"
+    )
+    assert inspected["element_obscured"] is True
+    assert "/detail-click-used" not in ui_server["requests"]
+
+    destination_attempt = "R07-N13-DESTINATION-TIMEOUT"
+    no_route = browser_fixtures.room_html(1, initial=1, terminal=True)
+    handler = (
+        '<div class="market-detail-link" onclick="window.open('
+        "'https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/'"
+        ')">楽天市場で詳細を見る</div>'
+    )
+    no_route = no_route.replace(
+        handler,
+        '<div class="market-detail-link" onclick="fetch(\'/click-used\')">'
+        "楽天市場で詳細を見る</div>",
+    )
+    assert handler not in no_route
+    ui_server["html"] = no_route
+    ui_server["pages"].clear()
+    destination_request = replace(
+        room_request(),
+        attempt_id=destination_attempt,
+        run_id=f"{destination_attempt}-RUN",
+    )
+    destination_root = tmp_path / "destination-timeout"
+    destination_payload = _timed_fixture_source(
+        destination_root,
+        ui_server,
+        timeout=8,
+        click_timeout_ms=1000,
+        destination_timeout_ms=180,
+    ).search(destination_request)
+    destination_result = parse_room_response(destination_payload, destination_request)
+
+    assert destination_result.status == "observed"
+    assert destination_result.posts[0].offer_key is None
+    destination_observation = _room_observation(destination_root, destination_attempt)
+    destination_events = [
+        event
+        for event in destination_observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    assert any(
+        event["stage"] == "room_detail_button_click_complete"
+        for event in destination_events
+    )
+    wait_error = next(
+        event
+        for event in destination_events
+        if event["stage"] == "room_product_destination_wait_error"
+    )
+    assert wait_error["error_class"] == "TimeoutError"
+    assert wait_error["failed_operation"] == "room_product_destination_wait_begin"
+    assert wait_error["timeout_ms"] == 180
+    assert wait_error["wait_elapsed_ms"] <= 600
+    assert not any(
+        event["stage"] == "room_popup_received" for event in destination_events
+    )
+
+    deadline_attempt = "R07-N13-REQUEST-DEADLINE"
+    ui_server["pages"].clear()
+    deadline_request = replace(
+        room_request(), attempt_id=deadline_attempt, run_id=f"{deadline_attempt}-RUN"
+    )
+    deadline_root = tmp_path / "request-deadline"
+    deadline_payload = _timed_fixture_source(
+        deadline_root,
+        ui_server,
+        timeout=8,
+        destination_timeout_ms=60_000,
+        request_deadline_ms=4500,
+    ).search(deadline_request)
+
+    assert deadline_payload["status"] == "unavailable"
+    assert deadline_payload["error_code"] == "source_timeout"
+    deadline_observation = _room_observation(deadline_root, deadline_attempt)
+    assert deadline_observation["trace_state"] == "healthy"
+    deadline_events = [
+        event
+        for event in deadline_observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    assert any(
+        event["stage"] == "room_detail_button_click_complete"
+        for event in deadline_events
+    )
+    deadline_error = next(
+        event
+        for event in deadline_events
+        if event["stage"] == "room_product_destination_wait_error"
+    )
+    assert deadline_error["error_class"] == "TimeoutError"
+    assert deadline_error["failed_operation"] == "room_product_destination_wait_begin"
+    assert deadline_error["wait_elapsed_ms"] <= 4500
+    common_trace = [
+        json.loads(line)
+        for line in (deadline_root / deadline_observation["trace_ref"])
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(
+        event.get("operation") == "room_product_destination_wait_begin"
+        and event.get("phase") == "begin"
+        for event in common_trace
+    )
+    assert any(
+        event.get("operation") == "room_product_destination_wait_error"
+        and event.get("phase") == "error"
+        and event.get("failed_operation") == "room_product_destination_wait_begin"
+        and event.get("error_class") == "TimeoutError"
+        for event in common_trace
+    )

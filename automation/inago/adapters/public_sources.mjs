@@ -69,6 +69,8 @@ function trace(stage, details = {}) {
     'widget_visible_count','widget_match_count','widget_match_visible_count',
     'widget_wrong_visible_count','related_widget_generation',
     'generation_before_period','room_condition_close_control_count',
+    'room_condition_search_control_count',
+    'timeout_ms','wait_elapsed_ms',
   ];
   for (const key of integerFields) {
     const value = details[key];
@@ -78,6 +80,7 @@ function trace(stage, details = {}) {
   for (const key of [
     'body_text_nonempty','retry_after_present','has_href',
     'room_conditions_likes_verified','room_conditions_comments_verified',
+    'element_visible','element_enabled','element_obscured',
   ]) {
     if (typeof details[key] === 'boolean') safe[key] = details[key];
   }
@@ -87,12 +90,18 @@ function trace(stage, details = {}) {
     safe.widget_selector_version = TRENDS_WIDGET_SELECTOR_VERSION;
   const enums = {
     document_ready_state:['loading','interactive','complete'],
-    phase:['card_link','preview_click','detail_button_ready','detail_button_click','popup_wait','popup_initial_url','product_navigation','product_url_parse'],
+    phase:['card_link','preview_click','detail_button_ready','detail_button_click','product_destination_wait','popup_wait','popup_initial_url','product_navigation','product_url_parse','room_search_restore'],
     popup_url_kind:['blank','empty','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
     element_tag:['a','button','div','span','other'],
+    element_role:['link','button','other'],
+    handler_kind:['link','button','role','onclick','none'],
+    handler_tag:['a','button','div','span','other'],
+    handler_scope:['self','ancestor','none'],
+    destination_kind:['popup','same_tab'],
+    link_scope:['none','self','ancestor','descendant','other'],
     href_kind:['none','empty','blank','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
     link_target:['none','_blank','_self','other'],
-    room_condition_close_method:['close_control','escape','already_closed','none'],
+    room_condition_close_method:['close_control','search_submit','escape','already_closed','none'],
     room_condition_popup_state:['visible','hidden','unknown'],
     error_class:['Error','TimeoutError','TypeError','ReferenceError','SyntaxError','RangeError','URIError','EvalError','AggregateError','TargetClosedError','BrowserClosedError','ProtocolError','SourceFailure','other'],
     widget_scope:['explore_related_queries'],
@@ -103,6 +112,8 @@ function trace(stage, details = {}) {
   for (const [key, allowed] of Object.entries(enums)) {
     if (allowed.includes(details[key])) safe[key] = details[key];
   }
+  if (typeof details.failed_operation === 'string' && REF.test(details.failed_operation))
+    safe.failed_operation = details.failed_operation;
   process.stderr.write(JSON.stringify(safe)+'\n');
   traceEventCount++;
 }
@@ -272,6 +283,10 @@ function validateInput(input) {
       (config.fixture_expire_deadline_before_room_restore !== undefined &&
         (typeof config.fixture_expire_deadline_before_room_restore !== 'boolean' ||
          (config.environment !== 'fixture' && config.fixture_expire_deadline_before_room_restore))) ||
+      ['fixture_detail_click_timeout_ms','fixture_product_destination_timeout_ms','fixture_request_deadline_ms'].some(key =>
+        config[key] !== undefined &&
+        (!Number.isInteger(config[key]) || config[key] < 0 || config[key] > 60000 ||
+         (config.environment !== 'fixture' && config[key] !== 0))) ||
       !Number.isFinite(config.timeout_seconds) || config.timeout_seconds < 1 || config.timeout_seconds > MAX_SOURCE_TIMEOUT_SECONDS ||
       !REF.test(request.run_id) || typeof (request.query ?? request.parent_word) !== 'string' ||
       !(request.query ?? request.parent_word).trim()) throw new SourceFailure('invalid_request');
@@ -368,39 +383,62 @@ function popupUrlMetadata(page) {
 async function resolveProduct(page, card, check, deadline, access, rowIndex, config) {
   let popup;
   let sameTabNavigation = false;
-  let destinationPromise;
-  let cancelDestinationWait;
+  let destinationMonitor;
+  let stageErrorRecorded = false;
+  let clickStartedAt = null;
+  let clickTimeoutMs = null;
+  let destinationWaitStartedAt = null;
+  let destinationWaitTimeoutMs = null;
+  let control = null;
   const roomUrl = page.url();
   let phase = 'card_link';
   const detail = {row_index:rowIndex};
   const restoreSearchBeforeDeadline = async () => {
+    const restoreStartedAt = Date.now();
+    trace('room_search_restore_begin',{...detail,phase:'room_search_restore'});
     let remaining = deadline - Date.now();
     if (remaining <= 0) {
       sameTabNavigation = false;
-      trace('room_search_restore_skipped_deadline',detail);
+      trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
       return false;
     }
-    if (page.url() !== roomUrl) {
-      await page.goBack({waitUntil:'domcontentloaded',timeout:Math.min(5000,remaining)});
-      remaining = deadline - Date.now();
-      if (remaining <= 0) {
+    try {
+      if (page.url() !== roomUrl) {
+        await page.goBack({waitUntil:'domcontentloaded',timeout:Math.min(5000,remaining)});
+        remaining = deadline - Date.now();
+        if (remaining <= 0) {
+          sameTabNavigation = false;
+          trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
+          return false;
+        }
+        await page.waitForURL(url => url.href === roomUrl, {
+          waitUntil:'domcontentloaded', timeout:Math.min(5000,remaining),
+        });
+      }
+      if (Date.now() >= deadline) {
         sameTabNavigation = false;
-        trace('room_search_restore_skipped_deadline',detail);
+        trace('room_search_restore_skipped_deadline',{...detail,phase:'room_search_restore'});
         return false;
       }
-      await page.waitForURL(url => url.href === roomUrl, {
-        waitUntil:'domcontentloaded', timeout:Math.min(5000,remaining),
-      });
-    }
-    if (Date.now() >= deadline) {
+      if (page.url() !== roomUrl) throw new SourceFailure('room_search_restore_failed');
       sameTabNavigation = false;
-      trace('room_search_restore_skipped_deadline',detail);
-      return false;
+      trace('room_search_restored',{
+        ...detail,
+        phase:'room_search_restore',
+        wait_elapsed_ms:Math.max(0,Date.now()-restoreStartedAt),
+      });
+      return true;
+    } catch (error) {
+      sameTabNavigation = false;
+      trace('room_search_restore_error',{
+        ...detail,
+        phase:'room_search_restore',
+        error_class:safeThrownErrorClass(error),
+        failed_operation:'room_search_restore_begin',
+        wait_elapsed_ms:Math.max(0,Date.now()-restoreStartedAt),
+      });
+      throw new SourceFailure('room_search_restore_failed');
     }
-    if (page.url() !== roomUrl) throw new SourceFailure('room_search_restore_failed');
-    sameTabNavigation = false;
-    trace('room_search_restored',detail);
-    return true;
   };
   trace('room_product_begin',detail);
   try {
@@ -421,12 +459,50 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       timeout:Math.min(PRODUCT_BUTTON_TIMEOUT_MS,Math.max(1,deadline-Date.now())),
     });
     trace('room_detail_button_ready',detail);
-    const control = await button.evaluate(el => {
+    control = await button.evaluate(el => {
       const visible = anchor => anchor.isConnected && anchor.getClientRects().length > 0;
       const descendant = Array.from(el.querySelectorAll('a[href]')).find(visible) || null;
       const anchor = el instanceof HTMLAnchorElement && el.href ? el : el.closest('a[href]') || descendant;
+      const tag = el.tagName.toLowerCase();
+      const roleAttribute = el.getAttribute('role');
+      const role = roleAttribute === 'link' || tag === 'a' ? 'link' :
+        roleAttribute === 'button' || tag === 'button' ? 'button' : 'other';
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const elementVisible = el.isConnected && el.getClientRects().length > 0 &&
+        style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0;
+      const disabledAncestor = el.closest('[disabled],[aria-disabled="true"]');
+      const elementEnabled = !disabledAncestor;
+      const hit = rect.width > 0 && rect.height > 0
+        ? document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+        : null;
+      const elementObscured = Boolean(elementVisible && hit &&
+        hit !== el && !el.contains(hit) && !hit.contains(el));
+      const ancestors = [];
+      for (let node = el; node && node instanceof HTMLElement; node = node.parentElement) {
+        ancestors.push(node);
+        if (ancestors.length >= 8) break;
+      }
+      const handler = ancestors.find(node => {
+        const nodeTag = node.tagName.toLowerCase();
+        return (nodeTag === 'a' && Boolean(node.getAttribute('href'))) ||
+          nodeTag === 'button' || node.getAttribute('role') === 'button' ||
+          node.hasAttribute('onclick') || typeof node.onclick === 'function';
+      }) || null;
+      const handlerTag = handler ? handler.tagName.toLowerCase() : 'other';
+      const handlerRole = handler?.getAttribute('role');
+      const handlerKind = !handler ? 'none' :
+        handlerTag === 'a' ? 'link' : handlerTag === 'button' ? 'button' :
+        handlerRole === 'button' ? 'role' : 'onclick';
       return {
-        tag:el.tagName.toLowerCase(),
+        tag,
+        role,
+        visible:elementVisible,
+        enabled:elementEnabled,
+        obscured:elementObscured,
+        handler_kind:handlerKind,
+        handler_tag:['a','button','div','span'].includes(handlerTag) ? handlerTag : 'other',
+        handler_scope:!handler ? 'none' : handler === el ? 'self' : 'ancestor',
         href:anchor?.href || null,
         target:anchor?.target || null,
         link_scope:!anchor ? 'none' : anchor === el ? 'self' : anchor.contains(el) ? 'ancestor' : 'descendant',
@@ -435,53 +511,163 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     const directProduct = control.href ? productIds(control.href) : null;
     trace('room_detail_control_inspected',{
       ...detail,
-      element_tag: ['a','button','div','span'].includes(control.tag) ? control.tag : 'other',
-      has_href: Boolean(control.href),
-      href_kind: control.href ? safeUrlKind(control.href) : 'none',
-      link_scope: ['none','self','ancestor','descendant'].includes(control.link_scope) ? control.link_scope : 'other',
-      link_target: control.target === '_blank' ? '_blank' : control.target === '_self' ? '_self' : control.target ? 'other' : 'none',
+      element_tag:['a','button','div','span'].includes(control.tag) ? control.tag : 'other',
+      element_role:control.role,
+      element_visible:control.visible,
+      element_enabled:control.enabled,
+      element_obscured:control.obscured,
+      handler_kind:control.handler_kind,
+      handler_tag:control.handler_tag,
+      handler_scope:control.handler_scope,
+      has_href:Boolean(control.href),
+      href_kind:control.href ? safeUrlKind(control.href) : 'none',
+      link_scope:['none','self','ancestor','descendant'].includes(control.link_scope) ? control.link_scope : 'other',
+      link_target:control.target === '_blank' ? '_blank' : control.target === '_self' ? '_self' : control.target ? 'other' : 'none',
     });
     if (directProduct) trace('room_product_visible_href_observed',detail);
-    destinationPromise = new Promise(resolve => {
-      let settled = false;
-      const finish = destination => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
+
+    const detailClickTimeoutMs = config.fixture_detail_click_timeout_ms || PRODUCT_DETAIL_CLICK_TIMEOUT_MS;
+    const destinationTimeoutMs = config.fixture_product_destination_timeout_ms || PRODUCT_DESTINATION_TIMEOUT_MS;
+    let observedDestination = null;
+    let destinationWaitTimer = null;
+    let destinationWaitResolve = null;
+    let destinationWaitStopped = false;
+    const settleDestination = destination => {
+      if (destinationWaitStopped || observedDestination) return;
+      observedDestination = destination;
+      if (destinationWaitTimer) {
+        clearTimeout(destinationWaitTimer);
+        destinationWaitTimer = null;
+      }
+      if (destinationWaitResolve) {
+        const resolve = destinationWaitResolve;
+        destinationWaitResolve = null;
+        resolve(destination);
+      }
+    };
+    const onPopup = productPage => settleDestination({page:productPage,kind:'popup'});
+    const onFrameNavigated = frame => {
+      if (frame === page.mainFrame() && page.url() !== roomUrl) {
+        sameTabNavigation = true;
+        settleDestination({page,kind:'same_tab'});
+      }
+    };
+    page.on('popup', onPopup);
+    page.on('framenavigated', onFrameNavigated);
+    destinationMonitor = {
+      getDestination:() => observedDestination,
+      wait:timeoutMs => {
+        if (observedDestination) return Promise.resolve(observedDestination);
+        if (destinationWaitStopped) return Promise.resolve(null);
+        return new Promise(resolve => {
+          destinationWaitResolve = resolve;
+          destinationWaitTimer = setTimeout(() => {
+            destinationWaitTimer = null;
+            destinationWaitResolve = null;
+            resolve(null);
+          }, Math.max(1,timeoutMs));
+        });
+      },
+      cancel:() => {
+        if (destinationWaitStopped) return;
+        destinationWaitStopped = true;
+        if (destinationWaitTimer) {
+          clearTimeout(destinationWaitTimer);
+          destinationWaitTimer = null;
+        }
         page.off('popup', onPopup);
         page.off('framenavigated', onFrameNavigated);
-        resolve(destination);
-      };
-      cancelDestinationWait = () => finish(null);
-      const onPopup = productPage => finish({page:productPage,kind:'popup'});
-      const onFrameNavigated = frame => {
-        if (frame === page.mainFrame() && page.url() !== roomUrl) {
-          sameTabNavigation = true;
-          finish({page,kind:'same_tab'});
+        if (destinationWaitResolve) {
+          const resolve = destinationWaitResolve;
+          destinationWaitResolve = null;
+          resolve(null);
         }
-      };
-      const timer = setTimeout(
-        () => finish(null),
-        Math.min(PRODUCT_DESTINATION_TIMEOUT_MS, Math.max(1, deadline-Date.now())),
-      );
-      page.on('popup', onPopup);
-      page.on('framenavigated', onFrameNavigated);
-    });
+      },
+    };
+
     // Only the product-details control is clicked; no like/collect/buy action.
     phase = 'detail_button_click';
-    trace('room_detail_button_click_begin',detail);
+    clickStartedAt = Date.now();
+    trace('room_detail_button_click_begin',{...detail,phase:'detail_button_click'});
     await check();
     const detailClickRemaining = deadline-Date.now();
     if (detailClickRemaining <= 0) throw new SourceFailure('source_timeout');
-    await button.click({ timeout: Math.min(PRODUCT_DETAIL_CLICK_TIMEOUT_MS, detailClickRemaining) });
+    clickTimeoutMs = Math.min(detailClickTimeoutMs,detailClickRemaining);
+    try {
+      // Keep the ordinary Playwright click so its real actionability checks apply.
+      await button.click({timeout:clickTimeoutMs});
+    } catch (error) {
+      const clickElapsedMs = Math.max(0,Date.now()-clickStartedAt);
+      const destinationAtClickFailure = destinationMonitor.getDestination();
+      destinationMonitor.cancel();
+      trace('room_detail_button_click_error',{
+        ...detail,
+        phase:'detail_button_click',
+        error_class:safeThrownErrorClass(error),
+        failed_operation:'room_detail_button_click_begin',
+        timeout_ms:clickTimeoutMs,
+        wait_elapsed_ms:clickElapsedMs,
+        element_obscured:control.obscured,
+      });
+      stageErrorRecorded = true;
+      if (destinationAtClickFailure?.kind === 'popup') {
+        popup = destinationAtClickFailure.page;
+        trace('room_product_destination_discarded',{
+          ...detail,
+          phase:'detail_button_click',
+          destination_kind:'popup',
+          failed_operation:'room_detail_button_click_begin',
+          error_class:safeThrownErrorClass(error),
+        });
+      }
+      if (destinationAtClickFailure?.kind === 'same_tab') {
+        sameTabNavigation = true;
+        trace('room_same_tab_navigation_observed',detail);
+      }
+      if (error instanceof SourceFailure) throw error;
+      if (error?.name === 'TimeoutError') throw new SourceFailure('source_timeout');
+      throw error;
+    }
+    trace('room_detail_button_click_complete',{
+      ...detail,
+      phase:'detail_button_click',
+      timeout_ms:clickTimeoutMs,
+      wait_elapsed_ms:Math.max(0,Date.now()-clickStartedAt),
+    });
+
     phase = 'product_destination_wait';
-    trace('room_product_destination_wait_begin',detail);
-    const destination = await destinationPromise;
+    destinationWaitStartedAt = Date.now();
+    const destinationWaitRemaining = deadline-Date.now();
+    destinationWaitTimeoutMs = Math.max(0,Math.min(destinationTimeoutMs,destinationWaitRemaining));
+    trace('room_product_destination_wait_begin',{
+      ...detail,
+      phase:'product_destination_wait',
+      timeout_ms:destinationWaitTimeoutMs,
+    });
+    if (destinationWaitTimeoutMs <= 0) throw new SourceFailure('source_timeout');
+    const destination = await destinationMonitor.wait(destinationWaitTimeoutMs);
     if (!destination) {
-      trace('room_product_destination_missing',detail);
+      destinationMonitor.cancel();
+      trace('room_product_destination_wait_error',{
+        ...detail,
+        phase:'product_destination_wait',
+        error_class:'TimeoutError',
+        failed_operation:'room_product_destination_wait_begin',
+        timeout_ms:destinationWaitTimeoutMs,
+        wait_elapsed_ms:Math.max(0,Date.now()-destinationWaitStartedAt),
+      });
+      stageErrorRecorded = true;
       if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
       return null;
     }
+    destinationMonitor.cancel();
+    trace('room_product_destination_wait_complete',{
+      ...detail,
+      phase:'product_destination_wait',
+      destination_kind:destination.kind,
+      timeout_ms:destinationWaitTimeoutMs,
+      wait_elapsed_ms:Math.max(0,Date.now()-destinationWaitStartedAt),
+    });
     popup = destination.kind === 'popup' ? destination.page : null;
     sameTabNavigation = destination.kind === 'same_tab';
     const productPage = destination.page;
@@ -495,7 +681,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     if (!initialProduct) {
       trace('room_product_navigation_begin',detail);
       await productPage.waitForURL(url => url.hostname === 'item.rakuten.co.jp', {
-        waitUntil: 'commit', timeout: Math.min(PRODUCT_NAVIGATION_TIMEOUT_MS, Math.max(1, deadline-Date.now())),
+        waitUntil:'commit', timeout:Math.min(PRODUCT_NAVIGATION_TIMEOUT_MS,Math.max(1,deadline-Date.now())),
       });
       trace('room_product_navigation_complete',{...detail,...popupUrlMetadata(productPage)});
     }
@@ -508,7 +694,7 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       body_text_nonempty:Boolean(document.body?.innerText.trim()),
     }));
     trace('room_product_dom_state',{...detail,...productDomState});
-    await waitDOM(productPage, productCheck, () => Boolean(document.body?.children.length && document.body.innerText.trim()), null, deadline);
+    await waitDOM(productPage,productCheck,() => Boolean(document.body?.children.length && document.body.innerText.trim()),null,deadline);
     trace('room_product_page_rendered',detail);
     const product = productIds(productPage.url());
     trace(product ? 'room_product_resolved' : 'room_product_url_unresolved',detail);
@@ -525,34 +711,69 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
     }
     return product;
   } catch (error) {
-    if (error instanceof SourceFailure) throw error;
-    if (phase === 'detail_button_click' && error?.name === 'TimeoutError' && destinationPromise) {
-      const lateDestination = await destinationPromise;
-      if (lateDestination?.kind === 'popup') {
-        popup = lateDestination.page;
-        trace('room_popup_received',detail);
+    const destinationAtFailure = destinationMonitor?.getDestination();
+    destinationMonitor?.cancel();
+    if (destinationAtFailure?.kind === 'popup' && !popup) {
+      popup = destinationAtFailure.page;
+      if (phase === 'detail_button_click' && !stageErrorRecorded) {
+        trace('room_product_destination_discarded',{
+          ...detail,
+          phase:'detail_button_click',
+          destination_kind:'popup',
+          failed_operation:'room_detail_button_click_begin',
+          error_class:safeThrownErrorClass(error),
+        });
       }
-      if (lateDestination?.kind === 'same_tab') {
-        sameTabNavigation = true;
-        trace('room_same_tab_navigation_observed',detail);
-      }
-      throw new SourceFailure('source_timeout');
     }
-    cancelDestinationWait?.();
+    if (destinationAtFailure?.kind === 'same_tab') sameTabNavigation = true;
+    const errorClass = safeThrownErrorClass(error);
+    const failedOperation = phase === 'detail_button_click'
+      ? 'room_detail_button_click_begin'
+      : phase === 'product_destination_wait'
+        ? 'room_product_destination_wait_begin'
+        : phase === 'room_search_restore'
+          ? 'room_search_restore_begin'
+          : null;
+    if (!stageErrorRecorded && phase === 'detail_button_click') {
+      trace('room_detail_button_click_error',{
+        ...detail,
+        phase:'detail_button_click',
+        error_class:errorClass,
+        failed_operation:failedOperation,
+        timeout_ms:clickTimeoutMs,
+        wait_elapsed_ms:clickStartedAt == null ? 0 : Math.max(0,Date.now()-clickStartedAt),
+        element_obscured:control?.obscured,
+      });
+      stageErrorRecorded = true;
+    } else if (!stageErrorRecorded && phase === 'product_destination_wait') {
+      trace('room_product_destination_wait_error',{
+        ...detail,
+        phase:'product_destination_wait',
+        error_class:errorClass,
+        failed_operation:failedOperation,
+        timeout_ms:destinationWaitTimeoutMs,
+        wait_elapsed_ms:destinationWaitStartedAt == null ? 0 : Math.max(0,Date.now()-destinationWaitStartedAt),
+      });
+      stageErrorRecorded = true;
+    }
     const diagnosticPage = popup ?? (sameTabNavigation ? page : null);
     trace(
-      error?.name === 'TimeoutError' ? 'room_product_timeout' : 'room_product_unresolved',
+      errorClass === 'TimeoutError' ? 'room_product_timeout' : 'room_product_unresolved',
       {
         ...detail,
         ...(diagnosticPage ? popupUrlMetadata(diagnosticPage) : {}),
         phase,
+        error_class:errorClass,
+        ...(failedOperation ? {failed_operation:failedOperation} : {}),
       },
     );
+    if (error instanceof SourceFailure) throw error;
     if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
     await check();
     return null; // An unresolved identity still occupies its original source slot.
   } finally {
-    if (popup) await popup.close().catch(() => {});
+    destinationMonitor?.cancel();
+    if (popup && !popup.isClosed()) await popup.close().catch(() => {});
     if (sameTabNavigation && !page.isClosed()) {
       try {
         await restoreSearchBeforeDeadline();
@@ -561,14 +782,13 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       }
     }
     if (Date.now() < deadline) {
-      const close = page.locator('.close-button').filter({ visible: true }).first();
-      if (await close.count()) await close.click({ timeout: Math.min(1000,deadline-Date.now()) }).catch(() => {});
+      const close = page.locator('.close-button').filter({visible:true}).first();
+      if (await close.count()) await close.click({timeout:Math.min(1000,deadline-Date.now())}).catch(() => {});
     } else {
       trace('room_modal_close_skipped_deadline',detail);
     }
   }
 }
-
 async function conditionPopupState(popup) {
   try {
     return await popup.isVisible() ? 'visible' : 'hidden';
@@ -616,8 +836,9 @@ export async function closeConditionPopup(page, popup, deadline) {
       room_condition_close_method:'already_closed',
       room_condition_popup_state:'hidden',
       room_condition_close_control_count:0,
+      room_condition_search_control_count:0,
     });
-    return {closed:true,method:'already_closed',closeControlCount:0};
+    return {closed:true,method:'already_closed',closeControlCount:0,searchControlCount:0};
   }
 
   const controls = popup.locator('button, a, [role="button"], [aria-label], [title]')
@@ -634,15 +855,30 @@ export async function closeConditionPopup(page, popup, deadline) {
       return enabled && visible && compact(accessibleName) === '閉じる' ? [index] : [];
     });
   });
+  const searchIndexes = await controls.evaluateAll(elements => {
+    const compact = value => (value ?? '').normalize('NFKC').replace(/\s/g,'');
+    return elements.flatMap((element,index) => {
+      const style = getComputedStyle(element);
+      const accessibleName = element.getAttribute('aria-label') ??
+        element.getAttribute('title') ?? element.innerText ?? '';
+      const enabled = !element.disabled && element.getAttribute('aria-disabled') !== 'true';
+      const visible = element.getClientRects().length > 0 && style.visibility !== 'hidden' &&
+        style.display !== 'none' && style.pointerEvents !== 'none';
+      return enabled && visible && compact(accessibleName) === '検索' ? [index] : [];
+    });
+  });
   const closeControlCount = Math.min(100,matchingIndexes.length);
+  const searchControlCount = Math.min(100,searchIndexes.length);
   trace('room_condition_close_control_inspected', {
     room_condition_close_control_count:closeControlCount,
+    room_condition_search_control_count:searchControlCount,
     room_condition_popup_state:initialState,
   });
 
   if (matchingIndexes.length === 1) {
     trace('room_condition_close_control_begin', {
       room_condition_close_control_count:closeControlCount,
+      room_condition_search_control_count:searchControlCount,
       room_condition_popup_state:initialState,
     });
     try {
@@ -651,20 +887,23 @@ export async function closeConditionPopup(page, popup, deadline) {
       await controls.nth(matchingIndexes[0]).click({timeout:clickTimeout});
       trace('room_condition_close_control_clicked', {
         room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
         room_condition_popup_state:await conditionPopupState(popup),
       });
       if (await waitForConditionPopupHidden(popup,deadline)) {
         trace('room_condition_close_control_complete', {
           room_condition_close_method:'close_control',
           room_condition_close_control_count:closeControlCount,
+          room_condition_search_control_count:searchControlCount,
           room_condition_popup_state:'hidden',
         });
-        return {closed:true,method:'close_control',closeControlCount};
+        return {closed:true,method:'close_control',closeControlCount,searchControlCount};
       }
     } catch (error) {
       trace('room_condition_close_control_error', {
         error_class:safeThrownErrorClass(error),
         room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
         room_condition_popup_state:await conditionPopupState(popup),
       });
     }
@@ -672,6 +911,7 @@ export async function closeConditionPopup(page, popup, deadline) {
     trace(matchingIndexes.length ? 'room_condition_close_control_ambiguous' :
       'room_condition_close_control_missing', {
         room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
         room_condition_popup_state:initialState,
       });
   }
@@ -680,17 +920,57 @@ export async function closeConditionPopup(page, popup, deadline) {
     trace('room_condition_popup_already_closed', {
       room_condition_close_method:matchingIndexes.length === 1 ? 'close_control' : 'already_closed',
       room_condition_close_control_count:closeControlCount,
+      room_condition_search_control_count:searchControlCount,
       room_condition_popup_state:'hidden',
     });
     return {
       closed:true,
       method:matchingIndexes.length === 1 ? 'close_control' : 'already_closed',
       closeControlCount,
+      searchControlCount,
     };
+  }
+
+  // Some public ROOM layouts expose the verified conditions as a sheet with
+  // no dismiss control. Its unique search action applies those conditions and
+  // reveals results; it is not a toggle or an item action.
+  if (matchingIndexes.length !== 1 && searchIndexes.length === 1) {
+    trace('room_condition_search_submit_begin', {
+      room_condition_close_control_count:closeControlCount,
+      room_condition_search_control_count:searchControlCount,
+      room_condition_popup_state:initialState,
+    });
+    try {
+      const clickTimeout = remainingConditionTimeout(deadline,2500);
+      if (!clickTimeout) throw new SourceFailure('condition_popup_close_failed');
+      await controls.nth(searchIndexes[0]).click({timeout:clickTimeout});
+      trace('room_condition_search_submit_clicked', {
+        room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
+        room_condition_popup_state:await conditionPopupState(popup),
+      });
+      if (await waitForConditionPopupHidden(popup,deadline)) {
+        trace('room_condition_search_submit_complete', {
+          room_condition_close_method:'search_submit',
+          room_condition_close_control_count:closeControlCount,
+          room_condition_search_control_count:searchControlCount,
+          room_condition_popup_state:'hidden',
+        });
+        return {closed:true,method:'search_submit',closeControlCount,searchControlCount};
+      }
+    } catch (error) {
+      trace('room_condition_search_submit_error', {
+        error_class:safeThrownErrorClass(error),
+        room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
+        room_condition_popup_state:await conditionPopupState(popup),
+      });
+    }
   }
 
   trace('room_condition_escape_close_begin', {
     room_condition_close_control_count:closeControlCount,
+    room_condition_search_control_count:searchControlCount,
     room_condition_popup_state:await conditionPopupState(popup),
   });
   try {
@@ -698,20 +978,23 @@ export async function closeConditionPopup(page, popup, deadline) {
     await page.keyboard.press('Escape');
     trace('room_condition_escape_close_sent', {
       room_condition_close_control_count:closeControlCount,
+      room_condition_search_control_count:searchControlCount,
       room_condition_popup_state:await conditionPopupState(popup),
     });
     if (await waitForConditionPopupHidden(popup,deadline)) {
       trace('room_condition_escape_close_complete', {
         room_condition_close_method:'escape',
         room_condition_close_control_count:closeControlCount,
+        room_condition_search_control_count:searchControlCount,
         room_condition_popup_state:'hidden',
       });
-      return {closed:true,method:'escape',closeControlCount};
+      return {closed:true,method:'escape',closeControlCount,searchControlCount};
     }
   } catch (error) {
     trace('room_condition_escape_close_error', {
       error_class:safeThrownErrorClass(error),
       room_condition_close_control_count:closeControlCount,
+      room_condition_search_control_count:searchControlCount,
       room_condition_popup_state:await conditionPopupState(popup),
     });
   }
@@ -719,9 +1002,10 @@ export async function closeConditionPopup(page, popup, deadline) {
   trace('room_condition_popup_close_failed', {
     room_condition_close_method:'none',
     room_condition_close_control_count:closeControlCount,
+    room_condition_search_control_count:searchControlCount,
     room_condition_popup_state:finalState,
   });
-  return {closed:false,method:'none',closeControlCount,state:finalState};
+  return {closed:false,method:'none',closeControlCount,searchControlCount,state:finalState};
 }
 
 export async function collectRoom(page, request, config, deadline, access) {
@@ -1287,7 +1571,8 @@ export async function collectTrends(page, request, config, deadline, access) {
 export async function main(input) {
   validateInput(input);
   const {config,request,kind} = input;
-  const configuredDeadline = Date.now()+config.timeout_seconds*1000;
+  const fixtureDeadline = config.fixture_request_deadline_ms || config.timeout_seconds*1000;
+  const configuredDeadline = Date.now()+Math.min(config.timeout_seconds*1000,fixtureDeadline);
   const requestDeadline = request.deadline_at == null ? null : Date.parse(request.deadline_at);
   if (request.deadline_at != null && !Number.isFinite(requestDeadline))
     throw new SourceFailure('invalid_request');

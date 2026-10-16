@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.8、§8・§27.6～27.10・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
+正本：要件定義書HTML 2.10、§8・§27.6～27.11・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06/R07。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
 
 ## 共通イベント
 
@@ -22,15 +22,37 @@ run root spanは実イベントとして出力し、公開取得・AI等の子sp
 
 ## ROOM条件popup閉じの安全な診断（STEP R06）
 
-検索条件popupは、開状態とquery/likes=300/commentsなしの反映を確認してから閉じる。既にhiddenなら`room_condition_close_method=already_closed`で冪等完了とする。popup内にある可視・有効な正確な閉じcontrolが1件だけなら、通常クリックを1回行い、popup hiddenを有限なrequest timeout内で待つ。候補が0/複数、クリック失敗、または閉状態未確認なら、再クリックやtoggleを行わずEscapeを1回だけ送り、同じ有限request timeout内でhiddenを待つ。閉状態が不明なら検索一覧走査へ進まず`condition_popup_close_failed`を返す。
+検索条件popupは、開状態とquery/likes=300/commentsなしの反映を確認してから閉じる。既にhiddenなら`room_condition_close_method=already_closed`で冪等完了とする。popup内にある可視・有効な正確な閉じcontrolが1件だけなら、通常クリックを1回行い、popup hiddenを有限なrequest timeout内で待つ。正規close controlが一意でない場合に、可視・有効・完全一致の「検索」controlが1件だけあれば通常クリックを1回行い、条件を適用して結果一覧を開く。この`search_submit`は検証済み条件を適用する公開操作として記録する。いずれも使えない場合は再クリック/toggleを行わずEscapeを1回だけ送り、同じ有限request timeout内でhiddenを待つ。閉状態が不明なら検索一覧走査へ進まず`condition_popup_close_failed`を返す。
 
-許可する追加fieldは`room_condition_close_control_count`（整数0..100）、`room_condition_close_method=close_control|escape|already_closed|none`、`room_condition_popup_state=hidden|visible|unknown`、`room_conditions_likes_verified`と`room_conditions_comments_verified`（boolean）、`error_class=Error|TimeoutError|TypeError|ReferenceError|SyntaxError|RangeError|URIError|EvalError|AggregateError|TargetClosedError|BrowserClosedError|ProtocolError|SourceFailure|other`である。開き始め/開確認、条件検証、閉じ始め/完了/失敗、`room_condition_popup_closed`、`room_results_scan_begin`の順序と各elapsed/phaseを記録する。query文字列、URL、DOM、画面本文、認証情報は記録しない。閉じ失敗は当該attemptのsource failureを1件だけ増やし、同一task/queryの有限retryと`retry_of`で続ける。成功retryは失敗履歴を保持しつつ最終失敗に数えず、最大3失敗でsourceを停止して原因を保持する。
+許可する追加fieldは`room_condition_close_control_count`と`room_condition_search_control_count`（整数0..100）、`room_condition_close_method=close_control|search_submit|escape|already_closed|none`、`room_condition_popup_state=hidden|visible|unknown`、`room_conditions_likes_verified`と`room_conditions_comments_verified`（boolean）、`error_class=Error|TimeoutError|TypeError|ReferenceError|SyntaxError|RangeError|URIError|EvalError|AggregateError|TargetClosedError|BrowserClosedError|ProtocolError|SourceFailure|other`である。開き始め/開確認、条件検証、閉じ始め/完了/失敗、`room_condition_popup_closed`、`room_results_scan_begin`の順序と各elapsed/phaseを記録する。query文字列、URL、DOM、画面本文、認証情報は記録しない。閉じ失敗は当該attemptのsource failureを1件だけ増やし、同一task/queryの有限retryと`retry_of`で続ける。成功retryは失敗履歴を保持しつつ最終失敗に数えず、最大3失敗でsourceを停止して原因を保持する。
 
 | Node | 注入 | 合格条件 |
 | --- | --- | --- |
 | `tests_inago/test_daily_fix_room.py::test_n09` | 1.5秒より長く遅れて閉じる一意な正規control | 通常クリック1回、条件保持、hidden確認後に検索走査開始。閉じ待ちと共通traceはhealthy。 |
 | `tests_inago/test_daily_fix_room.py::test_n09b_already_closed_and_ambiguous_controls` | 既にhiddenのpopup、誤候補を含む複数の「閉じる」control | hiddenは冪等完了。曖昧候補をクリックせずEscapeを1回使い、状態・条件bool・候補数を記録する。 |
 | `tests_inago/test_daily_fix_room.py::test_n10` | 1回失敗後の同一task回復、および3回連続閉じ失敗 | `retry_of`連鎖・attempt数・source failure数が一致し、回復を最終失敗に数えない。3回後に停止し、3 failure observationと原因が残る。 |
+| `tests_inago/test_daily_fix_room.py::test_n09c_public_search_action_applies_verified_conditions` | 正規closeなし、正確な検索操作1件、条件適用後の結果一覧 | 「検索」を通常クリックで一度だけ実行し、`search_submit`/検索control countを記録する。条件保持・hidden確認後に結果走査へ進み、common traceをhealthyにする。 |
+
+## ROOM商品詳細の通常操作・遷移・検索復帰（STEP R07、要件HTML 2.10）
+
+公開ROOMの実際の表示要素から操作対象を特定し、tag/role/visible/enabled/obscured、handlerの種類・位置、href有無とリンク範囲を安全な分類値で記録する。hrefがないことだけを理由に操作対象から除外しない。クリックはforceを使わず通常操作する。画面本文・商品名・query・hrefやURL・DOM・認証情報はtraceへ保存しない。
+
+`room_detail_button_click_begin`から`room_detail_button_click_complete`または`room_detail_button_click_error`までをclick spanとし、`room_product_destination_wait_begin`から`room_product_destination_wait_complete`または`room_product_destination_wait_error`までを別spanとする。遷移監視はclick前にpopupと同一tabを観測できるよう登録するが、遷移の有限待機時間はclick成功後に開始する。click失敗時はこのrequestが所有する待機を取り消し、遅れて届いたpopupを商品到達として採用しない。popupとsame-tabは`destination_kind=popup|same_tab`で分ける。
+
+click timeoutと遷移待ちtimeoutは個別requestに残る有限時間の範囲内で決める。例外本文を除外して内側の`TimeoutError`等のerror class、`failed_operation`、`timeout_ms`、`wait_elapsed_ms`を保存する。same-tabで商品へ移動した場合は元のROOM検索URLと順序をrequest timeout内に復元し、復帰が確認できるまで次の行へ進まない。実際の商品ページで得た正規商品URLとshop/item keyは、private observationに保存する。
+
+許可する追加fieldは`element_tag=a|button|div|span|other`、`element_role=link|button|other`、`element_visible`/`element_enabled`/`element_obscured`/`has_href`（boolean）、`handler_kind=link|button|role|onclick|none`、`handler_tag=a|button|div|span|other`、`handler_scope=self|ancestor|none`、`href_kind=none|empty|blank|rakuten_item|rakuten_other|other_https|other_scheme|invalid`、`link_scope=none|self|ancestor|descendant|other`、`link_target=none|_blank|_self|other`、`destination_kind=popup|same_tab`、`timeout_ms`（整数0..60000）、`wait_elapsed_ms`（整数0..17100000）、`failed_operation`（安全なstage ID）である。既存の安全な`error_class` enumを使い、例外本文・URL・DOMは記録しない。
+
+click errorの後に遷移待ちのtimeoutを追加しない。destination wait error、same-tab restore errorは元の検索request failureとして残し、click成功・商品解決へ書き換えない。request deadlineまでの残時間を各spanで共有し、日次17:45/18:00の終了時刻は使わない。
+
+| Node | 注入・対象 | 合格条件 |
+| --- | --- | --- |
+| `tests_inago/test_daily_fix_room.py::test_n11` | ancestor link内の子要素とhrefなしhandler div | forceなしのclick begin/completeとdestination waitを分離し、実遷移から正規商品URL/keyを取得。actionabilityとリンク/handler分類が安全なtraceに残る。 |
+| `tests_inago/test_daily_fix_room.py::test_n12` | 80件表示・same-tab遷移 | 元の先頭50行の順序を維持し、各same-tab商品から元の検索一覧へ復帰。51件目で穴埋めしない。 |
+| `tests_inago/test_daily_fix_room.py::test_n13` | click遮蔽/timeout、行先なし、request deadline | click errorとdestination wait errorを区別し、click失敗後の遅いpopupを採用せず待機を取消す。全体request残時間を超える二重待機をしない。 |
+| L02 | 許可された正規の公開ROOM UI port | likes=300/コメント指定なしを確認し、通常操作で実商品URL/keyへ到達、popup/same-tab別の遷移traceと一覧復帰・順序をprivate evidenceで確認する。未到達やcondition close failureをPASSへ置き換えない。 |
+
+各nodeの結果はM §14.11およびT/R07のcase ledgerに完全node ID・attempt・観測・trace参照と共に保存する。PASS済みnodeはR15の最終全回帰まで再実行しない。L02の実接続で必要な正常経路を確認できなければR07を未完了として保持する。
 
 ## 受入node
 
