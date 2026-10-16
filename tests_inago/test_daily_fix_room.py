@@ -105,6 +105,30 @@ class BrowserRoomSequence:
         ).search(request)
 
 
+class DeniedRoomSequence:
+    fixture_only = True
+
+    def __init__(
+        self, data_root: Path, ui_server, *, denied_attempts: set[int]
+    ) -> None:
+        self.data_root = data_root
+        self.ui_server = ui_server
+        self.denied_attempts = denied_attempts
+        self.requests = []
+
+    def search(self, request):
+        self.requests.append(request)
+        if request.attempt_no in self.denied_attempts:
+            self.ui_server["html"] = "<main>アクセスが拒否されました</main>"
+        else:
+            self.ui_server["html"] = _empty_results_room_html(request.query)
+        return source(
+            self.data_root / f"attempt-{request.attempt_no}",
+            self.ui_server,
+            timeout=2,
+        ).search(request)
+
+
 def _room_ports(room_port) -> DailyPorts:
     def current_settings_version(connection):
         return SETTINGS_VERSION
@@ -197,6 +221,7 @@ def _timed_fixture_source(
     destination_timeout_ms: int = 0,
     request_deadline_ms: int = 0,
     scroll_delay_ms: int = 0,
+    expire_deadline_before_restore: bool = False,
 ) -> PublicBrowserSource:
     return PublicBrowserSource(
         PublicSourceConfig(
@@ -210,6 +235,7 @@ def _timed_fixture_source(
             fixture_detail_click_timeout_ms=click_timeout_ms,
             fixture_product_destination_timeout_ms=destination_timeout_ms,
             fixture_request_deadline_ms=request_deadline_ms,
+            fixture_expire_deadline_before_room_restore=expire_deadline_before_restore,
         )
     )
 
@@ -944,3 +970,339 @@ def test_n14(tmp_path, ui_server, failure_count, failed_rows):
         and event.get("error_class") == "TimeoutError"
         for event in common_trace
     )
+
+
+def test_n15(tmp_path, ui_server):
+    """Eleven failures become partial; row 50 still blocks row 51 replacement."""
+
+    cases = [
+        ("eleven-failures", set(range(1, 12)), "partial", 11),
+        ("row-50-fails", {50}, "observed", 1),
+    ]
+    for case_name, failed_rows, expected_status, expected_failures in cases:
+        attempt_id = f"R08-N15-{case_name.upper()}"
+        request = replace(
+            room_request(),
+            attempt_id=attempt_id,
+            run_id=f"{attempt_id}-RUN",
+        )
+        ui_server["html"] = _row_click_failure_room_html(80, failed_rows)
+        evidence_root = tmp_path / case_name
+        payload = _timed_fixture_source(
+            evidence_root,
+            ui_server,
+            timeout=40,
+            click_timeout_ms=100,
+        ).search(request)
+        result = parse_room_response(payload, request)
+
+        assert result.status == expected_status
+        assert len(result.posts) == 50
+        assert [post.order_index for post in result.posts] == list(range(1, 51))
+        assert result.loaded_posts == 80
+        assert result.unused_posts == 30
+        assert sum(post.identity_status != "identified" for post in result.posts) == (
+            expected_failures
+        )
+        assert result.posts[49].order_index == 50
+        if case_name == "row-50-fails":
+            assert result.posts[49].offer_key is None
+            assert result.error_code is None
+        else:
+            assert result.error_code == "product_resolution_failures_exceeded"
+
+        observation = _room_observation(evidence_root, attempt_id)
+        assert observation["trace_state"] == "healthy"
+        stages = [
+            event
+            for event in observation["node_events"]
+            if event.get("event") == "public_source_stage"
+        ]
+        click_errors = [
+            event
+            for event in stages
+            if event["stage"] == "room_detail_button_click_error"
+        ]
+        assert [event["row_index"] for event in click_errors] == sorted(failed_rows)
+        assert all(event["scope"] == "row" for event in click_errors)
+        assert not any(event.get("row_index") == 51 for event in stages)
+        summary = next(
+            event
+            for event in stages
+            if event["stage"] == "room_product_resolution_summary"
+        )
+        assert summary["scope"] == "query"
+        assert summary["loaded_posts"] == 80
+        assert summary["accepted_posts"] == 50
+        assert summary["row_failure_count"] == expected_failures
+        assert summary["identified_row_count"] == 50 - expected_failures
+
+
+def test_n16(tmp_path, ui_server):
+    """Query failures keep query scope, retry safely, and stop with a reason."""
+
+    def observe_case(
+        case_name,
+        html,
+        *,
+        timeout=12,
+        request_deadline_ms=0,
+        expire_deadline_before_restore=False,
+    ):
+        attempt_id = f"R08-N16-{case_name.upper()}"
+        request = replace(
+            room_request(),
+            attempt_id=attempt_id,
+            run_id=f"{attempt_id}-RUN",
+        )
+        ui_server["html"] = html
+        evidence_root = tmp_path / case_name
+        payload = _timed_fixture_source(
+            evidence_root,
+            ui_server,
+            timeout=timeout,
+            request_deadline_ms=request_deadline_ms,
+            expire_deadline_before_restore=expire_deadline_before_restore,
+        ).search(request)
+        result = parse_room_response(payload, request)
+        observation = _room_observation(evidence_root, attempt_id)
+        common_trace = [
+            json.loads(line)
+            for line in (evidence_root / observation["trace_ref"])
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        return result, observation, common_trace
+
+    deadline_result, deadline_observation, deadline_trace = observe_case(
+        "request-deadline",
+        browser_fixtures.room_html(1, initial=1, terminal=True, detail_delay_ms=8000),
+        timeout=12,
+        request_deadline_ms=4500,
+    )
+    assert deadline_result.status == "unavailable"
+    assert deadline_result.error_code == "source_timeout"
+    deadline_failure = next(
+        event
+        for event in deadline_observation["node_events"]
+        if event.get("event") == "public_source_failure"
+    )
+    assert deadline_failure["scope"] == "query"
+    assert deadline_failure["row_index"] == 1
+    assert any(
+        event.get("scope") == "query"
+        and event.get("row_index") == 1
+        and event.get("primary_error_code") == "source_timeout"
+        for event in deadline_trace
+    )
+
+    denied_result, denied_observation, denied_trace = observe_case(
+        "authentication-denied",
+        "<main>アクセスが拒否されました</main>",
+        timeout=8,
+    )
+    assert denied_result.status == "unavailable"
+    assert denied_result.error_code == "access_denied"
+    denied_failure = next(
+        event
+        for event in denied_observation["node_events"]
+        if event.get("event") == "public_source_failure"
+    )
+    assert denied_failure["scope"] == "query"
+    assert any(
+        event.get("scope") == "query"
+        and event.get("primary_error_code") == "access_denied"
+        for event in denied_trace
+    )
+
+    condition_result, condition_observation, condition_trace = observe_case(
+        "condition-unverified",
+        _uncloseable_room_html("調理器具"),
+        timeout=4,
+    )
+    assert condition_result.status == "unavailable"
+    assert condition_result.error_code == "condition_popup_close_failed"
+    assert any(
+        event.get("stage") == "room_condition_popup_close_failed"
+        and event.get("scope") == "query"
+        for event in condition_observation["node_events"]
+    )
+    assert any(
+        event.get("scope") == "query"
+        and event.get("primary_error_code") == "condition_popup_close_failed"
+        for event in condition_trace
+    )
+
+    restore_result, restore_observation, restore_trace = observe_case(
+        "list-restore-deadline",
+        _unique_same_tab_room_html(),
+        timeout=15,
+        expire_deadline_before_restore=True,
+    )
+    assert restore_result.status == "unavailable"
+    assert restore_result.error_code == "source_timeout"
+    assert any(
+        event.get("stage") == "room_search_restore_skipped_deadline"
+        and event.get("scope") == "query"
+        and event.get("row_index") == 1
+        for event in restore_observation["node_events"]
+    )
+    assert any(
+        event.get("scope") == "query"
+        and event.get("row_index") == 1
+        and event.get("primary_error_code") == "source_timeout"
+        for event in restore_trace
+    )
+
+    short_result, short_observation, _ = observe_case(
+        "stable-short-list",
+        browser_fixtures.room_html(2, initial=2, terminal=False),
+        timeout=15,
+    )
+    assert short_result.status == "observed"
+    assert short_result.loaded_posts == 2
+    assert short_result.end_reached is True
+    assert len(short_result.posts) == 2
+    assert any(
+        event.get("stage") == "room_short_batch_stable"
+        and event.get("loaded_posts") == 2
+        and event.get("stable_round") == 3
+        for event in short_observation["node_events"]
+    )
+
+    empty_result, empty_observation, _ = observe_case(
+        "explicit-empty",
+        _empty_results_room_html("調理器具"),
+    )
+    assert empty_result.status == "observed"
+    assert empty_result.posts == ()
+    assert empty_result.end_reached is True
+    assert empty_observation["diagnostics"]["end_evidence"] == (
+        "explicit_public_end_text"
+    )
+
+    no_signal_result, no_signal_observation, _ = observe_case(
+        "empty-without-end",
+        browser_fixtures.room_html(0, initial=0, terminal=False),
+        timeout=4,
+    )
+    assert no_signal_result.status == "unavailable"
+    assert no_signal_result.error_code in {"source_timeout", "incomplete_search"}
+    assert no_signal_observation["trace_state"] == "healthy"
+
+    stale_result, stale_observation, stale_trace = observe_case(
+        "stale-query-page",
+        _empty_results_room_html("別の検索条件"),
+    )
+    assert stale_result.status == "unavailable"
+    assert stale_result.error_code == "query_not_reflected"
+    stale_failure = next(
+        event
+        for event in stale_observation["node_events"]
+        if event.get("event") == "public_source_failure"
+    )
+    assert stale_failure["scope"] == "query"
+    assert any(
+        event.get("scope") == "query"
+        and event.get("primary_error_code") == "query_not_reflected"
+        for event in stale_trace
+    )
+
+    task = _room_task()
+    recovered_root = tmp_path / "one-failure-recovers"
+    recovered_run_id = "R08-N16-RECOVERY"
+    recovered_connection = _insert_isolated_run(recovered_root, recovered_run_id)
+    recovered_room = DeniedRoomSequence(
+        recovered_root / "public-source", ui_server, denied_attempts={1}
+    )
+    recovered_state = daily._daily_state(None)[1]
+    recovered_state["tasks"] = [task]
+    try:
+        daily._search_task(
+            recovered_connection,
+            run_id=recovered_run_id,
+            task=task,
+            settings_version=SETTINGS_VERSION,
+            seed="R08-SEED",
+            target_date=TARGET_DATE,
+            state=recovered_state,
+            ports=_room_ports(recovered_room),
+            clock=FakeClock(datetime.fromisoformat(NOW)),
+            data_root=recovered_root,
+        )
+        recovered_rows = recovered_connection.execute(
+            "SELECT attempt_no,retry_of,source_status,error_code FROM search_attempt "
+            "WHERE run_id=? ORDER BY attempt_no",
+            (recovered_run_id,),
+        ).fetchall()
+        assert [row[0] for row in recovered_rows] == [1, 2]
+        assert recovered_rows[0][2:] == ("unavailable", "access_denied")
+        assert recovered_rows[1][2:] == ("observed", None)
+        assert recovered_rows[1][1] == recovered_room.requests[0].attempt_id
+        assert recovered_state["source_failures"] == 1
+        assert recovered_state["source_stopped"] is False
+        assert recovered_state["source_stopped_reason"] is None
+    finally:
+        recovered_connection.close()
+
+    stopped_root = tmp_path / "three-query-failures"
+    stopped_run_id = "R08-N16-STOPPED"
+    stopped_connection = _insert_isolated_run(stopped_root, stopped_run_id)
+    stopped_room = DeniedRoomSequence(
+        stopped_root / "public-source", ui_server, denied_attempts={1, 2, 3}
+    )
+    stopped_state = daily._daily_state(None)[1]
+    stopped_state["tasks"] = [task]
+    try:
+        daily._search_task(
+            stopped_connection,
+            run_id=stopped_run_id,
+            task=task,
+            settings_version=SETTINGS_VERSION,
+            seed="R08-SEED",
+            target_date=TARGET_DATE,
+            state=stopped_state,
+            ports=_room_ports(stopped_room),
+            clock=FakeClock(datetime.fromisoformat(NOW)),
+            data_root=stopped_root,
+        )
+        stopped_rows = stopped_connection.execute(
+            "SELECT attempt_no,retry_of,source_status,error_code FROM search_attempt "
+            "WHERE run_id=? ORDER BY attempt_no",
+            (stopped_run_id,),
+        ).fetchall()
+        assert [row[0] for row in stopped_rows] == [1, 2, 3]
+        assert [row[1] for row in stopped_rows] == [
+            None,
+            stopped_room.requests[0].attempt_id,
+            stopped_room.requests[1].attempt_id,
+        ]
+        assert all(row[2:] == ("unavailable", "access_denied") for row in stopped_rows)
+        assert stopped_state["source_failures"] == 3
+        assert stopped_state["source_stopped"] is True
+        assert stopped_state["source_stopped_reason"] == "attempt_budget_exhausted"
+        assert len(stopped_room.requests) == 3
+        for request in stopped_room.requests:
+            observation_root = (
+                stopped_root / "public-source" / f"attempt-{request.attempt_no}"
+            )
+            observation = _room_observation(observation_root, request.attempt_id)
+            failure = next(
+                event
+                for event in observation["node_events"]
+                if event.get("event") == "public_source_failure"
+            )
+            assert failure["scope"] == "query"
+            common_trace = [
+                json.loads(line)
+                for line in (observation_root / observation["trace_ref"])
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            assert any(
+                event.get("scope") == "query"
+                and event.get("primary_error_code") == "access_denied"
+                for event in common_trace
+            )
+    finally:
+        stopped_connection.close()
