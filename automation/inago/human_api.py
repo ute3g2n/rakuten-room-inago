@@ -27,6 +27,7 @@ from automation.inago.repository import (
     ReceiptRevisionConflict,
     record_pending_human_action,
 )
+from automation.inago.report_trace import write_report_event
 from automation.jsonschema_formats import rfc3339_format_checker
 
 
@@ -200,7 +201,10 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         if origin is None:
             return not require_origin
         if origin == "null":
-            return self._api_server.allow_file_origin and self._allows_file_origin_request()
+            return (
+                self._api_server.allow_file_origin
+                and self._allows_file_origin_request()
+            )
         try:
             parsed = urlsplit(origin)
             return (
@@ -233,7 +237,9 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         allowed_headers = _FILE_ORIGIN_ROUTES.get((requested_method, self.path))
         requested_headers = {
             item.strip().casefold()
-            for item in self.headers.get("Access-Control-Request-Headers", "").split(",")
+            for item in self.headers.get("Access-Control-Request-Headers", "").split(
+                ","
+            )
             if item.strip()
         }
         if (
@@ -388,6 +394,50 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
             return None
         return raw
 
+    def _trace_receipt(
+        self,
+        connection: sqlite3.Connection,
+        payload: dict[str, Any],
+        receipt: dict[str, Any] | None,
+        *,
+        phase: str,
+    ) -> None:
+        data_root = self._api_server.data_root
+        if data_root is None:
+            return
+        try:
+            owner = connection.execute(
+                """
+                SELECT r.run_id, r.target_date
+                  FROM draft d JOIN run r ON r.run_id=d.run_id
+                 WHERE d.offer_key=? AND d.draft_id=? AND d.version=?
+                """,
+                (payload["offer_key"], payload["draft_id"], payload["draft_version"]),
+            ).fetchone()
+        except sqlite3.Error:
+            return
+        if owner is None:
+            return
+        write_report_event(
+            data_root=data_root,
+            run_id=str(owner["run_id"]),
+            target_date=str(owner["target_date"]),
+            component="human_api",
+            operation="report_receipt",
+            phase=phase,
+            action_id=str(payload["action_id"]),
+            clock=self._api_server.clock,
+            draft_id=str(payload["draft_id"]),
+            draft_version=int(payload["draft_version"]),
+            report_action=str(payload["action"]),
+            receipt_revision=(
+                int(receipt["receipt_revision"]) if receipt is not None else None
+            ),
+            apply_status=(
+                str(receipt["apply_status"]) if receipt is not None else None
+            ),
+        )
+
     def do_POST(self) -> None:
         if not self._require_authentication():
             return
@@ -424,11 +474,13 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         connection: sqlite3.Connection | None = None
         try:
             connection = self._api_server.connection_factory()
+            self._trace_receipt(connection, payload, None, phase="begin")
             receipt = record_pending_human_action(
                 connection,
                 payload,
                 clock=self._api_server.clock,
             )
+            self._trace_receipt(connection, payload, receipt, phase="end")
             self._send_json(HTTPStatus.CREATED, receipt)
         except ReceiptRevisionConflict as exc:
             self._send_json(
@@ -473,6 +525,7 @@ def create_server(
     port: int = 0,
     auth_token: str | None = None,
     allow_file_origin: bool = False,
+    data_root: str | Path | None = None,
 ) -> ThreadingHTTPServer:
     """Create the explicit local report server; it cannot bind off-loopback."""
 
@@ -497,4 +550,5 @@ def create_server(
     server.allow_file_origin = allow_file_origin
     server.clock = clock or SystemClock()
     server.connection_factory = connection_factory
+    server.data_root = Path(data_root) if data_root is not None else None
     return server

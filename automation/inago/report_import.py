@@ -18,6 +18,7 @@ from automation.inago.repository import (
     ReceiptRevisionConflict,
     record_pending_human_action,
 )
+from automation.inago.report_trace import write_report_event
 
 MAX_BATCH_BYTES = 2 * 1024 * 1024
 MAX_REPORTS_PER_IMPORT = 500
@@ -62,7 +63,9 @@ def _safe_child(root: Path, child: Path) -> Path:
         resolved_child = child.resolve(strict=True)
         resolved_child.relative_to(resolved_root)
     except (OSError, RuntimeError, ValueError) as exc:
-        raise ReportImportError("offline report directory escaped its runtime root") from exc
+        raise ReportImportError(
+            "offline report directory escaped its runtime root"
+        ) from exc
     return resolved_child
 
 
@@ -118,7 +121,9 @@ def _read_batch(path: Path) -> list[tuple[str, dict[str, Any]]]:
             ).encode("utf-8")
             report = _parse_report(canonical)
         except (TypeError, ValueError, RejectedContract) as exc:
-            raise ReportImportError("offline report payload violates its schema") from exc
+            raise ReportImportError(
+                "offline report payload violates its schema"
+            ) from exc
         parsed.append((timestamp.astimezone(JST).isoformat(), report))
     return parsed
 
@@ -140,11 +145,15 @@ def import_offline_report_batches(
     *,
     runtime_root: str | Path,
     clock: Clock | None = None,
+    trace_run_id: str | None = None,
+    trace_target_date: str | None = None,
 ) -> ReportImportResult:
     """Validate, atomically receipt, then archive all browser-exported batches."""
 
     if connection.in_transaction:
         raise ReportImportError("offline report import requires an idle connection")
+    if (trace_run_id is None) != (trace_target_date is None):
+        raise ReportImportError("offline report trace identity is incomplete")
     root = Path(runtime_root)
     if not root.exists():
         return ReportImportResult(files_processed=0, reports_received=0)
@@ -188,17 +197,19 @@ def import_offline_report_batches(
             raise ReportImportError("offline report archive is unavailable") from exc
 
     received = 0
+    committed_receipts: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
     connection.execute("BEGIN IMMEDIATE")
     try:
-        for _source, reports in parsed_files:
+        for source, reports in parsed_files:
             for reported_at, report in reports:
-                record_pending_human_action(
+                receipt = record_pending_human_action(
                     connection,
                     report,
                     clock=clock,
                     reported_at=reported_at,
                     transaction_managed=True,
                 )
+                committed_receipts.append((source.name, report, receipt))
                 received += 1
         connection.commit()
     except ReceiptRevisionConflict as exc:
@@ -215,6 +226,24 @@ def import_offline_report_batches(
         if isinstance(exc, ReportImportError):
             raise
         raise ReportImportError("offline report batch could not be committed") from exc
+
+    if trace_run_id is not None and trace_target_date is not None:
+        for _source_name, report, receipt in committed_receipts:
+            write_report_event(
+                data_root=root,
+                run_id=trace_run_id,
+                target_date=trace_target_date,
+                component="report_import",
+                operation="report_import",
+                phase="end",
+                action_id=str(receipt["action_id"]),
+                clock=clock,
+                draft_id=str(report["draft_id"]),
+                draft_version=int(report["draft_version"]),
+                report_action=str(report["action"]),
+                receipt_revision=int(receipt["receipt_revision"]),
+                apply_status=str(receipt["apply_status"]),
+            )
 
     for source, _reports in parsed_files:
         _archive_file(source, archive_root)

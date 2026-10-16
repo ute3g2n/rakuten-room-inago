@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.16、§8・§27.6～27.14・§28.4/28.7。対応：IR-004/008/010/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F13、STEP R03/R05/R06/R07/R08/R09/R10/R11。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
+正本：要件定義書HTML 2.17、§8・§27.6～27.15・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
 
 ## 共通イベント
 
@@ -129,3 +129,19 @@ OS日次終了コードは完全成功/not_due=0、処理error/contract/recovery
 | `tests_inago/test_daily_fix_pipeline.py::test_n25_partial_metrics_and_full_retention_preserve_only_supported_evidence` | partial metrics、raw expiry、7世代・restore | null/0とscope/status、expired raw非復活、予約/投稿/pending/除外履歴を検証する。 |
 
 N22/N22b/N22c/N23a/N23b/N24a/N24b/N25の隔離証拠はM §14.15とT/R11へ保存する。PASS済みnodeはR15最終全回帰まで再実行しない。R11結合fixtureは本番日次の実運転・Scheduler有効化を証明しない。
+
+
+## 本人報告・同期/取込trace（STEP R12）
+
+投稿履歴HTMLの一操作を、localhost Human API受付・IndexedDB/outbox再送・JSON import・翌日report applyまで共通traceで辿る。共通eventの必須schema、run root parent、JST、90日保持、上限、safe fieldの再検証を維持する。報告本文、理由、URL、JSON payload/ファイル名、token、CSRF、Cookie、header、例外messageをdiagnosticsへ出さない。SQLite receipt/管理履歴が状態正本で、traceは状態を上書きしない。
+
+R12で追加許可するevent fieldは`action_id`/`draft_id`（safe ID）、`draft_version`/`receipt_revision`（非負integer、draft_versionは1以上）、`report_action`（`posted/skipped/correction/edit`）、`apply_status`（`pending/applied/rejected`）。個別処理の相関はaction_idをrequest_idとして同じrun/target_dateへ結び、別actionのspanを混ぜない。`report_receipt`は`human_api` componentで成功受付のbegin/endを記録し、receipt revision/statusは確定DBから得る。`report_import`はJSON batch commit後に各受付actionのendを記録する。`report_apply`はactionごとのbegin/end/errorを記録し、commit後は`applied`、失敗時はsafe primary error codeとpendingを示す。自由文や内容差分をtraceに記録しない。
+
+TraceWriterが診断eventを書けない場合も、既にcommitしたreceipt/管理反映をrollbackせず、本人向け受付の業務結果をtraceの成否で置き換えない。report eventはrun-level trace phaseの代替ではなく、trace I/O不能時には該当diagnostic eventが欠落し得る。日次全体・Schedulerの17:45/18:00終了期限は設けず、個別API/request/processには有限timeoutを使う。
+
+| Node | 入力・境界 | 合格条件 |
+|---|---|---|
+| `tests_inago/test_daily_fix_history.py::test_n26_history_date_copy_report_and_pending_receipt_trace` | 15件の当日履歴、過去日2件、チェック/訂正、localhost受付 | 日付/版/本文/URL/checkboxが表示され、copyは投稿扱いにならない。固定OFF理由・receipt pending・未変更の予約/実投稿数とhuman_api action traceを確認する。 |
+| `tests_inago/test_daily_fix_history.py::test_n27_browser_outbox_json_import_and_next_day_apply_trace` | API停止/復帰、IndexedDB reload、JSON export/import、翌日apply | 同じaction_idのACK後だけoutboxを消し、JSON取込は冪等。重複/逆順/競合/旧版/不正JSONを拒否し、翌日のDB反映は一回だけ。report_import/apply trace、reservation・revision・applied stateの対応を確認する。 |
+
+N26/N27の完全node、隔離root、command、期待/実測、SQLite件数・reservation/posted状態、action/revision trace、localhost画面操作証拠はM §14.16とT/R12へ保存する。PASS済みnodeはR15最終全回帰まで再実行しない。HTML/fixture PASSは本番日次実行、本人の実投稿、Scheduler有効化を証明しない。

@@ -44,8 +44,14 @@ _EVENT_FIELDS = {
     "job_id",
     "root_job_id",
     "task_id",
+    "action_id",
+    "draft_id",
     "attempt",
     "attempt_limit",
+    "draft_version",
+    "receipt_revision",
+    "report_action",
+    "apply_status",
     "deadline_at",
     "remaining_ms",
     "elapsed_ms",
@@ -377,6 +383,10 @@ def make_trace_event(
             selected = _safe_id(value, name=key, optional=True)
             if selected is not None:
                 event[key] = selected
+        elif key in {"action_id", "draft_id"}:
+            selected = _safe_id(value, name=key, optional=True)
+            if selected is not None:
+                event[key] = selected
         elif key in {"primary_error_code", "cause_code", "cleanup_error_code"}:
             selected = _safe_code(value, name=key)
             if selected is not None:
@@ -405,6 +415,8 @@ def make_trace_event(
         elif key in {
             "attempt",
             "attempt_limit",
+            "draft_version",
+            "receipt_revision",
             "remaining_ms",
             "elapsed_ms",
             "suppression_marker_count",
@@ -506,6 +518,14 @@ def make_trace_event(
         elif key == "row_status":
             if not isinstance(value, str) or value not in _ROOM_ROW_STATUSES:
                 raise TraceContractError("row_status is outside the safe enum")
+            event[key] = value
+        elif key == "report_action":
+            if value not in {"posted", "skipped", "correction", "edit"}:
+                raise TraceContractError("report_action is outside the safe enum")
+            event[key] = value
+        elif key == "apply_status":
+            if value not in {"pending", "applied", "rejected"}:
+                raise TraceContractError("apply_status is outside the safe enum")
             event[key] = value
         elif key == "end_evidence":
             if not isinstance(value, str) or value not in _ROOM_END_EVIDENCE:

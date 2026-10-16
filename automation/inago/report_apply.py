@@ -6,6 +6,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
@@ -14,6 +15,7 @@ from automation.inago.repository import (
     apply_human_action_in_transaction,
     pending_posted_offer_keys,
 )
+from automation.inago.report_trace import write_report_event
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -221,11 +223,17 @@ def apply_pending_reports(
     *,
     run_id: str,
     clock: Clock | None = None,
+    data_root: str | Path | None = None,
 ) -> ReportApplyResult:
     """Freeze and apply all pending reports from days before this daily run."""
 
     system_clock = clock or SystemClock()
+    trace_target_date: str | None = None
     try:
+        run = connection.execute(
+            "SELECT target_date FROM run WHERE run_id=?", (run_id,)
+        ).fetchone()
+        trace_target_date = str(run["target_date"]) if run is not None else None
         captured_at = system_clock.now_jst()
         if captured_at.tzinfo is None or captured_at.utcoffset() is None:
             raise ReportApplyError("clock_timezone_missing")
@@ -239,17 +247,46 @@ def apply_pending_reports(
             pending_action_ids=(),
             blocked_offer_keys=pending_posted_offer_keys(connection),
             exploration_allowed=False,
-            error=exc.args[0]
-            if isinstance(exc, ReportApplyError) and exc.args
-            else "cohort_capture_failed",
+            error=(
+                exc.args[0]
+                if isinstance(exc, ReportApplyError) and exc.args
+                else "cohort_capture_failed"
+            ),
         )
 
     applied_this_call: list[str] = []
     error: str | None = None
     for action_id in cohort:
+        action_hint: sqlite3.Row | None = None
         try:
             if connection.in_transaction:
                 raise ReportApplyError("database_transaction_already_open")
+            action_hint = connection.execute(
+                "SELECT action_id, action, draft_id, draft_version, receipt_revision, "
+                "apply_status FROM human_action WHERE action_id=?",
+                (action_id,),
+            ).fetchone()
+            if (
+                data_root is not None
+                and trace_target_date is not None
+                and action_hint is not None
+                and action_hint["apply_status"] == "pending"
+            ):
+                write_report_event(
+                    data_root=data_root,
+                    run_id=run_id,
+                    target_date=trace_target_date,
+                    component="report_apply",
+                    operation="report_apply",
+                    phase="begin",
+                    action_id=str(action_hint["action_id"]),
+                    clock=system_clock,
+                    draft_id=str(action_hint["draft_id"]),
+                    draft_version=int(action_hint["draft_version"]),
+                    report_action=str(action_hint["action"]),
+                    receipt_revision=int(action_hint["receipt_revision"]),
+                    apply_status="pending",
+                )
             connection.execute("BEGIN IMMEDIATE")
             action = connection.execute(
                 "SELECT * FROM human_action WHERE action_id=?",
@@ -273,6 +310,22 @@ def apply_pending_reports(
             )
             connection.commit()
             applied_this_call.append(action_id)
+            if data_root is not None and trace_target_date is not None:
+                write_report_event(
+                    data_root=data_root,
+                    run_id=run_id,
+                    target_date=trace_target_date,
+                    component="report_apply",
+                    operation="report_apply",
+                    phase="end",
+                    action_id=str(action["action_id"]),
+                    clock=system_clock,
+                    draft_id=str(action["draft_id"]),
+                    draft_version=int(action["draft_version"]),
+                    report_action=str(action["action"]),
+                    receipt_revision=int(action["receipt_revision"]),
+                    apply_status="applied",
+                )
         except Exception as exc:
             if connection.in_transaction:
                 connection.rollback()
@@ -282,6 +335,27 @@ def apply_pending_reports(
                 else "report_apply_failed"
             )
             _record_apply_error(connection, action_id, error)
+            if (
+                data_root is not None
+                and trace_target_date is not None
+                and action_hint is not None
+            ):
+                write_report_event(
+                    data_root=data_root,
+                    run_id=run_id,
+                    target_date=trace_target_date,
+                    component="report_apply",
+                    operation="report_apply",
+                    phase="error",
+                    action_id=str(action_hint["action_id"]),
+                    clock=system_clock,
+                    draft_id=str(action_hint["draft_id"]),
+                    draft_version=int(action_hint["draft_version"]),
+                    report_action=str(action_hint["action"]),
+                    receipt_revision=int(action_hint["receipt_revision"]),
+                    apply_status="pending",
+                    error_code=error,
+                )
             break
 
     pending = _current_pending_for_cohort(connection, cohort)

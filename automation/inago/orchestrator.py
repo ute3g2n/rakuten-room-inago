@@ -2431,6 +2431,8 @@ def run_daily(
                 connection,
                 runtime_root=root,
                 clock=system_clock,
+                trace_run_id=run_id,
+                trace_target_date=target_date,
             )
             state["report_import"] = {
                 "files_processed": report_import.files_processed,
@@ -2438,7 +2440,10 @@ def run_daily(
             }
             _save_state(connection, run_id, state)
             report_result = apply_pending_reports(
-                connection, run_id=run_id, clock=system_clock
+                connection,
+                run_id=run_id,
+                clock=system_clock,
+                data_root=root,
             )
             state["report_apply"] = {
                 "applied_count": len(report_result.applied_action_ids),

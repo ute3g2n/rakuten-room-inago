@@ -2548,6 +2548,7 @@ def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> 
         port=config.human_api_port,
         auth_token=token,
         allow_file_origin=True,
+        data_root=config.runtime_root,
     )
     server.serve_forever(poll_interval=0.5)
 
