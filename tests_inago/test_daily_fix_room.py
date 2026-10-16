@@ -905,7 +905,9 @@ def test_n14(tmp_path, ui_server, failure_count, failed_rows):
     assert [post.order_index for post in result.posts] == list(
         range(1, failure_count + 2)
     )
-    assert sum(post.identity_status != "identified" for post in result.posts) == 1
+    assert sum(post.identity_status != "identified" for post in result.posts) == (
+        failure_count
+    )
     assert result.posts[0].offer_key is None
     assert result.posts[-1].offer_key is not None
 
