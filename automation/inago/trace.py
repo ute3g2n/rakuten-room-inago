@@ -71,6 +71,19 @@ _EVENT_FIELDS = {
     "resource_type",
     "row_index",
     "process_returncode",
+    "widget_scope",
+    "widget_selector_version",
+    "widget_kind",
+    "widget_dom_count",
+    "widget_visible_count",
+    "widget_match_count",
+    "widget_match_visible_count",
+    "widget_wrong_visible_count",
+    "related_widget_generation",
+    "generation_before_period",
+    "widget_empty_evidence",
+    "widget_period_refresh_required",
+    "widget_outcome",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -84,10 +97,24 @@ _ERROR_KINDS = {
     "browser_launch_error",
     "other_error",
 }
+_WIDGET_SCOPE = {"explore_related_queries"}
+_WIDGET_SELECTOR_VERSIONS = {"related-widget-v2"}
+_WIDGET_KINDS = {"related_keywords", "related_topics", "unknown", "multiple"}
+_WIDGET_EMPTY_EVIDENCE = {"none", "explicit_no_data"}
+_WIDGET_OUTCOMES = {"ready", "deadline", "ambiguous", "contract_mismatch"}
+_WIDGET_COUNT_FIELDS = {
+    "widget_dom_count",
+    "widget_visible_count",
+    "widget_match_count",
+    "widget_match_visible_count",
+    "widget_wrong_visible_count",
+}
+_WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
 _HEALTH_ORDER = {"healthy": 0, "degraded": 1, "unavailable": 2}
 _COMPLETION_STAGE_ALIASES = {
     "trends_period_reflected": "trends_period_reflection_wait",
     "trends_top_rows_updated": "trends_top_rows_wait",
+    "trends_related_widget_wait_ready": "trends_related_widget_wait",
 }
 
 
@@ -340,6 +367,16 @@ def make_trace_event(
             if key == "row_index" and not 1 <= value <= 50:
                 raise TraceContractError("row_index must be in the accepted first 50")
             event[key] = value
+        elif key in _WIDGET_COUNT_FIELDS:
+            if type(value) is not int or not 0 <= value <= 100:
+                raise TraceContractError(f"{key} must be an integer from 0 to 100")
+            event[key] = value
+        elif key in _WIDGET_GENERATION_FIELDS:
+            if type(value) is not int or not 0 <= value <= 10000000:
+                raise TraceContractError(
+                    f"{key} is outside the widget generation range"
+                )
+            event[key] = value
         elif key in {
             "active_stage",
             "last_completed_stage",
@@ -353,6 +390,42 @@ def make_trace_event(
             selected = _safe_code(value, name=key)
             if selected is not None:
                 event[key] = selected
+        elif key == "widget_selector_version":
+            if value is not None and value not in _WIDGET_SELECTOR_VERSIONS:
+                raise TraceContractError(
+                    "widget_selector_version is outside the trace contract"
+                )
+            if value is not None:
+                event[key] = value
+        elif key == "widget_scope":
+            if value is not None and value not in _WIDGET_SCOPE:
+                raise TraceContractError("widget_scope is outside the trace contract")
+            if value is not None:
+                event[key] = value
+        elif key == "widget_kind":
+            if value is not None and value not in _WIDGET_KINDS:
+                raise TraceContractError("widget_kind is outside the trace contract")
+            if value is not None:
+                event[key] = value
+        elif key == "widget_empty_evidence":
+            if value is not None and value not in _WIDGET_EMPTY_EVIDENCE:
+                raise TraceContractError(
+                    "widget_empty_evidence is outside the trace contract"
+                )
+            if value is not None:
+                event[key] = value
+        elif key == "widget_outcome":
+            if value is not None and value not in _WIDGET_OUTCOMES:
+                raise TraceContractError("widget_outcome is outside the trace contract")
+            if value is not None:
+                event[key] = value
+        elif key == "widget_period_refresh_required":
+            if value is not None and not isinstance(value, bool):
+                raise TraceContractError(
+                    "widget_period_refresh_required must be boolean"
+                )
+            if value is not None:
+                event[key] = value
         elif key == "retryable":
             if value is not None and not isinstance(value, bool):
                 raise TraceContractError("retryable must be boolean")

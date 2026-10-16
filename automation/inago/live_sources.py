@@ -1158,6 +1158,7 @@ class PublicBrowserSource:
             elif stage.endswith(("_complete", "_completed")) or stage in {
                 "trends_period_reflected",
                 "trends_top_rows_updated",
+                "trends_related_widget_wait_ready",
             }:
                 phase = "end"
                 active = session.active_stage
@@ -1169,6 +1170,7 @@ class PublicBrowserSource:
                 completion_aliases = {
                     "trends_period_reflected": "trends_period_reflection_wait",
                     "trends_top_rows_updated": "trends_top_rows_wait",
+                    "trends_related_widget_wait_ready": "trends_related_widget_wait",
                 }
                 completed_base = completion_aliases.get(stage, stage.rsplit("_", 1)[0])
                 if active_base not in {None, stage} and active_base != completed_base:
@@ -1180,6 +1182,23 @@ class PublicBrowserSource:
             if isinstance(row_index, int) and not isinstance(row_index, bool):
                 fields["row_index"] = row_index
                 fields["scope"] = "row"
+            for key in (
+                "widget_scope",
+                "widget_selector_version",
+                "widget_kind",
+                "widget_dom_count",
+                "widget_visible_count",
+                "widget_match_count",
+                "widget_match_visible_count",
+                "widget_wrong_visible_count",
+                "related_widget_generation",
+                "generation_before_period",
+                "widget_empty_evidence",
+                "widget_period_refresh_required",
+                "widget_outcome",
+            ):
+                if key in event:
+                    fields[key] = event[key]
             self._trace_safely(
                 lambda stage=stage, phase=phase, elapsed_ms=elapsed_ms, at=at, fields=fields: session.record_stage(
                     stage,
@@ -1503,6 +1522,30 @@ class PublicBrowserSource:
                 and 0 <= elapsed_ms <= MAX_SOURCE_TIMEOUT_SECONDS * 1000
             ):
                 event["elapsed_ms"] = elapsed_ms
+            unbounded_count_fields = {
+                "search_candidate_count",
+                "visible_input_count",
+                "label_locator_match_count",
+                "search_button_count",
+                "explore_button_count",
+                "period_option_count",
+            }
+            bounded_count_fields = {
+                "loaded_posts",
+                "accepted_posts",
+                "body_children",
+                "row_index",
+                "retry_after_seconds",
+                "widget_dom_count",
+                "widget_visible_count",
+                "widget_match_count",
+                "widget_match_visible_count",
+                "widget_wrong_visible_count",
+            }
+            generation_fields = {
+                "related_widget_generation",
+                "generation_before_period",
+            }
             for key in (
                 "loaded_posts",
                 "accepted_posts",
@@ -1515,6 +1558,13 @@ class PublicBrowserSource:
                 "explore_button_count",
                 "period_option_count",
                 "retry_after_seconds",
+                "widget_dom_count",
+                "widget_visible_count",
+                "widget_match_count",
+                "widget_match_visible_count",
+                "widget_wrong_visible_count",
+                "related_widget_generation",
+                "generation_before_period",
             ):
                 if (
                     isinstance(item.get(key), int)
@@ -1522,16 +1572,11 @@ class PublicBrowserSource:
                     and item[key] >= 0
                     and (key != "row_index" or 1 <= item[key] <= 50)
                     and (
-                        key
-                        not in {
-                            "search_candidate_count",
-                            "visible_input_count",
-                            "label_locator_match_count",
-                            "search_button_count",
-                            "explore_button_count",
-                            "period_option_count",
-                        }
-                        or item[key] <= 100
+                        key in unbounded_count_fields
+                        or key in bounded_count_fields
+                        and item[key] <= 100
+                        or key in generation_fields
+                        and item[key] <= 10000000
                     )
                 ):
                     event[key] = item[key]
@@ -1576,6 +1621,25 @@ class PublicBrowserSource:
                 event["element_tag"] = element_tag
             if isinstance(item.get("has_href"), bool):
                 event["has_href"] = item["has_href"]
+            if isinstance(item.get("widget_period_refresh_required"), bool):
+                event["widget_period_refresh_required"] = item[
+                    "widget_period_refresh_required"
+                ]
+            for key, allowed in (
+                ("widget_scope", {"explore_related_queries"}),
+                ("widget_selector_version", {"related-widget-v2"}),
+                (
+                    "widget_kind",
+                    {"related_keywords", "related_topics", "unknown", "multiple"},
+                ),
+                ("widget_empty_evidence", {"none", "explicit_no_data"}),
+                (
+                    "widget_outcome",
+                    {"ready", "deadline", "ambiguous", "contract_mismatch"},
+                ),
+            ):
+                if item.get(key) in allowed:
+                    event[key] = item[key]
             href_kind = item.get("href_kind")
             if href_kind in {
                 "none",

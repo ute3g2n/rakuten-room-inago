@@ -24,6 +24,7 @@ const PRODUCT_DESTINATION_TIMEOUT_MS = 30000;
 const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
+const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v2';
 let activeTrace = {stage:'startup',row_index:null};
 let traceEventCount = 0;
 let traceSuppressionWritten = false;
@@ -64,7 +65,10 @@ function trace(stage, details = {}) {
     'loaded_posts','accepted_posts','row_index','body_children',
     'search_candidate_count','visible_input_count','label_locator_match_count',
     'search_button_count','explore_button_count','period_option_count',
-    'retry_after_seconds','popup_url_length',
+    'retry_after_seconds','popup_url_length','widget_dom_count',
+    'widget_visible_count','widget_match_count','widget_match_visible_count',
+    'widget_wrong_visible_count','related_widget_generation',
+    'generation_before_period',
   ];
   for (const key of integerFields) {
     const value = details[key];
@@ -74,6 +78,10 @@ function trace(stage, details = {}) {
   for (const key of ['body_text_nonempty','retry_after_present','has_href']) {
     if (typeof details[key] === 'boolean') safe[key] = details[key];
   }
+  if (details.widget_period_refresh_required === true || details.widget_period_refresh_required === false)
+    safe.widget_period_refresh_required = details.widget_period_refresh_required;
+  if (details.widget_selector_version === TRENDS_WIDGET_SELECTOR_VERSION)
+    safe.widget_selector_version = TRENDS_WIDGET_SELECTOR_VERSION;
   const enums = {
     document_ready_state:['loading','interactive','complete'],
     phase:['card_link','preview_click','detail_button_ready','detail_button_click','popup_wait','popup_initial_url','product_navigation','product_url_parse'],
@@ -81,6 +89,10 @@ function trace(stage, details = {}) {
     element_tag:['a','button','div','span','other'],
     href_kind:['none','empty','blank','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
     link_target:['none','_blank','_self','other'],
+    widget_scope:['explore_related_queries'],
+    widget_kind:['related_keywords','related_topics','unknown','multiple'],
+    widget_empty_evidence:['none','explicit_no_data'],
+    widget_outcome:['ready','deadline','ambiguous','contract_mismatch'],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (allowed.includes(details[key])) safe[key] = details[key];
@@ -712,6 +724,131 @@ async function emptyEvidence(widget) {
   return null;
 }
 
+async function installTrendsWidgetObserver(page) {
+  await page.addInitScript(() => {
+    const widgetFor = node => {
+      const element = node instanceof Element ? node : node?.parentElement;
+      if (!element) return null;
+      if (element.matches('.fe-related-queries')) return element;
+      return element.closest('.fe-related-queries');
+    };
+    const isRelatedKeywordNode = node => {
+      const widget = widgetFor(node);
+      return widget?.querySelector('h2')?.textContent.trim() === '関連キーワード';
+    };
+    const containsRelatedKeyword = node => {
+      if (!(node instanceof Element)) return false;
+      return isRelatedKeywordNode(node) ||
+        Array.from(node.querySelectorAll('.fe-related-queries')).some(widget =>
+          widget.querySelector('h2')?.textContent.trim() === '関連キーワード');
+    };
+    window.__inagoTrendsWidgetGeneration = 0;
+    const observer = new MutationObserver(records => {
+      if (records.some(record => isRelatedKeywordNode(record.target) ||
+          Array.from(record.addedNodes).some(containsRelatedKeyword) ||
+          Array.from(record.removedNodes).some(containsRelatedKeyword)))
+        window.__inagoTrendsWidgetGeneration += 1;
+    });
+    observer.observe(document, {
+      subtree:true,
+      childList:true,
+      characterData:true,
+      attributes:true,
+      attributeFilter:['class','style','aria-hidden'],
+    });
+  });
+}
+
+async function relatedWidgetState(page) {
+  return await page.evaluate(() => {
+    const isVisible = element => {
+      if (!element.isConnected) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        element.getClientRects().length > 0;
+    };
+    const widgets = Array.from(document.querySelectorAll('.fe-related-queries'));
+    const records = widgets.map(element => {
+      const heading = element.querySelector('h2')?.textContent.trim() ?? '';
+      const kind = heading === '関連キーワード' ? 'related_keywords' :
+        heading === '関連トピック' ? 'related_topics' : 'unknown';
+      const visible = isVisible(element);
+      const empty = visible && Array.from(element.querySelectorAll('*')).some(node =>
+        isVisible(node) && !node.closest('a.progress-label') &&
+        ['データがありません','この検索キーワードのデータはありません'].includes(node.textContent.trim()));
+      return {kind,visible,empty};
+    });
+    const keyword = records.filter(item => item.kind === 'related_keywords');
+    const visibleKeyword = keyword.filter(item => item.visible);
+    return {
+      widget_dom_count:records.length,
+      widget_visible_count:records.filter(item => item.visible).length,
+      widget_match_count:keyword.length,
+      widget_match_visible_count:visibleKeyword.length,
+      widget_wrong_visible_count:records.filter(item => item.visible && item.kind !== 'related_keywords').length,
+      related_widget_generation:Number.isInteger(window.__inagoTrendsWidgetGeneration)
+        ? window.__inagoTrendsWidgetGeneration : 0,
+      widget_kind:visibleKeyword.length > 1 ? 'multiple' :
+        visibleKeyword.length === 1 ? 'related_keywords' :
+        records.some(item => item.visible && item.kind === 'related_topics') ? 'related_topics' : 'unknown',
+      widget_empty_evidence:visibleKeyword.length === 1 && visibleKeyword[0].empty
+        ? 'explicit_no_data' : 'none',
+    };
+  });
+}
+
+async function waitForRelatedWidget(page, check, deadline, generationBeforePeriod) {
+  let state = await relatedWidgetState(page);
+  const periodRefreshRequired = generationBeforePeriod !== null;
+  const details = () => ({
+    widget_scope:'explore_related_queries',
+    widget_selector_version:TRENDS_WIDGET_SELECTOR_VERSION,
+    ...state,
+    widget_period_refresh_required:periodRefreshRequired,
+    ...(generationBeforePeriod === null ? {} : {generation_before_period:generationBeforePeriod}),
+  });
+  trace('trends_related_widget_wait_begin',details());
+  while (Date.now() < deadline) {
+    await check();
+    state = await relatedWidgetState(page);
+    if (state.widget_match_visible_count > 1) {
+      trace('trends_related_widget_contract_error',{
+        ...details(),widget_outcome:'ambiguous',
+      });
+      throw new SourceFailure('query_widget_ambiguous');
+    }
+    const periodUpdated = generationBeforePeriod === null ||
+      state.related_widget_generation > generationBeforePeriod;
+    if (state.widget_match_visible_count === 1 && periodUpdated) {
+      const widget = page.locator('.fe-related-queries').filter({
+        has:page.getByRole('heading',{name:'関連キーワード',exact:true}),
+      }).filter({visible:true});
+      if (await widget.count() !== 1) {
+        trace('trends_related_widget_contract_error',{
+          ...details(),widget_outcome:'ambiguous',
+        });
+        throw new SourceFailure('query_widget_ambiguous');
+      }
+      trace('trends_related_widget_wait_ready',{
+        ...details(),widget_outcome:'ready',
+      });
+      return widget;
+    }
+    await page.waitForTimeout(Math.min(100,Math.max(1,deadline-Date.now())));
+  }
+  state = await relatedWidgetState(page);
+  if (state.widget_match_count === 0 && state.widget_wrong_visible_count > 0) {
+    trace('trends_related_widget_contract_error',{
+      ...details(),widget_outcome:'contract_mismatch',
+    });
+    throw new SourceFailure('query_widget_contract_mismatch');
+  }
+  trace('trends_related_widget_wait_timeout',{
+    ...details(),widget_outcome:'deadline',
+  });
+  throw new SourceFailure('source_timeout');
+}
+
 function deadlineTimeout(deadline) {
   const remaining = deadline - Date.now();
   if (remaining < 1) throw new SourceFailure('source_timeout');
@@ -733,6 +870,7 @@ export async function collectTrends(page, request, config, deadline, access) {
     : new URL('https://trends.google.co.jp/trends/');
   const check = guardPage(page,homeUrl.hostname,access);
   if (deadline - Date.now() < 1000) throw new SourceFailure('source_timeout');
+  await installTrendsWidgetObserver(page);
   trace('trends_home_navigation');
   // The home page may cancel ancillary fetches during its initial render.
   // Wait for the navigation commit here, then wait for the rendered search
@@ -801,6 +939,7 @@ export async function collectTrends(page, request, config, deadline, access) {
   await periodControl.waitFor({state:'visible',timeout:Math.max(1,deadline-Date.now())});
   trace('trends_period_control_visible');
   let period = await periodControl.innerText();
+  let generationBeforePeriod = null;
   if (!allowedPeriods.has(compact(period))) {
     trace('trends_period_menu_open_begin');
     await clickBeforeDeadline(periodControl, deadline);
@@ -815,6 +954,9 @@ export async function collectTrends(page, request, config, deadline, access) {
     trace('trends_period_option_visible',{period_option_count:periodOptionCount});
     if (periodOptionCount !== 1) throw new SourceFailure('period_option_ambiguous');
     const periodOption = periodOptions.first();
+    generationBeforePeriod = await page.evaluate(() =>
+      Number.isInteger(window.__inagoTrendsWidgetGeneration)
+        ? window.__inagoTrendsWidgetGeneration : 0);
     await clickBeforeDeadline(periodOption, deadline);
     trace('trends_period_option_clicked');
     trace('trends_period_reflection_wait_begin');
@@ -836,10 +978,9 @@ export async function collectTrends(page, request, config, deadline, access) {
       !(await page.getByText('日本',{exact:true}).filter({visible:true}).count()) || !(await page.getByText('検索キーワード',{exact:true}).filter({visible:true}).count()))
     throw new SourceFailure('trends_scope_not_reflected');
   // This stage spans initial widget readiness through verified Top row refresh.
-  trace('trends_top_rows_wait_begin');
-  await waitDOM(page,check,() => Array.from(document.querySelectorAll('.fe-related-queries')).some(e => e.innerText.startsWith('関連キーワード')),null,deadline);
-  const widget = page.locator('.fe-related-queries').filter({ hasText: '関連キーワード' }).filter({ visible: true });
-  if (await widget.count() !== 1) throw new SourceFailure('query_widget_ambiguous');
+  const widget = await waitForRelatedWidget(
+    page,check,deadline,generationBeforePeriod,
+  );
   const dropdown = widget.locator('md-select.bullets-view-selector');
   const prior = await widget.locator('a.progress-label').allTextContents();
   const priorEmpty = await emptyEvidence(widget);
@@ -859,7 +1000,9 @@ export async function collectTrends(page, request, config, deadline, access) {
     if (prior.length) {
       trace('trends_top_rows_wait_begin');
       await waitDOM(page,check, previous => {
-        const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e=>e.innerText.startsWith('関連キーワード'));
+        const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e=>
+          e.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+          getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0);
         const current = Array.from(widget?.querySelectorAll('a.progress-label') ?? []).map(e=>e.textContent);
         return JSON.stringify(current) !== JSON.stringify(previous) && current.length > 0;
       },prior,deadline);
@@ -886,14 +1029,18 @@ export async function collectTrends(page, request, config, deadline, access) {
         // Keep its identity until either new rows or a replacement empty exists.
         await page.waitForFunction(old=>!old.isConnected ||
           Array.from(document.querySelectorAll('.fe-related-queries')).some(widget=>
-            widget.innerText.startsWith('関連キーワード') && Array.from(widget.querySelectorAll('a.progress-label')).some(e=>e.getClientRects().length)),
+            widget.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+            getComputedStyle(widget).display !== 'none' &&
+            Array.from(widget.querySelectorAll('a.progress-label')).some(e=>e.getClientRects().length)),
           priorEmptyHandle,{timeout:Math.max(1,deadline-Date.now())});
         continue;
       }
       break;
     }
     await waitDOM(page,check, n => {
-      const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e => e.innerText.startsWith('関連キーワード'));
+      const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e =>
+        e.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+        getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0);
       const ranks = Array.from(widget?.querySelectorAll('a.progress-label .label-line-number') ?? []).map(e=>Number(e.textContent.trim()));
       return ranks.length > 0 && ranks.every((rank,i)=>rank === n+i+1);
     },words.length,deadline);
@@ -920,7 +1067,8 @@ export async function collectTrends(page, request, config, deadline, access) {
     settings_version:request.settings_version,source:'google_trends_public_ui',parent_word:request.parent_word,current_parent:request.parent_word,
     refresh_complete:true,language:'ja',geo:'JP',search_type:'web',range:'3m',list_type:'Top',ui_period_label:period,
     status:'observed',fetched_at:timestamp(),error_code:null,words }, product_facts:{},
-    diagnostics:{source:'public_dom',word_count:words.length,period_label:period,original_top:true} };
+    diagnostics:{source:'public_dom',selector_version:TRENDS_WIDGET_SELECTOR_VERSION,
+      word_count:words.length,period_label:period,original_top:true} };
 }
 
 export async function main(input) {

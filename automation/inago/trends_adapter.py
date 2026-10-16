@@ -1881,6 +1881,8 @@ class DurableGroupKeywordSession:
             "source_response_invalid",
             "source_process_error",
             "browser_adapter_error",
+            "query_widget_ambiguous",
+            "query_widget_contract_mismatch",
         }
     )
 
