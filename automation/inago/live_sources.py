@@ -1155,6 +1155,8 @@ class PublicBrowserSource:
                 continue
             if stage.endswith("_begin"):
                 phase = "begin"
+            elif stage.endswith("_error"):
+                phase = "error"
             elif stage.endswith(("_complete", "_completed")) or stage in {
                 "trends_period_reflected",
                 "trends_top_rows_updated",
@@ -1191,11 +1193,17 @@ class PublicBrowserSource:
                 "widget_match_count",
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
+                "room_condition_close_control_count",
                 "related_widget_generation",
                 "generation_before_period",
                 "widget_empty_evidence",
                 "widget_period_refresh_required",
                 "widget_outcome",
+                "room_condition_close_method",
+                "room_condition_popup_state",
+                "room_conditions_likes_verified",
+                "room_conditions_comments_verified",
+                "error_class",
             ):
                 if key in event:
                     fields[key] = event[key]
@@ -1541,6 +1549,7 @@ class PublicBrowserSource:
                 "widget_match_count",
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
+                "room_condition_close_control_count",
             }
             generation_fields = {
                 "related_widget_generation",
@@ -1563,6 +1572,7 @@ class PublicBrowserSource:
                 "widget_match_count",
                 "widget_match_visible_count",
                 "widget_wrong_visible_count",
+                "room_condition_close_control_count",
                 "related_widget_generation",
                 "generation_before_period",
             ):
@@ -1587,6 +1597,12 @@ class PublicBrowserSource:
                 event["body_text_nonempty"] = item["body_text_nonempty"]
             if isinstance(item.get("retry_after_present"), bool):
                 event["retry_after_present"] = item["retry_after_present"]
+            for key in (
+                "room_conditions_likes_verified",
+                "room_conditions_comments_verified",
+            ):
+                if isinstance(item.get(key), bool):
+                    event[key] = item[key]
             phase = item.get("phase")
             if phase in {
                 "card_link",
@@ -1639,6 +1655,33 @@ class PublicBrowserSource:
                 (
                     "widget_outcome",
                     {"ready", "deadline", "ambiguous", "contract_mismatch"},
+                ),
+                (
+                    "room_condition_close_method",
+                    {"close_control", "escape", "already_closed", "none"},
+                ),
+                (
+                    "room_condition_popup_state",
+                    {"visible", "hidden", "unknown"},
+                ),
+                (
+                    "error_class",
+                    {
+                        "Error",
+                        "TimeoutError",
+                        "TypeError",
+                        "ReferenceError",
+                        "SyntaxError",
+                        "RangeError",
+                        "URIError",
+                        "EvalError",
+                        "AggregateError",
+                        "TargetClosedError",
+                        "BrowserClosedError",
+                        "ProtocolError",
+                        "SourceFailure",
+                        "other",
+                    },
                 ),
             ):
                 if item.get(key) in allowed:

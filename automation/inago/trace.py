@@ -84,6 +84,11 @@ _EVENT_FIELDS = {
     "widget_empty_evidence",
     "widget_period_refresh_required",
     "widget_outcome",
+    "room_condition_close_control_count",
+    "room_condition_close_method",
+    "room_condition_popup_state",
+    "room_conditions_likes_verified",
+    "room_conditions_comments_verified",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -114,6 +119,8 @@ _WIDGET_COUNT_FIELDS = {
     "widget_wrong_visible_count",
 }
 _WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
+_ROOM_CONDITION_CLOSE_METHODS = {"close_control", "escape", "already_closed", "none"}
+_ROOM_CONDITION_POPUP_STATES = {"visible", "hidden", "unknown"}
 _HEALTH_ORDER = {"healthy": 0, "degraded": 1, "unavailable": 2}
 _COMPLETION_STAGE_ALIASES = {
     "trends_period_reflected": "trends_period_reflection_wait",
@@ -381,6 +388,12 @@ def make_trace_event(
                     f"{key} is outside the widget generation range"
                 )
             event[key] = value
+        elif key == "room_condition_close_control_count":
+            if type(value) is not int or not 0 <= value <= 100:
+                raise TraceContractError(
+                    "room_condition_close_control_count must be from 0 to 100"
+                )
+            event[key] = value
         elif key in {
             "active_stage",
             "last_completed_stage",
@@ -421,6 +434,24 @@ def make_trace_event(
         elif key == "widget_outcome":
             if value is not None and value not in _WIDGET_OUTCOMES:
                 raise TraceContractError("widget_outcome is outside the trace contract")
+            if value is not None:
+                event[key] = value
+        elif key == "room_condition_close_method":
+            if value is not None and value not in _ROOM_CONDITION_CLOSE_METHODS:
+                raise TraceContractError("room condition close method is invalid")
+            if value is not None:
+                event[key] = value
+        elif key == "room_condition_popup_state":
+            if value is not None and value not in _ROOM_CONDITION_POPUP_STATES:
+                raise TraceContractError("room condition popup state is invalid")
+            if value is not None:
+                event[key] = value
+        elif key in {
+            "room_conditions_likes_verified",
+            "room_conditions_comments_verified",
+        }:
+            if value is not None and not isinstance(value, bool):
+                raise TraceContractError(f"{key} must be boolean")
             if value is not None:
                 event[key] = value
         elif key == "widget_period_refresh_required":

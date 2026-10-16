@@ -68,14 +68,17 @@ function trace(stage, details = {}) {
     'retry_after_seconds','popup_url_length','widget_dom_count',
     'widget_visible_count','widget_match_count','widget_match_visible_count',
     'widget_wrong_visible_count','related_widget_generation',
-    'generation_before_period',
+    'generation_before_period','room_condition_close_control_count',
   ];
   for (const key of integerFields) {
     const value = details[key];
     if (Number.isInteger(value) && value >= 0 && (key !== 'row_index' || value <= 50))
       safe[key] = value;
   }
-  for (const key of ['body_text_nonempty','retry_after_present','has_href']) {
+  for (const key of [
+    'body_text_nonempty','retry_after_present','has_href',
+    'room_conditions_likes_verified','room_conditions_comments_verified',
+  ]) {
     if (typeof details[key] === 'boolean') safe[key] = details[key];
   }
   if (details.widget_period_refresh_required === true || details.widget_period_refresh_required === false)
@@ -89,6 +92,9 @@ function trace(stage, details = {}) {
     element_tag:['a','button','div','span','other'],
     href_kind:['none','empty','blank','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
     link_target:['none','_blank','_self','other'],
+    room_condition_close_method:['close_control','escape','already_closed','none'],
+    room_condition_popup_state:['visible','hidden','unknown'],
+    error_class:['Error','TimeoutError','TypeError','ReferenceError','SyntaxError','RangeError','URIError','EvalError','AggregateError','TargetClosedError','BrowserClosedError','ProtocolError','SourceFailure','other'],
     widget_scope:['explore_related_queries'],
     widget_kind:['related_keywords','related_topics','unknown','multiple'],
     widget_empty_evidence:['none','explicit_no_data'],
@@ -563,6 +569,161 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
   }
 }
 
+async function conditionPopupState(popup) {
+  try {
+    return await popup.isVisible() ? 'visible' : 'hidden';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function remainingConditionTimeout(deadline, maximumMs) {
+  const remaining = deadline - Date.now();
+  return remaining > 0 ? Math.max(1, Math.min(maximumMs, remaining)) : 0;
+}
+
+async function waitForConditionPopupHidden(popup, deadline) {
+  const timeout = remainingConditionTimeout(deadline, 5000);
+  if (!timeout) {
+    trace('room_condition_close_wait_deadline', {
+      room_condition_popup_state:await conditionPopupState(popup),
+    });
+    return await conditionPopupState(popup) === 'hidden';
+  }
+  trace('room_condition_close_wait_begin', {
+    room_condition_popup_state:await conditionPopupState(popup),
+  });
+  try {
+    await popup.waitFor({state:'hidden',timeout});
+    trace('room_condition_close_wait_complete', {
+      room_condition_popup_state:'hidden',
+    });
+    return true;
+  } catch (error) {
+    const state = await conditionPopupState(popup);
+    trace('room_condition_close_wait_error', {
+      error_class:safeThrownErrorClass(error),
+      room_condition_popup_state:state,
+    });
+    return state === 'hidden';
+  }
+}
+
+export async function closeConditionPopup(page, popup, deadline) {
+  const initialState = await conditionPopupState(popup);
+  if (initialState === 'hidden') {
+    trace('room_condition_popup_already_closed', {
+      room_condition_close_method:'already_closed',
+      room_condition_popup_state:'hidden',
+      room_condition_close_control_count:0,
+    });
+    return {closed:true,method:'already_closed',closeControlCount:0};
+  }
+
+  const controls = popup.locator('button, a, [role="button"], [aria-label], [title]')
+    .filter({visible:true});
+  const matchingIndexes = await controls.evaluateAll(elements => {
+    const compact = value => (value ?? '').normalize('NFKC').replace(/\s/g,'');
+    return elements.flatMap((element,index) => {
+      const style = getComputedStyle(element);
+      const accessibleName = element.getAttribute('aria-label') ??
+        element.getAttribute('title') ?? element.innerText ?? '';
+      const enabled = !element.disabled && element.getAttribute('aria-disabled') !== 'true';
+      const visible = element.getClientRects().length > 0 && style.visibility !== 'hidden' &&
+        style.display !== 'none' && style.pointerEvents !== 'none';
+      return enabled && visible && compact(accessibleName) === '閉じる' ? [index] : [];
+    });
+  });
+  const closeControlCount = Math.min(100,matchingIndexes.length);
+  trace('room_condition_close_control_inspected', {
+    room_condition_close_control_count:closeControlCount,
+    room_condition_popup_state:initialState,
+  });
+
+  if (matchingIndexes.length === 1) {
+    trace('room_condition_close_control_begin', {
+      room_condition_close_control_count:closeControlCount,
+      room_condition_popup_state:initialState,
+    });
+    try {
+      const clickTimeout = remainingConditionTimeout(deadline,2500);
+      if (!clickTimeout) throw new SourceFailure('condition_popup_close_failed');
+      await controls.nth(matchingIndexes[0]).click({timeout:clickTimeout});
+      trace('room_condition_close_control_clicked', {
+        room_condition_close_control_count:closeControlCount,
+        room_condition_popup_state:await conditionPopupState(popup),
+      });
+      if (await waitForConditionPopupHidden(popup,deadline)) {
+        trace('room_condition_close_control_complete', {
+          room_condition_close_method:'close_control',
+          room_condition_close_control_count:closeControlCount,
+          room_condition_popup_state:'hidden',
+        });
+        return {closed:true,method:'close_control',closeControlCount};
+      }
+    } catch (error) {
+      trace('room_condition_close_control_error', {
+        error_class:safeThrownErrorClass(error),
+        room_condition_close_control_count:closeControlCount,
+        room_condition_popup_state:await conditionPopupState(popup),
+      });
+    }
+  } else {
+    trace(matchingIndexes.length ? 'room_condition_close_control_ambiguous' :
+      'room_condition_close_control_missing', {
+        room_condition_close_control_count:closeControlCount,
+        room_condition_popup_state:initialState,
+      });
+  }
+
+  if (await conditionPopupState(popup) === 'hidden') {
+    trace('room_condition_popup_already_closed', {
+      room_condition_close_method:matchingIndexes.length === 1 ? 'close_control' : 'already_closed',
+      room_condition_close_control_count:closeControlCount,
+      room_condition_popup_state:'hidden',
+    });
+    return {
+      closed:true,
+      method:matchingIndexes.length === 1 ? 'close_control' : 'already_closed',
+      closeControlCount,
+    };
+  }
+
+  trace('room_condition_escape_close_begin', {
+    room_condition_close_control_count:closeControlCount,
+    room_condition_popup_state:await conditionPopupState(popup),
+  });
+  try {
+    if (deadline - Date.now() <= 0) throw new SourceFailure('condition_popup_close_failed');
+    await page.keyboard.press('Escape');
+    trace('room_condition_escape_close_sent', {
+      room_condition_close_control_count:closeControlCount,
+      room_condition_popup_state:await conditionPopupState(popup),
+    });
+    if (await waitForConditionPopupHidden(popup,deadline)) {
+      trace('room_condition_escape_close_complete', {
+        room_condition_close_method:'escape',
+        room_condition_close_control_count:closeControlCount,
+        room_condition_popup_state:'hidden',
+      });
+      return {closed:true,method:'escape',closeControlCount};
+    }
+  } catch (error) {
+    trace('room_condition_escape_close_error', {
+      error_class:safeThrownErrorClass(error),
+      room_condition_close_control_count:closeControlCount,
+      room_condition_popup_state:await conditionPopupState(popup),
+    });
+  }
+  const finalState = await conditionPopupState(popup);
+  trace('room_condition_popup_close_failed', {
+    room_condition_close_method:'none',
+    room_condition_close_control_count:closeControlCount,
+    room_condition_popup_state:finalState,
+  });
+  return {closed:false,method:'none',closeControlCount,state:finalState};
+}
+
 export async function collectRoom(page, request, config, deadline, access) {
   const url = new URL(config.environment === 'fixture' ? config.fixture_url : 'https://room.rakuten.co.jp/search/item');
   for (const [key, value] of Object.entries({ keyword: request.query, colle: '', comment: '', like: '300', user_id: '', user_name: '', original_photo: '0' })) url.searchParams.set(key, value);
@@ -578,33 +739,51 @@ export async function collectRoom(page, request, config, deadline, access) {
       new URL(page.url()).searchParams.get('like') !== '300' ||
       new URL(page.url()).searchParams.get('comment') !== '') throw new SourceFailure('query_not_reflected');
   trace('room_condition_controls');
-  await page.locator('.search-detail-wrap').click();
-  trace('room_condition_popup_opened');
+  trace('room_condition_popup_open_begin');
+  await page.locator('.search-detail-wrap').click({
+    timeout:remainingConditionTimeout(deadline,2500),
+  });
+  const conditionPopups = page.locator('.itemSearch-popup');
+  const conditionPopup = conditionPopups.filter({visible:true});
+  await conditionPopup.first().waitFor({
+    state:'visible',timeout:remainingConditionTimeout(deadline,5000),
+  });
+  trace('room_condition_popup_opened', {
+    room_condition_popup_state:'visible',
+  });
   await check();
-  const conditionPopup = page.locator('.itemSearch-popup').filter({visible:true});
   const likeDisplay = await conditionPopup.locator('.search-popup-project').filter({hasText:'いいね数'}).locator('.select > .select-item').first().innerText();
   const commentDisplay = await conditionPopup.locator('.search-popup-project').filter({hasText:'コメント数'}).locator('.select > .select-item').first().innerText();
-  if (compact(likeDisplay) !== '300件' || compact(commentDisplay) !== 'コメント数指定なし')
+  const likesVerified = compact(likeDisplay) === '300件';
+  const commentsVerified = compact(commentDisplay) === 'コメント数指定なし';
+  if (!likesVerified || !commentsVerified)
     throw new SourceFailure('search_conditions_unverified');
-  trace('room_conditions_verified');
-  let conditionPopupClosed = false;
-  trace('room_condition_toggle_close_begin');
-  await page.locator('.search-detail-wrap').click({timeout:1500}).catch(() => {});
-  try {
-    await conditionPopup.waitFor({state:'hidden',timeout:1500});
-    conditionPopupClosed = true;
-  } catch {}
-  if (!conditionPopupClosed) {
-    trace('room_condition_escape_close_begin');
-    await page.keyboard.press('Escape').catch(() => {});
-    try {
-      await conditionPopup.waitFor({state:'hidden',timeout:1500});
-      conditionPopupClosed = true;
-    } catch {}
-  }
-  if (!conditionPopupClosed) throw new SourceFailure('condition_popup_close_failed');
-  trace('room_condition_popup_closed');
+  trace('room_conditions_verified', {
+    room_conditions_likes_verified:likesVerified,
+    room_conditions_comments_verified:commentsVerified,
+    room_condition_popup_state:'visible',
+  });
+  const closeResult = await closeConditionPopup(page,conditionPopup.first(),deadline);
+  if (!closeResult.closed) throw new SourceFailure('condition_popup_close_failed');
   await check();
+  const reflectedUrl = new URL(page.url());
+  const queryPreserved = await page.locator('#search-box').inputValue() === request.query;
+  const conditionsPreserved = reflectedUrl.searchParams.get('like') === '300' &&
+    reflectedUrl.searchParams.get('comment') === '';
+  const popupState = await conditionPopupState(conditionPopup.first());
+  if (!queryPreserved || !conditionsPreserved || popupState !== 'hidden')
+    throw new SourceFailure('search_conditions_unverified');
+  trace('room_condition_popup_closed', {
+    room_condition_close_method:closeResult.method,
+    room_condition_close_control_count:closeResult.closeControlCount,
+    room_condition_popup_state:popupState,
+    room_conditions_likes_verified:likesVerified,
+    room_conditions_comments_verified:commentsVerified,
+  });
+  trace('room_results_scan_begin', {
+    room_condition_popup_state:popupState,
+    room_condition_close_method:closeResult.method,
+  });
   const cards = page.locator('.items-search > .item');
   const endVisible = () => page.evaluate(() => Array.from(document.querySelectorAll('body *')).some(e =>
     e.children.length === 0 && !e.closest('.items-search, .item-preview') && e.getClientRects().length > 0 &&

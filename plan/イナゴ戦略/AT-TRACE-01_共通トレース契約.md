@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.7、§8・§27.6～27.8・§28.4/28.7。対応：IR-004/008/018/019/021/028、F02/F03/F05/F08/F11、STEP R03/R05。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
+正本：要件定義書HTML 2.8、§8・§27.6～27.10・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
 
 ## 共通イベント
 
@@ -19,6 +19,18 @@ run root spanは実イベントとして出力し、公開取得・AI等の子sp
 現行v4 selectorは対象widget内の可視`h1`～`h6`/`[role="heading"]`、title/heading class、widgetの`aria-label`、可視`aria-labelledby`を意味で分類する。日本語の「トピック」「キーワード/検索/クエリ」と英語のtopics/keywords/queries/searchesの許可済み表現を`related_topics`または`related_keywords`へ写像し、候補に矛盾がある場合は`unknown`のまま扱う。見出し本文はtraceへ保存しない。旧v2/v3 traceも検証可能なまま保つ。
 
 期間変更後に再描画が必要な場合、readyは`related_widget_generation > generation_before_period`を満たす。可視の正確な単一関連キーワードwidgetが期限内に出ない、または期間更新が観測できない場合は`source_timeout`として有限再試行へ渡す。複数の可視一致は`query_widget_ambiguous`、別種の可視widgetのみは`query_widget_contract_mismatch`としてprocessing_errorへ渡し、取得retry/fallbackを行わない。正常0語の受理には、許可済みの明示的空結果表示が必要。
+
+## ROOM条件popup閉じの安全な診断（STEP R06）
+
+検索条件popupは、開状態とquery/likes=300/commentsなしの反映を確認してから閉じる。既にhiddenなら`room_condition_close_method=already_closed`で冪等完了とする。popup内にある可視・有効な正確な閉じcontrolが1件だけなら、通常クリックを1回行い、popup hiddenを有限なrequest timeout内で待つ。候補が0/複数、クリック失敗、または閉状態未確認なら、再クリックやtoggleを行わずEscapeを1回だけ送り、同じ有限request timeout内でhiddenを待つ。閉状態が不明なら検索一覧走査へ進まず`condition_popup_close_failed`を返す。
+
+許可する追加fieldは`room_condition_close_control_count`（整数0..100）、`room_condition_close_method=close_control|escape|already_closed|none`、`room_condition_popup_state=hidden|visible|unknown`、`room_conditions_likes_verified`と`room_conditions_comments_verified`（boolean）、`error_class=Error|TimeoutError|TypeError|ReferenceError|SyntaxError|RangeError|URIError|EvalError|AggregateError|TargetClosedError|BrowserClosedError|ProtocolError|SourceFailure|other`である。開き始め/開確認、条件検証、閉じ始め/完了/失敗、`room_condition_popup_closed`、`room_results_scan_begin`の順序と各elapsed/phaseを記録する。query文字列、URL、DOM、画面本文、認証情報は記録しない。閉じ失敗は当該attemptのsource failureを1件だけ増やし、同一task/queryの有限retryと`retry_of`で続ける。成功retryは失敗履歴を保持しつつ最終失敗に数えず、最大3失敗でsourceを停止して原因を保持する。
+
+| Node | 注入 | 合格条件 |
+| --- | --- | --- |
+| `tests_inago/test_daily_fix_room.py::test_n09` | 1.5秒より長く遅れて閉じる一意な正規control | 通常クリック1回、条件保持、hidden確認後に検索走査開始。閉じ待ちと共通traceはhealthy。 |
+| `tests_inago/test_daily_fix_room.py::test_n09b_already_closed_and_ambiguous_controls` | 既にhiddenのpopup、誤候補を含む複数の「閉じる」control | hiddenは冪等完了。曖昧候補をクリックせずEscapeを1回使い、状態・条件bool・候補数を記録する。 |
+| `tests_inago/test_daily_fix_room.py::test_n10` | 1回失敗後の同一task回復、および3回連続閉じ失敗 | `retry_of`連鎖・attempt数・source failure数が一致し、回復を最終失敗に数えない。3回後に停止し、3 failure observationと原因が残る。 |
 
 ## 受入node
 
