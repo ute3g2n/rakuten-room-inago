@@ -40,6 +40,9 @@ class RetentionResult:
     source_observation_deletion_failures: int
     deleted_revenue_orders: int
     file_deletion_failures: tuple[str, ...]
+    expired_trace_events: int = 0
+    expired_trace_files: int = 0
+    trace_cleanup_failures: int = 0
 
     @property
     def expired_artifacts(self) -> int:
@@ -427,6 +430,16 @@ def apply_retention(
         _expire_public_source_observations(root, current)
     )
 
+    # Trace cleanup runs after the protected SQLite transaction has committed.
+    # A filesystem failure is visible in the result and cannot roll back or
+    # replace the already confirmed business data.
+    from automation.inago.trace import TraceRetentionResult, expire_trace_events
+
+    try:
+        trace_retention = expire_trace_events(root, now=current)
+    except Exception:
+        trace_retention = TraceRetentionResult(0, 0, 0, 1)
+
     # A prior call may have committed the expired status before a file-system
     # failure. Retry cleanup from expired rows without making the evidence live.
     expired_file_rows = _dict_rows(
@@ -461,4 +474,7 @@ def apply_retention(
         source_observation_deletion_failures=source_observation_failures,
         deleted_revenue_orders=deleted_orders,
         file_deletion_failures=tuple(failures),
+        expired_trace_events=trace_retention.expired_events,
+        expired_trace_files=trace_retention.removed_files,
+        trace_cleanup_failures=trace_retention.failures,
     )

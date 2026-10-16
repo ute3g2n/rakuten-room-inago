@@ -16,6 +16,7 @@ const compact = value => value.normalize('NFKC').replace(/\s/g, '');
 const timestamp = () => new Date().toISOString();
 const processStartedAt = Date.now();
 const MAX_SOURCE_TIMEOUT_SECONDS = 17100;
+const MAX_STAGE_TRACE_EVENTS = 2047;
 // A slow Rakuten marketplace redirect can take longer than the detail-click
 // itself. Keep it bounded, but do not discard a route that eventually commits.
 const PRODUCT_NAVIGATION_TIMEOUT_MS = 60000;
@@ -24,6 +25,8 @@ const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
 let activeTrace = {stage:'startup',row_index:null};
+let traceEventCount = 0;
+let traceSuppressionWritten = false;
 const browserDiagnostics = {
   pages:0,
   consoleErrors:0,
@@ -34,11 +37,56 @@ const browserDiagnostics = {
   groups:new Map(),
 };
 function trace(stage, details = {}) {
+  const safeStage = typeof stage === 'string' && REF.test(stage) ? stage : 'unknown';
   activeTrace = {
-    stage,
-    row_index:Number.isInteger(details.row_index) ? details.row_index : activeTrace.row_index,
+    stage:safeStage,
+    row_index:Number.isInteger(details.row_index) && details.row_index >= 1 && details.row_index <= 50
+      ? details.row_index
+      : activeTrace.row_index,
   };
-  process.stderr.write(JSON.stringify({event:'public_source_stage',stage,elapsed_ms:Date.now()-processStartedAt,...details})+'\n');
+  if (traceEventCount >= MAX_STAGE_TRACE_EVENTS) {
+    if (!traceSuppressionWritten) {
+      process.stderr.write(JSON.stringify({
+        event:'public_source_trace_suppressed',
+        stage:'trace_event_limit',
+        suppression_marker_count:1,
+      })+'\n');
+      traceSuppressionWritten = true;
+    }
+    return;
+  }
+  const safe = {
+    event:'public_source_stage',
+    stage:safeStage,
+    elapsed_ms:Math.max(0,Date.now()-processStartedAt),
+  };
+  const integerFields = [
+    'loaded_posts','accepted_posts','row_index','body_children',
+    'search_candidate_count','visible_input_count','label_locator_match_count',
+    'search_button_count','explore_button_count','period_option_count',
+    'retry_after_seconds','popup_url_length',
+  ];
+  for (const key of integerFields) {
+    const value = details[key];
+    if (Number.isInteger(value) && value >= 0 && (key !== 'row_index' || value <= 50))
+      safe[key] = value;
+  }
+  for (const key of ['body_text_nonempty','retry_after_present','has_href']) {
+    if (typeof details[key] === 'boolean') safe[key] = details[key];
+  }
+  const enums = {
+    document_ready_state:['loading','interactive','complete'],
+    phase:['card_link','preview_click','detail_button_ready','detail_button_click','popup_wait','popup_initial_url','product_navigation','product_url_parse'],
+    popup_url_kind:['blank','empty','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
+    element_tag:['a','button','div','span','other'],
+    href_kind:['none','empty','blank','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
+    link_target:['none','_blank','_self','other'],
+  };
+  for (const [key, allowed] of Object.entries(enums)) {
+    if (allowed.includes(details[key])) safe[key] = details[key];
+  }
+  process.stderr.write(JSON.stringify(safe)+'\n');
+  traceEventCount++;
 }
 
 function safeThrownErrorClass(error) {
@@ -787,6 +835,8 @@ export async function collectTrends(page, request, config, deadline, access) {
       !(await page.locator('[aria-label^="Select stories location"]').innerText()).includes('ウェブ検索') ||
       !(await page.getByText('日本',{exact:true}).filter({visible:true}).count()) || !(await page.getByText('検索キーワード',{exact:true}).filter({visible:true}).count()))
     throw new SourceFailure('trends_scope_not_reflected');
+  // This stage spans initial widget readiness through verified Top row refresh.
+  trace('trends_top_rows_wait_begin');
   await waitDOM(page,check,() => Array.from(document.querySelectorAll('.fe-related-queries')).some(e => e.innerText.startsWith('関連キーワード')),null,deadline);
   const widget = page.locator('.fe-related-queries').filter({ hasText: '関連キーワード' }).filter({ visible: true });
   if (await widget.count() !== 1) throw new SourceFailure('query_widget_ambiguous');
@@ -985,6 +1035,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const failureEvent = {
       event:'public_source_failure',
       stage:typeof activeTrace.stage === 'string' && REF.test(activeTrace.stage) ? activeTrace.stage : 'unknown',
+      elapsed_ms:Math.max(0,Date.now()-processStartedAt),
       error_code:errorCode,
       error_class:error instanceof SourceFailure ? 'SourceFailure' : safeThrownErrorClass(error),
       error_kind:safeErrorKind(error),

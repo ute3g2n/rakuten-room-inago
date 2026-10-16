@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -23,6 +24,7 @@ import uuid
 
 from automation.inago.room_adapter import RoomSearchRequest, _unavailable_response
 from automation.inago.retention import retention_expiry
+from automation.inago.trace import JST, TraceSession, TraceWriter
 from automation.inago.trends_adapter import TrendsRequest
 from automation.atomic_io import atomic_write_json
 
@@ -186,6 +188,11 @@ class PublicBrowserSource:
         self._uncertain_processes: set[subprocess.Popen] = set()
         self._facts: dict[str, dict[str, Any]] = {}
         self._evidence = config.evidence_root.resolve()
+        self._data_root = (
+            self._evidence.parent
+            if self._evidence.name.casefold() == "observations"
+            else self._evidence
+        )
         self._evidence.mkdir(parents=True, exist_ok=True)
         self._recover_access_stops()
 
@@ -384,16 +391,26 @@ class PublicBrowserSource:
             return self._invoke_serial(kind, request)
 
     def _invoke_serial(self, kind: str, request) -> dict[str, Any]:
+        trace_session = self._new_trace_session(kind, request)
+        trace_started_at = datetime.now(JST)
+        if trace_session is not None:
+            self._trace_safely(
+                lambda: trace_session.start(operation=f"{kind}_request"),
+                session=trace_session,
+            )
         with self._lock:
             if request.run_id in self._stopped_runs:
+                self._trace_error(trace_session, "source_access_stopped", kind)
                 return {"error_code": "source_access_stopped"}
             if request.run_id in self._cancelled_runs:
+                self._trace_error(trace_session, "source_cancelled", kind, cancel=True)
                 return {"error_code": "source_cancelled"}
         request_timeout = self._request_timeout_seconds(request)
         # The Node adapter rejects timeouts below one second as an invalid
         # request. At that point no useful browser work can start before the
         # daily cutoff, so report an ordinary timeout without launching it.
         if request_timeout < 1:
+            self._trace_error(trace_session, "source_timeout", kind)
             return {"error_code": "source_timeout"}
         config = asdict(self.config)
         config["timeout_seconds"] = min(config["timeout_seconds"], request_timeout)
@@ -428,8 +445,12 @@ class PublicBrowserSource:
             )
             with self._lock:
                 if request.run_id in self._cancelled_runs:
+                    self._trace_error(
+                        trace_session, "source_cancelled", kind, cancel=True
+                    )
                     return {"error_code": "source_cancelled"}
                 if self._request_timeout_seconds(request) < 1:
+                    self._trace_error(trace_session, "source_timeout", kind)
                     return {"error_code": "source_timeout"}
                 process = subprocess.Popen(
                     [self.config.node_executable, str(SCRIPT)],
@@ -510,6 +531,29 @@ class PublicBrowserSource:
                 self._stopped_runs.add(request.run_id)
             if "response" in result:
                 self._facts.update(result["product_facts"])
+        node_events = self._metadata_events(node_stderr)
+        self._trace_node_events(
+            trace_session,
+            node_events,
+            started_at=trace_started_at,
+        )
+        trace_failure = next(
+            (
+                item
+                for item in reversed(node_events)
+                if item.get("event") == "public_source_failure"
+            ),
+            None,
+        )
+        if trace_session is not None and trace_failure is None:
+            if result.get("error_code") == "owned_cleanup_unconfirmed":
+                self._trace_cleanup_failure(trace_session, kind)
+            elif result.get("error_code"):
+                self._trace_error(trace_session, result["error_code"], kind)
+            else:
+                self._trace_safely(
+                    lambda: trace_session.finish(), session=trace_session
+                )
         # Private observations; no cookie/token/account/profile or other posts' text.
         record = {
             "kind": kind,
@@ -520,8 +564,10 @@ class PublicBrowserSource:
                 datetime.now(timezone.utc) + timedelta(days=90)
             ).isoformat(),
             **result,
-            "node_events": self._metadata_events(node_stderr),
+            "node_events": node_events,
             "process_returncode": process.returncode if process is not None else None,
+            "trace_state": trace_session.health if trace_session else "unavailable",
+            "trace_ref": self._trace_ref(trace_session),
         }
         identity = request.attempt_id if kind == "room" else request.request_id
         if not isinstance(identity, str) or not SAFE_REF.fullmatch(identity):
@@ -544,6 +590,199 @@ class PublicBrowserSource:
         # The stop is durable before saving ancillary observation details.
         atomic_write_json(path, record)
         return result
+
+    def _new_trace_session(self, kind: str, request) -> TraceSession | None:
+        request_id = getattr(request, "request_id", None) or getattr(
+            request, "attempt_id", None
+        )
+        try:
+            writer = TraceWriter(
+                self._data_root,
+                request.run_id,
+                datetime.now(JST).date().isoformat(),
+            )
+            return TraceSession(
+                writer,
+                component="public_source",
+                request_id=request_id,
+                deadline_at=getattr(request, "deadline_at", None),
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "public source common trace unavailable error_type=%s",
+                type(exc).__name__,
+            )
+            return None
+
+    @staticmethod
+    def _trace_safely(action, *, session: TraceSession | None = None) -> None:
+        try:
+            action()
+        except Exception:
+            # Trace output is ancillary and must never replace source results.
+            if session is not None:
+                session.mark_unavailable()
+
+    def _trace_error(
+        self,
+        session: TraceSession | None,
+        error_code: object,
+        kind: str,
+        *,
+        cancel: bool = False,
+    ) -> None:
+        if (
+            session is None
+            or not isinstance(error_code, str)
+            or not SAFE_REF.fullmatch(error_code)
+        ):
+            return
+        operation = session.active_stage or f"{kind}_request"
+        phase = "cancel" if cancel else "error"
+        fields = {
+            "event_kind": "stage_cancelled" if cancel else "stage_failure",
+            "primary_error_code": error_code,
+            "failed_operation": operation,
+            "scope": "request",
+        }
+        self._trace_safely(
+            lambda: session.record_stage(operation, phase=phase, **fields),
+            session=session,
+        )
+
+    def _trace_cleanup_failure(self, session: TraceSession, kind: str) -> None:
+        operation = session.active_stage or f"{kind}_request"
+        self._trace_safely(
+            lambda: session.record_stage(
+                operation,
+                phase="error",
+                event_kind="cleanup_failure",
+                cleanup_error_code="owned_cleanup_unconfirmed",
+                cleanup_error_class="ProcessCleanupError",
+                failed_operation=operation,
+                scope="cleanup",
+            ),
+            session=session,
+        )
+
+    def _trace_failure_event(
+        self,
+        session: TraceSession,
+        event: dict[str, Any],
+        kind: str,
+        *,
+        at: str | None = None,
+    ) -> None:
+        operation = event.get("stage", f"{kind}_request")
+        error_code = event.get("error_code")
+        fields: dict[str, Any] = {
+            "event_kind": "stage_failure",
+            "failed_operation": operation,
+            "scope": "row" if "row_index" in event else "request",
+        }
+        if isinstance(error_code, str) and SAFE_REF.fullmatch(error_code):
+            fields["primary_error_code"] = error_code
+        for key in ("error_class", "error_kind", "network_code", "row_index"):
+            if key in event:
+                fields[key] = event[key]
+        elapsed = event.get("elapsed_ms")
+        if isinstance(elapsed, int) and not isinstance(elapsed, bool) and elapsed >= 0:
+            fields["elapsed_ms"] = elapsed
+        self._trace_safely(
+            lambda: session.record_stage(operation, phase="error", at=at, **fields),
+            session=session,
+        )
+
+    def _trace_node_events(
+        self,
+        session: TraceSession | None,
+        events: list[dict[str, Any]],
+        *,
+        started_at: datetime,
+    ) -> None:
+        if session is None:
+            return
+        for event in events:
+            stage = event.get("stage")
+            if not isinstance(stage, str) or not SAFE_REF.fullmatch(stage):
+                continue
+            if event.get("event") == "public_source_trace_suppressed":
+                session.mark_degraded()
+                marker_count = event.get("suppression_marker_count")
+                self._trace_safely(
+                    lambda: session.record_stage(
+                        "trace_suppressed",
+                        phase="status",
+                        event_kind="trace_suppressed",
+                        suppression_reason="source_stage_event_limit",
+                        suppression_marker_count=marker_count,
+                    ),
+                    session=session,
+                )
+                continue
+            elapsed = event.get("elapsed_ms")
+            elapsed_ms = (
+                elapsed
+                if isinstance(elapsed, int)
+                and not isinstance(elapsed, bool)
+                and elapsed >= 0
+                else None
+            )
+            at = (
+                (started_at + timedelta(milliseconds=elapsed_ms)).isoformat(
+                    timespec="milliseconds"
+                )
+                if elapsed_ms is not None
+                else None
+            )
+            if event.get("event") == "public_source_failure":
+                self._trace_failure_event(session, event, "public_source", at=at)
+                continue
+            if stage.endswith("_begin"):
+                phase = "begin"
+            elif stage.endswith(("_complete", "_completed")) or stage in {
+                "trends_period_reflected",
+                "trends_top_rows_updated",
+            }:
+                phase = "end"
+                active = session.active_stage
+                active_base = (
+                    active[: -len("_begin")]
+                    if isinstance(active, str) and active.endswith("_begin")
+                    else active
+                )
+                completion_aliases = {
+                    "trends_period_reflected": "trends_period_reflection_wait",
+                    "trends_top_rows_updated": "trends_top_rows_wait",
+                }
+                completed_base = completion_aliases.get(stage, stage.rsplit("_", 1)[0])
+                if active_base not in {None, stage} and active_base != completed_base:
+                    phase = "status"
+            else:
+                phase = "status"
+            row_index = event.get("row_index")
+            fields = {"event_kind": "source_stage"}
+            if isinstance(row_index, int) and not isinstance(row_index, bool):
+                fields["row_index"] = row_index
+                fields["scope"] = "row"
+            self._trace_safely(
+                lambda stage=stage, phase=phase, elapsed_ms=elapsed_ms, at=at, fields=fields: session.record_stage(
+                    stage,
+                    phase=phase,
+                    elapsed_ms=elapsed_ms,
+                    at=at,
+                    **fields,
+                ),
+                session=session,
+            )
+
+    def _trace_ref(self, session: TraceSession | None) -> str | None:
+        if session is None:
+            return None
+        try:
+            return session.writer.path.relative_to(self._data_root).as_posix()
+        except ValueError:
+            return None
 
     def _request_timeout_seconds(self, request) -> float:
         """Cap a browser process at the request's daily cutoff when supplied."""
@@ -793,6 +1032,13 @@ class PublicBrowserSource:
                     "error_class": error_class,
                     "error_kind": error_kind,
                 }
+                elapsed_ms = item.get("elapsed_ms")
+                if (
+                    isinstance(elapsed_ms, int)
+                    and not isinstance(elapsed_ms, bool)
+                    and 0 <= elapsed_ms <= MAX_SOURCE_TIMEOUT_SECONDS * 1000
+                ):
+                    event["elapsed_ms"] = elapsed_ms
                 network_code = item.get("network_code")
                 if isinstance(network_code, str) and re.fullmatch(
                     r"ERR_[A-Z0-9_]{1,64}", network_code
@@ -808,6 +1054,26 @@ class PublicBrowserSource:
                 events.append(event)
                 continue
             if (
+                isinstance(item, dict)
+                and item.get("event") == "public_source_trace_suppressed"
+            ):
+                stage = item.get("stage")
+                marker_count = item.get("suppression_marker_count")
+                if (
+                    stage == "trace_event_limit"
+                    and isinstance(marker_count, int)
+                    and not isinstance(marker_count, bool)
+                    and marker_count == 1
+                ):
+                    events.append(
+                        {
+                            "event": "public_source_trace_suppressed",
+                            "stage": "trace_event_limit",
+                            "suppression_marker_count": marker_count,
+                        }
+                    )
+                continue
+            if (
                 not isinstance(item, dict)
                 or item.get("event") != "public_source_stage"
                 or not isinstance(item.get("stage"), str)
@@ -815,6 +1081,13 @@ class PublicBrowserSource:
             ):
                 continue
             event = {"event": "public_source_stage", "stage": item["stage"]}
+            elapsed_ms = item.get("elapsed_ms")
+            if (
+                isinstance(elapsed_ms, int)
+                and not isinstance(elapsed_ms, bool)
+                and 0 <= elapsed_ms <= MAX_SOURCE_TIMEOUT_SECONDS * 1000
+            ):
+                event["elapsed_ms"] = elapsed_ms
             for key in (
                 "loaded_posts",
                 "accepted_posts",

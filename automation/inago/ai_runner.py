@@ -37,6 +37,7 @@ from automation.inago.contracts import (
 from automation.inago.artifact_io import write_temp_response_bytes
 from automation.inago.repository import validate_entity
 from automation.inago.retention import retention_expiry, validate_data_root
+from automation.inago.trace import TraceSession, TraceWriter
 from automation.jsonschema_formats import rfc3339_format_checker
 
 
@@ -594,6 +595,9 @@ class AIJobRunner:
         self.require_observed_metadata = require_observed_metadata
         self.max_timeout_seconds = float(max_timeout_seconds)
         self.poll_interval_seconds = float(poll_interval_seconds)
+        self._common_trace_lock = Lock()
+        self._common_trace_sessions: dict[tuple[str, str, int], TraceSession] = {}
+        self._common_trace_warned: set[str] = set()
 
     def _observe_auth_mode(self) -> str:
         if self.auth_mode_provider is not None:
@@ -1420,6 +1424,102 @@ class AIJobRunner:
                 type(exc).__name__,
                 getattr(exc, "errno", None),
             )
+        self._write_common_trace(request, event, fields)
+
+    def _write_common_trace(
+        self,
+        request: AIJobRequest,
+        event: str,
+        fields: Mapping[str, Any],
+    ) -> None:
+        """Mirror safe AI lifecycle markers without changing recovery evidence."""
+
+        key = (request.run_id, request.job_id, request.attempt)
+        try:
+            with self._common_trace_lock:
+                session = self._common_trace_sessions.get(key)
+                started_result = None
+                if session is None:
+                    writer = TraceWriter(
+                        self.data_root,
+                        request.run_id,
+                        request.target_date,
+                        clock=self.clock,
+                    )
+                    session = TraceSession(
+                        writer,
+                        component="ai_runner",
+                        job_id=request.job_id,
+                        root_job_id=request.job_id,
+                        task_id=request.task_id,
+                        attempt=request.attempt,
+                        deadline_at=request.deadline_at,
+                        clock=self.clock,
+                    )
+                    self._common_trace_sessions[key] = session
+                    started_result = session.start(operation="ai_job")
+                if event == "job_started":
+                    result = started_result
+                else:
+                    phase = "status"
+                    if event == "job_finished":
+                        status = fields.get("result_status")
+                        if status == "cancelled":
+                            phase = "cancel"
+                        elif status in {"error", "timed_out", "late_result"}:
+                            phase = "error"
+                        else:
+                            phase = "end"
+                    duration = fields.get("duration_ms")
+                    elapsed_ms = (
+                        duration
+                        if isinstance(duration, int)
+                        and not isinstance(duration, bool)
+                        and duration >= 0
+                        else None
+                    )
+                    common_fields: dict[str, Any] = {"event_kind": event}
+                    status = fields.get("result_status")
+                    if isinstance(status, str) and _ID.fullmatch(status):
+                        common_fields["status"] = status
+                    process_returncode = fields.get("process_returncode")
+                    if (
+                        isinstance(process_returncode, int)
+                        and not isinstance(process_returncode, bool)
+                        and process_returncode >= 0
+                    ):
+                        common_fields["process_returncode"] = process_returncode
+                    error_code = fields.get("error_code")
+                    if isinstance(error_code, str) and _ID.fullmatch(error_code):
+                        common_fields["primary_error_code"] = error_code
+                        common_fields["scope"] = "job"
+                    result = session.record_stage(
+                        "ai_job",
+                        phase=phase,
+                        elapsed_ms=elapsed_ms,
+                        **common_fields,
+                    )
+                    if event == "job_finished":
+                        self._common_trace_sessions.pop(key, None)
+            if result is None:
+                return
+            if result.status == "unavailable":
+                with self._common_trace_lock:
+                    first_warning = request.run_id not in self._common_trace_warned
+                    self._common_trace_warned.add(request.run_id)
+                if first_warning:
+                    logging.getLogger(__name__).warning(
+                        "AI common trace unavailable error_type=TraceWriteUnavailable"
+                    )
+        except Exception as exc:
+            with self._common_trace_lock:
+                first_warning = request.run_id not in self._common_trace_warned
+                self._common_trace_warned.add(request.run_id)
+            if first_warning:
+                logging.getLogger(__name__).warning(
+                    "AI common trace unavailable error_type=%s",
+                    type(exc).__name__,
+                )
 
     @staticmethod
     def _terminate_owned(process: subprocess.Popen[bytes]) -> tuple[bytes, bytes]:

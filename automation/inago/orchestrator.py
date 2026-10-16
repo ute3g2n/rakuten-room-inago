@@ -43,6 +43,7 @@ from automation.inago.room_adapter import (
 )
 from automation.inago.run_lock import RunLock, RunLockBusy
 from automation.inago.trends_adapter import TrendsRequest, load_grouped_snapshot
+from automation.inago.trace import TraceSession, TraceWriter
 from automation.inago.selection import (
     SourcePost,
     evaluate_sources,
@@ -2065,11 +2066,42 @@ def run_daily(
         )
 
     with lock, ExitStack() as daily_resources:
-        retention = apply_retention(
-            connection,
-            data_root=root,
-            now=_now(system_clock),
+        run_trace = TraceSession(
+            TraceWriter(root, proposed_run_id, target_date, clock=system_clock),
+            component="orchestrator",
+            request_id=f"daily-{proposed_run_id}",
+            task_id="daily",
+            clock=system_clock,
         )
+        run_trace.start(operation="retention")
+        try:
+            retention = apply_retention(
+                connection,
+                data_root=root,
+                now=_now(system_clock),
+            )
+        except BaseException as exc:
+            try:
+                run_trace.fail(
+                    exc,
+                    error_code="retention_failed",
+                    failed_operation="retention",
+                    scope="run",
+                )
+            except Exception as trace_error:
+                logging.getLogger(__name__).warning(
+                    "retention trace unavailable error_type=%s",
+                    type(trace_error).__name__,
+                )
+            raise
+        run_trace.record_stage(
+            "retention",
+            phase="end",
+            event_kind="retention_applied",
+            status="success",
+        )
+        if retention.trace_cleanup_failures:
+            run_trace.mark_degraded()
         logging.getLogger(__name__).info(
             "daily_retention_applied",
             extra={
@@ -2084,6 +2116,10 @@ def run_daily(
                 "source_observation_deletion_failures": (
                     retention.source_observation_deletion_failures
                 ),
+                "expired_trace_events": retention.expired_trace_events,
+                "expired_trace_files": retention.expired_trace_files,
+                "trace_cleanup_failures": retention.trace_cleanup_failures,
+                "trace_state": run_trace.health,
             },
         )
         if (

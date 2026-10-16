@@ -25,12 +25,12 @@ export function finalizeHtml(html, data, { markdown, figureCount }) {
 
   const names = Object.keys(data.references);
   const ids = new Map(names.map((name, index) => [name, `reference-${String(index + 1).padStart(2, '0')}`]));
-  let referenceHtml = '<section class="reference-library" aria-labelledby="library-heading"><h2 id="library-heading">辞書・追跡・根拠資料の全文</h2><p class="callout amber">辞書・追跡表は2.0へ更新済みです。自動処理はリポジトリ内から直接実行し、インストーラーと書込ACLによる起動条件は不要です。Trendsは初回込み最大5回、全失敗はテーマ単独ROOM検索へ進みます。意思決定台帳とヒアリング記録には本人の確定指示だけを追記しています。その他は過去の検討経緯です。旧階層20/10・最大いいね代表・日次9検索/450投稿・対話専用AI-Oを現在の規則へ再適用しません。1検索先頭50投稿は確定条件です。本HTML2.0とU-20261013～16、27.1～27.5の追加・整合記録を優先します。</p><label for="reference-search">資料名・全文から検索</label><input id="reference-search" type="search" placeholder="例：成果 ／ D-052 ／ データ辞書"><p id="reference-count" role="status" aria-live="polite">全' + names.length + '資料</p>';
+  let referenceHtml = '<section class="reference-library" aria-labelledby="library-heading"><h2 id="library-heading">辞書・追跡・根拠資料の全文</h2><p class="callout amber">辞書・追跡表は2.1へ更新済みです。自動処理はリポジトリ内から直接実行し、インストーラーと書込ACLによる起動条件は不要です。Trendsは初回込み最大5回、全失敗はテーマ単独ROOM検索へ進みます。共通traceは許可項目だけを保存し、1run 2048 event/4 MiB・90日保持を上限とし、書込不能はunavailableで示します。trace cleanupだけの失敗で確定済みSQLiteや日次業務成否を変えません。意思決定台帳とヒアリング記録には本人の確定指示だけを追記しています。その他は過去の検討経緯です。旧階層20/10・最大いいね代表・日次9検索/450投稿・対話専用AI-Oを現在の規則へ再適用しません。1検索先頭50投稿は確定条件です。本HTML2.1とU-20261013～16、27.1～27.6の追加・整合記録を優先します。</p><label for="reference-search">資料名・全文から検索</label><input id="reference-search" type="search" placeholder="例：成果 ／ D-052 ／ データ辞書"><p id="reference-count" role="status" aria-live="polite">全' + names.length + '資料</p>';
   for (const [name, id] of ids) {
     const bytes = Buffer.from(data.references[name], 'base64');
     const value = bytes.toString('utf8').replace(/\r\n/g, '\n');
-    const current = ['要件データ辞書.md', '要件追跡表.md'].includes(name);
-    referenceHtml += `<details class="reference-document" id="${id}" data-reference-name="${escape(name)}"><summary>${escape(name.replace(/\.md$/, ''))}${current ? ' — 1.6更新済み' : ' — 経緯・根拠'}</summary><p><a href="data:text/markdown;charset=utf-8;base64,${data.references[name]}" download="${escape(name)}">この根拠資料を保存</a></p>${current ? markdown(value) : `<pre class="reference-text"><span>${escape(value)}</span></pre>`}</details>`;
+    const current = ['要件データ辞書.md', '要件追跡表.md', 'AT-TRACE-01_共通トレース契約.md'].includes(name);
+    referenceHtml += `<details class="reference-document" id="${id}" data-reference-name="${escape(name)}"><summary>${escape(name.replace(/\.md$/, ''))}${current ? ' — 2.1更新済み' : ' — 経緯・根拠'}</summary><p><a href="data:text/markdown;charset=utf-8;base64,${data.references[name]}" download="${escape(name)}">この根拠資料を保存</a></p>${current ? markdown(value) : `<pre class="reference-text"><span>${escape(value)}</span></pre>`}</details>`;
   }
   referenceHtml += '</section>';
   html = html.replace('<div class="top-link">', referenceHtml + '<div class="top-link">');

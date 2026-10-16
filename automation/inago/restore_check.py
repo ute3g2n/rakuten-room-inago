@@ -53,6 +53,9 @@ class RestoreCheckResult:
     old_task_activation_attempts: int
     old_task_state_observed: bool
     already_checked: bool = False
+    expired_trace_events: int = 0
+    expired_trace_files: int = 0
+    trace_cleanup_failures: int = 0
 
 
 def _strict_child(path: Path, parent: Path) -> bool:
@@ -276,6 +279,9 @@ def _result_from_report(
         correction_count=int(report["correction_count"]),
         run_count=int(report["run_count"]),
         file_deletion_failures=tuple(report.get("file_deletion_failures", [])),
+        expired_trace_events=int(report.get("expired_trace_events", 0)),
+        expired_trace_files=int(report.get("expired_trace_files", 0)),
+        trace_cleanup_failures=int(report.get("trace_cleanup_failures", 0)),
         selection_allowed=False,
         requires_supplementation=True,
         old_tasks_enabled=None,
@@ -559,6 +565,9 @@ def check_monthly_restore(
             "expired_artifacts": retention.expired_artifacts,
             "expired_aggregates": retention.expired_aggregates,
             "file_deletion_failures": list(retention.file_deletion_failures),
+            "expired_trace_events": retention.expired_trace_events,
+            "expired_trace_files": retention.expired_trace_files,
+            "trace_cleanup_failures": retention.trace_cleanup_failures,
             **state,
             "selection_allowed": False,
             "requires_supplementation": True,
