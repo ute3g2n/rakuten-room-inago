@@ -9,6 +9,8 @@ from pathlib import Path
 import sqlite3
 import subprocess
 
+import pytest
+
 from automation.inago.clock import FakeClock
 from automation.inago import orchestrator as daily
 from automation.inago.repository import initialize_database
@@ -253,6 +255,40 @@ def _obscured_detail_room_html(*, late_popup_delay_ms: int = 0) -> str:
         assert original in html
         html = html.replace(original, delayed)
     return html
+
+
+def _row_click_failure_room_html(count: int, failed_rows: set[int]) -> str:
+    html = browser_fixtures.room_html(count, initial=count, terminal=True)
+    html = html.replace(
+        '<input id="search-box"',
+        "<style>.detail-control-container{position:relative;display:inline-block}"
+        ".click-shield{position:absolute;inset:0;z-index:10;display:none}</style>"
+        '<input id="search-box"',
+    )
+    control = (
+        '<div class="market-detail-link" onclick="window.open('
+        "'https://item.rakuten.co.jp/shop/item-'+Math.ceil(current/10)+'/'"
+        ')">楽天市場で詳細を見る</div>'
+    )
+    wrapped_control = (
+        '<div class="detail-control-container">'
+        + control
+        + '<div class="click-shield" aria-hidden="true"></div></div>'
+    )
+    assert control in html
+    html = html.replace(control, wrapped_control)
+    existing = (
+        "function openPreview(n){current=n;"
+        "document.querySelector('#modal').style.display='block'}"
+    )
+    replacement = (
+        "function openPreview(n){current=n;"
+        "document.querySelector('#modal').style.display='block';"
+        f"document.querySelector('.click-shield').style.display={sorted(failed_rows)!r}.includes(n)?'block':'none'"
+        "}"
+    )
+    assert existing in html
+    return html.replace(existing, replacement)
 
 
 def test_n09(tmp_path, ui_server):
@@ -832,6 +868,79 @@ def test_n13(tmp_path, ui_server):
         event.get("operation") == "room_product_destination_wait_error"
         and event.get("phase") == "error"
         and event.get("failed_operation") == "room_product_destination_wait_begin"
+        and event.get("error_class") == "TimeoutError"
+        for event in common_trace
+    )
+
+
+@pytest.mark.parametrize(
+    ("failure_count", "failed_rows"),
+    [(1, {1}), (10, set(range(1, 11)))],
+    ids=["one-row-timeout", "ten-row-timeouts"],
+)
+def test_n14(tmp_path, ui_server, failure_count, failed_rows):
+    """A detail-click timeout is row scoped while the query deadline remains."""
+
+    attempt_id = f"R08-N14-{failure_count}-ROW-TIMEOUT"
+    request = replace(
+        room_request(),
+        attempt_id=attempt_id,
+        run_id=f"{attempt_id}-RUN",
+    )
+    ui_server["html"] = _row_click_failure_room_html(failure_count + 1, failed_rows)
+    evidence_root = tmp_path / f"n14-{failure_count}"
+    payload = _timed_fixture_source(
+        evidence_root,
+        ui_server,
+        timeout=30,
+        click_timeout_ms=180,
+    ).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed"
+    assert result.error_code is None
+    assert len(result.posts) == failure_count + 1
+    assert [post.order_index for post in result.posts] == list(
+        range(1, failure_count + 2)
+    )
+    assert sum(post.identity_status != "identified" for post in result.posts) == 1
+    assert result.posts[0].offer_key is None
+    assert result.posts[-1].offer_key is not None
+
+    observation = _room_observation(evidence_root, attempt_id)
+    assert observation["trace_state"] == "healthy"
+    stages = [
+        event
+        for event in observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    click_errors = [
+        event for event in stages if event["stage"] == "room_detail_button_click_error"
+    ]
+    assert [event["row_index"] for event in click_errors] == sorted(failed_rows)
+    assert all(event["scope"] == "row" for event in click_errors)
+    assert all(event["error_class"] == "TimeoutError" for event in click_errors)
+    summary = next(
+        event for event in stages if event["stage"] == "room_product_resolution_summary"
+    )
+    assert summary["scope"] == "query"
+    assert summary["accepted_posts"] == failure_count + 1
+    assert summary["row_failure_count"] == failure_count
+    assert summary["identified_row_count"] == 1
+    assert not any(
+        event.get("event") == "public_source_failure"
+        for event in observation["node_events"]
+    )
+    common_trace = [
+        json.loads(line)
+        for line in (evidence_root / observation["trace_ref"])
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(
+        event.get("operation") == "room_detail_button_click_error"
+        and event.get("scope") == "row"
+        and event.get("row_index") == 1
         and event.get("error_class") == "TimeoutError"
         for event in common_trace
     )
