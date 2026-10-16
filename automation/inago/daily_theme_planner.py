@@ -97,7 +97,7 @@ class DurableTrendsThemePlanner:
             ordinal=ordinal,
             theme_id=theme_id,
             seed=seed,
-            deadline_at=str(run[1]),
+            deadline_at=None,
             acquisition_id=acquisition_id,
         )
         acquisition = session.fetch(theme_word)

@@ -258,15 +258,19 @@ try {
     assert.equal(await page.locator('#source-28 figure').count(), 11);
     return { tasks: 10, aiRoles: 7, skills: 7, flows: 11, aiContractTests: 10 };
   });
-  await record('通常完了直後と17:45例外の表現照合', async () => {
-    for (const number of ['20', '22', '28']) {
-      const text = await page.locator(`#chapter-${number}`).textContent();
-      assert(['完了直後','終了直後','終わった直後'].some(expression => text.includes(expression))); assert(text.includes('17:45')); assert(text.includes('待')); assert(text.includes('打切') || text.includes('打ち切'));
-    }
+  await record('日次全体の時刻上限廃止と個別timeoutの表現照合', async () => {
+    const daily = await page.locator('#chapter-20').textContent();
+    assert(daily.includes('17:45/18:00を跨いでも'));
+    assert(daily.includes('個別request/process'));
+    assert(!daily.includes('17:45で前工程を'));
+    assert(!daily.includes('18:00は成果取得の終了上限'));
+    const dictionary = await page.locator('#chapter-28').textContent();
+    assert(dictionary.includes('deadline_at'));
+    assert(dictionary.includes('個別job/request'));
     const diagram = await page.locator('#task-F02 svg').textContent();
-    assert(diagram.includes('終わった直後')); assert(diagram.includes('待たず'));
-    assert(!html.includes('15達成なら早めに成果へ'));
-    return '20・22・28章とF02：完了直後の通常経路、長時間化だけ17:45打切り。';
+    assert(diagram.includes('17:45/18:00を跨いでも'));
+    assert(!html.includes('本文17:45まで、成果18:00まで。'));
+    return '20章・28章・F02：旧時刻を跨いだ継続、個別timeoutを確認。';
   });
   await record('根拠全文検索と文書内リンク', async () => {
     await page.locator('#reference-search').fill('U-20261003');

@@ -11,8 +11,8 @@ export function finalizeHtml(html, data, { markdown, figureCount }) {
     .replace('確定版1.0のイナゴスキル要件を', `正本${data.version}のイナゴスキル要件を`)
     .replace('要件確定 1.0</span>', `HTML正本 ${data.version}</span>`)
     .replace('2026.09.30 JST</span>', `${data.updated.replaceAll('-', '.')} JST</span>`)
-    .replace('本文17:45まで、成果18:00まで。', '前工程完了直後に成果へ。17:45は例外の打切り。')
-    .replace('>時間割</a>', '>通常と例外</a>')
+    .replace('日次全体の終了時刻上限なし。各requestは有限timeout。', '日次全体の終了時刻上限なし。各requestは有限timeout。')
+    .replace('>時間割</a>', '>日次の進行条件</a>')
     .replace('>確定MD</a>', '>正本の版情報</a>')
     .replace('>確定要件定義書（MD）</a>', '>正本の先頭</a>')
     .replace('図と要点は説明用、正式な条件・例外は各章の全文と', '旧確定履歴と本セッションの最終回答を統合。追加決定は27.1へ。正式な条件・例外は各章の全文と')
@@ -25,12 +25,12 @@ export function finalizeHtml(html, data, { markdown, figureCount }) {
 
   const names = Object.keys(data.references);
   const ids = new Map(names.map((name, index) => [name, `reference-${String(index + 1).padStart(2, '0')}`]));
-  let referenceHtml = '<section class="reference-library" aria-labelledby="library-heading"><h2 id="library-heading">辞書・追跡・根拠資料の全文</h2><p class="callout amber">辞書・追跡表は2.1へ更新済みです。自動処理はリポジトリ内から直接実行し、インストーラーと書込ACLによる起動条件は不要です。Trendsは初回込み最大5回、全失敗はテーマ単独ROOM検索へ進みます。共通traceは許可項目だけを保存し、1run 2048 event/4 MiB・90日保持を上限とし、書込不能はunavailableで示します。trace cleanupだけの失敗で確定済みSQLiteや日次業務成否を変えません。意思決定台帳とヒアリング記録には本人の確定指示だけを追記しています。その他は過去の検討経緯です。旧階層20/10・最大いいね代表・日次9検索/450投稿・対話専用AI-Oを現在の規則へ再適用しません。1検索先頭50投稿は確定条件です。本HTML2.1とU-20261013～16、27.1～27.6の追加・整合記録を優先します。</p><label for="reference-search">資料名・全文から検索</label><input id="reference-search" type="search" placeholder="例：成果 ／ D-052 ／ データ辞書"><p id="reference-count" role="status" aria-live="polite">全' + names.length + '資料</p>';
+  let referenceHtml = '<section class="reference-library" aria-labelledby="library-heading"><h2 id="library-heading">辞書・追跡・根拠資料の全文</h2><p class="callout amber">辞書・追跡表は2.6へ更新済みです。自動処理はリポジトリ内から直接実行し、インストーラーと書込ACLによる起動条件は不要です。Trendsは初回込み最大5回、全失敗はテーマ単独ROOM検索へ進みます。共通traceは許可項目だけを保存し、1run 2048 event/4 MiB・90日保持を上限とし、書込不能はunavailableで示します。trace cleanupだけの失敗で確定済みSQLiteや日次業務成否を変えません。意思決定台帳とヒアリング記録には本人の確定指示だけを追記しています。その他は過去の検討経緯です。旧階層20/10・最大いいね代表・日次9検索/450投稿・対話専用AI-Oを現在の規則へ再適用しません。1検索先頭50投稿は確定条件です。本HTML2.6、D-077/U-20261016-02、Trends関連見出しselector v3、27.9と追加・整合記録を優先します。</p><label for="reference-search">資料名・全文から検索</label><input id="reference-search" type="search" placeholder="例：成果 ／ D-052 ／ データ辞書"><p id="reference-count" role="status" aria-live="polite">全' + names.length + '資料</p>';
   for (const [name, id] of ids) {
     const bytes = Buffer.from(data.references[name], 'base64');
     const value = bytes.toString('utf8').replace(/\r\n/g, '\n');
-    const current = ['要件データ辞書.md', '要件追跡表.md', 'AT-TRACE-01_共通トレース契約.md'].includes(name);
-    referenceHtml += `<details class="reference-document" id="${id}" data-reference-name="${escape(name)}"><summary>${escape(name.replace(/\.md$/, ''))}${current ? ' — 2.1更新済み' : ' — 経緯・根拠'}</summary><p><a href="data:text/markdown;charset=utf-8;base64,${data.references[name]}" download="${escape(name)}">この根拠資料を保存</a></p>${current ? markdown(value) : `<pre class="reference-text"><span>${escape(value)}</span></pre>`}</details>`;
+    const current = ['要件データ辞書.md', '要件追跡表.md', '意思決定台帳.md', 'AT-TRACE-01_共通トレース契約.md'].includes(name);
+    referenceHtml += `<details class="reference-document" id="${id}" data-reference-name="${escape(name)}"><summary>${escape(name.replace(/\.md$/, ''))}${current ? ' — 2.5更新済み' : ' — 経緯・根拠'}</summary><p><a href="data:text/markdown;charset=utf-8;base64,${data.references[name]}" download="${escape(name)}">この根拠資料を保存</a></p>${current ? markdown(value) : `<pre class="reference-text"><span>${escape(value)}</span></pre>`}</details>`;
   }
   referenceHtml += '</section>';
   html = html.replace('<div class="top-link">', referenceHtml + '<div class="top-link">');

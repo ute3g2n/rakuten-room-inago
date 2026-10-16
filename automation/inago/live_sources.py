@@ -1219,7 +1219,7 @@ class PublicBrowserSource:
             return None
 
     def _request_timeout_seconds(self, request) -> float:
-        """Cap a browser process at the request's daily cutoff when supplied."""
+        """Use the optional request deadline or the configured finite timeout."""
 
         request_deadline = getattr(request, "deadline_at", None)
         if request_deadline is None:
@@ -1627,7 +1627,7 @@ class PublicBrowserSource:
                 ]
             for key, allowed in (
                 ("widget_scope", {"explore_related_queries"}),
-                ("widget_selector_version", {"related-widget-v2"}),
+                ("widget_selector_version", {"related-widget-v2", "related-widget-v3"}),
                 (
                     "widget_kind",
                     {"related_keywords", "related_topics", "unknown", "multiple"},

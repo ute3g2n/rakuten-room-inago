@@ -9,6 +9,7 @@ import pytest
 
 from automation.inago import orchestrator as daily
 from automation.inago import trends_adapter as trends
+from automation.inago.daily_theme_planner import DurableTrendsThemePlanner
 from automation.inago.trends_adapter import TrendsRequest, parse_grouped_top_response
 from tests_inago import test_step21_browser as browser_fixtures
 from tests_inago.test_step21_browser import ui_server
@@ -93,7 +94,7 @@ def _durable_session(
     *,
     ordinal: int,
     theme_id: str,
-    deadline_at: str = "2026-10-14T17:45:00+09:00",
+    deadline_at: str | None = "2026-10-14T17:45:00+09:00",
 ):
     return trends.DurableGroupKeywordSession(
         connection,
@@ -310,6 +311,88 @@ def test_n07(retry_case):
     assert daily._make_tasks([cutoff_plan], phase="initial", first_number=ordinal) == []
 
 
+def test_n07b_trends_retry_crosses_former_daily_cutoffs_with_bounded_timeouts(
+    retry_case, tmp_path, ui_server
+):
+    """Continue bounded Trends work across 17:45 and 18:00."""
+
+    connection, clock = retry_case
+    themes = [
+        {"theme_id": THEME_ID, "name": THEME_WORD},
+        {"theme_id": "T02", "name": "加湿器"},
+    ]
+    connection.execute(
+        "UPDATE settings_version SET themes_json=? WHERE version=?",
+        (json.dumps(themes, ensure_ascii=False), SETTINGS_VERSION),
+    )
+    _insert_theme_selection(connection, 2, "T02")
+    clock.advance(
+        (
+            datetime.fromisoformat("2026-10-14T17:44:30+09:00") - clock.now_jst()
+        ).total_seconds()
+    )
+
+    def http_429_retry_after_960(request):
+        payload = response_for(request, status="unavailable", error="http_429")
+        payload["retry_after_seconds"] = 960
+        return payload
+
+    success_port = SequencePort([http_429_retry_after_960, response_for])
+    success = _durable_session(
+        connection,
+        clock,
+        success_port,
+        ordinal=1,
+        theme_id=THEME_ID,
+        deadline_at=None,
+    ).fetch(THEME_WORD)
+
+    assert success.status == "response_ready"
+    assert success.snapshot is not None and success.snapshot.status == "observed"
+    assert len(success.snapshot.words) == 1
+    assert len(success_port.requests) == 2
+    assert [request.deadline_at for request in success_port.requests] == [None, None]
+    assert clock.now_jst() == datetime.fromisoformat("2026-10-14T18:00:30+09:00")
+    assert (
+        connection.execute(
+            "SELECT status FROM trends_acquisition WHERE acquisition_id=?",
+            (f"{RUN_ID}:initial:01:{THEME_ID}",),
+        ).fetchone()[0]
+        == "response_ready"
+    )
+
+    timeout_port = SequencePort(
+        [TimeoutError("bounded source timeout") for _ in range(5)]
+    )
+    timeout_plan = DurableTrendsThemePlanner(timeout_port, object(), clock).plan_theme(
+        connection,
+        run_id=RUN_ID,
+        settings_version=SETTINGS_VERSION,
+        event_kind="initial",
+        ordinal=2,
+        theme_id="T02",
+        seed="SEED-1",
+    )
+    assert timeout_plan.acquisition_status == "exhausted"
+    assert timeout_plan.fallback is not None
+    assert len(timeout_port.requests) == trends.DurableGroupKeywordSession.MAX_ATTEMPTS
+    assert [request.deadline_at for request in timeout_port.requests] == [None] * 5
+    assert connection.execute(
+        "SELECT status,attempts_used,error_code FROM trends_acquisition "
+        "WHERE acquisition_id=?",
+        (f"{RUN_ID}:initial:02:T02",),
+    ).fetchone()[:] == ("exhausted", 5, "source_timeout")
+    assert clock.now_jst() == datetime.fromisoformat("2026-10-14T18:04:30+09:00")
+
+    timeout_configured_source = browser_fixtures.source(tmp_path, ui_server, timeout=4)
+    assert (
+        timeout_configured_source._request_timeout_seconds(
+            TrendsRequest("N07B-TIMEOUT", RUN_ID, SETTINGS_VERSION, THEME_WORD)
+        )
+        == 4
+    )
+
+
 def _n08_period_page(base_html: str, *, on_period_selected: str = "") -> str:
     page = browser_fixtures.trends_with_period_picker(base_html)
     if not on_period_selected:
@@ -480,3 +563,33 @@ def test_n08(tmp_path, ui_server):
     assert exact_ready["widget_kind"] == "related_keywords"
     assert exact_ready["widget_match_count"] == 1
     assert exact_ready["widget_match_visible_count"] == 1
+
+
+def test_n08b_related_keyword_heading_alias_and_semantic_level(tmp_path, ui_server):
+    """Recognize a related-keyword heading when the UI uses a semantic h3 alias."""
+
+    alias = browser_fixtures.trends_html(count=20).replace(
+        '<div class="fe-related-queries"><h2>関連キーワード</h2>',
+        '<div class="fe-related-queries"><h3>関連する検索キーワード</h3>',
+    )
+    page = _n08_period_page(
+        alias,
+        on_period_selected=(
+            "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
+            ".find(item=>item.querySelector('h3')?.textContent.trim()==='関連する検索キーワード');"
+            "if(widget)widget.querySelectorAll('.label-text span').forEach((row,index)=>"
+            "row.textContent='期間反映語'+(index+1))},50)"
+        ),
+    )
+    snapshot, response, events = _n08_fetch(tmp_path, ui_server, "heading-alias", page)
+
+    assert snapshot.status == "observed", response.get("error_code")
+    assert [word.source_rank for word in snapshot.words] == list(range(1, 21))
+    ready = next(
+        event
+        for event in events
+        if event.get("stage") == "trends_related_widget_wait_ready"
+    )
+    assert ready["widget_selector_version"] == "related-widget-v3"
+    assert ready["widget_kind"] == "related_keywords"
+    assert ready["related_widget_generation"] > ready["generation_before_period"]

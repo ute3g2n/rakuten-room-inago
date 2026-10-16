@@ -24,7 +24,7 @@ const PRODUCT_DESTINATION_TIMEOUT_MS = 30000;
 const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
-const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v2';
+const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v3';
 let activeTrace = {stage:'startup',row_index:null};
 let traceEventCount = 0;
 let traceSuppressionWritten = false;
@@ -726,6 +726,17 @@ async function emptyEvidence(widget) {
 
 async function installTrendsWidgetObserver(page) {
   await page.addInitScript(() => {
+    const kindFor = widget => {
+      const heading = widget.querySelector('h2,h3,[role="heading"]')?.textContent ?? '';
+      const label = heading.normalize('NFKC').replace(/\s/g,'').toLocaleLowerCase('ja');
+      if ((label.includes('関連') && label.includes('トピック')) ||
+          /related.*topics?/i.test(label)) return 'related_topics';
+      if ((label.includes('関連') && /キーワード|検索|クエリ/.test(label)) ||
+          /related.*(?:keywords?|queries|search(?:es)?)/i.test(label))
+        return 'related_keywords';
+      return 'unknown';
+    };
+    window.__inagoTrendsWidgetKind = kindFor;
     const widgetFor = node => {
       const element = node instanceof Element ? node : node?.parentElement;
       if (!element) return null;
@@ -734,13 +745,13 @@ async function installTrendsWidgetObserver(page) {
     };
     const isRelatedKeywordNode = node => {
       const widget = widgetFor(node);
-      return widget?.querySelector('h2')?.textContent.trim() === '関連キーワード';
+      return widget !== null && kindFor(widget) === 'related_keywords';
     };
     const containsRelatedKeyword = node => {
       if (!(node instanceof Element)) return false;
       return isRelatedKeywordNode(node) ||
         Array.from(node.querySelectorAll('.fe-related-queries')).some(widget =>
-          widget.querySelector('h2')?.textContent.trim() === '関連キーワード');
+          kindFor(widget) === 'related_keywords');
     };
     window.__inagoTrendsWidgetGeneration = 0;
     const observer = new MutationObserver(records => {
@@ -761,6 +772,7 @@ async function installTrendsWidgetObserver(page) {
 
 async function relatedWidgetState(page) {
   return await page.evaluate(() => {
+    const kindFor = widget => window.__inagoTrendsWidgetKind?.(widget) ?? 'unknown';
     const isVisible = element => {
       if (!element.isConnected) return false;
       const style = getComputedStyle(element);
@@ -769,9 +781,7 @@ async function relatedWidgetState(page) {
     };
     const widgets = Array.from(document.querySelectorAll('.fe-related-queries'));
     const records = widgets.map(element => {
-      const heading = element.querySelector('h2')?.textContent.trim() ?? '';
-      const kind = heading === '関連キーワード' ? 'related_keywords' :
-        heading === '関連トピック' ? 'related_topics' : 'unknown';
+      const kind = kindFor(element);
       const visible = isVisible(element);
       const empty = visible && Array.from(element.querySelectorAll('*')).some(node =>
         isVisible(node) && !node.closest('a.progress-label') &&
@@ -821,7 +831,9 @@ async function waitForRelatedWidget(page, check, deadline, generationBeforePerio
       state.related_widget_generation > generationBeforePeriod;
     if (state.widget_match_visible_count === 1 && periodUpdated) {
       const widget = page.locator('.fe-related-queries').filter({
-        has:page.getByRole('heading',{name:'関連キーワード',exact:true}),
+        has:page.getByRole('heading',{
+          name:/関連.*(?:キーワード|検索|クエリ)|related.*(?:keywords?|queries|search(?:es)?)/i,
+        }),
       }).filter({visible:true});
       if (await widget.count() !== 1) {
         trace('trends_related_widget_contract_error',{
@@ -1001,7 +1013,7 @@ export async function collectTrends(page, request, config, deadline, access) {
       trace('trends_top_rows_wait_begin');
       await waitDOM(page,check, previous => {
         const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e=>
-          e.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+          window.__inagoTrendsWidgetKind?.(e) === 'related_keywords' &&
           getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0);
         const current = Array.from(widget?.querySelectorAll('a.progress-label') ?? []).map(e=>e.textContent);
         return JSON.stringify(current) !== JSON.stringify(previous) && current.length > 0;
@@ -1029,7 +1041,7 @@ export async function collectTrends(page, request, config, deadline, access) {
         // Keep its identity until either new rows or a replacement empty exists.
         await page.waitForFunction(old=>!old.isConnected ||
           Array.from(document.querySelectorAll('.fe-related-queries')).some(widget=>
-            widget.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+            window.__inagoTrendsWidgetKind?.(widget) === 'related_keywords' &&
             getComputedStyle(widget).display !== 'none' &&
             Array.from(widget.querySelectorAll('a.progress-label')).some(e=>e.getClientRects().length)),
           priorEmptyHandle,{timeout:Math.max(1,deadline-Date.now())});
@@ -1039,7 +1051,7 @@ export async function collectTrends(page, request, config, deadline, access) {
     }
     await waitDOM(page,check, n => {
       const widget = Array.from(document.querySelectorAll('.fe-related-queries')).find(e =>
-        e.querySelector('h2')?.textContent.trim() === '関連キーワード' &&
+        window.__inagoTrendsWidgetKind?.(e) === 'related_keywords' &&
         getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0);
       const ranks = Array.from(widget?.querySelectorAll('a.progress-label .label-line-number') ?? []).map(e=>Number(e.textContent.trim()));
       return ranks.length > 0 && ranks.every((rank,i)=>rank === n+i+1);

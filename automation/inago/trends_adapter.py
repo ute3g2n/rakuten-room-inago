@@ -1898,7 +1898,7 @@ class DurableGroupKeywordSession:
         ordinal: int,
         theme_id: str,
         seed: str,
-        deadline_at: str,
+        deadline_at: str | None = None,
         acquisition_id: str,
     ) -> None:
         self.connection = connection
@@ -1910,7 +1910,11 @@ class DurableGroupKeywordSession:
         self.ordinal = ordinal
         self.theme_id = _required_text(theme_id, "theme_id")
         self.seed = _required_text(seed, "seed")
-        self.deadline_at = _parse_aware_datetime(deadline_at, "deadline_at")
+        self.deadline_at = (
+            _parse_aware_datetime(deadline_at, "deadline_at")
+            if deadline_at is not None
+            else None
+        )
         self.acquisition_id = _required_text(acquisition_id, "acquisition_id")
         for value, field in (
             (self.run_id, "run_id"),
@@ -1990,21 +1994,25 @@ class DurableGroupKeywordSession:
                 now = self.clock.now_jst()
                 if now.tzinfo is None or now.utcoffset() is None:
                     raise TrendsContractError("retry clock must return an aware time")
-                now = now.astimezone(self.deadline_at.tzinfo)
-                if retry_at > self.deadline_at or now >= self.deadline_at:
-                    self._set_acquisition_status(
-                        "deadline", retry_at.isoformat(), "retry_after_deadline"
-                    )
-                    return TrendsAcquisitionResult(
-                        self.acquisition_id,
-                        "deadline",
-                        attempts_used,
-                        None,
-                        retry_at.isoformat(),
-                    )
+                now = now.astimezone(retry_at.tzinfo)
+                if self.deadline_at is not None:
+                    now_at_deadline = now.astimezone(self.deadline_at.tzinfo)
+                    if (
+                        retry_at > self.deadline_at
+                        or now_at_deadline >= self.deadline_at
+                    ):
+                        self._set_acquisition_status(
+                            "deadline", retry_at.isoformat(), "retry_after_deadline"
+                        )
+                        return TrendsAcquisitionResult(
+                            self.acquisition_id,
+                            "deadline",
+                            attempts_used,
+                            None,
+                            retry_at.isoformat(),
+                        )
                 self.clock.wait(max(0.0, (retry_at - now).total_seconds()))
-                now = self.clock.now_jst().astimezone(self.deadline_at.tzinfo)
-                if now >= self.deadline_at:
+                if self._deadline_reached():
                     self._set_acquisition_status(
                         "deadline", retry_at.isoformat(), "retry_after_deadline"
                     )
@@ -2019,7 +2027,7 @@ class DurableGroupKeywordSession:
             now = self.clock.now_jst()
             if now.tzinfo is None or now.utcoffset() is None:
                 raise TrendsContractError("retry clock must return an aware time")
-            if now.astimezone(self.deadline_at.tzinfo) >= self.deadline_at:
+            if self._deadline_reached():
                 self._set_acquisition_status("deadline", None, "daily_cutoff")
                 return TrendsAcquisitionResult(
                     self.acquisition_id, "deadline", attempts_used, None
@@ -2161,9 +2169,7 @@ class DurableGroupKeywordSession:
             wait_seconds = max(
                 self.MIN_RETRY_SECONDS, retry_after if retry_after is not None else 0
             )
-            retry_at = self.clock.now_jst().astimezone(
-                self.deadline_at.tzinfo
-            ) + timedelta(seconds=wait_seconds)
+            retry_at = self.clock.now_jst() + timedelta(seconds=wait_seconds)
             next_retry = (
                 retry_at.isoformat() if attempts_used + 1 < self.MAX_ATTEMPTS else None
             )
@@ -2171,7 +2177,7 @@ class DurableGroupKeywordSession:
                 acquisition_status = "exhausted"
                 acquisition_next_retry_at = None
                 acquisition_error_code = source_error or "attempt_budget_exhausted"
-            elif retry_at > self.deadline_at:
+            elif self.deadline_at is not None and retry_at > self.deadline_at:
                 acquisition_status = "deadline"
                 acquisition_next_retry_at = retry_at.isoformat()
                 acquisition_error_code = "retry_after_deadline"
@@ -2193,7 +2199,7 @@ class DurableGroupKeywordSession:
                 return TrendsAcquisitionResult(
                     self.acquisition_id, "exhausted", attempts_used + 1, None
                 )
-            if retry_at > self.deadline_at:
+            if self.deadline_at is not None and retry_at > self.deadline_at:
                 return TrendsAcquisitionResult(
                     self.acquisition_id,
                     "deadline",
@@ -2240,7 +2246,7 @@ class DurableGroupKeywordSession:
         self._set_acquisition_status(status, None, None, snapshot.snapshot_id)
 
     def expire_pending_response_at_deadline(self) -> bool:
-        """Discard a saved success if it is first resumed at or after 17:45."""
+        """Discard a saved success only when its optional cutoff has passed."""
 
         row = self._load_acquisition()
         if row["status"] == "deadline":
@@ -2276,10 +2282,15 @@ class DurableGroupKeywordSession:
         return True
 
     def _deadline_reached(self) -> bool:
+        if self.deadline_at is None:
+            return False
         now = self.clock.now_jst()
         if now.tzinfo is None or now.utcoffset() is None:
             raise TrendsContractError("retry clock must return an aware time")
         return now.astimezone(self.deadline_at.tzinfo) >= self.deadline_at
+
+    def _request_deadline_at(self) -> str | None:
+        return self.deadline_at.isoformat() if self.deadline_at is not None else None
 
     def _ensure_acquisition(self, query: str) -> None:
         event_id = f"theme-selection:{self.run_id}:{self.event_kind}:{self.ordinal:02d}"
@@ -2384,7 +2395,7 @@ class DurableGroupKeywordSession:
             self.settings_version,
             query,
             range="3m",
-            deadline_at=self.deadline_at.isoformat(),
+            deadline_at=self._request_deadline_at(),
         )
 
     def _mark_abandoned_attempt_if_any(self) -> None:
@@ -2408,7 +2419,7 @@ class DurableGroupKeywordSession:
                 self.settings_version,
                 acquisition["query_word"],
                 range="3m",
-                deadline_at=self.deadline_at.isoformat(),
+                deadline_at=self._request_deadline_at(),
             )
             retry_after = _retry_after_seconds(saved_response)
             response = {
@@ -2484,16 +2495,18 @@ class DurableGroupKeywordSession:
                     self.MIN_RETRY_SECONDS,
                     retry_after if retry_after is not None else 0,
                 )
-                retry_at = self.clock.now_jst().astimezone(
-                    self.deadline_at.tzinfo
-                ) + timedelta(seconds=wait_seconds)
+                retry_at = self.clock.now_jst() + timedelta(seconds=wait_seconds)
                 if next_number <= self.MAX_ATTEMPTS:
                     next_retry = retry_at.isoformat()
             if next_number > self.MAX_ATTEMPTS:
                 acquisition_status = "exhausted"
                 acquisition_next_retry_at = None
                 acquisition_error_code = source_error
-            elif retry_at is not None and retry_at > self.deadline_at:
+            elif (
+                self.deadline_at is not None
+                and retry_at is not None
+                and retry_at > self.deadline_at
+            ):
                 acquisition_status = "deadline"
                 acquisition_next_retry_at = retry_at.isoformat()
                 acquisition_error_code = "retry_after_deadline"
@@ -2513,8 +2526,7 @@ class DurableGroupKeywordSession:
             )
             return
         retry_at = (
-            self.clock.now_jst().astimezone(self.deadline_at.tzinfo)
-            + timedelta(seconds=self.MIN_RETRY_SECONDS)
+            self.clock.now_jst() + timedelta(seconds=self.MIN_RETRY_SECONDS)
         ).isoformat()
 
         def mark():
@@ -2557,7 +2569,7 @@ class DurableGroupKeywordSession:
                     self.settings_version,
                     str(acquisition["query_word"]),
                     range="3m",
-                    deadline_at=self.deadline_at.isoformat(),
+                    deadline_at=self._request_deadline_at(),
                 )
                 captured = capture_observation(
                     request,
@@ -2680,7 +2692,7 @@ class DurableGroupKeywordSession:
             self.settings_version,
             row["query_word"],
             range="3m",
-            deadline_at=self.deadline_at.isoformat(),
+            deadline_at=self._request_deadline_at(),
         )
         snapshot = parse_grouped_top_response(
             json.loads(saved["response_json"]), request
@@ -2712,7 +2724,7 @@ class DurableGroupKeywordSession:
             self.settings_version,
             row["query_word"],
             range="3m",
-            deadline_at=self.deadline_at.isoformat(),
+            deadline_at=self._request_deadline_at(),
         )
         stored = load_grouped_snapshot(
             self.connection, row["snapshot_id"], request=request
