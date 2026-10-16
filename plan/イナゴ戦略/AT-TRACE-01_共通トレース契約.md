@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.11、§8・§27.6～27.12・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F08/F11、STEP R03/R05/R06/R07/R08。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
+正本：要件定義書HTML 2.12、§8・§27.6～27.12・§28.4/28.7。対応：IR-004/008/010/018/019/021/028、F02/F03/F04/F05/F07/F08/F11、STEP R03/R05/R06/R07/R08/R09。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを追加しない。
 
 ## 共通イベント
 
@@ -71,6 +71,26 @@ ROOM詳細解決は受理した元の先頭50枠を維持する。個別行のcl
 | N14 | 1行/10行のdetail click TimeoutError、後続行は成功 | row scopeで未解決行を元位置に残し、残行を続ける。summary failure/identified countとhealthy common traceが一致する。 |
 | N15 | 11行失敗と50行目失敗を含む80行一覧 | 11件でpartial、50番目の失敗枠を保持し、51番目以降で穴埋めしない。 |
 | N16 | shared deadline/auth/condition/restore/stale/empty/short-listと同task再試行 | query failureはrow scopeへ落とさず、明示0件・3回安定終了・3attempt停止理由を正確に保持する。 |
+
+## AI turn identity・契約拒否・再開診断（STEP R09）
+
+各root turnは新しいjobとして扱う。AI-Oはそのturnの`job-input.json`にあるprotocol/schema/run/job/attempt/task/agent/skill/date/settings/input_refs/evidence_refs/input_hash/deadlineをそのまま用い、前turnのidentity/hashを持ち越さない。保存担当は応答を現在requestのidentityと厳密に照合し、最初の不一致fieldをcauseとして記録する。`input_hash`や別identityを期待値へ書き換えず、validatorを緩めない。
+
+copy lifecycle traceは`ai_result_received`、`ai_contract_rejected`、再開時の`contract_rejection_resumed`/`expired_attempt_resumed`を記録する。契約拒否eventはrunnerが応答した後のため`ai_run_invoked=true`、どちらの再開eventも新たなrunner呼出しをしないため`false`とする。許可する診断fieldは`attempt_no`（1..3）、`status`、safe `error_code`、safe `cause_code`、safe `artifact_ref`、`ai_run_invoked`（boolean）。wrapperの`copy_runner_contract_rejected`とcause（例：`input_hash`）は別値とし、artifact参照は保存済みraw responseを指す。日次checkpointのcopy error referencesにも、記録済みの場合だけ同じcause/artifact refを保持する。値が不正なartifact_refはtraceへ出さず、responseを未採用のcontract errorとして停止する。自由文、prompt、response body、本文、URL、DOM、credentialは記録しない。
+
+契約不一致はAI生成error/empty retryとして扱わず、draft/active reservation/committed countを増やさず、orchestratorの最上位結果へ停止理由を伝える。DB保存だけが失敗した場合は保存済み応答artifactを同じidentityで再利用し、AIを再呼出ししない。empty/generation errorだけは初回込み最大3回とする。再開時にcheckpoint保存前の契約拒否を読む場合、`generation_attempt`と対応するroot `ai_job.error_json`からcause/artifactを復元し、参照不一致や不正値は引き継がない。
+
+| Node | 注入 | 合格条件 |
+|---|---|---|
+| N17 | draft14/予約14の後、current requestと異なるinput_hashを返す | raw response artifactと`input_hash` causeを保持し、契約errorを最上位へ伝播。draft/予約/countは14のまま。 |
+| N18 | 同一root内でKEY→COPY A→COPY Bを異なるturn identity/refsで実行 | 各turnが現在のjob-inputに合うhash/refsで応答し、native parentと採用件数を区別する。 |
+| N19 | empty→generation error→success、および保存失敗からの再開 | 生成は最大3、保存失敗では同一response/artifactで再開し、生成を繰り返さない。 |
+| R09 review recovery | checkpoint前の契約拒否後に同じ商品を再開する | 新しいAI呼出しなしでcause/artifactを復元し、`contract_rejection_resumed`に記録する。 |
+| R09 review invalid-ref | 非文字列artifact_refを返す | trace書込みを例外で中断せず、attemptをerror確定し、`artifact_ref` cause付きcontract errorで停止する。 |
+| R09 review invocation | runnerが契約不一致応答を返す | `ai_contract_rejected`に`ai_run_invoked=true`を記録する。 |
+| R09 review expired resume | timeout結果を保存した後に同じ商品を再開する | `expired_attempt_resumed`へ記録し、契約拒否再開eventとして誤分類しない。 |
+
+これらはAI/保存境界の追加診断契約であり、業務DBの新列やschema migrationを求めない。完全node ID・attempt履歴・N17/N18/N19/L03と追加review nodeの隔離証拠はM §14.13およびT/R09へ保存し、PASS済みnodeはR15まで再実行しない。
 
 ## 受入node
 

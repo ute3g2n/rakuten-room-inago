@@ -103,6 +103,8 @@ class CopyGenerationOutcome:
     resumed: bool = False
     error_code: str | None = None
     export_error: str | None = None
+    cause_code: str | None = None
+    artifact_ref: str | None = None
 
 
 def _timestamp(clock: Clock) -> str:
@@ -110,6 +112,13 @@ def _timestamp(clock: Clock) -> str:
     if now.tzinfo is None or now.utcoffset() is None:
         raise RejectedContract("copy clock must return an offset-aware time")
     return now.isoformat()
+
+
+def _is_safe_artifact_ref(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", value) is not None
+    )
 
 
 def _trace_copy_event(
@@ -121,6 +130,7 @@ def _trace_copy_event(
     attempt_no: int | None = None,
     status: str | None = None,
     error_code: str | None = None,
+    cause_code: str | None = None,
     artifact_ref: str | None = None,
     ai_run_invoked: bool | None = None,
 ) -> None:
@@ -143,9 +153,11 @@ def _trace_copy_event(
         r"[A-Za-z0-9._:-]{1,128}", error_code
     ):
         record["error_code"] = error_code
-    if artifact_ref is not None and re.fullmatch(
-        r"[A-Za-z0-9._:-]{1,128}", artifact_ref
+    if isinstance(cause_code, str) and re.fullmatch(
+        r"[A-Za-z0-9._:-]{1,128}", cause_code
     ):
+        record["cause_code"] = cause_code
+    if _is_safe_artifact_ref(artifact_ref):
         record["artifact_ref"] = artifact_ref
     if ai_run_invoked is not None:
         record["ai_run_invoked"] = ai_run_invoked
@@ -307,8 +319,14 @@ def _root_record(
     *,
     finished_at: str,
     error_code: str | None = None,
+    cause_code: str | None = None,
 ) -> dict[str, Any]:
     if result is None:
+        recorded_error: dict[str, str] = {"code": error_code or "runner_error"}
+        if isinstance(cause_code, str) and re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", cause_code
+        ):
+            recorded_error["cause_code"] = cause_code
         return {
             "job_id": request.job_id,
             "run_id": request.run_id,
@@ -331,11 +349,26 @@ def _root_record(
             "auth_mode": "unobserved",
             "result_status": "error",
             "payload": None,
-            "error": {"code": error_code or "runner_error"},
+            "error": recorded_error,
             "artifact_ref": None,
             "accepted_at": None,
             "adoption_status": "pending",
         }
+    recorded_error = result.error
+    if error_code:
+        recorded_error = {"code": error_code}
+        root_cause_code = cause_code or (
+            result.error.get("code") if isinstance(result.error, Mapping) else None
+        )
+        if isinstance(root_cause_code, str) and re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", root_cause_code
+        ):
+            recorded_error["cause_code"] = root_cause_code
+        artifact_ref = result.artifact.artifact_ref if result.artifact else None
+        if isinstance(artifact_ref, str) and re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", artifact_ref
+        ):
+            recorded_error["artifact_ref"] = artifact_ref
     return {
         "job_id": result.job_id,
         "run_id": result.run_id,
@@ -358,7 +391,7 @@ def _root_record(
         "auth_mode": result.auth_mode,
         "result_status": result.result_status,
         "payload": result.payload,
-        "error": ({"code": error_code} if error_code else result.error),
+        "error": recorded_error,
         "artifact_ref": result.artifact.artifact_ref if result.artifact else None,
         "accepted_at": None,
         "adoption_status": result.adoption_status,
@@ -667,13 +700,18 @@ def _persist_attempt_result(
     root: AIJobResult | None,
     outcome: Literal["success", "empty", "error"],
     error_code: str | None,
+    cause_code: str | None = None,
     clock: Clock,
     artifacts: tuple[ArtifactRecord, ...] = (),
     copy_record: Mapping[str, Any] | None = None,
 ) -> str:
     finished_at = _timestamp(clock)
     root_record = _root_record(
-        request, root, finished_at=finished_at, error_code=error_code
+        request,
+        root,
+        finished_at=finished_at,
+        error_code=error_code,
+        cause_code=cause_code,
     )
     copy_job_id = copy_record.get("job_id") if copy_record is not None else None
     records: tuple[Mapping[str, Any], ...] = (
@@ -897,6 +935,47 @@ def generate_and_commit_copy(
             if latest["error_code"] in {"late_result", "timed_out", "cancelled"}
             else "contract_error"
         )
+        artifact_ref = (
+            latest["artifact_ref"]
+            if _is_safe_artifact_ref(latest["artifact_ref"])
+            else None
+        )
+        cause_code = None
+        root_job = connection.execute(
+            "SELECT error_json, artifact_ref FROM ai_job "
+            "WHERE job_id=? AND run_id=? AND agent_id='AI-O'",
+            (_root_job_id(latest["generation_attempt_id"]), spec.run_id),
+        ).fetchone()
+        if root_job is not None:
+            if root_job["artifact_ref"] != artifact_ref:
+                artifact_ref = None
+            try:
+                root_error = json.loads(root_job["error_json"] or "null")
+            except (TypeError, json.JSONDecodeError):
+                root_error = None
+            if isinstance(root_error, Mapping):
+                recorded_cause = root_error.get("cause_code")
+                if isinstance(recorded_cause, str) and re.fullmatch(
+                    r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", recorded_cause
+                ):
+                    cause_code = recorded_cause
+        resumed_event = (
+            "expired_attempt_resumed"
+            if status == "expired"
+            else "contract_rejection_resumed"
+        )
+        _trace_copy_event(
+            data_root,
+            spec,
+            resumed_event,
+            clock=system_clock,
+            attempt_no=attempts_used,
+            status=status,
+            error_code=latest["error_code"],
+            cause_code=cause_code,
+            artifact_ref=artifact_ref,
+            ai_run_invoked=False,
+        )
         return CopyGenerationOutcome(
             status=status,
             commit_result=None,
@@ -904,6 +983,8 @@ def generate_and_commit_copy(
             attempt_no=attempts_used,
             resumed=True,
             error_code=latest["error_code"],
+            cause_code=cause_code,
+            artifact_ref=artifact_ref,
         )
 
     for attempt_no in range(attempts_used + 1, 4):
@@ -971,6 +1052,12 @@ def generate_and_commit_copy(
                 error_code=error_code,
             )
 
+        root_artifact = getattr(root, "artifact", None)
+        root_artifact_ref = getattr(root_artifact, "artifact_ref", None)
+        malformed_artifact_ref = root_artifact is not None and (
+            not isinstance(root_artifact, ArtifactRecord)
+            or not _is_safe_artifact_ref(root_artifact_ref)
+        )
         _trace_copy_event(
             data_root,
             spec,
@@ -983,11 +1070,17 @@ def generate_and_commit_copy(
                 if isinstance(root, AIJobResult) and isinstance(root.error, Mapping)
                 else None
             ),
+            artifact_ref=root_artifact_ref,
             ai_run_invoked=True,
         )
 
-        if not isinstance(root, AIJobResult) or not _root_matches(request, root):
+        if (
+            not isinstance(root, AIJobResult)
+            or not _root_matches(request, root)
+            or malformed_artifact_ref
+        ):
             error_code = "copy_runner_result_invalid"
+            cause_code = "artifact_ref" if malformed_artifact_ref else None
             _persist_attempt_result(
                 connection,
                 attempt=attempt,
@@ -995,7 +1088,19 @@ def generate_and_commit_copy(
                 root=None,
                 outcome="error",
                 error_code=error_code,
+                cause_code=cause_code,
                 clock=system_clock,
+            )
+            _trace_copy_event(
+                data_root,
+                spec,
+                "ai_contract_rejected",
+                clock=system_clock,
+                attempt_no=attempt_no,
+                status="error",
+                error_code=error_code,
+                cause_code=cause_code,
+                ai_run_invoked=True,
             )
             return CopyGenerationOutcome(
                 status="contract_error",
@@ -1003,6 +1108,7 @@ def generate_and_commit_copy(
                 attempts_used=attempts_used,
                 attempt_no=attempt_no,
                 error_code=error_code,
+                cause_code=cause_code,
             )
 
         if root.result_status in {"late_result", "timed_out", "cancelled"}:
@@ -1026,6 +1132,21 @@ def generate_and_commit_copy(
 
         if root.adoption_status in {"rejected_contract", "conflict", "expired"}:
             error_code = "copy_runner_contract_rejected"
+            cause_code = (
+                root.error.get("code")
+                if isinstance(root.error, Mapping)
+                and isinstance(root.error.get("code"), str)
+                and re.fullmatch(
+                    r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}",
+                    root.error["code"],
+                )
+                else None
+            )
+            artifact_ref = root.artifact.artifact_ref if root.artifact else None
+            if not isinstance(artifact_ref, str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", artifact_ref
+            ):
+                artifact_ref = None
             _persist_attempt_result(
                 connection,
                 attempt=attempt,
@@ -1035,12 +1156,26 @@ def generate_and_commit_copy(
                 error_code=error_code,
                 clock=system_clock,
             )
+            _trace_copy_event(
+                data_root,
+                spec,
+                "ai_contract_rejected",
+                clock=system_clock,
+                attempt_no=attempt_no,
+                status="error",
+                error_code=error_code,
+                cause_code=cause_code,
+                artifact_ref=artifact_ref,
+                ai_run_invoked=True,
+            )
             return CopyGenerationOutcome(
                 status="contract_error",
                 commit_result=None,
                 attempts_used=attempts_used,
                 attempt_no=attempt_no,
                 error_code=error_code,
+                cause_code=cause_code,
+                artifact_ref=artifact_ref,
             )
 
         if root.result_status in {"empty", "error"}:

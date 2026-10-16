@@ -101,6 +101,33 @@ class _CopySpecContractRejected(DailyOrchestrationError):
         super().__init__(self.error_code)
 
 
+class _CopyContractRejected(DailyOrchestrationError):
+    """A rejected AI copy result with safe cause and artifact references."""
+
+    def __init__(
+        self,
+        *,
+        run_id: str,
+        offer_key: str,
+        error_code: str,
+        cause_code: str | None,
+        artifact_ref: str | None,
+    ):
+        self.phase = "copy"
+        self.error_code = (
+            error_code
+            if isinstance(error_code, str)
+            and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", error_code)
+            else "copy_contract_rejected"
+        )
+        self.references = {"run_id": run_id, "offer_key": offer_key}
+        if cause_code is not None:
+            self.references["cause_code"] = cause_code
+        if artifact_ref is not None:
+            self.references["artifact_ref"] = artifact_ref
+        super().__init__(self.error_code)
+
+
 class _CancelRunWork:
     """Cancel one owned job at most once and retain explicit cancellation evidence."""
 
@@ -593,13 +620,21 @@ def _append_error(
             safe_references["run_id"] = run_id
         if isinstance(offer_key, str) and _SAFE_ACQUISITION_REF.fullmatch(offer_key):
             safe_references["offer_key"] = offer_key
+        cause_code = references.get("cause_code")
+        if isinstance(cause_code, str) and _SAFE_ACQUISITION_REF.fullmatch(cause_code):
+            safe_references["cause_code"] = cause_code
+        artifact_ref = references.get("artifact_ref")
+        if isinstance(artifact_ref, str) and _SAFE_ACQUISITION_REF.fullmatch(
+            artifact_ref
+        ):
+            safe_references["artifact_ref"] = artifact_ref
         if safe_references:
             item["references"] = safe_references
     errors.append(item)
 
 
 def _record_orchestration_error(state: dict[str, Any], exc: Exception) -> None:
-    if isinstance(exc, _CopySpecContractRejected):
+    if isinstance(exc, (_CopySpecContractRejected, _CopyContractRejected)):
         _append_error(
             state,
             exc.phase,
@@ -1676,6 +1711,14 @@ def _process_search_result(
             raise DailyOrchestrationError(
                 f"copy_resume_required:{outcome.error_code or outcome.status}"
             )
+        elif outcome.status == "contract_error":
+            raise _CopyContractRejected(
+                run_id=run_id,
+                offer_key=offer_key,
+                error_code=outcome.error_code or "copy_contract_rejected",
+                cause_code=outcome.cause_code,
+                artifact_ref=outcome.artifact_ref,
+            )
         else:
             _mark_offer_handled(state, offer_key)
             state["error_count"] = int(state.get("error_count", 0)) + 1
@@ -2241,6 +2284,7 @@ def run_daily(
         )
 
         orchestration_failed = False
+        contract_error_reason: str | None = None
         try:
             report_import = import_offline_report_batches(
                 connection,
@@ -2382,6 +2426,8 @@ def run_daily(
                 )
         except Exception as exc:
             orchestration_failed = True
+            if isinstance(exc, _CopyContractRejected):
+                contract_error_reason = exc.error_code
             state["error_count"] = int(state.get("error_count", 0)) + 1
             state["recoverable_error_pending"] = True
             _record_orchestration_error(state, exc)
@@ -2401,14 +2447,17 @@ def run_daily(
             status, reason = "complete", "daily_target_reached"
         elif count > 0:
             status = "partial"
-            reason = (
+            reason = contract_error_reason or (
                 "draft_cutoff_1745"
                 if _now(system_clock)
                 >= _at(date.fromisoformat(target_date), DRAFT_CUTOFF)
                 else "daily_interrupted_or_candidate_shortage"
             )
         elif int(state.get("error_count", 0)) or int(state.get("source_failures", 0)):
-            status, reason = "failed", "daily_processing_error"
+            status, reason = (
+                "failed",
+                contract_error_reason or "daily_processing_error",
+            )
         else:
             status = "shortfall"
             reason = (
