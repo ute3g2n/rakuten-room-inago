@@ -2100,7 +2100,12 @@ def run_daily(
             event_kind="retention_applied",
             status="success",
         )
-        if retention.trace_cleanup_failures:
+        if (
+            retention.trace_cleanup_failures
+            or retention.source_observation_deletion_failures
+            or retention.file_deletion_failures
+            or retention.unregistered_failure_artifact_cleanup_failures
+        ):
             run_trace.mark_degraded()
         logging.getLogger(__name__).info(
             "daily_retention_applied",
@@ -2116,6 +2121,12 @@ def run_daily(
                 "source_observation_deletion_failures": (
                     retention.source_observation_deletion_failures
                 ),
+                "expired_unregistered_failure_artifacts": (
+                    retention.expired_unregistered_failure_artifacts
+                ),
+                "unregistered_failure_artifact_cleanup_failures": (
+                    retention.unregistered_failure_artifact_cleanup_failures
+                ),
                 "expired_trace_events": retention.expired_trace_events,
                 "expired_trace_files": retention.expired_trace_files,
                 "trace_cleanup_failures": retention.trace_cleanup_failures,
@@ -2125,6 +2136,7 @@ def run_daily(
         if (
             retention.source_observation_deletion_failures
             or retention.file_deletion_failures
+            or retention.unregistered_failure_artifact_cleanup_failures
         ):
             raise DailyOrchestrationError("daily_retention_cleanup_failed")
         existing = _run_by_date(connection, target_date)

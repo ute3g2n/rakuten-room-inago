@@ -20,8 +20,12 @@ from typing import Any, Mapping, Protocol, Sequence
 from jsonschema import Draft202012Validator, ValidationError
 
 from automation.inago.clock import Clock
-from automation.inago.contracts import IdempotencyConflict, RejectedContract
-from automation.inago.repository import validate_entity
+from automation.inago.contracts import (
+    FailureObservationCapture,
+    IdempotencyConflict,
+    RejectedContract,
+)
+from automation.inago.repository import _insert_artifact, validate_entity
 from automation.jsonschema_formats import rfc3339_format_checker
 
 
@@ -261,9 +265,7 @@ def _browser_schema() -> Draft202012Validator:
     try:
         schema = json.loads(_BROWSER_SCHEMA_PATH.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
-        return Draft202012Validator(
-            schema, format_checker=rfc3339_format_checker()
-        )
+        return Draft202012Validator(schema, format_checker=rfc3339_format_checker())
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         raise TrendsContractError(
             "Trends browser response schema is unavailable"
@@ -2541,15 +2543,75 @@ class DurableGroupKeywordSession:
         acquisition_error_code: str | None = None,
     ) -> None:
         now = self.clock.now_jst().isoformat()
+        failure_capture: FailureObservationCapture | None = None
+        evidence_artifact = None
+        capture_observation = getattr(self.port, "capture_failure_observation", None)
+        if status != "response_ready" and callable(capture_observation):
+            try:
+                acquisition = self._load_acquisition()
+                request = TrendsRequest(
+                    request_id,
+                    self.run_id,
+                    self.settings_version,
+                    str(acquisition["query_word"]),
+                    range="3m",
+                    deadline_at=self.deadline_at.isoformat(),
+                )
+                captured = capture_observation(
+                    request,
+                    response if isinstance(response, Mapping) else {},
+                    error_code,
+                )
+                if isinstance(captured, FailureObservationCapture):
+                    failure_capture = captured
+                    if captured.status == "available":
+                        evidence_artifact = captured.artifact
+                        if evidence_artifact is None:
+                            failure_capture = FailureObservationCapture(
+                                "invalid", error_code="failure_artifact_missing"
+                            )
+                else:
+                    failure_capture = FailureObservationCapture(
+                        "invalid", error_code="failure_capture_result_invalid"
+                    )
+            except Exception:
+                # Diagnostic preservation must never replace the source failure.
+                failure_capture = FailureObservationCapture(
+                    "write_failed", error_code="artifact_capture_failed"
+                )
+
+        response_value = dict(response) if isinstance(response, Mapping) else None
+        if failure_capture is not None:
+            if response_value is None:
+                response_value = {"error_code": error_code}
+            response_value["_evidence_capture"] = {
+                "status": failure_capture.status,
+                **(
+                    {"error_code": failure_capture.error_code}
+                    if failure_capture.error_code
+                    else {}
+                ),
+            }
         response_json = (
-            _canonical_json(dict(response)) if isinstance(response, Mapping) else None
+            _canonical_json(response_value) if response_value is not None else None
         )
 
         def finish():
+            if evidence_artifact is not None:
+                _insert_artifact(self.connection, evidence_artifact)
             updated = self.connection.execute(
                 "UPDATE trends_acquisition_attempt SET status=?,ended_at=?,error_code=?,"
-                "response_json=?,next_retry_at=? WHERE request_id=? AND status='started'",
-                (status, now, error_code, response_json, next_retry_at, request_id),
+                "response_json=?,next_retry_at=?,evidence_ref=? "
+                "WHERE request_id=? AND status='started'",
+                (
+                    status,
+                    now,
+                    error_code,
+                    response_json,
+                    next_retry_at,
+                    evidence_artifact.artifact_ref if evidence_artifact else None,
+                    request_id,
+                ),
             ).rowcount
             if updated != 1:
                 raise IdempotencyConflict("reserved Trends attempt is no longer active")

@@ -18,11 +18,17 @@ import signal
 import stat
 import subprocess
 import threading
-from typing import Any
+from typing import Any, Mapping
 from urllib.parse import quote, urlsplit
 import uuid
 
 from automation.inago.room_adapter import RoomSearchRequest, _unavailable_response
+from automation.inago.artifact_io import write_temp_response
+from automation.inago.contracts import (
+    FailureObservationCapture,
+    IdempotencyConflict,
+    PersistenceContractError,
+)
 from automation.inago.retention import retention_expiry
 from automation.inago.trace import JST, TraceSession, TraceWriter
 from automation.inago.trends_adapter import TrendsRequest
@@ -34,6 +40,65 @@ ACCESS_FAILURES = frozenset({"http_401", "http_403", "http_429", "access_denied"
 STOP_FAILURES = ACCESS_FAILURES | {"owned_cleanup_unconfirmed"}
 SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_SOURCE_TIMEOUT_SECONDS = 17100
+FAILURE_ARTIFACT_SCHEMA_VERSION = 1
+_FAILURE_ARTIFACT_STAGES = frozenset(
+    {
+        "trends_home_commit_observed",
+        "trends_home_navigation",
+        "trends_home_query_entered",
+        "trends_home_search_candidates",
+        "trends_home_search_visible",
+        "trends_home_search_wait_begin",
+        "trends_home_submit_control",
+        "trends_home_submit_sent",
+        "trends_period_control_visible",
+        "trends_period_control_wait_begin",
+        "trends_period_menu_open_begin",
+        "trends_period_menu_opened",
+        "trends_period_option_clicked",
+        "trends_period_option_visible",
+        "trends_period_option_wait_begin",
+        "trends_period_reflected",
+        "trends_period_reflection_wait_begin",
+        "trends_scope_not_reflected",
+        "trends_switch_top",
+        "trends_top_empty_refreshed",
+        "trends_top_empty_wait_begin",
+        "trends_top_rows_wait",
+        "trends_top_rows_updated",
+        "trends_top_rows_wait_begin",
+    }
+)
+_FAILURE_ARTIFACT_CODES = frozenset(
+    {
+        "access_denied",
+        "attempt_budget_exhausted",
+        "browser_adapter_error",
+        "daily_cutoff",
+        "http_401",
+        "http_403",
+        "http_429",
+        "invalid_request",
+        "owned_cleanup_unconfirmed",
+        "query_widget_ambiguous",
+        "response_contract_invalid",
+        "response_not_object",
+        "response_schema_invalid",
+        "retry_after_deadline",
+        "snapshot_id_invalid",
+        "snapshot_id_reused",
+        "source_access_stopped",
+        "source_adapter_error",
+        "source_cancelled",
+        "source_connection_error",
+        "source_process_error",
+        "source_response_invalid",
+        "source_timeout",
+        "source_unavailable",
+        "unknown",
+        "word_identity_invalid",
+    }
+)
 
 
 def _expiration_is_past(value: object) -> bool:
@@ -343,6 +408,357 @@ class PublicBrowserSource:
             found = current
         return found
 
+    def capture_failure_observation(
+        self,
+        request: TrendsRequest,
+        response: Mapping[str, Any],
+        error_code: str | None,
+    ) -> FailureObservationCapture:
+        """Persist a compact failure record before its SQLite reference is committed."""
+
+        attempt_match = re.search(r"-a([1-5])$", request.request_id)
+        if (
+            not attempt_match
+            or not SAFE_REF.fullmatch(request.request_id)
+            or not SAFE_REF.fullmatch(request.run_id)
+            or not SAFE_REF.fullmatch(request.settings_version)
+        ):
+            return FailureObservationCapture(
+                "invalid", error_code="failure_identity_invalid"
+            )
+
+        artifact_ref = (
+            "TFAIL-"
+            + uuid.uuid5(uuid.NAMESPACE_URL, f"trends-failure:{request.request_id}").hex
+        )
+        failure_code = (
+            error_code
+            if isinstance(error_code, str) and error_code in _FAILURE_ARTIFACT_CODES
+            else "source_failure"
+        )
+        artifact_path = self._data_root / "artifacts" / "daily" / f"{artifact_ref}.json"
+
+        try:
+            existing = self._read_existing_failure_artifact(
+                artifact_path,
+                artifact_ref=artifact_ref,
+                request=request,
+                failure_code=failure_code,
+            )
+            if existing is not None:
+                if isinstance(existing, FailureObservationCapture):
+                    return existing
+                payload = existing
+                return FailureObservationCapture(
+                    "available",
+                    write_temp_response(
+                        data_root=self._data_root,
+                        artifact_ref=artifact_ref,
+                        payload=payload,
+                        source_kind="daily",
+                        created_at=str(payload["recorded_at"]),
+                        retention_expires_at=str(payload["retention_expires_at"]),
+                    ),
+                )
+
+            source_record = self._read_failure_source_observation(request)
+            if isinstance(source_record, FailureObservationCapture):
+                return source_record
+            if source_record is None:
+                now = datetime.now(timezone.utc)
+                recorded_at = now.isoformat()
+                retention_expires_at = (now + timedelta(days=90)).isoformat()
+                source_state = "missing"
+                trace_ref = None
+                trace_state = "unavailable"
+                node_events: list[dict[str, Any]] = []
+                process_returncode = None
+            else:
+                recorded_at = str(source_record["recorded_at"])
+                # Source writers may have sampled the expiry separately from
+                # recorded_at. Derive the artifact boundary from one timestamp
+                # so the strict failure-artifact contract remains stable.
+                retention_expires_at = retention_expiry("raw", recorded_at).isoformat()
+                source_state = "available"
+                trace_ref = self._safe_trace_ref(source_record.get("trace_ref"))
+                raw_trace_state = source_record.get("trace_state")
+                trace_state = (
+                    raw_trace_state
+                    if isinstance(raw_trace_state, str)
+                    and raw_trace_state in {"healthy", "degraded", "unavailable"}
+                    else "unavailable"
+                )
+                node_events = self._safe_failure_stage_events(
+                    source_record.get("node_events")
+                )
+                process_returncode = source_record.get("process_returncode")
+                if isinstance(process_returncode, bool) or not isinstance(
+                    process_returncode, int
+                ):
+                    process_returncode = None
+
+            source_status = response.get("status")
+            if not isinstance(source_status, str) or source_status not in {
+                "unavailable",
+                "invalid",
+                "observed",
+            }:
+                source_status = "unavailable"
+            payload = {
+                "schema_version": FAILURE_ARTIFACT_SCHEMA_VERSION,
+                "kind": "trends_failure_observation",
+                "artifact_ref": artifact_ref,
+                "request_id": request.request_id,
+                "attempt_no": int(attempt_match.group(1)),
+                "run_id": request.run_id,
+                "settings_version": request.settings_version,
+                "failure_error_code": failure_code,
+                "source_status": source_status,
+                "source_observation_state": source_state,
+                "recorded_at": recorded_at,
+                "retention_expires_at": retention_expires_at,
+                "trace_ref": trace_ref,
+                "trace_state": trace_state,
+                "node_events": node_events,
+                "process_returncode": process_returncode,
+            }
+            payload_error = self._failure_artifact_payload_error(
+                payload,
+                artifact_ref=artifact_ref,
+                request=request,
+                failure_code=failure_code,
+            )
+            if payload_error:
+                return FailureObservationCapture("invalid", error_code=payload_error)
+            artifact = write_temp_response(
+                data_root=self._data_root,
+                artifact_ref=artifact_ref,
+                payload=payload,
+                source_kind="daily",
+                created_at=recorded_at,
+                retention_expires_at=retention_expires_at,
+            )
+        except (OSError, IdempotencyConflict, PersistenceContractError):
+            return FailureObservationCapture(
+                "write_failed", error_code="artifact_write_failed"
+            )
+        except (TypeError, ValueError, KeyError, json.JSONDecodeError):
+            return FailureObservationCapture(
+                "invalid", error_code="failure_observation_invalid"
+            )
+        return FailureObservationCapture("available", artifact)
+
+    def _read_existing_failure_artifact(
+        self,
+        path: Path,
+        *,
+        artifact_ref: str,
+        request: TrendsRequest,
+        failure_code: str,
+    ) -> dict[str, Any] | FailureObservationCapture | None:
+        if not path.exists() and not path.is_symlink():
+            return None
+        if path.is_symlink() or not path.resolve().is_relative_to(self._data_root):
+            return FailureObservationCapture(
+                "invalid", error_code="failure_artifact_path_invalid"
+            )
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload_error = self._failure_artifact_payload_error(
+            payload,
+            artifact_ref=artifact_ref,
+            request=request,
+            failure_code=failure_code,
+        )
+        if payload_error:
+            return FailureObservationCapture("invalid", error_code=payload_error)
+        if _expiration_is_past(payload.get("retention_expires_at")):
+            return FailureObservationCapture(
+                "expired", error_code="failure_artifact_expired"
+            )
+        return payload
+
+    def _failure_artifact_payload_error(
+        self,
+        payload: object,
+        *,
+        artifact_ref: str,
+        request: TrendsRequest,
+        failure_code: str,
+    ) -> str | None:
+        allowed_fields = {
+            "schema_version",
+            "kind",
+            "artifact_ref",
+            "request_id",
+            "attempt_no",
+            "run_id",
+            "settings_version",
+            "failure_error_code",
+            "source_status",
+            "source_observation_state",
+            "recorded_at",
+            "retention_expires_at",
+            "trace_ref",
+            "trace_state",
+            "node_events",
+            "process_returncode",
+        }
+        if not isinstance(payload, dict) or set(payload) != allowed_fields:
+            return "failure_artifact_payload_invalid"
+        attempt_match = re.search(r"-a([1-5])$", request.request_id)
+        if (
+            not attempt_match
+            or isinstance(payload["schema_version"], bool)
+            or not isinstance(payload["schema_version"], int)
+            or payload["schema_version"] != FAILURE_ARTIFACT_SCHEMA_VERSION
+            or payload["kind"] != "trends_failure_observation"
+            or payload["artifact_ref"] != artifact_ref
+            or payload["request_id"] != request.request_id
+            or isinstance(payload["attempt_no"], bool)
+            or not isinstance(payload["attempt_no"], int)
+            or payload["attempt_no"] != int(attempt_match.group(1))
+            or payload["run_id"] != request.run_id
+            or payload["settings_version"] != request.settings_version
+            or payload["failure_error_code"] != failure_code
+        ):
+            return "failure_artifact_identity_mismatch"
+        if (
+            payload["source_status"] not in {"unavailable", "invalid", "observed"}
+            or payload["source_observation_state"] not in {"available", "missing"}
+            or payload["trace_state"] not in {"healthy", "degraded", "unavailable"}
+            or not isinstance(payload["recorded_at"], str)
+            or not isinstance(payload["retention_expires_at"], str)
+            or not isinstance(payload["node_events"], list)
+            or self._safe_failure_stage_events(payload["node_events"])
+            != payload["node_events"]
+            or (
+                payload["trace_ref"] is not None
+                and self._safe_trace_ref(payload["trace_ref"]) != payload["trace_ref"]
+            )
+            or (
+                payload["process_returncode"] is not None
+                and (
+                    isinstance(payload["process_returncode"], bool)
+                    or not isinstance(payload["process_returncode"], int)
+                )
+            )
+        ):
+            return "failure_artifact_payload_invalid"
+        if payload["source_observation_state"] == "missing" and (
+            payload["trace_ref"] is not None
+            or payload["trace_state"] != "unavailable"
+            or payload["node_events"]
+            or payload["process_returncode"] is not None
+        ):
+            return "failure_artifact_payload_invalid"
+        try:
+            recorded_at = datetime.fromisoformat(
+                payload["recorded_at"].replace("Z", "+00:00")
+            )
+            expires_at = datetime.fromisoformat(
+                payload["retention_expires_at"].replace("Z", "+00:00")
+            )
+            if (
+                recorded_at.tzinfo is None
+                or recorded_at.utcoffset() is None
+                or expires_at.tzinfo is None
+                or expires_at.utcoffset() is None
+                or expires_at.astimezone(timezone.utc)
+                != retention_expiry("raw", recorded_at).astimezone(timezone.utc)
+            ):
+                return "failure_artifact_payload_invalid"
+        except (AttributeError, TypeError, ValueError):
+            return "failure_artifact_payload_invalid"
+        return None
+
+    def _read_failure_source_observation(
+        self, request: TrendsRequest
+    ) -> dict[str, Any] | FailureObservationCapture | None:
+        found: dict[str, Any] | None = None
+        pattern = f"trends-{quote(request.request_id, safe='')}-observation-*.json"
+        for path in self._evidence.glob(pattern):
+            if path.is_symlink() or not path.resolve().is_relative_to(self._evidence):
+                return FailureObservationCapture(
+                    "invalid", error_code="source_observation_path_invalid"
+                )
+            record = json.loads(path.read_text(encoding="utf-8"))
+            saved_request = record.get("request") if isinstance(record, dict) else None
+            if (
+                not isinstance(record, dict)
+                or record.get("kind") != "trends"
+                or not isinstance(saved_request, dict)
+                or saved_request.get("request_id") != request.request_id
+                or saved_request.get("run_id") != request.run_id
+                or saved_request.get("settings_version") != request.settings_version
+            ):
+                return FailureObservationCapture(
+                    "invalid", error_code="source_observation_identity_mismatch"
+                )
+            if _observation_is_expired(record):
+                return FailureObservationCapture(
+                    "expired", error_code="source_observation_expired"
+                )
+            for key in ("recorded_at", "retention_expires_at"):
+                value = record.get(key)
+                if not isinstance(value, str):
+                    return FailureObservationCapture(
+                        "invalid", error_code="source_observation_timestamp_invalid"
+                    )
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is None or parsed.utcoffset() is None:
+                    return FailureObservationCapture(
+                        "invalid", error_code="source_observation_timestamp_invalid"
+                    )
+            if found is not None and found != record:
+                return FailureObservationCapture(
+                    "invalid", error_code="source_observations_conflict"
+                )
+            found = record
+        return found
+
+    @staticmethod
+    def _safe_trace_ref(value: object) -> str | None:
+        if not isinstance(value, str) or len(value) > 256:
+            return None
+        parts = value.replace("\\", "/").split("/")
+        if (
+            value.startswith(("/", "\\"))
+            or any(part in {"", ".", ".."} for part in parts)
+            or not re.fullmatch(r"[A-Za-z0-9._/-]+", value)
+        ):
+            return None
+        return value
+
+    @staticmethod
+    def _safe_failure_stage_events(value: object) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            return []
+        events: list[dict[str, Any]] = []
+        for item in value[:256]:
+            event_name = item.get("event") if isinstance(item, dict) else None
+            stage = item.get("stage") if isinstance(item, dict) else None
+            if (
+                not isinstance(item, dict)
+                or not isinstance(event_name, str)
+                or event_name not in {"public_source_failure", "public_source_stage"}
+                or not isinstance(stage, str)
+                or stage not in _FAILURE_ARTIFACT_STAGES
+            ):
+                continue
+            event = {"event": event_name, "stage": stage}
+            error_code = item.get("error_code")
+            if isinstance(error_code, str) and error_code in _FAILURE_ARTIFACT_CODES:
+                event["error_code"] = error_code
+            elapsed_ms = item.get("elapsed_ms")
+            if (
+                isinstance(elapsed_ms, int)
+                and not isinstance(elapsed_ms, bool)
+                and elapsed_ms >= 0
+            ):
+                event["elapsed_ms"] = elapsed_ms
+            events.append(event)
+        return events
+
     def product_fact(self, evidence_ref: str) -> dict[str, Any] | None:
         with self._lock:
             value = self._facts.get(evidence_ref)
@@ -555,14 +971,13 @@ class PublicBrowserSource:
                     lambda: trace_session.finish(), session=trace_session
                 )
         # Private observations; no cookie/token/account/profile or other posts' text.
+        recorded_at = datetime.now(timezone.utc)
         record = {
             "kind": kind,
             "request": asdict(request),
             "environment": self.config.environment,
-            "recorded_at": datetime.now(timezone.utc).isoformat(),
-            "retention_expires_at": (
-                datetime.now(timezone.utc) + timedelta(days=90)
-            ).isoformat(),
+            "recorded_at": recorded_at.isoformat(),
+            "retention_expires_at": retention_expiry("raw", recorded_at).isoformat(),
             **result,
             "node_events": node_events,
             "process_returncode": process.returncode if process is not None else None,

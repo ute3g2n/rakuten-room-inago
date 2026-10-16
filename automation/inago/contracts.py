@@ -41,6 +41,15 @@ class ArtifactRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class FailureObservationCapture:
+    """Result of preserving a compact private observation for a failed request."""
+
+    status: Literal["available", "expired", "invalid", "write_failed"]
+    artifact: ArtifactRecord | None = None
+    error_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class DraftCommitRequest:
     """A persisted AI envelope plus the response artifact awaiting adoption."""
 

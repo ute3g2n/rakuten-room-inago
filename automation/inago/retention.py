@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -43,6 +44,8 @@ class RetentionResult:
     expired_trace_events: int = 0
     expired_trace_files: int = 0
     trace_cleanup_failures: int = 0
+    expired_unregistered_failure_artifacts: int = 0
+    unregistered_failure_artifact_cleanup_failures: int = 0
 
     @property
     def expired_artifacts(self) -> int:
@@ -346,6 +349,159 @@ def _expire_public_source_observations(
     return expired, failures
 
 
+def _expire_unregistered_failure_artifacts(
+    data_root: Path,
+    now: datetime,
+    registered_refs: set[str],
+) -> tuple[int, int]:
+    """Remove only expired, complete TFAIL files that have no database row."""
+
+    artifact_root = data_root / "artifacts" / "daily"
+    if _is_reparse_or_symbolic_link(artifact_root):
+        return 0, 1
+    if not artifact_root.exists():
+        return 0, 0
+    if not artifact_root.is_dir():
+        return 0, 1
+
+    expected_fields = {
+        "schema_version",
+        "kind",
+        "artifact_ref",
+        "request_id",
+        "attempt_no",
+        "run_id",
+        "settings_version",
+        "failure_error_code",
+        "source_status",
+        "source_observation_state",
+        "recorded_at",
+        "retention_expires_at",
+        "trace_ref",
+        "trace_state",
+        "node_events",
+        "process_returncode",
+    }
+    expired = 0
+    failures = 0
+    for candidate in artifact_root.glob("TFAIL-*.json"):
+        try:
+            path = _safe_file_path(data_root, candidate)
+            match = re.fullmatch(r"TFAIL-([0-9a-f]{32})\.json", path.name)
+            if not match or not path.is_file():
+                failures += 1
+                continue
+            artifact_ref = path.stem
+            if artifact_ref in registered_refs:
+                continue
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if (
+                not isinstance(payload, dict)
+                or set(payload) != expected_fields
+                or isinstance(payload["schema_version"], bool)
+                or payload["schema_version"] != 1
+                or payload["kind"] != "trends_failure_observation"
+                or payload["artifact_ref"] != artifact_ref
+                or not isinstance(payload["request_id"], str)
+                or not isinstance(payload["attempt_no"], int)
+                or isinstance(payload["attempt_no"], bool)
+                or not 1 <= payload["attempt_no"] <= 5
+                or not re.fullmatch(
+                    rf"[A-Za-z0-9][A-Za-z0-9._:-]{{0,127}}-a{payload['attempt_no']}",
+                    payload["request_id"],
+                )
+                or any(
+                    not isinstance(payload[field], str)
+                    or not re.fullmatch(
+                        r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", payload[field]
+                    )
+                    for field in ("run_id", "settings_version")
+                )
+                or not isinstance(payload["failure_error_code"], str)
+                or not re.fullmatch(
+                    r"[a-z][a-z0-9_]{0,63}", payload["failure_error_code"]
+                )
+                or payload["source_status"]
+                not in {"unavailable", "invalid", "observed"}
+                or payload["source_observation_state"] not in {"available", "missing"}
+                or payload["trace_state"] not in {"healthy", "degraded", "unavailable"}
+                or not isinstance(payload["recorded_at"], str)
+                or not isinstance(payload["retention_expires_at"], str)
+                or not isinstance(payload["node_events"], list)
+                or not isinstance(payload["process_returncode"], (int, type(None)))
+                or isinstance(payload["process_returncode"], bool)
+            ):
+                failures += 1
+                continue
+            if payload["trace_ref"] is not None:
+                trace_ref = payload["trace_ref"]
+                parts = (
+                    trace_ref.replace("\\", "/").split("/")
+                    if isinstance(trace_ref, str)
+                    else []
+                )
+                if (
+                    not isinstance(trace_ref, str)
+                    or len(trace_ref) > 256
+                    or trace_ref.startswith(("/", "\\"))
+                    or any(part in {"", ".", ".."} for part in parts)
+                    or not re.fullmatch(r"[A-Za-z0-9._/-]+", trace_ref)
+                ):
+                    failures += 1
+                    continue
+            malformed_event = False
+            for event in payload["node_events"]:
+                if (
+                    not isinstance(event, dict)
+                    or not set(event).issubset(
+                        {"event", "stage", "error_code", "elapsed_ms"}
+                    )
+                    or event.get("event")
+                    not in {"public_source_failure", "public_source_stage"}
+                    or not isinstance(event.get("stage"), str)
+                    or (
+                        "error_code" in event
+                        and not re.fullmatch(
+                            r"[a-z][a-z0-9_]{0,63}", event["error_code"]
+                        )
+                    )
+                    or (
+                        "elapsed_ms" in event
+                        and (
+                            not isinstance(event["elapsed_ms"], int)
+                            or isinstance(event["elapsed_ms"], bool)
+                            or event["elapsed_ms"] < 0
+                        )
+                    )
+                ):
+                    malformed_event = True
+                    break
+            if malformed_event or len(payload["node_events"]) > 256:
+                failures += 1
+                continue
+            recorded_at = _parse_jst(payload["recorded_at"], name="recorded_at")
+            expiry = _parse_jst(
+                payload["retention_expires_at"], name="retention_expires_at"
+            )
+            if retention_expiry("raw", recorded_at) != expiry:
+                failures += 1
+                continue
+            if expiry > now:
+                continue
+            path.unlink()
+            expired += 1
+        except (
+            OSError,
+            UnicodeError,
+            json.JSONDecodeError,
+            RetentionError,
+            TypeError,
+            ValueError,
+        ):
+            failures += 1
+    return expired, failures
+
+
 def apply_retention(
     connection: sqlite3.Connection,
     *,
@@ -364,6 +520,8 @@ def apply_retention(
 
     if connection.in_transaction:
         raise RetentionError("retention must own its SQLite transaction")
+    expired_unregistered_failure_artifacts = 0
+    unregistered_failure_artifact_cleanup_failures = 0
     try:
         connection.execute("BEGIN IMMEDIATE")
 
@@ -420,6 +578,16 @@ def apply_retention(
             connection, current
         )
         expired_trends_responses = _record_expired_trends_responses(connection, current)
+        registered_artifact_refs = {
+            str(row[0])
+            for row in connection.execute("SELECT artifact_ref FROM artifact")
+        }
+        (
+            expired_unregistered_failure_artifacts,
+            unregistered_failure_artifact_cleanup_failures,
+        ) = _expire_unregistered_failure_artifacts(
+            root, current, registered_artifact_refs
+        )
         connection.commit()
     except BaseException:
         if connection.in_transaction:
@@ -477,4 +645,6 @@ def apply_retention(
         expired_trace_events=trace_retention.expired_events,
         expired_trace_files=trace_retention.removed_files,
         trace_cleanup_failures=trace_retention.failures,
+        expired_unregistered_failure_artifacts=expired_unregistered_failure_artifacts,
+        unregistered_failure_artifact_cleanup_failures=unregistered_failure_artifact_cleanup_failures,
     )
