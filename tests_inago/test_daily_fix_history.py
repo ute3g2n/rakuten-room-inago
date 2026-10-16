@@ -512,8 +512,8 @@ def test_n26_history_date_copy_report_and_pending_receipt_trace(tmp_path: Path) 
   const browser = makeBrowser();
   const get = browser.get;
   await waitFor(() => get('history-connection').dataset.historyConnection === 'auth-required', 'API token form');
-  const rejectedCard = get('draft-list').children[0];
-  await waitFor(() => get('draft-list').children[0] !== rejectedCard, 'authentication rejection settled');
+  assert.ok(browser.requestObservations.some(({ authenticated, status }) =>
+    authenticated === false && status === 401));
   get('history-api-token').value = process.env.INAGO_TOKEN;
   get('history-auth-submit').listeners.get('click')();
   await waitFor(() => get('history-connection').dataset.historyConnection === 'ready', 'API connection');
@@ -536,10 +536,14 @@ def test_n26_history_date_copy_report_and_pending_receipt_trace(tmp_path: Path) 
   assert.deepEqual(browser.clipboardWrites, ['匿名fixture本文1']);
   assert.match(get('history-message').textContent, /D-A01 1版の本文をコピーしました/);
   assert.equal(get('posted-count').textContent, '0');
+  assert.equal(get('history-connection').dataset.historyConnection, 'ready');
 
   let checkbox = currentCard.querySelector('input[data-report-posted-draft-id]');
   checkbox.checked = true;
   checkbox.listeners.get('change')();
+  await waitFor(() => browser.requestObservations.some((request) =>
+    request.path === '/api/reports' && request.authenticated && request.status === 201),
+  'authenticated posted report receipt', () => ({ requests: browser.requestObservations }));
   await waitFor(() => get('report-count-posted-pending').textContent === '1', 'posted receipt', () => ({
     message: get('history-message').textContent,
     connection: get('history-connection').dataset.historyConnection,
@@ -553,6 +557,9 @@ def test_n26_history_date_copy_report_and_pending_receipt_trace(tmp_path: Path) 
     .querySelector('input[data-report-posted-draft-id]');
   checkbox.checked = false;
   checkbox.listeners.get('change')();
+  await waitFor(() => browser.requestObservations.filter((request) =>
+    request.path === '/api/reports' && request.authenticated && request.status === 201).length === 2,
+  'authenticated correction receipt', () => ({ requests: browser.requestObservations }));
   await waitFor(() => get('report-count-correction-pending').textContent === '1', 'checkbox-off correction receipt');
   assert.equal(checkbox.disabled, true);
   assert.equal(browser.promptCount || 0, 0);

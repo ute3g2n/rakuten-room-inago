@@ -898,9 +898,36 @@ def test_run_date_deadline_and_settings_must_match_before_ai_call(
     runtime_case: RuntimeCase, spec_changes: dict[str, Any]
 ) -> None:
     runner = FakeCopyRunner()
+    spec = replace(make_spec(), **spec_changes)
+
+    if "deadline_at" in spec_changes:
+        outcome = generate_and_commit_copy(
+            runtime_case.connection,
+            spec,
+            runner,
+            data_root=runtime_case.data_root,
+            clock=runtime_case.clock,
+        )
+
+        assert outcome.status == "committed"
+        assert len(runner.requests) == 1
+        assert runner.requests[0].deadline_at == spec.deadline_at
+        assert (
+            runtime_case.connection.execute(
+                "SELECT COUNT(*) FROM draft WHERE run_id = ?", (RUN_ID,)
+            ).fetchone()[0]
+            == 1
+        )
+        return
 
     with pytest.raises(RejectedContract, match="started run"):
-        run_copy(runtime_case, runner, spec=replace(make_spec(), **spec_changes))
+        generate_and_commit_copy(
+            runtime_case.connection,
+            spec,
+            runner,
+            data_root=runtime_case.data_root,
+            clock=runtime_case.clock,
+        )
 
     assert runner.requests == []
     assert (

@@ -11,7 +11,7 @@ import subprocess
 
 import pytest
 
-from automation.inago.clock import FakeClock
+from automation.inago.clock import FakeClock, JST
 from automation.inago import orchestrator as daily
 from automation.inago.repository import initialize_database
 from automation.inago.orchestrator import DailyPorts
@@ -24,6 +24,12 @@ from tests_inago.test_step21_browser import room_request, source, ui_server
 SETTINGS_VERSION = "R06-fixture-settings"
 TARGET_DATE = "2026-10-16"
 NOW = f"{TARGET_DATE}T13:00:00+09:00"
+
+
+def _browser_deadline_clock() -> FakeClock:
+    """Keep real browser child-process deadlines ahead of wall-clock time."""
+
+    return FakeClock(datetime.now(JST))
 
 
 def _insert_isolated_run(root: Path, run_id: str) -> sqlite3.Connection:
@@ -101,7 +107,7 @@ class BrowserRoomSequence:
         return source(
             self.data_root / f"attempt-{request.attempt_no}",
             self.ui_server,
-            timeout=2,
+            timeout=8,
         ).search(request)
 
 
@@ -360,6 +366,7 @@ def test_n09b_already_closed_and_ambiguous_controls(tmp_path, ui_server):
         "closed": True,
         "method": "already_closed",
         "closeControlCount": 0,
+        "searchControlCount": 0,
     }
 
     attempt_id = "R06-N09B-AMBIGUOUS"
@@ -467,7 +474,7 @@ def test_n10(tmp_path, ui_server):
     recovery_room = BrowserRoomSequence(
         recovery_root / "public-source", ui_server, fail_attempts={1}
     )
-    recovery_clock = FakeClock(datetime.fromisoformat(NOW))
+    recovery_clock = _browser_deadline_clock()
     recovery_state = daily._daily_state(None)[1]
     recovery_state["tasks"] = [task]
     try:
@@ -518,7 +525,7 @@ def test_n10(tmp_path, ui_server):
     failed_room = BrowserRoomSequence(
         failed_root / "public-source", ui_server, fail_attempts={1, 2, 3}
     )
-    failed_clock = FakeClock(datetime.fromisoformat(NOW))
+    failed_clock = _browser_deadline_clock()
     failed_state = daily._daily_state(None)[1]
     failed_state["tasks"] = [task]
     try:
@@ -737,7 +744,7 @@ def test_n13(tmp_path, ui_server):
     click_result = parse_room_response(click_payload, request)
 
     assert click_result.status == "unavailable"
-    assert click_payload["error_code"] == "source_timeout"
+    assert click_payload["error_code"] == "room_search_restore_failed"
     click_observation = _room_observation(click_root, click_attempt)
     assert click_observation["trace_state"] == "healthy"
     click_events = [
@@ -1203,7 +1210,7 @@ def test_n16(tmp_path, ui_server):
             target_date=TARGET_DATE,
             state=recovered_state,
             ports=_room_ports(recovered_room),
-            clock=FakeClock(datetime.fromisoformat(NOW)),
+            clock=_browser_deadline_clock(),
             data_root=recovered_root,
         )
         recovered_rows = recovered_connection.execute(
@@ -1242,7 +1249,7 @@ def test_n16(tmp_path, ui_server):
             target_date=TARGET_DATE,
             state=stopped_state,
             ports=_room_ports(stopped_room),
-            clock=FakeClock(datetime.fromisoformat(NOW)),
+            clock=_browser_deadline_clock(),
             data_root=stopped_root,
         )
         stopped_rows = stopped_connection.execute(

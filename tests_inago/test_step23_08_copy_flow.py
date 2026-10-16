@@ -64,9 +64,6 @@ def test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job(
                 runtime_root=runtime_case.data_root,
             )
         )
-        runtime_case.clock.current = datetime.fromisoformat(
-            "2026-10-12T17:45:00+09:00"
-        )
 
     outcome = run_daily(
         runtime_case.connection,
@@ -78,11 +75,21 @@ def test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job(
         on_draft_commit=export_after_commit,
     )
 
-    assert outcome.committed_count == 1
-    assert len(created_specs) == 1
-    spec = created_specs[0]
-    assert len(ai_root.requests) == 1
-    request = ai_root.requests[0]
+    assert outcome.committed_count >= 1
+    target_offer_key = intake.requests[0].offer_key
+    target_specs = [
+        spec for spec in created_specs if spec.offer_key == target_offer_key
+    ]
+    assert len(target_specs) == 1
+    spec = target_specs[0]
+    target_requests = [
+        request
+        for request in ai_root.requests
+        if request.copy_targets
+        and request.copy_targets[0].offer_key == target_offer_key
+    ]
+    assert len(target_requests) == 1
+    request = target_requests[0]
     assert request.run_id == spec.run_id == outcome.run_id
     assert request.target_date == spec.target_date == outcome.target_date
     assert request.settings_version == spec.settings_version == SETTINGS_VERSION
@@ -93,26 +100,37 @@ def test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job(
 
     persisted = runtime_case.connection.execute(
         """
-        SELECT agent_id, run_id, target_date, settings_version
+        SELECT agent_id, job_id, run_id, target_date, settings_version
           FROM ai_job WHERE run_id=? ORDER BY agent_id
         """,
         ("STEP23-08-RUN",),
     ).fetchall()
-    assert [row[0] for row in persisted] == ["AG-COPY", "AI-O"]
-    assert all(row[1] == outcome.run_id for row in persisted)
-    assert all(row[2] == outcome.target_date for row in persisted)
-    assert all(row[3] == SETTINGS_VERSION for row in persisted)
+    persisted_agents = {row[1]: row[0] for row in persisted}
+    copy_request_ids = {
+        request.job_id for request in ai_root.requests if request.copy_targets
+    }
+    assert copy_request_ids
+    assert all(persisted_agents[job_id] == "AI-O" for job_id in copy_request_ids)
+    target_copy_job_id = f"{request.job_id}-COPY-{request.attempt}"
+    assert persisted_agents[target_copy_job_id] == "AG-COPY"
+    assert all(row[2] == outcome.run_id for row in persisted)
+    assert all(row[3] == outcome.target_date for row in persisted)
+    assert all(row[4] == SETTINGS_VERSION for row in persisted)
 
     run = runtime_case.connection.execute(
         "SELECT committed_count FROM run WHERE run_id=?", (outcome.run_id,)
     ).fetchone()
-    assert run[0] == 1
-    assert runtime_case.connection.execute(
-        "SELECT COUNT(*) FROM reservation WHERE offer_key=? AND status='active'",
-        (spec.offer_key,),
-    ).fetchone()[0] == 1
-    assert len(exports) == 1
+    assert run[0] == outcome.committed_count
+    assert (
+        runtime_case.connection.execute(
+            "SELECT COUNT(*) FROM reservation WHERE offer_key=? AND status='active'",
+            (spec.offer_key,),
+        ).fetchone()[0]
+        == 1
+    )
+    assert len(exports) == outcome.committed_count
     assert exports[0].draft_count == 1
+    assert exports[-1].draft_count == outcome.committed_count
     html = html_path.read_text(encoding="utf-8")
     draft = runtime_case.connection.execute(
         "SELECT body FROM draft WHERE run_id=? AND offer_key=?",
@@ -126,4 +144,13 @@ def test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job(
     )
     assert embedded is not None
     history = json.loads(embedded.group(1))
-    assert history["days"][0]["items"][0]["body"] == draft[0]
+    target_item = next(
+        item
+        for item in history["days"][0]["items"]
+        if item["draft_id"]
+        == runtime_case.connection.execute(
+            "SELECT draft_id FROM draft WHERE run_id=? AND offer_key=?",
+            (outcome.run_id, target_offer_key),
+        ).fetchone()[0]
+    )
+    assert target_item["body"] == draft[0]

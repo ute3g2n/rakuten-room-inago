@@ -166,7 +166,7 @@ def test_n02(tmp_path: Path) -> None:
     try:
         database_path = assert_probe_database(connection, config)
         assert database_path == config.database_path.resolve()
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
         for table in ("run", "search_attempt", "draft"):

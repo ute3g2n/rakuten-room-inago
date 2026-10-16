@@ -174,7 +174,7 @@ def _runtime_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
             "cancel_metrics_job": object(),
         },
     )
-    monkeypatch.setattr(backup, "list_daily_backups", lambda _root: set())
+    monkeypatch.setattr(backup, "list_daily_backups", lambda _root, **_kwargs: set())
     monkeypatch.setattr(
         backup,
         "create_daily_backup",
@@ -237,7 +237,7 @@ def test_committed_draft_callback_refreshes_html_after_the_commit(
             offer_key=offer_key,
             target_date="2026-10-15",
             settings_version=SETTINGS_VERSION,
-            deadline_at="2026-10-15T17:45:00+09:00",
+            deadline_at="2026-10-15T13:23:00+09:00",
         )
         ports = SimpleNamespace(
             offer_intake=None,
@@ -410,7 +410,7 @@ def test_production_daily_refreshes_after_each_commit_and_at_completion(
     )
 
     assert refresh_counts == [1, 2]
-    assert result["status"] == "complete"
+    assert result["status"] == "metrics_failed"
     assert result["daily_status"] == "complete"
     assert result["export"]["status"] == "ready"
     assert result["export"]["draft_count"] == 2

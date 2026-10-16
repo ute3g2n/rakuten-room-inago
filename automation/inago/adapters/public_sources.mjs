@@ -1291,7 +1291,7 @@ async function installTrendsWidgetObserver(page) {
       };
       const candidates = Array.from(widget.querySelectorAll(
         'h1,h2,h3,h4,h5,h6,[role="heading"],[class*="title"],[class*="heading"]',
-      )).filter(visible);
+      ));
       if (widget.hasAttribute('aria-label')) candidates.unshift(widget);
       const labelledBy = widget.getAttribute('aria-labelledby');
       if (labelledBy) {

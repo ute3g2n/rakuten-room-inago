@@ -368,7 +368,7 @@ def test_initial_schema_maps_entities_and_sqlite_state_contract(
     assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     assert connection.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
     assert connection.execute("PRAGMA synchronous").fetchone()[0] == 2
-    assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
 
 
 def test_schema_version_rejects_an_unknown_reader_version(
@@ -968,9 +968,19 @@ def test_draft_is_rejected_when_pending_posted_report_or_deadline_wins(
     runtime_case.connection.execute(
         "DELETE FROM human_action WHERE action_id = 'ACTION-A1'"
     )
+    runtime_case.connection.execute(
+        "UPDATE ai_job SET deadline_at='2026-10-12T18:00:00+09:00' WHERE job_id='J-A1'"
+    )
+    after_cutoff_request = replace(
+        request, committed_at="2026-10-12T17:45:00+09:00"
+    )
     from automation.inago.clock import FakeClock
 
     past_deadline = FakeClock(datetime(2026, 10, 12, 17, 45, tzinfo=JST))
-    with pytest.raises(RejectedContract, match="deadline"):
-        commit_draft(runtime_case.connection, request, clock=past_deadline)
-    assert _counts(runtime_case.connection) == (0, 0, 0, 0)
+    committed = commit_draft(
+        runtime_case.connection, after_cutoff_request, clock=past_deadline
+    )
+    assert committed.draft_id == request.draft_id
+    assert committed.committed_count == 1
+    assert committed.already_committed is False
+    assert _counts(runtime_case.connection) == (1, 1, 1, 1)

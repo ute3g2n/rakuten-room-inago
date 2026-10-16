@@ -24,6 +24,7 @@
   let activeDate = null;
   let apiState = null;
   let authToken = null;
+  let authRevision = 0;
   let authRequired = false;
   let outboxDb = null;
   let outboxEntries = [];
@@ -240,6 +241,7 @@
 
   async function apiFetch(path, options = {}) {
     if (!API_ORIGIN) throw new Error("このHTMLにSQLite保存APIの接続先がありません。");
+    const requestAuthRevision = authRevision;
     const send = (token) => fetch(`${API_ORIGIN}${path}`, {
       ...options,
       mode: "cors",
@@ -252,7 +254,9 @@
       },
     });
     const response = await send(authToken);
-    if (response.status === 401) requireAuthentication();
+    if (response.status === 401 && requestAuthRevision === authRevision) {
+      requireAuthentication();
+    }
     return response;
   }
 
@@ -715,11 +719,15 @@
   async function attemptApiReconnect() {
     if (!API_ORIGIN || reportSubmissionsInFlight > 0 || hasOpenCorrectionForm()
       || (authRequired && !authToken)) return;
+    const requestAuthRevision = authRevision;
     try {
       await refreshConnectedState();
+      if (requestAuthRevision !== authRevision) return;
     } catch (error) {
+      if (requestAuthRevision !== authRevision) return;
       apiState = null;
       await reloadOutbox().catch(() => {});
+      if (requestAuthRevision !== authRevision) return;
       if (error?.apiCode === "authentication_required") {
         requireAuthentication();
         renderDays();
@@ -760,6 +768,7 @@
         authTokenInput.focus();
         return;
       }
+      authRevision += 1;
       authToken = entered;
       authRequired = false;
       authForm.hidden = true;

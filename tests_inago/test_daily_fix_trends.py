@@ -393,7 +393,12 @@ def test_n07b_trends_retry_crosses_former_daily_cutoffs_with_bounded_timeouts(
     )
 
 
-def _n08_period_page(base_html: str, *, on_period_selected: str = "") -> str:
+def _n08_period_page(
+    base_html: str,
+    *,
+    on_period_selected: str = "",
+    inject_period_script: bool = False,
+) -> str:
     page = browser_fixtures.trends_with_period_picker(base_html)
     if not on_period_selected:
         on_period_selected = (
@@ -402,11 +407,11 @@ def _n08_period_page(base_html: str, *, on_period_selected: str = "") -> str:
             "if(widget)widget.querySelectorAll('.label-text span').forEach((row,index)=>"
             "row.textContent='対象期間'+(index+1))},50)"
         )
-    if on_period_selected:
+    if inject_period_script and on_period_selected:
         page = page.replace(
-            "document.querySelector('#period-menu').style.display='none'}",
+            "document.querySelector('#period-menu').style.display='none';",
             "document.querySelector('#period-menu').style.display='none';"
-            f"{on_period_selected}}}",
+            f"{on_period_selected};",
         )
     return page
 
@@ -437,7 +442,9 @@ def _n08_fetch(tmp_path, ui_server, case: str, explore_html: str):
 def test_n08(tmp_path, ui_server):
     """Distinguish absent, duplicated, wrong-type, hidden, and exact widgets."""
 
-    delayed = browser_fixtures.trends_html(count=20).replace(
+    delayed = browser_fixtures.trends_html(
+        count=20, refresh_after_period=True
+    ).replace(
         '<div class="fe-related-queries"><h2>関連キーワード</h2>',
         '<div class="fe-related-queries" style="display:none"><h2>関連キーワード</h2>',
     )
@@ -447,6 +454,7 @@ def test_n08(tmp_path, ui_server):
         "delayed",
         _n08_period_page(
             delayed,
+            inject_period_script=True,
             on_period_selected=(
                 "setTimeout(()=>{document.querySelectorAll('.fe-related-queries')[1].style.display='block'},650)"
             ),
@@ -469,7 +477,7 @@ def test_n08(tmp_path, ui_server):
     assert delayed_ready["widget_match_visible_count"] == 1
     assert delayed_ready["widget_outcome"] == "ready"
 
-    multiple = browser_fixtures.trends_html(count=20)
+    multiple = browser_fixtures.trends_html(count=20, refresh_after_period=True)
     multiple += (
         '<script>const related=document.querySelectorAll(".fe-related-queries");'
         "document.body.appendChild(related[1].cloneNode(true));</script>"
@@ -478,7 +486,7 @@ def test_n08(tmp_path, ui_server):
         tmp_path,
         ui_server,
         "multiple",
-        _n08_period_page(multiple),
+        _n08_period_page(multiple, inject_period_script=True),
     )
     assert multiple_snapshot.status == "unavailable"
     assert (
@@ -496,7 +504,7 @@ def test_n08(tmp_path, ui_server):
     assert ambiguous["widget_outcome"] == "ambiguous"
 
     wrong_type = (
-        browser_fixtures.trends_html(count=20)
+        browser_fixtures.trends_html(count=20, refresh_after_period=True)
         .replace(
             '<div class="fe-related-queries"><h2>関連トピック</h2><a class="progress-label">誤ったトピック</a></div>',
             "",
@@ -507,7 +515,7 @@ def test_n08(tmp_path, ui_server):
         tmp_path,
         ui_server,
         "wrong-type",
-        _n08_period_page(wrong_type),
+        _n08_period_page(wrong_type, inject_period_script=True),
     )
     assert wrong_snapshot.status == "unavailable"
     assert (
@@ -525,7 +533,9 @@ def test_n08(tmp_path, ui_server):
     assert mismatch["widget_kind"] == "unknown"
     assert mismatch["widget_outcome"] == "contract_mismatch"
 
-    hidden_twin = browser_fixtures.trends_html(count=20)
+    hidden_twin = browser_fixtures.trends_html(
+        count=20, refresh_after_period=True
+    )
     hidden_twin += (
         '<script>const matches=Array.from(document.querySelectorAll(".fe-related-queries"));'
         'const clone=matches[1].cloneNode(true);clone.style.display="none";'
@@ -535,7 +545,7 @@ def test_n08(tmp_path, ui_server):
         tmp_path,
         ui_server,
         "hidden-twin",
-        _n08_period_page(hidden_twin),
+        _n08_period_page(hidden_twin, inject_period_script=True),
     )
     assert hidden_snapshot.status == "observed", hidden_response.get("error_code")
     hidden_ready = next(
@@ -550,7 +560,10 @@ def test_n08(tmp_path, ui_server):
         tmp_path,
         ui_server,
         "exact-scope",
-        _n08_period_page(browser_fixtures.trends_html(count=20)),
+        _n08_period_page(
+            browser_fixtures.trends_html(count=20, refresh_after_period=True),
+            inject_period_script=True,
+        ),
     )
     assert exact_snapshot.status == "observed", exact_response.get("error_code")
     assert [word.source_rank for word in exact_snapshot.words] == list(range(1, 21))
@@ -568,12 +581,15 @@ def test_n08(tmp_path, ui_server):
 def test_n08b_related_keyword_heading_alias_and_semantic_level(tmp_path, ui_server):
     """Recognize a related-keyword heading when the UI uses a semantic h3 alias."""
 
-    alias = browser_fixtures.trends_html(count=20).replace(
+    alias = browser_fixtures.trends_html(
+        count=20, refresh_after_period=True
+    ).replace(
         '<div class="fe-related-queries"><h2>関連キーワード</h2>',
         '<div class="fe-related-queries"><h3>関連する検索キーワード</h3>',
     )
     page = _n08_period_page(
         alias,
+        inject_period_script=True,
         on_period_selected=(
             "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
             ".find(item=>item.querySelector('h3')?.textContent.trim()==='関連する検索キーワード');"
@@ -590,7 +606,7 @@ def test_n08b_related_keyword_heading_alias_and_semantic_level(tmp_path, ui_serv
         for event in events
         if event.get("stage") == "trends_related_widget_wait_ready"
     )
-    assert ready["widget_selector_version"] == "related-widget-v3"
+    assert ready["widget_selector_version"] == "related-widget-v4"
     assert ready["widget_kind"] == "related_keywords"
     assert ready["related_widget_generation"] > ready["generation_before_period"]
 

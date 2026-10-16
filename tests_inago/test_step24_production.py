@@ -2370,7 +2370,18 @@ def test_successful_production_result_survives_lifecycle_log_failure(
     monkeypatch.setattr(
         production,
         "run_production_daily",
-        lambda *args, **kwargs: {"status": "completed", "committed_count": 15},
+        lambda *args, **kwargs: {
+            "status": "complete",
+            "daily_status": "complete",
+            "committed_count": 15,
+            "metrics_status": "observed",
+            "export": {"status": "ready"},
+            "preservation": {
+                "status": "ready",
+                "end_backup": {"status": "ready"},
+                "monthly_restore": {"status": "already_checked"},
+            },
+        },
     )
     monkeypatch.setattr(
         production,
@@ -2397,7 +2408,8 @@ def test_successful_production_result_survives_lifecycle_log_failure(
         stderr=stderr,
     )
     assert result == 0
-    assert json.loads(stdout.getvalue())["status"] == expected
+    expected_status = "complete" if mode == "daily" else expected
+    assert json.loads(stdout.getvalue())["status"] == expected_status
     assert json.loads(stderr.getvalue())["status"] == "log_unavailable"
     assert not (tmp_path / "state.sqlite").exists()
 

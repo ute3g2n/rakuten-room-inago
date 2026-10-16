@@ -602,7 +602,7 @@ def test_status_rejects_invalid_checkpoint_and_recovery_treats_deadlines_as_hist
     assert historical_deadline["status"] == "blocked"
     assert (
         historical_deadline["decision"]["reason_code"]
-        == "daily_owner_state_unconfirmed"
+        == "daily_lock_file_unavailable"
     )
     assert historical_deadline["decision"]["preserved"]["end_deadline"] == (
         "2026-10-15T18:01:00+09:00"
@@ -681,7 +681,8 @@ def test_production_daily_requires_explicit_confirmation_to_resume_same_run(
         process_start_time_reader=stopped_process,
         process_tree_reader=lambda _pid: (),
     )
-    assert resumed["status"] == "partial"
+    assert resumed["status"] == "metrics_failed"
+    assert resumed["daily_status"] == "partial"
     assert resumed["run_id"] == "RUN-EXPORT-20261015"
     assert resumed["resumed"] is True
     assert calls == [

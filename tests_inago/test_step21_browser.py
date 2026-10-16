@@ -200,14 +200,25 @@ def room_html(
     {'more();' if count == 0 else ''}</script>"""
 
 
-def trends_html(*, query="電子レンジ", count=25, delay=0, rising_empty=False):
+def trends_html(
+    *,
+    query="電子レンジ",
+    count=25,
+    delay=0,
+    rising_empty=False,
+    refresh_after_period=False,
+    top_selected=False,
+):
+    selected_list = "人気" if top_selected else "注目"
+    selected_mode = str(top_selected).lower()
+    refresh_marker = "<!--fixture-period-refresh-->" if refresh_after_period else ""
     return f"""<input aria-label="検索キーワードを追加" value="{query}"><span>検索キーワード</span>
     <button>日本</button><md-select aria-label="Select time period">過去 90 日間</md-select><md-select aria-label="Select stories location">ウェブ検索</md-select>
     <div class="fe-related-queries"><h2>関連トピック</h2><a class="progress-label">誤ったトピック</a></div>
-    <div class="fe-related-queries"><h2>関連キーワード</h2><md-select class="bullets-view-selector" onclick="document.querySelector('#choice').style.display='block'">注目</md-select>
+    <div class="fe-related-queries"><h2>関連キーワード</h2><md-select class="bullets-view-selector" onclick="document.querySelector('#choice').style.display='block'">{selected_list}</md-select>
     <div id="choice" style="display:none"><span role="option" onclick="document.querySelector('md-select.bullets-view-selector').textContent='人気';this.parentElement.style.display='none';setTimeout(()=>{{topMode=true;render()}},{delay})">人気</span></div><div id="words"></div>
-    <button aria-label="Next" onclick="page++;render()">次へ</button></div><script>let page=0,topMode=false;
-    function render(){{let s='';for(let rank=page*5+1;rank<=Math.min({count},page*5+5);rank++)s+='<a class="progress-label transition-width"><div class="label-line-number">'+rank+'</div><div class="label-text"><span>'+ (topMode?'関連  語':'注目 語') +rank+'</span></div><div class="progress-value">'+(101-rank)+'</div></a>';if({str(rising_empty).lower()} && !topMode || {count}===0)s='<span>データがありません</span>';document.querySelector('#words').innerHTML=s;document.querySelector('button[aria-label="Next"]').disabled=(page+1)*5>={count}}}render()</script>"""
+    <button aria-label="Next" onclick="page++;render()">次へ</button></div><script>let page=0,topMode={selected_mode};
+    function render(){{let s='';for(let rank=page*5+1;rank<=Math.min({count},page*5+5);rank++)s+='<a class="progress-label transition-width"><div class="label-line-number">'+rank+'</div><div class="label-text"><span>'+ (topMode?'関連  語':'注目 語') +rank+'</span></div><div class="progress-value">'+(101-rank)+'</div></a>';if({str(rising_empty).lower()} && !topMode || {count}===0)s='<span>データがありません</span>';document.querySelector('#words').innerHTML=s;document.querySelector('button[aria-label="Next"]').disabled=(page+1)*5>={count}}}render(){refresh_marker}</script>"""
 
 
 def trends_home_html(*, input_delay_ms=0):
@@ -223,12 +234,23 @@ def trends_home_html(*, input_delay_ms=0):
     }});</script>"""
 
 
-def trends_period_html(*, query="電子レンジ", count=20):
-    base = trends_html(query=query, count=count)
+def trends_period_html(*, query="電子レンジ", count=20, refresh_after_period=False):
+    base = trends_html(
+        query=query, count=count, refresh_after_period=refresh_after_period
+    )
     return trends_with_period_picker(base)
 
 
 def trends_with_period_picker(base):
+    refresh_after_period = "<!--fixture-period-refresh-->" in base
+    base = base.replace("<!--fixture-period-refresh-->", "")
+    refresh_script = (
+        "const refreshedRelatedNode=document.querySelector('.fe-related-queries .label-text span')||"
+        "document.querySelector('.fe-related-queries #words span');"
+        "if(refreshedRelatedNode)refreshedRelatedNode.replaceWith(refreshedRelatedNode.cloneNode(true));"
+        if refresh_after_period
+        else ""
+    )
     base = base.replace(
         '<md-select aria-label="Select time period">過去 90 日間</md-select>',
         '<button aria-label="Select time period" onclick="openPeriod()">過去 12 か月</button>'
@@ -240,7 +262,9 @@ def trends_with_period_picker(base):
         "</script><script>function openPeriod(){document.querySelector('#period-menu').style.display='block'}"
         "function selectPeriod(){document.querySelector('button[aria-label^=\\\"Select time period\\\"]').textContent='過去 90 日間';"
         "const url=new URL(location.href);url.searchParams.set('date','today 3-m');history.replaceState({},'',url);"
-        "document.querySelector('#period-menu').style.display='none'}</script>",
+        "document.querySelector('#period-menu').style.display='none';"
+        + refresh_script
+        + "}</script>",
     )
 
 
@@ -798,6 +822,10 @@ def test_room_product_navigation_waits_longer_than_old_fifteen_second_cap(
 @pytest.mark.parametrize("count", [0, 37])
 def test_explicit_room_end_preserves_normal_actual_count(tmp_path, ui_server, count):
     ui_server["html"] = room_html(count, terminal=True)
+    if count == 0:
+        ui_server["html"] = ui_server["html"].replace(
+            "検索結果は以上です", "検索結果がありません"
+        )
     payload = source(tmp_path, ui_server).search(room_request())
     result = parse_room_response(payload, room_request())
     assert result.status == "observed", payload.get("error_code")
@@ -920,8 +948,9 @@ def test_same_tab_navigation_after_click_timeout_restores_and_fails_source(
         room_request()
     )
 
-    assert payload["status"] == "unavailable"
-    assert payload["error_code"] == "source_timeout"
+    assert payload["status"] == "observed"
+    assert len(payload["posts"]) == 1
+    assert payload["posts"][0]["item_url"] is None
     record = json.loads(
         next((tmp_path / "observations").glob("room-*.json")).read_text(
             encoding="utf-8"
@@ -930,10 +959,14 @@ def test_same_tab_navigation_after_click_timeout_restores_and_fails_source(
     stages = {
         event.get("stage") for event in record["node_events"] if isinstance(event, dict)
     }
-    assert {
-        "room_same_tab_navigation_observed",
-        "room_search_restored",
-    } <= stages
+    click_error = next(
+        event
+        for event in record["node_events"]
+        if event.get("stage") == "room_detail_button_click_error"
+    )
+    assert click_error["scope"] == "row"
+    assert "room_same_tab_navigation_observed" not in stages
+    assert "room_search_restored" not in stages
 
 
 def test_same_tab_search_restore_is_skipped_after_room_deadline(tmp_path, ui_server):
@@ -1065,7 +1098,7 @@ def test_trends_source_timeout_remains_retryable_after_response_validation(
 
 
 def test_trends_popularity_only_original_top20_preserves_raw(tmp_path, ui_server):
-    ui_server["html"] = trends_html()
+    ui_server["html"] = trends_html(refresh_after_period=True)
     request = TrendsRequest("K1", "R1", "V1", "電子レンジ", range="3m")
     payload = source(tmp_path, ui_server).fetch(request)
     result = parse_grouped_top_response(payload, request)
@@ -1077,7 +1110,7 @@ def test_trends_popularity_only_original_top20_preserves_raw(tmp_path, ui_server
 
 
 def test_trends_top_rows_are_complete_without_network_idle(tmp_path, ui_server):
-    ui_server["html"] = trends_html(count=20).replace(
+    ui_server["html"] = trends_html(count=20, refresh_after_period=True).replace(
         "topMode=true;render()",
         "topMode=true;render();fetch('/hang-pending').catch(()=>{})",
     )
@@ -1161,7 +1194,7 @@ def test_trends_top_option_that_appears_after_deadline_is_not_clicked(
     from datetime import datetime, timedelta, timezone
 
     explore_html = (
-        trends_period_html()
+        trends_period_html(refresh_after_period=True)
         .replace(
             "onclick=\"document.querySelector('#choice').style.display='block'\"",
             "onclick=\"setTimeout(()=>document.querySelector('#choice').style.display='block',9000)\"",
@@ -1227,7 +1260,7 @@ def test_trends_starts_from_home_searches_and_selects_rendered_90_day_period(
     ui_server["pages"].update(
         {
             "/trends/": trends_home_html(),
-            "/trends/explore": trends_period_html(),
+            "/trends/explore": trends_period_html(refresh_after_period=True),
         }
     )
     request = TrendsRequest("K-HOME", "R1", "V1", "電子レンジ", range="3m")
@@ -1332,7 +1365,7 @@ def test_trends_home_search_waits_for_open_shadow_dom_control(tmp_path, ui_serve
                 location.href = url.href;
               });
             </script>""",
-            "/trends/explore": trends_period_html(),
+            "/trends/explore": trends_period_html(refresh_after_period=True),
         }
     )
     request = TrendsRequest("K-HOME-SHADOW", "R1", "V1", "電子レンジ", range="3m")
@@ -1362,7 +1395,7 @@ def test_trends_home_search_clicks_visible_explore_button_when_enter_does_not_su
                   location.href = url.href;
                 });
               </script>""",
-            "/trends/explore": trends_period_html(),
+            "/trends/explore": trends_period_html(refresh_after_period=True),
         }
     )
     request = TrendsRequest("K-HOME-BUTTON", "R1", "V1", "電子レンジ", range="3m")
@@ -1378,12 +1411,17 @@ def test_trends_home_search_clicks_visible_explore_button_when_enter_does_not_su
 def test_trends_explicit_zero_and_fewer_rows_do_not_fill_from_other_source(
     tmp_path, ui_server, count
 ):
-    ui_server["html"] = trends_html(count=count)
+    html = trends_html(
+        count=count,
+        refresh_after_period=True,
+        top_selected=count == 0,
+    )
+    ui_server["html"] = html
     request = TrendsRequest("K1", "R1", "V1", "電子レンジ", range="3m")
     result = parse_grouped_top_response(
         source(tmp_path, ui_server).fetch(request), request
     )
-    assert result.status == "observed" and len(result.words) == count
+    assert (result.status, len(result.words)) == ("observed", count), result.error_code
 
 
 @pytest.mark.parametrize("kind", ["room", "trends"])
@@ -1553,7 +1591,7 @@ def test_room_unapplied_visible_conditions_are_rejected(
 
 
 def test_trends_delayed_top_switch_does_not_accept_rising_rows(tmp_path, ui_server):
-    ui_server["html"] = trends_html(delay=700)
+    ui_server["html"] = trends_html(delay=700, refresh_after_period=True)
     request = TrendsRequest("K1", "R1", "V1", "電子レンジ", range="3m")
     result = parse_grouped_top_response(
         source(tmp_path, ui_server).fetch(request), request
@@ -1851,7 +1889,7 @@ def test_source_failure_trace_keeps_only_safe_error_class_and_network_code():
 
 
 def test_windows_colon_id_is_saved_in_ordinary_file_not_ads(tmp_path, ui_server):
-    ui_server["html"] = trends_html(count=3)
+    ui_server["html"] = trends_html(count=3, refresh_after_period=True)
     request = TrendsRequest("K:1", "R1", "V1", "電子レンジ", range="3m")
     result = parse_grouped_top_response(
         source(tmp_path, ui_server).fetch(request), request
@@ -1927,7 +1965,9 @@ def test_known_denial_takes_priority_over_simultaneous_cancel(
 
 
 def test_rising_empty_waits_for_delayed_top_data(tmp_path, ui_server):
-    ui_server["html"] = trends_html(count=3, delay=900, rising_empty=True)
+    ui_server["html"] = trends_html(
+        count=3, delay=900, rising_empty=True, refresh_after_period=True
+    )
     request = TrendsRequest("K1", "R1", "V1", "電子レンジ", range="3m")
     result = parse_grouped_top_response(
         source(tmp_path, ui_server).fetch(request), request
@@ -1946,7 +1986,9 @@ def test_observed_http_denial_overrides_navigation_timeout(tmp_path, ui_server):
 
 
 def test_old_empty_hide_then_reshow_never_establishes_top_zero(tmp_path, ui_server):
-    ui_server["html"] = trends_html(count=3, delay=4000, rising_empty=True).replace(
+    ui_server["html"] = trends_html(
+        count=3, delay=4000, rising_empty=True, refresh_after_period=True
+    ).replace(
         "setTimeout(()=>{topMode=true;render()}",
         "setTimeout(()=>document.querySelector('#words span').style.display='none',100);setTimeout(()=>document.querySelector('#words span').style.display='block',200);setTimeout(()=>{topMode=true;render()}",
     )

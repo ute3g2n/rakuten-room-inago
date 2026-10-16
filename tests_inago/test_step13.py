@@ -56,7 +56,12 @@ RUN_ID = "STEP13-RUN"
 @pytest.fixture
 def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
     private_data_root = (
-        ROOT / "非公開作業データ" / "イナゴ実装試験" / "step-13" / tmp_path.name / "state"
+        ROOT
+        / "非公開作業データ"
+        / "イナゴ実装試験"
+        / "step-13"
+        / tmp_path.name
+        / "state"
     )
     paths = resolve_runtime_paths(
         data_root=private_data_root,
@@ -64,7 +69,9 @@ def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
+    basic = json.loads(
+        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
+    )
     details = json.loads(
         (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
     )
@@ -876,8 +883,10 @@ def test_expired_pending_metrics_are_finalized_on_restart_without_recollection(
     ).fetchone()
     checkpoint = json.loads(row["checkpoint"])
     checkpoint["daily_orchestration"]["metrics_status"] = "pending"
+    checkpoint["daily_orchestration"]["phase"] = "initial"
+    checkpoint["daily_orchestration"].pop("terminal_status", None)
     runtime_case.connection.execute(
-        "UPDATE run SET metrics_status='pending', checkpoint=? WHERE run_id=?",
+        "UPDATE run SET status='partial', metrics_status='pending', checkpoint=? WHERE run_id=?",
         (json.dumps(checkpoint), RUN_ID),
     )
     runtime_case.connection.commit()
@@ -903,9 +912,9 @@ def test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_i
 ) -> None:
     runtime_case.clock.current = datetime(2026, 10, 12, 17, 59, tzinfo=JST)
     bundle = _make_ports(runtime_case)
-    started = threading.Event()
     cancelled = threading.Event()
     returned = threading.Event()
+    metrics_deadlines: list[str] = []
     metrics_cancellations: list[str] = []
     original_collect = bundle.metrics.collect
 
@@ -926,7 +935,10 @@ def test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_i
             connection.execute(
                 "UPDATE run SET metrics_status='observed' WHERE run_id=?", (run_id,)
             )
-        started.set()
+        metrics_deadlines.append(deadline_at)
+        deadline = datetime.fromisoformat(deadline_at)
+        seconds_remaining = (deadline - runtime_case.clock.now_jst()).total_seconds()
+        runtime_case.clock.advance(seconds_remaining + 1)
         cancelled.wait(timeout=5)
         try:
             return original_collect(connection, run_id=run_id, deadline_at=deadline_at)
@@ -940,19 +952,6 @@ def test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_i
 
     bundle.metrics.collect = blocked_collect
     bundle.ports = replace(bundle.ports, cancel_metrics_job=cancel_metrics)
-    clock_driver = threading.Thread(
-        target=lambda: (
-            started.wait(timeout=3)
-            and runtime_case.clock.advance(
-                (
-                    datetime(2026, 10, 12, 18, 4, tzinfo=JST)
-                    - runtime_case.clock.now_jst()
-                ).total_seconds()
-            )
-        ),
-        daemon=True,
-    )
-    clock_driver.start()
 
     outcome = _run(runtime_case, bundle)
 
@@ -966,7 +965,8 @@ def test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_i
         ).fetchone()[0]
         == "unavailable"
     )
-    assert bundle.metrics.calls == [(RUN_ID, "2026-10-12T18:04:00+09:00")]
+    assert bundle.metrics.calls == [(RUN_ID, metrics_deadlines[0])]
+    assert runtime_case.clock.now_jst() > datetime.fromisoformat(metrics_deadlines[0])
 
 
 def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
@@ -976,7 +976,7 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
         runtime_case,
         posts_per_search=5,
         finish_after_call=3,
-        advance_seconds=20 * 60,
+        advance_seconds=0,
     )
 
     outcome = _run(runtime_case, bundle)
@@ -986,8 +986,8 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     assert outcome.attempt_used == 3
     assert len(bundle.room.requests) == 3
     assert len(bundle.runner.requests) == 15
-    assert bundle.metrics.started_at == ["2026-10-12T13:20:00+09:00"]
-    assert bundle.metrics.calls[0][1] == "2026-10-12T13:25:00+09:00"
+    assert bundle.metrics.started_at == ["2026-10-12T13:00:00+09:00"]
+    assert bundle.metrics.calls[0][1] == "2026-10-12T13:05:00+09:00"
     assert (
         runtime_case.connection.execute(
             "SELECT COUNT(*) FROM theme_selection WHERE run_id=? AND event_kind='initial'",
@@ -1556,18 +1556,25 @@ def test_blocked_ai_copy_uses_request_timeout_and_discards_late_body(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=1)
-    started = threading.Event()
     cancelled = threading.Event()
     late_returned = threading.Event()
     original_run = bundle.runner.run
+    blocked_requests: list[AIJobRequest] = []
 
     def blocked_run(request: AIJobRequest) -> AIJobResult:
-        started.set()
-        cancelled.wait(timeout=5)
-        try:
-            return original_run(request)
-        finally:
-            late_returned.set()
+        blocked_requests.append(request)
+        if len(blocked_requests) == 1:
+            deadline = datetime.fromisoformat(request.deadline_at)
+            seconds_remaining = (
+                deadline - runtime_case.clock.now_jst()
+            ).total_seconds()
+            runtime_case.clock.advance(seconds_remaining + 1)
+            cancelled.wait(timeout=5)
+            try:
+                return original_run(request)
+            finally:
+                late_returned.set()
+        return original_run(request)
 
     bundle.runner.run = blocked_run
 
@@ -1577,33 +1584,32 @@ def test_blocked_ai_copy_uses_request_timeout_and_discards_late_body(
         return True
 
     bundle.ports = replace(bundle.ports, cancel_ai_request=cancel)
-    clock_driver = threading.Thread(
-        target=_advance_clock_past_request_timeout,
-        args=(runtime_case, started),
-        daemon=True,
-    )
-    clock_driver.start()
     outcome = _run(runtime_case, bundle)
     assert cancelled.is_set()
     assert outcome.committed_count > 0
     assert len(bundle.room.requests) > 1
     assert len(bundle.runner.requests) > 1
-    assert bundle.metrics.started_at == ["2026-10-12T13:08:00+09:00"]
+    assert bundle.metrics.started_at == ["2026-10-12T13:08:01+09:00"]
+    assert blocked_requests
+    blocked_offer_key = blocked_requests[0].copy_targets[0].offer_key
     attempt = runtime_case.connection.execute(
-        "SELECT outcome, error_code FROM generation_attempt WHERE run_id=?",
-        (RUN_ID,),
+        "SELECT outcome, error_code FROM generation_attempt "
+        "WHERE run_id=? AND offer_key=? ORDER BY attempt_no LIMIT 1",
+        (RUN_ID, blocked_offer_key),
     ).fetchone()
     assert tuple(attempt) == ("error", "timed_out")
     assert (
         runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM draft WHERE run_id=?", (RUN_ID,)
+            "SELECT COUNT(*) FROM draft WHERE run_id=? AND offer_key=?",
+            (RUN_ID, blocked_offer_key),
         ).fetchone()[0]
         == 0
     )
     assert late_returned.wait(timeout=3)
     assert (
         runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM draft WHERE run_id=?", (RUN_ID,)
+            "SELECT COUNT(*) FROM draft WHERE run_id=? AND offer_key=?",
+            (RUN_ID, blocked_offer_key),
         ).fetchone()[0]
         == 0
     )

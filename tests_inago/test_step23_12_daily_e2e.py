@@ -666,8 +666,8 @@ def test_scheduler_composition_commits_fifteen_copies_and_exports_final_state(
 @pytest.mark.parametrize(
     ("now", "expected_status", "metrics_calls"),
     (
-        ("2026-10-15T17:45:00+09:00", "shortfall", 1),
-        ("2026-10-15T18:00:00+09:00", "shortfall", 1),
+        ("2026-10-15T17:45:00+09:00", "complete", 1),
+        ("2026-10-15T18:00:00+09:00", "complete", 1),
     ),
     ids=("continues-after-1745", "continues-after-1800"),
 )
@@ -678,7 +678,18 @@ def test_scheduler_composition_continues_after_former_daily_cutoffs(
     expected_status: str,
     metrics_calls: int,
 ) -> None:
-    from automation.inago import production_runtime
+    from automation.inago import orchestrator, production_runtime
+
+    recorded_errors: list[str] = []
+    original_record_error = orchestrator._record_orchestration_error
+
+    def record_orchestration_error(state, error):
+        recorded_errors.append(f"{type(error).__name__}: {error}")
+        original_record_error(state, error)
+
+    monkeypatch.setattr(
+        orchestrator, "_record_orchestration_error", record_orchestration_error
+    )
 
     config, _database_path, clock, source, ai_root, metrics = _make_daily_fixture(
         monkeypatch, tmp_path, now=now
@@ -686,14 +697,14 @@ def test_scheduler_composition_continues_after_former_daily_cutoffs(
 
     result = production_runtime.run_production_daily(config, clock=clock)
 
-    assert result["daily_status"] == expected_status
+    assert result["daily_status"] == expected_status, recorded_errors
     assert result["run_id"] == RUN_ID
-    assert result["committed_count"] == 0
+    assert result["committed_count"] == 15
     assert source.search_requests
     assert source.trends_requests
-    assert ai_root.requests == []
+    assert sum(bool(request.copy_targets) for request in ai_root.requests) == 15
     assert len(metrics.calls) == metrics_calls
-    assert result["reason"] == "candidate_or_theme_exhausted"
+    assert result["reason"] == "daily_target_reached"
 
 
 def test_observed_zero_supply_is_a_shortfall_with_an_empty_day_html(
@@ -906,7 +917,7 @@ def test_metrics_failure_does_not_erase_completed_drafts(
     result = production_runtime.run_production_daily(config, clock=clock)
 
     assert result["daily_status"] == "complete"
-    assert result["status"] == "complete"
+    assert result["status"] == "metrics_failed"
     assert result["committed_count"] == 15
     assert result["metrics_status"] == "unavailable"
     assert len(metrics.calls) == 1
@@ -1003,47 +1014,76 @@ def test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from automation.inago import production_runtime
+    from automation.inago import production_runtime, trigger
 
     config, database_path, clock, source, ai_root, _metrics = _make_daily_fixture(
         monkeypatch, tmp_path, source_mode="copy_failure"
     )
-    original_export = production_runtime.run_production_dashboard_export
-    callback_count = 0
+    original_daily = trigger.run_public_scheduled_daily
+    interruption_injected = False
 
-    def export_then_stop(export_config):
-        nonlocal callback_count
-        result = original_export(export_config)
-        callback_count += 1
-        if callback_count == 1:
-            clock.current = datetime.fromisoformat("2026-10-15T17:45:00+09:00")
-        return result
+    def interrupt_after_first_commit(connection, **kwargs):
+        nonlocal interruption_injected
+        original_callback = kwargs["on_draft_commit"]
+
+        def commit_callback(callback_connection):
+            nonlocal interruption_injected
+            original_callback(callback_connection)
+            if not interruption_injected:
+                interruption_injected = True
+                raise KeyboardInterrupt("fixture process interruption after commit")
+
+        kwargs["on_draft_commit"] = commit_callback
+        return original_daily(connection, **kwargs)
 
     monkeypatch.setattr(
-        production_runtime, "run_production_dashboard_export", export_then_stop
+        trigger, "run_public_scheduled_daily", interrupt_after_first_commit
     )
-    first = production_runtime.run_production_daily(config, clock=clock)
-    assert first["daily_status"] == "partial"
-    assert first["committed_count"] == 1
-    assert first["run_id"] == RUN_ID
+    with pytest.raises(
+        KeyboardInterrupt, match="fixture process interruption after commit"
+    ):
+        production_runtime.run_production_daily(config, clock=clock)
+    assert interruption_injected is True
     first_copy_count = sum(bool(request.copy_targets) for request in ai_root.requests)
+    first_search_count = len(source.search_requests)
+    assert first_copy_count == 1
+    assert first_search_count == 1
+
+    owner_path = config.runtime_root / ".daily-run-owner.json"
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": 2_147_483_647,
+                "process_start_time": "2000-01-01T00:00:00+00:00",
+                "run_id": RUN_ID,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def interrupted_process(_pid: int) -> str:
+        raise ProcessLookupError("fixture owner process has exited")
 
     resumed = production_runtime.run_production_daily(
         config,
         clock=clock,
         resume_confirmed=True,
         cause_resolved=True,
+        process_start_time_reader=interrupted_process,
+        process_tree_reader=lambda _pid: (),
     )
 
     assert resumed["daily_status"] == "partial"
-    assert resumed["run_id"] == first["run_id"]
+    assert resumed["run_id"] == RUN_ID
     assert resumed["resumed"] is True
     assert resumed["committed_count"] == 1
     assert (
         sum(bool(request.copy_targets) for request in ai_root.requests)
         == first_copy_count
     )
-    assert len(source.search_requests) == 1
+    assert len(source.search_requests) > first_search_count
+    assert all(request.run_id == RUN_ID for request in source.search_requests)
     connection = _database_connection(database_path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 1

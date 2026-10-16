@@ -587,8 +587,10 @@ def test_n24a_report_apply_restarts_same_fourteen_run_across_old_cutoffs(
     original_apply_pending = orchestrator.apply_pending_reports
     clock.current = datetime.fromisoformat("2026-10-15T17:44:59+09:00")
 
-    def apply_then_cross_cutoffs(connection, *, run_id, clock):
-        result = original_apply_pending(connection, run_id=run_id, clock=clock)
+    def apply_then_cross_cutoffs(connection, *, run_id, clock, data_root=None):
+        result = original_apply_pending(
+            connection, run_id=run_id, clock=clock, data_root=data_root
+        )
         if result.exploration_allowed:
             clock.current = datetime.fromisoformat("2026-10-15T18:00:01+09:00")
         return result
