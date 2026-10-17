@@ -464,6 +464,46 @@ def test_store_rejects_inconsistent_terminal_statuses(tmp_path):
         )
 
 
+def test_store_rejects_blocked_launch_with_success_exit_code(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-blocked-exit",
+        target_date="2026-10-17",
+        owner_pid=8132,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "blocked",
+        "exit_code": 0,
+        "source_run_id": None,
+        "overall_status": "blocked",
+        "daily_status": "unknown",
+        "reason_code": "startup_preflight_blocked",
+        "failure_phase": "preflight",
+        "failed_checks": ["runtime_setup_missing"],
+        "primary_error_class": None,
+        "secondary_error_classes": [],
+        "trace_status": "not_written",
+    }
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=8133,
+            source_run_id=None,
+            launch_status="blocked",
+            exit_code=0,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="startup_preflight_blocked",
+            result_summary=summary,
+        )
+
+
 def _downgrade_fixture_to_v2(store):
     connection = sqlite3.connect(store.database_path)
     try:
