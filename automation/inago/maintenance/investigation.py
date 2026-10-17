@@ -798,10 +798,18 @@ def save_attempt_artifact(
         "investigation": {"facts.json", "investigation.md", "result.json"},
         "planning": {
             "plan.md",
+            "repair-scope.json",
             "requirement-step-case-map.json",
             "result.json",
             "review.json",
             "review.md",
+        },
+        "repair": {
+            "patch-assessment.json",
+            "test-ledger.json",
+            "review-target.json",
+            "review.json",
+            "result.json",
         },
     }
     if stage not in allowed_names or filename not in allowed_names[stage]:

@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.27 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.35 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -85,6 +85,16 @@ C32の計画追加ログ契約は、nullable `source_run_id`、`overall_status`�
 
 plannerとreviewerは担当ID・実行IDを分け、review対象versionは同一でなければならない。review入力にはplan/map、approved U12 facts artifactの検証済み内容/path/SHA-256、daily completion summary/SHA-256を含め、reviewerが事実対応とC32値を照合できるようにする。hostは`work_root`をrequest内の一致値だけで信頼せず、controllerを含む実行checkoutからrootを決め、plan documentがroot内へresolveすることを検証する。この検査はpath integrityであり、CLI folder-level ACLの設定要求ではない。外部待ち・blocked計画も独立reviewと最終説明を保存する。reviewerが計画の完全性をapprovedとしても、plan statusがreadyでなければStore gateを`changes_requested`にして後続STEPを止め、同じsequenceで再開する。C31/C32は合成fixtureと隔離Storeだけを使い、production DB/Scheduler/AI接続や実障害への対応は行わない。
 
+## U14 repair・テスト台帳・独立review
+
+U14 sequence 3開始時に、Store transactionで承認済み・readyなU13 predecessorのattempt ID、result version、output SHA-256をimmutable pinし、その正確な計画だけを完了まで使う。後から新しいU13 attemptが作られても差し替えない。U13 responseの`repair_scope.owned_paths`は必須の正規化済みrepo-relative path集合であり、承認resultとhash-bound `repair-scope.json`へ保存する。repair requestには`host_*`自己申告欄を設けない。controllerはStore attempt、job manifest、base commit、pinしたU13 result/artifact hash、identity、version、reviewer、ready/handoffを照合する。resolver未設定、scope/path/schema/hash不一致では完了を拒否する。AI起動前のCLI folder-level ACLは要求しない。実checkoutのpath containment、reparse拒否、owner/identity/schema/hash検証とdiff reviewはhost側で維持する。
+
+標準`RepositoryRepairEvidenceResolver`は実行checkoutからrootを取り、実際のtracked・staged・untracked・削除/rename diffとapproved U13 scopeを照合する。変更pathが承認scope外、root外、symlink/reparse経由なら拒否する。baseline/candidate assertion snapshotと決定的なcurrent code SHA-256を取り、`RepairHostEvidence`を作る。test outcomeを直接書くpersistent ledger APIは拒否し、`HostPytestRunner`が全登録case/nodeを固定したfinal full-regression snapshotで実行してStoreへ保存したreceiptだけを消費する。C34 REDは期待assertion failure 1件、error/collection error 0件の単独実測で、修正後PASSも同じsemantic case/nodeのhost receiptへ結ぶ。full regression receiptはcampaignの全登録case/node集合（個別PASS済み/frozenを含む）、token ID、code SHA、exit/collected/error/skip/collection error、parent状態に結び、一度だけ消費する。completionは今回run receiptが全registered case/nodeのPASSを含む場合だけ許可し、過去receiptとのunionで未実行caseを補わない。code hash変更時はcase定義だけをnew campaignへ継承し、旧PASS receiptを無効化して全登録caseを新hashで再実行する。arbitrary PASS map、nested run、集合変更、PASS再選択、実行中hash driftを拒否する。
+
+`maintenance-repair-test-ledger-v1`はcampaign identity、semantic case ID/node/signature、凍結case、receipt-bound結果、full regression receipt metadata、approved caseから得たC34 evidenceを持つ。schema v5の`repair_campaign`、`repair_campaign_case`、`repair_campaign_result`、`repair_case_run_start`、`repair_run_receipt`へone-use stateを永続化し、Store再open後もcase freeze・PASS history・token/snapshot/receiptを復元する。run owner/child PIDとprocess start identity、expiryを記録し、expired claimはowner/child終了をhost確認した場合だけfailedへ閉じる。case-run失敗もdurable failed stateへ閉じ、started recordを残さない。semantic signatureは初期・追加caseとも必須かつ一意。PASS済みcaseのID/node/signature再登録は拒否する。code hash変更後のforkはcase定義だけを保持し、旧PASS/frozen receiptを新hashの成功根拠にせず全登録caseを新hashで再実行する。final full regressionは個別PASS/frozenを含む全登録caseを再実行し、そのrun receiptで全件PASSを確認する。frozen ID/node/signatureを再登録、full regression開始後のcase追加、receiptの改変/再生を拒否する。full regressionはcampaignごとに一度だけ開始・claim・記録できる。修復対象のPython code/testはhost検証済みOS sandbox内だけで実行し、書込範囲・network・environment・process treeを制御する。強制可能なsandbox providerがない場合はchild process起動前に保留し、拒否を実行成功/PASSとして扱わない。安全な拒否のunit testとOS sandbox内でのpositive execution evidenceを区別する。この要件はAI起動前のCLI folder-level ACLとは別であり、CLI ACLを要求しない。
+
+repair artifactはattempt専用rootに`patch-assessment.json`、`test-ledger.json`、`review.json`、`result.json`として新規保存する。各resultはidentity、attempt/result version、tested code SHA、reviewer、path/SHAを結ぶ。独立reviewはStoreに記録されたhost-observed read-only reviewer session/turnとapproved/findingsを含むsource rowを参照し、reviewer identityとattempt/result version/code SHA/patch-test artifact SHA/review output SHAを照合した一回消費receiptで承認する。検証できないtested/reviewed commit claimは保存しない。review resolver返却直後とStore完了直前に実checkoutを再hashし、review中のcode driftを拒否する。callerが渡すreviewer ID/status/receipt IDだけでは承認しない。同一payloadの発行は冪等、異なるpayloadの競合は拒否。実review receipt provider未構成なら完了を保留する。raw patch、console、AI応答、秘密、個人情報をtraceへ複写しない。過去のC34外側pytest PASSは修復runnerのRED/PASS実測receiptへ読み替えず、承認済みU13 case mapに対象caseがない場合は完了を保留する。C33～C37/C61～C67の合否と専用証拠はM §10/§14、private Tへ記録する。C62～C67はapproved scope、predecessor pin、Store restart、default resolver、receipt消費、runner境界を個別に確認する。production DB、Scheduler、実AI、投稿状態は変更しない。
+
 ## 受入条件
 
 | ID | 合格条件 |
@@ -105,8 +115,8 @@ plannerとreviewerは担当ID・実行IDを分け、review対象versionは同一
 | MA-014 | 元の日次結果と主例外を維持し、maintenanceログ・証拠コピーの期限、容量、回収、抑止/書込不能を明示する。元データの期限を延長・短縮せず、保持失敗を成功扱いしない。 |
 | MA-015 | 調査レポートが計画で定める9章を備え、事実/推定/未確認と根拠を追跡でき、別担当のレビューを通る。原因をerror名だけで断定しない。 |
 | MA-016 | 修正計画が0～14節、STEPごとの14項目、ケースごとの12項目、各STEPの独立promptを備え、STEP・ケース・受入・出力が相互追跡できる。 |
-| MA-017 | 実装・テスト・レビューの所有が分かれ、意味のある再現REDまたは証拠に基づく「再現不可/文書契約違反」の記録が修正前に残る。managed worktree外と所有外ファイルを変更しない。 |
-| MA-018 | U19で凍結した全必須対象を途中は新規/未実施/FAILだけ実行し、U20の全回帰は1回。回帰後は影響が不確実な既存PASSを流用せず、不成立ならreleaseを止める。 |
+| MA-017 | 実装・テスト・レビューの所有が分かれ、意味のある再現REDまたは証拠に基づく「再現不可/文書契約違反」の記録が修正前に残る。C34はapproved case/nodeの実runner receiptで確認し、合成fixtureのcaller-made証拠を認めない。独立reviewはattempt/version/code/patch/test/output hashとhost-observed read-only session/turnに結び付くreceiptを消費する。同一payloadの再試行は冪等とし、provider欠落は保留する。managed worktree外と所有外ファイルを変更しない。 |
+| MA-018 | U19で凍結した全必須対象を途中は新規/未実施/FAILだけ実行し、U20の全回帰は1回。修復対象PythonのrunnerはOS sandbox内でのみ実行し、sandbox未構成ならchild process前に保留し、安全な拒否だけをrunner成功としない。full regressionは個別PASS/frozenを含む全approved case/nodeを一度実行し、今回のrun receiptだけで全件PASSを示す。code hash変更時は旧PASS receiptを無効化し、case定義だけを保持して全登録caseを新hashで再実行する。回帰後は影響が不確実な既存PASSを流用せず、不成立ならreleaseを止める。 |
 | MA-019 | 差分対象を限定し、作業commitを追跡先へ通常pushし、レビュー済みの正確な版だけを通常fast-forwardで反映する。非交差の既存ユーザー変更を保持して差分不変を確認し、交差またはff不能時は保留する。force push、reset、履歴書換えを行わない。 |
 | MA-020 | 対応HTMLが事象、原因確度、修正、試験、レビュー、反映、未完了を平易に説明し、独立した報告レビューを通る。要求された表示確認方法で対象版を確認し、未確認を表示する。 |
 | MA-021 | maintenanceの全stage・担当・指定/観測model/effort/tier・入力/証拠/成果参照・base/result版・レビュー・試験・停止/再開・deployment結果が追跡される。 |

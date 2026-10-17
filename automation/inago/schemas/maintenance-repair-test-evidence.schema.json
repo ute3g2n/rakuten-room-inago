@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-repair-test-evidence-v1.schema.json",
+  "title": "Maintenance repair isolated test-run evidence",
+  "type": "object",
+  "properties": {
+    "node": {"type": "string", "minLength": 1},
+    "outcome": {"enum": ["PASS", "FAIL", "SKIP", "XFAIL", "ERROR", "NOT_RUN", "UNVERIFIED"]},
+    "exit_code": {"type": "integer"},
+    "collected": {"type": "integer", "minimum": 0},
+    "assertion_failures": {"type": "integer", "minimum": 0},
+    "errors": {"type": "integer", "minimum": 0},
+    "code_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "semantic_case_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "invocation_parent_id": {"oneOf": [{"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}, {"type": "null"}]},
+    "collection_errors": {"type": "integer", "minimum": 0},
+    "execution_kind": {"enum": ["in_process_callable", "pytest"]}
+  },
+  "required": ["node", "outcome", "exit_code", "collected", "assertion_failures", "errors", "code_sha256", "semantic_case_id", "invocation_parent_id", "collection_errors", "execution_kind"],
+  "additionalProperties": false
+}

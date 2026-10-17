@@ -19,6 +19,7 @@ from automation.inago.maintenance.investigation import (
     render_investigation_markdown,
     run_check_stage,
     save_attempt_artifact,
+    _validate_context,
     validate_investigation_response,
     validate_investigation_review,
 )
@@ -29,6 +30,20 @@ from automation.inago.maintenance.planning import (
     render_planning_review_markdown,
     validate_planning_response,
     validate_planning_review,
+)
+from automation.inago.maintenance.repair import (
+    RepairAttemptOutcome,
+    RepairAttemptRequest,
+    RepairContractError,
+    RepairController,
+    RepairHostEvidence,
+    RepairHostEvidenceContext,
+    RepairReviewContext,
+    RepairReviewEvidence,
+    RepositoryRepairEvidenceResolver,
+    RepairTestLedger,
+    _validate_schema as _validate_repair_schema,
+    repository_code_sha256,
 )
 
 from automation.inago.maintenance.store import (
@@ -406,8 +421,34 @@ def _investigation_result_document(
 class MaintenanceController:
     """Expose safe workflow operations while keeping persistence in the store."""
 
-    def __init__(self, store: MaintenanceStore) -> None:
+    def __init__(
+        self,
+        store: MaintenanceStore,
+        *,
+        identity_resolver: Callable[[str], object] | None = None,
+        repair_host_evidence_resolver: (
+            Callable[[RepairHostEvidenceContext], RepairHostEvidence] | None
+        ) = None,
+        repair_review_receipt_resolver: (
+            Callable[[RepairReviewContext], RepairReviewEvidence] | None
+        ) = None,
+        repair_checkout_root: str | Path | None = None,
+    ) -> None:
         self._store = store
+        trusted_identity_resolver = (
+            identity_resolver or store.resolve_repair_identity_role
+        )
+        self._repair_controller = RepairController(
+            identity_resolver=trusted_identity_resolver
+        )
+        self._repair_host_evidence_resolver = (
+            repair_host_evidence_resolver
+            or RepositoryRepairEvidenceResolver(
+                store=store,
+                checkout_root=repair_checkout_root,
+            )
+        )
+        self._repair_review_receipt_resolver = repair_review_receipt_resolver
 
     def record_daily_check(
         self,
@@ -486,6 +527,640 @@ class MaintenanceController:
             sequence=sequence,
             lease=lease,
             started_at=started_at,
+        )
+
+    def begin_repair_attempt(
+        self,
+        *,
+        job_id: str,
+        attempts_root: str | Path,
+        lease: LeaseToken,
+        started_at: datetime | str,
+    ) -> StepAttemptResult:
+        """Start sequence 3 only from the latest approved, ready U13 plan."""
+
+        try:
+            plan_attempt = self._store.get_latest_step_attempt(
+                job_id=job_id,
+                sequence=2,
+            )
+            review_record = self._store.get_step_attempt_review(
+                attempt_id=plan_attempt.attempt_id
+            )
+            manifest = self._store.get_job_input_manifest(job_id=job_id)
+            if (
+                plan_attempt.step_key != "maintenance_planning"
+                or plan_attempt.status != "complete"
+                or plan_attempt.result_version is None
+                or plan_attempt.output_path is None
+                or plan_attempt.output_sha256 is None
+                or review_record is None
+                or review_record["status"] != "approved"
+                or review_record["reviewed_version"] != plan_attempt.result_version
+            ):
+                raise RepairContractError("repair_plan_not_approved")
+            raw_result = self._store.read_attempt_artifact(
+                attempts_root=attempts_root,
+                relative_path=plan_attempt.output_path,
+                expected_sha256=plan_attempt.output_sha256,
+            )
+            result = json.loads(raw_result)
+            review = result.get("review") if isinstance(result, dict) else None
+            if (
+                not isinstance(result, dict)
+                or result.get("schema_version") != "maintenance-planning-result-v1"
+                or result.get("identity") != manifest.identity()
+                or result.get("attempt_id") != plan_attempt.attempt_id
+                or result.get("result_version") != plan_attempt.result_version
+                or result.get("base_commit")
+                != self._store.get_job_base_commit(job_id=job_id)
+                or result.get("plan_status") != "ready"
+                or result.get("next_action") != "handoff"
+                or not isinstance(review, dict)
+                or review.get("status") != "approved"
+                or review.get("gate_status") != "approved"
+                or review.get("reviewed_version") != plan_attempt.result_version
+                or review.get("reviewer_id") != review_record["reviewer_id"]
+            ):
+                raise RepairContractError("repair_plan_not_approved")
+        except RepairContractError:
+            raise
+        except (
+            MaintenanceStoreError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            raise RepairContractError("repair_plan_unavailable") from exc
+
+        return self._store.begin_step_attempt(
+            job_id=job_id,
+            step_key="maintenance_repair",
+            sequence=3,
+            lease=lease,
+            started_at=started_at,
+            repair_predecessor_attempt_id=plan_attempt.attempt_id,
+            repair_predecessor_result_version=plan_attempt.result_version,
+            repair_predecessor_output_sha256=plan_attempt.output_sha256,
+        )
+
+    def prepare_repair_campaign(
+        self,
+        *,
+        attempt_id: str,
+        attempts_root: str | Path,
+    ) -> RepairHostEvidence:
+        """Resolve the pinned approved plan and open its durable test campaign."""
+
+        try:
+            attempt = self._store.get_step_attempt(attempt_id)
+            if (
+                attempt.step_key != "maintenance_repair"
+                or attempt.sequence != 3
+                or attempt.status != "running"
+            ):
+                raise RepairContractError("repair_attempt_identity_invalid")
+            pin = self._store.get_repair_step_predecessor(attempt_id=attempt.attempt_id)
+            plan_attempt = self._store.get_step_attempt(pin["attempt_id"])
+            if plan_attempt.output_path is None:
+                raise RepairContractError("repair_plan_not_approved")
+            plan_bytes = self._store.read_attempt_artifact(
+                attempts_root=attempts_root,
+                relative_path=plan_attempt.output_path,
+                expected_sha256=pin["output_sha256"],
+            )
+            plan_result = json.loads(plan_bytes)
+            host_context = RepairHostEvidenceContext(
+                job_id=attempt.job_id,
+                attempt_id=attempt.attempt_id,
+                base_commit=self._store.get_job_base_commit(job_id=attempt.job_id),
+                approved_plan=plan_result,
+                attempts_root=attempts_root,
+            )
+            host_evidence = self._repair_host_evidence_resolver(host_context)
+        except RepairContractError:
+            raise
+        except Exception as exc:
+            raise RepairContractError(
+                getattr(exc, "code", "repair_host_evidence_unavailable")
+            ) from exc
+        if not isinstance(host_evidence, RepairHostEvidence):
+            raise RepairContractError("repair_host_evidence_invalid")
+        return host_evidence
+
+    def run_repair_case(
+        self, ledger: RepairTestLedger, semantic_case_id: str
+    ) -> object:
+        """Run and return a single persisted campaign node receipt."""
+
+        runner = getattr(self._repair_host_evidence_resolver, "runner", None)
+        if runner is None:
+            raise RepairContractError("host_pytest_runner_unavailable")
+        return runner.run_case(ledger, semantic_case_id)
+
+    def run_repair_full_regression(self, ledger: RepairTestLedger) -> object:
+        """Run the campaign's persisted exact node set and return its receipt."""
+
+        runner = getattr(self._repair_host_evidence_resolver, "runner", None)
+        if runner is None:
+            raise RepairContractError("host_pytest_runner_unavailable")
+        return runner.run_full_regression(ledger)
+
+    def complete_repair_attempt(
+        self, request: RepairAttemptRequest
+    ) -> RepairAttemptOutcome:
+        """Persist one owned patch, passing regression, and independent review."""
+
+        if not isinstance(request, RepairAttemptRequest):
+            raise RepairContractError("repair_request_invalid")
+        try:
+            context = _validate_context(request.context)
+        except InvestigationContractError as exc:
+            raise RepairContractError(exc.code) from exc
+
+        try:
+            attempt = self._store.get_step_attempt(context["attempt_id"])
+            manifest = self._store.get_job_input_manifest(job_id=context["job_id"])
+            expected_identity = manifest.identity()
+            if (
+                attempt.job_id != context["job_id"]
+                or attempt.source_run_id != context["source_run_id"]
+                or attempt.attempt_id != context["attempt_id"]
+                or attempt.step_key != "maintenance_repair"
+                or attempt.sequence != 3
+                or attempt.status != "running"
+                or any(
+                    context.get(key) != value
+                    for key, value in expected_identity.items()
+                )
+                or context["base_commit"]
+                != self._store.get_job_base_commit(job_id=attempt.job_id)
+            ):
+                raise RepairContractError("repair_attempt_identity_invalid")
+
+            predecessor_pin = self._store.get_repair_step_predecessor(
+                attempt_id=attempt.attempt_id
+            )
+            plan_attempt = self._store.get_step_attempt(predecessor_pin["attempt_id"])
+            plan_review_record = self._store.get_step_attempt_review(
+                attempt_id=plan_attempt.attempt_id
+            )
+            if (
+                plan_attempt.step_key != "maintenance_planning"
+                or plan_attempt.status != "complete"
+                or plan_attempt.result_version != predecessor_pin["result_version"]
+                or plan_attempt.output_sha256 != predecessor_pin["output_sha256"]
+                or plan_attempt.output_path is None
+                or plan_review_record is None
+                or plan_review_record["status"] != "approved"
+                or plan_review_record["reviewed_version"] != plan_attempt.result_version
+            ):
+                raise RepairContractError("repair_plan_not_approved")
+            plan_bytes = self._store.read_attempt_artifact(
+                attempts_root=request.attempts_root,
+                relative_path=plan_attempt.output_path,
+                expected_sha256=plan_attempt.output_sha256,
+            )
+            plan_result = json.loads(plan_bytes)
+            plan_review = (
+                plan_result.get("review") if isinstance(plan_result, dict) else None
+            )
+            if (
+                not isinstance(plan_result, dict)
+                or plan_result.get("schema_version") != "maintenance-planning-result-v1"
+                or plan_result.get("identity") != expected_identity
+                or plan_result.get("attempt_id") != plan_attempt.attempt_id
+                or plan_result.get("result_version") != plan_attempt.result_version
+                or plan_result.get("base_commit") != context["base_commit"]
+                or plan_result.get("plan_status") != "ready"
+                or plan_result.get("next_action") != "handoff"
+                or not isinstance(plan_review, dict)
+                or plan_review.get("status") != "approved"
+                or plan_review.get("gate_status") != "approved"
+                or plan_review.get("reviewed_version") != plan_attempt.result_version
+                or plan_review.get("reviewer_id") != plan_review_record["reviewer_id"]
+            ):
+                raise RepairContractError("repair_plan_not_approved")
+        except RepairContractError:
+            raise
+        except (
+            MaintenanceStoreError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            raise RepairContractError("repair_predecessor_unavailable") from exc
+
+        if self._repair_host_evidence_resolver is None:
+            raise RepairContractError("repair_host_evidence_unavailable")
+        host_context = RepairHostEvidenceContext(
+            job_id=attempt.job_id,
+            attempt_id=attempt.attempt_id,
+            base_commit=context["base_commit"],
+            approved_plan=plan_result,
+            attempts_root=request.attempts_root,
+        )
+        try:
+            host_evidence = self._repair_host_evidence_resolver(host_context)
+        except Exception as exc:
+            raise RepairContractError("repair_host_evidence_unavailable") from exc
+        if not isinstance(host_evidence, RepairHostEvidence):
+            raise RepairContractError("repair_host_evidence_invalid")
+
+        review = request.review
+        current_code_hash = host_evidence.current_code_sha256
+        if (
+            not isinstance(current_code_hash, str)
+            or re.fullmatch(r"[a-f0-9]{64}", current_code_hash) is None
+            or not isinstance(host_evidence.test_ledger, RepairTestLedger)
+            or host_evidence.test_ledger.invocation_parent_id is not None
+            or host_evidence.approved_cases is None
+            or host_evidence.job_id != attempt.job_id
+            or host_evidence.attempt_id != attempt.attempt_id
+            or host_evidence.base_commit != context["base_commit"]
+            or host_evidence.plan_attempt_id != predecessor_pin["attempt_id"]
+            or host_evidence.plan_result_version != predecessor_pin["result_version"]
+            or host_evidence.plan_output_sha256 != predecessor_pin["output_sha256"]
+            or not host_evidence.checkout_root
+            or host_evidence.test_ledger.job_id != attempt.job_id
+            or host_evidence.test_ledger.attempt_id != attempt.attempt_id
+        ):
+            raise RepairContractError("repair_evidence_identity_invalid")
+
+        assessment = self._repair_controller.assess_patch(
+            changed_paths=host_evidence.changed_paths,
+            owned_paths=host_evidence.owned_paths,
+            baseline_assertions=host_evidence.baseline_assertions,
+            candidate_assertions=host_evidence.candidate_assertions,
+        )
+        if not assessment.accepted:
+            raise RepairContractError("repair_patch_rejected")
+        if (
+            not host_evidence.test_ledger.frozen_receipts_match_code_hash(
+                current_code_hash
+            )
+            or host_evidence.test_ledger.completion_status(
+                current_code_sha256=current_code_hash
+            )
+            != "ready"
+        ):
+            raise RepairContractError("repair_regression_not_ready")
+        full_regression = host_evidence.test_ledger.full_regression_record
+        approved_cases = dict(host_evidence.approved_cases)
+        full_cases = {} if full_regression is None else dict(full_regression.cases)
+        frozen_receipts = {
+            case_id: receipt
+            for case_id, receipt in host_evidence.test_ledger.frozen_pass_receipts.items()
+            if case_id not in full_cases
+        }
+        frozen_case_rows = host_evidence.test_ledger.frozen_cases
+        proof_union = {
+            case_id: str(receipt.get("node", ""))
+            for case_id, receipt in frozen_receipts.items()
+        }
+        proof_union.update(full_cases)
+        frozen_receipts_valid = all(
+            case_id in frozen_case_rows
+            and frozen_receipts[case_id].get("semantic_case_id") == case_id
+            and frozen_receipts[case_id].get("node") == frozen_case_rows[case_id].node
+            and frozen_receipts[case_id].get("semantic_signature")
+            == frozen_case_rows[case_id].semantic_signature
+            and frozen_receipts[case_id].get("outcome") == "PASS"
+            and frozen_receipts[case_id].get("code_sha256") == current_code_hash
+            and bool(frozen_receipts[case_id].get("receipt_id"))
+            and re.fullmatch(
+                r"[a-f0-9]{64}",
+                str(frozen_receipts[case_id].get("receipt_sha256", "")),
+            )
+            is not None
+            for case_id in frozen_receipts
+        )
+        if (
+            full_regression is None
+            or full_regression.receipt_id is None
+            or full_regression.receipt_sha256 is None
+            or re.fullmatch(r"[a-f0-9]{64}", full_regression.receipt_sha256) is None
+            or full_regression.cases != host_evidence.test_ledger.full_regression_cases
+            or set(full_regression.results) != set(full_cases)
+            or any(status != "PASS" for status in full_regression.results.values())
+            or not frozen_receipts_valid
+            or proof_union != approved_cases
+        ):
+            raise RepairContractError("repair_approved_case_receipt_mismatch")
+
+        if (
+            not self._repair_controller.validate_review(review)
+            or review.tested_result_version != request.result_version
+            or review.tested_code_sha256 != current_code_hash
+            or review.reviewed_code_sha256 != current_code_hash
+        ):
+            raise RepairContractError("repair_review_rejected")
+
+        try:
+            review_round = self._store.next_step_review_round(attempt.attempt_id)
+            self._store.validate_step_attempt_lease(
+                attempt_id=attempt.attempt_id,
+                lease=request.lease,
+                at=request.completed_at,
+                author_id=review.author_id,
+                reviewer_id=review.reviewer_id,
+            )
+        except MaintenanceStoreError as exc:
+            raise RepairContractError(exc.code) from exc
+
+        identity = expected_identity
+        patch_document = {
+            "schema_version": "maintenance-repair-patch-assessment-v1",
+            "attestation_source": "host_collected",
+            "identity": identity,
+            "attempt_id": attempt.attempt_id,
+            "result_version": request.result_version,
+            "tested_code_sha256": current_code_hash,
+            "assessment": {
+                "accepted": assessment.accepted,
+                "reason_codes": list(assessment.reason_codes),
+                "changed_paths": list(assessment.changed_paths),
+                "assertion_snapshot_sha256": assessment.assertion_snapshot_sha256,
+            },
+            "owned_paths": list(host_evidence.owned_paths),
+            "baseline_assertions": {
+                path: dict(assertions)
+                for path, assertions in host_evidence.baseline_assertions.items()
+            },
+            "candidate_assertions": {
+                path: dict(assertions)
+                for path, assertions in host_evidence.candidate_assertions.items()
+            },
+        }
+        try:
+            _validate_repair_schema(
+                "maintenance-repair-patch-assessment.schema.json",
+                patch_document,
+                "repair_patch_artifact_invalid",
+            )
+            ledger_document = host_evidence.test_ledger.to_document(
+                attempt_id=attempt.attempt_id,
+                result_version=request.result_version,
+                tested_code_sha256=current_code_hash,
+                identity=identity,
+                test_evidence=host_evidence.test_evidence,
+            )
+        except RepairContractError:
+            raise
+        except (TypeError, ValueError) as exc:
+            raise RepairContractError("repair_artifact_invalid") from exc
+
+        artifacts: dict[str, tuple[str, str]] = {}
+        artifact_context = {
+            **context,
+            "attempt_id": attempt.attempt_id,
+        }
+
+        def save_json_artifact(
+            filename: str, document: Mapping[str, object]
+        ) -> tuple[str, str]:
+            try:
+                content = (
+                    json.dumps(
+                        document,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        allow_nan=False,
+                    )
+                    + "\n"
+                )
+                saved = save_attempt_artifact(
+                    request.output_root,
+                    request.attempts_root,
+                    artifact_context,
+                    filename=filename,
+                    content=content,
+                    stage="repair",
+                )
+                artifacts[filename] = saved
+                return saved
+            except InvestigationContractError as exc:
+                raise RepairContractError(exc.code) from exc
+            except (TypeError, ValueError) as exc:
+                raise RepairContractError("repair_artifact_invalid") from exc
+
+        patch_path, patch_sha256 = save_json_artifact(
+            "patch-assessment.json", patch_document
+        )
+        ledger_path, ledger_sha256 = save_json_artifact(
+            "test-ledger.json", ledger_document
+        )
+        review_target = {
+            "schema_version": "maintenance-repair-review-target-v1",
+            "attestation_source": "host_collected",
+            "identity": identity,
+            "job_id": attempt.job_id,
+            "attempt_id": attempt.attempt_id,
+            "result_version": request.result_version,
+            "code_sha256": current_code_hash,
+            "full_regression_receipt_id": full_regression.receipt_id,
+            "full_regression_receipt_sha256": full_regression.receipt_sha256,
+            "output": {
+                "patch_assessment": {"path": patch_path, "sha256": patch_sha256},
+                "test_ledger": {"path": ledger_path, "sha256": ledger_sha256},
+            },
+        }
+        _validate_repair_schema(
+            "maintenance-repair-review-target.schema.json",
+            review_target,
+            "repair_review_target_invalid",
+        )
+        review_target_path, review_target_sha256 = save_json_artifact(
+            "review-target.json", review_target
+        )
+        if self._repair_review_receipt_resolver is None:
+            raise RepairContractError("repair_review_receipt_unavailable")
+        review_context = RepairReviewContext(
+            job_id=attempt.job_id,
+            attempt_id=attempt.attempt_id,
+            result_version=request.result_version,
+            author_id=review.author_id,
+            reviewer_id=review.reviewer_id,
+            reviewed_output_sha256=review_target_sha256,
+            code_sha256=current_code_hash,
+            patch_sha256=patch_sha256,
+            test_ledger_sha256=ledger_sha256,
+        )
+        try:
+            review_evidence = self._repair_review_receipt_resolver(review_context)
+        except Exception as exc:
+            raise RepairContractError(
+                getattr(exc, "code", "repair_review_receipt_unavailable")
+            ) from exc
+        if repository_code_sha256(host_evidence.checkout_root) != current_code_hash:
+            raise RepairContractError("repair_code_hash_drift")
+        if (
+            not isinstance(review_evidence, RepairReviewEvidence)
+            or review_evidence.attempt_id != review_context.attempt_id
+            or review_evidence.result_version != review_context.result_version
+            or review_evidence.author_id != review_context.author_id
+            or review_evidence.reviewer_id != review_context.reviewer_id
+            or review_evidence.reviewed_output_sha256
+            != review_context.reviewed_output_sha256
+            or review_evidence.code_sha256 != review_context.code_sha256
+            or review_evidence.patch_sha256 != review_context.patch_sha256
+            or review_evidence.test_ledger_sha256 != review_context.test_ledger_sha256
+            or review_evidence.approved is not True
+            or review_evidence.unresolved_critical_findings
+            or review.unresolved_critical_findings
+        ):
+            raise RepairContractError("repair_review_receipt_mismatch")
+        try:
+            review_receipt = self._store.record_repair_review_receipt(
+                capability=self._store._repair_review_capability,
+                job_id=review_context.job_id,
+                attempt_id=review_context.attempt_id,
+                result_version=review_context.result_version,
+                author_id=review_context.author_id,
+                reviewer_id=review_context.reviewer_id,
+                host_receipt_id=review_evidence.host_receipt_id,
+                reviewed_output_sha256=review_context.reviewed_output_sha256,
+                code_sha256=review_context.code_sha256,
+                patch_sha256=review_context.patch_sha256,
+                test_ledger_sha256=review_context.test_ledger_sha256,
+                created_at=request.reviewed_at,
+            )
+        except MaintenanceStoreError as exc:
+            raise RepairContractError(exc.code) from exc
+        review_document = {
+            "schema_version": "maintenance-repair-review-v1",
+            "attestation_source": "host_collected",
+            "identity": identity,
+            "attempt_id": attempt.attempt_id,
+            "result_version": request.result_version,
+            "author_id": review.author_id,
+            "reviewer_id": review.reviewer_id,
+            "tested_result_version": review.tested_result_version,
+            "reviewed_result_version": review.reviewed_result_version,
+            "unresolved_critical_findings": list(
+                review_evidence.unresolved_critical_findings
+            ),
+            "tested_code_sha256": current_code_hash,
+            "reviewed_code_sha256": current_code_hash,
+            "host_receipt_id": review_receipt.host_receipt_id,
+            "receipt_id": review_receipt.receipt_id,
+            "receipt_sha256": review_receipt.receipt_sha256,
+            "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
+            "patch_sha256": review_receipt.patch_sha256,
+            "test_ledger_sha256": review_receipt.test_ledger_sha256,
+        }
+        _validate_repair_schema(
+            "maintenance-repair-review.schema.json",
+            review_document,
+            "repair_review_artifact_invalid",
+        )
+        save_json_artifact("review.json", review_document)
+
+        result_document = {
+            "schema_version": "maintenance-repair-result-v1",
+            "attestation_source": "host_collected",
+            "identity": identity,
+            "attempt_id": attempt.attempt_id,
+            "result_version": request.result_version,
+            "tested_code_sha256": current_code_hash,
+            "repair_status": "complete",
+            "completion_status": "ready",
+            "review_status": "approved",
+            "output": {
+                "patch_assessment": {
+                    "path": artifacts["patch-assessment.json"][0],
+                    "sha256": artifacts["patch-assessment.json"][1],
+                },
+                "test_ledger": {
+                    "path": artifacts["test-ledger.json"][0],
+                    "sha256": artifacts["test-ledger.json"][1],
+                },
+                "review_target": {
+                    "path": review_target_path,
+                    "sha256": review_target_sha256,
+                },
+                "review": {
+                    "path": artifacts["review.json"][0],
+                    "sha256": artifacts["review.json"][1],
+                },
+            },
+            "reviewer_id": review.reviewer_id,
+            "reviewed_result_version": review.reviewed_result_version,
+            "reviewed_code_sha256": review.reviewed_code_sha256,
+            "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
+        }
+        try:
+            _validate_repair_schema(
+                "maintenance-repair-result.schema.json",
+                result_document,
+                "repair_result_invalid",
+            )
+            result_content = (
+                json.dumps(
+                    result_document,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                + "\n"
+            )
+            output_path, output_sha256 = save_attempt_artifact(
+                request.output_root,
+                request.attempts_root,
+                artifact_context,
+                filename="result.json",
+                content=result_content,
+                stage="repair",
+            )
+        except RepairContractError:
+            raise
+        except InvestigationContractError as exc:
+            raise RepairContractError(exc.code) from exc
+        except (TypeError, ValueError) as exc:
+            raise RepairContractError("repair_result_invalid") from exc
+
+        if repository_code_sha256(host_evidence.checkout_root) != current_code_hash:
+            raise RepairContractError("repair_code_hash_drift")
+
+        try:
+            self._store.complete_step_attempt_with_review(
+                attempt_id=attempt.attempt_id,
+                lease=request.lease,
+                result_version=request.result_version,
+                completed_at=request.completed_at,
+                output_path=output_path,
+                output_sha256=output_sha256,
+                reviewer_id=review.reviewer_id,
+                reviewed_version=review.reviewed_result_version,
+                review_status="approved",
+                reviewed_at=request.reviewed_at,
+                review_round=review_round,
+                repair_review_receipt_id=review_receipt.receipt_id,
+                repair_review_expected={
+                    "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
+                    "code_sha256": current_code_hash,
+                    "patch_sha256": patch_sha256,
+                    "test_ledger_sha256": ledger_sha256,
+                    "host_receipt_id": review_receipt.host_receipt_id,
+                    "receipt_sha256": review_receipt.receipt_sha256,
+                },
+            )
+        except MaintenanceStoreError as exc:
+            raise RepairContractError(exc.code) from exc
+
+        artifacts["result.json"] = (output_path, output_sha256)
+        return RepairAttemptOutcome(
+            attempt_id=attempt.attempt_id,
+            result_version=request.result_version,
+            code_sha256=current_code_hash,
+            review_status="approved",
+            output_path=output_path,
+            output_sha256=output_sha256,
+            artifacts=artifacts,
         )
 
     def run_daily_check_stage(
@@ -1093,6 +1768,22 @@ class MaintenanceController:
             "requirement-step-case-map.json",
             map_json,
         )
+        repair_scope_json = (
+            json.dumps(
+                {"repair_scope": validated["repair_scope"]},
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        )
+        repair_scope_path, repair_scope_hash = self._save_planning_artifact(
+            request,
+            dependencies["context"],
+            "repair-scope.json",
+            repair_scope_json,
+        )
         return {
             "plan_markdown": plan_markdown,
             "plan_path": plan_path,
@@ -1100,9 +1791,13 @@ class MaintenanceController:
             "requirement_map": requirement_map,
             "map_path": map_path,
             "map_hash": map_hash,
+            "repair_scope": validated["repair_scope"],
+            "repair_scope_path": repair_scope_path,
+            "repair_scope_hash": repair_scope_hash,
             "artifacts": {
                 "plan.md": (plan_path, plan_hash),
                 "requirement-step-case-map.json": (map_path, map_hash),
+                "repair-scope.json": (repair_scope_path, repair_scope_hash),
             },
         }
 
@@ -1127,6 +1822,9 @@ class MaintenanceController:
             "plan_path": plan_artifacts["plan_path"],
             "plan_sha256": plan_artifacts["plan_hash"],
             "plan_markdown": plan_artifacts["plan_markdown"],
+            "repair_scope": plan_artifacts["repair_scope"],
+            "repair_scope_path": plan_artifacts["repair_scope_path"],
+            "repair_scope_sha256": plan_artifacts["repair_scope_hash"],
             "requirement_step_case_map_path": plan_artifacts["map_path"],
             "requirement_step_case_map_sha256": plan_artifacts["map_hash"],
             "requirement_step_case_map": plan_artifacts["requirement_map"],
@@ -1299,6 +1997,10 @@ class MaintenanceController:
                 "path": plan_artifacts["plan_path"],
                 "sha256": plan_artifacts["plan_hash"],
             },
+            "repair_scope": {
+                "path": plan_artifacts["repair_scope_path"],
+                "sha256": plan_artifacts["repair_scope_hash"],
+            },
             "requirement_step_case_map": {
                 "path": plan_artifacts["map_path"],
                 "sha256": plan_artifacts["map_hash"],
@@ -1354,6 +2056,7 @@ class MaintenanceController:
             "summary": validated["summary"],
             "workspace_root": str(dependencies["trusted_root"]),
             "plan_document": context["plan_document"],
+            "repair_scope": validated["repair_scope"],
             "daily_completion_sha256": dependencies["daily_completion_sha256"],
             "investigation": self._planning_investigation_result(dependencies),
             "base_commit": context["base_commit"],

@@ -7,6 +7,7 @@ from functools import lru_cache
 import html
 import json
 from pathlib import Path
+from pathlib import PurePosixPath, PureWindowsPath
 import re
 from typing import Any
 
@@ -117,6 +118,47 @@ def _text_values(value: object, code: str) -> list[str]:
     if _nonempty_text(value):
         return [value]
     return _text_list(value, code)
+
+
+def _validate_repair_scope(value: object) -> dict[str, list[str]]:
+    """Require a canonical machine-readable repository ownership allowlist."""
+
+    if not isinstance(value, Mapping) or set(value) != {"owned_paths"}:
+        raise PlanningContractError("repair_scope_invalid")
+    paths = value.get("owned_paths")
+    if not isinstance(paths, list) or not paths:
+        raise PlanningContractError("repair_scope_invalid")
+    normalized: list[str] = []
+    for path in paths:
+        if (
+            not isinstance(path, str)
+            or not path
+            or path != path.strip()
+            or "\x00" in path
+            or "\\" in path
+            or any(ord(character) < 32 for character in path)
+        ):
+            raise PlanningContractError("repair_scope_invalid")
+        posix = PurePosixPath(path)
+        windows = PureWindowsPath(path)
+        if (
+            posix.is_absolute()
+            or windows.is_absolute()
+            or windows.drive
+            or posix.as_posix() != path
+            or any(part in {"", ".", ".."} for part in path.split("/"))
+        ):
+            raise PlanningContractError("repair_scope_invalid")
+        normalized.append(path)
+    if normalized != sorted(set(normalized)):
+        raise PlanningContractError("repair_scope_invalid")
+    if any(
+        right.startswith(left.rstrip("/") + "/")
+        for index, left in enumerate(normalized)
+        for right in normalized[index + 1 :]
+    ):
+        raise PlanningContractError("repair_scope_invalid")
+    return {"owned_paths": normalized}
 
 
 def _validate_planning_context(
@@ -735,6 +777,7 @@ def validate_planning_response(
     if not isinstance(response, Mapping):
         raise PlanningContractError("planning_response_invalid")
     data = dict(response)
+    data["repair_scope"] = _validate_repair_scope(data.get("repair_scope"))
     _validate_sections(data.get("sections"))
     try:
         _schema_validator("maintenance-planning-response.schema.json").validate(data)
@@ -815,6 +858,9 @@ def render_plan_markdown(response: Mapping[str, Any]) -> str:
     """Render a fixed Markdown report from a validated plan response."""
 
     lines = ["# Maintenance repair plan", "", f"Status: `{response['status']}`", ""]
+    lines.extend(["## Repair scope", ""])
+    lines.extend(f"- `{path}`" for path in response["repair_scope"]["owned_paths"])
+    lines.append("")
     for section in response["sections"]:
         lines.extend(
             [

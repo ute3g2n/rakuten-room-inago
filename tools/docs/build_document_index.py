@@ -750,7 +750,12 @@ def safe_resolution(
     if (
         source_path.startswith("tests_inago/")
         and kind == "program_path"
-        and decoded in {"product-ledger.json", "post-status.json", "drafts.json"}
+        and decoded in {
+            "product-ledger.json",
+            "post-status.json",
+            "drafts.json",
+            "review-target.json",
+        }
     ):
         return {"status": "generated_output", "reason_code": "test_temporary_runtime_file"}
     if (

@@ -6,12 +6,15 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import sqlite3
+import sys
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Iterable, Iterator, Mapping
 
 from automation.inago.maintenance.safe_file import open_file_beneath
@@ -22,7 +25,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -33,6 +36,10 @@ _MIGRATIONS = {
     4: (
         "004_watchdog_confirmation_queue.sql",
         "process identity and idempotent watchdog confirmation queue",
+    ),
+    5: (
+        "005_repair_campaigns.sql",
+        "pinned repair predecessors and durable repair campaigns",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -90,7 +97,96 @@ _SCHEMA_TABLES = {
     "daily_launch",
     "watchdog_queue",
     "watchdog_cursor",
+    "repair_campaign",
+    "repair_campaign_case",
+    "repair_campaign_result",
+    "repair_case_run_start",
+    "repair_run_receipt",
+    "repair_host_review_execution",
+    "repair_review_receipt",
 }
+
+
+def _host_process_identity(pid: int) -> tuple[str, bool] | None:
+    """Return a process start identity and liveness, or None when it has exited."""
+
+    if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+        raise MaintenanceStoreError("repair_runner_process_identity_invalid")
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        class _FileTime(ctypes.Structure):
+            _fields_ = [("low", wintypes.DWORD), ("high", wintypes.DWORD)]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.GetProcessTimes.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(_FileTime),
+            ctypes.POINTER(_FileTime),
+            ctypes.POINTER(_FileTime),
+            ctypes.POINTER(_FileTime),
+        ]
+        kernel32.GetProcessTimes.restype = wintypes.BOOL
+        kernel32.GetExitCodeProcess.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
+        kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        handle = kernel32.OpenProcess(
+            0x1000, False, pid
+        )  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            error = ctypes.get_last_error()
+            if error == 87:  # ERROR_INVALID_PARAMETER: no process has this PID.
+                return None
+            raise MaintenanceStoreError("repair_runner_process_liveness_unknown")
+        try:
+            created = _FileTime()
+            exited = _FileTime()
+            kernel = _FileTime()
+            user = _FileTime()
+            exit_code = wintypes.DWORD()
+            if not kernel32.GetProcessTimes(
+                handle,
+                ctypes.byref(created),
+                ctypes.byref(exited),
+                ctypes.byref(kernel),
+                ctypes.byref(user),
+            ) or not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                raise MaintenanceStoreError("repair_runner_process_liveness_unknown")
+            created_ticks = (int(created.high) << 32) | int(created.low)
+            return f"windows:{created_ticks}", exit_code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    if sys.platform.startswith("linux") and Path("/proc").is_dir():
+        try:
+            stat_text = Path(f"/proc/{pid}/stat").read_text(encoding="ascii")
+            boot_id = (
+                Path("/proc/sys/kernel/random/boot_id")
+                .read_text(encoding="ascii")
+                .strip()
+            )
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            raise MaintenanceStoreError(
+                "repair_runner_process_liveness_unknown"
+            ) from exc
+        closing_paren = stat_text.rfind(")")
+        if closing_paren < 0 or not boot_id:
+            raise MaintenanceStoreError("repair_runner_process_liveness_unknown")
+        fields = stat_text[closing_paren + 1 :].split()
+        if len(fields) <= 19:
+            raise MaintenanceStoreError("repair_runner_process_liveness_unknown")
+        state = fields[0]
+        start_ticks = fields[19]
+        return f"linux:{boot_id}:{start_ticks}", state not in {"Z", "X"}
+    raise MaintenanceStoreError("repair_runner_process_liveness_unknown")
 
 
 class MaintenanceStoreError(RuntimeError):
@@ -278,6 +374,66 @@ class StepAttemptRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class RepairRunReceiptRecord:
+    receipt_id: str
+    campaign_id: str
+    attempt_id: str
+    run_kind: str
+    semantic_case_id: str | None
+    invocation_id: str | None
+    code_sha256: str
+    cases: tuple[tuple[str, str], ...]
+    results: Mapping[str, str]
+    exit_code: int
+    collected: int
+    assertion_failures: int
+    errors: int
+    skips: int
+    collection_errors: int
+    invocation_parent_id: str | None
+    receipt_sha256: str
+    consumed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class RepairHostReviewExecutionRecord:
+    host_receipt_id: str
+    job_id: str
+    attempt_id: str
+    result_version: str
+    author_id: str
+    reviewer_id: str
+    reviewer_session_key: str
+    reviewer_turn_id: str
+    reviewer_output_sha256: str
+    reviewed_output_sha256: str
+    code_sha256: str
+    patch_sha256: str
+    test_ledger_sha256: str
+    approved: bool
+    unresolved_critical_findings: tuple[str, ...]
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class RepairReviewReceiptRecord:
+    receipt_id: str
+    attempt_id: str
+    job_id: str
+    result_version: str
+    author_id: str
+    reviewer_id: str
+    reviewer_role: str
+    host_receipt_id: str
+    reviewed_output_sha256: str
+    code_sha256: str
+    patch_sha256: str
+    test_ledger_sha256: str
+    receipt_sha256: str
+    consumed: bool
+
+
+@dataclass(frozen=True, slots=True)
 class ReleaseRecord:
     release_id: str
     result_commit: str
@@ -462,6 +618,10 @@ class MaintenanceStore:
             data_root,
             daily_database_path=daily_database_path,
         )
+        # Object capability passed only to the built-in host runner. Public
+        # evidence objects cannot use Store receipt-writing APIs without it.
+        self._repair_runner_capability = object()
+        self._repair_review_capability = object()
 
     def initialize(self, *, applied_at: datetime | str | None = None) -> int:
         """Create the maintenance database or verify its known schema version."""
@@ -587,6 +747,8 @@ class MaintenanceStore:
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA busy_timeout = 5000")
+        connection.create_function("maintenance_repair_runner_authorized", 0, lambda: 0)
+        connection.create_function("maintenance_repair_review_authorized", 0, lambda: 0)
         self._assert_schema(connection)
         return connection
 
@@ -619,9 +781,26 @@ class MaintenanceStore:
             raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
 
     @contextmanager
-    def _transaction(self) -> Iterator[sqlite3.Connection]:
+    def _transaction(
+        self,
+        *,
+        repair_runner_capability: object | None = None,
+        repair_review_capability: object | None = None,
+    ) -> Iterator[sqlite3.Connection]:
         connection = self._connect()
         try:
+            if repair_runner_capability is not None:
+                if repair_runner_capability is not self._repair_runner_capability:
+                    raise MaintenanceStoreError("repair_runner_capability_invalid")
+                connection.create_function(
+                    "maintenance_repair_runner_authorized", 0, lambda: 1
+                )
+            if repair_review_capability is not None:
+                if repair_review_capability is not self._repair_review_capability:
+                    raise MaintenanceStoreError("repair_review_capability_invalid")
+                connection.create_function(
+                    "maintenance_repair_review_authorized", 0, lambda: 1
+                )
             connection.execute("BEGIN IMMEDIATE")
             yield connection
             connection.commit()
@@ -1041,6 +1220,474 @@ class MaintenanceStore:
             return None if row is None else self._ai_parent_session_from_row(row)
         finally:
             connection.close()
+
+    def resolve_repair_identity_role(self, thread_id: str) -> str | None:
+        """Resolve a verified implementer/reviewer role from immutable host state."""
+
+        thread = _safe_id(thread_id, "ai_thread_id_invalid")
+        connection = self._connect()
+        try:
+            return self._resolve_repair_identity_role(connection, thread)
+        finally:
+            connection.close()
+
+    def _record_host_repair_review_execution(
+        self,
+        *,
+        capability: object,
+        job_id: str,
+        attempt_id: str,
+        result_version: str,
+        author_id: str,
+        reviewer_id: str,
+        reviewer_session_key: str,
+        reviewer_turn_id: str,
+        reviewer_output_sha256: str,
+        reviewed_output_sha256: str,
+        code_sha256: str,
+        patch_sha256: str,
+        test_ledger_sha256: str,
+        approved: bool,
+        unresolved_critical_findings: tuple[str, ...],
+        created_at: datetime | str,
+    ) -> RepairHostReviewExecutionRecord:
+        """Persist one host-observed reviewer turn behind the Store capability."""
+
+        if capability is not self._repair_review_capability:
+            raise MaintenanceStoreError("repair_review_capability_invalid")
+        job = _safe_id(job_id, "job_id_invalid")
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        author = _safe_id(author_id, "step_author_id_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        session_key = _safe_id(reviewer_session_key, "ai_session_key_invalid")
+        turn_id = _safe_id(reviewer_turn_id, "repair_review_turn_invalid")
+        hashes = {
+            "reviewer_output_sha256": reviewer_output_sha256,
+            "reviewed_output_sha256": reviewed_output_sha256,
+            "code_sha256": code_sha256,
+            "patch_sha256": patch_sha256,
+            "test_ledger_sha256": test_ledger_sha256,
+        }
+        if any(
+            not isinstance(value, str) or not _SHA256_PATTERN.fullmatch(value)
+            for value in hashes.values()
+        ):
+            raise MaintenanceStoreError("repair_review_receipt_invalid")
+        if (
+            type(approved) is not bool
+            or not isinstance(unresolved_critical_findings, tuple)
+            or any(
+                not isinstance(item, str) or not item.strip()
+                for item in unresolved_critical_findings
+            )
+            or len(set(unresolved_critical_findings))
+            != len(unresolved_critical_findings)
+        ):
+            raise MaintenanceStoreError("repair_review_execution_invalid")
+        when = _timestamp(created_at)
+        payload = {
+            "job_id": job,
+            "attempt_id": attempt,
+            "result_version": version,
+            "author_id": author,
+            "reviewer_id": reviewer,
+            "reviewer_session_key": session_key,
+            "reviewer_turn_id": turn_id,
+            **hashes,
+            "approved": approved,
+            "unresolved_critical_findings": list(unresolved_critical_findings),
+        }
+        host_receipt_id = hashlib.sha256(
+            json.dumps(
+                payload,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        with self._transaction(repair_review_capability=capability) as connection:
+            attempt_row = connection.execute(
+                "SELECT s.job_id, s.step_key, s.sequence, s.status, r.author_id "
+                "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if (
+                attempt_row is None
+                or attempt_row["job_id"] != job
+                or attempt_row["step_key"] != "maintenance_repair"
+                or attempt_row["sequence"] != 3
+                or attempt_row["status"] != "running"
+                or attempt_row["author_id"] != author
+                or reviewer == author
+            ):
+                raise MaintenanceStoreError("repair_review_receipt_attempt_mismatch")
+            if (
+                self._resolve_repair_identity_role(connection, author) != "implementer"
+                or self._resolve_repair_identity_role(connection, reviewer)
+                != "read_only_reviewer"
+            ):
+                raise MaintenanceStoreError("repair_review_role_invalid")
+            existing = connection.execute(
+                "SELECT * FROM repair_host_review_execution "
+                "WHERE job_id = ? AND reviewer_session_key = ? AND reviewer_turn_id = ?",
+                (job, session_key, turn_id),
+            ).fetchone()
+            if existing is not None:
+                existing_document = self._repair_host_review_execution_document(
+                    existing
+                )
+                if existing["host_receipt_id"] != host_receipt_id or any(
+                    existing_document.get(key) != value
+                    for key, value in payload.items()
+                ):
+                    raise MaintenanceStoreError("repair_review_execution_conflict")
+                return self._repair_host_review_execution_record(existing)
+            connection.execute(
+                "INSERT INTO repair_host_review_execution "
+                "(host_receipt_id, job_id, attempt_id, result_version, author_id, "
+                "reviewer_id, reviewer_session_key, reviewer_turn_id, "
+                "reviewer_output_sha256, reviewed_output_sha256, code_sha256, "
+                "patch_sha256, test_ledger_sha256, approved, "
+                "unresolved_critical_findings_json, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    host_receipt_id,
+                    job,
+                    attempt,
+                    version,
+                    author,
+                    reviewer,
+                    session_key,
+                    turn_id,
+                    reviewer_output_sha256,
+                    reviewed_output_sha256,
+                    code_sha256,
+                    patch_sha256,
+                    test_ledger_sha256,
+                    int(approved),
+                    json.dumps(
+                        list(unresolved_critical_findings),
+                        ensure_ascii=True,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    when,
+                ),
+            )
+            row = connection.execute(
+                "SELECT * FROM repair_host_review_execution WHERE host_receipt_id = ?",
+                (host_receipt_id,),
+            ).fetchone()
+            assert row is not None
+            return self._repair_host_review_execution_record(row)
+
+    @staticmethod
+    def _repair_host_review_execution_document(row: sqlite3.Row) -> dict[str, object]:
+        payload = {
+            "job_id": str(row["job_id"]),
+            "attempt_id": str(row["attempt_id"]),
+            "result_version": str(row["result_version"]),
+            "author_id": str(row["author_id"]),
+            "reviewer_id": str(row["reviewer_id"]),
+            "reviewer_session_key": str(row["reviewer_session_key"]),
+            "reviewer_turn_id": str(row["reviewer_turn_id"]),
+            "reviewer_output_sha256": str(row["reviewer_output_sha256"]),
+            "reviewed_output_sha256": str(row["reviewed_output_sha256"]),
+            "code_sha256": str(row["code_sha256"]),
+            "patch_sha256": str(row["patch_sha256"]),
+            "test_ledger_sha256": str(row["test_ledger_sha256"]),
+            "approved": bool(row["approved"]),
+        }
+        try:
+            findings = json.loads(str(row["unresolved_critical_findings_json"]))
+        except json.JSONDecodeError as exc:
+            raise MaintenanceStoreError("repair_review_execution_corrupt") from exc
+        if (
+            not isinstance(findings, list)
+            or any(not isinstance(item, str) or not item.strip() for item in findings)
+            or len(set(findings)) != len(findings)
+        ):
+            raise MaintenanceStoreError("repair_review_execution_corrupt")
+        payload["unresolved_critical_findings"] = findings
+        receipt_id = hashlib.sha256(
+            json.dumps(
+                payload,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        if receipt_id != row["host_receipt_id"]:
+            raise MaintenanceStoreError("repair_review_execution_corrupt")
+        return {"host_receipt_id": receipt_id, **payload}
+
+    @classmethod
+    def _repair_host_review_execution_record(
+        cls, row: sqlite3.Row
+    ) -> RepairHostReviewExecutionRecord:
+        document = cls._repair_host_review_execution_document(row)
+        return RepairHostReviewExecutionRecord(
+            host_receipt_id=document["host_receipt_id"],
+            job_id=document["job_id"],
+            attempt_id=document["attempt_id"],
+            result_version=document["result_version"],
+            author_id=document["author_id"],
+            reviewer_id=document["reviewer_id"],
+            reviewer_session_key=document["reviewer_session_key"],
+            reviewer_turn_id=document["reviewer_turn_id"],
+            reviewer_output_sha256=document["reviewer_output_sha256"],
+            reviewed_output_sha256=document["reviewed_output_sha256"],
+            code_sha256=document["code_sha256"],
+            patch_sha256=document["patch_sha256"],
+            test_ledger_sha256=document["test_ledger_sha256"],
+            approved=bool(document["approved"]),
+            unresolved_critical_findings=tuple(
+                document["unresolved_critical_findings"]
+            ),
+            created_at=str(row["created_at"]),
+        )
+
+    def record_repair_review_receipt(
+        self,
+        *,
+        capability: object,
+        job_id: str,
+        attempt_id: str,
+        result_version: str,
+        author_id: str,
+        reviewer_id: str,
+        host_receipt_id: str,
+        reviewed_output_sha256: str,
+        code_sha256: str,
+        patch_sha256: str,
+        test_ledger_sha256: str,
+        created_at: datetime | str,
+    ) -> RepairReviewReceiptRecord:
+        """Persist one receipt only for an already stored host reviewer execution."""
+
+        if capability is not self._repair_review_capability:
+            raise MaintenanceStoreError("repair_review_capability_invalid")
+        job = _safe_id(job_id, "job_id_invalid")
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        author = _safe_id(author_id, "step_author_id_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        host_receipt = _safe_id(host_receipt_id, "repair_review_host_receipt_invalid")
+        hashes = {
+            "reviewed_output_sha256": reviewed_output_sha256,
+            "code_sha256": code_sha256,
+            "patch_sha256": patch_sha256,
+            "test_ledger_sha256": test_ledger_sha256,
+        }
+        if any(
+            not isinstance(value, str) or not _SHA256_PATTERN.fullmatch(value)
+            for value in hashes.values()
+        ):
+            raise MaintenanceStoreError("repair_review_receipt_invalid")
+        when = _timestamp(created_at)
+        with self._transaction(repair_review_capability=capability) as connection:
+            attempt_row = connection.execute(
+                "SELECT s.job_id, s.step_key, s.sequence, s.status, r.author_id "
+                "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if (
+                attempt_row is None
+                or attempt_row["job_id"] != job
+                or attempt_row["step_key"] != "maintenance_repair"
+                or attempt_row["sequence"] != 3
+                or attempt_row["status"] != "running"
+                or attempt_row["author_id"] != author
+                or author == reviewer
+            ):
+                raise MaintenanceStoreError("repair_review_receipt_attempt_mismatch")
+            author_role = self._resolve_repair_identity_role(connection, author)
+            reviewer_role = self._resolve_repair_identity_role(connection, reviewer)
+            if author_role != "implementer" or reviewer_role != "read_only_reviewer":
+                raise MaintenanceStoreError("repair_review_role_invalid")
+            source_row = connection.execute(
+                "SELECT * FROM repair_host_review_execution WHERE host_receipt_id = ?",
+                (host_receipt,),
+            ).fetchone()
+            if source_row is None:
+                raise MaintenanceStoreError("repair_host_review_execution_unavailable")
+            source = self._repair_host_review_execution_document(source_row)
+            expected_source = {
+                "job_id": job,
+                "attempt_id": attempt,
+                "result_version": version,
+                "author_id": author,
+                "reviewer_id": reviewer,
+                "reviewed_output_sha256": reviewed_output_sha256,
+                "code_sha256": code_sha256,
+                "patch_sha256": patch_sha256,
+                "test_ledger_sha256": test_ledger_sha256,
+            }
+            if any(source.get(key) != value for key, value in expected_source.items()):
+                raise MaintenanceStoreError("repair_review_execution_mismatch")
+            if (
+                source.get("approved") is not True
+                or source.get("unresolved_critical_findings") != []
+            ):
+                raise MaintenanceStoreError("repair_review_not_approved")
+            existing = connection.execute(
+                "SELECT * FROM repair_review_receipt "
+                "WHERE attempt_id = ? AND result_version = ?",
+                (attempt, version),
+            ).fetchone()
+            payload = {
+                "job_id": job,
+                "attempt_id": attempt,
+                "result_version": version,
+                "author_id": author,
+                "reviewer_id": reviewer,
+                "author_role": author_role,
+                "reviewer_role": reviewer_role,
+                "host_receipt_id": host_receipt,
+                **hashes,
+            }
+            if existing is not None:
+                document = self._repair_review_receipt_document(existing)
+                if any(document.get(key) != value for key, value in payload.items()):
+                    raise MaintenanceStoreError("repair_review_receipt_conflict")
+                return self._repair_review_receipt_record(existing, document)
+
+            receipt_id = str(uuid.uuid4())
+            payload["receipt_id"] = receipt_id
+            receipt_sha256 = hashlib.sha256(
+                json.dumps(
+                    payload,
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("ascii")
+            ).hexdigest()
+            connection.execute(
+                "INSERT INTO repair_review_receipt "
+                "(receipt_id, job_id, attempt_id, result_version, author_id, reviewer_id, "
+                "author_role, reviewer_role, host_receipt_id, reviewed_output_sha256, "
+                "code_sha256, patch_sha256, test_ledger_sha256, receipt_sha256, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    receipt_id,
+                    job,
+                    attempt,
+                    version,
+                    author,
+                    reviewer,
+                    author_role,
+                    reviewer_role,
+                    host_receipt,
+                    reviewed_output_sha256,
+                    code_sha256,
+                    patch_sha256,
+                    test_ledger_sha256,
+                    receipt_sha256,
+                    when,
+                ),
+            )
+            row = connection.execute(
+                "SELECT * FROM repair_review_receipt WHERE receipt_id = ?",
+                (receipt_id,),
+            ).fetchone()
+            assert row is not None
+            document = self._repair_review_receipt_document(row)
+            return self._repair_review_receipt_record(row, document)
+
+    @staticmethod
+    def _repair_review_receipt_record(
+        row: sqlite3.Row, document: Mapping[str, object]
+    ) -> RepairReviewReceiptRecord:
+        return RepairReviewReceiptRecord(
+            receipt_id=str(document["receipt_id"]),
+            attempt_id=str(document["attempt_id"]),
+            job_id=str(document["job_id"]),
+            result_version=str(document["result_version"]),
+            author_id=str(document["author_id"]),
+            reviewer_id=str(document["reviewer_id"]),
+            reviewer_role=str(document["reviewer_role"]),
+            host_receipt_id=str(document["host_receipt_id"]),
+            reviewed_output_sha256=str(document["reviewed_output_sha256"]),
+            code_sha256=str(document["code_sha256"]),
+            patch_sha256=str(document["patch_sha256"]),
+            test_ledger_sha256=str(document["test_ledger_sha256"]),
+            receipt_sha256=str(document["receipt_sha256"]),
+            consumed=row["consumed_at"] is not None,
+        )
+
+    @staticmethod
+    def _repair_review_receipt_document(
+        row: sqlite3.Row,
+    ) -> dict[str, object]:
+        payload = {
+            "receipt_id": str(row["receipt_id"]),
+            "job_id": str(row["job_id"]),
+            "attempt_id": str(row["attempt_id"]),
+            "result_version": str(row["result_version"]),
+            "author_id": str(row["author_id"]),
+            "reviewer_id": str(row["reviewer_id"]),
+            "author_role": str(row["author_role"]),
+            "reviewer_role": str(row["reviewer_role"]),
+            "host_receipt_id": str(row["host_receipt_id"]),
+            "reviewed_output_sha256": str(row["reviewed_output_sha256"]),
+            "code_sha256": str(row["code_sha256"]),
+            "patch_sha256": str(row["patch_sha256"]),
+            "test_ledger_sha256": str(row["test_ledger_sha256"]),
+        }
+        digest = hashlib.sha256(
+            json.dumps(
+                payload,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        if digest != row["receipt_sha256"]:
+            raise MaintenanceStoreError("repair_review_receipt_corrupt")
+        return {
+            **payload,
+            "receipt_sha256": digest,
+            "consumed": row["consumed_at"] is not None,
+        }
+
+    @staticmethod
+    def _resolve_repair_identity_role(
+        connection: sqlite3.Connection, thread: str
+    ) -> str | None:
+        row = connection.execute(
+            "SELECT session.parent_key, session.role_name, session.sandbox_json, "
+            "observation.status FROM maintenance_ai_session session "
+            "JOIN maintenance_ai_observation observation "
+            "ON observation.job_id = session.job_id "
+            "AND observation.session_key = session.session_key "
+            "AND observation.thread_id = session.thread_id "
+            "WHERE session.thread_id = ? "
+            "ORDER BY observation.observed_at DESC, observation.observation_id DESC "
+            "LIMIT 1",
+            (thread,),
+        ).fetchone()
+        if row is None or row["parent_key"] != "B" or row["status"] != "verified":
+            return None
+        try:
+            sandbox = json.loads(str(row["sandbox_json"]))
+        except json.JSONDecodeError:
+            return None
+        if row["role_name"] == "common-implementer" and sandbox == {
+            "type": "workspaceWrite",
+            "networkAccess": False,
+        }:
+            return "implementer"
+        if row["role_name"] == "common-reviewer" and sandbox == {
+            "type": "readOnly",
+            "networkAccess": False,
+        }:
+            return "read_only_reviewer"
+        return None
 
     def record_ai_session_observation(
         self,
@@ -2481,12 +3128,35 @@ class MaintenanceStore:
         sequence: int,
         lease: LeaseToken,
         started_at: datetime | str,
+        repair_predecessor_attempt_id: str | None = None,
+        repair_predecessor_result_version: str | None = None,
+        repair_predecessor_output_sha256: str | None = None,
     ) -> StepAttemptResult:
         job = _safe_id(job_id, "job_id_invalid")
         step = _safe_code(step_key, "step_key_invalid")
         if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
             raise MaintenanceStoreError("step_sequence_invalid")
         when = _timestamp(started_at)
+        predecessor_values = (
+            repair_predecessor_attempt_id,
+            repair_predecessor_result_version,
+            repair_predecessor_output_sha256,
+        )
+        if step == "maintenance_repair":
+            if sequence != 3 or any(value is None for value in predecessor_values):
+                raise MaintenanceStoreError("repair_predecessor_pin_required")
+            repair_predecessor_attempt_id = _safe_id(
+                repair_predecessor_attempt_id, "repair_predecessor_pin_invalid"
+            )
+            repair_predecessor_result_version = _safe_id(
+                repair_predecessor_result_version, "repair_predecessor_pin_invalid"
+            )
+            if not isinstance(repair_predecessor_output_sha256, str) or not (
+                _SHA256_PATTERN.fullmatch(repair_predecessor_output_sha256)
+            ):
+                raise MaintenanceStoreError("repair_predecessor_pin_invalid")
+        elif any(value is not None for value in predecessor_values):
+            raise MaintenanceStoreError("repair_predecessor_pin_invalid")
         with self._transaction() as connection:
             self._assert_lease(connection, lease, when)
             job_row = connection.execute(
@@ -2503,6 +3173,48 @@ class MaintenanceStore:
                 and job_row["lease_key"] != lease.lease_key
             ):
                 raise MaintenanceStoreError("job_lease_key_conflict")
+            if step == "maintenance_repair":
+                predecessor = connection.execute(
+                    "SELECT s.attempt_id, s.step_key, s.status AS attempt_status, "
+                    "s.result_version, s.output_sha256, r.reviewer_id, "
+                    "r.reviewed_version, r.status AS review_status, "
+                    "release.author_id "
+                    "FROM step_attempt s LEFT JOIN review_result r "
+                    "ON r.scope_type = 'step_attempt' AND r.scope_id = s.attempt_id "
+                    "JOIN maintenance_job job ON job.job_id = s.job_id "
+                    "JOIN release ON release.release_id = job.release_id "
+                    "WHERE s.job_id = ? AND s.sequence = 2 "
+                    "ORDER BY s.attempt_no DESC, r.rowid DESC LIMIT 1",
+                    (job,),
+                ).fetchone()
+                if (
+                    predecessor is None
+                    or predecessor["attempt_id"] != repair_predecessor_attempt_id
+                    or predecessor["step_key"] != "maintenance_planning"
+                    or predecessor["attempt_status"] != "complete"
+                    or predecessor["result_version"]
+                    != repair_predecessor_result_version
+                    or predecessor["output_sha256"] != repair_predecessor_output_sha256
+                    or predecessor["reviewer_id"] is None
+                    or predecessor["reviewed_version"]
+                    != repair_predecessor_result_version
+                    or predecessor["review_status"] != "approved"
+                    or predecessor["reviewer_id"] == predecessor["author_id"]
+                ):
+                    raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
+                predecessor_review = connection.execute(
+                    "SELECT status, reviewed_version FROM review_result "
+                    "WHERE scope_type = 'step_attempt' AND scope_id = ? "
+                    "ORDER BY rowid DESC LIMIT 1",
+                    (repair_predecessor_attempt_id,),
+                ).fetchone()
+                if (
+                    predecessor_review is None
+                    or predecessor_review["status"] != "approved"
+                    or predecessor_review["reviewed_version"]
+                    != repair_predecessor_result_version
+                ):
+                    raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
             if job_row["lease_generation"] is not None:
                 current_generation = int(job_row["lease_generation"])
                 if lease.generation < current_generation:
@@ -2572,6 +3284,19 @@ class MaintenanceStore:
             ).fetchone()
             if latest is not None and int(latest["sequence"]) != sequence:
                 raise MaintenanceStoreError("step_sequence_conflict")
+            if (
+                latest is not None
+                and step == "maintenance_repair"
+                and (
+                    latest["repair_predecessor_attempt_id"]
+                    != repair_predecessor_attempt_id
+                    or latest["repair_predecessor_result_version"]
+                    != repair_predecessor_result_version
+                    or latest["repair_predecessor_output_sha256"]
+                    != repair_predecessor_output_sha256
+                )
+            ):
+                raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
             if latest is not None and latest["status"] in _STEP_TERMINAL_STATUSES:
                 review = connection.execute(
                     "SELECT reviewed_version, status FROM review_result "
@@ -2641,8 +3366,10 @@ class MaintenanceStore:
             connection.execute(
                 "INSERT INTO step_attempt "
                 "(attempt_id, job_id, step_key, sequence, attempt_no, source_run_id, "
-                "lease_key, lease_generation, status, started_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'running', ?)",
+                "lease_key, lease_generation, status, started_at, "
+                "repair_predecessor_attempt_id, repair_predecessor_result_version, "
+                "repair_predecessor_output_sha256) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)",
                 (
                     attempt_id,
                     job,
@@ -2653,6 +3380,9 @@ class MaintenanceStore:
                     lease.lease_key,
                     lease.generation,
                     when,
+                    repair_predecessor_attempt_id,
+                    repair_predecessor_result_version,
+                    repair_predecessor_output_sha256,
                 ),
             )
             connection.execute(
@@ -2660,6 +3390,35 @@ class MaintenanceStore:
                 (when, job),
             )
             return StepAttemptResult(attempt_id, attempt_no, "running", False)
+
+    def get_repair_step_predecessor(self, *, attempt_id: str) -> dict[str, str]:
+        """Return the immutable, approved U13 predecessor pinned to sequence 3."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT repair_predecessor_attempt_id, "
+                "repair_predecessor_result_version, "
+                "repair_predecessor_output_sha256 FROM step_attempt "
+                "WHERE attempt_id = ? AND step_key = 'maintenance_repair' "
+                "AND sequence = 3",
+                (attempt,),
+            ).fetchone()
+            if (
+                row is None
+                or row["repair_predecessor_attempt_id"] is None
+                or row["repair_predecessor_result_version"] is None
+                or row["repair_predecessor_output_sha256"] is None
+            ):
+                raise MaintenanceStoreError("repair_predecessor_pin_missing")
+            return {
+                "attempt_id": str(row["repair_predecessor_attempt_id"]),
+                "result_version": str(row["repair_predecessor_result_version"]),
+                "output_sha256": str(row["repair_predecessor_output_sha256"]),
+            }
+        finally:
+            connection.close()
 
     def complete_step_attempt(
         self,
@@ -2792,6 +3551,8 @@ class MaintenanceStore:
         review_status: str,
         reviewed_at: datetime | str,
         review_round: int | None = None,
+        repair_review_receipt_id: str | None = None,
+        repair_review_expected: Mapping[str, object] | None = None,
     ) -> str:
         """Atomically finish a step and persist its review gate record."""
 
@@ -2812,7 +3573,13 @@ class MaintenanceStore:
         reviewed_time = _timestamp(reviewed_at)
         lease_checked_at = max(completed, reviewed_time)
         review_id = str(uuid.uuid4())
-        with self._transaction() as connection:
+        if repair_review_expected is not None and not isinstance(
+            repair_review_expected, Mapping
+        ):
+            raise MaintenanceStoreError("repair_review_receipt_invalid")
+        with self._transaction(
+            repair_review_capability=self._repair_review_capability
+        ) as connection:
             self._assert_lease(connection, lease, lease_checked_at)
             row = connection.execute(
                 "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
@@ -2864,6 +3631,67 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("review_round_mismatch")
             if review_count >= self.review_round_limit:
                 raise MaintenanceStoreError("review_round_limit_exceeded")
+            if row["step_key"] == "maintenance_repair":
+                if (
+                    repair_review_receipt_id is None
+                    or repair_review_expected is None
+                    or review_status != "approved"
+                ):
+                    raise MaintenanceStoreError("repair_review_receipt_required")
+                receipt_id = _safe_id(
+                    repair_review_receipt_id, "repair_review_receipt_id_invalid"
+                )
+                receipt_row = connection.execute(
+                    "SELECT * FROM repair_review_receipt WHERE receipt_id = ?",
+                    (receipt_id,),
+                ).fetchone()
+                if receipt_row is None:
+                    raise MaintenanceStoreError("repair_review_receipt_unavailable")
+                receipt = self._repair_review_receipt_document(receipt_row)
+                current_author_role = self._resolve_repair_identity_role(
+                    connection, str(receipt["author_id"])
+                )
+                current_reviewer_role = self._resolve_repair_identity_role(
+                    connection, str(receipt["reviewer_id"])
+                )
+                comparisons = {
+                    "receipt_id": receipt_id,
+                    "attempt_id": attempt,
+                    "job_id": str(row["job_id"]),
+                    "result_version": version,
+                    "author_id": str(row["author_id"]),
+                    "reviewer_id": reviewer,
+                    "author_role": "implementer",
+                    "reviewer_role": "read_only_reviewer",
+                    "reviewed_output_sha256": repair_review_expected.get(
+                        "reviewed_output_sha256"
+                    ),
+                    "code_sha256": repair_review_expected.get("code_sha256"),
+                    "patch_sha256": repair_review_expected.get("patch_sha256"),
+                    "test_ledger_sha256": repair_review_expected.get(
+                        "test_ledger_sha256"
+                    ),
+                    "host_receipt_id": repair_review_expected.get("host_receipt_id"),
+                    "receipt_sha256": repair_review_expected.get("receipt_sha256"),
+                    "consumed": False,
+                }
+                if (
+                    any(receipt.get(key) != value for key, value in comparisons.items())
+                    or receipt["author_id"] == receipt["reviewer_id"]
+                    or current_author_role != "implementer"
+                    or current_reviewer_role != "read_only_reviewer"
+                ):
+                    raise MaintenanceStoreError("repair_review_receipt_mismatch")
+                connection.execute(
+                    "UPDATE repair_review_receipt SET consumed_at = ? "
+                    "WHERE receipt_id = ? AND consumed_at IS NULL",
+                    (reviewed_time, receipt_id),
+                )
+            elif (
+                repair_review_receipt_id is not None
+                or repair_review_expected is not None
+            ):
+                raise MaintenanceStoreError("repair_review_receipt_unexpected")
             connection.execute(
                 "UPDATE step_attempt SET status = 'complete', result_version = ?, "
                 "output_path = ?, output_sha256 = ?, finished_at = ? "
@@ -3525,6 +4353,1990 @@ class MaintenanceStore:
             }
         finally:
             connection.close()
+
+    def create_or_load_repair_campaign(
+        self,
+        *,
+        campaign_id: str,
+        job_id: str,
+        attempt_id: str,
+        code_sha256: str,
+        invocation_parent_id: str | None,
+        required_cases: Mapping[str, str],
+        semantic_signatures: Mapping[str, str],
+        created_at: datetime | str,
+    ) -> dict[str, object]:
+        """Create a campaign once or recover its immutable state after restart."""
+
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        job = _safe_id(job_id, "job_id_invalid")
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        if not isinstance(code_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            code_sha256
+        ):
+            raise MaintenanceStoreError("repair_campaign_code_hash_invalid")
+        parent = (
+            None
+            if invocation_parent_id is None
+            else _safe_id(invocation_parent_id, "repair_invocation_parent_invalid")
+        )
+        if not isinstance(required_cases, Mapping) or not required_cases:
+            raise MaintenanceStoreError("repair_campaign_cases_invalid")
+        if not isinstance(semantic_signatures, Mapping) or set(
+            semantic_signatures
+        ) != set(required_cases):
+            raise MaintenanceStoreError("repair_campaign_signatures_invalid")
+        normalized_cases: list[tuple[str, str, str]] = []
+        for case_id_raw, node_raw in required_cases.items():
+            case_id = _safe_id(case_id_raw, "repair_semantic_case_id_invalid")
+            if (
+                not isinstance(node_raw, str)
+                or not node_raw.strip()
+                or node_raw != node_raw.strip()
+                or "\x00" in node_raw
+                or "\n" in node_raw
+                or "\r" in node_raw
+                or "::" not in node_raw
+            ):
+                raise MaintenanceStoreError("repair_campaign_node_invalid")
+            signature_raw = semantic_signatures[case_id_raw]
+            if not isinstance(signature_raw, str) or not signature_raw.strip():
+                raise MaintenanceStoreError("repair_campaign_signature_invalid")
+            signature = " ".join(signature_raw.split())
+            normalized_cases.append((case_id, node_raw, signature))
+        case_ids = [item[0] for item in normalized_cases]
+        nodes = [item[1] for item in normalized_cases]
+        signatures = [item[2] for item in normalized_cases]
+        if (
+            len(case_ids) != len(set(case_ids))
+            or len(nodes) != len(set(nodes))
+            or len(signatures) != len(set(signatures))
+        ):
+            raise MaintenanceStoreError("repair_campaign_case_duplicate")
+        when = _timestamp(created_at)
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            attempt_row = connection.execute(
+                "SELECT job_id, step_key, sequence, status, "
+                "repair_predecessor_attempt_id FROM step_attempt WHERE attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if (
+                attempt_row is None
+                or attempt_row["job_id"] != job
+                or attempt_row["step_key"] != "maintenance_repair"
+                or int(attempt_row["sequence"]) != 3
+                or attempt_row["status"] != "running"
+                or attempt_row["repair_predecessor_attempt_id"] is None
+            ):
+                raise MaintenanceStoreError("repair_campaign_attempt_invalid")
+            existing = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if existing is None:
+                prior_campaigns = connection.execute(
+                    "SELECT state FROM repair_campaign WHERE attempt_id = ?",
+                    (attempt,),
+                ).fetchall()
+                if prior_campaigns:
+                    raise MaintenanceStoreError("repair_campaign_fork_required")
+                connection.execute(
+                    "INSERT INTO repair_campaign "
+                    "(campaign_id, job_id, attempt_id, parent_campaign_id, code_sha256, "
+                    "invocation_parent_id, state, created_at, updated_at) "
+                    "VALUES (?, ?, ?, NULL, ?, ?, 'active', ?, ?)",
+                    (campaign, job, attempt, code_sha256, parent, when, when),
+                )
+                connection.executemany(
+                    "INSERT INTO repair_campaign_case "
+                    "(campaign_id, semantic_case_id, node, semantic_signature, ordinal) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    [
+                        (campaign, case_id, node, signature, ordinal)
+                        for ordinal, (case_id, node, signature) in enumerate(
+                            normalized_cases
+                        )
+                    ],
+                )
+            elif (
+                existing["job_id"] != job
+                or existing["attempt_id"] != attempt
+                or existing["code_sha256"] != code_sha256
+                or existing["invocation_parent_id"] != parent
+            ):
+                raise MaintenanceStoreError("repair_campaign_identity_conflict")
+            stored_cases = connection.execute(
+                "SELECT semantic_case_id, node, semantic_signature "
+                "FROM repair_campaign_case WHERE campaign_id = ? "
+                "ORDER BY ordinal",
+                (campaign,),
+            ).fetchall()
+            if [
+                (row["semantic_case_id"], row["node"], row["semantic_signature"])
+                for row in stored_cases
+                if not row["semantic_case_id"].startswith("__frozen__:")
+            ] != normalized_cases:
+                raise MaintenanceStoreError("repair_campaign_case_set_conflict")
+            return self._repair_campaign_snapshot(connection, campaign)
+
+    @staticmethod
+    def _repair_campaign_snapshot(
+        connection: sqlite3.Connection,
+        campaign_id: str,
+        _visited: frozenset[str] = frozenset(),
+    ) -> dict[str, object]:
+        if campaign_id in _visited:
+            raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+        visited = _visited | {campaign_id}
+        campaign = connection.execute(
+            "SELECT * FROM repair_campaign WHERE campaign_id = ?", (campaign_id,)
+        ).fetchone()
+        if campaign is None:
+            raise MaintenanceStoreError("repair_campaign_not_found")
+        case_rows = connection.execute(
+            "SELECT semantic_case_id, node, semantic_signature, frozen, ordinal "
+            "FROM repair_campaign_case WHERE campaign_id = ? ORDER BY ordinal",
+            (campaign_id,),
+        ).fetchall()
+        result_rows = connection.execute(
+            "SELECT result_id, semantic_case_id, outcome, code_sha256, receipt_id, created_at "
+            "FROM repair_campaign_result WHERE campaign_id = ? "
+            "ORDER BY created_at, result_id",
+            (campaign_id,),
+        ).fetchall()
+        receipt_rows = connection.execute(
+            "SELECT * FROM repair_run_receipt WHERE campaign_id = ? "
+            "ORDER BY created_at, receipt_id",
+            (campaign_id,),
+        ).fetchall()
+        run_receipts = tuple(
+            MaintenanceStore._repair_receipt_document(row) for row in receipt_rows
+        )
+        receipt_by_id = {item["receipt_id"]: item for item in run_receipts}
+        case_by_id = {str(row["semantic_case_id"]): row for row in case_rows}
+
+        local_outcomes: dict[str, str] = {}
+        local_pass_proofs: dict[str, dict[str, object]] = {}
+        for result_row in result_rows:
+            result_receipt = receipt_by_id.get(str(result_row["receipt_id"]))
+            case_id = str(result_row["semantic_case_id"])
+            case_row = case_by_id.get(case_id)
+            if (
+                result_receipt is None
+                or case_row is None
+                or not result_receipt["consumed"]
+                or result_receipt["campaign_id"] != campaign_id
+                or result_receipt["attempt_id"] != campaign["attempt_id"]
+                or result_receipt["code_sha256"] != result_row["code_sha256"]
+                or result_receipt["results"].get(case_id) != result_row["outcome"]
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            local_outcomes[case_id] = str(result_row["outcome"])
+            if result_row["outcome"] == "PASS":
+                local_pass_proofs[case_id] = {
+                    "semantic_case_id": case_id,
+                    "node": str(case_row["node"]),
+                    "semantic_signature": str(case_row["semantic_signature"]),
+                    "campaign_id": campaign_id,
+                    "attempt_id": str(campaign["attempt_id"]),
+                    "code_sha256": str(result_row["code_sha256"]),
+                    "receipt_id": str(result_row["receipt_id"]),
+                    "receipt_sha256": str(result_receipt["receipt_sha256"]),
+                    "outcome": "PASS",
+                }
+
+        parent_pass_proofs: dict[str, dict[str, object]] = {}
+        if campaign["parent_campaign_id"] is not None:
+            parent_id = str(campaign["parent_campaign_id"])
+            parent_snapshot = MaintenanceStore._repair_campaign_snapshot(
+                connection, parent_id, visited
+            )
+            parent_pass_proofs = dict(parent_snapshot["pass_proofs"])
+
+        pass_proofs = dict(parent_pass_proofs)
+        for case_id, outcome in local_outcomes.items():
+            if outcome == "PASS":
+                pass_proofs[case_id] = local_pass_proofs[case_id]
+            else:
+                pass_proofs.pop(case_id, None)
+
+        frozen_proofs: dict[str, dict[str, object]] = {}
+        for case_id, case_row in case_by_id.items():
+            if not bool(case_row["frozen"]):
+                continue
+            proof = pass_proofs.get(case_id)
+            if (
+                proof is None
+                or proof["node"] != case_row["node"]
+                or proof["semantic_signature"] != case_row["semantic_signature"]
+                or proof["outcome"] != "PASS"
+                or not proof["receipt_id"]
+                or not _SHA256_PATTERN.fullmatch(str(proof["receipt_sha256"]))
+            ):
+                raise MaintenanceStoreError("repair_campaign_frozen_proof_missing")
+            frozen_proofs[case_id] = proof
+        receipt = None
+        if campaign["full_run_receipt_id"] is not None:
+            receipt = receipt_by_id.get(str(campaign["full_run_receipt_id"]))
+            if receipt is None:
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+
+        full_snapshot = None
+        if campaign["full_snapshot_json"] is not None:
+            try:
+                snapshot_data = json.loads(str(campaign["full_snapshot_json"]))
+            except json.JSONDecodeError as exc:
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt") from exc
+            if not isinstance(snapshot_data, list) or any(
+                not isinstance(item, dict)
+                or set(item) != {"semantic_case_id", "node"}
+                or not isinstance(item["semantic_case_id"], str)
+                or not isinstance(item["node"], str)
+                for item in snapshot_data
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            canonical_snapshot = json.dumps(
+                snapshot_data,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if (
+                canonical_snapshot != campaign["full_snapshot_json"]
+                or hashlib.sha256(canonical_snapshot.encode("ascii")).hexdigest()
+                != campaign["full_snapshot_sha256"]
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            full_snapshot = tuple(
+                (str(item["semantic_case_id"]), str(item["node"]))
+                for item in snapshot_data
+            )
+            if (
+                not full_snapshot
+                or len({case_id for case_id, _node in full_snapshot})
+                != len(full_snapshot)
+                or len({node for _case_id, node in full_snapshot}) != len(full_snapshot)
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+
+        campaign_state = str(campaign["state"])
+        token_id = campaign["full_regression_token_hash"]
+        if campaign_state == "active":
+            if full_snapshot is not None or token_id is not None or receipt is not None:
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+        else:
+            if (
+                full_snapshot is None
+                or not isinstance(token_id, str)
+                or not _SHA256_PATTERN.fullmatch(token_id)
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            stored_cases = {
+                str(row["semantic_case_id"]): str(row["node"]) for row in case_rows
+            }
+            if any(
+                stored_cases.get(case_id) != node for case_id, node in full_snapshot
+            ):
+                raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            if campaign_state == "full_regression_started":
+                snapshot_cases = tuple(
+                    (str(row["semantic_case_id"]), str(row["node"]))
+                    for row in case_rows
+                )
+                if (
+                    full_snapshot != snapshot_cases
+                    or receipt is not None
+                    or campaign["full_run_receipt_id"] is not None
+                ):
+                    raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            elif campaign_state == "full_regression_failed":
+                snapshot_cases = tuple(
+                    (str(row["semantic_case_id"]), str(row["node"]))
+                    for row in case_rows
+                )
+                failure_code = campaign["full_regression_failure_code"]
+                if (
+                    full_snapshot != snapshot_cases
+                    or receipt is not None
+                    or campaign["full_run_receipt_id"] is not None
+                    or (
+                        (campaign["full_regression_nonce_hash"] is None)
+                        != (campaign["full_regression_claimed_at"] is None)
+                    )
+                    or not isinstance(failure_code, str)
+                    or not _CODE_PATTERN.fullmatch(failure_code)
+                ):
+                    raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+            elif campaign_state == "full_regression_recorded":
+                if (
+                    receipt is None
+                    or receipt["run_kind"] != "full_regression"
+                    or receipt["receipt_id"] != campaign["full_run_receipt_id"]
+                    or receipt["campaign_id"] != campaign_id
+                    or receipt["attempt_id"] != campaign["attempt_id"]
+                    or receipt["token_hash"] != token_id
+                    or receipt["code_sha256"] != campaign["code_sha256"]
+                    or receipt["cases"] != full_snapshot
+                    or set(receipt["results"])
+                    != {case_id for case_id, _ in full_snapshot}
+                    or any(value != "PASS" for value in receipt["results"].values())
+                    or receipt["exit_code"] != 0
+                    or receipt["collected"] != len(full_snapshot)
+                    or receipt["assertion_failures"] != 0
+                    or receipt["errors"] != 0
+                    or receipt["skips"] != 0
+                    or receipt["collection_errors"] != 0
+                    or receipt["invocation_parent_id"] is not None
+                    or not receipt["consumed"]
+                ):
+                    raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+                full_case_ids = {case_id for case_id, _node in full_snapshot}
+                for row in case_rows:
+                    case_id = str(row["semantic_case_id"])
+                    if not bool(row["frozen"]):
+                        raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+                    proof = frozen_proofs.get(case_id)
+                    if proof is None:
+                        raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+                    if (
+                        case_id in full_case_ids
+                        and proof["receipt_id"] != receipt["receipt_id"]
+                    ):
+                        raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+                    if (
+                        case_id not in full_case_ids
+                        and proof["receipt_id"] == receipt["receipt_id"]
+                    ):
+                        raise MaintenanceStoreError("repair_campaign_receipt_corrupt")
+
+        return {
+            "campaign_id": str(campaign["campaign_id"]),
+            "job_id": str(campaign["job_id"]),
+            "attempt_id": str(campaign["attempt_id"]),
+            "parent_campaign_id": campaign["parent_campaign_id"],
+            "code_sha256": str(campaign["code_sha256"]),
+            "invocation_parent_id": campaign["invocation_parent_id"],
+            "state": str(campaign["state"]),
+            "full_snapshot": full_snapshot,
+            "full_regression_token_hash": campaign["full_regression_token_hash"],
+            "full_run_receipt_id": campaign["full_run_receipt_id"],
+            "full_regression_failure_code": campaign["full_regression_failure_code"],
+            "frozen_proofs": frozen_proofs,
+            "pass_proofs": pass_proofs,
+            "cases": tuple(
+                {
+                    "semantic_case_id": str(row["semantic_case_id"]),
+                    "node": str(row["node"]),
+                    "semantic_signature": str(row["semantic_signature"]),
+                    "frozen": bool(row["frozen"]),
+                    "ordinal": int(row["ordinal"]),
+                }
+                for row in case_rows
+            ),
+            "results": tuple(
+                {
+                    "result_id": str(row["result_id"]),
+                    "semantic_case_id": str(row["semantic_case_id"]),
+                    "outcome": str(row["outcome"]),
+                    "code_sha256": str(row["code_sha256"]),
+                    "receipt_id": str(row["receipt_id"]),
+                    "created_at": str(row["created_at"]),
+                }
+                for row in result_rows
+            ),
+            "full_regression": receipt,
+            "run_receipts": run_receipts,
+        }
+
+    def load_repair_campaign(self, *, campaign_id: str) -> dict[str, object]:
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        connection = self._connect()
+        try:
+            return self._repair_campaign_snapshot(connection, campaign)
+        finally:
+            connection.close()
+
+    def add_repair_campaign_case(
+        self,
+        *,
+        campaign_id: str,
+        semantic_case_id: str,
+        node: str,
+        semantic_signature: str,
+    ) -> None:
+        """Persist one new semantic case before the campaign is sealed."""
+
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        case_id = _safe_id(semantic_case_id, "repair_semantic_case_id_invalid")
+        if (
+            not isinstance(node, str)
+            or not node.strip()
+            or node != node.strip()
+            or "\x00" in node
+            or "\n" in node
+            or "\r" in node
+            or "::" not in node
+        ):
+            raise MaintenanceStoreError("repair_campaign_node_invalid")
+        if not isinstance(semantic_signature, str) or not semantic_signature.strip():
+            raise MaintenanceStoreError("repair_campaign_signature_invalid")
+        signature = " ".join(semantic_signature.split())
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            row = connection.execute(
+                "SELECT state FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_campaign_not_found")
+            if row["state"] != "active":
+                raise MaintenanceStoreError("case_added_after_full_regression_started")
+            try:
+                ordinal = int(
+                    connection.execute(
+                        "SELECT COALESCE(MAX(ordinal), -1) + 1 FROM repair_campaign_case "
+                        "WHERE campaign_id = ?",
+                        (campaign,),
+                    ).fetchone()[0]
+                )
+                connection.execute(
+                    "INSERT INTO repair_campaign_case "
+                    "(campaign_id, semantic_case_id, node, semantic_signature, ordinal) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (campaign, case_id, node, signature, ordinal),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise MaintenanceStoreError(
+                    "semantic_case_id_already_registered"
+                ) from exc
+
+    @staticmethod
+    def _assert_repair_campaign_child_stopped(row: sqlite3.Row) -> None:
+        child_state = str(row["full_regression_child_state"])
+        if child_state == "not_started":
+            if row["full_regression_child_pid"] is not None:
+                raise MaintenanceStoreError("repair_runner_child_state_invalid")
+            return
+        if (
+            child_state not in {"started", "exited"}
+            or row["full_regression_child_pid"] is None
+        ):
+            raise MaintenanceStoreError("repair_runner_child_state_invalid")
+        identity = _host_process_identity(int(row["full_regression_child_pid"]))
+        if (
+            identity is not None
+            and identity[0] == row["full_regression_child_start_id"]
+            and identity[1]
+        ):
+            raise MaintenanceStoreError("repair_runner_child_still_alive")
+
+    def fork_repair_campaign_with_case(
+        self,
+        *,
+        parent_campaign_id: str,
+        campaign_id: str,
+        code_sha256: str,
+        semantic_case_id: str,
+        node: str,
+        semantic_signature: str,
+        created_at: datetime | str,
+    ) -> dict[str, object]:
+        """Fork with a changed code hash and require all inherited cases again."""
+
+        parent_id = _safe_id(parent_campaign_id, "campaign_id_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        case_id = _safe_id(semantic_case_id, "repair_semantic_case_id_invalid")
+        if not isinstance(code_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            code_sha256
+        ):
+            raise MaintenanceStoreError("repair_campaign_code_hash_invalid")
+        if (
+            not isinstance(node, str)
+            or not node.strip()
+            or node != node.strip()
+            or "\x00" in node
+            or "\n" in node
+            or "\r" in node
+            or "::" not in node
+        ):
+            raise MaintenanceStoreError("repair_campaign_node_invalid")
+        if not isinstance(semantic_signature, str) or not semantic_signature.strip():
+            raise MaintenanceStoreError("repair_campaign_signature_invalid")
+        signature = " ".join(semantic_signature.split())
+        when = _timestamp(created_at)
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            parent = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?", (parent_id,)
+            ).fetchone()
+            if parent is None:
+                raise MaintenanceStoreError("repair_campaign_not_found")
+            if parent["state"] not in {"active", "full_regression_recorded"}:
+                raise MaintenanceStoreError("repair_campaign_fork_state_invalid")
+            if parent["state"] == "full_regression_recorded":
+                # Validate the completed parent before carrying case
+                # definitions. PASS proofs are not inherited across a hash change.
+                self._repair_campaign_snapshot(connection, parent_id)
+                self._assert_repair_campaign_child_stopped(parent)
+            elif connection.execute(
+                "SELECT 1 FROM repair_case_run_start WHERE campaign_id = ? "
+                "AND state = 'started' LIMIT 1",
+                (parent_id,),
+            ).fetchone():
+                raise MaintenanceStoreError("repair_case_run_already_active")
+            if parent["code_sha256"] == code_sha256:
+                raise MaintenanceStoreError("campaign_code_hash_not_changed")
+            old_cases = connection.execute(
+                "SELECT semantic_case_id, node, semantic_signature, ordinal, frozen "
+                "FROM repair_campaign_case WHERE campaign_id = ? ORDER BY ordinal",
+                (parent_id,),
+            ).fetchall()
+            if not old_cases:
+                raise MaintenanceStoreError("repair_campaign_cases_invalid")
+            if any(
+                row["semantic_case_id"] == case_id
+                or row["node"] == node
+                or row["semantic_signature"] == signature
+                for row in old_cases
+            ):
+                raise MaintenanceStoreError("semantic_case_already_registered")
+            if connection.execute(
+                "SELECT 1 FROM repair_campaign WHERE campaign_id = ?", (campaign,)
+            ).fetchone():
+                raise MaintenanceStoreError("campaign_id_already_registered")
+            connection.execute(
+                "INSERT INTO repair_campaign "
+                "(campaign_id, job_id, attempt_id, parent_campaign_id, code_sha256, "
+                "invocation_parent_id, state, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, NULL, 'active', ?, ?)",
+                (
+                    campaign,
+                    parent["job_id"],
+                    parent["attempt_id"],
+                    parent_id,
+                    code_sha256,
+                    when,
+                    when,
+                ),
+            )
+            copied = []
+            for old in old_cases:
+                copied.append(
+                    (
+                        campaign,
+                        old["semantic_case_id"],
+                        old["node"],
+                        old["semantic_signature"],
+                        int(old["ordinal"]),
+                        0,
+                    )
+                )
+            copied.append((campaign, case_id, node, signature, len(old_cases), 0))
+            connection.executemany(
+                "INSERT INTO repair_campaign_case "
+                "(campaign_id, semantic_case_id, node, semantic_signature, ordinal, frozen) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                copied,
+            )
+            return self._repair_campaign_snapshot(connection, campaign)
+
+    def fork_failed_repair_campaign(
+        self,
+        *,
+        parent_campaign_id: str,
+        campaign_id: str,
+        code_sha256: str,
+        created_at: datetime | str,
+    ) -> dict[str, object]:
+        """Resume a failed one-use run in a new campaign without resetting it."""
+
+        parent_id = _safe_id(parent_campaign_id, "campaign_id_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        if not isinstance(code_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            code_sha256
+        ):
+            raise MaintenanceStoreError("repair_campaign_code_hash_invalid")
+        when = _timestamp(created_at)
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            parent = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?", (parent_id,)
+            ).fetchone()
+            if parent is None:
+                raise MaintenanceStoreError("repair_campaign_not_found")
+            if parent["state"] != "full_regression_failed":
+                raise MaintenanceStoreError("repair_campaign_fork_state_invalid")
+            self._repair_campaign_snapshot(connection, parent_id)
+            self._assert_repair_campaign_child_stopped(parent)
+            if connection.execute(
+                "SELECT 1 FROM repair_campaign WHERE campaign_id = ?", (campaign,)
+            ).fetchone():
+                raise MaintenanceStoreError("campaign_id_already_registered")
+            old_cases = connection.execute(
+                "SELECT semantic_case_id, node, semantic_signature, ordinal, frozen "
+                "FROM repair_campaign_case WHERE campaign_id = ? ORDER BY ordinal",
+                (parent_id,),
+            ).fetchall()
+            if not old_cases:
+                raise MaintenanceStoreError("repair_campaign_cases_invalid")
+            preserve_frozen = parent["code_sha256"] == code_sha256
+            connection.execute(
+                "INSERT INTO repair_campaign "
+                "(campaign_id, job_id, attempt_id, parent_campaign_id, code_sha256, "
+                "invocation_parent_id, state, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, NULL, 'active', ?, ?)",
+                (
+                    campaign,
+                    parent["job_id"],
+                    parent["attempt_id"],
+                    parent_id,
+                    code_sha256,
+                    when,
+                    when,
+                ),
+            )
+            connection.executemany(
+                "INSERT INTO repair_campaign_case "
+                "(campaign_id, semantic_case_id, node, semantic_signature, ordinal, frozen) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        campaign,
+                        row["semantic_case_id"],
+                        row["node"],
+                        row["semantic_signature"],
+                        int(row["ordinal"]),
+                        int(preserve_frozen and bool(row["frozen"])),
+                    )
+                    for row in old_cases
+                ],
+            )
+            return self._repair_campaign_snapshot(connection, campaign)
+
+    def _begin_repair_case_run(
+        self,
+        *,
+        campaign_id: str,
+        semantic_case_id: str,
+        capability: object,
+        started_at: datetime | str,
+    ) -> dict[str, object]:
+        """Create a one-use invocation record for the built-in test runner."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        case_id = _safe_id(semantic_case_id, "repair_semantic_case_id_invalid")
+        when = _timestamp(started_at)
+        lease_expires_at = _timestamp(_parse_timestamp(when) + timedelta(seconds=600))
+        owner_identity = _host_process_identity(os.getpid())
+        if owner_identity is None or not owner_identity[1]:
+            raise MaintenanceStoreError("repair_runner_owner_identity_unavailable")
+        invocation_id = str(uuid.uuid4())
+        nonce = secrets.token_urlsafe(32)
+        nonce_hash = hashlib.sha256(nonce.encode("ascii")).hexdigest()
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT campaign_id, attempt_id, code_sha256, invocation_parent_id, state "
+                "FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_campaign_not_found")
+            if row["state"] != "active":
+                raise MaintenanceStoreError("repair_case_run_campaign_closed")
+            if row["invocation_parent_id"] is not None:
+                raise MaintenanceStoreError("nested_test_invocation_rejected")
+            case = connection.execute(
+                "SELECT node, frozen FROM repair_campaign_case "
+                "WHERE campaign_id = ? AND semantic_case_id = ?",
+                (campaign, case_id),
+            ).fetchone()
+            if case is None or case["frozen"]:
+                raise MaintenanceStoreError("repair_case_not_runnable")
+            prior_start = connection.execute(
+                "SELECT invocation_id FROM repair_case_run_start "
+                "WHERE campaign_id = ? AND semantic_case_id = ? AND state = 'started'",
+                (campaign, case_id),
+            ).fetchone()
+            if prior_start is not None:
+                raise MaintenanceStoreError("repair_case_run_already_active")
+            case_document = [{"semantic_case_id": case_id, "node": str(case["node"])}]
+            cases_json = json.dumps(
+                case_document,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            connection.execute(
+                "INSERT INTO repair_case_run_start "
+                "(invocation_id, campaign_id, attempt_id, semantic_case_id, node, "
+                "cases_json, code_sha256, nonce_hash, invocation_parent_id, owner_pid, "
+                "owner_start_id, lease_expires_at, child_pid, child_start_id, child_state, "
+                "state, receipt_id, failure_code, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, NULL, "
+                "'not_started', 'started', NULL, NULL, ?)",
+                (
+                    invocation_id,
+                    campaign,
+                    row["attempt_id"],
+                    case_id,
+                    case["node"],
+                    cases_json,
+                    row["code_sha256"],
+                    nonce_hash,
+                    os.getpid(),
+                    owner_identity[0],
+                    lease_expires_at,
+                    when,
+                ),
+            )
+            return {
+                "invocation_id": invocation_id,
+                "nonce": nonce,
+                "attempt_id": str(row["attempt_id"]),
+                "code_sha256": str(row["code_sha256"]),
+                "semantic_case_id": case_id,
+                "node": str(case["node"]),
+                "invocation_parent_id": row["invocation_parent_id"],
+                "lease_expires_at": lease_expires_at,
+            }
+
+    def _record_repair_case_child_start(
+        self,
+        *,
+        invocation_id: str,
+        child_pid: int,
+        capability: object,
+        started_at: datetime | str,
+    ) -> str:
+        """Bind a suspended exact-case runner child before it is resumed."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        invocation = _safe_id(invocation_id, "repair_run_invocation_invalid")
+        if child_pid == os.getpid():
+            raise MaintenanceStoreError("repair_runner_child_identity_invalid")
+        identity = _host_process_identity(child_pid)
+        if identity is None or not identity[1]:
+            raise MaintenanceStoreError("repair_runner_child_identity_unavailable")
+        when = _timestamp(started_at)
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, owner_pid, owner_start_id, child_state "
+                "FROM repair_case_run_start WHERE invocation_id = ?",
+                (invocation,),
+            ).fetchone()
+            owner = (
+                _host_process_identity(int(row["owner_pid"]))
+                if row is not None
+                else None
+            )
+            if (
+                row is None
+                or row["state"] != "started"
+                or row["child_state"] != "not_started"
+                or int(row["owner_pid"]) != os.getpid()
+                or owner is None
+                or not owner[1]
+                or owner[0] != row["owner_start_id"]
+            ):
+                raise MaintenanceStoreError("repair_runner_child_start_invalid")
+            connection.execute(
+                "UPDATE repair_case_run_start SET child_pid = ?, child_start_id = ?, "
+                "child_state = 'started' WHERE invocation_id = ?",
+                (child_pid, identity[0], invocation),
+            )
+            return identity[0]
+
+    def _record_repair_case_child_exit(
+        self,
+        *,
+        invocation_id: str,
+        capability: object,
+        exited_at: datetime | str,
+    ) -> None:
+        """Persist child exit only after process identity confirms termination."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        invocation = _safe_id(invocation_id, "repair_run_invocation_invalid")
+        _timestamp(exited_at)
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, child_pid, child_start_id, child_state "
+                "FROM repair_case_run_start WHERE invocation_id = ?",
+                (invocation,),
+            ).fetchone()
+            if (
+                row is None
+                or row["state"] != "started"
+                or row["child_state"] != "started"
+            ):
+                raise MaintenanceStoreError("repair_runner_child_exit_invalid")
+            identity = _host_process_identity(int(row["child_pid"]))
+            if (
+                identity is not None
+                and identity[0] == row["child_start_id"]
+                and identity[1]
+            ):
+                raise MaintenanceStoreError("repair_runner_child_still_alive")
+            connection.execute(
+                "UPDATE repair_case_run_start SET child_state = 'exited' "
+                "WHERE invocation_id = ?",
+                (invocation,),
+            )
+
+    def _fail_repair_case_run(
+        self,
+        *,
+        invocation_id: str,
+        failure_code: str,
+        capability: object,
+        failed_at: datetime | str,
+    ) -> None:
+        """Durably close a failed case run after proving its child is not live."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        invocation = _safe_id(invocation_id, "repair_run_invocation_invalid")
+        code = _safe_code(failure_code, "repair_run_failure_code_invalid")
+        when = _timestamp(failed_at)
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, owner_pid, owner_start_id, child_pid, child_start_id, "
+                "child_state FROM repair_case_run_start WHERE invocation_id = ?",
+                (invocation,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_case_run_not_found")
+            if row["state"] != "started":
+                return
+            owner = _host_process_identity(int(row["owner_pid"]))
+            if (
+                owner is None
+                or not owner[1]
+                or owner[0] != row["owner_start_id"]
+                or int(row["owner_pid"]) != os.getpid()
+            ):
+                raise MaintenanceStoreError("repair_runner_owner_identity_mismatch")
+            child_state = str(row["child_state"])
+            if child_state == "started":
+                child = _host_process_identity(int(row["child_pid"]))
+                if child is not None and child[0] == row["child_start_id"] and child[1]:
+                    raise MaintenanceStoreError("repair_runner_child_still_alive")
+                connection.execute(
+                    "UPDATE repair_case_run_start SET child_state = 'exited' "
+                    "WHERE invocation_id = ?",
+                    (invocation,),
+                )
+            elif child_state != "exited" and child_state != "not_started":
+                raise MaintenanceStoreError("repair_runner_child_state_invalid")
+            connection.execute(
+                "UPDATE repair_case_run_start SET state = 'failed', failure_code = ? "
+                "WHERE invocation_id = ? AND state = 'started'",
+                (code, invocation),
+            )
+
+    def abandon_interrupted_repair_case_run(
+        self,
+        *,
+        invocation_id: str,
+        capability: object,
+        abandoned_at: datetime | str,
+    ) -> None:
+        """Recover an expired case run only after owner and child are proven dead."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        invocation = _safe_id(invocation_id, "repair_run_invocation_invalid")
+        when = _timestamp(abandoned_at)
+        host_now = datetime.now(timezone.utc)
+        if _parse_timestamp(when) > host_now:
+            raise MaintenanceStoreError("repair_runner_abandon_time_invalid")
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_case_run_start WHERE invocation_id = ?",
+                (invocation,),
+            ).fetchone()
+            if row is None or row["state"] != "started":
+                raise MaintenanceStoreError("repair_case_run_not_abandonable")
+            if host_now < _parse_timestamp(str(row["lease_expires_at"])):
+                raise MaintenanceStoreError("repair_runner_lease_not_expired")
+            owner = _host_process_identity(int(row["owner_pid"]))
+            if owner is not None and owner[0] == row["owner_start_id"] and owner[1]:
+                raise MaintenanceStoreError("repair_runner_owner_still_alive")
+            child_state = str(row["child_state"])
+            if child_state == "started":
+                child = _host_process_identity(int(row["child_pid"]))
+                if child is not None and child[0] == row["child_start_id"] and child[1]:
+                    raise MaintenanceStoreError("repair_runner_child_still_alive")
+                connection.execute(
+                    "UPDATE repair_case_run_start SET child_state = 'exited' "
+                    "WHERE invocation_id = ?",
+                    (invocation,),
+                )
+            elif child_state not in {"not_started", "exited"}:
+                raise MaintenanceStoreError("repair_runner_child_state_invalid")
+            connection.execute(
+                "UPDATE repair_case_run_start SET state = 'failed', "
+                "failure_code = 'runner_interrupted' WHERE invocation_id = ? "
+                "AND state = 'started'",
+                (invocation,),
+            )
+
+    def _record_repair_case_receipt(
+        self,
+        *,
+        capability: object,
+        invocation_id: str,
+        nonce: str,
+        outcome: str,
+        exit_code: int,
+        collected: int,
+        assertion_failures: int,
+        errors: int,
+        skips: int,
+        collection_errors: int,
+        created_at: datetime | str,
+    ) -> RepairRunReceiptRecord:
+        """Persist one exact-node run emitted by the host-owned pytest runner."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        invocation = _safe_id(invocation_id, "repair_run_invocation_invalid")
+        if outcome not in _TEST_STATUSES:
+            raise MaintenanceStoreError("repair_run_outcome_invalid")
+        counts = (
+            exit_code,
+            collected,
+            assertion_failures,
+            errors,
+            skips,
+            collection_errors,
+        )
+        if any(type(value) is not int or value < 0 for value in counts):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        when = _timestamp(created_at)
+        nonce_hash = hashlib.sha256(nonce.encode("ascii", errors="strict")).hexdigest()
+        receipt_id = str(uuid.uuid4())
+        with self._transaction(repair_runner_capability=capability) as connection:
+            start = connection.execute(
+                "SELECT * FROM repair_case_run_start WHERE invocation_id = ?",
+                (invocation,),
+            ).fetchone()
+            if (
+                start is None
+                or start["state"] != "started"
+                or start["nonce_hash"] != nonce_hash
+                or start["invocation_parent_id"] is not None
+                or start["child_state"] not in {"not_started", "exited"}
+            ):
+                raise MaintenanceStoreError("repair_run_receipt_mismatch")
+            owner = _host_process_identity(int(start["owner_pid"]))
+            if (
+                int(start["owner_pid"]) != os.getpid()
+                or owner is None
+                or not owner[1]
+                or owner[0] != start["owner_start_id"]
+            ):
+                raise MaintenanceStoreError("repair_runner_owner_identity_mismatch")
+            results = {str(start["semantic_case_id"]): outcome}
+            cases_json = str(start["cases_json"])
+            results_json = json.dumps(
+                results, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+            )
+            receipt_payload = {
+                "receipt_id": receipt_id,
+                "campaign_id": str(start["campaign_id"]),
+                "attempt_id": str(start["attempt_id"]),
+                "run_kind": "case",
+                "semantic_case_id": str(start["semantic_case_id"]),
+                "invocation_id": invocation,
+                "token_hash": None,
+                "nonce_hash": nonce_hash,
+                "code_sha256": str(start["code_sha256"]),
+                "cases": json.loads(cases_json),
+                "results": results,
+                "exit_code": exit_code,
+                "collected": collected,
+                "assertion_failures": assertion_failures,
+                "errors": errors,
+                "skips": skips,
+                "collection_errors": collection_errors,
+                "invocation_parent_id": None,
+            }
+            receipt_sha256 = hashlib.sha256(
+                json.dumps(
+                    receipt_payload,
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("ascii")
+            ).hexdigest()
+            connection.execute(
+                "INSERT INTO repair_run_receipt "
+                "(receipt_id, campaign_id, attempt_id, run_kind, semantic_case_id, "
+                "invocation_id, token_hash, nonce_hash, code_sha256, cases_json, "
+                "results_json, exit_code, collected, assertion_failures, errors, "
+                "skips, collection_errors, invocation_parent_id, receipt_sha256, created_at) "
+                "VALUES (?, ?, ?, 'case', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)",
+                (
+                    receipt_id,
+                    start["campaign_id"],
+                    start["attempt_id"],
+                    start["semantic_case_id"],
+                    invocation,
+                    nonce_hash,
+                    start["code_sha256"],
+                    cases_json,
+                    results_json,
+                    exit_code,
+                    collected,
+                    assertion_failures,
+                    errors,
+                    skips,
+                    collection_errors,
+                    receipt_sha256,
+                    when,
+                ),
+            )
+            return RepairRunReceiptRecord(
+                receipt_id=receipt_id,
+                campaign_id=str(start["campaign_id"]),
+                attempt_id=str(start["attempt_id"]),
+                run_kind="case",
+                semantic_case_id=str(start["semantic_case_id"]),
+                invocation_id=invocation,
+                code_sha256=str(start["code_sha256"]),
+                cases=((str(start["semantic_case_id"]), str(start["node"])),),
+                results=MappingProxyType(results),
+                exit_code=exit_code,
+                collected=collected,
+                assertion_failures=assertion_failures,
+                errors=errors,
+                skips=skips,
+                collection_errors=collection_errors,
+                invocation_parent_id=None,
+                receipt_sha256=receipt_sha256,
+                consumed=False,
+            )
+
+    def consume_repair_case_receipt(
+        self,
+        *,
+        receipt_id: str,
+        expected: Mapping[str, object],
+        consumed_at: datetime | str,
+    ) -> RepairRunReceiptRecord:
+        receipt = _safe_id(receipt_id, "repair_run_receipt_id_invalid")
+        when = _timestamp(consumed_at)
+        if not isinstance(expected, Mapping):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_run_receipt WHERE receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("host_run_receipt_unavailable")
+            document = self._repair_receipt_document(row)
+            if row["consumed_at"] is not None:
+                raise MaintenanceStoreError("host_run_receipt_consumed")
+            if document["run_kind"] != "case":
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            start = connection.execute(
+                "SELECT * FROM repair_case_run_start WHERE invocation_id = ?",
+                (document["invocation_id"],),
+            ).fetchone()
+            if (
+                start is None
+                or start["state"] != "recorded"
+                or start["receipt_id"] != receipt
+                or start["campaign_id"] != document["campaign_id"]
+                or start["attempt_id"] != document["attempt_id"]
+                or start["semantic_case_id"] != document["semantic_case_id"]
+                or start["code_sha256"] != document["code_sha256"]
+                or start["cases_json"]
+                != json.dumps(
+                    [
+                        {
+                            "semantic_case_id": case_id,
+                            "node": node,
+                        }
+                        for case_id, node in document["cases"]
+                    ],
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                or start["invocation_parent_id"] != document["invocation_parent_id"]
+            ):
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            comparisons = {
+                "campaign_id": document["campaign_id"],
+                "attempt_id": document["attempt_id"],
+                "semantic_case_id": document["semantic_case_id"],
+                "invocation_id": document["invocation_id"],
+                "code_sha256": document["code_sha256"],
+                "cases": document["cases"],
+                "results": document["results"],
+                "exit_code": document["exit_code"],
+                "collected": document["collected"],
+                "assertion_failures": document["assertion_failures"],
+                "errors": document["errors"],
+                "skips": document["skips"],
+                "collection_errors": document["collection_errors"],
+                "invocation_parent_id": document["invocation_parent_id"],
+                "receipt_sha256": document["receipt_sha256"],
+            }
+            if any(expected.get(key) != value for key, value in comparisons.items()):
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            connection.execute(
+                "UPDATE repair_run_receipt SET consumed_at = ? WHERE receipt_id = ?",
+                (when, receipt),
+            )
+            case_id = str(document["semantic_case_id"])
+            connection.execute(
+                "INSERT INTO repair_campaign_result "
+                "(result_id, campaign_id, semantic_case_id, outcome, code_sha256, "
+                "receipt_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    str(uuid.uuid4()),
+                    document["campaign_id"],
+                    case_id,
+                    document["results"][case_id],
+                    document["code_sha256"],
+                    receipt,
+                    when,
+                ),
+            )
+            if document["results"][case_id] == "PASS":
+                connection.execute(
+                    "UPDATE repair_campaign_case SET frozen = 1 "
+                    "WHERE campaign_id = ? AND semantic_case_id = ? AND frozen = 0",
+                    (document["campaign_id"], case_id),
+                )
+            row = connection.execute(
+                "SELECT * FROM repair_run_receipt WHERE receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            return RepairRunReceiptRecord(
+                receipt_id=receipt,
+                campaign_id=str(row["campaign_id"]),
+                attempt_id=str(row["attempt_id"]),
+                run_kind="case",
+                semantic_case_id=str(row["semantic_case_id"]),
+                invocation_id=str(row["invocation_id"]),
+                code_sha256=str(row["code_sha256"]),
+                cases=tuple(
+                    (item["semantic_case_id"], item["node"])
+                    for item in json.loads(row["cases_json"])
+                ),
+                results=MappingProxyType(json.loads(row["results_json"])),
+                exit_code=int(row["exit_code"]),
+                collected=int(row["collected"]),
+                assertion_failures=int(row["assertion_failures"]),
+                errors=int(row["errors"]),
+                skips=int(row["skips"]),
+                collection_errors=int(row["collection_errors"]),
+                invocation_parent_id=row["invocation_parent_id"],
+                receipt_sha256=str(row["receipt_sha256"]),
+                consumed=True,
+            )
+
+    @staticmethod
+    def _repair_receipt_document(row: sqlite3.Row) -> dict[str, object]:
+        try:
+            cases = json.loads(str(row["cases_json"]))
+            results = json.loads(str(row["results_json"]))
+        except json.JSONDecodeError as exc:
+            raise MaintenanceStoreError("repair_run_receipt_corrupt") from exc
+        if (
+            not isinstance(cases, list)
+            or any(
+                not isinstance(item, dict)
+                or set(item) != {"semantic_case_id", "node"}
+                or not isinstance(item["semantic_case_id"], str)
+                or not isinstance(item["node"], str)
+                for item in cases
+            )
+            or not isinstance(results, dict)
+            or any(
+                not isinstance(case_id, str) or not isinstance(outcome, str)
+                for case_id, outcome in results.items()
+            )
+        ):
+            raise MaintenanceStoreError("repair_run_receipt_corrupt")
+        receipt_payload = {
+            "receipt_id": str(row["receipt_id"]),
+            "campaign_id": str(row["campaign_id"]),
+            "attempt_id": str(row["attempt_id"]),
+            "run_kind": str(row["run_kind"]),
+            "semantic_case_id": row["semantic_case_id"],
+            "invocation_id": row["invocation_id"],
+            "token_hash": row["token_hash"],
+            "nonce_hash": str(row["nonce_hash"]),
+            "code_sha256": str(row["code_sha256"]),
+            "cases": cases,
+            "results": results,
+            "exit_code": int(row["exit_code"]),
+            "collected": int(row["collected"]),
+            "assertion_failures": int(row["assertion_failures"]),
+            "errors": int(row["errors"]),
+            "skips": int(row["skips"]),
+            "collection_errors": int(row["collection_errors"]),
+            "invocation_parent_id": row["invocation_parent_id"],
+        }
+        expected_receipt_hash = hashlib.sha256(
+            json.dumps(
+                receipt_payload,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        if expected_receipt_hash != row["receipt_sha256"]:
+            raise MaintenanceStoreError("repair_run_receipt_corrupt")
+        return {
+            "receipt_id": str(row["receipt_id"]),
+            "campaign_id": str(row["campaign_id"]),
+            "attempt_id": str(row["attempt_id"]),
+            "run_kind": str(row["run_kind"]),
+            "semantic_case_id": row["semantic_case_id"],
+            "invocation_id": row["invocation_id"],
+            "token_hash": row["token_hash"],
+            "nonce_hash": str(row["nonce_hash"]),
+            "code_sha256": str(row["code_sha256"]),
+            "cases": tuple((item["semantic_case_id"], item["node"]) for item in cases),
+            "results": results,
+            "exit_code": int(row["exit_code"]),
+            "collected": int(row["collected"]),
+            "assertion_failures": int(row["assertion_failures"]),
+            "errors": int(row["errors"]),
+            "skips": int(row["skips"]),
+            "collection_errors": int(row["collection_errors"]),
+            "invocation_parent_id": row["invocation_parent_id"],
+            "receipt_sha256": str(row["receipt_sha256"]),
+            "consumed": row["consumed_at"] is not None,
+        }
+
+    def begin_repair_full_regression(
+        self,
+        *,
+        campaign_id: str,
+        code_sha256: str,
+        invocation_parent_id: str | None,
+        started_at: datetime | str,
+    ) -> dict[str, object]:
+        """Persist the exact case set and a one-use token before suite execution."""
+
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        if not isinstance(code_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            code_sha256
+        ):
+            raise MaintenanceStoreError("repair_campaign_code_hash_invalid")
+        parent = (
+            None
+            if invocation_parent_id is None
+            else _safe_id(invocation_parent_id, "repair_invocation_parent_invalid")
+        )
+        when = _timestamp(started_at)
+        lease_expires_at = _timestamp(_parse_timestamp(when) + timedelta(seconds=600))
+        owner_identity = _host_process_identity(os.getpid())
+        if owner_identity is None or not owner_identity[1]:
+            raise MaintenanceStoreError("repair_runner_owner_identity_unavailable")
+        owner_start_id = owner_identity[0]
+        token = hashlib.sha256(uuid.uuid4().bytes).hexdigest()
+        token_hash = token
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_campaign_not_found")
+            if row["state"] != "active":
+                raise MaintenanceStoreError("full_regression_token_already_used")
+            if row["invocation_parent_id"] is not None or parent is not None:
+                raise MaintenanceStoreError("nested_full_regression_rejected")
+            if row["code_sha256"] != code_sha256:
+                raise MaintenanceStoreError("repair_campaign_code_hash_mismatch")
+            case_rows = connection.execute(
+                "SELECT c.semantic_case_id, c.node FROM repair_campaign_case c "
+                "WHERE c.campaign_id = ? ORDER BY c.ordinal",
+                (campaign,),
+            ).fetchall()
+            if not case_rows:
+                raise MaintenanceStoreError("repair_campaign_cases_invalid")
+            cases = [
+                {
+                    "semantic_case_id": str(case["semantic_case_id"]),
+                    "node": str(case["node"]),
+                }
+                for case in case_rows
+            ]
+            snapshot = json.dumps(
+                cases, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+            )
+            snapshot_hash = hashlib.sha256(snapshot.encode("ascii")).hexdigest()
+            connection.execute(
+                "UPDATE repair_campaign SET state = 'full_regression_started', "
+                "full_regression_token_hash = ?, full_regression_nonce_hash = NULL, "
+                "full_regression_lease_expires_at = ?, "
+                "full_snapshot_json = ?, full_snapshot_sha256 = ?, "
+                "full_regression_owner_pid = ?, full_regression_owner_start_id = ?, "
+                "full_regression_child_state = 'not_started', updated_at = ? "
+                "WHERE campaign_id = ? AND state = 'active'",
+                (
+                    token_hash,
+                    lease_expires_at,
+                    snapshot,
+                    snapshot_hash,
+                    os.getpid(),
+                    owner_start_id,
+                    when,
+                    campaign,
+                ),
+            )
+            return {
+                "token": token,
+                "nonce": None,
+                "cases": tuple(
+                    (item["semantic_case_id"], item["node"]) for item in cases
+                ),
+                "snapshot_sha256": snapshot_hash,
+                "lease_expires_at": lease_expires_at,
+            }
+
+    def _record_repair_runner_child_start(
+        self,
+        *,
+        campaign_id: str,
+        child_pid: int,
+        capability: object,
+        started_at: datetime | str,
+    ) -> str:
+        """Record a sandbox child while it is suspended, before it can run."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        if child_pid == os.getpid():
+            raise MaintenanceStoreError("repair_runner_child_identity_invalid")
+        identity = _host_process_identity(child_pid)
+        if identity is None or not identity[1]:
+            raise MaintenanceStoreError("repair_runner_child_identity_unavailable")
+        when = _timestamp(started_at)
+        campaign = _safe_id(campaign_id, "repair_campaign_id_invalid")
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, full_regression_owner_pid, full_regression_owner_start_id, "
+                "full_regression_child_state FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            owner = (
+                _host_process_identity(int(row["full_regression_owner_pid"]))
+                if row is not None
+                else None
+            )
+            if (
+                row is None
+                or row["state"] != "full_regression_started"
+                or row["full_regression_child_state"] != "not_started"
+                or int(row["full_regression_owner_pid"]) != os.getpid()
+                or owner is None
+                or not owner[1]
+                or owner[0] != row["full_regression_owner_start_id"]
+            ):
+                raise MaintenanceStoreError("repair_runner_child_start_invalid")
+            connection.execute(
+                "UPDATE repair_campaign SET full_regression_child_pid = ?, "
+                "full_regression_child_start_id = ?, full_regression_child_state = 'started', "
+                "updated_at = ? WHERE campaign_id = ?",
+                (child_pid, identity[0], when, campaign),
+            )
+            return identity[0]
+
+    def _record_repair_runner_child_exit(
+        self,
+        *,
+        campaign_id: str,
+        capability: object,
+        exited_at: datetime | str,
+    ) -> None:
+        """Persist child completion after the host has waited for process exit."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "repair_campaign_id_invalid")
+        when = _timestamp(exited_at)
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, full_regression_child_pid, full_regression_child_start_id, "
+                "full_regression_child_state FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if (
+                row is None
+                or row["state"] != "full_regression_started"
+                or row["full_regression_child_state"] != "started"
+            ):
+                raise MaintenanceStoreError("repair_runner_child_exit_invalid")
+            identity = _host_process_identity(int(row["full_regression_child_pid"]))
+            if (
+                identity is not None
+                and identity[0] == row["full_regression_child_start_id"]
+                and identity[1]
+            ):
+                raise MaintenanceStoreError("repair_runner_child_still_alive")
+            connection.execute(
+                "UPDATE repair_campaign SET full_regression_child_state = 'exited', "
+                "updated_at = ? WHERE campaign_id = ?",
+                (when, campaign),
+            )
+
+    def abandon_interrupted_repair_full_regression(
+        self,
+        *,
+        campaign_id: str,
+        capability: object,
+        abandoned_at: datetime | str,
+    ) -> None:
+        """Close a crashed run only after its owner and any child are proven dead."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "repair_campaign_id_invalid")
+        when = _timestamp(abandoned_at)
+        host_now = datetime.now(timezone.utc)
+        if _parse_timestamp(when) > host_now:
+            raise MaintenanceStoreError("repair_runner_abandon_time_invalid")
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if row is None or row["state"] != "full_regression_started":
+                raise MaintenanceStoreError("full_regression_not_abandonable")
+            if row[
+                "full_regression_lease_expires_at"
+            ] is None or host_now < _parse_timestamp(
+                str(row["full_regression_lease_expires_at"])
+            ):
+                raise MaintenanceStoreError("repair_runner_lease_not_expired")
+            owner = _host_process_identity(int(row["full_regression_owner_pid"]))
+            if (
+                owner is not None
+                and owner[0] == row["full_regression_owner_start_id"]
+                and owner[1]
+            ):
+                raise MaintenanceStoreError("repair_runner_owner_still_alive")
+            child_state = str(row["full_regression_child_state"])
+            if child_state == "started":
+                child = _host_process_identity(int(row["full_regression_child_pid"]))
+                if (
+                    child is not None
+                    and child[0] == row["full_regression_child_start_id"]
+                    and child[1]
+                ):
+                    raise MaintenanceStoreError("repair_runner_child_still_alive")
+                connection.execute(
+                    "UPDATE repair_campaign SET full_regression_child_state = 'exited' "
+                    "WHERE campaign_id = ?",
+                    (campaign,),
+                )
+            elif child_state == "exited":
+                child = _host_process_identity(int(row["full_regression_child_pid"]))
+                if (
+                    child is not None
+                    and child[0] == row["full_regression_child_start_id"]
+                    and child[1]
+                ):
+                    raise MaintenanceStoreError("repair_runner_child_still_alive")
+            elif child_state != "not_started":
+                raise MaintenanceStoreError("repair_runner_child_state_invalid")
+            connection.execute(
+                "UPDATE repair_campaign SET state = 'full_regression_failed', "
+                "full_regression_failure_code = 'runner_interrupted', updated_at = ? "
+                "WHERE campaign_id = ? AND state = 'full_regression_started'",
+                (when, campaign),
+            )
+
+    def _claim_repair_runner_nonce(
+        self,
+        *,
+        campaign_id: str,
+        capability: object,
+        token: str | None = None,
+        nonce: str | None = None,
+    ) -> tuple[str, str, tuple[tuple[str, str], ...], str, str]:
+        """Private one-shot handoff of the persisted nonce to HostPytestRunner."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        if token is not None and (
+            not isinstance(token, str) or not _SHA256_PATTERN.fullmatch(token)
+        ):
+            raise MaintenanceStoreError("full_regression_token_invalid")
+        if nonce is not None and (not isinstance(nonce, str) or not nonce):
+            raise MaintenanceStoreError("repair_runner_nonce_invalid")
+        when = _timestamp(datetime.now(timezone.utc))
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT c.*, s.started_at FROM repair_campaign c "
+                "JOIN step_attempt s ON s.attempt_id = c.attempt_id "
+                "WHERE c.campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            owner = (
+                _host_process_identity(int(row["full_regression_owner_pid"]))
+                if row is not None
+                else None
+            )
+            if (
+                row is None
+                or row["state"] != "full_regression_started"
+                or (token is not None and row["full_regression_token_hash"] != token)
+                or row["full_regression_claimed_at"] is not None
+                or row["full_regression_nonce_hash"] is not None
+                or int(row["full_regression_owner_pid"]) != os.getpid()
+                or owner is None
+                or not owner[1]
+                or owner[0] != row["full_regression_owner_start_id"]
+            ):
+                raise MaintenanceStoreError("full_regression_token_invalid")
+            token_value = str(row["full_regression_token_hash"])
+            nonce_value = nonce or secrets.token_urlsafe(32)
+            nonce_hash = hashlib.sha256(nonce_value.encode("ascii")).hexdigest()
+            cases_data = json.loads(str(row["full_snapshot_json"]))
+            cases = tuple(
+                (str(item["semantic_case_id"]), str(item["node"]))
+                for item in cases_data
+            )
+            connection.execute(
+                "UPDATE repair_campaign SET full_regression_claimed_at = ?, "
+                "full_regression_nonce_hash = ?, updated_at = ? "
+                "WHERE campaign_id = ? AND state = 'full_regression_started' "
+                "AND full_regression_claimed_at IS NULL",
+                (when, nonce_hash, when, campaign),
+            )
+            return (
+                str(row["attempt_id"]),
+                str(row["code_sha256"]),
+                cases,
+                token_value,
+                nonce_value,
+            )
+
+    def _fail_repair_full_regression(
+        self,
+        *,
+        campaign_id: str,
+        attempt_id: str,
+        failure_code: str,
+        capability: object,
+        failed_at: datetime | str,
+    ) -> None:
+        """Durably close a claimed run that cannot produce a clean receipt."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        code = _safe_code(failure_code, "repair_run_failure_code_invalid")
+        when = _timestamp(failed_at)
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT state, attempt_id, full_regression_claimed_at, "
+                "full_regression_nonce_hash, full_regression_owner_pid, "
+                "full_regression_owner_start_id, full_regression_child_pid, "
+                "full_regression_child_start_id, full_regression_child_state "
+                "FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if (
+                row is None
+                or row["attempt_id"] != attempt
+                or row["state"] != "full_regression_started"
+                or row["full_regression_claimed_at"] is None
+                or row["full_regression_nonce_hash"] is None
+            ):
+                raise MaintenanceStoreError("full_regression_token_invalid")
+            owner = _host_process_identity(int(row["full_regression_owner_pid"]))
+            if (
+                owner is None
+                or not owner[1]
+                or owner[0] != row["full_regression_owner_start_id"]
+                or int(row["full_regression_owner_pid"]) != os.getpid()
+            ):
+                raise MaintenanceStoreError("repair_runner_owner_identity_mismatch")
+            if row["full_regression_child_state"] == "started":
+                child = _host_process_identity(int(row["full_regression_child_pid"]))
+                if (
+                    child is not None
+                    and child[0] == row["full_regression_child_start_id"]
+                    and child[1]
+                ):
+                    raise MaintenanceStoreError("repair_runner_child_still_alive")
+                connection.execute(
+                    "UPDATE repair_campaign SET full_regression_child_state = 'exited' "
+                    "WHERE campaign_id = ?",
+                    (campaign,),
+                )
+            connection.execute(
+                "UPDATE repair_campaign SET state = 'full_regression_failed', "
+                "full_regression_failure_code = ?, updated_at = ? "
+                "WHERE campaign_id = ? AND state = 'full_regression_started'",
+                (code, when, campaign),
+            )
+
+    def _record_repair_run_receipt(
+        self,
+        *,
+        capability: object,
+        campaign_id: str,
+        attempt_id: str,
+        token: str,
+        nonce: str,
+        code_sha256: str,
+        cases: tuple[tuple[str, str], ...],
+        results: Mapping[str, str],
+        exit_code: int,
+        collected: int,
+        errors: int,
+        skips: int,
+        collection_errors: int,
+        invocation_parent_id: str | None,
+        created_at: datetime | str,
+    ) -> RepairRunReceiptRecord:
+        """Only the built-in runner capability can persist a test-run receipt."""
+
+        if capability is not self._repair_runner_capability:
+            raise MaintenanceStoreError("repair_runner_capability_invalid")
+        campaign = _safe_id(campaign_id, "campaign_id_invalid")
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        if not isinstance(code_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            code_sha256
+        ):
+            raise MaintenanceStoreError("repair_run_code_hash_invalid")
+        if invocation_parent_id is not None:
+            raise MaintenanceStoreError("nested_full_regression_rejected")
+        if not isinstance(cases, tuple) or not isinstance(results, Mapping):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        if any(
+            type(value) is not int or value < 0
+            for value in (collected, errors, skips, collection_errors)
+        ):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        if type(exit_code) is not int or not 0 <= exit_code <= 255:
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        normalized_cases = tuple(
+            (_safe_id(case_id, "repair_semantic_case_id_invalid"), node)
+            for case_id, node in cases
+        )
+        if len({case_id for case_id, _ in normalized_cases}) != len(normalized_cases):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        case_document = [
+            {"semantic_case_id": case_id, "node": node}
+            for case_id, node in normalized_cases
+        ]
+        results_document = dict(results)
+        expected_ids = {case_id for case_id, _ in normalized_cases}
+        if (
+            set(results_document) != expected_ids
+            or any(value != "PASS" for value in results_document.values())
+            or exit_code != 0
+            or collected != len(normalized_cases)
+            or errors != 0
+            or skips != 0
+            or collection_errors != 0
+        ):
+            raise MaintenanceStoreError("repair_run_receipt_not_clean")
+        if not isinstance(token, str) or not _SHA256_PATTERN.fullmatch(token):
+            raise MaintenanceStoreError("full_regression_token_invalid")
+        token_hash = token
+        nonce_hash = hashlib.sha256(nonce.encode("ascii", errors="strict")).hexdigest()
+        cases_json = json.dumps(
+            case_document, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        )
+        results_json = json.dumps(
+            results_document, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        )
+        when = _timestamp(created_at)
+        receipt_id = str(uuid.uuid4())
+        receipt_hash_payload = {
+            "receipt_id": receipt_id,
+            "campaign_id": campaign,
+            "attempt_id": attempt,
+            "run_kind": "full_regression",
+            "semantic_case_id": None,
+            "invocation_id": None,
+            "token_hash": token_hash,
+            "nonce_hash": nonce_hash,
+            "code_sha256": code_sha256,
+            "cases": case_document,
+            "results": results_document,
+            "exit_code": exit_code,
+            "collected": collected,
+            "assertion_failures": 0,
+            "errors": errors,
+            "skips": skips,
+            "collection_errors": collection_errors,
+            "invocation_parent_id": None,
+        }
+        receipt_sha256 = hashlib.sha256(
+            json.dumps(
+                receipt_hash_payload,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        with self._transaction(repair_runner_capability=capability) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            stored_cases = (
+                json.loads(str(row["full_snapshot_json"])) if row is not None else None
+            )
+            owner = (
+                _host_process_identity(int(row["full_regression_owner_pid"]))
+                if row is not None
+                else None
+            )
+            child_state = (
+                str(row["full_regression_child_state"]) if row is not None else ""
+            )
+            child = (
+                _host_process_identity(int(row["full_regression_child_pid"]))
+                if row is not None
+                and row["full_regression_child_pid"] is not None
+                and child_state in {"started", "exited"}
+                else None
+            )
+            if (
+                row is None
+                or row["state"] != "full_regression_started"
+                or row["attempt_id"] != attempt
+                or row["code_sha256"] != code_sha256
+                or row["full_regression_token_hash"] != token_hash
+                or row["full_regression_nonce_hash"] != nonce_hash
+                or row["full_regression_claimed_at"] is None
+                or stored_cases != case_document
+                or int(row["full_regression_owner_pid"]) != os.getpid()
+                or owner is None
+                or not owner[1]
+                or owner[0] != row["full_regression_owner_start_id"]
+                or child_state not in {"not_started", "exited"}
+                or (
+                    child is not None
+                    and child[0] == row["full_regression_child_start_id"]
+                    and child[1]
+                )
+            ):
+                raise MaintenanceStoreError("repair_run_receipt_mismatch")
+            connection.execute(
+                "INSERT INTO repair_run_receipt "
+                "(receipt_id, campaign_id, attempt_id, run_kind, semantic_case_id, "
+                "invocation_id, token_hash, nonce_hash, code_sha256, cases_json, results_json, "
+                "exit_code, collected, assertion_failures, errors, skips, collection_errors, "
+                "invocation_parent_id, receipt_sha256, created_at) "
+                "VALUES (?, ?, ?, 'full_regression', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)",
+                (
+                    receipt_id,
+                    campaign,
+                    attempt,
+                    token_hash,
+                    nonce_hash,
+                    code_sha256,
+                    cases_json,
+                    results_json,
+                    exit_code,
+                    collected,
+                    errors,
+                    skips,
+                    collection_errors,
+                    receipt_sha256,
+                    when,
+                ),
+            )
+            return RepairRunReceiptRecord(
+                receipt_id=receipt_id,
+                campaign_id=campaign,
+                attempt_id=attempt,
+                run_kind="full_regression",
+                semantic_case_id=None,
+                invocation_id=None,
+                code_sha256=code_sha256,
+                cases=normalized_cases,
+                results=MappingProxyType(results_document),
+                exit_code=exit_code,
+                collected=collected,
+                assertion_failures=0,
+                errors=errors,
+                skips=skips,
+                collection_errors=collection_errors,
+                invocation_parent_id=None,
+                receipt_sha256=receipt_sha256,
+                consumed=False,
+            )
+
+    def consume_repair_run_receipt(
+        self,
+        *,
+        receipt_id: str,
+        expected: Mapping[str, object],
+        consumed_at: datetime | str,
+    ) -> RepairRunReceiptRecord:
+        """Consume a matching host-runner receipt once and freeze its PASS set."""
+
+        receipt = _safe_id(receipt_id, "repair_run_receipt_id_invalid")
+        when = _timestamp(consumed_at)
+        if not isinstance(expected, Mapping):
+            raise MaintenanceStoreError("repair_run_receipt_invalid")
+        with self._transaction(
+            repair_runner_capability=self._repair_runner_capability
+        ) as connection:
+            row = connection.execute(
+                "SELECT * FROM repair_run_receipt WHERE receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("host_run_receipt_unavailable")
+            document = self._repair_receipt_document(row)
+            if row["consumed_at"] is not None:
+                raise MaintenanceStoreError("host_run_receipt_consumed")
+            expected_token = expected.get("token")
+            if (
+                not isinstance(expected_token, str)
+                or expected_token != row["token_hash"]
+                or expected.get("receipt_id") != receipt
+                or expected.get("run_id") != receipt
+            ):
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            comparisons = {
+                "campaign_id": document["campaign_id"],
+                "attempt_id": document["attempt_id"],
+                "code_sha256": document["code_sha256"],
+                "cases": document["cases"],
+                "results": document["results"],
+                "exit_code": document["exit_code"],
+                "collected": document["collected"],
+                "assertion_failures": document["assertion_failures"],
+                "errors": document["errors"],
+                "skips": document["skips"],
+                "collection_errors": document["collection_errors"],
+                "invocation_parent_id": document["invocation_parent_id"],
+                "receipt_sha256": document["receipt_sha256"],
+            }
+            if any(expected.get(key) != value for key, value in comparisons.items()):
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            if document["run_kind"] != "full_regression":
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            campaign = str(document["campaign_id"])
+            campaign_row = connection.execute(
+                "SELECT state, attempt_id, code_sha256, invocation_parent_id, "
+                "full_regression_token_hash, full_regression_nonce_hash, "
+                "full_snapshot_json, full_snapshot_sha256, full_run_receipt_id "
+                "FROM repair_campaign WHERE campaign_id = ?",
+                (campaign,),
+            ).fetchone()
+            if (
+                campaign_row is None
+                or campaign_row["state"] != "full_regression_started"
+                or campaign_row["attempt_id"] != document["attempt_id"]
+                or campaign_row["code_sha256"] != document["code_sha256"]
+                or campaign_row["invocation_parent_id"]
+                != document["invocation_parent_id"]
+                or campaign_row["full_regression_token_hash"] != row["token_hash"]
+                or campaign_row["full_regression_nonce_hash"] != row["nonce_hash"]
+                or campaign_row["full_snapshot_json"]
+                != json.dumps(
+                    [
+                        {
+                            "semantic_case_id": case_id,
+                            "node": node,
+                        }
+                        for case_id, node in document["cases"]
+                    ],
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                or hashlib.sha256(
+                    str(campaign_row["full_snapshot_json"]).encode("ascii")
+                ).hexdigest()
+                != campaign_row["full_snapshot_sha256"]
+                or campaign_row["full_run_receipt_id"] is not None
+            ):
+                raise MaintenanceStoreError("host_run_receipt_mismatch")
+            connection.execute(
+                "UPDATE repair_run_receipt SET consumed_at = ? WHERE receipt_id = ?",
+                (when, receipt),
+            )
+            connection.execute(
+                "UPDATE repair_campaign SET state = 'full_regression_recorded', "
+                "full_run_receipt_id = ?, updated_at = ? WHERE campaign_id = ?",
+                (receipt, when, campaign),
+            )
+            for case_id, _node in document["cases"]:
+                connection.execute(
+                    "INSERT INTO repair_campaign_result "
+                    "(result_id, campaign_id, semantic_case_id, outcome, "
+                    "code_sha256, receipt_id, created_at) "
+                    "VALUES (?, ?, ?, 'PASS', ?, ?, ?)",
+                    (
+                        str(uuid.uuid4()),
+                        campaign,
+                        case_id,
+                        document["code_sha256"],
+                        receipt,
+                        when,
+                    ),
+                )
+                connection.execute(
+                    "UPDATE repair_campaign_case SET frozen = 1 "
+                    "WHERE campaign_id = ? AND semantic_case_id = ? AND frozen = 0",
+                    (campaign, case_id),
+                )
+            row = connection.execute(
+                "SELECT * FROM repair_run_receipt WHERE receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            return RepairRunReceiptRecord(
+                receipt_id=receipt,
+                campaign_id=str(row["campaign_id"]),
+                attempt_id=str(row["attempt_id"]),
+                run_kind=str(row["run_kind"]),
+                semantic_case_id=None,
+                invocation_id=None,
+                code_sha256=str(row["code_sha256"]),
+                cases=tuple(
+                    (item["semantic_case_id"], item["node"])
+                    for item in json.loads(row["cases_json"])
+                ),
+                results=MappingProxyType(json.loads(row["results_json"])),
+                exit_code=int(row["exit_code"]),
+                collected=int(row["collected"]),
+                assertion_failures=int(row["assertion_failures"]),
+                errors=int(row["errors"]),
+                skips=int(row["skips"]),
+                collection_errors=int(row["collection_errors"]),
+                invocation_parent_id=row["invocation_parent_id"],
+                receipt_sha256=str(row["receipt_sha256"]),
+                consumed=True,
+            )
 
     def get_job_base_commit(self, *, job_id: str) -> str:
         """Return the release base commit pinned to a maintenance job."""

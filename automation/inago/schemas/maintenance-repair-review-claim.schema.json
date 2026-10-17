@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-repair-review-claim-v1.schema.json",
+  "title": "Maintenance repair preliminary review claim",
+  "type": "object",
+  "properties": {
+    "author_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "reviewer_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "tested_result_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "reviewed_result_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "unresolved_critical_findings": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+    },
+    "tested_code_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "reviewed_code_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+  },
+  "required": [
+    "author_id",
+    "reviewer_id",
+    "tested_result_version",
+    "reviewed_result_version",
+    "unresolved_critical_findings",
+    "tested_code_sha256",
+    "reviewed_code_sha256"
+  ],
+  "additionalProperties": false
+}

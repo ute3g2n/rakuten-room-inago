@@ -116,6 +116,25 @@
       },
       "required": ["field", "schema_ref", "source_ref", "case_id"],
       "additionalProperties": false
+    },
+    "repairScope": {
+      "type": "object",
+      "properties": {
+        "owned_paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\\\\\u0000-\\u001f]+$"
+          }
+        }
+      },
+      "required": ["owned_paths"],
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -128,6 +147,7 @@
     "cases": {"type": "array", "minItems": 1, "maxItems": 200, "items": {"$ref": "#/$defs/case"}},
     "coverage": {"type": "array", "minItems": 1, "maxItems": 200, "items": {"$ref": "#/$defs/coverage"}},
     "cause_actions": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/causeAction"}},
+    "repair_scope": {"$ref": "#/$defs/repairScope"},
     "logging_contract": {
       "type": "object",
       "properties": {
@@ -147,6 +167,6 @@
     "final_explanation": {"type": "string", "minLength": 1, "maxLength": 4000},
     "review_required": {"const": true}
   },
-  "required": ["schema_version", "stage", "status", "summary", "sections", "steps", "cases", "coverage", "cause_actions", "logging_contract", "hold_conditions", "final_explanation", "review_required"],
+  "required": ["schema_version", "stage", "status", "summary", "sections", "steps", "cases", "coverage", "cause_actions", "repair_scope", "logging_contract", "hold_conditions", "final_explanation", "review_required"],
   "unevaluatedProperties": false
 }
