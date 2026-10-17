@@ -3469,6 +3469,161 @@ class MaintenanceStore:
         finally:
             connection.close()
 
+    def get_latest_step_attempt(
+        self, *, job_id: str, sequence: int
+    ) -> StepAttemptRecord:
+        """Return the newest attempt for a job sequence, if one exists."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise MaintenanceStoreError("step_sequence_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM step_attempt WHERE job_id = ? AND sequence = ? "
+                "ORDER BY attempt_no DESC LIMIT 1",
+                (job, sequence),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            return StepAttemptRecord(
+                str(row["attempt_id"]),
+                str(row["job_id"]),
+                str(row["step_key"]),
+                int(row["sequence"]),
+                int(row["attempt_no"]),
+                row["source_run_id"],
+                str(row["status"]),
+                row["result_version"],
+                row["output_path"],
+                row["output_sha256"],
+                str(row["started_at"]),
+                row["finished_at"],
+            )
+        finally:
+            connection.close()
+
+    def get_step_attempt_review(self, *, attempt_id: str) -> dict[str, str] | None:
+        """Return the latest version-bound review record for a step attempt."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT reviewer_id, reviewed_version, status, reviewed_at "
+                "FROM review_result WHERE scope_type = 'step_attempt' "
+                "AND scope_id = ? ORDER BY rowid DESC LIMIT 1",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "reviewer_id": str(row["reviewer_id"]),
+                "reviewed_version": str(row["reviewed_version"]),
+                "status": str(row["status"]),
+                "reviewed_at": str(row["reviewed_at"]),
+            }
+        finally:
+            connection.close()
+
+    def get_job_base_commit(self, *, job_id: str) -> str:
+        """Return the release base commit pinned to a maintenance job."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT r.base_commit FROM maintenance_job j "
+                "JOIN release r ON r.release_id = j.release_id WHERE j.job_id = ?",
+                (job,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("job_not_found")
+            return str(row["base_commit"])
+        finally:
+            connection.close()
+
+    def read_attempt_artifact(
+        self,
+        *,
+        attempts_root: str | Path,
+        relative_path: str,
+        expected_sha256: str,
+    ) -> bytes:
+        """Read a hash-bound regular file below the configured attempt root."""
+
+        relative = _relative_output_path(relative_path)
+        if not isinstance(expected_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            expected_sha256
+        ):
+            raise MaintenanceStoreError("attempt_output_digest_invalid")
+        return _read_handoff_artifact(
+            Path(attempts_root).expanduser(),
+            relative,
+            expected_sha256,
+            "attempt_output",
+        )
+
+    def prior_step_review_execution_ids(
+        self,
+        *,
+        job_id: str,
+        step_key: str,
+        sequence: int,
+        current_attempt_id: str,
+        attempts_root: str | Path,
+    ) -> frozenset[str]:
+        """Read persisted reviewer executions from earlier attempts of a step."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        step = _safe_id(step_key, "step_key_invalid")
+        current_attempt = _safe_id(current_attempt_id, "attempt_id_invalid")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise MaintenanceStoreError("step_sequence_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT attempt_id, output_path, output_sha256 FROM step_attempt "
+                "WHERE job_id = ? AND step_key = ? AND sequence = ? "
+                "AND attempt_id <> ? AND status IN ('complete', 'handoff_accepted') "
+                "ORDER BY attempt_no",
+                (job, step, sequence, current_attempt),
+            ).fetchall()
+        finally:
+            connection.close()
+
+        identities: set[str] = set()
+        root = Path(attempts_root).expanduser()
+        for row in rows:
+            attempt = str(row["attempt_id"])
+            expected_path = f"{job}/{attempt}/result.json"
+            if (
+                row["output_path"] != expected_path
+                or not isinstance(row["output_sha256"], str)
+                or not _SHA256_PATTERN.fullmatch(row["output_sha256"])
+            ):
+                raise MaintenanceStoreError("prior_step_review_unavailable")
+            content = _read_handoff_artifact(
+                root,
+                expected_path,
+                str(row["output_sha256"]),
+                "prior_step_review",
+            )
+            try:
+                document = json.loads(content)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise MaintenanceStoreError("prior_step_review_invalid") from exc
+            review = document.get("review") if isinstance(document, dict) else None
+            execution_id = (
+                review.get("review_execution_id") if isinstance(review, dict) else None
+            )
+            if not isinstance(execution_id, str) or not _ID_PATTERN.fullmatch(
+                execution_id
+            ):
+                raise MaintenanceStoreError("prior_step_review_invalid")
+            identities.add(execution_id)
+        return frozenset(identities)
+
     def next_step_review_round(self, attempt_id: str) -> int:
         """Return the next review round from persisted history for this step."""
 

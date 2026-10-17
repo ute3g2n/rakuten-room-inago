@@ -207,10 +207,20 @@ def _validate_context(context: object) -> dict[str, Any]:
     return data
 
 
-def _validate_echo(response: Mapping[str, Any], context: Mapping[str, Any]) -> None:
+def _validate_echo(
+    response: Mapping[str, Any],
+    context: Mapping[str, Any],
+    *,
+    allow_evidence_subset: bool = False,
+) -> None:
     for key in _CONTEXT_FIELDS:
         actual = response.get(key, object())
         expected = context[key]
+        if key == "evidence_refs" and allow_evidence_subset:
+            refs = _validate_refs(actual, "response_evidence_refs")
+            if not set(refs).issubset(expected):
+                raise InvestigationContractError("response_evidence_ref_not_allowed")
+            continue
         if key in {"input_refs", "evidence_refs"}:
             actual = list(actual) if isinstance(actual, (list, tuple)) else actual
         if actual != expected:
@@ -238,7 +248,7 @@ def _validate_document(value: object, schema_name: str) -> dict[str, Any]:
 
 def _check_response(response: object, context: Mapping[str, Any]) -> dict[str, Any]:
     data = _validate_document(response, "maintenance-check-response.schema.json")
-    _validate_echo(data, context)
+    _validate_echo(data, context, allow_evidence_subset=True)
     allowed_evidence = set(context["evidence_refs"])
     if "evidence_refs" in data:
         refs = _validate_refs(data["evidence_refs"], "response_evidence_refs")
@@ -373,7 +383,7 @@ def validate_investigation_response(
     data = _validate_document(
         response, "maintenance-investigation-response.schema.json"
     )
-    _validate_echo(data, job)
+    _validate_echo(data, job, allow_evidence_subset=True)
     if data.get("stage") != "investigation":
         raise InvestigationContractError("investigation_stage_mismatch")
     if data["schema_version"] != INVESTIGATION_RESPONSE_SCHEMA_VERSION:
@@ -779,12 +789,23 @@ def save_attempt_artifact(
     *,
     filename: str,
     content: str | bytes,
+    stage: str = "investigation",
 ) -> tuple[str, str]:
-    """Create one immutable U12 artifact under its exact job/attempt directory."""
+    """Create one immutable stage artifact under its exact job/attempt directory."""
 
     job = _validate_context(context)
-    if filename not in {"facts.json", "investigation.md", "result.json"}:
-        raise InvestigationContractError("investigation_artifact_name_invalid")
+    allowed_names = {
+        "investigation": {"facts.json", "investigation.md", "result.json"},
+        "planning": {
+            "plan.md",
+            "requirement-step-case-map.json",
+            "result.json",
+            "review.json",
+            "review.md",
+        },
+    }
+    if stage not in allowed_names or filename not in allowed_names[stage]:
+        raise InvestigationContractError(f"{stage}_artifact_name_invalid")
     if isinstance(content, str):
         encoded = content.encode("utf-8")
     elif isinstance(content, bytes):

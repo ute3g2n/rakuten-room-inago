@@ -42,6 +42,7 @@ def create_ready_release(
     *,
     incident_id: str,
     release_id: str = "release-1",
+    base_commit: str = "base-1",
     result_commit: str = "commit-1",
     result_version: str = "result-v1",
     config_version: str = "settings-v1",
@@ -49,7 +50,7 @@ def create_ready_release(
     release = store.create_release(
         release_id=release_id,
         author_id="implementation-agent",
-        base_commit="base-1",
+        base_commit=base_commit,
         result_commit=result_commit,
         result_version=result_version,
         config_version=config_version,

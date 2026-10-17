@@ -2,7 +2,7 @@
 
 ## 入力と読み取り
 
-入力はjob共通ID、approved investigation版、fact/evidence refs、requirements, acceptance, case manifest、base_commit、allowed_outputs。読み取り対象はこれらの参照、現在の対象コード/schema、M第4〜8節、Q、Lおよびincident計画ひな形。その他の探索やDB変更はしない。
+入力はjob共通ID、latest approvedかつhandoff acceptedなinvestigation attempt、fact/evidence refs、requirements/acceptance/case manifest、base_commit、allowed_outputs。host/controllerはU12 result/factsのpath/hash、result_version、base_commit、input/evidence refsを確認し、release base commitとjob manifestへ結ぶ。読み取り対象はこれらの参照、現在の対象コード/schema、M第4〜8節、Q、Lおよびincident計画ひな形。その他の探索やDB変更はしない。
 
 ## 起動元・対象日の不変結合
 
@@ -45,6 +45,10 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 各全文promptには作業rootと計画文書、対象STEP、入力/版、開始条件、作業、所有file、変更禁止、検証、合格条件、停止/再開、証拠、Git、次工程を実文で含める。省略記号や「上記を参照」だけにしない。
 
+## 要件・fact・evidence・STEP・caseの対応
+
+各requirementについてfact ID、factのevidence refs、STEP番号、case IDを明示する。全requirements、全facts、全STEP、全caseが最低1件の対応を持つ。case nodeは渡されたmanifestの完全nodeと一致させ、存在未確認nodeを作らない。原因確度unknownのfactに対して許すactionは`verify_only`または`hold`だけとし、原因を前提とする修正は計画しない。
+
 ## ケースの12項目
 
 1. 対応する要件・STEP
@@ -62,6 +66,10 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 ## 出力・レビュー・失敗
 
-許可出力はplan.md、requirement-step-case-map.json、result.json。各出力はallowed_outputsのattempt専用領域へ返す。計画reviewerは別IDで全文を読み、全factと根拠、所有、ケース、prompt、risk、停止条件、版を確認する。reviewerは計画を修正しない。
+計画担当の許可出力はplan.md、requirement-step-case-map.json、result.json。各出力はallowed_outputsのattempt専用領域へ返す。独立reviewerは別ID・別実行IDで全文と対応表を読み、全fact/evidence、所有、ケース/node、prompt、risk、停止条件、版を確認し、review.json/review.mdを返す。reviewerは計画を修正しない。hostはU12と同じjob/attempt root containment、no-reparse、schema/identity/owner/hash検証を行う。CLIへfolder-level ACL設定は要求せず、hostのroot path integrityを維持する。
+
+C32の計画結果はnullable `source_run_id`、`overall_status`、`daily_status`、`reason_code`、`failure_phase`、`trace_status`を保持し、L02/完了通知を作れなかった場合はplanning schema欄`missing_reason`で説明する。run IDを推測しない。`missing_reason`をdaily-launch-completion-v1、L02または日次DBへ追加しない。raw stdout/stderr、SQL値、資格情報、例外本文、秘密、個人情報を出力しない。
+
+plan statusが`waiting_external`または`blocked`でも計画と最終説明を保存し、独立reviewを記録する。reviewerがplanの完全性をapprovedとしてもhostのstep gateは`changes_requested`とし、次sequenceを開始させない。同一sequenceの新attemptでは同一のapproved investigation版を使う。
 
 必須入力や出力pathが未確定ならblocked。再開時は同じjob/incident/sequenceと同じinvestigation版を維持する。修正した計画は新result_versionになり、レビューをやり直す。
