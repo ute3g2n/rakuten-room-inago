@@ -1005,3 +1005,143 @@ def test_main_reports_invalid_runtime_root_without_traceback(tmp_path, monkeypat
         "status": "blocked",
         "reason_code": "data_root_not_directory",
     }
+
+
+def _load_watchdog_module():
+    import importlib
+
+    try:
+        return importlib.import_module("automation.inago.maintenance.watchdog")
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"watchdog module unavailable: {exc.name}")
+
+
+def test_c12_contract(tmp_path):
+    watchdog = _load_watchdog_module()
+    store = make_store(tmp_path)
+    recorded_start = (START - timedelta(minutes=10)).isoformat()
+    child_start = (START - timedelta(minutes=9)).isoformat()
+
+    for launch_id, owner_pid in (
+        ("launch-alive", 10101),
+        ("launch-unknown", 10102),
+        ("launch-reused", 10103),
+        ("launch-stopped", 10104),
+    ):
+        store.record_daily_launch_start(
+            source_launch_id=launch_id,
+            target_date="2026-10-17",
+            owner_pid=owner_pid,
+            owner_start_time=recorded_start,
+            started_at=recorded_start,
+        )
+
+    store.record_daily_launch_child(
+        source_launch_id="launch-alive",
+        child_pid=20101,
+        child_start_time=child_start,
+    )
+    store.record_daily_launch_child(
+        source_launch_id="launch-unknown",
+        child_pid=20102,
+        child_start_time=child_start,
+    )
+    store.record_daily_launch_child(
+        source_launch_id="launch-reused",
+        child_pid=20103,
+        child_start_time=child_start,
+    )
+
+    def process_probe(pid):
+        if pid == 10101:
+            return watchdog.ProcessObservation("running", recorded_start)
+        if pid == 10102:
+            return watchdog.ProcessObservation("unknown", None)
+        if pid == 10103:
+            return watchdog.ProcessObservation("running", START.isoformat())
+        if pid == 20101:
+            return watchdog.ProcessObservation("running", child_start)
+        if pid == 20102:
+            return watchdog.ProcessObservation("stopped", None)
+        if pid == 20103:
+            return watchdog.ProcessObservation("stopped", None)
+        if pid == 10104:
+            return watchdog.ProcessObservation("stopped", None)
+        raise AssertionError(f"unexpected process id: {pid}")
+
+    result = watchdog.run_watchdog_once(
+        store,
+        now=START,
+        occurrences=(),
+        process_probe=process_probe,
+        owner_id="watchdog-c12",
+        owner_pid=30101,
+        owner_start_time=START.isoformat(),
+    )
+
+    assert result.queued_source_launch_ids == (
+        "launch-reused",
+        "launch-stopped",
+    )
+    assert store.counts()["daily_check"] == 2
+    watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=1),
+        occurrences=(),
+        process_probe=process_probe,
+        owner_id="watchdog-c12-repeat",
+        owner_pid=30102,
+        owner_start_time=(START + timedelta(minutes=1)).isoformat(),
+    )
+    assert store.counts()["daily_check"] == 2
+
+
+def test_c13_contract(tmp_path):
+    watchdog = _load_watchdog_module()
+    store = make_store(tmp_path)
+    occurrence = watchdog.SchedulerOccurrence(
+        task_key="daily-1300",
+        target_date="2026-10-17",
+        scheduled_at=START,
+        enabled=True,
+        history_available=False,
+        last_run_time=None,
+        last_result=None,
+    )
+
+    result = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=10),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13",
+        owner_pid=30201,
+        owner_start_time=(START + timedelta(minutes=10)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+
+    assert len(result.queued_source_launch_ids) == 1
+    assert store.counts()["daily_launch"] == 0
+    assert store.counts()["daily_check"] == 1
+    connection = store._connect()
+    try:
+        row = connection.execute(
+            "SELECT source_launch_id, check_status, reason_code FROM daily_check"
+        ).fetchone()
+    finally:
+        connection.close()
+    assert row["source_launch_id"].startswith("scheduled:daily-1300:2026-10-17:")
+    assert row["check_status"] == "unknown"
+    assert row["reason_code"] == "daily_launcher_not_started"
+
+    watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=11),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-repeat",
+        owner_pid=30202,
+        owner_start_time=(START + timedelta(minutes=11)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+    assert store.counts()["daily_check"] == 1
