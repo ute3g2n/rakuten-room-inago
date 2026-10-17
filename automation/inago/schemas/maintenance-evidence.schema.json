@@ -1,0 +1,1830 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-evidence-v1.schema.json",
+  "title": "Allowlisted maintenance evidence manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "target_date",
+    "captured_at",
+    "correlation",
+    "classes",
+    "artifacts",
+    "events",
+    "redaction"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlation": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_run_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "job_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "attempt_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "request_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "action_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_launch_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "thread_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "task_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "artifact_ref": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/safeId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 26,
+      "maxItems": 26,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/classSummary"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "L01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "L02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "L03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "L04"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "L05"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "O01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "O02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "O03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "A01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "A02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "A03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "M01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "M02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "M03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "S01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "S02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "S03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "W01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "V01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "H01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "H02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "B01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "B02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "X01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "X02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "class_id": {
+                "const": "X03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "required": [
+        "allowlist_version",
+        "free_text_included",
+        "dropped_fields_count"
+      ],
+      "properties": {
+        "allowlist_version": {
+          "const": 1
+        },
+        "free_text_included": {
+          "const": false
+        },
+        "dropped_fields_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "class_id": {
+                  "const": "X02"
+                }
+              },
+              "required": [
+                "class_id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "correlation": {
+            "required": [
+              "thread_id"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "classId": {
+      "type": "string",
+      "enum": [
+        "L01",
+        "L02",
+        "L03",
+        "L04",
+        "L05",
+        "O01",
+        "O02",
+        "O03",
+        "A01",
+        "A02",
+        "A03",
+        "M01",
+        "M02",
+        "M03",
+        "S01",
+        "S02",
+        "S03",
+        "W01",
+        "V01",
+        "H01",
+        "H02",
+        "B01",
+        "B02",
+        "X01",
+        "X02",
+        "X03"
+      ]
+    },
+    "classSummary": {
+      "type": "object",
+      "required": [
+        "class_id",
+        "status",
+        "artifact_count",
+        "record_count"
+      ],
+      "properties": {
+        "class_id": {
+          "$ref": "#/$defs/classId"
+        },
+        "status": {
+          "$ref": "#/$defs/classStatus"
+        },
+        "artifact_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "class_id",
+        "source_ref",
+        "source_format",
+        "retention_status",
+        "source_expires_at_raw",
+        "source_expires_at_utc",
+        "status",
+        "reason_code",
+        "record_count",
+        "source_bytes",
+        "artifact_ref",
+        "redacted_bytes",
+        "redacted_sha256"
+      ],
+      "properties": {
+        "class_id": {
+          "$ref": "#/$defs/classId"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "jsonl",
+            "response",
+            "sqlite",
+            "binary",
+            "html_snapshot",
+            "text",
+            "xml"
+          ]
+        },
+        "retention_status": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "no_expiry",
+            "known"
+          ]
+        },
+        "source_expires_at_raw": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:[Tt ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?(?:[Zz]|[+-]\\d{2}:?\\d{2})?)?$"
+            }
+          ]
+        },
+        "source_expires_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/$defs/artifactStatus"
+        },
+        "reason_code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "record_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "artifact_ref": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^artifacts/[A-Z][0-9]{2}/source-[0-9]{4,}\\.jsonl$"
+            }
+          ]
+        },
+        "redacted_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "redacted_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "L01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "L02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "L03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "L04"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "L05"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "O01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "O02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "O03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "A01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "A02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl",
+                  "response"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "A03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "M01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "M02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl",
+                  "response"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "M03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "S01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "sqlite"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "S02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "S03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "W01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "V01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "html_snapshot"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "H01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "binary"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "H02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "B01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "sqlite"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "B02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "sqlite"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "X01"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "jsonl",
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "X02"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "jsonl"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class_id": {
+                "const": "X03"
+              }
+            },
+            "required": [
+              "class_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_format": {
+                "enum": [
+                  "json",
+                  "xml"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "class_id",
+        "source_ref",
+        "record_ref",
+        "occurred_at_raw",
+        "occurred_at_utc",
+        "time_format",
+        "correlation",
+        "fields"
+      ],
+      "properties": {
+        "class_id": {
+          "$ref": "#/$defs/classId"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/safeId"
+        },
+        "record_ref": {
+          "$ref": "#/$defs/safeId"
+        },
+        "occurred_at_raw": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:[Tt ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?(?:[Zz]|[+-]\\d{2}:?\\d{2})?)?$"
+            }
+          ]
+        },
+        "occurred_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "time_format": {
+          "type": "string",
+          "enum": [
+            "iso8601",
+            "unix_seconds",
+            "utc_naive",
+            "jst_naive",
+            "timezone_missing",
+            "invalid",
+            "unavailable"
+          ]
+        },
+        "correlation": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_run_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "job_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "attempt_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "request_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "action_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_launch_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "thread_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "turn_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "task_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "artifact_ref": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_ref": {
+              "$ref": "#/$defs/safeId"
+            }
+          },
+          "additionalProperties": false
+        },
+        "fields": {
+          "type": "object",
+          "properties": {
+            "attempt": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "attempt_limit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "availability": {
+              "type": "string",
+              "enum": [
+                "expired",
+                "missing",
+                "not_present",
+                "observed",
+                "partial",
+                "unavailable",
+                "unknown",
+                "unmatched"
+              ]
+            },
+            "cause_code": {
+              "type": "string",
+              "enum": [
+                "authentication_required",
+                "daily_runtime_error",
+                "source_cancelled",
+                "source_timeout",
+                "transport_error"
+              ]
+            },
+            "component": {
+              "type": "string",
+              "enum": [
+                "ai_adapter",
+                "cli",
+                "controller",
+                "daily_pipeline",
+                "evidence_collector",
+                "maintenance",
+                "scheduler",
+                "watchdog",
+                "worker"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "degraded": {
+              "type": "boolean"
+            },
+            "duration_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "error_class": {
+              "type": "string",
+              "enum": [
+                "appservererror",
+                "cancellederror",
+                "databaseerror",
+                "filenotfounderror",
+                "integrityerror",
+                "jsondecodeerror",
+                "operationalerror",
+                "oserror",
+                "sqliteerror",
+                "timeouterror",
+                "typeerror",
+                "valueerror"
+              ]
+            },
+            "error_code": {
+              "type": "string",
+              "enum": [
+                "artifact_write_failed",
+                "authentication_required",
+                "daily_runtime_error",
+                "database_close_error",
+                "fixture_transient_room_failure",
+                "shared_deadline_exhausted",
+                "source_cancelled",
+                "source_timeout",
+                "sqlite_integrity_check_failed",
+                "trace_unavailable",
+                "transport_error"
+              ]
+            },
+            "event": {
+              "type": "string",
+              "enum": [
+                "job_finished",
+                "jst_boundary_event",
+                "public_source_failure",
+                "public_source_stage",
+                "public_source_trace_suppressed",
+                "request_finished",
+                "request_started",
+                "stage",
+                "stage_cancelled",
+                "stage_failure",
+                "synthetic_event",
+                "trace_event",
+                "trace_suppressed"
+              ]
+            },
+            "event_id": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+            },
+            "exit_code": {
+              "type": "integer"
+            },
+            "file_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "item_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "copy",
+                "daily",
+                "database_close",
+                "database_open",
+                "end_backup",
+                "export",
+                "maintenance_collect",
+                "metrics",
+                "monthly_restore",
+                "operations_monitor",
+                "preflight",
+                "prepare",
+                "preservation",
+                "snapshot",
+                "start_backup",
+                "trace",
+                "watchdog_reconcile"
+              ]
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "begin",
+                "cancel",
+                "copy",
+                "daily",
+                "database_close",
+                "end",
+                "error",
+                "export",
+                "final_answer",
+                "metrics",
+                "monthly_restore",
+                "operations_monitor",
+                "preflight",
+                "prepare",
+                "preservation",
+                "start_backup",
+                "status",
+                "watchdog"
+              ]
+            },
+            "reason_code": {
+              "type": "string",
+              "enum": [
+                "allowlisted_fields_only",
+                "artifact_write_failed",
+                "authentication_required",
+                "daily_not_due",
+                "daily_result_failed",
+                "daily_runtime_error",
+                "data_root_not_directory",
+                "fixture_transient_room_failure",
+                "maintenance_operation_failed",
+                "no_correlated_records",
+                "shared_deadline_exhausted",
+                "source_cancelled",
+                "source_timeout",
+                "startup_preflight_blocked",
+                "trace_unavailable",
+                "transport_error"
+              ]
+            },
+            "record_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "retry_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "row_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "cleanup",
+                "job",
+                "overall",
+                "query",
+                "request",
+                "row",
+                "run"
+              ]
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "database_close",
+                "database_open",
+                "end_backup",
+                "export",
+                "metrics",
+                "monthly_restore",
+                "operations_monitor",
+                "preflight",
+                "prepare",
+                "preservation",
+                "start_backup",
+                "watchdog"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "acquired",
+                "already_checked",
+                "blocked",
+                "complete",
+                "completed",
+                "disabled",
+                "empty",
+                "empty_response",
+                "error",
+                "expired",
+                "export_failed",
+                "failed",
+                "healthy",
+                "invalid",
+                "invalid_input",
+                "locked",
+                "log_unavailable",
+                "metrics_failed",
+                "not_due",
+                "not_implemented",
+                "not_run",
+                "not_written",
+                "observed",
+                "partial",
+                "preservation_failed",
+                "ready",
+                "runtime_error",
+                "shortfall",
+                "started",
+                "unavailable",
+                "unknown",
+                "verified",
+                "write_failed"
+              ]
+            },
+            "suppressed": {
+              "type": "boolean"
+            },
+            "suppression_marker_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "suppression_reason": {
+              "type": "string",
+              "enum": [
+                "byte_quota",
+                "event_quota",
+                "file_quota",
+                "retention"
+              ]
+            },
+            "trace_status": {
+              "type": "string",
+              "enum": [
+                "degraded",
+                "healthy",
+                "not_written",
+                "unavailable",
+                "unknown"
+              ]
+            },
+            "target_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "execution_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "response_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "response_status": {
+              "type": "string",
+              "enum": [
+                "complete",
+                "empty",
+                "empty_response",
+                "failed",
+                "invalid",
+                "ok",
+                "unavailable"
+              ]
+            },
+            "scheduler_state": {
+              "type": "string",
+              "enum": [
+                "completed",
+                "disabled",
+                "failed",
+                "queued",
+                "ready",
+                "running",
+                "unknown"
+              ]
+            },
+            "integrity_status": {
+              "type": "string",
+              "enum": [
+                "failed",
+                "ok",
+                "unknown"
+              ]
+            },
+            "result_kind": {
+              "type": "string",
+              "enum": [
+                "blocked",
+                "complete",
+                "failed",
+                "not_run",
+                "partial",
+                "ready"
+              ]
+            },
+            "run_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_run_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "job_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "attempt_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "request_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "action_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_launch_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "thread_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "turn_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "task_id": {
+              "$ref": "#/$defs/safeId"
+            },
+            "artifact_ref": {
+              "$ref": "#/$defs/safeId"
+            },
+            "source_ref": {
+              "$ref": "#/$defs/safeId"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifactStatus": {
+      "type": "string",
+      "enum": [
+        "collected",
+        "content_omitted",
+        "empty",
+        "empty_response",
+        "invalid",
+        "invalid_response",
+        "not_saved",
+        "expired",
+        "unavailable",
+        "suppressed",
+        "disappeared",
+        "omitted_size_limit",
+        "no_correlated_records"
+      ]
+    },
+    "classStatus": {
+      "type": "string",
+      "enum": [
+        "collected",
+        "content_omitted",
+        "empty",
+        "empty_response",
+        "invalid",
+        "invalid_response",
+        "not_saved",
+        "expired",
+        "unavailable",
+        "suppressed",
+        "disappeared",
+        "omitted_size_limit",
+        "no_correlated_records",
+        "not_listed",
+        "partial"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

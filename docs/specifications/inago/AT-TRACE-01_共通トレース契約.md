@@ -187,3 +187,17 @@ U09 migration `004_watchdog_confirmation_queue.sql`は`daily_launch.owner_start_
 新規maintenance log retentionは90日、1ファイル4 MiB、1日20ファイルを初期値とし、1ファイル単位で期限管理・rotateする。監査必須eventを保存できない場合は省略を隠さず、stageまたはdeployment/releaseを保留して欠測を記録する。採取証拠の写しは元データの期限を引き継ぎ、元期限がない場合だけ採取後90日を初期値とする。既存L01～L05、O01～O03、A02/A03、M01/M02等の現在の保持規則を変更しない。
 
 診断記録にprompt、AI応答本文、商品/投稿本文、URL/query/DOM、credential、秘密、自由文exception messageを含めない。primary/cause/cleanupを分け、書込失敗やquota到達はhealthy/successとして再表示しない。maintenance管理DBのcommit済み状態と元日次状態をtraceの成否で上書きしない。
+
+## U10 evidence bundle・分類manifest（MN06）
+
+MN06は保守調査用の証拠索引と伏字済みJSON/JSONL写しであり、MN04 workflow trace、MN05 app-server transport log、日次L01/L02、業務DBとは別に扱う。保存先はprivate `D/maintenance/evidence/<target_date>/<job_id>/<attempt_id>/manifest.json`とし、artifact pathはmanifest内のbundle相対参照だけを使う。source rootの実体identityをno-followで開いたhandleから取得・照合し、POSIXではroot descriptorからdirfd相対open、Windowsでは削除共有を拒否したroot handle相対`NtCreateFile`を`OBJ_DONT_REPARSE`付きで行う。Windowsのleafは`FILE_OPEN_REPARSE_POINT`で開き、reparse属性とfinal pathも確認する。source pathに対する事前の`exists`/`lstat`検査は行わず、安全なhandle openの結果で存在を判定する。カタログ時点で存在を確認済みのsourceがopen時に消えていれば`disappeared`、元から未保存等と判明していれば指定されたmissing statusを返す。JSON/JSONL/response sourceはopened handleがregular fileと確認した後にサイズを判定して読む。特殊fileは取得不能とし、可能な環境ではnonblocking openで読み取り停止を防ぐ。物理source path、raw CLI rollout、raw DB、認証・browser stateをAI入力や共有文書へ含めない。
+
+manifest schemaは`automation/inago/schemas/maintenance-evidence.schema.json`（`maintenance-evidence-v1`）。26 class IDは`L01`～`L05`、`O01`～`O03`、`A01`～`A03`、`M01`～`M03`、`S01`～`S03`、`W01`、`V01`、`H01`～`H02`、`B01`～`B02`、`X01`～`X03`で固定する。各classにstatus、artifact count、取得済みrecord countまたはnullを必ず記録する。`not_listed`は入力manifestに分類が現れなかった意味だけを持ち、source不存在を意味しない。source単位では`collected`、`content_omitted`、`empty`、`empty_response`、`invalid`、`invalid_response`、`not_saved`、`expired`、`unavailable`、`suppressed`、`disappeared`、`omitted_size_limit`、`no_correlated_records`を区別する。
+
+event項目はsafe ID、時刻、固定allowlist内のstatus/code/countだけとし、自由文を保存しない。元時刻形式とUTC正規化値を両方保持する。対象run/job/request/action IDが一致するeventは対象日のJST境界を越えて相関し、IDがないeventは対象日のJST日付で選別する。source format、retention status、元expiry値/UTC値、取得不能理由を記録する。元sourceの期限は変更しない。
+
+`S01`/`B01`/`B02`のSQLiteはread-only接続のbackup APIで専用private snapshotへ出力し、integrity/foreign-key checksを行う。snapshot hashはbounded chunk readで算出し、snapshot自体はredacted artifactではなくAIへ渡さない。`V01` HTML、`H01` browser store、binary/unstructured text/XMLもraw内容をmanifestやAI入力へ入れず、必要なadapter/取得不能stateを記録する。`X02` rolloutは要求側で`thread_id`を必須にし、record側も同じIDが一致する場合だけ明示allowlist fieldを抽出する。X02は日付だけのfallbackを使わない。E0 manifestの読取は形式・件数・分類indexに限定し、参照先の原本を自動で開かない。
+
+時刻のraw値は厳格なISO日時または有効なUnix秒だけを保持し、parse失敗・書式外・秘密検出値は`null`にする。event/status/component/operation/error等のstring fieldはfield別の有限enumで検証し、未知値は出力せずdrop数へ加算する。daily result statusの`preservation_failed`/`export_failed`/`metrics_failed`は保持する。identity keyはcasefoldして照合し、異なる値を持つ正規化後の重複keyがあるrecordは除外する。credentialらしいGitHub形式のIDは拒否する。日付fallbackは関連identity fieldを一つも持たないrecordに限り、別IDまたは不一致IDを持つrecordは除外する。artifact file名はopaqueな連番とし、入力`source_ref`をWindows file nameとして使わず、writerも生成形式外のpathを拒否する。schemaは26 class IDの各1件、class別source format、X02の`thread_id`を要求し、class集計専用の`not_listed`/`partial`をsource artifact statusで拒否する。
+
+redacted bundleはstage directoryへ新規作成し、artifactとmanifestを全てflushした後に同じ親内でatomic renameする。書込不能・容量上限・不正入力では成功manifestを残さず、保存失敗を明示する。証拠写しの保持期限/容量/孤児回収はMN04とU17 retention契約を適用する。collectorのroot containment/reparse確認はhost側のpath integrityであり、CLI起動前にfolder ACLを設定する条件ではない。
