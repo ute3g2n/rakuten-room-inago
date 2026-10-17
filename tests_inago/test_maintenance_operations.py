@@ -74,3 +74,4 @@ def test_c47_contract(tmp_path):
     assert store.get_step_attempt(attempt.attempt_id).status == "failed"
     assert store.counts()["maintenance_job"] == 1
     assert store.counts()["daily_check"] == 1
+    assert store.counts()["watchdog_queue"] == 0

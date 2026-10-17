@@ -1083,7 +1083,7 @@ def test_c12_contract(tmp_path):
         "launch-reused",
         "launch-stopped",
     )
-    assert store.counts()["daily_check"] == 2
+    assert store.counts()["watchdog_queue"] == 2
     watchdog.run_watchdog_once(
         store,
         now=START + timedelta(minutes=1),
@@ -1093,7 +1093,7 @@ def test_c12_contract(tmp_path):
         owner_pid=30102,
         owner_start_time=(START + timedelta(minutes=1)).isoformat(),
     )
-    assert store.counts()["daily_check"] == 2
+    assert store.counts()["watchdog_queue"] == 2
 
 
 def test_c13_contract(tmp_path):
@@ -1120,18 +1120,18 @@ def test_c13_contract(tmp_path):
         start_grace=timedelta(minutes=5),
     )
 
-    assert len(result.queued_source_launch_ids) == 1
+    assert len(result.queued_queue_ids) == 1
     assert store.counts()["daily_launch"] == 0
-    assert store.counts()["daily_check"] == 1
+    assert store.counts()["watchdog_queue"] == 1
     connection = store._connect()
     try:
         row = connection.execute(
-            "SELECT source_launch_id, check_status, reason_code FROM daily_check"
+            "SELECT occurrence_key, source_launch_id, status, reason_code FROM watchdog_queue"
         ).fetchone()
     finally:
         connection.close()
-    assert row["source_launch_id"].startswith("scheduled:daily-1300:2026-10-17:")
-    assert row["check_status"] == "unknown"
+    assert row["occurrence_key"].startswith("scheduled:daily-1300:2026-10-17:")
+    assert row["status"] == "unknown"
     assert row["reason_code"] == "daily_launcher_not_started"
 
     watchdog.run_watchdog_once(
@@ -1144,4 +1144,4 @@ def test_c13_contract(tmp_path):
         owner_start_time=(START + timedelta(minutes=11)).isoformat(),
         start_grace=timedelta(minutes=5),
     )
-    assert store.counts()["daily_check"] == 1
+    assert store.counts()["watchdog_queue"] == 1
