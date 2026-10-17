@@ -703,6 +703,34 @@ def test_missing_json_result_cannot_return_scheduler_success(tmp_path):
     assert _record(store, outcome).status == "failed"
 
 
+def test_failed_child_result_cannot_keep_complete_summary(tmp_path):
+    store = make_store(tmp_path)
+
+    def daily(command, cwd, on_started):
+        on_started(8140)
+        return DailyProcessResult(
+            returncode=4,
+            stdout=_json(
+                {
+                    "status": "complete",
+                    "overall_status": "complete",
+                    "daily_status": "complete",
+                    "target_date": "2026-10-17",
+                    "run_id": "run-failed-code-complete-summary",
+                }
+            ),
+            stderr=b"",
+            pid=8140,
+        )
+
+    outcome = _launch(store, daily)
+
+    assert outcome.exit_code == 4
+    assert outcome.summary["status"] == "failed"
+    assert outcome.summary["overall_status"] == "failed"
+    assert _record(store, outcome).status == "failed"
+
+
 @pytest.mark.parametrize(
     "field,value",
     [("overall_status", None), ("daily_status", None)],
@@ -781,6 +809,177 @@ def test_store_rejects_non_string_trace_status_without_type_error(tmp_path):
             source_run_id=None,
             launch_status="failed",
             exit_code=4,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="daily_runtime_error",
+            result_summary=summary,
+        )
+
+
+@pytest.mark.parametrize(
+    "overall_status,daily_status,exit_code,check_status,reason_code",
+    [
+        ("complete", "complete", 0, "normal", None),
+        ("partial", "partial", 5, "normal_shortfall", "daily_target_unmet"),
+    ],
+)
+def test_store_rejects_success_without_source_run_id(
+    tmp_path, overall_status, daily_status, exit_code, check_status, reason_code
+):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-no-run-id-success",
+        target_date="2026-10-17",
+        owner_pid=8141,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "complete",
+        "exit_code": exit_code,
+        "source_run_id": None,
+        "overall_status": overall_status,
+        "daily_status": daily_status,
+        "reason_code": reason_code,
+        "failure_phase": None,
+        "failed_checks": [],
+        "primary_error_class": None,
+        "secondary_error_classes": [],
+        "trace_status": "healthy",
+    }
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id=None,
+            launch_status="complete",
+            exit_code=exit_code,
+            completed_at=START + timedelta(minutes=5),
+            check_status=check_status,
+            reason_code=reason_code,
+            result_summary=summary,
+        )
+
+
+def test_store_allows_not_due_completion_without_source_run_id(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-not-due-no-run",
+        target_date="2026-10-17",
+        owner_pid=8142,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "complete",
+        "exit_code": 0,
+        "source_run_id": None,
+        "overall_status": "not_due",
+        "daily_status": "not_due",
+        "reason_code": "daily_not_due",
+        "failure_phase": None,
+        "failed_checks": [],
+        "primary_error_class": None,
+        "secondary_error_classes": [],
+        "trace_status": "not_written",
+    }
+
+    record = store.record_daily_launch_completion(
+        source_launch_id=launch.source_launch_id,
+        target_date=launch.target_date,
+        child_pid=None,
+        source_run_id=None,
+        launch_status="complete",
+        exit_code=0,
+        completed_at=START + timedelta(minutes=5),
+        check_status="unknown",
+        reason_code="daily_not_due",
+        result_summary=summary,
+    )
+
+    assert record.status == "complete"
+    assert record.source_run_id is None
+
+
+def test_store_rejects_failed_completion_with_successful_overall_status(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-failed-but-complete-status",
+        target_date="2026-10-17",
+        owner_pid=8143,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "failed",
+        "exit_code": 4,
+        "source_run_id": "run-failed-but-complete-status",
+        "overall_status": "complete",
+        "daily_status": "complete",
+        "reason_code": "daily_result_failed",
+        "failure_phase": None,
+        "failed_checks": [],
+        "primary_error_class": None,
+        "secondary_error_classes": [],
+        "trace_status": "healthy",
+    }
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id="run-failed-but-complete-status",
+            launch_status="failed",
+            exit_code=4,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="daily_result_failed",
+            result_summary=summary,
+        )
+
+
+def test_store_rejects_boolean_summary_exit_code(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-bool-exit",
+        target_date="2026-10-17",
+        owner_pid=8144,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "failed",
+        "exit_code": True,
+        "source_run_id": None,
+        "overall_status": "failed",
+        "daily_status": "failed",
+        "reason_code": "daily_runtime_error",
+        "failure_phase": "daily",
+        "failed_checks": [],
+        "primary_error_class": "RuntimeError",
+        "secondary_error_classes": [],
+        "trace_status": "not_written",
+    }
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id=None,
+            launch_status="failed",
+            exit_code=1,
             completed_at=START + timedelta(minutes=5),
             check_status="incomplete",
             reason_code="daily_runtime_error",
