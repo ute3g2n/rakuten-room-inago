@@ -14,6 +14,7 @@ from automation.inago.maintenance.store import (
     JobStartResult,
     LeaseToken,
     MaintenanceStore,
+    StepAttemptRecord,
 )
 
 
@@ -81,6 +82,9 @@ class MaintenanceController:
             job_id=job_id,
             expected_identity=expected_identity,
         )
+
+    def get_step_attempt(self, *, attempt_id: str) -> StepAttemptRecord:
+        return self._store.get_step_attempt(attempt_id)
 
     def bind_ai_parent_session(
         self,

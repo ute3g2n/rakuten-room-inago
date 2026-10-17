@@ -1,6 +1,6 @@
-"""Bounded stdio transport for one owned, read-only Codex root session.
+"""Bounded stdio transport for one owned Codex root session.
 
-Protocol: CLI 0.162.0-alpha.17.2 generated v2 schemas and the official
+Protocol: Codex app-server v2 and the official
 https://learn.chatgpt.com/docs/app-server specification. No API key is supplied.
 """
 
@@ -12,7 +12,6 @@ from pathlib import Path
 import queue
 import stat
 import subprocess
-import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -343,7 +342,6 @@ class AppServerSession:
         if self._closed:
             raise AppServerError("server_closed")
         try:
-            self._verify_restricted_read_capability()
             self.process = subprocess.Popen(
                 list(self.command),
                 cwd=self.cwd,
@@ -450,64 +448,6 @@ class AppServerSession:
             finally:
                 self.close()
             raise
-
-    def _verify_restricted_read_capability(self) -> None:
-        """Fail closed if this CLI cannot enforce the requested read roots."""
-
-        if not any(key in self.sandbox_policy for key in ("access", "readOnlyAccess")):
-            return
-        try:
-            app_server_index = next(
-                index
-                for index, value in enumerate(self.command)
-                if value.lower() == "app-server"
-            )
-        except StopIteration as exc:
-            raise AppServerError("sandbox_capability_probe_failed") from exc
-        command = [
-            *self.command[: app_server_index + 1],
-            "generate-json-schema",
-        ]
-        try:
-            with tempfile.TemporaryDirectory(prefix="inago-app-server-schema-") as out:
-                completed = subprocess.run(
-                    [*command, "--out", out],
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    shell=False,
-                    timeout=15,
-                    check=False,
-                )
-                if completed.returncode != 0:
-                    raise AppServerError("sandbox_capability_probe_failed")
-                schema_path = Path(out) / "codex_app_server_protocol.v2.schemas.json"
-                schema = json.loads(schema_path.read_text(encoding="utf-8"))
-                variants = schema["definitions"]["SandboxPolicy"]["oneOf"]
-                read_only = next(
-                    variant
-                    for variant in variants
-                    if variant.get("title") == "ReadOnlySandboxPolicy"
-                )
-                workspace_write = next(
-                    variant
-                    for variant in variants
-                    if variant.get("title") == "WorkspaceWriteSandboxPolicy"
-                )
-                if "access" not in read_only.get(
-                    "properties", {}
-                ) or "readOnlyAccess" not in workspace_write.get("properties", {}):
-                    raise AppServerError("restricted_read_roots_unsupported")
-        except AppServerError:
-            raise
-        except (
-            OSError,
-            subprocess.SubprocessError,
-            ValueError,
-            KeyError,
-            StopIteration,
-        ) as exc:
-            raise AppServerError("sandbox_capability_probe_failed") from exc
 
     def _verify_model_capability(self, *, deadline: float) -> None:
         cursor = None

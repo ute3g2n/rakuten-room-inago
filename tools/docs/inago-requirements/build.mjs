@@ -128,7 +128,7 @@ const summaries = [
   ['使える旧部品だけを新設定・SQLiteへ分離して接続する。旧履歴は証拠のある実投稿と本人申告を読み取り移行する。', ['旧予定・旧下書きを投稿済みに変換しない。不明な店舗商品キーは本人補完へ。', '旧資材は本人が安定と判断するまで保持。退避は版と復元方法を付け、旧タスク停止と分けて扱う。']],
   ['実装後のテストを行い、その後は最初から本番で運用し、必要に応じてデバッグする。', ['必須経路と取得・保存の成立を検証。固定7日／30日の試験や3→9→15の段階導入は要件にしない。', '停止・復元時も本文と本人履歴を保全。バックアップ後の投稿を補完するまで新選出を再開しない。']],
   ['28個の章別受入条件、31個の重要経路、10個のAI契約試験に加え、隔離probeと共通traceの補足受入を検証する。期待と実観測、完全node ID、証拠と合否を残す。', ['正常・重複・生成失敗・停止・二重起動・早期成果開始・期限・本人操作・成果欠測・復元・遅延投稿までを対象とする。', '本HTMLのレビューは文書と表示の検証。将来の実装テスト合格や、市場で15件揃う保証を意味しない。']],
-  ['現在版2.22は、既存R01～R14と本人指示を維持し、U07のparent session設定、immutable manifest、management DB schema v2、MN05 transport logを追加する。', ['親A/Bのrequested settingsと実観測を区別し、sandbox/model/Fast未対応はfallbackせず停止する。', '実モデル接続はU18で確認し、U07の設定・隔離pytestを実適用済みと扱わない。']],
+  ['現在版2.23は、既存R01～R14と本人指示を維持し、U07のparent session設定、immutable manifest、management DB schema v2、MN05 transport logを追加する。CLIのper-folder rootsは必須にしない。', ['親A/Bのrequested settingsと実観測を区別し、sandbox/model/Fast未対応はfallbackせず停止する。', 'AはreadOnly、B実装/試験はjob専用worktreeのworkspaceWrite。hostはrunning step attemptとjob/source run、正確なjob/attempt rootを照合し、応答schema/identity/owner/allowed_outputsとWindows安全なpathを検証する。', '実モデル接続はU18で確認し、U07の設定・隔離pytestを実適用済みと扱わない。']],
   ['スケジューラ→Python制御→AI-Oの日次指揮と、同じ実行内の専門サブエージェントを定義する。', ['Pythonは上限・時刻・抽選・排他・重複・保存を管理し、AI-Oは許可された作業を振り分ける。', '日次外のAI-Oは本人の明示依頼時だけ。実在するroot・子実行・モデル・入出力を追跡する。']],
 ];
 

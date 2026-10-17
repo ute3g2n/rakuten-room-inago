@@ -302,7 +302,7 @@
       </ul>
       <h3>AIの実行契約を分ける理由</h3>
       <p>現行 <code>app_server.py</code> はthread/turnを読み取り専用で起動します。既存のAI-OはPythonが許可した専門役だけを使い、日次外の診断も本人の明示依頼が必要です。新機能では、導入時の明示採用を根拠とする「日次終了後の障害対応」の依頼種別・許可役・出力schemaを追加します。</p>
-      <p>調査Aは入力とコードを読み取り専用にし、attempt専用の成果物置き場だけを書き込み可能にします。修正Bには専用worktreeと指定した試験/成果物領域への書き込みを許可します。各担当には、その中でも所有するファイルだけを渡します。本番反映はPythonの反映処理が検証結果を確認して実施します。</p>
+      <p>調査Aとreviewerは基本read-onlyで構造化応答を返し、Pythonがschema・owner・allowed_outputsを検証してattempt成果物へ保存します。修正Bは専用worktreeを作業場所にしてworkspace-writeを使います。CLIでファイル/サブフォルダーごとのアクセスallowlistは強制しません。担当ファイルの指定は作業契約で行い、handoff/release前にworktree diffを照合します。本番反映はPythonの反映処理が検証結果を確認して実施します。</p>
     </details>
 
     <details id="log-inputs"><summary>B. 現行トレース・ログの読み先と、担当への渡し方</summary>
@@ -362,7 +362,7 @@
         <tr><td>報告レビュー担当</td><td>対応HTML、根拠索引、調査・計画、作成ルール。</td><td><code>W/reviews/報告レビュー_aN.md</code> とJSON。内容・読みやすさ・リンク・状態表示を確認。</td></tr>
       </tbody></table></div>
       <p>AIの構造化応答には <code>schema_version</code>、<code>incident_id</code>、<code>source_run_id</code>、<code>job_id</code>、<code>attempt</code>、<code>stage</code>、<code>input_refs</code>、<code>output_refs</code>、<code>base_commit</code>、<code>result_version</code>、<code>status</code>、<code>reason</code>、<code>reviewed_version</code> を持たせます。起動前停止のrun IDはnullを許可します。既存日次schemaへ混ぜず、新しい障害対応schemaとして定義します。</p>
-      <p>モデル・考える量・優先度の指定値と観測値、JST開始/終了、エラー、再開位置も管理側に記録します。レビュー済み版と出力版が違う場合、ファイルが範囲外にある場合、モデルが指定と違う場合は次へ進めません。書きかけの文書はattempt専用領域に置き、検証後に正式パスへ確定します。</p>
+      <p>モデル・考える量・優先度の指定値と観測値、JST開始/終了、エラー、再開位置も管理側に記録します。レビュー済み版と出力版が違う場合、返却結果がallowed_outputs外の場合、モデルが指定と違う場合は次へ進めません。書きかけの文書はattempt専用領域にホスト側で保存し、検証後に正式パスへ確定します。</p>
       <h3>新しい対応ログで記録するイベント</h3>
       <p><code>check_started/completed</code>、<code>incident_opened/linked</code>、<code>evidence_collected/missing</code>、<code>agent_started/finished</code>、<code>review_passed/rejected</code>、<code>test_executed</code>、<code>deployment_waiting/started/completed/blocked</code>、<code>report_published</code>、<code>maintenance_blocked</code> を例とします。障害ID・元run・担当・STEP・試行・入力/証拠/成果物参照・版・結果を付けます。</p>
       <p>現行のL02共通schemaは許可項目と容量が限られるため、新しい障害対応ログは別schema・別ファイルにします。必要な追加トレースは修正計画で現行契約とテストを更新してから実装します。商品本文、token、cookie、認証URLは記録しません。</p>
@@ -372,7 +372,7 @@
       <h3>隔離した作業場所で直す</h3>
       <p>案件ごとに管理対象のGit worktreeと <code>codex/incident-YYYYMMDD-NNN</code> ブランチを用意します。現用checkoutのユーザー変更をコピーして修正に混ぜません。実装・テストの所有ファイルを別々に指定し、共有文書は管理側が順番に確定します。</p>
       <p>作業ブランチと本番の追跡先を区別します。例えば現用ブランチが <code>main → origin/main</code> なら、合格したcommitをその追跡先へ通常のpushで統合し、現用mainを同じcommitへ進める方式を採ります。作業ブランチへのpushだけでは本番反映済みにしません。</p>
-      <p>読み取り元にある認証、<code>config/secrets</code>、Codex認証ファイル、実商品の本文などはAIに渡しません。ログや外部画面の文章を作業命令として扱わず、調査対象データとして扱います。実装担当の書き込み権限は専用worktreeの必要範囲に限定します。</p>
+      <p>AIには案件に必要な入力だけを渡し、認証情報、config/secrets、生の個人/商品情報、稼働DBを依頼へ含めません。基本sandbox modeはread-onlyまたはworkspace-writeに留め、full-accessにはしません。修正担当は専用worktreeで作業し、担当外diffはhandoff/release前の検査で拒否します。出力の公開先はPythonがschemaとownerを検証してから確定します。</p>
       <h3>現在のテスト方針を引き継ぐ</h3>
       <ul>
         <li>最初に対象版とテスト一覧を固定。欠陥を検出できる新規テストを追加し、修正前の失敗と修正後の合格を記録する。</li>

@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
+import json
+import os
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
+from uuid import uuid4
+
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError, ValidationError
 
 from automation.inago.app_server import AppServerSession, AppServerTurn
 from automation.inago.maintenance.controller import MaintenanceController
@@ -41,12 +48,13 @@ PARENT_SETTINGS: dict[str, tuple[str, str, str, bool]] = {
     "B": ("gpt-6-luna", "max", "priority", True),
 }
 
-_OUTPUT_WRITERS = {
-    "rr-inago-incident-investigator",
-    "common-execution-planner",
-}
 _WORKTREE_WRITERS = {"common-implementer", "common-tester"}
 _AGENT_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,127}$")
+_WINDOWS_RESERVED_DEVICE_NAME = re.compile(
+    r"^(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³])(?:\..*)?$",
+    re.IGNORECASE,
+)
+_WINDOWS_INVALID_PATH_CHARS = frozenset('<>"|?*')
 _MANIFEST_KEYS = {
     "incident_id",
     "source_launch_id",
@@ -67,6 +75,9 @@ class MaintenanceAIBlockedError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class MaintenanceAISessionPlan:
     manifest: JobInputManifest
+    attempt_id: str
+    attempts_root: Path
+    worktrees_root: Path
     parent_key: str
     role_name: str
     session_key: str
@@ -78,6 +89,8 @@ class MaintenanceAISessionPlan:
     developer_instructions: str
     command: tuple[str, ...]
     cwd: Path
+    attempt_output_root: Path
+    worktree_root: Path
     log_path: Path
     sandbox_policy: Mapping[str, object]
     observed_settings: Mapping[str, str | None]
@@ -89,6 +102,9 @@ class MaintenanceAISessionPlan:
 class MaintenanceAITurn:
     turn: AppServerTurn
     observation_status: str
+    response: Mapping[str, Any]
+    output_path: Path
+    output_sha256: str
 
 
 def _path_within(path: Path, parent: Path, *, allow_equal: bool = True) -> bool:
@@ -99,16 +115,59 @@ def _path_within(path: Path, parent: Path, *, allow_equal: bool = True) -> bool:
     return allow_equal or bool(relative.parts)
 
 
-def _directory(path: Path, code: str) -> Path:
-    if _has_reparse_point(path):
-        raise MaintenanceAIBlockedError(code)
+def _absolute_path(path: str | Path) -> Path:
+    return Path(os.path.abspath(Path(path).expanduser()))
+
+
+def _assert_no_reparse_components(path: Path, code: str) -> None:
+    """Reject a reparse point anywhere between the volume root and ``path``."""
     try:
-        resolved = path.resolve(strict=True)
-    except OSError as exc:
+        absolute = _absolute_path(path)
+        current = Path(absolute.anchor)
+        for part in absolute.parts[1:]:
+            current = current / part
+            if _has_reparse_point(current):
+                raise MaintenanceAIBlockedError(code)
+    except MaintenanceAIBlockedError:
+        raise
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise MaintenanceAIBlockedError(code) from exc
+
+
+def _directory(path: Path, code: str) -> Path:
+    try:
+        absolute = _absolute_path(path)
+        _assert_no_reparse_components(absolute, code)
+        resolved = absolute.resolve(strict=True)
+    except MaintenanceAIBlockedError:
+        raise
+    except (OSError, RuntimeError, ValueError) as exc:
         raise MaintenanceAIBlockedError(code) from exc
     if not resolved.is_dir():
         raise MaintenanceAIBlockedError(code)
     return resolved
+
+
+def _directory_under_root(path: Path, root: Path, code: str) -> Path:
+    """Resolve an existing directory only when every component stays in root."""
+    try:
+        absolute_root = _absolute_path(root)
+        absolute_path = _absolute_path(path)
+        trusted_root = _directory(absolute_root, code)
+        _assert_no_reparse_components(absolute_path, code)
+        relative = absolute_path.relative_to(absolute_root)
+        if not relative.parts:
+            raise MaintenanceAIBlockedError(code)
+        resolved = absolute_path.resolve(strict=True)
+        if not resolved.is_dir() or not _path_within(
+            resolved, trusted_root, allow_equal=False
+        ):
+            raise MaintenanceAIBlockedError(code)
+        return resolved
+    except MaintenanceAIBlockedError:
+        raise
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise MaintenanceAIBlockedError(code) from exc
 
 
 class MaintenanceAIAdapter:
@@ -130,9 +189,9 @@ class MaintenanceAIAdapter:
             raise ValueError("base_command must be a nonempty argument array")
         self.controller = controller
         self.base_command = tuple(base_command)
-        self.project_root = Path(project_root).resolve()
-        self.attempts_root = Path(attempts_root).resolve()
-        self.worktrees_root = Path(worktrees_root).resolve()
+        self.project_root = _absolute_path(project_root)
+        self.attempts_root = _absolute_path(attempts_root)
+        self.worktrees_root = _absolute_path(worktrees_root)
         self.logs_root = self.attempts_root.parent / "logs"
         self.agent_config_dir = (
             Path(agent_config_dir).resolve()
@@ -251,47 +310,11 @@ class MaintenanceAIAdapter:
             "features.fast_mode=true",
         )
 
-    def _sandbox_policy(
-        self,
-        *,
-        parent_key: str,
-        role_name: str,
-        attempt_output_root: Path,
-        worktree_root: Path,
-        readable_roots: Sequence[Path],
-    ) -> dict[str, object]:
-        normalized_reads: list[str] = []
-        allowed_read_parents = (self.project_root, attempt_output_root, worktree_root)
-        for raw_root in readable_roots:
-            root = _directory(Path(raw_root), "read_root_out_of_scope")
-            if not any(_path_within(root, parent) for parent in allowed_read_parents):
-                raise MaintenanceAIBlockedError("read_root_out_of_scope")
-            normalized_reads.append(str(root))
-        if not normalized_reads:
-            raise MaintenanceAIBlockedError("read_roots_missing")
-        read_access: dict[str, object] = {
-            "type": "restricted",
-            "includePlatformDefaults": True,
-            "readableRoots": sorted(set(normalized_reads)),
-        }
-        if parent_key == "A" and role_name in _OUTPUT_WRITERS:
-            writable_root = attempt_output_root
-        elif parent_key == "B" and role_name in _WORKTREE_WRITERS:
-            writable_root = worktree_root
-        else:
-            writable_root = None
-        if writable_root is None:
-            return {
-                "type": "readOnly",
-                "access": read_access,
-                "networkAccess": False,
-            }
-        return {
-            "type": "workspaceWrite",
-            "writableRoots": [str(writable_root)],
-            "readOnlyAccess": read_access,
-            "networkAccess": False,
-        }
+    @staticmethod
+    def _sandbox_policy(*, parent_key: str, role_name: str) -> dict[str, object]:
+        if parent_key == "B" and role_name in _WORKTREE_WRITERS:
+            return {"type": "workspaceWrite", "networkAccess": False}
+        return {"type": "readOnly", "networkAccess": False}
 
     def plan_session(
         self,
@@ -299,11 +322,11 @@ class MaintenanceAIAdapter:
         parent_key: str,
         role_name: str,
         job_id: str,
+        attempt_id: str,
         identity: Mapping[str, object],
         cwd: str | Path,
         attempt_output_root: str | Path,
         worktree_root: str | Path,
-        readable_roots: Sequence[str | Path],
     ) -> MaintenanceAISessionPlan:
         if parent_key not in PARENT_SETTINGS:
             raise MaintenanceAIBlockedError("parent_key_unauthorized")
@@ -316,6 +339,16 @@ class MaintenanceAIAdapter:
             )
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
+        try:
+            attempt = self.controller.get_step_attempt(attempt_id=attempt_id)
+        except MaintenanceStoreError as exc:
+            raise MaintenanceAIBlockedError(exc.code) from exc
+        if (
+            attempt.job_id != manifest.job_id
+            or attempt.source_run_id != manifest.source_run_id
+            or attempt.status != "running"
+        ):
+            raise MaintenanceAIBlockedError("step_attempt_not_actionable")
         model, effort, developer_instructions, role_config_sha256 = self._role_config(
             parent_key=parent_key, role_name=role_name
         )
@@ -323,27 +356,31 @@ class MaintenanceAIAdapter:
         if model != expected_model or effort != expected_effort:
             raise MaintenanceAIBlockedError("role_model_effort_mismatch")
 
-        attempt_root = _directory(Path(attempt_output_root), "write_root_out_of_scope")
-        worktree = _directory(Path(worktree_root), "write_root_out_of_scope")
-        if not _path_within(attempt_root, self.attempts_root, allow_equal=False):
+        attempts_root = _directory(self.attempts_root, "write_root_out_of_scope")
+        worktrees_root = _directory(self.worktrees_root, "write_root_out_of_scope")
+        expected_attempt_root = attempts_root / manifest.job_id / attempt.attempt_id
+        expected_worktree = worktrees_root / manifest.job_id
+        if _absolute_path(attempt_output_root) != expected_attempt_root:
             raise MaintenanceAIBlockedError("write_root_out_of_scope")
-        if not _path_within(worktree, self.worktrees_root, allow_equal=False):
+        if _absolute_path(worktree_root) != expected_worktree:
             raise MaintenanceAIBlockedError("write_root_out_of_scope")
+        attempt_root = _directory_under_root(
+            expected_attempt_root, attempts_root, "write_root_out_of_scope"
+        )
+        worktree = _directory_under_root(
+            expected_worktree, worktrees_root, "write_root_out_of_scope"
+        )
         working_directory = _directory(Path(cwd), "cwd_out_of_scope")
-        if parent_key == "A":
+        if parent_key == "B" and role_name in _WORKTREE_WRITERS:
+            permitted_cwd = (worktree,)
+        elif parent_key == "A":
             permitted_cwd = (self.project_root, attempt_root)
         else:
             permitted_cwd = (self.project_root, worktree)
         if not any(_path_within(working_directory, parent) for parent in permitted_cwd):
             raise MaintenanceAIBlockedError("cwd_out_of_scope")
 
-        policy = self._sandbox_policy(
-            parent_key=parent_key,
-            role_name=role_name,
-            attempt_output_root=attempt_root,
-            worktree_root=worktree,
-            readable_roots=tuple(Path(root) for root in readable_roots),
-        )
+        policy = self._sandbox_policy(parent_key=parent_key, role_name=role_name)
         session_key = f"{parent_key}:{role_name}"
         try:
             stored = self.controller.get_ai_parent_session(
@@ -373,6 +410,9 @@ class MaintenanceAIAdapter:
         )
         return MaintenanceAISessionPlan(
             manifest=manifest,
+            attempt_id=attempt.attempt_id,
+            attempts_root=attempts_root,
+            worktrees_root=worktrees_root,
             parent_key=parent_key,
             role_name=role_name,
             session_key=session_key,
@@ -384,6 +424,8 @@ class MaintenanceAIAdapter:
             developer_instructions=developer_instructions,
             command=self._command(parent_key),
             cwd=working_directory,
+            attempt_output_root=attempt_root,
+            worktree_root=worktree,
             log_path=log_path,
             sandbox_policy=policy,
             observed_settings={
@@ -474,22 +516,19 @@ class MaintenanceAIAdapter:
         if not _path_within(log_path, self.logs_root, allow_equal=False):
             raise MaintenanceAIBlockedError("log_path_out_of_scope")
         try:
+            _assert_no_reparse_components(self.logs_root, "log_path_invalid")
             self.logs_root.mkdir(parents=True, exist_ok=True)
-            if _has_reparse_point(self.logs_root):
-                raise MaintenanceAIBlockedError("log_path_invalid")
-            root = self.logs_root.resolve(strict=True)
+            root = _directory(self.logs_root, "log_path_invalid")
             relative = log_path.relative_to(self.logs_root)
             current = root
             for part in relative.parts[:-1]:
                 current = current / part
-                if _has_reparse_point(current):
-                    raise MaintenanceAIBlockedError("log_path_invalid")
+                _assert_no_reparse_components(current, "log_path_invalid")
                 current.mkdir(exist_ok=True)
                 if not current.is_dir():
                     raise MaintenanceAIBlockedError("log_path_invalid")
             target = root.joinpath(*relative.parts)
-            if _has_reparse_point(target):
-                raise MaintenanceAIBlockedError("log_path_invalid")
+            _assert_no_reparse_components(target, "log_path_invalid")
             resolved = target.resolve(strict=False)
             if not _path_within(resolved, root, allow_equal=False):
                 raise MaintenanceAIBlockedError("log_path_out_of_scope")
@@ -520,10 +559,14 @@ class MaintenanceAISession:
         prompt: str,
         output_schema: Mapping[str, Any],
         *,
+        allowed_outputs: Sequence[str],
         cwd: str | Path | None = None,
         deadline: float,
         cancel_event=None,
     ) -> MaintenanceAITurn:
+        validator = self._prepare_output_schema(output_schema)
+        allowed = self._validate_allowed_outputs(allowed_outputs)
+        self._revalidate_write_roots()
         try:
             self.controller.get_job_input_manifest(
                 job_id=self.plan.manifest.job_id,
@@ -580,24 +623,220 @@ class MaintenanceAISession:
             raise MaintenanceAIBlockedError(exc.code) from exc
         if mismatch:
             raise MaintenanceAIBlockedError("runtime_setting_mismatch")
-        return MaintenanceAITurn(turn=turn, observation_status=status)
+
+        response = self._validate_response(turn.final_text, validator)
+        output_path, output_sha256 = self._persist_response(
+            turn=turn,
+            response=response,
+            allowed_outputs=allowed,
+            observation_status=status,
+        )
+        return MaintenanceAITurn(
+            turn=turn,
+            observation_status=status,
+            response=response,
+            output_path=output_path,
+            output_sha256=output_sha256,
+        )
+
+    @staticmethod
+    def _prepare_output_schema(output_schema: Mapping[str, Any]):
+        if not isinstance(output_schema, Mapping):
+            raise MaintenanceAIBlockedError("output_schema_invalid")
+        schema = dict(output_schema)
+        try:
+            json.dumps(schema, allow_nan=False)
+            Draft202012Validator.check_schema(schema)
+        except (TypeError, ValueError, SchemaError) as exc:
+            raise MaintenanceAIBlockedError("output_schema_invalid") from exc
+        return Draft202012Validator(schema)
+
+    def _validate_allowed_outputs(
+        self, allowed_outputs: Sequence[str]
+    ) -> tuple[str, ...]:
+        if isinstance(allowed_outputs, (str, bytes)) or not isinstance(
+            allowed_outputs, Sequence
+        ):
+            raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+        owner_root_base, owner_root, owner_code = (
+            (
+                self.plan.worktrees_root,
+                self.plan.worktree_root,
+                "allowed_outputs_invalid",
+            )
+            if self.plan.role_name in _WORKTREE_WRITERS
+            else (
+                self.plan.attempts_root,
+                self.plan.attempt_output_root,
+                "allowed_outputs_invalid",
+            )
+        )
+        owner_root = _directory_under_root(owner_root, owner_root_base, owner_code)
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for value in allowed_outputs:
+            if not isinstance(value, str) or not value or "\\" in value:
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            if ":" in value or "\x00" in value or any(ord(char) < 32 for char in value):
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            windows_path = PureWindowsPath(value)
+            if windows_path.is_absolute() or windows_path.drive:
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            parts = value.split("/")
+            if PurePosixPath(value).is_absolute() or any(
+                part in {"", ".", ".."} for part in parts
+            ):
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            if any(
+                part.endswith((".", " "))
+                or any(char in _WINDOWS_INVALID_PATH_CHARS for char in part)
+                or _WINDOWS_RESERVED_DEVICE_NAME.fullmatch(part)
+                for part in parts
+            ):
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            target = owner_root
+            for part in parts:
+                target = target / part
+                try:
+                    _assert_no_reparse_components(target, "allowed_outputs_invalid")
+                except MaintenanceAIBlockedError:
+                    raise
+            try:
+                resolved = target.resolve(strict=False)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid") from exc
+            if not _path_within(resolved, owner_root, allow_equal=False):
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            if target.exists() and not target.is_file():
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            relative = PurePosixPath(*parts).as_posix()
+            windows_normalized = "/".join(part.casefold() for part in parts)
+            if windows_normalized in seen:
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+            normalized.append(relative)
+            seen.add(windows_normalized)
+        return tuple(normalized)
+
+    def _validate_response(self, final_text: str, validator) -> dict[str, Any]:
+        def reject_constant(_value: str):
+            raise ValueError("non-finite JSON number")
+
+        try:
+            response = json.loads(final_text, parse_constant=reject_constant)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise MaintenanceAIBlockedError("response_json_invalid") from exc
+        if not isinstance(response, dict):
+            raise MaintenanceAIBlockedError("response_schema_invalid")
+        try:
+            validator.validate(response)
+        except ValidationError as exc:
+            raise MaintenanceAIBlockedError("response_schema_invalid") from exc
+        expected_identity = self.plan.manifest.identity()
+        if any(
+            key not in response or response[key] != value
+            for key, value in expected_identity.items()
+        ):
+            raise MaintenanceAIBlockedError("response_identity_mismatch")
+        return response
+
+    def _persist_response(
+        self,
+        *,
+        turn: AppServerTurn,
+        response: Mapping[str, Any],
+        allowed_outputs: tuple[str, ...],
+        observation_status: str,
+    ) -> tuple[Path, str]:
+        root = _directory_under_root(
+            self.plan.attempt_output_root,
+            self.plan.attempts_root,
+            "response_output_root_invalid",
+        )
+        try:
+            envelope = {
+                "schema_version": "maintenance-ai-response-v1",
+                "identity": self.plan.manifest.identity(),
+                "attempt_id": self.plan.attempt_id,
+                "owner": {
+                    "parent_key": self.plan.parent_key,
+                    "role_name": self.plan.role_name,
+                    "role_config_sha256": self.plan.role_config_sha256,
+                },
+                "allowed_outputs": list(allowed_outputs),
+                "thread_id": turn.thread_id,
+                "turn_id": turn.turn_id,
+                "observation_status": observation_status,
+                "response": dict(response),
+            }
+            encoded = (
+                json.dumps(
+                    envelope,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8")
+            artifact_ref = (
+                f"{self.plan.parent_key}--{self.plan.role_name}--{uuid4().hex}"
+            )
+            destination = root / f"{artifact_ref}.json"
+            temporary_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb",
+                    prefix=".maintenance-ai-",
+                    suffix=".tmp",
+                    dir=root,
+                    delete=False,
+                ) as temporary:
+                    temporary_path = Path(temporary.name)
+                    temporary.write(encoded)
+                    temporary.flush()
+                    os.fsync(temporary.fileno())
+                root = _directory_under_root(
+                    self.plan.attempt_output_root,
+                    self.plan.attempts_root,
+                    "response_output_root_invalid",
+                )
+                os.link(temporary_path, destination)
+            finally:
+                if temporary_path is not None:
+                    temporary_path.unlink(missing_ok=True)
+            _assert_no_reparse_components(destination, "response_output_path_invalid")
+            resolved = destination.resolve(strict=True)
+            if not _path_within(resolved, root, allow_equal=False):
+                raise MaintenanceAIBlockedError("response_output_path_invalid")
+            return resolved, hashlib.sha256(encoded).hexdigest()
+        except MaintenanceAIBlockedError:
+            raise
+        except (OSError, TypeError, ValueError) as exc:
+            raise MaintenanceAIBlockedError("response_persistence_failed") from exc
 
     def _validate_turn_cwd(self, cwd: str | Path | None) -> Path:
         candidate = self.plan.cwd if cwd is None else Path(cwd)
         resolved = _directory(candidate, "cwd_out_of_scope")
-        policy = self.plan.sandbox_policy
-        access = policy.get("readOnlyAccess", policy.get("access"))
-        roots: list[Path] = []
-        if isinstance(access, Mapping):
-            readable = access.get("readableRoots")
-            if isinstance(readable, list):
-                roots.extend(Path(root) for root in readable if isinstance(root, str))
-        writable = policy.get("writableRoots")
-        if isinstance(writable, list):
-            roots.extend(Path(root) for root in writable if isinstance(root, str))
-        if not roots or not any(_path_within(resolved, root) for root in roots):
+        if resolved != self.plan.cwd:
             raise MaintenanceAIBlockedError("cwd_out_of_scope")
         return resolved
+
+    def _revalidate_write_roots(self) -> None:
+        attempt_root = _directory_under_root(
+            self.plan.attempt_output_root,
+            self.plan.attempts_root,
+            "write_root_out_of_scope",
+        )
+        worktree_root = _directory_under_root(
+            self.plan.worktree_root,
+            self.plan.worktrees_root,
+            "write_root_out_of_scope",
+        )
+        if (
+            attempt_root != self.plan.attempt_output_root
+            or worktree_root != self.plan.worktree_root
+        ):
+            raise MaintenanceAIBlockedError("write_root_out_of_scope")
 
     def close(self) -> None:
         self.app_server.close()

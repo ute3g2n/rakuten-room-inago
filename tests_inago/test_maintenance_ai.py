@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-from automation.inago.app_server import AppServerError, AppServerSession
+from automation.inago.app_server import AppServerError, AppServerSession, AppServerTurn
 from automation.inago.maintenance.ai_adapter import (
     MaintenanceAIAdapter,
     MaintenanceAIBlockedError,
@@ -65,14 +65,52 @@ def _bind_job(store, incident_id: str, job_id: str):
     )
 
 
+def _start_test_attempt(store, job_id: str) -> str:
+    lease = store.acquire_lease(
+        lease_key="maintenance-test-worker",
+        owner_id="maintenance-test-owner",
+        owner_pid=4201,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME + timedelta(seconds=10),
+        ttl_seconds=180,
+    )
+    attempt = store.begin_step_attempt(
+        job_id=job_id,
+        step_key="u07-session",
+        sequence=1,
+        lease=lease,
+        started_at=(BASE_TIME + timedelta(seconds=11)).isoformat(),
+    )
+    return attempt.attempt_id
+
+
+def _bind_ai_session(store, plan, *, thread_id="thread-ai-output"):
+    return store.bind_ai_parent_session(
+        job_id=plan.manifest.job_id,
+        session_key=plan.session_key,
+        parent_key=plan.parent_key,
+        role_name=plan.role_name,
+        thread_id=thread_id,
+        manifest_sha256=plan.manifest.manifest_sha256,
+        requested_model=plan.requested_model,
+        requested_effort=plan.requested_effort,
+        requested_service_tier=plan.requested_service_tier,
+        requested_fast_mode=plan.requested_fast_mode,
+        role_config_sha256=plan.role_config_sha256,
+        sandbox=plan.sandbox_policy,
+        created_at=(BASE_TIME + timedelta(seconds=20)).isoformat(),
+    )
+
+
 def test_c24_contract(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
     _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
     adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
-    output_root = attempts_root / job.job_id
-    output_root.mkdir()
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
     worktree_root = worktrees_root / job.job_id
     worktree_root.mkdir()
 
@@ -87,11 +125,11 @@ def test_c24_contract(tmp_path):
             parent_key="A",
             role_name=role_name,
             job_id=job.job_id,
+            attempt_id=attempt_id,
             identity=_job_identity(incident_id, job.job_id),
             cwd=adapter.project_root,
             attempt_output_root=output_root,
             worktree_root=worktree_root,
-            readable_roots=(adapter.project_root,),
         )
         assert plan.requested_model == "gpt-6.1-sol"
         assert plan.requested_effort == "xhigh"
@@ -109,11 +147,11 @@ def test_c24_contract(tmp_path):
         parent_key="A",
         role_name="rr-inago-incident-investigator",
         job_id=job.job_id,
+        attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
         cwd=adapter.project_root,
         attempt_output_root=output_root,
         worktree_root=worktree_root,
-        readable_roots=(adapter.project_root,),
     )
     with patch("automation.inago.maintenance.ai_adapter.AppServerSession") as factory:
         adapter.create_session(plan)
@@ -136,9 +174,10 @@ def test_c25_contract(tmp_path):
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
     _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
     adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
-    output_root = attempts_root / job.job_id
-    output_root.mkdir()
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
     worktree_root = worktrees_root / job.job_id
     worktree_root.mkdir()
 
@@ -154,11 +193,11 @@ def test_c25_contract(tmp_path):
             parent_key="B",
             role_name=role_name,
             job_id=job.job_id,
+            attempt_id=attempt_id,
             identity=_job_identity(incident_id, job.job_id),
             cwd=worktree_root,
             attempt_output_root=output_root,
             worktree_root=worktree_root,
-            readable_roots=(adapter.project_root, worktree_root),
         )
         assert plan.requested_model == "gpt-6-luna"
         assert plan.requested_effort == "max"
@@ -170,11 +209,11 @@ def test_c25_contract(tmp_path):
         parent_key="B",
         role_name="common-implementer",
         job_id=job.job_id,
+        attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
         cwd=worktree_root,
         attempt_output_root=output_root,
         worktree_root=worktree_root,
-        readable_roots=(adapter.project_root, worktree_root),
     )
     with patch("automation.inago.maintenance.ai_adapter.AppServerSession") as factory:
         adapter.create_session(plan)
@@ -197,8 +236,8 @@ def test_c26_contract(tmp_path):
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
     adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
-    output_root = attempts_root / job.job_id
-    output_root.mkdir()
+    output_root = attempts_root / job.job_id / "missing-attempt"
+    output_root.mkdir(parents=True)
     worktree_root = worktrees_root / job.job_id
     worktree_root.mkdir()
 
@@ -207,23 +246,26 @@ def test_c26_contract(tmp_path):
             parent_key="B",
             role_name="common-implementer",
             job_id=job.job_id,
+            attempt_id="missing-attempt",
             identity=_job_identity(incident_id, job.job_id),
             cwd=worktree_root,
             attempt_output_root=output_root,
             worktree_root=worktree_root,
-            readable_roots=(adapter.project_root, worktree_root),
         )
 
     _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
     plan = adapter.plan_session(
         parent_key="B",
         role_name="common-implementer",
         job_id=job.job_id,
+        attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
         cwd=worktree_root,
         attempt_output_root=output_root,
         worktree_root=worktree_root,
-        readable_roots=(adapter.project_root, worktree_root),
     )
     with pytest.raises(
         MaintenanceAIBlockedError, match="runtime_observation_unavailable"
@@ -248,18 +290,42 @@ def test_c27_contract(tmp_path):
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
     _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
     adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
-    output_root = attempts_root / job.job_id
-    output_root.mkdir()
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
     worktree_root = worktrees_root / job.job_id
     worktree_root.mkdir()
     common = {
         "job_id": job.job_id,
+        "attempt_id": attempt_id,
         "identity": _job_identity(incident_id, job.job_id),
         "attempt_output_root": output_root,
         "worktree_root": worktree_root,
-        "readable_roots": (adapter.project_root, worktree_root),
     }
+
+    for unrelated_output_root in (
+        attempts_root / "different-job" / attempt_id,
+        attempts_root / job.job_id / "different-attempt",
+    ):
+        unrelated_output_root.mkdir(parents=True)
+        with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+            adapter.plan_session(
+                parent_key="A",
+                role_name="rr-inago-incident-investigator",
+                cwd=adapter.project_root,
+                **{**common, "attempt_output_root": unrelated_output_root},
+            )
+
+    unrelated_worktree = worktrees_root / "different-job"
+    unrelated_worktree.mkdir()
+    with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+        adapter.plan_session(
+            parent_key="B",
+            role_name="common-implementer",
+            cwd=unrelated_worktree,
+            **{**common, "worktree_root": unrelated_worktree},
+        )
 
     investigator = adapter.plan_session(
         parent_key="A",
@@ -267,8 +333,10 @@ def test_c27_contract(tmp_path):
         cwd=adapter.project_root,
         **common,
     )
-    assert investigator.sandbox_policy["type"] == "workspaceWrite"
-    assert investigator.sandbox_policy["writableRoots"] == [str(output_root.resolve())]
+    assert investigator.sandbox_policy == {
+        "type": "readOnly",
+        "networkAccess": False,
+    }
     assert not investigator.log_path.is_relative_to(output_root.resolve())
 
     implementer = adapter.plan_session(
@@ -277,8 +345,10 @@ def test_c27_contract(tmp_path):
         cwd=worktree_root,
         **common,
     )
-    assert implementer.sandbox_policy["type"] == "workspaceWrite"
-    assert implementer.sandbox_policy["writableRoots"] == [str(worktree_root.resolve())]
+    assert implementer.sandbox_policy == {
+        "type": "workspaceWrite",
+        "networkAccess": False,
+    }
     assert not implementer.log_path.is_relative_to(worktree_root.resolve())
 
     reviewer = adapter.plan_session(
@@ -287,54 +357,229 @@ def test_c27_contract(tmp_path):
         cwd=worktree_root,
         **common,
     )
-    assert reviewer.sandbox_policy["type"] == "readOnly"
-    assert reviewer.sandbox_policy["access"]["type"] == "restricted"
-    assert "writableRoots" not in reviewer.sandbox_policy
+    assert reviewer.sandbox_policy == {
+        "type": "readOnly",
+        "networkAccess": False,
+    }
+    for policy in (
+        investigator.sandbox_policy,
+        implementer.sandbox_policy,
+        reviewer.sandbox_policy,
+    ):
+        assert not {
+            "access",
+            "readOnlyAccess",
+            "readableRoots",
+            "writableRoots",
+        }.intersection(policy)
 
-    with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+    with pytest.raises(MaintenanceAIBlockedError, match="cwd_out_of_scope"):
         adapter.plan_session(
             parent_key="B",
             role_name="common-implementer",
             job_id=job.job_id,
+            attempt_id=attempt_id,
             identity=_job_identity(incident_id, job.job_id),
             cwd=adapter.project_root,
             attempt_output_root=output_root,
-            worktree_root=adapter.project_root,
-            readable_roots=(adapter.project_root,),
-        )
-
-    with pytest.raises(MaintenanceAIBlockedError, match="read_root_out_of_scope"):
-        adapter.plan_session(
-            parent_key="B",
-            role_name="common-reviewer",
-            job_id=job.job_id,
-            identity=_job_identity(incident_id, job.job_id),
-            cwd=worktree_root,
-            attempt_output_root=output_root,
             worktree_root=worktree_root,
-            readable_roots=(Path.home(),),
         )
 
+    reviewer_plan = adapter.plan_session(
+        parent_key="B",
+        role_name="common-reviewer",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=worktree_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+    assert reviewer_plan.sandbox_policy == {
+        "type": "readOnly",
+        "networkAccess": False,
+    }
 
-def test_c27_turn_cwd_cannot_escape_configured_sandbox(tmp_path):
+
+@pytest.mark.parametrize("linked_root", ("attempts", "worktrees"))
+def test_c27_rejects_parent_reparse_points_during_planning(tmp_path, linked_root):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
     _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
     adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
-    output_root = attempts_root / job.job_id
-    output_root.mkdir()
+    outside_root = tmp_path / f"outside-{linked_root}"
+    outside_root.mkdir()
+
+    if linked_root == "attempts":
+        linked_parent = attempts_root / job.job_id
+        output_root = linked_parent / attempt_id
+        output_root.mkdir(parents=True)
+        worktree_root = worktrees_root / job.job_id
+        worktree_root.mkdir()
+    else:
+        linked_parent = worktrees_root / job.job_id
+        linked_parent.mkdir()
+        output_root = attempts_root / job.job_id / attempt_id
+        output_root.mkdir(parents=True)
+        worktree_root = linked_parent
+
+    # Replacing the parent with a directory symlink reproduces a junction escape.
+    if linked_root == "attempts":
+        output_root.rmdir()
+        linked_parent.rmdir()
+    else:
+        linked_parent.rmdir()
+    try:
+        linked_parent.symlink_to(outside_root, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinks are unavailable on this host: {exc}")
+    if linked_root == "attempts":
+        (outside_root / attempt_id).mkdir()
+
+    with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+        adapter.plan_session(
+            parent_key="A",
+            role_name="rr-inago-incident-investigator",
+            job_id=job.job_id,
+            attempt_id=attempt_id,
+            identity=_job_identity(incident_id, job.job_id),
+            cwd=adapter.project_root,
+            attempt_output_root=output_root,
+            worktree_root=worktree_root,
+        )
+
+
+def test_c27_revalidates_attempt_parent_before_turn(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+
+    job_root = attempts_root / job.job_id
+    saved_job_root = attempts_root / f"{job.job_id}-saved"
+    job_root.rename(saved_job_root)
+    outside_root = tmp_path / "outside-attempt-parent"
+    outside_root.mkdir()
+    try:
+        job_root.symlink_to(outside_root, target_is_directory=True)
+    except OSError as exc:
+        saved_job_root.rename(job_root)
+        pytest.skip(f"directory symlinks are unavailable on this host: {exc}")
+
+    class NeverCalledAppServer:
+        def run_turn(self, *_args, **_kwargs):
+            raise AssertionError("reparsed output root reached app-server")
+
+    session = MaintenanceAISession(
+        MaintenanceController(store), plan, NeverCalledAppServer()
+    )
+    with pytest.raises(MaintenanceAIBlockedError, match="allowed_outputs_invalid"):
+        session.run_turn(
+            "safe test prompt",
+            {"type": "object"},
+            allowed_outputs=("result.json",),
+            deadline=1.0,
+        )
+
+
+def test_c27_revalidates_attempt_parent_before_persisting_response(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+    _bind_ai_session(store, plan)
+    job_root = attempts_root / job.job_id
+    saved_job_root = attempts_root / f"{job.job_id}-saved"
+    outside_root = tmp_path / "outside-persist-parent"
+    outside_root.mkdir()
+
+    class ReparseDuringTurnAppServer:
+        def run_turn(self, *_args, **_kwargs):
+            job_root.rename(saved_job_root)
+            try:
+                job_root.symlink_to(outside_root, target_is_directory=True)
+            except OSError as exc:
+                saved_job_root.rename(job_root)
+                pytest.skip(f"directory symlinks are unavailable on this host: {exc}")
+            return AppServerTurn(
+                thread_id="thread-ai-output",
+                turn_id="turn-ai-output",
+                final_text=json.dumps(_job_identity(incident_id, job.job_id)),
+                events=(),
+                process_returncode=0,
+                observed_model="gpt-6.1-sol",
+                observed_effort="xhigh",
+                observed_service_tier="default",
+            )
+
+    session = MaintenanceAISession(
+        MaintenanceController(store), plan, ReparseDuringTurnAppServer()
+    )
+    with pytest.raises(MaintenanceAIBlockedError, match="response_output_root_invalid"):
+        session.run_turn(
+            "safe test prompt",
+            {"type": "object"},
+            allowed_outputs=("result.json",),
+            deadline=1.0,
+        )
+
+    assert not list(outside_root.iterdir())
+
+
+def test_c27_turn_cwd_stays_at_managed_workspace(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
     worktree_root = worktrees_root / job.job_id
     worktree_root.mkdir()
     plan = adapter.plan_session(
         parent_key="B",
         role_name="common-implementer",
         job_id=job.job_id,
+        attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
         cwd=worktree_root,
         attempt_output_root=output_root,
         worktree_root=worktree_root,
-        readable_roots=(adapter.project_root, worktree_root),
     )
 
     class NeverCalledAppServer:
@@ -345,7 +590,305 @@ def test_c27_turn_cwd_cannot_escape_configured_sandbox(tmp_path):
         MaintenanceController(store), plan, NeverCalledAppServer()
     )
     with pytest.raises(MaintenanceAIBlockedError, match="cwd_out_of_scope"):
-        session.run_turn("prompt", {}, cwd=tmp_path, deadline=1.0)
+        session.run_turn("prompt", {}, allowed_outputs=(), cwd=tmp_path, deadline=1.0)
+
+
+def test_c27_ai_response_is_validated_bound_and_saved_in_attempt_output(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+    _bind_ai_session(store, plan)
+    response = {
+        **_job_identity(incident_id, job.job_id),
+        "summary": "validated test result",
+    }
+
+    class FakeAppServer:
+        def run_turn(self, *_args, **_kwargs):
+            return AppServerTurn(
+                thread_id="thread-ai-output",
+                turn_id="turn-ai-output",
+                final_text=json.dumps(response),
+                events=(),
+                process_returncode=0,
+                observed_model="gpt-6.1-sol",
+                observed_effort="xhigh",
+                observed_service_tier="default",
+            )
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "incident_id": {"type": "string"},
+            "source_launch_id": {"type": "string"},
+            "source_run_id": {"type": ["string", "null"]},
+            "target_date": {"type": "string"},
+            "job_id": {"type": "string"},
+            "summary": {"type": "string"},
+        },
+        "required": [
+            "incident_id",
+            "source_launch_id",
+            "source_run_id",
+            "target_date",
+            "job_id",
+            "summary",
+        ],
+        "additionalProperties": False,
+    }
+    result = MaintenanceAISession(
+        MaintenanceController(store), plan, FakeAppServer()
+    ).run_turn(
+        "safe test prompt",
+        schema,
+        allowed_outputs=("facts.json", "investigation.md", "result.json"),
+        deadline=100.0,
+    )
+
+    assert result.response == response
+    assert result.output_path.is_relative_to(output_root.resolve())
+    saved = json.loads(result.output_path.read_text(encoding="utf-8"))
+    assert saved["identity"] == plan.manifest.identity()
+    assert saved["attempt_id"] == attempt_id
+    assert saved["owner"] == {
+        "parent_key": "A",
+        "role_name": "rr-inago-incident-investigator",
+        "role_config_sha256": plan.role_config_sha256,
+    }
+    assert saved["allowed_outputs"] == [
+        "facts.json",
+        "investigation.md",
+        "result.json",
+    ]
+    assert saved["response"] == response
+    assert hashlib.sha256(result.output_path.read_bytes()).hexdigest() == (
+        result.output_sha256
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "reason_code"),
+    (
+        ("identity", "response_identity_mismatch"),
+        ("missing-null-identity", "response_identity_mismatch"),
+        ("schema", "response_schema_invalid"),
+    ),
+)
+def test_c27_ai_response_contract_mismatch_is_not_saved(
+    tmp_path, mutation, reason_code
+):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+    _bind_ai_session(store, plan)
+    response = {**_job_identity(incident_id, job.job_id), "summary": "test result"}
+    if mutation == "identity":
+        response["incident_id"] = "wrong-incident"
+    elif mutation == "missing-null-identity":
+        response.pop("source_run_id")
+    else:
+        response.pop("summary")
+
+    class FakeAppServer:
+        def run_turn(self, *_args, **_kwargs):
+            return AppServerTurn(
+                thread_id="thread-ai-output",
+                turn_id="turn-ai-output",
+                final_text=json.dumps(response),
+                events=(),
+                process_returncode=0,
+                observed_model="gpt-6.1-sol",
+                observed_effort="xhigh",
+                observed_service_tier="default",
+            )
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "incident_id": {"type": "string"},
+            "source_launch_id": {"type": "string"},
+            "source_run_id": {"type": ["string", "null"]},
+            "target_date": {"type": "string"},
+            "job_id": {"type": "string"},
+            "summary": {"type": "string"},
+        },
+        "required": [
+            "incident_id",
+            "source_launch_id",
+            "source_run_id",
+            "target_date",
+            "job_id",
+            "summary",
+        ],
+        "additionalProperties": False,
+    }
+    if mutation == "missing-null-identity":
+        schema["required"].remove("source_run_id")
+    session = MaintenanceAISession(MaintenanceController(store), plan, FakeAppServer())
+
+    with pytest.raises(MaintenanceAIBlockedError, match=reason_code):
+        session.run_turn(
+            "safe test prompt",
+            schema,
+            allowed_outputs=("result.json",),
+            deadline=100.0,
+        )
+
+    assert not list(output_root.glob("*.json"))
+
+
+@pytest.mark.parametrize(
+    ("schema", "allowed_outputs", "reason_code"),
+    (
+        ({"type": "object"}, ("../outside.json",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("report.",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("report ",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("NUL",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("nul.txt",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("CON.txt",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("folder/COM1.json",), "allowed_outputs_invalid"),
+        ({"type": "object"}, ("bad?.json",), "allowed_outputs_invalid"),
+        (
+            {"type": "object"},
+            ("result.json", "RESULT.json"),
+            "allowed_outputs_invalid",
+        ),
+        ({"type": "invalid"}, (), "output_schema_invalid"),
+    ),
+)
+def test_c27_ai_response_rejects_invalid_contract_before_turn(
+    tmp_path, schema, allowed_outputs, reason_code
+):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+
+    class NeverCalledAppServer:
+        def run_turn(self, *_args, **_kwargs):
+            raise AssertionError("invalid allowed output reached app-server")
+
+    session = MaintenanceAISession(
+        MaintenanceController(store), plan, NeverCalledAppServer()
+    )
+    with pytest.raises(MaintenanceAIBlockedError, match=reason_code):
+        session.run_turn(
+            "safe test prompt",
+            schema,
+            allowed_outputs=allowed_outputs,
+            deadline=100.0,
+        )
+
+
+def test_c27_turn_sends_workspace_mode_without_folder_roots(tmp_path):
+    from types import SimpleNamespace
+
+    app_server = AppServerSession(
+        command=("codex", "app-server"),
+        cwd=tmp_path,
+        log_path=tmp_path / "session.jsonl",
+        model=None,
+        sandbox_policy={"type": "workspaceWrite", "networkAccess": False},
+    )
+    app_server.thread_id = "thread-c27"
+    app_server.process = SimpleNamespace(pid=123, poll=lambda: 0)
+    app_server.start = lambda **_kwargs: "thread-c27"
+    calls = []
+    app_server._call = lambda method, params, **_kwargs: (
+        calls.append((method, params)) or {"turn": {"id": "turn-c27"}}
+    )
+    notifications = iter(
+        (
+            {
+                "method": "item/completed",
+                "params": {
+                    "threadId": "thread-c27",
+                    "turnId": "turn-c27",
+                    "item": {
+                        "type": "agentMessage",
+                        "phase": "final_answer",
+                        "text": "structured output",
+                    },
+                },
+            },
+            {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "thread-c27",
+                    "turnId": "turn-c27",
+                    "turn": {"id": "turn-c27", "status": "completed"},
+                },
+            },
+        )
+    )
+    app_server._receive = lambda *_args, **_kwargs: next(notifications)
+    app_server._log = lambda *_args, **_kwargs: None
+
+    result = app_server.run_turn(
+        "safe test prompt",
+        {"type": "object", "properties": {}},
+        cwd=tmp_path,
+        deadline=100.0,
+    )
+
+    turn_call = next(params for method, params in calls if method == "turn/start")
+    assert turn_call["sandboxPolicy"] == {
+        "type": "workspaceWrite",
+        "networkAccess": False,
+    }
+    assert "writableRoots" not in turn_call["sandboxPolicy"]
+    assert "readOnlyAccess" not in turn_call["sandboxPolicy"]
+    assert result.final_text == "structured output"
 
 
 def test_c27_app_server_log_is_confined_to_host_owned_root(tmp_path):
@@ -371,6 +914,55 @@ def test_c27_app_server_log_is_confined_to_host_owned_root(tmp_path):
     with pytest.raises(AppServerError, match="log_path_out_of_scope"):
         escaped_session._log("root_ready", model="gpt-6-luna")
     assert not outside_log.exists()
+
+
+def test_c27_log_parent_reparse_point_blocks_session_before_log_creation(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    configured_root = tmp_path / "configured-maintenance-root"
+    attempts_root = configured_root / "attempts"
+    attempts_root.mkdir(parents=True)
+    worktrees_root = tmp_path / "worktrees"
+    worktrees_root.mkdir()
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    adapter = MaintenanceAIAdapter(
+        MaintenanceController(store),
+        base_command=("codex", "app-server"),
+        project_root=Path(__file__).resolve().parents[1],
+        attempts_root=attempts_root,
+        worktrees_root=worktrees_root,
+    )
+    plan = adapter.plan_session(
+        parent_key="A",
+        role_name="rr-inago-incident-investigator",
+        job_id=job.job_id,
+        attempt_id=attempt_id,
+        identity=_job_identity(incident_id, job.job_id),
+        cwd=adapter.project_root,
+        attempt_output_root=output_root,
+        worktree_root=worktree_root,
+    )
+
+    saved_root = tmp_path / "configured-maintenance-root-saved"
+    configured_root.rename(saved_root)
+    outside_root = tmp_path / "outside-log-root"
+    outside_root.mkdir()
+    try:
+        configured_root.symlink_to(outside_root, target_is_directory=True)
+    except OSError as exc:
+        saved_root.rename(configured_root)
+        pytest.skip(f"directory symlinks are unavailable on this host: {exc}")
+
+    with pytest.raises(MaintenanceAIBlockedError, match="log_path_invalid"):
+        adapter.create_session(plan)
+
+    assert not (outside_root / "logs").exists()
 
 
 def test_u07_job_input_manifest_and_session_bindings_are_immutable(tmp_path):
@@ -431,15 +1023,7 @@ def test_u07_job_input_manifest_and_session_bindings_are_immutable(tmp_path):
             created_at=(BASE_TIME + timedelta(seconds=8)).isoformat(),
         )
 
-    sandbox = {
-        "type": "readOnly",
-        "access": {
-            "type": "restricted",
-            "includePlatformDefaults": True,
-            "readableRoots": [str(tmp_path.resolve())],
-        },
-        "networkAccess": False,
-    }
+    sandbox = {"type": "readOnly", "networkAccess": False}
     session_values = {
         "job_id": job.job_id,
         "session_key": "B:common-reviewer",
@@ -537,98 +1121,51 @@ def test_u07_management_schema_v1_upgrades_without_fabricating_manifest(tmp_path
         store.get_job_input_manifest(job_id="legacy-job")
 
 
-def test_c26_app_server_blocks_when_read_roots_cannot_be_enforced(
-    tmp_path, monkeypatch
-):
-    def generate_old_schema(command, **_kwargs):
-        output_root = Path(command[command.index("--out") + 1])
-        schema = {
-            "definitions": {
-                "SandboxPolicy": {
-                    "oneOf": [
-                        {
-                            "title": "ReadOnlySandboxPolicy",
-                            "properties": {"type": {}},
-                        },
-                        {
-                            "title": "WorkspaceWriteSandboxPolicy",
-                            "properties": {"type": {}, "writableRoots": {}},
-                        },
-                    ]
-                }
-            }
-        }
-        (output_root / "codex_app_server_protocol.v2.schemas.json").write_text(
-            json.dumps(schema), encoding="utf-8"
-        )
+def test_c26_app_server_start_does_not_probe_folder_acl_schema(tmp_path, monkeypatch):
+    from types import SimpleNamespace
 
-        class Result:
-            returncode = 0
+    class InertThread:
+        def __init__(self, *_args, **_kwargs):
+            pass
 
-        return Result()
+        def start(self):
+            pass
 
-    monkeypatch.setattr(
-        "automation.inago.app_server.subprocess.run", generate_old_schema
-    )
+    calls = []
     app_server = AppServerSession(
         command=("codex", "app-server"),
         cwd=tmp_path,
         log_path=tmp_path / "session.jsonl",
-        sandbox_policy={
-            "type": "readOnly",
-            "access": {
-                "type": "restricted",
-                "includePlatformDefaults": True,
-                "readableRoots": [str(tmp_path.resolve())],
-            },
-        },
-    )
-    with pytest.raises(AppServerError, match="restricted_read_roots_unsupported"):
-        app_server._verify_restricted_read_capability()
-
-
-def test_c26_app_server_records_blocked_start_without_sensitive_details(tmp_path):
-    log_root = tmp_path / "maintenance-logs"
-    log_root.mkdir()
-    log_path = log_root / "session.jsonl"
-    app_server = AppServerSession(
-        command=("codex", "app-server"),
-        cwd=tmp_path,
-        log_path=log_path,
-        log_root=log_root,
-        model="gpt-6-luna",
-        effort="max",
-        service_tier="priority",
-        fast_mode=True,
-        role_name="common-implementer",
-        role_config_sha256="a" * 64,
-        sandbox_policy={
-            "type": "readOnly",
-            "access": {
-                "type": "restricted",
-                "includePlatformDefaults": True,
-                "readableRoots": [str(tmp_path.resolve())],
-            },
-        },
+        sandbox_policy={"type": "readOnly", "networkAccess": False},
     )
 
-    def reject_read_root_policy():
-        raise AppServerError("restricted_read_roots_unsupported")
+    def no_schema_probe(*_args, **_kwargs):
+        raise AssertionError("folder ACL schema probe should not run")
 
-    app_server._verify_restricted_read_capability = reject_read_root_policy
-    with pytest.raises(AppServerError, match="restricted_read_roots_unsupported"):
-        app_server.start(deadline=10.0)
-    events = [json.loads(line) for line in log_path.read_text().splitlines()]
-    assert [event["event"] for event in events] == ["session_start_blocked"]
-    assert events[0]["code"] == "restricted_read_roots_unsupported"
-    assert events[0]["model"] == "gpt-6-luna"
-    assert events[0]["effort"] == "max"
-    assert events[0]["service_tier"] == "priority"
-    assert events[0]["fast_mode"] is True
-    assert events[0]["role_name"] == "common-implementer"
-    assert events[0]["role_config_sha256"] == "a" * 64
-    assert events[0]["observation_status"] == "blocked"
-    assert "developer_instructions" not in events[0]
+    monkeypatch.setattr("automation.inago.app_server.subprocess.run", no_schema_probe)
+    monkeypatch.setattr(
+        "automation.inago.app_server.subprocess.Popen",
+        lambda *_args, **_kwargs: SimpleNamespace(pid=123, poll=lambda: None),
+    )
+    monkeypatch.setattr("automation.inago.app_server.threading.Thread", InertThread)
+    app_server._send = lambda message: calls.append(("send", message))
+
+    def rpc(method, params, *, deadline, cancel_event=None):
+        calls.append((method, params))
+        if method == "account/read":
+            return {"account": {"type": "chatgpt"}}
+        if method == "thread/start":
+            return {"thread": {"id": "thread-c26"}}
+        return {}
+
+    app_server._call = rpc
+    assert app_server.start(deadline=100.0) == "thread-c26"
+    assert any(method == "thread/start" for method, _ in calls)
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "session.jsonl").read_text().splitlines()
+    ]
+    assert [event["event"] for event in events] == ["process_started", "root_ready"]
 
 
 def test_c26_transport_log_failure_still_interrupts_and_closes(tmp_path):
@@ -765,16 +1302,8 @@ def test_c24_app_server_passes_role_instructions_and_settings_to_thread_start(
         role_name="rr-inago-incident-investigator",
         role_config_sha256="a" * 64,
         developer_instructions="Follow the investigation role contract.",
-        sandbox_policy={
-            "type": "readOnly",
-            "access": {
-                "type": "restricted",
-                "includePlatformDefaults": True,
-                "readableRoots": [str(tmp_path.resolve())],
-            },
-        },
+        sandbox_policy={"type": "readOnly", "networkAccess": False},
     )
-    app_server._verify_restricted_read_capability = lambda: None
     monkeypatch.setattr(
         "automation.inago.app_server.subprocess.Popen",
         lambda *_args, **_kwargs: SimpleNamespace(pid=123, poll=lambda: None),
@@ -827,7 +1356,6 @@ def test_c24_generic_app_server_root_log_preserves_daily_fields(tmp_path, monkey
         cwd=tmp_path,
         log_path=tmp_path / "daily-session.jsonl",
     )
-    app_server._verify_restricted_read_capability = lambda: None
     app_server._log = lambda event, **fields: records.append((event, fields))
     monkeypatch.setattr(
         "automation.inago.app_server.subprocess.Popen",

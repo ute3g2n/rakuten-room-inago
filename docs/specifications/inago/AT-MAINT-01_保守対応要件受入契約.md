@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.22 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.23 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -21,9 +21,9 @@ U05でC06/C07/C28/C53の専用受入ケースを隔離DBに対して確認した
 
 U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest`、`maintenance_ai_session`、`maintenance_ai_observation`を加える。job inputは`incident_id`/`source_launch_id`/nullable `source_run_id`/`target_date`/`job_id`を完全一致で固定する。欠落・不一致・曖昧さ・nullness不一致を推測で補わず、session開始前にblockedとする。manifestとsession設定はimmutable、観測はappend-onlyとする。
 
-親Aのroleは`gpt-6.1-sol`/`xhigh`/`default`/Fast disabled、親Bのroleは`gpt-6-luna`/`max`/Fastを指定する。role TOMLのdeveloper instructions、設定digest、model/effort/tier、sandbox境界をsessionへ結び、requestedとobservedを分ける。Fastは`service_tier="fast"`と`features.fast_mode=true`で要求し、protocol上のtier `priority`として capability を確認する。モデル/effort/tier/Fastまたはrestricted sandboxが未対応ならfallbackせず拒否する。観測イベントに設定値がない場合は`configured_unverified`とし、設定した事実だけで`verified`にしない。
+親Aのroleはgpt-6.1-sol/xhigh/default/Fast disabled、親Bのroleはgpt-6-luna/max/Fastを指定する。role TOMLのdeveloper instructions、設定digest、model/effort/tier、基本sandbox modeをsessionへ結び、requestedとobservedを分ける。Fastはservice_tier="fast"とfeatures.fast_mode=trueで要求し、protocol上のtier priorityとしてcapabilityを確認する。モデル/effort/tier/FastまたはreadOnly/workspaceWrite modeが未対応ならfallbackせず拒否する。per-folder access/readOnlyAccess/readableRoots/writableRootsがないことは拒否理由にしない。観測イベントに設定値がない場合はconfigured_unverifiedとし、設定した事実だけでverifiedにしない。
 
-調査roleはattempt outputだけ、親Bの実装/試験roleはmanaged worktreeだけをwrite rootとする。reviewerはread-only。restricted read/write rootsをapp-serverが強制できない場合はprocess起動前にblockedとする。親セッション実接続のLC01/LC02はU18で一度確認し、U07の設定・隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
+調査/review roleはreadOnly mode、親Bの実装/試験roleは専用managed worktree cwdでworkspaceWrite modeを使う。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。各turnはDraft 2020-12 JSON Schemaで返却JSONを検証し、manifestの5項目identityが完全一致することを確認する。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
 
 ## 受入条件
 
@@ -39,8 +39,8 @@ U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest
 | MA-008 | 同一起動のcheckを一意にし、重複incidentと修正jobを作らない。lease、worker再起動、再開、再発時の未解決案件への関連付けが維持される。 |
 | MA-009 | check・調査・修正計画は親A `gpt-6.1-sol / xhigh / normal`で実行し、調査・計画の各レビューを作成者と異なる担当が行う。指定や観測が得られない場合は未確認で停止する。 |
 | MA-010 | 実装・テスト・コードレビュー・報告は親B `gpt-6-luna / max / Fast`の下で別担当が行う。Fastは親Bの `service_tier=fast` と使用版の `features.fast_mode=true` の実適用を観測して確認する。 |
-| MA-011 | 2親、6スキル、9担当の役割・モデル・考える量・入力・出力・書込範囲が一致し、レビュー担当は対象版に対する読み取り専用となる。日次T02の権限を流用しない。 |
-| MA-012 | management DB、ID、版、状態、例外、出力所有、隔離範囲が実装schemaに対応し、run nullを含む欠測を正しく表す。AI出力はschema/identity/ownerを検証してから確定する。 |
+| MA-011 | 2親、6スキル、9担当の役割・モデル・考える量・入力・論理的な出力所有が一致し、reviewerはreadOnly modeとなる。出力所有はCLIのfolder ACLではなく、role契約とhost側のschema/owner/diff検証で確認する。日次T02の権限を流用しない。 |
+| MA-012 | management DB、ID、版、状態、例外、出力所有、基本sandbox modeが実装schemaに対応し、run nullを含む欠測を正しく表す。AI出力はschema/identity/ownerを検証してから確定する。 |
 | MA-013 | 既存Lの26分類は許可一覧に基づいて収集し、元のID・時刻・期限・相関・取得不能/失効理由を保持する。新しいmaintenance出力を既存日次traceへ混在させない。 |
 | MA-014 | 元の日次結果と主例外を維持し、maintenanceログ・証拠コピーの期限、容量、回収、抑止/書込不能を明示する。元データの期限を延長・短縮せず、保持失敗を成功扱いしない。 |
 | MA-015 | 調査レポートが計画で定める9章を備え、事実/推定/未確認と根拠を追跡でき、別担当のレビューを通る。原因をerror名だけで断定しない。 |
