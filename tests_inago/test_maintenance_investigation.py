@@ -51,7 +51,7 @@ def _start_attempt(tmp_path):
     )
     attempt = controller.begin_step_attempt(
         job_id=job.job_id,
-        step_key="investigation",
+        step_key="maintenance_investigation",
         sequence=1,
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=7),
@@ -696,7 +696,7 @@ def test_c30_persists_review_findings_for_retry(tmp_path):
     assert result_document["review"]["author_execution_id"] == "investigator-turn-001"
     retry = controller.begin_step_attempt(
         job_id=context["job_id"],
-        step_key="investigation",
+        step_key="maintenance_investigation",
         sequence=1,
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=13),

@@ -63,7 +63,17 @@ SQLite sourceは単純copyせず、read-only接続からSQLite backup APIで別�
 
 OS exit code 0だけで成功と判定しない。完了通知・日次status・exit code・phase・件数が矛盾すれば `contract_violation`。既知外部stop code `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error` は失敗時に `external_wait` として切り分ける。証拠や完了通知が不足して判定できない場合は `unknown` とする。候補枯渇による不足は日次理由 `candidate_or_theme_exhausted` とstatusが一致するときだけ正常不足にする。
 
-C20/C21/C22とC55のdetector部分はU11専用fixtureで確認する。C23の同日重複・再発抑止はU09の完了証拠を再利用し、U11では再実行しない。C19のAI check接続はU12で、C55のreport表示受入はU16で検証する。ライブincident・production DB・認証・投稿は変更しない。
+C20/C21/C22とC55のdetector部分はU11専用fixtureで確認する。C23の同日重複・再発抑止はU09の完了証拠を再利用し、U11では再実行しない。C19のcheck-stage構造と隔離Store記録はU12の合成fixtureで検証し、実Sol/xhigh app-server接続はU18のLC01/LC02で確認する。C55のreport表示受入はU16で検証する。ライブincident・production DB・認証・投稿は変更しない。
+
+## U12 check・調査出力・独立review・handoff
+
+U12の構造化stage契約は `automation/inago/maintenance/investigation.py` と同ディレクトリのresponse schemasを正本とする。U11の事前分類結果をcheck stageへ渡し、`maintenance-check-response-v1`のschema、manifest identity、許可済みevidence refs、assessment/reason_codeの組合せを確認する。`unknown`と`contract_violation`はAIを呼ばずblockedにし、`external_wait`はAIのnormal回答で解除しない。正常checkは`daily_check`へ最小statusを記録し、incident/jobを作らない。要調査はinvestigationへ進み、外部待ちは`incomplete`、不明は`unknown`として記録する。これはU11の`maintenance-check-result-v1`純粋判定出力とは別のstage responseである。
+
+調査responseは `maintenance-investigation-response-v1` とし、schema_version、対象日、incident/source launch/source run/job/attempt、base commit、input/evidence refsを省略せず一致させる。factの日付を対象日に固定し、各factのevidence refsをmanifestの許可範囲に限定する。cause_confidenceがunknownなら原因文を許さず、裏付けのない原因断定を拒否する。reportは9章を固定し、factが3件を超えてもすべての操作・期待・実結果・影響・回復・原因確度・根拠を記載する。
+
+controllerは検証済みfactsを`facts.json`、9章報告を`investigation.md`、版・identity・artifact hash・review状態を`result.json`として、現在のrunning investigation attempt専用の`attempts/<job_id>/<attempt_id>/`へ新規保存する。既存ファイルを上書きしない。POSIXではroot descriptorから各path componentを`O_NOFOLLOW`付きで開き、Windowsでは親directory handleに相対する`NtCreateFile`を`OBJ_DONT_REPARSE`付きで実行し、開いたhandleのfinal pathも照合する。各file handleがregular fileであることを確認し、属性/fstat検証に失敗したときは、取得済みnative handleまたはCRT descriptorを閉じる。保存先rootとjob/attempt identityをhost側で検証する。path integrity確認はhost側の検査であり、CLIのfolder-level ACLは要求しない。調査statusがblockedでも3成果物を保存し、handoffは行わない。
+
+reviewは`maintenance-investigation-review-v1`でreviewer ID、review_execution_id、reviewed_versionをresponseへ結ぶ。調査者とreviewerの担当IDと実行IDがそれぞれ異なること、同じresult_versionへのreviewであることを確認するreview roundはStoreの既存review件数から導出し、呼出側の値と一致しなければreviewer起動前に拒否する。同じreviewer execution IDを別roundで再利用する要求も、過去のhash検証済みresultから照合し、reviewer起動・成果物作成前に拒否する。review後かつ`result.json`保存前にleaseを再確認し、Storeは完了・review記録を1トランザクションで保存するときにもleaseとreview roundを照合する。handoffは調査statusがcomplete、review statusがapproved、版と全artifact hashが一致するときだけStoreへ渡す。handoff失敗時は現在の最新attempt・独立承認・版・hash・leaseをStore transaction内で再検証してから再開し、検証失敗ではattempt/job状態を変更しない。既にacceptedのhandoff再試行は同一結果を返し、二重登録しない。作成済みartifactのwrite/flush/fsyncが失敗した場合は同じno-reparse root-relative方式でpartial fileを除去し、除去失敗は元のwrite errorへexception noteとして付記する。次STEPは`handoff_accepted`後だけ進める。changes_requestedは同一stepの新attemptで再試行し、review上限は3巡。U12のC19/C29/C30は合成fixtureで構造・保存・Store連携を確認する。実Sol/xhigh app-server接続、runtime設定の実観測、production DB/Scheduler接続はU18/U21の後続条件であり、実接続済みとは記録しない。
 
 ## 受入条件
 

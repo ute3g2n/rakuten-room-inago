@@ -601,6 +601,8 @@ def json_string_key_lines(text: str) -> dict[str, int]:
 def program_path_kind(line_text: str) -> str:
     if re.search(r"\b(?:rm|unlink|rmdir)\s*\(|\b(?:remove|delete)\s*\(", line_text):
         return "program_cleanup_path"
+    if re.search(r"(?i)(?:facts\.json|investigation\.md|result\.json)", line_text):
+        return "program_output_path"
     if re.search(r"\b(?:writeFile|writeFileSync|saveAs|screenshot|page\.pdf|mkdir|copyFile)\b", line_text):
         return "program_output_path"
     if re.search(r"(?i)\b(?:output|destination|dest|artifact|report)[\w]*\s*[:=]", line_text):

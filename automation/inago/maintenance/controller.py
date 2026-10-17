@@ -27,9 +27,11 @@ from automation.inago.maintenance.store import (
     JobInputManifest,
     JobFinalizeResult,
     JobStartResult,
+    HandoffContractError,
     HandoffResult,
     LeaseToken,
     MaintenanceStore,
+    MaintenanceStoreError,
     StepAttemptResult,
     StepAttemptRecord,
 )
@@ -396,10 +398,25 @@ class MaintenanceController:
         if (
             attempt.job_id != context["job_id"]
             or attempt.source_run_id != context["source_run_id"]
-            or attempt.step_key != "investigation"
+            or attempt.step_key != "maintenance_investigation"
             or attempt.status != "running"
         ):
             raise ValueError("step_attempt_identity_invalid")
+        review_round = self._store.next_step_review_round(attempt.attempt_id)
+        if (
+            isinstance(request.review_round, bool)
+            or not isinstance(request.review_round, int)
+            or request.review_round != review_round
+        ):
+            raise MaintenanceStoreError("review_round_mismatch")
+        prior_review_execution_ids = self._store.prior_u12_review_execution_ids(
+            job_id=attempt.job_id,
+            sequence=attempt.sequence,
+            current_attempt_id=attempt.attempt_id,
+            attempts_root=request.attempts_root,
+        )
+        if request.reviewer_execution_id in prior_review_execution_ids:
+            raise MaintenanceStoreError("review_execution_id_reused")
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
@@ -437,6 +454,20 @@ class MaintenanceController:
             facts_sha256=facts_sha256,
             markdown_path=markdown_path,
             markdown_sha256=markdown_sha256,
+        )
+        self._store.validate_step_attempt_lease(
+            attempt_id=attempt.attempt_id,
+            lease=request.lease,
+            at=request.completed_at,
+            author_id=request.author_id,
+            reviewer_id=request.reviewer_id,
+        )
+        self._store.validate_step_attempt_lease(
+            attempt_id=attempt.attempt_id,
+            lease=request.lease,
+            at=request.reviewed_at,
+            author_id=request.author_id,
+            reviewer_id=request.reviewer_id,
         )
         handoff_allowed = (
             review["handoff_allowed"] is True
@@ -491,6 +522,7 @@ class MaintenanceController:
             reviewed_version=str(review["reviewed_version"]),
             review_status=store_review_status,
             reviewed_at=request.reviewed_at,
+            review_round=review_round,
         )
 
         accepted_handoff = None
@@ -530,6 +562,75 @@ class MaintenanceController:
             review_reason_code=review_failure,
             handoff=accepted_handoff,
         )
+
+    def resume_investigation_handoff(
+        self,
+        *,
+        attempt_id: str,
+        attempts_root: str | Path,
+        handoff_root: str | Path,
+        lease: LeaseToken,
+        accepted_at: datetime | str,
+    ) -> HandoffResult:
+        """Retry an approved U12 handoff without rerunning investigation or review."""
+
+        attempt = self._store.get_step_attempt(attempt_id)
+        if (
+            attempt.step_key != "maintenance_investigation"
+            or attempt.status not in {"complete", "handoff_accepted"}
+            or not attempt.output_path
+            or not attempt.output_sha256
+        ):
+            raise InvestigationContractError("investigation_handoff_resume_invalid")
+        output_bytes = self._store.read_u12_investigation_result(
+            attempt_id=attempt.attempt_id,
+            attempts_root=attempts_root,
+        )
+        try:
+            result = json.loads(output_bytes)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise InvestigationContractError(
+                "investigation_handoff_resume_invalid"
+            ) from exc
+        if not isinstance(result, dict):
+            raise InvestigationContractError("investigation_handoff_resume_invalid")
+        identity = result.get("identity")
+        review = result.get("review")
+        facts = result.get("facts")
+        report = result.get("report")
+        if (
+            not isinstance(identity, dict)
+            or not isinstance(review, dict)
+            or not isinstance(facts, dict)
+            or not isinstance(report, dict)
+        ):
+            raise InvestigationContractError("investigation_handoff_resume_invalid")
+        payload = {
+            "schema_version": "maintenance-handoff-v1",
+            "incident_id": identity.get("incident_id"),
+            "job_id": attempt.job_id,
+            "attempt_id": attempt.attempt_id,
+            "source_run_id": attempt.source_run_id,
+            "result_version": result.get("result_version"),
+            "reviewed_version": review.get("reviewed_version"),
+            "output": {
+                "path": attempt.output_path,
+                "sha256": attempt.output_sha256,
+                "artifacts": {"facts": facts, "report": report},
+            },
+        }
+        try:
+            return self._store.accept_handoff(
+                payload,
+                handoff_root=handoff_root,
+                lease=lease,
+                accepted_at=accepted_at,
+                resume_completed_u12=True,
+            )
+        except HandoffContractError as exc:
+            raise InvestigationContractError(
+                "investigation_handoff_resume_invalid"
+            ) from exc
 
     def bind_ai_parent_session(
         self,

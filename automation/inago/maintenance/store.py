@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator, Mapping
 
+from automation.inago.maintenance.safe_file import open_file_beneath
 from automation.inago.maintenance.paths import (
     UnsafeMaintenancePathError,
     _has_reparse_point,
@@ -418,25 +419,11 @@ def _relative_output_path(value: object) -> str:
 def _read_handoff_artifact(
     root: Path, relative_path: str, expected_sha256: str, code: str
 ) -> bytes:
-    """Read one regular handoff file under root and verify its digest."""
+    """Read one regular handoff file under root with a pinned parent handle."""
 
-    artifact = root.joinpath(*PurePosixPath(relative_path).parts)
-    cursor = root
     try:
-        for part in PurePosixPath(relative_path).parts:
-            cursor = cursor / part
-            if _has_reparse_point(cursor):
-                raise HandoffContractError(f"{code}_reparse_point")
-        resolved = artifact.resolve(strict=True)
-        resolved.relative_to(root)
-        if not resolved.is_file():
-            raise HandoffContractError(f"{code}_unavailable")
-        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
-        descriptor = os.open(resolved, flags)
-        with os.fdopen(descriptor, "rb") as stream:
+        with open_file_beneath(root, relative_path, "rb") as stream:
             content = stream.read()
-    except HandoffContractError:
-        raise
     except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
         raise HandoffContractError(f"{code}_unavailable") from exc
     if hashlib.sha256(content).hexdigest() != expected_sha256:
@@ -2574,9 +2561,7 @@ class MaintenanceStore:
                 ):
                     raise MaintenanceStoreError("step_predecessor_not_approved")
                 if (
-                    prior["step_key"] == "investigation"
-                    and prior["output_path"]
-                    == f"{prior['job_id']}/{prior['attempt_id']}/result.json"
+                    prior["step_key"] == "maintenance_investigation"
                     and prior["status"] != "handoff_accepted"
                 ):
                     raise MaintenanceStoreError("step_predecessor_handoff_not_accepted")
@@ -2700,7 +2685,8 @@ class MaintenanceStore:
         with self._transaction() as connection:
             self._assert_lease(connection, lease, when)
             row = connection.execute(
-                "SELECT s.status, s.lease_key, s.lease_generation, j.status AS job_status "
+                "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
+                "s.step_key, j.status AS job_status "
                 "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
                 "WHERE s.attempt_id = ?",
                 (attempt,),
@@ -2711,6 +2697,10 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("job_not_active")
             if row["status"] != "running":
                 raise MaintenanceStoreError("step_attempt_not_running")
+            if row["step_key"] == "maintenance_investigation" and (
+                output is None or output != f"{row['job_id']}/{attempt}/result.json"
+            ):
+                raise MaintenanceStoreError("investigation_output_path_required")
             if (
                 row["lease_key"] != lease.lease_key
                 or int(row["lease_generation"]) != lease.generation
@@ -2801,6 +2791,7 @@ class MaintenanceStore:
         reviewed_version: str,
         review_status: str,
         reviewed_at: datetime | str,
+        review_round: int | None = None,
     ) -> str:
         """Atomically finish a step and persist its review gate record."""
 
@@ -2819,9 +2810,10 @@ class MaintenanceStore:
             raise MaintenanceStoreError("attempt_output_digest_invalid")
         completed = _timestamp(completed_at)
         reviewed_time = _timestamp(reviewed_at)
+        lease_checked_at = max(completed, reviewed_time)
         review_id = str(uuid.uuid4())
         with self._transaction() as connection:
-            self._assert_lease(connection, lease, completed)
+            self._assert_lease(connection, lease, lease_checked_at)
             row = connection.execute(
                 "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
                 "s.step_key, s.sequence, j.status AS job_status, "
@@ -2838,6 +2830,11 @@ class MaintenanceStore:
             if row["status"] != "running":
                 raise MaintenanceStoreError("step_attempt_not_running")
             if (
+                row["step_key"] == "maintenance_investigation"
+                and output != f"{row['job_id']}/{attempt}/result.json"
+            ):
+                raise MaintenanceStoreError("investigation_output_path_required")
+            if (
                 row["lease_key"] != lease.lease_key
                 or int(row["lease_generation"]) != lease.generation
             ):
@@ -2853,6 +2850,18 @@ class MaintenanceStore:
                     (row["job_id"], row["step_key"], row["sequence"]),
                 ).fetchone()[0]
             )
+            if row["step_key"] == "maintenance_investigation" and (
+                isinstance(review_round, bool)
+                or not isinstance(review_round, int)
+                or review_round != review_count + 1
+            ):
+                raise MaintenanceStoreError("review_round_mismatch")
+            if review_round is not None and (
+                isinstance(review_round, bool)
+                or not isinstance(review_round, int)
+                or review_round != review_count + 1
+            ):
+                raise MaintenanceStoreError("review_round_mismatch")
             if review_count >= self.review_round_limit:
                 raise MaintenanceStoreError("review_round_limit_exceeded")
             connection.execute(
@@ -2937,6 +2946,7 @@ class MaintenanceStore:
         handoff_root: str | Path,
         lease: LeaseToken,
         accepted_at: datetime | str,
+        resume_completed_u12: bool = False,
     ) -> HandoffResult:
         if not isinstance(payload, dict) or set(payload) != _HANDOFF_KEYS:
             raise HandoffContractError("handoff_envelope_invalid")
@@ -3005,7 +3015,8 @@ class MaintenanceStore:
             row = connection.execute(
                 "SELECT s.*, j.incident_id, j.source_run_id AS job_source_run_id, "
                 "j.status AS job_status, j.lease_key AS job_lease_key, "
-                "j.lease_generation AS job_lease_generation, r.author_id "
+                "j.lease_generation AS job_lease_generation, "
+                "j.resume_count AS job_resume_count, r.author_id "
                 "FROM step_attempt s "
                 "JOIN maintenance_job j ON j.job_id = s.job_id "
                 "JOIN release r ON r.release_id = j.release_id "
@@ -3016,7 +3027,24 @@ class MaintenanceStore:
                 raise HandoffContractError("handoff_attempt_not_found")
             if row["job_status"] not in {"queued", "running"}:
                 raise HandoffContractError("handoff_job_not_active")
-            if (
+            u12_investigation = row["step_key"] == "maintenance_investigation"
+            if resume_completed_u12 and not u12_investigation:
+                raise HandoffContractError("handoff_resume_not_supported")
+            if resume_completed_u12:
+                if (
+                    row["job_lease_key"] != lease.lease_key
+                    or row["job_lease_generation"] is None
+                    or lease.generation < int(row["job_lease_generation"])
+                    or row["lease_key"] != row["job_lease_key"]
+                    or int(row["lease_generation"]) > int(row["job_lease_generation"])
+                ):
+                    raise HandoffContractError("handoff_job_lease_mismatch")
+                if (
+                    lease.generation > int(row["job_lease_generation"])
+                    and int(row["job_resume_count"]) >= self.job_resume_limit
+                ):
+                    raise HandoffContractError("handoff_resume_limit_exceeded")
+            elif (
                 row["job_lease_key"] != lease.lease_key
                 or row["job_lease_generation"] is None
                 or int(row["job_lease_generation"]) != lease.generation
@@ -3035,15 +3063,18 @@ class MaintenanceStore:
                 raise HandoffContractError("handoff_incident_mismatch")
             if row["job_id"] != job:
                 raise HandoffContractError("handoff_job_mismatch")
-            u12_investigation = (
-                row["step_key"] == "investigation"
-                and output_path == f"{job}/{attempt}/result.json"
-            )
+            if u12_investigation and output_path != f"{job}/{attempt}/result.json":
+                raise HandoffContractError("handoff_output_path_invalid")
             if u12_investigation and not normalized_artifacts:
                 raise HandoffContractError("handoff_artifacts_missing")
             if row["source_run_id"] != run_id or row["job_source_run_id"] != run_id:
                 raise HandoffContractError("handoff_source_run_mismatch")
-            if row["status"] != "complete":
+            acceptable_statuses = (
+                {"complete", "handoff_accepted"}
+                if resume_completed_u12
+                else {"complete"}
+            )
+            if row["status"] not in acceptable_statuses:
                 raise HandoffContractError("handoff_attempt_not_complete")
             if row["result_version"] != result_version:
                 raise HandoffContractError("handoff_result_version_mismatch")
@@ -3139,6 +3170,47 @@ class MaintenanceStore:
                 for key in ("facts", "report"):
                     if result_document.get(key) != normalized_artifacts[key]:
                         raise HandoffContractError("handoff_result_artifacts_mismatch")
+            existing_handoff = connection.execute(
+                "SELECT source_run_id, result_version, output_path, output_sha256, "
+                "accepted_at FROM handoff_artifact WHERE attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row["status"] == "handoff_accepted":
+                if (
+                    not resume_completed_u12
+                    or existing_handoff is None
+                    or existing_handoff["source_run_id"] != run_id
+                    or existing_handoff["result_version"] != result_version
+                    or existing_handoff["output_path"] != output_path
+                    or existing_handoff["output_sha256"] != output_sha256
+                ):
+                    raise HandoffContractError("handoff_accepted_identity_mismatch")
+                if lease.generation > int(row["job_lease_generation"]):
+                    connection.execute(
+                        "UPDATE maintenance_job SET lease_generation = ?, "
+                        "resume_count = resume_count + 1, updated_at = ? WHERE job_id = ?",
+                        (lease.generation, when, job),
+                    )
+                return HandoffResult(
+                    True,
+                    attempt,
+                    job,
+                    incident,
+                    run_id,
+                    result_version,
+                    output_path,
+                    output_sha256,
+                )
+            if existing_handoff is not None:
+                raise HandoffContractError("handoff_existing_record_for_incomplete")
+            if resume_completed_u12 and lease.generation > int(
+                row["job_lease_generation"]
+            ):
+                connection.execute(
+                    "UPDATE maintenance_job SET lease_generation = ?, "
+                    "resume_count = resume_count + 1, updated_at = ? WHERE job_id = ?",
+                    (lease.generation, when, job),
+                )
             connection.execute(
                 "INSERT INTO handoff_artifact "
                 "(attempt_id, source_run_id, result_version, output_path, output_sha256, accepted_at) "
@@ -3160,6 +3232,86 @@ class MaintenanceStore:
                 output_path,
                 output_sha256,
             )
+
+    def read_u12_investigation_result(
+        self, *, attempt_id: str, attempts_root: str | Path
+    ) -> bytes:
+        """Read the pinned result artifact for a completed or accepted U12 attempt."""
+
+        attempt = self.get_step_attempt(attempt_id)
+        expected_path = f"{attempt.job_id}/{attempt.attempt_id}/result.json"
+        if (
+            attempt.step_key != "maintenance_investigation"
+            or attempt.status not in {"complete", "handoff_accepted"}
+            or attempt.output_path != expected_path
+            or not attempt.output_sha256
+        ):
+            raise HandoffContractError("investigation_handoff_resume_invalid")
+        return _read_handoff_artifact(
+            Path(attempts_root).expanduser(),
+            expected_path,
+            attempt.output_sha256,
+            "handoff_output",
+        )
+
+    def prior_u12_review_execution_ids(
+        self,
+        *,
+        job_id: str,
+        sequence: int,
+        current_attempt_id: str,
+        attempts_root: str | Path,
+    ) -> frozenset[str]:
+        """Read prior persisted reviewer execution identities for this U12 step."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        current_attempt = _safe_id(current_attempt_id, "attempt_id_invalid")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise MaintenanceStoreError("step_sequence_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT attempt_id, output_path, output_sha256 FROM step_attempt "
+                "WHERE job_id = ? AND step_key = 'maintenance_investigation' "
+                "AND sequence = ? AND attempt_id <> ? "
+                "AND status IN ('complete', 'handoff_accepted') "
+                "ORDER BY attempt_no",
+                (job, sequence, current_attempt),
+            ).fetchall()
+        finally:
+            connection.close()
+
+        identities: set[str] = set()
+        root = Path(attempts_root).expanduser()
+        for row in rows:
+            attempt = str(row["attempt_id"])
+            expected_path = f"{job}/{attempt}/result.json"
+            if (
+                row["output_path"] != expected_path
+                or not isinstance(row["output_sha256"], str)
+                or not _SHA256_PATTERN.fullmatch(row["output_sha256"])
+            ):
+                raise MaintenanceStoreError("prior_review_result_unavailable")
+            content = _read_handoff_artifact(
+                root,
+                expected_path,
+                str(row["output_sha256"]),
+                "prior_review_result",
+            )
+            try:
+                document = json.loads(content)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise MaintenanceStoreError("prior_review_result_invalid") from exc
+            review = document.get("review") if isinstance(document, dict) else None
+            execution_id = (
+                review.get("review_execution_id") if isinstance(review, dict) else None
+            )
+            if not isinstance(execution_id, str) or not _ID_PATTERN.fullmatch(
+                execution_id
+            ):
+                raise MaintenanceStoreError("prior_review_result_invalid")
+            identities.add(execution_id)
+        return frozenset(identities)
 
     def finalize_job(
         self,
@@ -3314,5 +3466,35 @@ class MaintenanceStore:
                 str(row["started_at"]),
                 row["finished_at"],
             )
+        finally:
+            connection.close()
+
+    def next_step_review_round(self, attempt_id: str) -> int:
+        """Return the next review round from persisted history for this step."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT job_id, step_key, sequence, status FROM step_attempt "
+                "WHERE attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM review_result r "
+                    "JOIN step_attempt s ON s.attempt_id = r.scope_id "
+                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                    "AND s.step_key = ? AND s.sequence = ?",
+                    (row["job_id"], row["step_key"], row["sequence"]),
+                ).fetchone()[0]
+            )
+            if count >= self.review_round_limit:
+                raise MaintenanceStoreError("review_round_limit_exceeded")
+            return count + 1
         finally:
             connection.close()

@@ -10,8 +10,8 @@ U08,日次完了通知/launcher,BOOT-20261017,Codex,新launcher・完了通知�
 U09,watchdog・未起動/途中終了,BOOT-20261017,Codex,watchdog/process identity/Scheduler fixtures,独立Python/code review+C12/C13/C23/C47,完了,20 targeted tests passed; Python/code review approved; Q2.25 and C01/C02/C05 PASS; synthetic only
 U10,証拠収集・伏字・snapshot,BOOT-20261017,Codex,automation/inago/maintenance/evidence.py・schema・test・要件同期,独立Code/Python review＋C14-C17/C22/C58専用fixture,完了,28 passed/0 skipped; Q2.26・C01/C02/C05 PASS; synthetic only
 U11,正常・要調査・外部待ち判定,BOOT-20261017,Codex,maintenance detector・check-result schema・指定テスト・要件同期,独立code/Python review＋C20/C21/C22/C55合成fixture,完了,C20/C21/C22/C55 detector部分各1 passed; code/Python review APPROVE; Q2.27・C01/C02/C05 PASS; commit bac6d69 pushed; AI checkはU12
-U12,自動[1]～[3]の調査・MD・レビュー,BOOT-20261017,Codex,check/調査stage/管理handoff・調査出力validator・指定テスト,独立reviewおよびC19/C29/C30/C51 synthetic fixtures,実施中,2026-10-17 22:15 JST開始; 実障害データなし; U13未着手
-U13-U18,各stage・統合/実接続,BOOT-20261017,計画指定の実装/試験/レビュー担当,指定モジュールと専用試験領域,独立レビューおよびLC実測,未着手,凍結ケース以外は計画順
+U12,自動[1]～[3]の調査・MD・レビュー,BOOT-20261017,Codex,check/調査stage/管理handoff・調査出力validator・指定テスト,独立reviewおよびC19/C29/C30 synthetic fixtures,完了,2026-10-17 22:15～23:42 JST; C19 attempt-12 2 passed/C29 attempt-13 1 passed/C30 attempt-25 24 passed; C07/C28互換各1 passed; Q2.31・document index C01/C02/C05 PASS（405文書/3,373参照/未分類0/現行未解決0/添付26一致）; Black 6 unchanged/compileall/diff-check PASS; final independent code/Python reviews APPROVE; CLI folder ACL not required; no production DB/Scheduler/AI/incident access; U13 next
+U13-U18,各stage・統合/実接続,BOOT-20261017,計画指定の実装/試験/レビュー担当,指定モジュールと専用試験領域,独立レビューおよびLC実測,未着手,U12最終独立review後に計画順で開始
 U19-U21,ケース固定・全回帰・release gate,BOOT-20261017,計画指定担当,必須ケースとrelease証拠,release gate照合,未着手,U20で全回帰1回
 U22-U24,遡及受付・調査修正・報告,INC-20261017-001（未使用なら）,調査/計画/実装/試験/レビュー/報告の指定担当,案件固有のworktree・隔離証拠・成果物,未着手,U21 ready後のみ
 U25,次の自然日次確認,運用確認,登録済みフロー,自然実行の観測とHTML更新,OP04受入,未着手,試験起動なし

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-17T22:11:51+09:00",
+  "generated_at": "2026-10-17T23:46:34+09:00",
   "index_path": "docs/document-index.json",
   "manifest_path": "worklogs/projects/maintenance/移行manifest.csv",
   "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
@@ -69,7 +69,7 @@
       "added_in": "U01",
       "scope_note": "現在の場所を継続",
       "extension": ".md",
-      "bytes": 58214,
+      "bytes": 58952,
       "reference_count": 36
     },
     {
@@ -1749,7 +1749,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 47695,
+      "bytes": 50010,
       "reference_count": 0
     },
     {
@@ -5589,7 +5589,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".html",
-      "bytes": 3529071,
+      "bytes": 3588462,
       "reference_count": 163
     },
     {
@@ -5859,7 +5859,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 90295,
+      "bytes": 93356,
       "reference_count": 0
     },
     {
@@ -5889,7 +5889,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 74174,
+      "bytes": 77272,
       "reference_count": 6
     },
     {
@@ -5964,7 +5964,7 @@
       "added_in": "U02",
       "scope_note": "U02で追加。Aの2026-10-17提案393件に含まれない増分。",
       "extension": ".md",
-      "bytes": 25299,
+      "bytes": 29482,
       "reference_count": 2
     },
     {
@@ -5979,7 +5979,7 @@
       "added_in": "U02",
       "scope_note": "U02で追加。Aの2026-10-17提案393件に含まれない増分。",
       "extension": ".md",
-      "bytes": 16229,
+      "bytes": 18045,
       "reference_count": 4
     },
     {
@@ -6241,12 +6241,20 @@
       "path": "automation/inago/maintenance/evidence.py"
     },
     {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-INVESTIGATION-PY",
+      "path": "automation/inago/maintenance/investigation.py"
+    },
+    {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-PATHS-PY",
       "path": "automation/inago/maintenance/paths.py"
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-PROCESS-IDENTITY-PY",
       "path": "automation/inago/maintenance/process_identity.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SAFE-FILE-PY",
+      "path": "automation/inago/maintenance/safe_file.py"
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
@@ -6373,6 +6381,10 @@
       "path": "tests_inago/maintenance_detector_support.py"
     },
     {
+      "source_id": "SRC-TESTS-TESTS-INAGO-MAINTENANCE-INVESTIGATION-SUPPORT-PY",
+      "path": "tests_inago/maintenance_investigation_support.py"
+    },
+    {
       "source_id": "SRC-TESTS-TESTS-INAGO-MAINTENANCE-SUPPORT-PY",
       "path": "tests_inago/maintenance_support.py"
     },
@@ -6435,6 +6447,14 @@
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-DETECTOR-PY",
       "path": "tests_inago/test_maintenance_detector.py"
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "path": "tests_inago/test_maintenance_investigation.py"
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "path": "tests_inago/test_maintenance_investigation_review_regressions.py"
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-OPERATIONS-PY",
@@ -39400,7 +39420,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39412,7 +39432,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39424,7 +39444,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39436,7 +39456,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39448,7 +39468,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39460,7 +39480,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39472,7 +39492,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39484,7 +39504,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39496,7 +39516,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39508,7 +39528,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39520,7 +39540,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39532,7 +39552,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39544,7 +39564,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39556,7 +39576,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39568,7 +39588,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39580,7 +39600,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39592,7 +39612,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39604,7 +39624,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39616,7 +39636,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39628,7 +39648,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39640,7 +39660,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39652,7 +39672,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39664,7 +39684,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39676,7 +39696,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39688,7 +39708,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39700,7 +39720,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4705,
+      "line": 4735,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -40528,7 +40548,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40540,7 +40560,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4201,
+      "line": 4209,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40552,7 +40572,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4614,
+      "line": 4644,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40576,7 +40596,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2958,
+      "line": 2961,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40588,7 +40608,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2969,
+      "line": 2972,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40600,7 +40620,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3026,
+      "line": 3029,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40636,7 +40656,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2966,
+      "line": 2969,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40648,7 +40668,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4201,
+      "line": 4209,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40660,7 +40680,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2968,
+      "line": 2971,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40672,7 +40692,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4201,
+      "line": 4209,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40696,7 +40716,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40708,7 +40728,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4201,
+      "line": 4209,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40732,7 +40752,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40744,7 +40764,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4201,
+      "line": 4209,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40780,7 +40800,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40792,7 +40812,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4217,
+      "line": 4225,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40816,7 +40836,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40852,7 +40872,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 281,
+      "line": 284,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40864,7 +40884,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40888,7 +40908,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 281,
+      "line": 284,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40900,7 +40920,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40936,7 +40956,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40948,7 +40968,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40960,7 +40980,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40972,7 +40992,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40984,7 +41004,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40996,7 +41016,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 310,
+      "line": 313,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -41008,7 +41028,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3061,
+      "line": 3064,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41020,7 +41040,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3172,
+      "line": 3175,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41032,7 +41052,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4395,
+      "line": 4409,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41044,7 +41064,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4370,
+      "line": 4384,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41056,7 +41076,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4284,
+      "line": 4295,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41068,7 +41088,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3037,
+      "line": 3040,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41080,7 +41100,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 737,
+      "line": 740,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41092,7 +41112,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 865,
+      "line": 868,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41104,7 +41124,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 999,
+      "line": 1002,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41116,7 +41136,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1138,
+      "line": 1141,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41128,7 +41148,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1609,
+      "line": 1612,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41140,7 +41160,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3138,
+      "line": 3141,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41152,7 +41172,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 483,
+      "line": 486,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41164,7 +41184,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 560,
+      "line": 563,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41176,7 +41196,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 636,
+      "line": 639,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41188,7 +41208,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1942,
+      "line": 1945,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41200,7 +41220,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1680,
+      "line": 1683,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41212,7 +41232,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1866,
+      "line": 1869,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41224,7 +41244,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2003,
+      "line": 2006,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41236,7 +41256,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 391,
+      "line": 394,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41248,7 +41268,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3330,
+      "line": 3338,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41260,7 +41280,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4498,
+      "line": 4522,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41272,7 +41292,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 2944,
+      "line": 2947,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41284,7 +41304,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 1640,
+      "line": 1643,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41296,7 +41316,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3212,
+      "line": 3215,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41308,7 +41328,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4188,
+      "line": 4196,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41320,7 +41340,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 379,
+      "line": 382,
       "kind": "html_href",
       "status": "external",
       "reason_code": "https",
@@ -41332,7 +41352,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 379,
+      "line": 382,
       "kind": "html_href",
       "status": "external",
       "reason_code": "https",
@@ -41344,7 +41364,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 379,
+      "line": 382,
       "kind": "html_href",
       "status": "external",
       "reason_code": "https",
@@ -44355,6 +44375,42 @@
       "query_present": false
     },
     {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-CONTROLLER-PY",
+      "line": 140,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-CONTROLLER-PY",
+      "line": 147,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-CONTROLLER-PY",
+      "line": 511,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-EVIDENCE-PY",
       "line": 1562,
       "kind": "program_path",
@@ -44403,6 +44459,30 @@
       "query_present": false
     },
     {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SAFE-FILE-PY",
+      "line": 74,
+      "kind": "program_path",
+      "status": "external_absolute",
+      "reason_code": "absolute_path_from_other_environment",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SAFE-FILE-PY",
+      "line": 125,
+      "kind": "program_path",
+      "status": "external_absolute",
+      "reason_code": "absolute_path_from_other_environment",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
       "line": 72,
       "kind": "program_path",
@@ -44417,18 +44497,6 @@
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
       "line": 96,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-STORE-PY",
-      "line": 2878,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45257,6 +45325,210 @@
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
       "line": 462,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 373,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 46,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 61,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 130,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 86,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 112,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-PY",
+      "line": 160,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 72,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 87,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 96,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 450,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 485,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 527,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 857,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 974,
+      "kind": "program_path",
+      "status": "external_absolute",
+      "reason_code": "absolute_path_from_other_environment",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 133,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-INVESTIGATION-REVIEW-REGRESSIONS-PY",
+      "line": 148,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46852,7 +47124,7 @@
     }
   ],
   "reference_summary": {
-    "count": 3352,
+    "count": 3373,
     "status_counts": {
       "anchor_resolved": 1178,
       "anchor_unverified": 63,
@@ -46860,9 +47132,9 @@
       "embedded": 238,
       "empty_target": 4,
       "external": 82,
-      "external_absolute": 37,
-      "external_dependency": 196,
-      "generated_output": 72,
+      "external_absolute": 40,
+      "external_dependency": 203,
+      "generated_output": 83,
       "historical_unresolved": 130,
       "private_unavailable": 103,
       "reference_group": 14,

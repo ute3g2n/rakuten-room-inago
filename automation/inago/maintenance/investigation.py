@@ -19,6 +19,12 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError, ValidationError
 
+from automation.inago.maintenance.safe_file import (
+    SafeFileError,
+    open_file_beneath,
+    unlink_file_beneath,
+)
+
 from automation.inago.maintenance.paths import (
     UnsafeMaintenancePathError,
     _has_reparse_point,
@@ -808,58 +814,40 @@ def save_attempt_artifact(
     except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
         raise InvestigationContractError("investigation_output_root_invalid") from exc
 
-    destination = root_resolved / filename
-    try:
-        _assert_no_reparse_components(destination)
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
-        descriptor = os.open(destination, flags, 0o600)
-    except FileExistsError:
-        try:
-            _assert_no_reparse_components(destination)
-            resolved_existing = destination.resolve(strict=True)
-            resolved_existing.relative_to(root_resolved)
-            read_flags = (
-                os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
-            )
-            existing_descriptor = os.open(resolved_existing, read_flags)
-            with os.fdopen(existing_descriptor, "rb") as stream:
-                existing_content = stream.read()
-        except InvestigationContractError:
-            raise
-        except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
-            raise InvestigationContractError(
-                "investigation_artifact_write_failed"
-            ) from exc
-        if existing_content == encoded:
-            relative_path = PurePosixPath(
-                job["job_id"], job["attempt_id"], filename
-            ).as_posix()
-            return relative_path, hashlib.sha256(encoded).hexdigest()
-        raise InvestigationContractError("investigation_artifact_already_exists")
-    except InvestigationContractError:
-        raise
-    except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
-        raise InvestigationContractError("investigation_artifact_write_failed") from exc
+    relative_path = PurePosixPath(job["job_id"], job["attempt_id"], filename).as_posix()
+    created = False
     try:
         try:
-            with os.fdopen(descriptor, "wb") as stream:
+            with open_file_beneath(base, relative_path, "xb") as stream:
+                created = True
                 stream.write(encoded)
                 stream.flush()
                 os.fsync(stream.fileno())
-        except Exception:
-            destination.unlink(missing_ok=True)
-            raise
-        _assert_no_reparse_components(destination)
-        resolved_destination = destination.resolve(strict=True)
-        resolved_destination.relative_to(root_resolved)
-        if not resolved_destination.is_file():
-            raise InvestigationContractError("investigation_artifact_path_invalid")
-    except InvestigationContractError:
+        except FileExistsError:
+            with open_file_beneath(base, relative_path, "rb") as stream:
+                existing_content = stream.read()
+            if existing_content == encoded:
+                return relative_path, hashlib.sha256(encoded).hexdigest()
+            raise InvestigationContractError("investigation_artifact_already_exists")
+    except InvestigationContractError as exc:
+        if created:
+            try:
+                unlink_file_beneath(base, relative_path)
+            except FileNotFoundError:
+                pass
+            except OSError as cleanup_error:
+                exc.add_note(f"created artifact cleanup failed: {cleanup_error!r}")
         raise
     except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
+        if created:
+            try:
+                unlink_file_beneath(base, relative_path)
+            except FileNotFoundError:
+                pass
+            except OSError as cleanup_error:
+                exc.add_note(f"created artifact cleanup failed: {cleanup_error!r}")
         raise InvestigationContractError("investigation_artifact_write_failed") from exc
 
-    relative_path = PurePosixPath(job["job_id"], job["attempt_id"], filename).as_posix()
     return relative_path, hashlib.sha256(encoded).hexdigest()
 
 
