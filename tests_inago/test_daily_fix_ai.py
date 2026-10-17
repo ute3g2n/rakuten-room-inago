@@ -40,7 +40,21 @@ from tests_inago.test_step13 import (
 
 NOW = "2026-10-16T13:00:00+09:00"
 TARGET_DATE = "2026-10-16"
-PREPARATION_ROOT = Path(__file__).resolve().parents[1] / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "specifications"
+    / "preparation"
+    / "初期設定引渡し.json"
+)
+DETAIL_RULES_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
 
 
 @pytest.fixture
@@ -51,11 +65,9 @@ def daily_case(tmp_path: Path, fixture_config_path: Path):
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic_settings_path = PREPARATION_ROOT / "初期設定引渡し.json"
+    basic_settings_path = BASIC_SETTINGS_PATH
     basic = json.loads(basic_settings_path.read_text(encoding="utf-8"))
-    details = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
-    )
+    details = json.loads((DETAIL_RULES_PATH).read_text(encoding="utf-8"))
     register_external_settings(connection, basic, details, created_at=NOW)
     case = RuntimeCase(
         connection=connection,

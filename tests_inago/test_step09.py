@@ -27,7 +27,8 @@ from automation.inago.prompt_builder import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-INPUT_ROOT = PROJECT_ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+DETAIL_RULES_PATH = PROJECT_ROOT / "worklogs" / "projects" / "preparation" / "candidates" / "文型詳細ルール.json"
 SKILL_ROOT = PROJECT_ROOT / ".agents" / "skills"
 AGENT_ROOT = PROJECT_ROOT / ".codex" / "agents"
 SCHEMA_ROOT = PROJECT_ROOT / "automation" / "inago" / "schemas"
@@ -71,8 +72,8 @@ def settings_runtime(tmp_path: Path, fixture_config_path: Path) -> SettingsRunti
     try:
         return register_external_settings(
             connection,
-            _read_json(INPUT_ROOT / "初期設定引渡し.json"),
-            _read_json(INPUT_ROOT / "文型詳細ルール.json"),
+            _read_json(BASIC_SETTINGS_PATH),
+            _read_json(DETAIL_RULES_PATH),
             created_at="2026-10-12T20:00:00+09:00",
         )
     finally:

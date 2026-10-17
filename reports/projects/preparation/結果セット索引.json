@@ -1,0 +1,284 @@
+{
+  "version": "confirmed-0.3-step46-all132",
+  "generated_at": "2026-10-12T16:31:12+09:00",
+  "status": "confirmed_partial_pipeline",
+  "intended_for": "本人採用済みの外部分析結果と準備工程成果物の索引。運用正本ではない。",
+  "artifact_count": 10,
+  "artifacts": [
+    {
+      "path": "../../../docs/specifications/preparation/%E3%82%B8%E3%83%A3%E3%83%B3%E3%83%AB%E3%83%86%E3%83%BC%E3%83%9E%E7%A2%BA%E5%AE%9A.md",
+      "kind": "genres_and_themes",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みの5ジャンル・30テーマ定義、所属、包含・境界、観測参照。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../worklogs/projects/preparation/分析/30テーマ候補.json#candidate-0.4-step34-reviewed"
+      ]
+    },
+    {
+      "path": "../../../docs/specifications/preparation/%E6%96%87%E5%9E%8B%E3%83%AB%E3%83%BC%E3%83%AB%E7%A2%BA%E5%AE%9A.md",
+      "kind": "writing_patterns",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みのP01～P05、商品ごとの型選択方針、基礎132件からの実例。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../worklogs/projects/preparation/分析/文型候補.json#candidate-0.3-step35-all132",
+        "非公開作業データ/基礎/本文/B0001.txt",
+        "非公開作業データ/基礎/本文/B0002.txt",
+        "非公開作業データ/基礎/本文/B0003.txt",
+        "非公開作業データ/基礎/本文/B0004.txt",
+        "非公開作業データ/基礎/本文/B0205.txt"
+      ],
+      "detailed_writing_extension": {
+        "version": "detailed-writing-rules-candidate-0.1-step68",
+        "markdown_version": "writing-guide-candidate-0.1-step68",
+        "status": "reviewed_candidate_not_new_owner_confirmation",
+        "adopted": false,
+        "json_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+        "purpose": "confirmed base meaning retained; detailed style extension remains a candidate"
+      }
+    },
+    {
+      "path": "../../../docs/specifications/preparation/%E6%9C%AC%E6%96%87%E9%95%B7%E3%81%95%E3%82%BF%E3%82%B0%E7%9B%AE%E5%AE%89%E7%A2%BA%E5%AE%9A.json",
+      "kind": "body_length_and_tags",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:15:19+09:00",
+      "purpose": "本人採用済みの本文・タグ任意目安、単位、基礎132件の分布と例外。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../worklogs/projects/preparation/分析/本文長さ提案.json#candidate-0.4-step37-all132",
+        "../../../worklogs/projects/preparation/分析/タグ方針提案.json#candidate-0.4-step38-all132"
+      ]
+    },
+    {
+      "path": "../../../docs/specifications/preparation/%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A%E5%BC%95%E6%B8%A1%E3%81%97.json",
+      "kind": "implementation_handoff",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:21:27+09:00",
+      "purpose": "実装担当へ渡す分類・文型・目安の採用済み外部結果セット。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../docs/specifications/preparation/%E3%82%B8%E3%83%A3%E3%83%B3%E3%83%AB%E3%83%86%E3%83%BC%E3%83%9E%E7%A2%BA%E5%AE%9A.md",
+        "../../../docs/specifications/preparation/%E6%96%87%E5%9E%8B%E3%83%AB%E3%83%BC%E3%83%AB%E7%A2%BA%E5%AE%9A.md",
+        "../../../docs/specifications/preparation/%E6%9C%AC%E6%96%87%E9%95%B7%E3%81%95%E3%82%BF%E3%82%B0%E7%9B%AE%E5%AE%89%E7%A2%BA%E5%AE%9A.json"
+      ]
+    },
+    {
+      "path": "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+      "kind": "owner_confirmation",
+      "version": "candidate-0.3-step43-all132",
+      "generated_at": "2026-10-12T12:15:39+09:00",
+      "purpose": "本人の4対象一括採用と追加要件の記録。",
+      "status": "confirmed",
+      "adopted": true,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E7%94%A8%E6%A6%82%E8%A6%81.html"
+      ],
+      "time_note": "回答の正確な受領時刻は個別記録されていない。generated_atは記録ファイルの実ファイル更新時刻。"
+    },
+    {
+      "path": "%E5%AE%9F%E8%A3%85%E5%8F%97%E9%A0%98%E7%A2%BA%E8%AA%8D.md",
+      "kind": "implementation_receipt_rehearsal",
+      "version": "receipt-review-0.1-step47-in-order",
+      "generated_at": "2026-10-12T12:24:16+09:00",
+      "purpose": "STEP47順序内受領リハーサル。外部初期設定入力としての読取可否と限界を確認。",
+      "status": "complete_in_order",
+      "adopted": false,
+      "refs": [
+        "../../../docs/specifications/preparation/%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A%E5%BC%95%E6%B8%A1%E3%81%97.json",
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../docs/specifications/inago/%E8%A6%81%E4%BB%B6%E3%83%87%E3%83%BC%E3%82%BF%E8%BE%9E%E6%9B%B8.md"
+      ],
+      "time_note": "この順序実行での成果物生成は未到達。既存参考資料の作成時刻は記録されていないため推定しない。"
+    },
+    {
+      "path": "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E7%B7%8F%E5%90%88%E6%A4%9C%E8%A8%BC%E8%A8%98%E9%8C%B2.md",
+      "kind": "final_audit",
+      "version": "audit-0.1-step48-in-order",
+      "generated_at": "2026-10-12T12:30:07+09:00",
+      "purpose": "全51工程、成果・本人採用・レビュー・検証・制約を順序内で監査した記録。",
+      "status": "complete_in_order",
+      "adopted": true,
+      "refs": [
+        "../../../worklogs/projects/preparation/execution/%E5%AE%9F%E8%A1%8C%E7%AE%A1%E7%90%86.json"
+      ],
+      "time_note": "記録の実施時刻を保持。"
+    },
+    {
+      "path": "%E7%B5%90%E6%9E%9C%E3%82%BB%E3%83%83%E3%83%88%E7%B4%A2%E5%BC%95.json",
+      "kind": "result_index",
+      "version": "confirmed-0.3-step46-all132",
+      "generated_at": "2026-10-12T12:24:16+09:00",
+      "purpose": "9種の最終成果物と付属資料の実在・版・状態・参照を示す。",
+      "status": "complete_in_order",
+      "adopted": true,
+      "refs": [
+        "../../../worklogs/projects/preparation/execution/%E5%AE%9F%E8%A1%8C%E7%AE%A1%E7%90%86.json"
+      ]
+    },
+    {
+      "path": "%E4%BA%8B%E5%89%8D%E6%BA%96%E5%82%99%E5%AE%8C%E4%BA%86%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88.html",
+      "kind": "human_readable_report",
+      "version": "report-0.3-step50-user-waiver",
+      "generated_at": "2026-10-12T12:47:56+09:00",
+      "purpose": "本人採用・132件全分析・成果・実レビュー・制約を記載。STEP50はユーザー指示により完了扱い、実画面・印刷表示は未検証。",
+      "status": "complete_by_user_waiver_visual_unverified",
+      "adopted": false,
+      "refs": [
+        "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+        "../../../docs/specifications/preparation/%E3%82%B8%E3%83%A3%E3%83%B3%E3%83%AB%E3%83%86%E3%83%BC%E3%83%9E%E7%A2%BA%E5%AE%9A.md",
+        "../../../docs/specifications/preparation/%E6%96%87%E5%9E%8B%E3%83%AB%E3%83%BC%E3%83%AB%E7%A2%BA%E5%AE%9A.md",
+        "../../../docs/specifications/preparation/%E6%9C%AC%E6%96%87%E9%95%B7%E3%81%95%E3%82%BF%E3%82%B0%E7%9B%AE%E5%AE%89%E7%A2%BA%E5%AE%9A.json",
+        "%E5%AE%9F%E8%A3%85%E5%8F%97%E9%A0%98%E7%A2%BA%E8%AA%8D.md",
+        "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E7%B7%8F%E5%90%88%E6%A4%9C%E8%A8%BC%E8%A8%98%E9%8C%B2.md",
+        "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/HTML%E6%9C%80%E7%B5%82%E6%A4%9C%E8%A8%BC.md",
+        "../../../worklogs/projects/preparation/execution/%E5%AE%9F%E8%A1%8C%E7%AE%A1%E7%90%86.json",
+        "../../../docs/specifications/preparation/文型ルール確定.md#詳細書き方追補",
+        "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+        "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E5%88%86%E6%9E%90.md",
+        "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E6%B3%A8%E9%87%88%E4%BB%95%E6%A7%98.md",
+        "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E9%81%A9%E7%94%A8%E8%A6%8B%E6%9C%AC.md",
+        "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC.md",
+        "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E7%89%88%E6%9C%80%E7%B5%82%E7%A2%BA%E8%AA%8D.md"
+      ],
+      "time_note": "STEP50のユーザー指示を反映して保存。視覚・印刷確認は未実施。",
+      "detailed_writing_extension": {
+        "version": "report-detailed-writing-candidate-0.1-step69",
+        "generated_at": "2026-10-12T16:26:37+09:00",
+        "status": "final_delivered_candidate_visual_unverified",
+        "adopted": false,
+        "contains": [
+          "full 132-body analysis method",
+          "five pattern writing rules, 17 per pattern",
+          "20 fictional application cases"
+        ],
+        "p05_rule_basis_ids": [
+          "B0002",
+          "B0201",
+          "B0213",
+          "B0235",
+          "B0252"
+        ],
+        "visual_review_status": "unverified_browser_file_protocol_blocked",
+        "content_review_ref": "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E7%89%88%E6%9C%80%E7%B5%82%E7%A2%BA%E8%AA%8D.md",
+        "final_status": "all_71_steps_complete",
+        "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認",
+        "git_delivery": {
+          "branch": "main",
+          "commit": "296ffea",
+          "push_target": "origin/main",
+          "push_status": "success"
+        }
+      }
+    },
+    {
+      "path": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+      "kind": "detailed_writing_rules",
+      "version": "detailed-writing-rules-candidate-0.1-step68",
+      "generated_at": "2026-10-12T16:09:10+09:00",
+      "purpose": "P01～P05の詳細な書き方規則、共通手順、根拠と確認項目。",
+      "status": "reviewed_candidate_not_new_owner_confirmation",
+      "adopted": false,
+      "refs": [
+        "../../../docs/specifications/preparation/文型ルール確定.md#詳細書き方追補",
+        "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB%E5%80%99%E8%A3%9C.md",
+        "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P01.md",
+        "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P02.md",
+        "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P03.md",
+        "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P04.md",
+        "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P05.md",
+        "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC.md"
+      ]
+    }
+  ],
+  "supplemental": [
+    "../../../worklogs/projects/preparation/execution/%E5%AE%9F%E8%A1%8C%E7%AE%A1%E7%90%86.md",
+    "../../../worklogs/projects/preparation/execution/%E5%AE%9F%E8%A1%8C%E7%AE%A1%E7%90%86.json",
+    "../../../worklogs/projects/preparation/execution/%E5%85%A8%E6%96%87%E5%8F%96%E5%BE%97%E8%A8%98%E9%8C%B2.md",
+    "../../../worklogs/projects/preparation/execution/%E5%9F%BA%E7%A4%8E%E5%88%97%E6%8C%99%E8%A8%98%E9%8C%B2.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E7%B5%B1%E5%90%88%E6%A8%99%E6%9C%AC.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/5%E3%82%B8%E3%83%A3%E3%83%B3%E3%83%AB%E5%80%99%E8%A3%9C.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/30%E3%83%86%E3%83%BC%E3%83%9E%E5%80%99%E8%A3%9C.md",
+    "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E3%83%AB%E3%83%BC%E3%83%AB%E5%80%99%E8%A3%9C.md",
+    "%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E7%94%A8%E6%A6%82%E8%A6%81.html",
+    "../../../archive/documents/preparation/%E4%BA%8B%E5%89%8D%E6%BA%96%E5%82%99%E5%AE%8C%E4%BA%86%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88_%E9%A0%86%E5%BA%8F%E5%A4%96%E6%97%A7%E7%89%88.html",
+    "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/HTML%E6%9C%80%E7%B5%82%E6%A4%9C%E8%A8%BC.md",
+    "../../../archive/documents/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/HTML%E6%9C%80%E7%B5%82%E6%A4%9C%E8%A8%BC_%E9%A0%86%E5%BA%8F%E5%A4%96%E6%97%A7%E7%89%88.md",
+    "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+    "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB%E5%80%99%E8%A3%9C.md",
+    "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P01.md",
+    "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P02.md",
+    "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P03.md",
+    "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P04.md",
+    "../../../worklogs/projects/preparation/%E8%A9%B3%E7%B4%B0%E6%9B%B8%E3%81%8D%E6%96%B9/P05.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E5%88%86%E6%9E%90.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E9%9B%86%E8%A8%88.json",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E6%B3%A8%E9%87%88%E4%BB%95%E6%A7%98.md",
+    "../../../worklogs/projects/preparation/%E5%88%86%E6%9E%90/%E6%9B%B8%E3%81%8D%E6%96%B9%E9%81%A9%E7%94%A8%E8%A6%8B%E6%9C%AC.md",
+    "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC.md",
+    "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E7%89%88%E6%9C%80%E7%B5%82%E7%A2%BA%E8%AA%8D.md",
+    "%E5%AE%9F%E8%A3%85%E5%8F%97%E9%A0%98%E7%A2%BA%E8%AA%8D.md"
+  ],
+  "counts": {
+    "candidate_result_rows": 302,
+    "base_full_body_records": 132,
+    "partial_body_records": 1,
+    "preview_only_records": 163,
+    "unavailable_records": 6,
+    "full_body_target_approx": 130,
+    "full_body_target_met": true,
+    "verified_permanent_post_ids": 0,
+    "confirmed_store_item_key_rows": 2,
+    "unknown_product_key_rows": 300,
+    "unique_post_count": null,
+    "unique_product_count": null,
+    "unique_count_note": "恒久投稿IDと商品キーの識別が不足しているため、ユニーク投稿数・独立商品数は不明。本文保存数132件を商品数とみなさない。",
+    "g05_supplement_slots": 50,
+    "g05_supplement_is_separate_cohort": true,
+    "reaction_condition_match": 24,
+    "reaction_condition_unknown": 108,
+    "reaction_condition_exclusions": 0
+  },
+  "detailed_writing_extension": {
+    "version": "detailed-writing-rules-candidate-0.1-step68",
+    "markdown_version": "writing-guide-candidate-0.1-step68",
+    "generated_at": "2026-10-12T16:26:37+09:00",
+    "status": "reviewed_candidate_not_new_owner_confirmation",
+    "adopted": false,
+    "purpose": "P01～P05の17項目詳細ルールと共通生成手順を提供する候補拡張。",
+    "markdown_ref": "../../../docs/specifications/preparation/文型ルール確定.md#詳細書き方追補",
+    "json_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+    "p05_rule_basis_ids": [
+      "B0002",
+      "B0201",
+      "B0213",
+      "B0235",
+      "B0252"
+    ],
+    "review_ref": "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC.md",
+    "html_version": "report-detailed-writing-candidate-0.1-step69",
+    "html_status": "content_reviewed_visual_unverified_step70",
+    "html_generated_at": "2026-10-12T16:18:50+09:00",
+    "content_review_ref": "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E7%89%88%E6%9C%80%E7%B5%82%E7%A2%BA%E8%AA%8D.md",
+    "visual_review_status": "unverified_step50_user_waiver_and_step70_browser_policy",
+    "final_status": "all_71_steps_complete",
+    "receipt_ref": "実装受領確認.md#STEP71-詳細書き方候補の受領確認",
+    "git_delivery": {
+      "branch": "main",
+      "commit": "296ffea",
+      "push_target": "origin/main",
+      "push_status": "success",
+      "private_working_data_staged": false
+    }
+  }
+}

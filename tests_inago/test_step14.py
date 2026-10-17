@@ -38,7 +38,17 @@ from automation.inago.statistics import summarize_metrics
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PREPARATION_ROOT = ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = (
+    ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+)
+DETAIL_RULES_PATH = (
+    ROOT
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
 PRIVATE_TEST_ROOT = ROOT / "非公開作業データ" / "イナゴ実装試験" / "step-14"
 JST = ZoneInfo("Asia/Tokyo")
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
@@ -63,10 +73,8 @@ def metrics_case(tmp_path: Path, fixture_config_path: Path) -> Any:
         fixture_mode=True,
     )
     connection = open_database(paths)
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
-    detailed = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
-    )
+    basic = json.loads((BASIC_SETTINGS_PATH).read_text(encoding="utf-8"))
+    detailed = json.loads((DETAIL_RULES_PATH).read_text(encoding="utf-8"))
     register_external_settings(connection, basic, detailed, created_at=NOW)
     _seed_daily_state(connection)
     case = MetricsCase(
@@ -265,9 +273,11 @@ def _result(
         daily_observations=_daily_rows(observed_at=observed_at, sales_yen=sales_yen),
         orders=order_items,
         order_windows=monthly_counts or (),
-        room_posts=room_posts
-        if room_posts is not None
-        else (_room_row(observed_at=observed_at),),
+        room_posts=(
+            room_posts
+            if room_posts is not None
+            else (_room_row(observed_at=observed_at),)
+        ),
     )
 
 
@@ -648,7 +658,9 @@ def test_unreported_post_time_stays_unknown_when_room_item_is_missing(
     assert json.loads(missing["window"])["post_age_seconds"] is None
 
 
-def test_source_order_and_deadline_budget_are_shared_across_affiliate_then_room() -> None:
+def test_source_order_and_deadline_budget_are_shared_across_affiliate_then_room() -> (
+    None
+):
     clock = FakeClock(datetime.fromisoformat(NOW))
     deadline = datetime.fromisoformat("2026-10-12T18:00:00+09:00")
     calls: list[tuple[str, float]] = []

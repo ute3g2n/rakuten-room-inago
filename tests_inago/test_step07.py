@@ -34,7 +34,8 @@ from automation.inago.statistics import SearchAttempt, summarize_daily
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PREPARATION_ROOT = PROJECT_ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+DETAIL_RULES_PATH = PROJECT_ROOT / "worklogs" / "projects" / "preparation" / "candidates" / "文型詳細ルール.json"
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 DETAILS_VERSION = "detailed-writing-rules-candidate-0.1-step68"
 RUN_ID = "RUN-STEP07"
@@ -51,10 +52,10 @@ def selection_db(tmp_path: Path, fixture_config_path: Path) -> sqlite3.Connectio
     )
     connection = open_database(paths)
     basic = json.loads(
-        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
+        (BASIC_SETTINGS_PATH).read_text(encoding="utf-8")
     )
     details = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
+        (DETAIL_RULES_PATH).read_text(encoding="utf-8")
     )
     register_external_settings(connection, basic, details, created_at=CREATED_AT)
     connection.execute(

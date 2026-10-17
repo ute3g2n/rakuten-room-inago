@@ -46,7 +46,8 @@ from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID
 
 JST = ZoneInfo("Asia/Tokyo")
 ROOT = Path(__file__).resolve().parents[1]
-PREPARATION_ROOT = ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+DETAIL_RULES_PATH = ROOT / "worklogs" / "projects" / "preparation" / "candidates" / "文型詳細ルール.json"
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 DETAILS_VERSION = "detailed-writing-rules-candidate-0.1-step68"
 NOW = "2026-10-12T13:00:00+09:00"
@@ -70,10 +71,10 @@ def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
     )
     connection = open_database(paths)
     basic = json.loads(
-        (PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8")
+        (BASIC_SETTINGS_PATH).read_text(encoding="utf-8")
     )
     details = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
+        (DETAIL_RULES_PATH).read_text(encoding="utf-8")
     )
     register_external_settings(connection, basic, details, created_at=NOW)
     case = RuntimeCase(

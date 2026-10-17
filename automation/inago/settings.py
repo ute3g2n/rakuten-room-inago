@@ -332,7 +332,7 @@ def load_detailed_rules_candidate(
                 f"externalSettings.patterns[{pattern_id}].detailed_rules_ref is invalid"
             )
         detail_pattern = detail_by_id[pattern_id]
-        markdown_ref = f"詳細書き方/{pattern_id}.md"
+        markdown_ref = f"../詳細書き方/{pattern_id}.md"
         if detail_pattern["source_markdown"] != markdown_ref:
             raise SettingsInputError(
                 f"detailedRulesCandidate.patterns[{pattern_id}].source_markdown is inconsistent"
@@ -440,7 +440,7 @@ def _settings_entity(settings: Mapping[str, Any], created_at: str) -> dict[str, 
                 "format": _INITIAL_IMPORT_REASON_FORMAT,
                 "reason": "Register the adopted external analysis result as settings.",
                 "source": {
-                    "settings_path": "plan/イナゴスキル事前準備/初期設定引渡し.json",
+                    "settings_path": "docs/specifications/preparation/初期設定引渡し.json",
                     "result_index_ref": settings["result_index_ref"]["path"],
                     "confirmation_ref": settings["confirmation_ref"],
                 },

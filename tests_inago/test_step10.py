@@ -30,7 +30,17 @@ from automation.inago.trends_adapter import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_CONFIG = PROJECT_ROOT / "tests_inago" / "config" / "fixture.json"
-PREPARATION_ROOT = PROJECT_ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = (
+    PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+)
+DETAIL_RULES_PATH = (
+    PROJECT_ROOT
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 FETCHED_AT = "2026-10-12T13:01:00+09:00"
 
@@ -99,10 +109,8 @@ def make_session(payload: dict[str, Any], parent: str = "揚げ物"):
 def seed_daily_run(connection: sqlite3.Connection) -> None:
     from automation.inago.settings import register_external_settings
 
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
-    detailed = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
-    )
+    basic = json.loads((BASIC_SETTINGS_PATH).read_text(encoding="utf-8"))
+    detailed = json.loads((DETAIL_RULES_PATH).read_text(encoding="utf-8"))
     register_external_settings(
         connection,
         basic,
@@ -217,7 +225,9 @@ def test_nfkc_whitespace_duplicates_keep_raw_variants_and_original_ranks() -> No
     assert all(set(item) == {"word_id", "term"} for item in payload["words"])
 
 
-def test_key_decisions_accept_only_the_observed_ids_and_exact_classification_fields() -> None:
+def test_key_decisions_accept_only_the_observed_ids_and_exact_classification_fields() -> (
+    None
+):
     _, _, snapshot = make_session(
         snapshot_payload(
             words=[
@@ -350,7 +360,9 @@ def test_second_level_cap_and_seven_three_candidates_are_not_padded() -> None:
     assert choose_keyword(three, seed="seed-C", context="level-2") in three
 
 
-def test_successful_zero_is_distinct_from_failure_and_failure_stops_without_reuse() -> None:
+def test_successful_zero_is_distinct_from_failure_and_failure_stops_without_reuse() -> (
+    None
+):
     zero_session, zero_port, zero = make_session(snapshot_payload(words=[]))
     assert zero.status == "observed"
     assert zero.words == ()
@@ -387,7 +399,9 @@ def test_successful_zero_is_distinct_from_failure_and_failure_stops_without_reus
     assert len(zero_port.requests) == 1
 
 
-def test_parent_scoped_indices_are_not_combined_and_same_parent_is_not_refetched() -> None:
+def test_parent_scoped_indices_are_not_combined_and_same_parent_is_not_refetched() -> (
+    None
+):
     response_a = snapshot_payload(
         request_id="request-a",
         snapshot_id="snapshot-a",
@@ -585,7 +599,9 @@ const rejected = validateTrendsSnapshot(input.stale, expected);
 process.stdout.write(JSON.stringify({{accepted, rejected}}));
 """
     good = snapshot_payload(words=[make_word("w-1", "唐揚げ", 1)])
-    stale = snapshot_payload(current_parent="古い親語", words=[make_word("old", "古い語", 1)])
+    stale = snapshot_payload(
+        current_parent="古い親語", words=[make_word("old", "古い語", 1)]
+    )
 
     result = subprocess.run(
         [node, "--input-type=module", "--eval", script],

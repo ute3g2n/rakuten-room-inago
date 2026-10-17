@@ -6,6 +6,7 @@ their current paths and projects relative links against the proposed destination
 
 from __future__ import annotations
 
+import base64
 import csv
 import json
 import posixpath
@@ -24,7 +25,7 @@ BASELINE = ROOT / "非公開作業データ/イナゴ実装試験/maintenance-20
 PROPOSAL = ROOT / "docs/architecture/文書整理と日次自動不具合対応の構成案_2026-10-17.html"
 MANIFEST = ROOT / "worklogs/projects/maintenance/移行manifest.csv"
 INDEX = ROOT / "docs/document-index.json"
-PRIVATE_EVIDENCE = ROOT / "非公開作業データ/イナゴ実装試験/maintenance-20261017/U03"
+PRIVATE_EVIDENCE = ROOT / "非公開作業データ/イナゴ実装試験/maintenance-20261017/U04"
 
 MANIFEST_FIELDS = [
     "document_id",
@@ -95,15 +96,39 @@ TEXT_EXTENSIONS = {
 }
 ROOT_RELATIVE_PREFIXES = (
     "archive/",
+    "automation/",
     "docs/",
     "plan/",
     "plans/",
+    "rakuten-room-inago/",
     "reports/",
     "tests_inago/",
     "tools/",
     "worklogs/",
     "非公開作業データ/",
 )
+HISTORICAL_PATH_EXCEPTIONS = {
+    (
+        "DOC-0059",
+        "json_inputs",
+        "plan/イナゴスキル事前準備/補足検索計画.md",
+    ),
+    (
+        "DOC-0059",
+        "json_inputs",
+        "plan/イナゴスキル事前準備/補足検索計画.json",
+    ),
+    (
+        "DOC-0059",
+        "json_review_ref",
+        "plan/イナゴスキル事前準備/レビュー/反例点検.md",
+    ),
+    (
+        "DOC-0059",
+        "json_review_ref",
+        "plan/イナゴスキル事前準備/レビュー/文型目安レビュー.md",
+    ),
+}
 KNOWN_FILE_EXTENSIONS = {
     ".bat", ".cfg", ".cmd", ".css", ".csv", ".db", ".html", ".htm", ".ini",
     ".jpg", ".jpeg", ".js", ".json", ".log", ".md", ".mjs", ".pdf", ".png",
@@ -344,12 +369,34 @@ def read_manifest() -> list[dict[str, str]]:
         return bootstrap_manifest()
     if any(field not in rows[0] for field in MANIFEST_FIELDS):
         raise ValueError("Existing migration manifest has an invalid schema")
-    for row in rows:
-        if row["lifecycle_class"] != "future":
-            row["lifecycle_class"] = lifecycle_for_path(
-                row["role"], row["current_path"], row["scope_note"]
-            )
     return rows
+
+
+def validate_manifest_paths(rows: list[dict[str, str]]) -> None:
+    """Reject unsafe paths before any manifest-derived filesystem access."""
+    root = ROOT.resolve()
+    for row in rows:
+        for field in ("source_path", "current_path", "planned_destination"):
+            value = row.get(field, "")
+            if not value:
+                continue
+            path = PurePosixPath(value)
+            if (
+                "\\" in value
+                or "\x00" in value
+                or path.is_absolute()
+                or ".." in path.parts
+                or re.match(r"^[A-Za-z]:", value)
+                or not value.startswith(ROOT_RELATIVE_PREFIXES)
+            ):
+                raise ValueError(f"Unsafe manifest path in {field}: {row.get('document_id', 'unknown')}")
+            resolved = (ROOT / Path(*path.parts)).resolve(strict=False)
+            try:
+                resolved.relative_to(root)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Manifest path escapes repository in {field}: {row.get('document_id', 'unknown')}"
+                ) from exc
 
 
 def write_manifest(rows: list[dict[str, str]]) -> None:
@@ -422,7 +469,10 @@ def extract_references(path: str, text: str) -> list[dict[str, str | int]]:
         parser = LinkParser()
         parser.feed(text)
         found.extend(parser.items)
-        if path == "plan/イナゴ戦略/イナゴスキル要件定義書.html":
+        if path in {
+            "plan/イナゴ戦略/イナゴスキル要件定義書.html",
+            "docs/specifications/inago/イナゴスキル要件定義書.html",
+        }:
             for script_id, raw_json, start_line in parser.embedded_json:
                 if script_id != "requirements-source":
                     continue
@@ -497,15 +547,22 @@ def extract_references(path: str, text: str) -> list[dict[str, str | int]]:
             visit(payload)
     if suffix in {".py", ".js", ".mjs", ".ps1", ".bat", ".cmd", ".toml", ".yaml", ".yml", ".ini", ".cfg"}:
         lines = text.splitlines()
+        output_variables = program_output_variables(text)
         for match in CODE_PATH_RE.finditer(text):
             target = match.group(1) or match.group(2)
             line_number = text.count("\n", 0, match.start()) + 1
             line_text = lines[line_number - 1] if line_number <= len(lines) else ""
-            kind = program_path_kind(line_text)
+            kind = (
+                "program_output_path"
+                if program_output_assignment(text, line_number, output_variables)
+                else program_path_kind(line_text)
+            )
             found.append((kind, target, line_number))
         for match in CONFIG_PATH_RE.finditer(text):
             line_number = text.count("\n", 0, match.start()) + 1
             line_text = lines[line_number - 1] if line_number <= len(lines) else ""
+            if "vm.runInNewContext" in line_text and re.search(r"\bfilename\s*[:=]", line_text):
+                continue
             found.append((program_path_kind(line_text), match.group(1), line_number))
     return [
         {"kind": kind, "target": target, "line": line}
@@ -551,6 +608,32 @@ def program_path_kind(line_text: str) -> str:
     return "program_path"
 
 
+def program_output_variables(text: str) -> set[str]:
+    """Find URL variables later passed to file-writing APIs in review scripts."""
+    assignments = re.compile(
+        r"(?:const|let|var)\s+([\w$]+)\s*=\s*(?:fileURLToPath\(\s*)?new\s+URL\("
+    )
+    output_call = re.compile(r"\b(?:writeFile\w*|saveAs|screenshot|copyFile|page\.pdf)\s*\(")
+    output_positions = [match.start() for match in output_call.finditer(text)]
+    variables: set[str] = set()
+    for match in assignments.finditer(text):
+        name = match.group(1)
+        for start in output_positions:
+            tail = text[start : text.find("\n", start) if "\n" in text[start:] else len(text)]
+            if re.search(rf"\b{re.escape(name)}\b", tail):
+                variables.add(name)
+                break
+    return variables
+
+
+def program_output_assignment(text: str, line_number: int, output_variables: set[str]) -> bool:
+    lines = text.splitlines()
+    if not 1 <= line_number <= len(lines):
+        return False
+    match = re.search(r"(?:const|let|var)\s+([\w$]+)\s*=", lines[line_number - 1])
+    return bool(match and match.group(1) in output_variables)
+
+
 def program_resolution_base(source_path: str, text: str, line_number: int, target: str) -> str | None:
     """Resolve simple new URL(path, baseVar) references without guessing other runtime roots."""
     lines = text.splitlines()
@@ -559,12 +642,37 @@ def program_resolution_base(source_path: str, text: str, line_number: int, targe
     current_dir = posixpath.dirname(source_path)
     base_variables: dict[str, str] = {}
     declaration = re.compile(
-        r"(?:const|let|var)\s+([\w$]+)\s*=\s*new\s+URL\(\s*(['\"])(.*?)\2\s*,\s*import\.meta\.url\s*\)"
+        r"(?:const|let|var)\s+([\w$]+)\s*=\s*new\s+URL\(\s*(['\"])(.*?)\2\s*,\s*([\w$.]+)\s*,?\s*\)",
     )
-    for match in declaration.finditer(text):
-        base_variables[match.group(1)] = posixpath.normpath(
-            posixpath.join(current_dir, unquote(match.group(3)))
-        )
+    alias = re.compile(r"(?:const|let|var)\s+([\w$]+)\s*=\s*([\w$]+)\s*;")
+
+    def collect_url_bases(module_text: str, module_dir: str) -> dict[str, str]:
+        variables: dict[str, str] = {}
+        declarations = list(declaration.finditer(module_text))
+        aliases = list(alias.finditer(module_text))
+        for _ in range(len(declarations) + len(aliases) + 1):
+            changed = False
+            for match in declarations:
+                name, relative_ref, base_name = match.group(1), match.group(3), match.group(4)
+                if base_name == "import.meta.url":
+                    resolved = posixpath.normpath(posixpath.join(module_dir, unquote(relative_ref)))
+                elif base_name in variables:
+                    resolved = posixpath.normpath(posixpath.join(variables[base_name], unquote(relative_ref)))
+                else:
+                    continue
+                if variables.get(name) != resolved:
+                    variables[name] = resolved
+                    changed = True
+            for match in aliases:
+                name, source_name = match.group(1), match.group(2)
+                if source_name in variables and variables.get(name) != variables[source_name]:
+                    variables[name] = variables[source_name]
+                    changed = True
+            if not changed:
+                break
+        return variables
+
+    base_variables.update(collect_url_bases(text, current_dir))
 
     # Some legacy generation scripts import a base URL from document-source.mjs.
     for imported in re.finditer(r"import\s*\{([^}]+)\}\s*from\s*['\"]([^'\"]+)['\"]", text):
@@ -575,10 +683,7 @@ def program_resolution_base(source_path: str, text: str, line_number: int, targe
             continue
         module_text = module_file.read_text(encoding="utf-8", errors="replace")
         module_dir = posixpath.dirname(module_path)
-        for declaration_match in declaration.finditer(module_text):
-            base_variables[declaration_match.group(1)] = posixpath.normpath(
-                posixpath.join(module_dir, unquote(declaration_match.group(3)))
-            )
+        base_variables.update(collect_url_bases(module_text, module_dir))
 
     line = lines[line_number - 1]
     url_call = re.search(
@@ -587,8 +692,6 @@ def program_resolution_base(source_path: str, text: str, line_number: int, targe
     if not url_call or url_call.group(2) != target:
         return None
     base_name = url_call.group(3)
-    if base_name == "import.meta.url":
-        return current_dir
     return base_variables.get(base_name)
 
 
@@ -643,12 +746,25 @@ def safe_resolution(
 
     decoded = unquote(parsed.path).replace("\\", "/")
     if (
+        source_path.startswith("tests_inago/")
+        and kind == "program_path"
+        and decoded in {"product-ledger.json", "post-status.json", "drafts.json"}
+    ):
+        return {"status": "generated_output", "reason_code": "test_temporary_runtime_file"}
+    if (
         decoded.startswith("/")
         and (kind.startswith("json_") or kind.startswith("program_"))
         and not decoded.lstrip("/").startswith(ROOT_RELATIVE_PREFIXES)
     ):
         return {"status": "external_absolute", "reason_code": "absolute_path_from_other_environment"}
-    if decoded.startswith("/"):
+    if (
+        kind.startswith("program_")
+        and source_path.startswith("tests_inago/")
+        and decoded.startswith("./")
+        and decoded[2:].startswith(("automation/", "rakuten-room-inago/"))
+    ):
+        candidate = posixpath.normpath(decoded[2:])
+    elif decoded.startswith("/"):
         candidate = posixpath.normpath(decoded.lstrip("/"))
     elif (
         kind.startswith("program_") or kind.startswith("json_")
@@ -805,56 +921,110 @@ def resolve_document_id(document_id: str, records_by_id: dict[str, dict[str, str
 
 def main() -> int:
     manifest = read_manifest()
-    expected_manifest = bootstrap_manifest()
-    expected_by_id = {row["document_id"]: row for row in expected_manifest}
-    for row in manifest:
-        expected = expected_by_id.get(row["document_id"])
-        if expected is None or any(row[field] != expected[field] for field in MANIFEST_FIELDS):
-            raise ValueError(f"Manifest/catalog drift for {row['document_id']}")
-    if {row["document_id"] for row in manifest} != set(expected_by_id):
-        raise ValueError("Manifest document IDs differ from the U01/A/U02 inventory")
+    validate_manifest_paths(manifest)
     docs = [row for row in manifest if row["lifecycle_class"] != "future"]
     future = [row for row in manifest if row["lifecycle_class"] == "future"]
-    if len(docs) != 397 or len(future) != 1:
-        raise ValueError(f"Expected 397 current records and 1 future entry, got {len(docs)} and {len(future)}")
+    if future:
+        raise ValueError("U04 must promote all planned README entries before indexing")
+    if len(docs) != 405:
+        raise ValueError(f"Expected 405 current documents after U04, got {len(docs)}")
+    if any(row["current_path"] != row["planned_destination"] for row in docs):
+        raise ValueError("U04 manifest current_path must equal planned_destination after migration")
 
-    ids = [row["document_id"] for row in manifest]
+    catalog = read_catalog()
+    proposal_path = relative_path(PROPOSAL.relative_to(ROOT).as_posix())
+    u02_source_paths = {relative_path(row[1]) for row in U02_ADDITIONS}
+    expected_original_sources = set(catalog) | {proposal_path} | u02_source_paths
+    original_rows = [row for row in docs if row["added_in"] in {"U01", "U02"}]
+    actual_original_sources = {row["source_path"] for row in original_rows}
+    if actual_original_sources != expected_original_sources:
+        raise ValueError("Original U01/A/U02 source inventory differs from the approved manifest")
+    if len([row for row in original_rows if row["added_in"] == "U01"]) != 394:
+        raise ValueError("U01 source inventory must remain 394 documents")
+    if len([row for row in original_rows if row["added_in"] == "U02"]) != 3:
+        raise ValueError("U02 source inventory must remain three documents")
+    if len([row for row in docs if row["added_in"] == "U04"]) != 8:
+        raise ValueError("U04 must contain the eight approved README entry points")
+
+    by_source = {row["source_path"]: row for row in original_rows if row["source_path"]}
+    for row in original_rows:
+        if row["added_in"] == "U02":
+            expected = next(dest for doc_id, source, dest, _role in U02_ADDITIONS if doc_id == row["document_id"])
+        elif row["source_path"] == proposal_path:
+            expected = proposal_path
+        else:
+            expected = relative_path(catalog[row["source_path"]]["destination"])
+        if row["planned_destination"] != expected:
+            raise ValueError(f"Approved destination changed for {row['document_id']}")
+    added_ids = {row["document_id"] for row in docs if row["added_in"] == "U04"}
+    expected_added_ids = {"FUTURE-README-001", *(f"DOC-{i:04d}" for i in range(398, 405))}
+    if added_ids != expected_added_ids:
+        raise ValueError("U04 README document IDs differ from the approved stable set")
+    for row in docs:
+        if row["added_in"] == "U04" and (row["source_path"] or row["current_path"] != row["planned_destination"]):
+            raise ValueError(f"Invalid U04-created document row: {row['document_id']}")
+
+    ids = [row["document_id"] for row in docs]
     current_paths = [row["current_path"] for row in docs]
-    target_paths = [row["planned_destination"] for row in manifest]
-    if len(ids) != len(set(ids)):
-        raise ValueError("Duplicate document IDs")
-    if len(current_paths) != len(set(current_paths)):
-        raise ValueError("Duplicate current paths")
+    target_paths = [row["planned_destination"] for row in docs]
+    if len(ids) != len(set(ids)) or len(current_paths) != len(set(current_paths)):
+        raise ValueError("Document IDs or current paths collide")
     if len(target_paths) != len(set(target_paths)):
-        raise ValueError("Duplicate planned destinations")
-    actual_paths = enumerate_current_paths()
-    if set(current_paths) != actual_paths:
-        missing = sorted(set(current_paths) - actual_paths)
-        extra = sorted(actual_paths - set(current_paths))
-        raise ValueError(f"Current file set mismatch; missing={missing[:10]}, extra={extra[:10]}")
+        raise ValueError("Planned destinations collide")
+    repo_rows = [row for row in docs if row["visibility"] == "repository"]
+    local_rows = [row for row in docs if row["visibility"] == "local_only"]
+    if len(local_rows) != 3 or len(repo_rows) != 402:
+        raise ValueError("Repository/local-only inventory counts changed")
+    missing_repo = [row["document_id"] for row in repo_rows if not (ROOT / row["current_path"]).is_file()]
+    if missing_repo:
+        raise FileNotFoundError(f"Repository destinations missing for {len(missing_repo)} document IDs")
 
-    for row in docs:
-        if not (ROOT / row["current_path"]).is_file():
-            raise FileNotFoundError(f"Manifest source is missing: {row['current_path']}")
-    for row in future:
-        if (ROOT / row["planned_destination"]).exists():
-            raise ValueError(f"Future document path is already occupied: {row['planned_destination']}")
-
+    # Local-only rows are resolved in the manifest but need not be present in this managed worktree.
     current_by_path = {row["current_path"]: row for row in docs}
-    planned_by_path = {row["planned_destination"]: row for row in manifest}
-    control_by_path = {relative_path(path): doc_id for doc_id, path in CONTROL_SOURCES}
-    records_by_id = {row["document_id"]: row for row in manifest}
-    tracked = git_tracked_paths()
-    for row in docs:
-        if row["visibility"] == "repository" and row["added_in"] == "U02":
-            row["git_state"] = "tracked" if row["current_path"] in tracked else "untracked"
+    planned_by_path = {row["planned_destination"]: row for row in docs}
+    records_by_id = {row["document_id"]: row for row in docs}
 
-    all_scan_sources = [(row["document_id"], row["current_path"], row) for row in docs]
+    control_sources = list(CONTROL_SOURCES)
+    known_control_paths = {relative_path(path) for _doc_id, path in control_sources}
+    for root_name, source_prefix in (("automation/inago", "SRC-AUTOMATION"), ("tests_inago", "SRC-TESTS")):
+        control_root = ROOT / root_name
+        for path in sorted(control_root.rglob("*.py")):
+            rel = relative_path(path.relative_to(ROOT).as_posix())
+            if rel in known_control_paths:
+                continue
+            source_id = source_prefix + "-" + re.sub(r"[^A-Za-z0-9]+", "-", rel).strip("-").upper()
+            control_sources.append((source_id, rel))
+            known_control_paths.add(rel)
+    control_ids = [doc_id for doc_id, _path in control_sources]
+    if len(control_ids) != len(set(control_ids)):
+        raise ValueError("Control source IDs collide")
+    control_by_path = {relative_path(path): doc_id for doc_id, path in control_sources}
+
+    q_row = next(row for row in docs if row["document_id"] == "DOC-0370")
+    q_html = (ROOT / q_row["current_path"]).read_text(encoding="utf-8")
+    q_match = re.search(
+        r'<script id="requirements-source" type="application/json">([\s\S]*?)</script>',
+        q_html,
+    )
+    if not q_match:
+        raise ValueError("Canonical Q HTML has no requirements-source snapshot")
+    q_data = json.loads(q_match.group(1))
+    q_attachment_ids = q_data.get("referenceDocumentIds", {})
+    q_references = q_data.get("references", {})
+    if not isinstance(q_attachment_ids, dict) or not isinstance(q_references, dict):
+        raise ValueError("Canonical Q attachment map is invalid")
+
+    all_scan_sources: list[tuple[str, str, dict[str, str] | None]] = []
+    for row in docs:
+        path = ROOT / row["current_path"]
+        if row["visibility"] == "repository" or path.is_file():
+            all_scan_sources.append((row["document_id"], row["current_path"], row))
     all_scan_sources.extend(
         (doc_id, path, None)
-        for doc_id, path in CONTROL_SOURCES
+        for doc_id, path in control_sources
         if (ROOT / path).is_file() and path not in current_by_path
     )
+
     references: list[dict[str, object]] = []
     private_references: list[dict[str, object]] = []
     counts_by_doc: Counter[str] = Counter()
@@ -863,36 +1033,52 @@ def main() -> int:
         if extension(source_path) not in TEXT_EXTENSIONS:
             continue
         try:
-            text = file_path.read_text(encoding="utf-8")
+            source_text = file_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        for item in extract_references(source_path, text):
+        for item in extract_references(source_path, source_text):
             kind = str(item["kind"])
+            target = str(item["target"])
+            line = int(item["line"])
             resolution_base = None
             if kind.startswith("program_") and kind not in {"program_output_path", "program_cleanup_path"}:
-                resolution_base = program_resolution_base(
-                    source_path, text, int(item["line"]), str(item["target"])
+                resolution_base = program_resolution_base(source_path, source_text, line, target)
+
+            if kind == "embedded_document" and source_id == q_row["document_id"]:
+                target_id = q_attachment_ids.get(target)
+                if target_id in records_by_id:
+                    resolved: dict[str, object] = {
+                        "status": "resolved_current",
+                        "reason_code": "stable_attachment_document_id",
+                        "target_document_id": target_id,
+                    }
+                else:
+                    resolved = {"status": "unresolved_current", "reason_code": "attachment_id_missing"}
+            else:
+                resolved = safe_resolution(
+                    source_path,
+                    kind,
+                    target,
+                    current_by_path,
+                    planned_by_path,
+                    control_by_path,
+                    resolution_base,
                 )
-            resolved = safe_resolution(
-                source_path,
-                kind,
-                str(item["target"]),
-                current_by_path,
-                planned_by_path,
-                control_by_path,
-                resolution_base,
-            )
-            target_record = None
+                exception_key = (source_id, kind, unquote(urlsplit(target).path))
+                if exception_key in HISTORICAL_PATH_EXCEPTIONS:
+                    resolved = {
+                        "status": "historical_unresolved",
+                        "reason_code": "historical_execution_path_preserved",
+                    }
             target_id = resolved.get("target_document_id")
-            if target_id:
-                target_record = next((row for row in manifest if row["document_id"] == target_id), None)
+            target_record = records_by_id.get(str(target_id)) if target_id else None
             status = str(resolved["status"])
             if source_record and source_record["lifecycle_class"] == "historical" and status == "unresolved_current":
                 status = "historical_unresolved"
             projected = project_reference(
                 source_path,
                 kind,
-                str(item["target"]),
+                target,
                 source_record,
                 target_record,
                 resolved,
@@ -916,23 +1102,19 @@ def main() -> int:
             record = {
                 "source_id": source_id,
                 "source_path": source_path,
-                "line": int(item["line"]),
+                "line": line,
                 "kind": kind,
                 "status": status,
                 "reason_code": resolved["reason_code"],
                 "target_document_id": target_id,
                 "projected_reference": projected,
                 "projection_status": projection_status,
-                "percent_encoded": "%" in str(item["target"]),
-                "query_present": bool(urlsplit(str(item["target"])).query),
+                "percent_encoded": "%" in target,
+                "query_present": bool(urlsplit(target).query),
             }
             references.append(record)
             private_references.append(
-                {
-                    **record,
-                    "target_path": urlsplit(str(item["target"])).path,
-                    "resolution_base": resolution_base,
-                }
+                {**record, "target_path": urlsplit(target).path, "resolution_base": resolution_base}
             )
             counts_by_doc[source_id] += 1
 
@@ -943,7 +1125,7 @@ def main() -> int:
         target_id = row["target_document_id"]
         if not projected or not target_id or target_id not in records_by_id:
             continue
-        target_record = records_by_id[target_id]
+        target_record = records_by_id[str(target_id)]
         source_record = source_by_id.get(str(row["source_id"]))
         source_destination = (
             source_record["planned_destination"]
@@ -991,29 +1173,16 @@ def main() -> int:
         }
         for row in references
     ]
-    target_occupants: dict[str, list[str]] = {}
-    for row in docs:
-        target_occupants.setdefault(row["planned_destination"], []).append(row["document_id"])
-    occupied_destinations = []
-    for destination in sorted(set(target_occupants) & set(current_paths)):
-        owners = [row["document_id"] for row in docs if row["current_path"] == destination]
-        planned_owner = target_occupants[destination]
-        if owners and set(owners) != set(planned_owner):
-            occupied_destinations.append(
-                {
-                    "destination": destination,
-                    "current_occupants": owners,
-                    "planned_owners": planned_owner,
-                    "vacated_by_plan": all(
-                        next(row for row in docs if row["document_id"] == owner)["planned_destination"]
-                        != destination
-                        for owner in owners
-                    ),
-                }
-            )
-    hard_collisions = [
-        row for row in occupied_destinations if not row["vacated_by_plan"]
+
+    legacy_sources_remaining = [
+        row["document_id"]
+        for row in docs
+        if row["source_path"]
+        and row["source_path"] != row["current_path"]
+        and (ROOT / row["source_path"]).exists()
     ]
+    if legacy_sources_remaining:
+        raise ValueError(f"Old repository sources remain for {len(legacy_sources_remaining)} document IDs")
 
     status_counts = Counter(str(row["status"]) for row in references)
     role_counts = Counter(row["role"] for row in docs)
@@ -1031,21 +1200,18 @@ def main() -> int:
         for row in docs
         if "%" in row["current_path"]
     ]
-    if len(percent_path_records) != 1:
-        raise ValueError(f"Expected one percent-encoded literal source path, got {len(percent_path_records)}")
-    percent_path = percent_path_records[0]
-    if percent_path["one_decode_exists"]:
-        raise ValueError("Percent-encoded literal path aliases a decoded filesystem path")
+    if len(percent_path_records) != 1 or percent_path_records[0]["one_decode_exists"]:
+        raise ValueError("The literal percent-character path must remain distinct from a decoded path")
 
     known_id_result = resolve_document_id("DOC-0395", records_by_id)
     legacy_id_result = resolve_document_id("DOC-0390", records_by_id)
-    future_id_result = resolve_document_id("FUTURE-README-001", records_by_id)
+    docs_readme_result = resolve_document_id("FUTURE-README-001", records_by_id)
     valid_destinations: list[str] = []
     invalid_destinations: list[dict[str, str]] = []
     for row in manifest:
         try:
-            resolved_id = resolve_document_id(row["document_id"], records_by_id)
-            valid_destinations.append(resolved_id["path"])
+            result = resolve_document_id(row["document_id"], records_by_id)
+            valid_destinations.append(result["path"])
         except (KeyError, ValueError) as exc:
             invalid_destinations.append({"document_id": row["document_id"], "error": str(exc)})
     try:
@@ -1069,112 +1235,135 @@ def main() -> int:
         "docs/README.md", "markdown_link", "..%5C..%5Coutside%5Csecret.md",
         current_by_path, planned_by_path, control_by_path,
     )
+
+    expected_repo_paths = {row["current_path"] for row in repo_rows}
+    actual_repo_paths = {row["current_path"] for row in repo_rows if (ROOT / row["current_path"]).is_file()}
+    proposal_in_manifest = any(row["current_path"] == proposal_path for row in docs)
+    source_set_matches = actual_original_sources == expected_original_sources
     c01_cases = {
-        "u01_394_present": {
+        "u01_original_inventory": {
             "expected": 394,
-            "actual": len(read_baseline()),
-            "status": "PASS" if len(read_baseline()) == 394 else "FAIL",
+            "actual": len([row for row in original_rows if row["added_in"] == "U01"]),
+            "status": "PASS" if len([row for row in original_rows if row["added_in"] == "U01"]) == 394 else "FAIL",
         },
-        "a_393_entries_plus_a_self": {
-            "expected": 393,
-            "actual": len(read_catalog()),
-            "a_self_added_by_manifest": any(row["current_path"] == relative_path(PROPOSAL.relative_to(ROOT).as_posix()) for row in docs),
-            "status": "PASS" if len(read_catalog()) == 393 and any(row["current_path"] == relative_path(PROPOSAL.relative_to(ROOT).as_posix()) for row in docs) else "FAIL",
+        "a_inventory_plus_proposal": {
+            "expected_a_entries": 393,
+            "actual_a_entries": len(catalog),
+            "proposal_document_present": proposal_in_manifest,
+            "status": "PASS" if len(catalog) == 393 and proposal_in_manifest else "FAIL",
         },
-        "u02_three_additions": {
+        "u02_increment": {
             "expected": 3,
-            "actual": sum(row["added_in"] == "U02" for row in docs),
-            "status": "PASS" if sum(row["added_in"] == "U02" for row in docs) == 3 else "FAIL",
+            "actual": len([row for row in docs if row["added_in"] == "U02"]),
+            "status": "PASS" if len([row for row in docs if row["added_in"] == "U02"]) == 3 else "FAIL",
         },
-        "complete_current_file_set": {
-            "expected": 397,
-            "actual": len(docs),
-            "file_set_matches": set(current_paths) == actual_paths,
-            "status": "PASS" if len(docs) == 397 and set(current_paths) == actual_paths else "FAIL",
+        "u04_readme_entries": {
+            "expected": 8,
+            "actual": len([row for row in docs if row["added_in"] == "U04"]),
+            "future_docs_readme_current": docs_readme_result["status"] == "current",
+            "status": "PASS" if len([row for row in docs if row["added_in"] == "U04"]) == 8 and docs_readme_result["status"] == "current" else "FAIL",
+        },
+        "current_document_set": {
+            "expected_documents": 405,
+            "actual_documents": len(docs),
+            "repository_files_expected": len(expected_repo_paths),
+            "repository_files_present": len(actual_repo_paths),
+            "repository_file_set_matches": expected_repo_paths == actual_repo_paths,
+            "local_only_documents": len(local_rows),
+            "original_source_inventory_matches": source_set_matches,
+            "old_repository_sources_remaining": len(legacy_sources_remaining),
+            "status": "PASS" if len(docs) == 405 and expected_repo_paths == actual_repo_paths and len(local_rows) == 3 and source_set_matches and not legacy_sources_remaining else "FAIL",
         },
         "unique_ids_and_destinations": {
             "unique_ids": len(set(ids)),
             "all_ids": len(ids),
             "unique_destinations": len(set(target_paths)),
             "all_destinations": len(target_paths),
-            "hard_collisions": len(hard_collisions),
-            "status": "PASS" if len(set(ids)) == len(ids) and len(set(target_paths)) == len(target_paths) and not hard_collisions else "FAIL",
+            "status": "PASS" if len(set(ids)) == len(ids) and len(set(target_paths)) == len(target_paths) else "FAIL",
         },
     }
-    c02_allowed_statuses = {
-        "anchor_resolved", "anchor_unverified", "cleanup_target", "embedded", "external",
-        "external_absolute", "external_dependency", "generated_output", "historical_unresolved",
-        "private_unavailable", "reference_group", "resolved_control", "resolved_current",
-        "resolved_current_anchor", "resolved_directory", "resolved_non_public", "resolved_private", "resolved_unindexed",
-        "unresolved_current", "unsafe_path", "empty_target", "planned_future",
-    }
-    unclassified = [row for row in references if str(row["status"]) not in c02_allowed_statuses]
-    active_unresolved = [row for row in private_references if row["status"] == "unresolved_current"]
-    q_source_id = next(
-        row["document_id"]
-        for row in docs
-        if row["current_path"] == "plan/イナゴ戦略/イナゴスキル要件定義書.html"
-    )
+    c01_status = "PASS" if all(case["status"] == "PASS" for case in c01_cases.values()) else "FAIL"
+
     q_embedded_references = [
         row for row in private_references
-        if row["source_id"] == q_source_id and row["kind"] == "embedded_document"
+        if row["source_id"] == q_row["document_id"] and row["kind"] == "embedded_document"
     ]
-    q_embedded_mapped = [
-        row for row in q_embedded_references
-        if (target := current_by_path.get(
-            posixpath.normpath(posixpath.join("plan/イナゴ戦略", str(row["target_path"])))
-        )) is not None
-        and row["target_document_id"] == target["document_id"]
-    ]
+    q_embedded_mapped = [row for row in q_embedded_references if row["target_document_id"] in records_by_id]
+    attachment_checks = []
+    if set(q_references) != set(q_attachment_ids):
+        attachment_checks.append({"status": "FAIL", "reason": "attachment_keys_do_not_match_id_map"})
+    attachment_id_values = list(q_attachment_ids.values())
+    q_attachment_ids_unique = (
+        len(q_attachment_ids) == 26
+        and all(isinstance(document_id, str) for document_id in attachment_id_values)
+        and len(set(attachment_id_values)) == 26
+    )
+    if not q_attachment_ids_unique:
+        attachment_checks.append({"status": "FAIL", "reason": "attachment_document_ids_not_unique"})
+    for name, doc_id in q_attachment_ids.items():
+        row = records_by_id.get(doc_id)
+        if row is None or row["visibility"] != "repository":
+            attachment_checks.append({"status": "FAIL", "reason": "attachment_document_id_invalid"})
+            continue
+        try:
+            encoded_matches = base64.b64decode(q_references[name], validate=True) == (ROOT / row["current_path"]).read_bytes()
+        except (KeyError, OSError, ValueError):
+            encoded_matches = False
+        attachment_checks.append({"status": "PASS" if encoded_matches else "FAIL", "document_id": doc_id})
+    q_attachments_status = (
+        "PASS"
+        if len(q_embedded_references) == 26
+        and len(q_embedded_mapped) == 26
+        and q_attachment_ids_unique
+        and len(attachment_checks) == 26
+        and all(check["status"] == "PASS" for check in attachment_checks)
+        else "FAIL"
+    )
+
     json_occurrences: dict[tuple[str, str, str], list[int]] = {}
     json_occurrence_ids: dict[tuple[str, str, str], str] = {}
     for row in private_references:
         if extension(str(row["source_path"])) != ".json" or not str(row["kind"]).startswith("json_"):
             continue
-        occurrence_key = (str(row["source_path"]), str(row["kind"]), str(row["target_path"]))
-        json_occurrences.setdefault(occurrence_key, []).append(int(row["line"]))
-        json_occurrence_ids[occurrence_key] = str(row["source_id"])
+        key = (str(row["source_path"]), str(row["kind"]), str(row["target_path"]))
+        json_occurrences.setdefault(key, []).append(int(row["line"]))
+        json_occurrence_ids[key] = str(row["source_id"])
     repeated_json_occurrences = [
-        {
-            "source_id": json_occurrence_ids[key],
-            "source_path": key[0],
-            "kind": key[1],
-            "target_path": key[2],
-            "lines": sorted(lines),
-        }
+        {"source_id": json_occurrence_ids[key], "source_path": key[0], "kind": key[1], "target_path": key[2], "lines": sorted(lines)}
         for key, lines in json_occurrences.items()
         if len(set(lines)) > 1
     ]
+    c02_allowed_statuses = {
+        "anchor_resolved", "anchor_unverified", "cleanup_target", "embedded", "external",
+        "external_absolute", "external_dependency", "generated_output", "historical_unresolved",
+        "private_unavailable", "reference_group", "resolved_control", "resolved_current",
+        "resolved_current_anchor", "resolved_directory", "resolved_non_public", "resolved_private",
+        "resolved_unindexed", "unresolved_current", "unsafe_path", "empty_target", "planned_future",
+    }
+    unclassified = [row for row in references if str(row["status"]) not in c02_allowed_statuses]
+    active_unresolved = [row for row in private_references if row["status"] == "unresolved_current"]
+    c02_status = (
+        "PASS"
+        if not unclassified and not active_unresolved and len(repeated_json_occurrences) > 0 and q_attachments_status == "PASS"
+        else "FAIL"
+    )
     c02 = {
-        "status": (
-            "PASS_CLASSIFICATION_WITH_U04_FOLLOWUP"
-            if not unclassified
-            and len(q_embedded_references) == 26
-            and len(q_embedded_mapped) == 26
-            and repeated_json_occurrences
-            else "FAIL_UNCLASSIFIED_OR_Q_EMBEDDED_MAPPING"
-        ),
+        "status": c02_status,
         "references_extracted": len(references),
         "q_embedded_markdown_references": len(q_embedded_references),
         "q_embedded_markdown_mapped_to_document_ids": len(q_embedded_mapped),
+        "q_embedded_content_matches_current_documents": q_attachments_status,
         "json_same_target_occurrences_with_distinct_lines": len(repeated_json_occurrences),
-        "json_occurrence_line_samples": repeated_json_occurrences[:5],
         "status_counts": dict(sorted(status_counts.items())),
         "unclassified_count": len(unclassified),
         "current_unresolved_count": len(active_unresolved),
         "current_unresolved": [
-            {
-                "source_id": row["source_id"],
-                "source_path": row["source_path"],
-                "line": row["line"],
-                "kind": row["kind"],
-                "target_path": row["target_path"],
-                "action": "U04で現行参照の修正または意図しない参照の除去を判断",
-            }
+            {"source_id": row["source_id"], "source_path": row["source_path"], "line": row["line"], "kind": row["kind"], "target_path": row["target_path"]}
             for row in active_unresolved
         ],
-        "interpretation": "U03は全参照の分類とU04引継ぎを確認。移行後の現用参照解消はU04の受入で再確認する。",
+        "q_attachment_checks": attachment_checks,
     }
+
     c05_cases = {
         "known_u02_id": {
             "input": "DOC-0395",
@@ -1188,49 +1377,34 @@ def main() -> int:
             "actual": legacy_id_result["path"],
             "status": "PASS" if legacy_id_result["path"] == "docs/specifications/inago/要件追跡表.md" else "FAIL",
         },
-        "future_readme_id": {
+        "promoted_docs_readme_id": {
             "input": "FUTURE-README-001",
             "expected": "docs/README.md",
-            "actual": future_id_result["path"],
-            "status": "PASS" if future_id_result["path"] == "docs/README.md" and future_id_result["status"] == "future" else "FAIL",
+            "actual": docs_readme_result["path"],
+            "status": "PASS" if docs_readme_result["path"] == "docs/README.md" and docs_readme_result["status"] == "current" else "FAIL",
         },
-        "unknown_id_rejected": {
-            "input": "DOC-9999",
-            "expected": "explicit KeyError",
-            "actual": "rejected" if unknown_id_rejected else "accepted",
-            "status": "PASS" if unknown_id_rejected else "FAIL",
-        },
-        "root_escape_rejected": {
-            "input": "../../outside/secret.md",
-            "expected": "unsafe_path",
-            "actual": traversal_result["status"],
-            "status": "PASS" if traversal_result["status"] == "unsafe_path" else "FAIL",
-        },
-        "encoded_separator_root_escape_rejected": {
-            "input": "..%5C..%5Coutside%5Csecret.md",
-            "expected": "unsafe_path",
-            "actual": encoded_traversal_result["status"],
-            "status": "PASS" if encoded_traversal_result["status"] == "unsafe_path" else "FAIL",
-        },
-        "all_planned_destinations_safe": {
+        "unknown_id_rejected": {"status": "PASS" if unknown_id_rejected else "FAIL"},
+        "root_escape_rejected": {"status": "PASS" if traversal_result["status"] == "unsafe_path" else "FAIL"},
+        "encoded_separator_root_escape_rejected": {"status": "PASS" if encoded_traversal_result["status"] == "unsafe_path" else "FAIL"},
+        "unsafe_destination_rejected": {"status": "PASS" if unsafe_destination_rejected else "FAIL"},
+        "all_destinations_safe": {
             "expected": len(manifest),
             "actual": len(valid_destinations),
-            "invalid_destinations": invalid_destinations,
+            "invalid_count": len(invalid_destinations),
             "status": "PASS" if len(valid_destinations) == len(manifest) and not invalid_destinations else "FAIL",
         },
-        "unsafe_index_destination_rejected": {
-            "input": "../../outside/file.md",
-            "expected": "explicit ValueError",
-            "actual": "rejected" if unsafe_destination_rejected else "accepted",
-            "status": "PASS" if unsafe_destination_rejected else "FAIL",
-        },
     }
-    c01_status = "PASS" if all(case["status"] == "PASS" for case in c01_cases.values()) else "FAIL"
     c05_status = "PASS" if all(case["status"] == "PASS" for case in c05_cases.values()) else "FAIL"
 
     for row in docs:
         row["extension"] = extension(row["current_path"])
-        row["bytes"] = (ROOT / row["current_path"]).stat().st_size
+        current_file = ROOT / row["current_path"]
+        if current_file.is_file():
+            row["bytes"] = current_file.stat().st_size
+        else:
+            old_index = json.loads(INDEX.read_text(encoding="utf-8")) if INDEX.is_file() else {"documents": []}
+            old_doc = next((item for item in old_index["documents"] if item["document_id"] == row["document_id"]), None)
+            row["bytes"] = old_doc.get("bytes", 0) if old_doc else 0
         row["reference_count"] = counts_by_doc[row["document_id"]]
 
     index = {
@@ -1241,96 +1415,69 @@ def main() -> int:
         "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
         "source_inventory": {
             "u01_baseline": 394,
-            "a_proposal_entries": 393,
+            "a_proposal_entries": len(catalog),
             "u02_increment": 3,
+            "u04_readme_entries": 8,
             "indexed_current_documents": len(docs),
-            "future_documents": len(future),
+            "future_documents": 0,
             "generated_index_is_self_excluded": True,
             "roles": dict(sorted(role_counts.items())),
             "lifecycle_classes": dict(sorted(lifecycle_counts.items())),
             "visibility": dict(sorted(visibility_counts.items())),
         },
         "documents": docs,
-        "future_documents": [
-            {
-                "document_id": row["document_id"],
-                "planned_path": row["planned_destination"],
-                "role": row["role"],
-                "reason": row["scope_note"],
-            }
-            for row in future
-        ],
-        "control_sources": [
-            {"source_id": doc_id, "path": path}
-            for doc_id, path in CONTROL_SOURCES
-        ],
+        "future_documents": [],
+        "control_sources": [{"source_id": doc_id, "path": path} for doc_id, path in control_sources],
         "references": public_references,
         "reference_summary": {
             "count": len(references),
             "status_counts": dict(sorted(status_counts.items())),
-            "occupied_destination_dependencies": occupied_destinations,
+            "occupied_destination_dependencies": [],
             "percent_encoded_literal_paths": percent_path_records,
         },
         "mapping_rules": [
-            "Document IDs are stable and are assigned from the U01 inventory; U02 additions use DOC-0395..0397.",
+            "Stable document IDs and original source_path values are preserved; current_path follows the completed U04 destinations.",
             "Filesystem source paths are literal POSIX-relative paths. Percent characters in a source filename are not decoded.",
             "URL paths are percent-decoded exactly once for resolution; literal percent characters in a URL must be encoded as %25.",
-            "Relative links are resolved from the referencing file directory. Program Path('plan/...') constants are repository-root relative.",
-            "Known current references map by document ID to planned destinations. Unknown IDs, root escapes, unresolved links, and external URLs are never rewritten automatically.",
-            "When both source and target move, projected relative links are calculated from their planned destinations and URL-encoded once.",
-            "Historical source documents retain their original path facts; broken historical references are labelled historical_unresolved.",
-            "Program output and cleanup paths are classified by operation context. A relocated base variable requires a manual rebase and has no guessed projected path.",
-            "docs/README.md is a future U04 entry point. U03 does not create or move documents.",
+            "Relative links resolve from current_path; known references are checked against document IDs and current destinations.",
+            "Program output and cleanup paths remain distinct from input links and are rebased in their owning generator.",
+            "Historical JSON evidence and prose retain their original path facts; only navigation links are updated in historical documents.",
+            "The former future docs/README.md ID is current, and U04 adds seven additional README entry points.",
+            "The canonical requirements HTML refreshes embedded Markdown by referenceDocumentIds and document-index current_path; old Markdown is never imported.",
+            "Four references in DOC-0059 are preserved historical execution paths and are classified as historical exceptions, not current inputs.",
         ],
     }
-
-    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    if not MANIFEST.exists():
-        write_manifest(manifest)
-    else:
-        write_manifest(manifest)
     INDEX.parent.mkdir(parents=True, exist_ok=True)
     INDEX.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     PRIVATE_EVIDENCE.mkdir(parents=True, exist_ok=True)
     (PRIVATE_EVIDENCE / "reference-detail.json").write_text(
-        json.dumps(private_references, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
+        json.dumps(private_references, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
-
     summary = {
-        "status": (
-            "PASS_WITH_FOLLOWUP"
-            if c01_status == "PASS" and c02["status"] == "PASS_CLASSIFICATION_WITH_U04_FOLLOWUP" and c05_status == "PASS" and active_unresolved
-            else "PASS"
-            if c01_status == "PASS" and c02["status"] == "PASS_CLASSIFICATION_WITH_U04_FOLLOWUP" and c05_status == "PASS"
-            else "FAIL"
-        ),
-        "u03_acceptance": "PASS" if c01_status == "PASS" and c02["status"] == "PASS_CLASSIFICATION_WITH_U04_FOLLOWUP" and c05_status == "PASS" else "FAIL",
+        "status": "PASS" if c01_status == c02_status == c05_status == "PASS" else "FAIL",
         "cases": {"C01": {"status": c01_status, "checks": c01_cases}, "C02": c02, "C05": {"status": c05_status, "checks": c05_cases}},
         "baseline_count": 394,
-        "proposal_count": 393,
+        "proposal_count": len(catalog),
         "u02_increment": 3,
+        "u04_readmes": 8,
         "indexed_documents": len(docs),
-        "future_documents": len(future),
-        "unique_document_ids": len(set(ids)),
-        "unique_current_paths": len(set(current_paths)),
-        "unique_planned_destinations": len(set(target_paths)),
-        "current_file_set_matches": set(current_paths) == actual_paths,
+        "repository_documents": len(repo_rows),
+        "local_only_documents": len(local_rows),
+        "future_documents": 0,
         "reference_count": len(references),
         "reference_status_counts": dict(sorted(status_counts.items())),
-        "occupied_destination_dependencies": occupied_destinations,
-        "unresolved_destination_collisions": hard_collisions,
-        "percent_encoded_literal_paths": percent_path_records,
-        "collect_or_pytest": "not run; U03 uses read-only static checks",
+        "unclassified_count": len(unclassified),
+        "current_unresolved_count": len(active_unresolved),
+        "q_embedded_documents": len(q_embedded_mapped),
+        "q_embedded_content_matches": q_attachments_status,
+        "old_repository_sources_remaining": len(legacy_sources_remaining),
+        "collect_or_pytest": "not run; U04 uses static inventory/reference checks",
     }
     (PRIVATE_EVIDENCE / "static-validation.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
-    return 0 if summary["status"] in {"PASS", "PASS_WITH_FOLLOWUP"} else 1
+    print(json.dumps({key: value for key, value in summary.items() if key != "reference_status_counts"} | {"reference_status_counts": dict(sorted(status_counts.items()))}, ensure_ascii=False, indent=2))
+    return 0 if summary["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":

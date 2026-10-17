@@ -1,0 +1,97 @@
+{
+  "version": "confirmed-0.3-step46-all132",
+  "generated_at": "2026-10-12T12:15:19+09:00",
+  "status": "confirmed",
+  "adopted": true,
+  "confirmed_at": null,
+  "confirmed_at_note": "本人回答の受領時刻は個別に記録されていない。",
+  "confirmation_ref": "../../../reports/projects/preparation/%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+  "basis": {
+    "cohort": "base_full_bodies",
+    "observations": 132,
+    "reaction_status": {
+      "match": 24,
+      "unknown": 108,
+      "excluded": 0,
+      "used_as_filter": false
+    },
+    "source_candidates": [
+      "../../../worklogs/projects/preparation/分析/本文長さ提案.json#candidate-0.4-step37-all132",
+      "../../../worklogs/projects/preparation/分析/タグ方針提案.json#candidate-0.4-step38-all132"
+    ]
+  },
+  "body_length": {
+    "unit": "Unicode code points",
+    "scope": "本文からURL文字列と#タグトークンを除いた範囲",
+    "normalization": "CRLF/CRをLFに統一。その他の空白、改行、句読点を保持。",
+    "observed_distribution": {
+      "n": 132,
+      "min": 37,
+      "q1": 150.25,
+      "median": 235.5,
+      "mean": 231.45454545,
+      "q3": 296.25,
+      "max": 483
+    },
+    "adopted_guidance": {
+      "minimum": 150,
+      "maximum": 300,
+      "unit": "Unicode code points",
+      "mandatory": false,
+      "purpose": "執筆時の任意参考。四分位点を必須下限・上限に変換しない。"
+    },
+    "exceptions": [
+      "短くても伝わる本文を許容する。",
+      "必要な確認済み情報があれば300コードポイントを超えてよい。",
+      "長さだけを理由に商品・本文を保留せず、情報を水増ししたり切り捨てたりしない。"
+    ],
+    "within_guidance": {
+      "observations": 68,
+      "denominator": 132,
+      "percentage": 51.52,
+      "interpretation": "記述値であり合格率ではない。"
+    },
+    "analysis_ref": "../../../worklogs/projects/preparation/分析/本文長さ提案.json#candidate-0.4-step37-all132"
+  },
+  "tag_guidance": {
+    "unit": "ASCII # hashtag token occurrences per post body",
+    "counting_rule": "URL断片識別子を除いたうえで、空白区切りのASCII #開始トークンを数える。完全一致表記の重複判定は観測記述用。",
+    "observed_distribution": {
+      "n": 132,
+      "min": 0,
+      "q1": 4.75,
+      "median": 9.0,
+      "mean": 9.5530303,
+      "q3": 12.0,
+      "max": 57
+    },
+    "total_occurrences": 1261,
+    "distinct_exact_tag_strings": 927,
+    "observations_with_tags": 124,
+    "observations_without_tags": 8,
+    "position_counts": {
+      "mixed": 45,
+      "none": 8,
+      "terminal": 79
+    },
+    "adopted_guidance": {
+      "minimum": 5,
+      "maximum": 12,
+      "unit": "hashtag tokens per post",
+      "mandatory": false,
+      "purpose": "関連タグの任意初期参考。関連性を数より優先する。"
+    },
+    "within_guidance": {
+      "observations": 69,
+      "denominator": 132,
+      "percentage": 52.27,
+      "interpretation": "記述値であり合格率ではない。"
+    },
+    "exceptions": [
+      "タグなし、5個未満、12個超を許容する。",
+      "数を合わせるために無関係なタグや未確認事実を示すタグを追加しない。",
+      "タグ数・不足だけを理由に商品・本文を保留しない。"
+    ],
+    "analysis_ref": "../../../worklogs/projects/preparation/分析/タグ方針提案.json#candidate-0.4-step38-all132"
+  }
+}

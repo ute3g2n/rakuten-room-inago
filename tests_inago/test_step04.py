@@ -22,9 +22,18 @@ from automation.inago.settings import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-INPUT_ROOT = PROJECT_ROOT / "plan" / "イナゴスキル事前準備"
-BASIC_PATH = INPUT_ROOT / "初期設定引渡し.json"
-DETAIL_PATH = INPUT_ROOT / "文型詳細ルール.json"
+BASIC_PATH = PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+DETAIL_PATH = (
+    PROJECT_ROOT
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
+REVIEW_ROOT = (
+    PROJECT_ROOT / "worklogs" / "projects" / "preparation" / "レビュー"
+)
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 DETAILS_VERSION = "detailed-writing-rules-candidate-0.1-step68"
 CREATED_AT = "2026-10-12T20:00:00+09:00"
@@ -164,7 +173,7 @@ def test_registers_adopted_basic_settings_without_enabling_detailed_candidate(
     import_record = json.loads(row["change_reason"])
     assert import_record["format"] == "inago-settings-import-v1"
     assert import_record["source"] == {
-        "settings_path": "plan/イナゴスキル事前準備/初期設定引渡し.json",
+        "settings_path": "docs/specifications/preparation/初期設定引渡し.json",
         "result_index_ref": "結果セット索引.json",
         "confirmation_ref": "本人確認記録.md",
     }
@@ -839,15 +848,15 @@ def test_candidate_markdown_references_resolve_to_all_85_pattern_rules(
     _basic, detailed = settings_inputs
 
     for pattern in detailed["patterns"]:
-        markdown_path = INPUT_ROOT / pattern["source_markdown"]
+        markdown_path = DETAIL_PATH.parent / pattern["source_markdown"]
         markdown = markdown_path.read_text(encoding="utf-8")
         rules = pattern["rules"]
         assert len(rules) == 17
         for rule in rules:
             assert f"### {rule['rule_id']} " in markdown
 
-    review = (INPUT_ROOT / "レビュー" / "書き方詳細レビュー.md").read_text(encoding="utf-8")
-    final_check = (INPUT_ROOT / "レビュー" / "書き方詳細版最終確認.md").read_text(encoding="utf-8")
+    review = (REVIEW_ROOT / "書き方詳細レビュー.md").read_text(encoding="utf-8")
+    final_check = (REVIEW_ROOT / "書き方詳細版最終確認.md").read_text(encoding="utf-8")
     assert "F66-01" in review
     assert DETAILS_VERSION in final_check
     assert "adopted=false" in final_check

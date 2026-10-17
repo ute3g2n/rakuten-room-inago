@@ -1,0 +1,947 @@
+{
+  "artifact_kind": "external_analysis_result",
+  "version": "confirmed-0.3-step46-all132",
+  "generated_at": "2026-10-12T12:21:27+09:00",
+  "status": "confirmed",
+  "adopted": true,
+  "confirmed_at": null,
+  "confirmed_at_note": "本人回答の受領時刻は個別に記録されていない。",
+  "confirmation_ref": "../../../reports/projects/preparation/%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md",
+  "source_requirement": {
+    "path": "../inago/%E3%82%A4%E3%83%8A%E3%82%B4%E3%82%B9%E3%82%AD%E3%83%AB%E8%A6%81%E4%BB%B6%E5%AE%9A%E7%BE%A9%E6%9B%B8.html",
+    "version": "1.3",
+    "chapters": [
+      "5",
+      "6",
+      "7",
+      "16",
+      "27"
+    ]
+  },
+  "source_candidate_versions": {
+    "classification": "candidate-0.4-step34-reviewed",
+    "patterns": "candidate-0.3-step35-all132",
+    "body_length": "candidate-0.4-step37-all132",
+    "tags": "candidate-0.4-step38-all132",
+    "owner_confirmation": "candidate-0.3-step43-all132"
+  },
+  "analysis_basis": {
+    "base_full_body_observations": 132,
+    "reaction_condition_status": {
+      "match": 24,
+      "unknown": 108,
+      "exclusions": 0,
+      "used_as_filter": false
+    },
+    "supplement_observations": 50,
+    "supplement_is_separate_cohort": true
+  },
+  "genres": [
+    {
+      "genre_id": "G01",
+      "name": "食品・飲料",
+      "definition": "人が食べる食品・飲料を、主な食品カテゴリと摂取用途で整理する候補。",
+      "body_observation_count": 44,
+      "denominator": 132
+    },
+    {
+      "genre_id": "G02",
+      "name": "美容・セルフケア",
+      "definition": "人の美容・身だしなみ、日常的な身体ケア、休息・ウェルネスを補助する商品を整理する候補。医療判断や効能承認を意味しない。",
+      "body_observation_count": 23,
+      "denominator": 132
+    },
+    {
+      "genre_id": "G03",
+      "name": "ファッション・身だしなみ",
+      "definition": "人が身に着ける衣服・履物・バッグ・装身具と、服装に関わる小物を整理する候補。",
+      "body_observation_count": 31,
+      "denominator": 132
+    },
+    {
+      "genre_id": "G04",
+      "name": "住まい・暮らし",
+      "definition": "住居の環境づくり、調理・食卓、掃除・洗濯、収納、生活設備、防災・一般的な住居安全に使う商品を整理する候補。",
+      "body_observation_count": 48,
+      "denominator": 132
+    },
+    {
+      "genre_id": "G05",
+      "name": "子ども・ペット用品",
+      "definition": "子ども・乳幼児またはペットを主な利用者とする育児・遊び・移動安全・食事・ケア・見守り商品を整理する候補。外出や贈答などの利用文脈だけでは独立ジャンルとしない。",
+      "body_observation_count": 20,
+      "denominator": 132
+    }
+  ],
+  "themes": [
+    {
+      "theme_id": "G01-T01",
+      "genre_id": "G01",
+      "name": "菓子・スイーツ",
+      "definition": "菓子、チョコ、ケーキ、焼き菓子など、そのまま楽しむ甘味食品。",
+      "included_examples": [
+        "菓子、チョコ、ケーキ、焼き菓子など、そのまま楽しむ甘味食品。"
+      ],
+      "boundary_examples": [
+        "主食、調味料、飲料、健康補助食品はそれぞれ該当テーマへ。"
+      ],
+      "evidence_refs": [
+        "B0001",
+        "B0195",
+        "B0208",
+        "B0216",
+        "B0221",
+        "B0227",
+        "B0236",
+        "B0248",
+        "B0253",
+        "B0256",
+        "B0271",
+        "B0272",
+        "B0277",
+        "B0298",
+        "B0299",
+        "B0315"
+      ],
+      "material_count": 16,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G01-T02",
+      "genre_id": "G01",
+      "name": "主食・麺・パン",
+      "definition": "米・パン・麺・シリアル等、食事の主な炭水化物となる食品。",
+      "included_examples": [
+        "米・パン・麺・シリアル等、食事の主な炭水化物となる食品。"
+      ],
+      "boundary_examples": [
+        "菓子、調味料、単体飲料は除く。"
+      ],
+      "evidence_refs": [
+        "B0198",
+        "B0201",
+        "B0202",
+        "B0206",
+        "B0218",
+        "B0243",
+        "B0251",
+        "B0267",
+        "B0271",
+        "B0288",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0304",
+        "B0305",
+        "B0317"
+      ],
+      "material_count": 16,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G01-T03",
+      "genre_id": "G01",
+      "name": "肉・魚・たんぱく食材",
+      "definition": "肉、魚介、卵、豆腐等、主菜となる生鮮・加工食品。",
+      "included_examples": [
+        "肉、魚介、卵、豆腐等、主菜となる生鮮・加工食品。"
+      ],
+      "boundary_examples": [
+        "完成した調味料や一般サプリは除く。"
+      ],
+      "evidence_refs": [
+        "B0202",
+        "B0206",
+        "B0294",
+        "B0296",
+        "B0301"
+      ],
+      "material_count": 5,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G01-T04",
+      "genre_id": "G01",
+      "name": "青果・植物性食品",
+      "definition": "野菜、果物、海藻、植物由来の素材食品。",
+      "included_examples": [
+        "野菜、果物、海藻、植物由来の素材食品。"
+      ],
+      "boundary_examples": [
+        "それらを含む菓子・加工済み主食は主用途を優先。"
+      ],
+      "evidence_refs": [
+        "B0258",
+        "B0302"
+      ],
+      "material_count": 2,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G01-T05",
+      "genre_id": "G01",
+      "name": "調味料・加工食品・惣菜",
+      "definition": "調味料、レトルト、冷凍食品、惣菜、保存食など、味付け・調理を助ける食品。",
+      "included_examples": [
+        "調味料、レトルト、冷凍食品、惣菜、保存食など、味付け・調理を助ける食品。"
+      ],
+      "boundary_examples": [
+        "器具や調理家電はG04。主食・菓子として単独で扱う商品は各テーマへ。"
+      ],
+      "evidence_refs": [
+        "B0198",
+        "B0207",
+        "B0267",
+        "B0293",
+        "B0296",
+        "B0300",
+        "B0302",
+        "B0305"
+      ],
+      "material_count": 8,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G01-T06",
+      "genre_id": "G01",
+      "name": "飲料・茶・酒",
+      "definition": "水、茶、コーヒー、清涼飲料、酒類、飲料用商品。",
+      "included_examples": [
+        "水、茶、コーヒー、清涼飲料、酒類、飲料用商品。"
+      ],
+      "boundary_examples": [
+        "飲料を作る器具はG04。医薬品や効能訴求は扱わない。"
+      ],
+      "evidence_refs": [
+        "B0228",
+        "B0245",
+        "B0256",
+        "B0258",
+        "B0287",
+        "B0293"
+      ],
+      "material_count": 6,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T01",
+      "genre_id": "G02",
+      "name": "スキンケア",
+      "definition": "洗顔、化粧水、乳液、保湿、クレンジング等の肌用化粧品。",
+      "included_examples": [
+        "洗顔、化粧水、乳液、保湿、クレンジング等の肌用化粧品。"
+      ],
+      "boundary_examples": [
+        "メイク色材、ボディ専用品、美容家電は各テーマへ。効能を独自に断定しない。"
+      ],
+      "evidence_refs": [
+        "B0223",
+        "B0248",
+        "B0286",
+        "B0306"
+      ],
+      "material_count": 4,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T02",
+      "genre_id": "G02",
+      "name": "メイクアップ",
+      "definition": "ファンデーション、ポイントメイク、化粧用色材・仕上げ用品。",
+      "included_examples": [
+        "ファンデーション、ポイントメイク、化粧用色材・仕上げ用品。"
+      ],
+      "boundary_examples": [
+        "基礎化粧品、衣類・装身具は除く。"
+      ],
+      "evidence_refs": [
+        "B0223",
+        "B0263",
+        "B0264",
+        "B0282",
+        "B0286",
+        "B0291",
+        "B0313"
+      ],
+      "material_count": 7,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T03",
+      "genre_id": "G02",
+      "name": "ヘアケア",
+      "definition": "シャンプー、トリートメント、整髪料、ヘアオイル、頭皮用ブラシ等。",
+      "included_examples": [
+        "シャンプー、トリートメント、整髪料、ヘアオイル、頭皮用ブラシ等。"
+      ],
+      "boundary_examples": [
+        "一般家電はG04。頭皮・発毛などの効果を補わない。"
+      ],
+      "evidence_refs": [
+        "B0209",
+        "B0224",
+        "B0307"
+      ],
+      "material_count": 3,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T04",
+      "genre_id": "G02",
+      "name": "ボディ・セルフケア",
+      "definition": "ボディ・ハンドケア、入浴・身だしなみ用の非医療商品。",
+      "included_examples": [
+        "ボディ・ハンドケア、入浴・身だしなみ用の非医療商品。"
+      ],
+      "boundary_examples": [
+        "医薬品・疾病治療を主目的とする商品はこの分類だけで適格としない。"
+      ],
+      "evidence_refs": [
+        "B0002",
+        "B0235"
+      ],
+      "material_count": 2,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T05",
+      "genre_id": "G02",
+      "name": "ウェルネス・休息",
+      "definition": "睡眠・リラックス・日常ケアに使う商品候補。",
+      "included_examples": [
+        "睡眠・リラックス・日常ケアに使う商品候補。"
+      ],
+      "boundary_examples": [
+        "病気の予防・治療、身体変化を保証する区分ではない。食品は食品カテゴリを主分類。"
+      ],
+      "evidence_refs": [
+        "B0003",
+        "B0200",
+        "B0225",
+        "B0237",
+        "B0240",
+        "B0280",
+        "B0282",
+        "B0292"
+      ],
+      "material_count": 8,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G02-T06",
+      "genre_id": "G02",
+      "name": "美容ツール・器具",
+      "definition": "美容用途を主目的とする器具、ブラシ、セルフケア用ツール。",
+      "included_examples": [
+        "美容用途を主目的とする器具、ブラシ、セルフケア用ツール。"
+      ],
+      "boundary_examples": [
+        "一般家電・清掃用品はG04。商品適格性は別判定。"
+      ],
+      "evidence_refs": [
+        "B0307"
+      ],
+      "material_count": 1,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T01",
+      "genre_id": "G03",
+      "name": "衣服・アウター",
+      "definition": "大人向けの衣服、トップス、ボトムス、アウター等。",
+      "included_examples": [
+        "大人向けの衣服、トップス、ボトムス、アウター等。"
+      ],
+      "boundary_examples": [
+        "下着・靴は別テーマ。帽子・装身具はG03-T05。子ども向け衣料はG03-T06。"
+      ],
+      "evidence_refs": [
+        "B0217",
+        "B0226",
+        "B0231",
+        "B0317"
+      ],
+      "material_count": 4,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T02",
+      "genre_id": "G03",
+      "name": "下着・靴下",
+      "definition": "肌着、ブラトップ、ショーツ、靴下、ルームウェアの下着類。",
+      "included_examples": [
+        "肌着、ブラトップ、ショーツ、靴下、ルームウェアの下着類。"
+      ],
+      "boundary_examples": [
+        "一般衣料・履物は別テーマ。"
+      ],
+      "evidence_refs": [
+        "B0003",
+        "B0205",
+        "B0219",
+        "B0225",
+        "B0237",
+        "B0280"
+      ],
+      "material_count": 6,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T03",
+      "genre_id": "G03",
+      "name": "靴・履物",
+      "definition": "スニーカー、靴、サンダル、スリッパ等の履物。",
+      "included_examples": [
+        "スニーカー、靴、サンダル、スリッパ等の履物。"
+      ],
+      "boundary_examples": [
+        "履物に付属する装飾小物は用途で主分類を選ぶ。"
+      ],
+      "evidence_refs": [
+        "B0003",
+        "B0215",
+        "B0219",
+        "B0237",
+        "B0257",
+        "B0275",
+        "B0280",
+        "B0285",
+        "B0308"
+      ],
+      "material_count": 9,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T04",
+      "genre_id": "G03",
+      "name": "バッグ・身の回り小物",
+      "definition": "バッグ、財布、ポーチ、ハンカチ等の携行・身の回り品。",
+      "included_examples": [
+        "バッグ、財布、ポーチ、ハンカチ等の携行・身の回り品。"
+      ],
+      "boundary_examples": [
+        "衣服、装身具、室内収納用品は除く。"
+      ],
+      "evidence_refs": [
+        "B0212",
+        "B0270",
+        "B0282",
+        "B0291",
+        "B0297"
+      ],
+      "material_count": 5,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T05",
+      "genre_id": "G03",
+      "name": "帽子・アクセサリー・装身具",
+      "definition": "アクセサリー、ジュエリー、帽子、ヘアアクセサリー等、身につける小物。",
+      "included_examples": [
+        "アクセサリー、ジュエリー、帽子、ヘアアクセサリー等、身につける小物。"
+      ],
+      "boundary_examples": [
+        "美容施術器具や生活収納品は除く。"
+      ],
+      "evidence_refs": [
+        "B0002",
+        "B0193",
+        "B0199",
+        "B0210",
+        "B0219",
+        "B0235",
+        "B0244",
+        "B0246",
+        "B0260",
+        "B0261"
+      ],
+      "material_count": 10,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G03-T06",
+      "genre_id": "G03",
+      "name": "キッズ衣料",
+      "definition": "子ども用の衣服、帽子、靴など身に着ける商品。",
+      "included_examples": [
+        "子ども用の衣服、帽子、靴など身に着ける商品。"
+      ],
+      "boundary_examples": [
+        "乳幼児の授乳・育児用品はG05-T01。"
+      ],
+      "evidence_refs": [
+        "B0317"
+      ],
+      "material_count": 1,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T01",
+      "genre_id": "G04",
+      "name": "調理・キッチン道具",
+      "definition": "調理器具、鍋、保存・計量・下ごしらえ用品など。",
+      "included_examples": [
+        "調理器具、鍋、保存・計量・下ごしらえ用品など。"
+      ],
+      "boundary_examples": [
+        "食品はG01。食卓で使う食器はG04-T02。"
+      ],
+      "evidence_refs": [
+        "B0189",
+        "B0196",
+        "B0222",
+        "B0241",
+        "B0243",
+        "B0251",
+        "B0282",
+        "B0284",
+        "B0301"
+      ],
+      "material_count": 9,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T02",
+      "genre_id": "G04",
+      "name": "食器・食卓用品",
+      "definition": "食器、グラス、カトラリー、食卓用具。",
+      "included_examples": [
+        "食器、グラス、カトラリー、食卓用具。"
+      ],
+      "boundary_examples": [
+        "食品・調理器具・装飾主体の家具は別テーマ。"
+      ],
+      "evidence_refs": [
+        "B0191",
+        "B0196",
+        "B0222",
+        "B0248",
+        "B0259",
+        "B0264",
+        "B0265",
+        "B0282",
+        "B0284",
+        "B0287",
+        "B0298",
+        "B0303"
+      ],
+      "material_count": 12,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T03",
+      "genre_id": "G04",
+      "name": "掃除・洗濯・日用品",
+      "definition": "洗剤、香り付け用品、掃除用具、洗濯用品、日常消耗品。",
+      "included_examples": [
+        "洗剤、香り付け用品、掃除用具、洗濯用品、日常消耗品。"
+      ],
+      "boundary_examples": [
+        "化粧品・食品・衣料品は各ジャンルへ。"
+      ],
+      "evidence_refs": [
+        "B0224",
+        "B0243",
+        "B0255",
+        "B0279",
+        "B0282"
+      ],
+      "material_count": 5,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T04",
+      "genre_id": "G04",
+      "name": "寝具・タオル・ファブリック",
+      "definition": "毛布、シーツ、タオル、寝具や布製の生活用品。",
+      "included_examples": [
+        "毛布、シーツ、タオル、寝具や布製の生活用品。"
+      ],
+      "boundary_examples": [
+        "衣服・持ち歩き用ハンカチはG03-T04。"
+      ],
+      "evidence_refs": [
+        "B0200",
+        "B0229",
+        "B0240",
+        "B0252",
+        "B0282",
+        "B0297",
+        "B0314"
+      ],
+      "material_count": 7,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T05",
+      "genre_id": "G04",
+      "name": "収納・インテリア",
+      "definition": "収納ボックス、ワゴン、室内装飾、家具・整理用品。",
+      "included_examples": [
+        "収納ボックス、ワゴン、室内装飾、家具・整理用品。"
+      ],
+      "boundary_examples": [
+        "災害安全機能が主役の商品はG04-T06。"
+      ],
+      "evidence_refs": [
+        "B0191",
+        "B0213",
+        "B0224",
+        "B0241",
+        "B0243",
+        "B0247",
+        "B0255",
+        "B0261"
+      ],
+      "material_count": 8,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G04-T06",
+      "genre_id": "G04",
+      "name": "生活家電・照明",
+      "definition": "家庭で使う電気式の生活機器と室内照明。",
+      "included_examples": [
+        "炭酸水メーカー等の家庭用機器、生活用ライト。"
+      ],
+      "boundary_examples": [
+        "耐火ポーチ等の防災用品は商品機能に応じて別テーマとし、家電の根拠に混ぜない。"
+      ],
+      "evidence_refs": [
+        "B0228",
+        "B0268"
+      ],
+      "material_count": 2,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T01",
+      "genre_id": "G05",
+      "name": "ベビー・マタニティ",
+      "definition": "妊娠・出産・授乳・乳幼児期のケアや育児用品。",
+      "included_examples": [
+        "妊娠・出産・授乳・乳幼児期のケアや育児用品。"
+      ],
+      "boundary_examples": [
+        "子どもが身に着ける一般衣料はG03-T06。"
+      ],
+      "evidence_refs": [
+        "B0259",
+        "B0266",
+        "B0283",
+        "B0303"
+      ],
+      "material_count": 4,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T02",
+      "genre_id": "G05",
+      "name": "おもちゃ・学び",
+      "definition": "遊具、知育・学習用品、玩具・ブロック等。",
+      "included_examples": [
+        "遊具、知育・学習用品、玩具・ブロック等。"
+      ],
+      "boundary_examples": [
+        "一般家電はG04。大人向け趣味用品はG05の範囲外。子どもの移動・車載安全用品はG05-T05。"
+      ],
+      "evidence_refs": [
+        "B0211",
+        "B0243",
+        "B0247",
+        "B0274",
+        "B0310"
+      ],
+      "material_count": 5,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T03",
+      "genre_id": "G05",
+      "name": "ペットフード",
+      "definition": "ペット用フード・おやつ・補助食など、ペットが食べるものそのもの。",
+      "included_examples": [
+        "犬猫等のフード・おやつ・補助食。"
+      ],
+      "boundary_examples": [
+        "手動の給餌食器など食べる道具はG05-T04。自動給餌器・自動給水器など機器はG05-T06。ケア用品はG05-T04。"
+      ],
+      "evidence_refs": [
+        "B0218"
+      ],
+      "material_count": 1,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T04",
+      "genre_id": "G05",
+      "name": "ペットケア・用品",
+      "definition": "ペット向けの非家電のケア・衛生用品、服、移動・生活用品を整理する候補。",
+      "included_examples": [
+        "ペット用のケア用品、衛生用品、服、移動・生活用品などの非家電用品。"
+      ],
+      "boundary_examples": [
+        "ペット用フードはG05-T03。電動・接続型の給餌・給水・見守り・自動ケア機器はG05-T06。人用の品は対象外。"
+      ],
+      "evidence_refs": [
+        "B0004",
+        "B0193",
+        "B0194",
+        "B0199",
+        "B0207",
+        "B0213",
+        "B0218",
+        "B0228",
+        "B0268",
+        "B0281",
+        "B0300"
+      ],
+      "material_count": 11,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "該当した基礎本文観測行数。独立商品数ではない。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T05",
+      "genre_id": "G05",
+      "name": "子ども移動・車載安全用品",
+      "definition": "子どもの移動を支える用品と、車内で子どもを保護・確認するための用品を整理する候補。",
+      "included_examples": [
+        "チャイルドシート、ジュニアシート、ベビーカー等の移動用品、車内の子ども保護・確認用品。"
+      ],
+      "boundary_examples": [
+        "授乳・乳幼児の世話用品はG05-T01。子どもが着る品はG03-T06。一般車用品や大人向け車載用品は含めない。"
+      ],
+      "evidence_refs": [
+        "S05-0048"
+      ],
+      "material_count": null,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "基礎132件の意味分類未算出。名称の直接語句一致0/132のみ。独立商品数も不明。",
+      "state": "active",
+      "selection_count": 0
+    },
+    {
+      "theme_id": "G05-T06",
+      "genre_id": "G05",
+      "name": "ペット家電・見守り機器",
+      "definition": "ペットの給餌・給水・排泄・環境管理、在宅確認等を電動または接続機能で支える機器を整理する候補。",
+      "included_examples": [
+        "見守りカメラ、自動給餌器・給水器、自動トイレ等のペット専用機器。"
+      ],
+      "boundary_examples": [
+        "手動のケア・衛生用品、服、寝具、キャリーはG05-T04。フードはG05-T03。一般家庭用の家電・防犯カメラはG04。"
+      ],
+      "evidence_refs": [
+        "S05-0046"
+      ],
+      "material_count": null,
+      "material_kind": "base_full_body_observation_rows_not_unique_products",
+      "material_count_note": "基礎132件の意味分類未算出。名称の直接語句一致0/132のみ。独立商品数も不明。",
+      "state": "active",
+      "selection_count": 0
+    }
+  ],
+  "patterns": [
+    {
+      "pattern_id": "P01",
+      "name": "商品参照＋特徴説明",
+      "observation_count": 41,
+      "denominator": 132,
+      "structure_candidate": "product_and_feature",
+      "reference": "文型ルール確定.md#P01",
+      "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json#/patterns/P01",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+    },
+    {
+      "pattern_id": "P02",
+      "name": "商品参照＋関連タグ",
+      "observation_count": 36,
+      "denominator": 132,
+      "structure_candidate": "product_reference_with_tags",
+      "reference": "文型ルール確定.md#P02",
+      "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json#/patterns/P02",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+    },
+    {
+      "pattern_id": "P03",
+      "name": "確認済み販促情報を先に置く",
+      "observation_count": 23,
+      "denominator": 132,
+      "structure_candidate": "promotion_before_product",
+      "reference": "文型ルール確定.md#P03",
+      "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json#/patterns/P03",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+    },
+    {
+      "pattern_id": "P04",
+      "name": "確認済み特徴の箇条書き",
+      "observation_count": 15,
+      "denominator": 132,
+      "structure_candidate": "feature_point_list",
+      "reference": "文型ルール確定.md#P04",
+      "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json#/patterns/P04",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+    },
+    {
+      "pattern_id": "P05",
+      "name": "本人の実体験＋留保",
+      "observation_count": 5,
+      "denominator": 132,
+      "structure_candidate": "experience_with_caveat",
+      "reference": "文型ルール確定.md#P05",
+      "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json#/patterns/P05",
+      "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+      "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+    }
+  ],
+  "pattern_selection_policy": "商品ごとに、確認できる情報に合う型を選ぶ。5種類を順番にローテーションしない。",
+  "pattern_refs": [
+    "文型ルール確定.md#P01",
+    "文型ルール確定.md#P02",
+    "文型ルール確定.md#P03",
+    "文型ルール確定.md#P04",
+    "文型ルール確定.md#P05"
+  ],
+  "body_length_guidance": {
+    "min": 150,
+    "max": 300,
+    "unit": "Unicode code points",
+    "mandatory": false,
+    "reference": "本文長さタグ目安確定.json#body_length"
+  },
+  "tag_guidance": {
+    "min": 5,
+    "max": 12,
+    "unit": "hashtag tokens per post",
+    "mandatory": false,
+    "reference": "本文長さタグ目安確定.json#tag_guidance"
+  },
+  "result_index_ref": {
+    "path": "../../../reports/projects/preparation/%E7%B5%90%E6%9E%9C%E3%82%BB%E3%83%83%E3%83%88%E7%B4%A2%E5%BC%95.json",
+    "version": "confirmed-0.3-step46-all132",
+    "status": "created_in_step46"
+  },
+  "selection_count": 0,
+  "selection_count_note": "運用開始前の初期値。標本数や選択実績ではない。",
+  "unique_product_count": null,
+  "unique_product_count_note": "商品キー・恒久投稿IDの確認が不足しており、独立商品数は不明。",
+  "detailed_rules_extension": {
+    "artifact_path": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+    "markdown_path": "文型ルール確定.md#詳細書き方追補",
+    "version": "detailed-writing-rules-candidate-0.1-step68",
+    "markdown_version": "writing-guide-candidate-0.1-step68",
+    "generated_at": "2026-10-12T16:09:10+09:00",
+    "status": "reviewed_candidate_not_new_owner_confirmation",
+    "adopted": false,
+    "purpose": "本人採用済みの文型の意味を保った詳細な文章生成ガイド。",
+    "review_ref": "../../../worklogs/projects/preparation/%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC/%E6%9B%B8%E3%81%8D%E6%96%B9%E8%A9%B3%E7%B4%B0%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC.md",
+    "source_candidate_version": "detailed-writing-candidate-0.2-step67",
+    "pattern_specific_rule_counts": {
+      "P01": 17,
+      "P02": 17,
+      "P03": 17,
+      "P04": 17,
+      "P05": 17
+    },
+    "p05_rule_basis": {
+      "source_body_ids": [
+        "B0002",
+        "B0201",
+        "B0213",
+        "B0235",
+        "B0252"
+      ],
+      "other_127_or_full_132_used_to_derive_P05_rules": false
+    }
+  },
+  "detailed_rules_ref": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json",
+  "detailed_rules_version": "detailed-writing-rules-candidate-0.1-step68",
+  "detailed_rules_status": "reviewed_candidate_not_new_owner_confirmation"
+}

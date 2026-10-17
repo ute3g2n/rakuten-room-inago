@@ -22,8 +22,17 @@ from tests_inago.test_step13 import FakeCopyRunner
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SETTINGS_PATH = PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "初期設定引渡し.json"
-DETAILS_PATH = PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "文型詳細ルール.json"
+SETTINGS_PATH = (
+    PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+)
+DETAILS_PATH = (
+    PROJECT_ROOT
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 RUN_ID = "INAGO-2026-10-15"
 NOW = "2026-10-15T13:15:00+09:00"

@@ -585,7 +585,7 @@ def test_live_ai_case_registry_covers_seven_roles_with_synthetic_safe_inputs() -
 
     adopted_settings = json.loads(
         (
-            PROJECT_ROOT / "plan" / "イナゴスキル事前準備" / "初期設定引渡し.json"
+            PROJECT_ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
         ).read_text(encoding="utf-8")
     )
     theme = next(

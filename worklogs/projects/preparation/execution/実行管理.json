@@ -1,0 +1,4438 @@
+{
+  "schema_version": "1.0",
+  "run_id": "20261011-01",
+  "plan_path": "plans/projects/preparation/イナゴスキル事前準備実行計画.md",
+  "plan_version": "1.3",
+  "source_requirement_version": "1.3",
+  "timezone": "Asia/Tokyo",
+  "status": "complete",
+  "current_step": 71,
+  "opened_at": "2026-10-11T10:40:49+09:00",
+  "updated_at": "2026-10-12T16:31:12+09:00",
+  "latest_user_instruction_update": {
+    "recorded_at": "2026-10-12T08:01:53+09:00",
+    "accepted_body_count": 132,
+    "body_count_metric": "本文全文ファイルの保存成功記録。保存後の読戻し確認は件数条件にしない。",
+    "approximate_full_body_target": 130,
+    "new_full_body_files_saved_this_turn": 39,
+    "current_step": 27,
+    "status": "STEP27 G05 search started once; ROOM displayed 101 results; 40/50 full preview bodies collected.",
+    "reaction_condition_use": "All 132 full-body records remain included; reaction states are descriptive only.",
+    "body_file_readback_required": false,
+    "product_name_pair_storage_required_for_body_count": false,
+    "identity_check_note": "店舗コード・商品番号・恒久ROOM投稿IDは本文全文件数条件ではない。",
+    "hashes_generated_or_compared": false
+  },
+  "timing_policy": "記録された時刻のみ保存する。以前のSTEPで正確な時刻が保存されていない場合はnullとし、Git commit時刻・ファイル更新時刻から作業時刻を推定しない。",
+  "git_checkpoint": {
+    "branch": "main",
+    "upstream": "origin/main",
+    "steps_52_to_71_committed_and_pushed": true,
+    "primary_commit": "296ffea",
+    "push_result": "success",
+    "private_working_data_staged": false,
+    "force_push": false,
+    "history_rewrite": false,
+    "last_observed_status": "Primary deliverables pushed to origin/main; final execution closure record being recorded."
+  },
+  "base_collection": {
+    "status": "partial",
+    "search_id": "B01",
+    "target_date": "2026-10-11",
+    "started_at": "2026-10-11T17:59:55+09:00",
+    "initial_ui_total": 130,
+    "last_observation_id": "B0073",
+    "terminal_confirmed": false,
+    "rows_collected": 60,
+    "rows_fulltext": 4,
+    "reason": "STEP 09の先頭5観測をB01として再利用。公式UIで40から60カードへ追加読込した際に列ごとのAX順再配置を確認し、60結果位置・13再出現候補・2反応数再観測を記録。スクロール中の表示総数は130件。プロフィール画面から戻ると同じ検索URLで0件表示となり、元の一覧を復元できなかった。再検索せずpartialで停止。終端未確認。",
+    "exact_search_submit_time_known": false,
+    "permanent_post_ids_known": 0,
+    "last_observation_at": "2026-10-11T18:43:07+09:00",
+    "unread_range": "元B01は終端未確認。B01-R1は終端画面を確認。次の新規観測IDはB0189。",
+    "result_rows": 60,
+    "reappearance_rows": 13,
+    "metric_reobservation_rows": 2,
+    "observation_rows_total": 75,
+    "event_rows_total": 1,
+    "next_observation_id": "B0189",
+    "latest_return_ui_total": 0,
+    "result_count_history": [
+      130,
+      0
+    ],
+    "retry_searches": [
+      {
+        "search_id": "B01-R1",
+        "target_date": "2026-10-11",
+        "source": "ROOMトップからの通常UI検索（ユーザー提案）",
+        "query_url": "https://room.rakuten.co.jp/search/item?keyword=&colle=&comment=10&like=300&user_id=&user_name=&original_photo=0",
+        "displayed_total": 129,
+        "rows_collected": 113,
+        "observed_at": null,
+        "time_note": "検索画面で129件を確認したのは19:15 JST頃。検索送信の正確な時刻は未記録。",
+        "is_original_session": false,
+        "terminal_confirmed": true,
+        "merge_status": "pending_price_under_preview_product_name_exact_match",
+        "next_observation_id": "B0189",
+        "last_observation_id": "B0188",
+        "reobservation_rows": 9,
+        "terminal_confirmation_note": "129件表示のままスクロールバー最下部を画面で確認し、追加の下スクロール後も84画像・81 exact-title状態から新しいタイトルが現れないことを確認。商品キー照合後の一意商品数は未確定。",
+        "superseded_merge_status": "pending_product_key_deduplication"
+      }
+    ],
+    "duplicate_surface_metadata": "B0041-B0053は再配置後の位置41-53に現れたB0028-B0040との再出現候補。商品名・匿名投稿者ID・反応数・価格が一致するが、恒久ID未確認のため同一投稿とは未確定。",
+    "accessibility_reflow": {
+      "previous_loaded_cards": 40,
+      "current_loaded_cards": 60,
+      "unchanged_positions": "B0001-B0014 at 1-14",
+      "moved_ranges": [
+        {
+          "observation_ids": "B0015-B0027",
+          "previous_positions": "15-27",
+          "current_positions": "21-33"
+        },
+        {
+          "observation_ids": "B0028-B0040",
+          "previous_positions": "28-40",
+          "current_positions": "41-53"
+        }
+      ],
+      "new_card_positions": [
+        "15-20",
+        "34-40",
+        "54-60"
+      ],
+      "new_card_observation_ids": "B0054-B0073"
+    },
+    "reobserved_count_changes": [
+      {
+        "observation_id": "B0003",
+        "field": "likes",
+        "previous": 1612,
+        "current": 1611
+      },
+      {
+        "observation_id": "B0005",
+        "field": "likes",
+        "previous": 608,
+        "current": 607
+      }
+    ],
+    "unresolved_author_aliases": [
+      "A0033",
+      "A0034",
+      "A0035",
+      "A0036",
+      "A0037",
+      "A0038",
+      "A0039",
+      "A0040",
+      "A0041",
+      "A0042",
+      "A0043",
+      "A0044"
+    ]
+  },
+  "supplement_budget": {
+    "S-G01": {
+      "status": "not_needed",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は44観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。"
+    },
+    "S-G02": {
+      "status": "not_needed",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は23観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。"
+    },
+    "S-G03": {
+      "status": "not_needed",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は31観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。"
+    },
+    "S-G04": {
+      "status": "not_needed",
+      "searches_started": 0,
+      "slots_used": 0,
+      "max_searches": 1,
+      "max_slots": 50,
+      "not_needed_reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は48観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。"
+    },
+    "S-G05": {
+      "status": "complete",
+      "searches_started": 1,
+      "slots_used": 50,
+      "max_searches": 1,
+      "max_slots": 50,
+      "search_term": "子ども・ペット用品",
+      "result_total": 101,
+      "owner_selected_categories": [
+        "子ども移動・車載安全用品",
+        "ペット家電・見守り機器"
+      ],
+      "owner_selection_recorded_at": "2026-10-12T07:38:16+09:00",
+      "latest_observation_id": "S05-0050",
+      "remaining_slots": 0,
+      "prior_owner_material_reason": "STEP22時点でテーマ選択待ちだったが、STEP27で本人選定を受領し解消。"
+    }
+  },
+  "supplement_total": {
+    "max_searches": 5,
+    "searches_started": 1,
+    "max_slots": 250,
+    "slots_used": 50
+  },
+  "owner_confirmation": {
+    "status": "approved_all_targets",
+    "version": "candidate-0.3-step43-all132",
+    "targets": [
+      "classification",
+      "patterns",
+      "body_length_guidance",
+      "tag_guidance"
+    ],
+    "decision": "adopted_all_four_targets",
+    "pattern_use_policy": "商品ごとに、確認できる情報に合う型を選ぶ。",
+    "confirmed_at": null,
+    "confirmed_at_note": "本人回答の正確な受領時刻を個別保存していない。回答日は2026-10-12。",
+    "additional_instructions": [
+      "最終成果物に、基礎本文132件からP01～P05各1～2例を選んで掲載する。"
+    ],
+    "response_ref": "reports/projects/preparation/本人確認記録.md"
+  },
+  "collection_merge_policy": {
+    "status": "approved_by_user",
+    "decision_date": "2026-10-11",
+    "target_full_body_texts_approx": 130,
+    "unique_product_count_target_required": false,
+    "same_condition_search_sessions_may_be_combined": true,
+    "deduplicate_same_target_product_posts": true,
+    "deduplication_evidence": "ROOMプレビューで価格直下に表示される商品名テキストの完全一致。店舗コード・商品番号・恒久ROOM投稿IDは収集条件にしない。",
+    "unknown_product_keys_count_as_unique": false,
+    "source": "ユーザー指示",
+    "superseded_deduplication_evidence": "旧記録では公式UIの商品リンクから店舗・商品IDを照合するとしていた。後発ユーザー指示で置換。",
+    "store_or_item_id_required": false,
+    "accepted_product_name_source": "ROOM検索カードのプレビューに表示された価格直下の商品名",
+    "product_name_pair_storage_required_for_body_count": false,
+    "valid_record_requirement": "本文全文ファイルの保存成功記録があるものを本文取得件数に数える。保存後の読戻し確認および価格直下の商品名との対保存は件数条件にしない。"
+  },
+  "final_deliverables": {
+    "expected_count": 9,
+    "confirmed_count": 0,
+    "generated_html_report": "reports/projects/preparation/事前準備完了レポート.html"
+  },
+  "reviews": [
+    {
+      "checkpoint_step": "17",
+      "subject": "基礎標本の条件、全件範囲、欠落、件数",
+      "status": "partial",
+      "method": "全記録の条件・ID・集合再計数＋指定IDの公開画面再閲覧",
+      "independent_review": "独立レビュー未実施。本人確認なし。少量資料の偏りと全文4件を指摘。"
+    },
+    {
+      "checkpoint_step": "28",
+      "subject": "補足の1検索／50枠／5検索／250枠上限、重複と欠落",
+      "status": "complete",
+      "method": "検索別台帳の全行再計数、重複・条件外・取得状態の監査",
+      "independent_review": "独立レビュー未実施。検索別台帳と集計を再計数。補足は0検索・0枠。"
+    },
+    {
+      "checkpoint_step": "34",
+      "subject": "5ジャンルと30テーマ、主1・補助、商品一意性",
+      "status": "complete_with_gaps",
+      "method": "各ジャンル6件・親ID・包含境界・根拠参照の再計数",
+      "independent_review": "独立レビュー未実施。候補分類をレビュー。本人採用・商品一意性は未確認。"
+    },
+    {
+      "checkpoint_step": "41",
+      "subject": "文型、長さ・タグの母数と作例",
+      "status": "complete_with_gaps",
+      "method": "原観測に戻れる項目照合、計測分布と採用値案の確認",
+      "independent_review": "独立レビュー未実施。文型・数値は全文4件の記述候補に限定。"
+    },
+    {
+      "checkpoint_step": "42",
+      "subject": "反例、条件の境界、計画条件との差",
+      "status": "complete",
+      "method": "未実施・欠測・旧条件・ID誤同定のケース照査",
+      "independent_review": "独立レビュー未実施。反例・条件境界・欠測を照合。"
+    },
+    {
+      "checkpoint_step": "43",
+      "subject": "レビュー指摘の修正と影響範囲",
+      "status": "complete",
+      "method": "指摘ごとの変更前後・下流成果・再確認の追跡",
+      "independent_review": "独立レビュー未実施。修正後資料を読戻し確認。"
+    },
+    {
+      "checkpoint_step": "47",
+      "subject": "実装担当の受領リハーサル",
+      "status": "complete",
+      "method": "IR/AT-005～007、データ辞書、全30テーマと179参照、確定値の直接比較。",
+      "independent_review": "独立レビュー未実施。同じAI作業内で要件・参照・値を照合。"
+    },
+    {
+      "checkpoint_step": "48",
+      "subject": "全成果物と準備作業の総合監査",
+      "status": "complete_with_gaps",
+      "method": "最終成果・履歴・レビュー・Git除外・残条件の総覧",
+      "independent_review": "独立レビュー未実施。根拠・範囲・残課題を総合記録。"
+    },
+    {
+      "checkpoint_step": "50",
+      "subject": "最終HTML表示・値・リンク・印刷確認",
+      "status": "partial",
+      "method": "ブラウザでデスクトップ／約390px幅／印刷、主要値を原資料と照合",
+      "independent_review": "ブラウザー表示はfile URL安全制約で拒否。HTML構造・リンク・データを静的検証。視覚確認なし。"
+    },
+    {
+      "checkpoint_step": "43",
+      "subject": "レビュー指摘の修正と影響範囲",
+      "status": "complete",
+      "method": "指定レビュー5件・候補版・原観測集計の直接照合",
+      "independent_review": "同じAI作業内の検証であり、独立レビューではない。候補全体は本人採用前。"
+    },
+    {
+      "checkpoint_step": "44",
+      "subject": "本人判断資料の内容・候補版・参照",
+      "status": "complete",
+      "method": "候補構成版との照合、5×6分類範囲確認、HTML/リンク静的検証",
+      "independent_review": "同じAI作業内の確認。本人回答は未受領、視覚確認はSTEP50で実施予定。"
+    }
+  ],
+  "steps": [
+    {
+      "step": "01",
+      "title": "開始時の原典と作業状態を確認する",
+      "status": "complete",
+      "started_at": "2026-10-11T10:40:49+09:00",
+      "ended_at": null,
+      "time_note": "開始観測時刻のみ保存。正確な終了時刻は個別記録がなく推定していない。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md",
+        "docs/specifications/inago/イナゴスキル要件定義書.html"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/開始確認.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "collected_sample_rows": 0,
+        "inherited_full_sample_rows": 0
+      },
+      "validation_results": [
+        "現行HTML内の正本sourceをJSON解析し版1.3／更新日を読取",
+        "開始前git statusは空、run用ディレクトリと全件標本の引継ぎ資料なしを確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "02",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "02",
+      "title": "採用条件と旧記述の相違を台帳にする",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "worklogs/projects/preparation/execution/開始確認.md",
+        "要件本文と決定／ヒアリング資料"
+      ],
+      "output_paths": [
+        "docs/specifications/preparation/原典条件台帳.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "D-021/022/026/027/028/037/038とQ-017-aを台帳・回答で直接照合",
+        "古い11/構成案/05との相違を整理、未解決ブロッカー0"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "03",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "03",
+      "title": "成果物と実装への引渡し項目を設計する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "docs/specifications/preparation/原典条件台帳.md",
+        "要件本文第5～7・16・27章",
+        "docs/specifications/inago/要件データ辞書.md"
+      ],
+      "output_paths": [
+        "plans/projects/preparation/成果物設計.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "成果物9種とJSON項目表を再計数",
+        "要件第16章とsettings_version境界を照合",
+        "相対参照の実在確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "04",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "04",
+      "title": "観測項目と母数の定義を固定する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。Git commit時刻から推定していない。",
+      "inputs": [
+        "docs/specifications/preparation/原典条件台帳.md",
+        "plans/projects/preparation/成果物設計.md",
+        "worklogs/projects/requirements/notes/03_情報源と取得実現性検証.md"
+      ],
+      "output_paths": [
+        "plans/projects/preparation/収集分析仕様.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "基礎・補足・本人提供、母数、ID、0／欠測、長さ・タグ計算を確認",
+        "相対リンク4件の実在確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "05",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "05",
+      "title": "非公開証拠の保存とGit除外を設定する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": null,
+      "time_note": "STEP開始・終了時刻は個別記録がない。修正記録とGit除外実測を根拠に完了。",
+      "inputs": [
+        "plans/projects/preparation/成果物設計.md",
+        "plans/projects/preparation/収集分析仕様.md",
+        ".gitignore"
+      ],
+      "output_paths": [
+        ".gitignore",
+        "docs/standards/preparation/保存公開方針.md",
+        "非公開作業データ/ (local only, gitignored)"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "private_source_records_saved": 0,
+        "actual_ignore_probe_files_seen_ignored": 1
+      },
+      "validation_results": [
+        "実データなしの一時ファイルをgit check-ignoreとgit status --ignoredで実測",
+        "一時ファイルを削除、保存先ディレクトリを確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "06",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "06",
+      "title": "実行台帳とレビューの記録方法を用意する",
+      "status": "complete",
+      "started_at": "2026-10-11T10:47:14+09:00",
+      "ended_at": "2026-10-11T10:49:15+09:00",
+      "time_note": null,
+      "inputs": [
+        "STEP 01～05の成果物と検証記録",
+        "50-step実行計画"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/実行管理.md",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "plans/projects/preparation/検証設計.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "計画見出しとJSONのSTEP 01～50、見出し名・順序が一致",
+        "STEP 01～05だけcomplete、STEP 06 complete、STEP 07～50 not_started",
+        "補足5枠の開始・使用数0、基礎行数0、本人確認未依頼を読戻し確認",
+        "レビュー確認点9つと全出力参照を照合",
+        "実行管理.md・実行管理.json・検証設計.mdの3ファイルを読戻し確認"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "07",
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "07",
+      "title": "利用できる既存機能を読取りで確認する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-11T10:53:31+09:00",
+      "time_note": "開始時刻は記録されていないためnull。終了時刻は最終内容・進捗読戻し後に記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/作業環境確認.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "open_browser_tabs_at_inspection": 0,
+        "base_sample_records": 0,
+        "supplement_searches": 0,
+        "supplement_slots": 0,
+        "dummy_json_record_count": 2,
+        "dummy_csv_data_rows": 2
+      },
+      "validation_results": [
+        "CUAの実状態でCodex In-app Browserを確認。開いたタブは0件、ログイン状態・秘密値は確認せず",
+        "UTF-8仮JSON 2レコードとCSV 2データ行を非公開領域で保存・再読取し、件数・日本語・0値を確認。仮ファイルを削除",
+        "旧ROOM収集器の永続プロファイルと旧台帳への書込み、楽天API収集器の認証情報・API通信・旧保存先をソースで確認し、いずれも実行せず",
+        "実標本・補足検索・外部API呼出しが0件であることを確認",
+        "作業環境確認.mdを読戻し、合格条件・限定・再開先を確認"
+      ],
+      "review_ref": "作業環境確認.md#STEP-07-自己レビュー",
+      "return_to": null,
+      "next_step": "08",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "08",
+      "title": "公開検索画面と利用上の制約を確認する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-11T17:54:12+09:00",
+      "time_note": "本人認証後の再開時刻は個別記録なし。正確な終了記録時刻のみ保存。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/公開UI確認.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "public_room_entry_opened": 1,
+        "official_web_entry_link_followed": 1,
+        "rakuten_login_pages_reached": 1,
+        "search_pages_reached": 1,
+        "official_condition_searches_performed": 1,
+        "search_conditions_observed": 1,
+        "displayed_total_results": 130,
+        "base_sample_records": 0
+      },
+      "validation_results": [
+        "公式入口から楽天ログイン／パスキー画面へ遷移した先行観測を保持。本人の認証完了連絡後にROOM画面を再開。",
+        "検索語空欄、コレ数指定なし、コメント10件以上、いいね300件以上を詳細検索UIで設定し、再表示して確認後に公式検索操作を1回実行。",
+        "検索結果画面タイトル「ROOM : 検索結果」、安全なURL部分、表示総数130件を視認。",
+        "初期画面の検索結果カードは表示されたが、標本行を作成せず、個別詳細・継続表示・終端・規約上の継続取得条件は未確認と明記。",
+        "ハッシュを生成・照合せず、認証情報・Cookie・動的クエリ値・プロフィール内部情報を取得または保存していない。"
+      ],
+      "review_ref": "公開UI確認.md#STEP-08-レビュー",
+      "return_to": null,
+      "next_step": "09",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "09",
+      "title": "同じ基礎検索で少量の項目を試し読みする",
+      "status": "complete",
+      "started_at": "2026-10-11T17:57:11+09:00",
+      "ended_at": "2026-10-11T18:20:23+09:00",
+      "time_note": "開始時刻と完了記録時刻は台帳に実記録。カードごとの反応値の個別観測時刻は記録できず、nullで保持。",
+      "inputs": [
+        "worklogs/projects/preparation/execution/公開UI確認.md",
+        "plans/projects/preparation/収集分析仕様.md",
+        "docs/standards/preparation/保存公開方針.md",
+        "docs/specifications/inago/イナゴスキル要件定義書.html",
+        "reports/projects/requirements/意思決定台帳.md",
+        "reports/projects/requirements/ヒアリング記録.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/少量読取確認.md",
+        "非公開作業データ/基礎/試行観測.jsonl",
+        "非公開作業データ/基礎/本文/B0001.txt～B0005.txt",
+        "非公開作業データ/投稿者対応/試行投稿者対応.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "search_display_sequence": "130→0→130",
+        "final_displayed_total": 130,
+        "sample_cards": 5,
+        "condition_matching_cards": 5,
+        "bodies_full": 4,
+        "bodies_partial": 1,
+        "known_permanent_post_ids": 0,
+        "product_links_matched": 1,
+        "product_link_mismatches": 3,
+        "product_links_not_tested": 1,
+        "private_observation_rows": 5
+      },
+      "validation_results": [
+        "同じ詳細検索条件を公式UIで再設定し、130件・0件・130件の画面変化を観測。原因は未確定として記録。",
+        "アクセシビリティ読取順の先頭5カードを保存し、画面の視覚順とは異なることを確認。",
+        "5カードのコメント数・いいね数が検索下限を満たすことを、UI値とJSONL値で照合。",
+        "公式の続きを読む操作で4件を全文表示。残り1件は部分表示とし、全文取得成功に数えない。",
+        "恒久投稿ID／URLは5件ともunknown。商品リンクは1件が一致、3件で不一致、1件は未操作として記録。",
+        "JSONLを5行として読込み、観測ID、本文参照、条件適合状態を確認。本文ファイル5件が存在し、状態は全文4・部分1。",
+        "実ファイル3種類についてgit check-ignoreで/非公開作業データ/への一致を確認。",
+        "氏名・全文本文・投稿者対応を公開資料へ記載せず、非公開データをGit対象外とした。",
+        "ハッシュの生成・照合は実施していない。"
+      ],
+      "review_ref": "少量読取確認.md#レビュー・検証",
+      "return_to": null,
+      "next_step": "10",
+      "next_actor": "基礎収集管理",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "10",
+      "title": "基礎検索の対象日と開始状態を保存する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-11T18:26:36+09:00",
+      "time_note": "STEP 10開始時刻と検索送信時刻は個別記録なし。B01の先頭読取基準時刻は2026-10-11T17:59:55+09:00。",
+      "inputs": [
+        "worklogs/projects/preparation/execution/少量読取確認.md",
+        "plans/projects/preparation/収集分析仕様.md",
+        "worklogs/projects/preparation/execution/実行管理.json"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/基礎検索開始.md",
+        "非公開作業データ/基礎/検索記録.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "search_id": "B01",
+        "target_date": "2026-10-11",
+        "initial_displayed_total": 130,
+        "current_session_recheck_total": 130,
+        "reused_observation_rows": 5,
+        "additional_cards_after_one_scroll": true,
+        "terminal_confirmed": false
+      },
+      "validation_results": [
+        "STEP 09と同日・同条件・同一検索結果画面を確認し、検索を再送信せずB01として引継ぎ。",
+        "基準時刻17:59:55 JSTの130件表示、現在画面の同じURLと130件表示を確認。検索送信時刻はunknownで保存。",
+        "通常の下スクロール1回で追加カードが表示される一方、総数表示は130件のままと確認。明示的な終端表示は未確認。",
+        "アクセシビリティ取得順、B0001～B0005の再利用、B0006からの次位置を定義。",
+        "最下部・スクロール停滞・新規カードなしを2回確認する終端候補と、曖昧時にpartialで停止する条件を文書化。",
+        "非公開検索記録JSONを読戻し、B01条件、観測件数、未確認終端、B0001～B0005の再利用を確認。",
+        "Git除外下の検索記録を確認。ハッシュ生成・照合なし。"
+      ],
+      "review_ref": "基礎検索開始.md#レビュー・検証",
+      "return_to": null,
+      "next_step": "11",
+      "next_actor": "基礎観測",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "11",
+      "title": "基礎検索の全結果を終端まで列挙する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-11T23:26:52+09:00",
+      "time_note": "2026-10-11、B01-R2を同日同条件のROOM UIで再確認。画面表示129件、item要素129件、story要素129件。End後も増加なし。正確な検索開始時刻は記録なし。",
+      "inputs": [
+        "worklogs/projects/preparation/execution/基礎検索開始.md",
+        "非公開作業データ/基礎/検索記録.json",
+        "plans/projects/preparation/収集分析仕様.md",
+        "worklogs/projects/preparation/execution/実行管理.json"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/基礎列挙記録.md",
+        "非公開作業データ/基礎/基礎列挙.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "search_id": "B01",
+        "initial_displayed_total": 130,
+        "scroll_displayed_total": 130,
+        "loaded_card_positions": 60,
+        "result_rows": 60,
+        "reappearance_rows": 13,
+        "recorded_observation_id_range": "B0001-B0073 including reobservations",
+        "unread_count_estimate": 70,
+        "next_observation_id": "B0447",
+        "return_displayed_total": 0,
+        "permanent_post_ids_known": 0,
+        "terminal_confirmed": false,
+        "b01_r1_displayed_total": 129,
+        "b01_r1_result_rows": 113,
+        "b01_r1_reobservation_rows": 9,
+        "b01_r1_terminal_confirmed": true,
+        "b01_r2_displayed_total": 129,
+        "b01_r2_result_cards_at_terminal": 129,
+        "b01_r2_accessible_image_nodes": 84,
+        "b01_r2_price_nodes": 83,
+        "b01_r2_terminal_confirmed_for_loaded_cards": true,
+        "b01_r2_unresolved_difference": 0,
+        "existing_full_body_files_read_back": 4,
+        "new_full_body_files_saved_this_turn": 0,
+        "combined_candidate_result_rows": 173,
+        "approximate_unique_product_target": 130,
+        "unique_product_count_status": "not_required_by_latest_user_instruction_body_count_is_primary",
+        "b01_r2_story_nodes_at_terminal": 129,
+        "b01_r2_terminal_confirmed": true,
+        "b01_r2_previous_ax_snapshot_images": 84,
+        "existing_full_body_count": 4,
+        "readback_required_for_body_count": false
+      },
+      "validation_results": [
+        "通常のUIスクロールで40から60カード位置まで読み込み、結果行60件を保存。",
+        "追加読込で列ごとにAX順が再配置されることを比較確認。B0015～B0027は21～33へ、B0028～B0040は41～53へ移動。",
+        "新規カード20件を現在位置15～20、34～40、54～60から保存。観測ID集合B0001～B0073の連続性と、結果行60件で重複IDがないことを確認。B0003・B0005の再観測行は元IDを参照。",
+        "B0041～B0053はB0028～B0040との再出現候補として保存。恒久IDがないため同一投稿とは断定しない。",
+        "B0003とB0005のいいね数変化を旧値付きで別の再観測行に保存。",
+        "投稿ID0/60、商品URL未確認、A0033～A0044のプロフィール経路未確認を記録。",
+        "プロフィール画面から戻った元B01は同じURLで0件表示となり、終端未確認のためpartial保存。",
+        "ユーザー指示により同条件の別検索を混合可能とし、同一店舗・商品IDの重複を除いて約130件を目標とする。",
+        "ROOMトップから同条件で新検索した結果は129件。元B01の60行へ未確認のまま追加せず、商品キー照合を前提にB01-R1として再開。",
+        "JSONL解析、匿名公開要約、Git除外を確認。ハッシュは生成・照合していない。",
+        "B01-R1の検索UIに129件が表示され、通常スクロールで最下部を画面確認。最下部で追加スクロール後も新しいタイトルは現れなかった。終端スナップショットは画像84件、完全一致タイトル81件。全スナップショットの完全一致タイトル候補は112件。",
+        "終端スナップショット内に完全一致タイトルの複数カードが3組あり、2組は投稿者・本文プレビューが同じで反応数のみ1増加したためB0186・B0188に再観測として記録。残る1組は異なる投稿者・本文プレビューのためB0187を別投稿候補として記録。商品同一性は未確定。",
+        "B01-R1の結果行は113、再観測行は9。B01結果60行と合わせ173候補結果行。検索UI総数129と結果行数は一致しないため129件を採録数・一意商品数とは扱わず、同一店舗・商品IDによる重複排除はSTEP 13で確認する。必要な一意商品数が約130件に届かなければ補足収集へ戻る。",
+        "再開時に同条件のROOM公式検索UIをB01-R2として開き、132件表示を確認。終端まで通常スクロールした時点のアクセシビリティツリーは結果カード84件・画像84件・価格表示83件。下端で通常スクロールを2回続けてもカード数は増えず、表示差48件は未解決。個別プレビューで『続きを読む』から『閉じる』まで本文が展開できることを確認したが、本文は保存せずSTEP 12には進んでいない。",
+        "最新のユーザー指示により本文全文の保存・読戻し件数を主指標とする。既存全文4件を数え、商品名ペアの保存・読戻しを条件にしない。今回の確認用プレビューは保存していない。",
+        "ハッシュは生成・照合していない。",
+        "B01-R2のROOM画面に129件表示。検索一覧の.item要素129件と.story要素129件を同一タブで確認。通常スクロールで下端へ移動し、End操作後も件数増加なし。B01-R2の表示129件とカード129件の差は0。過去の132/84は旧スナップショットとして保持し、今回の件数に置き換え。",
+        "B01-R2の129カード位置を基礎列挙JSONLへ記録。反応値・折りたたみプレビューを取れた範囲で記録し、タイトル・商品URL・恒久ROOM投稿IDは未確認のまま。行数・カード位置をユニーク投稿数、商品数、本文全文数とは扱わない。",
+        "保存済み本文全文の既存基準は4件。今回の列挙は本文全文の新規保存ではない。ハッシュ生成・照合なし。"
+      ],
+      "review_ref": "基礎列挙記録.md#STEP-11-完了記録",
+      "return_to": null,
+      "next_step": "12",
+      "next_actor": "本文全文取得担当",
+      "blocker": null,
+      "historical_status_recorded": "partial",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "12",
+      "title": "対象投稿の全文と省略状態を保存する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:01:29+09:00",
+      "time_note": "正確な開始時刻は記録されていないため補完しない。完了記録時刻は2026-10-12T00:01:29+09:00。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md STEP 12",
+        "plans/projects/preparation/収集分析仕様.md",
+        "docs/standards/preparation/保存公開方針.md",
+        "worklogs/projects/preparation/execution/基礎列挙記録.md",
+        "非公開作業データ/基礎/基礎列挙.jsonl",
+        "非公開作業データ/基礎/本文/"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/全文取得記録.md",
+        "非公開作業データ/基礎/本文対応.jsonl",
+        "非公開作業データ/基礎/画面再観測.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "candidate_result_rows": 173,
+        "B01_result_rows": 60,
+        "B01_R1_result_rows": 113,
+        "existing_full_body_files": 4,
+        "existing_partial_body_files": 1,
+        "result_rows_without_body_files": 170,
+        "current_AX_image_nodes": 84,
+        "current_AX_long_container_texts": 81,
+        "current_AX_body_containers": 83,
+        "current_AX_items_verified_full": 1,
+        "saved_full_body_files": 132,
+        "new_full_body_files": 128,
+        "existing_full_body_count": 4,
+        "readback_required_for_body_count": false,
+        "partial_body_files": 1,
+        "preview_only_records": 163,
+        "unavailable_records": 6,
+        "body_status_records": 302,
+        "B01_R2_enumerated_positions": 129,
+        "B01_R2_new_full_saved": 128,
+        "B01_R2_unresolved_preview_only": 1,
+        "unique_post_count_status": "not_counted"
+      },
+      "validation_results": [
+        "基礎列挙JSONL 198行を構文解析し、結果173行（B01 60行、B01-R1 113行）を確認。",
+        "本文状態は全文4・部分プレビュー162・部分1・プレビュー取得不能6。既存の本文ファイル5件（全文4、部分1）を確認。",
+        "ROOM検索画面の表示129件、アクセシビリティ画像84件、120文字超のcontainer text 81件を確認。全文基準は展開プレビューの投稿者名後から「閉じる」直前まで。後日の選択プレビューはこの基準を満たすがB0001と同じ商品キーの再観測で、新規本文ファイルは0件。AX一覧container数とは区別。",
+        "本文対応表を観測ID・検索ID単位で初期化。本文内容は公開記録に複製しない。",
+        "B01-R2の列挙済み129位置からROOMプレビューを1件ずつ開き、投稿者名後から「閉じる」直前まで表示された128件を非公開本文ファイルへ保存。保存処理成功の記録を本文対応表に残した。",
+        "本文ファイルは保存後に読み戻していない。既存全文4件と新規128件の計132件を、本文保存数として計上。商品名ペア・店舗コード・商品番号・恒久ROOM投稿ID・ハッシュは件数条件にしていない。",
+        "B01-R2の位置44/B0232は全文未保存として本文対応表に追記。後日の同一検索URLは132件表示で別時点のスナップショットのため位置を混合しない。",
+        "本文対応表は元173件とB01-R2の129位置を分類し、全文132・部分1・プレビューのみ163・取得不能6、計302件。ユニーク投稿数・商品数とは区別。"
+      ],
+      "review_ref": "worklogs/projects/preparation/execution/全文取得記録.md",
+      "return_to": null,
+      "next_step": "13",
+      "next_actor": "恒久投稿と店舗商品の対応確認担当",
+      "blocker": null,
+      "historical_status_recorded": "partial",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "13",
+      "title": "恒久投稿と店舗商品の対応を確認する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:06:01+09:00",
+      "time_note": "工程の正確な開始時刻は記録していないため補完しない。完了記録時刻は2026-10-12T00:06:01+09:00。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/識別確認記録.md",
+        "非公開作業データ/基礎/識別対応.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "result_rows": 302,
+        "original_B01_and_R1_result_rows": 173,
+        "B01_R2_result_rows": 129,
+        "permanent_room_post_ids_confirmed": 0,
+        "confirmed_store_item_keys": 2,
+        "store_item_key_unknown_rows": 300,
+        "actor_alias_known_rows": 80,
+        "actor_alias_unknown_rows": 222,
+        "identity_mapping_rows": 302,
+        "duplicate_search_observation_pairs": 0,
+        "B01_R2_identity_unchecked_rows": 129,
+        "enumeration_jsonl_rows": 436,
+        "enumeration_result_rows": 302,
+        "enumeration_reobservations": 133,
+        "enumeration_json_parse_errors_after_repair": 0,
+        "enumeration_reflow_events": 1
+      },
+      "validation_results": [
+        "STEP 13識別対応JSONLは302行（元173、B01-R2 129）。search_id/observation_idの重複なし。",
+        "元173行の既存証拠では商品キー確定2件・不明171件、恒久投稿ID確認0件。B01-R2の129行はユーザー指示に沿って識別未照合・unknownにし、識別子を推測していない。",
+        "基礎列挙JSONLは物理436行。再観測2行のpreview_excerpt引用符をJSONエスケープし、結果行302・再観測133とreflow event 1を含む全行が解析できることを確認。",
+        "商品ページを開いての追加照合なし。商品・投稿者のユニーク数は算出しない。識別は本文件数の条件にしない。本文ファイル読戻し・ハッシュ生成・画像指紋なし。"
+      ],
+      "review_ref": "worklogs/projects/preparation/execution/識別確認記録.md",
+      "return_to": null,
+      "next_step": "14",
+      "next_actor": "検索条件・値の状態点検担当",
+      "blocker": null,
+      "historical_status_recorded": "partial_identity_unknowns_explicit",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "14",
+      "title": "各観測の検索条件と値の状態を点検する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:08:17+09:00",
+      "time_note": "正確な開始時刻は記録していないため補完しない。完了記録時刻は2026-10-12T00:08:17+09:00。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/条件監査.md",
+        "非公開作業データ/基礎/条件点検.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "candidate_result_rows": 302,
+        "B01_result_rows": 60,
+        "B01_R1_result_rows": 113,
+        "B01_R2_result_rows": 129,
+        "criteria_match_rows": 192,
+        "criteria_unknown_rows": 110,
+        "criteria_out_of_scope_rows": 0,
+        "B01_R2_directly_observed_match": 20,
+        "B01_R2_unknown_due_missing_counters": 109,
+        "full_body_files": 132,
+        "full_bodies_and_direct_condition_match": 24,
+        "full_bodies_condition_unknown": 108,
+        "partial_body_files": 1,
+        "preview_only_rows": 163,
+        "unavailable_rows": 6,
+        "permanent_room_post_ids_confirmed": 0,
+        "confirmed_product_keys": 2,
+        "product_key_unknown_rows": 300,
+        "condition_rows": 302,
+        "unique_search_observation_pairs": 302,
+        "duplicate_condition_pairs": 0,
+        "body_file_readback_required": false,
+        "base_enumeration_lines_parsed": 436,
+        "reobservation_rows": 134,
+        "enumeration_reobservations": 133,
+        "enumeration_reflow_events": 1
+      },
+      "validation_results": [
+        "検索条件URLはkeyword空・comment=10・like=300。B01-R2終端スナップショット129位置と、後日の表示132件を別時点として扱った。",
+        "条件点検JSONL 302行を分類: match 192、unknown 110、out_of_scope 0。B01-R2 129行は直接カウンター確認20行が適合、109行は欠測を0で補わずunknown。",
+        "search_id/observation_idの重複なし。観測状態とnull値の整合0件、matchなのに閾値未満の行0件。",
+        "本文状態を結合: full132、partial1、preview-only163、unavailable6。全文のうち行別条件値確認24、条件unknown108。本文ファイルは読み戻していない。",
+        "商品キー2件確定・300件不明、恒久投稿ID0件。商品識別を本文件数の条件にしない。ハッシュ不使用。"
+      ],
+      "review_ref": "worklogs/projects/preparation/execution/条件監査.md",
+      "return_to": null,
+      "next_step": "15",
+      "next_actor": "全結果の取得範囲と欠落の照合担当",
+      "blocker": null,
+      "historical_status_recorded": "partial_conditions_unknown",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "15",
+      "title": "全結果の取得範囲と欠落を照合する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:09:36+09:00",
+      "time_note": "正確な開始時刻は記録していないため補完しない。完了記録時刻は2026-10-12T00:09:36+09:00。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/基礎取得範囲監査.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "search_sessions": 3,
+        "B01_displayed_total_initial": 130,
+        "B01_result_rows": 60,
+        "B01_terminal_confirmed": false,
+        "B01_R1_displayed_total": 129,
+        "B01_R1_result_rows": 113,
+        "B01_R1_unresolved_display_difference": 16,
+        "B01_R1_terminal_confirmed": true,
+        "B01_R2_terminal_displayed_total": 129,
+        "B01_R2_result_positions": 129,
+        "B01_R2_terminal_confirmed": true,
+        "later_same_url_displayed_total": 132,
+        "later_display_is_separate_snapshot": true,
+        "result_rows": 302,
+        "reobservations": 133,
+        "reflow_events": 1,
+        "full_body_files": 132,
+        "partial_body_files": 1,
+        "preview_only_rows": 163,
+        "unavailable_rows": 6,
+        "criteria_match": 192,
+        "criteria_unknown": 110,
+        "criteria_out_of_scope": 0,
+        "full_bodies_criteria_match": 24,
+        "full_bodies_criteria_unknown": 108,
+        "permanent_post_ids_confirmed": 0,
+        "confirmed_product_keys": 2,
+        "unknown_product_keys": 300,
+        "unresolved_B01_R1_difference": 16,
+        "unresolved_full_body_B01_R2_position": "B0232/44",
+        "enumeration_jsonl_lines_parsed": 436,
+        "enumeration_jsonl_parse_errors_after_repair": 0,
+        "body_file_readback_required": false
+      },
+      "validation_results": [
+        "検索単位を分けて再計数: B01 60/130初期表示・終端未確認、B01-R1 113/129・16差未解決、B01-R2 129/129・終端確認。",
+        "結果行302、再観測133、reflow event 1。後日の同一URL表示132件はB01-R2終端と別スナップショット。",
+        "本文状態: 全文132、部分1、プレビューのみ163、取得不能6。B01-R2位置44は未取得。本文全文目標約130は達成したが、全302行の本文取得・独立投稿数・商品数確定とはしない。",
+        "条件: match192、unknown110、out_of_scope0。全文本文の行別条件一致24、条件unknown108。商品キー確定2/不明300、恒久投稿ID0。",
+        "基礎列挙JSONL 436行を解析。結果302・再観測133・reflow1。引用符エスケープ2行を修正し、全行が解析可能。ハッシュなし。"
+      ],
+      "review_ref": "worklogs/projects/preparation/execution/基礎取得範囲監査.md",
+      "return_to": null,
+      "next_step": "16",
+      "next_actor": "投稿と商品と投稿者の偏り分析担当",
+      "blocker": null,
+      "historical_status_recorded": "partial_scope_gaps_explicit",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "16",
+      "title": "投稿と商品と投稿者の偏りを集計する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:11:24+09:00",
+      "time_note": "工程の正確な開始時刻は記録していないため補完しない。完了記録時刻は2026-10-12T00:11:24+09:00。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/基礎偏り分析.md",
+        "worklogs/projects/preparation/execution/基礎集計.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "result_rows": 302,
+        "B01": 60,
+        "B01_R1": 113,
+        "B01_R2": 129,
+        "reobservations": 133,
+        "reflow_events": 1,
+        "full_body_files": 132,
+        "partial_body_files": 1,
+        "preview_only_rows": 163,
+        "unavailable_rows": 6,
+        "condition_match": 192,
+        "condition_unknown": 110,
+        "condition_out": 0,
+        "permanent_room_post_ids": 0,
+        "verified_store_item_keys": 2,
+        "unknown_store_item_keys": 300,
+        "verified_product_group_sizes": [
+          1,
+          1
+        ],
+        "actor_alias_known_rows": 80,
+        "actor_alias_unknown_rows": 222,
+        "distinct_alias_strings_recorded": 45,
+        "actor_alias_observation_linkage_available": false,
+        "actor_concentration_computed": false,
+        "unique_post_count": null,
+        "unique_product_count": null,
+        "max_observed_comments": 174,
+        "max_observed_likes": 1736,
+        "count_sum_check": "result 302; body states 302; condition states 302; identity states 302"
+      },
+      "validation_results": [
+        "基礎集計を302結果行へ更新し、検索ID別60/113/129、再観測133、reflow1を区別。",
+        "本文132、部分1、プレビューのみ163、取得不能6。条件一致192、不明110、外れ0。商品キー確定2・不明300、恒久投稿ID0。",
+        "確認済み商品キーは2群で各1観測。コメント最大174、いいね最大1,736（観測値範囲）。日付からの投稿年齢・反応速度は作っていない。",
+        "別名状態80/222。別名一覧45件に観測IDの対応がないため、投稿者別の頻度・集中率を算出しない。実名等を公開しない。",
+        "result/body/condition/identityの母数を別に検算。結果位置・保存数を独立投稿数または商品数とは表現しない。ハッシュ・重み付けなし。"
+      ],
+      "review_ref": "worklogs/projects/preparation/execution/基礎偏り分析.md; worklogs/projects/preparation/execution/基礎集計.json",
+      "return_to": null,
+      "next_step": "17",
+      "next_actor": "基礎標本レビュー担当",
+      "blocker": null,
+      "historical_status_recorded": "limited_known_product_and_actor_groups",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "17",
+      "title": "基礎標本をレビューして分析可否を決める",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:13:18+09:00",
+      "time_note": "開始時刻は個別記録していないため補完しない。完了記録時刻は2026-10-12T00:13:18+09:00。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/基礎標本レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_result_rows": 302,
+        "enumeration_rows_parsed": 436,
+        "result_rows": 302,
+        "reobservations": 133,
+        "reflow_events": 1,
+        "body_mapping_rows": 302,
+        "condition_mapping_rows": 302,
+        "identity_mapping_rows": 302,
+        "mapping_missing_rows": 0,
+        "mapping_extra_rows": 0,
+        "mapping_duplicate_pairs": 0,
+        "body_file_references": 133,
+        "missing_body_file_references": 0,
+        "full_body_files": 132,
+        "partial_body_files": 1,
+        "private_data_gitignored": true,
+        "sample_metadata_rows_checked": 8,
+        "body_content_read_back": false,
+        "review_independent_of_authoring_agent": false,
+        "unresolved_critical_findings_for_130_body_goal": 0,
+        "limitations": [
+          "B01終端未確認",
+          "B01-R1の16件差",
+          "B01-R2/B0232未取得",
+          "投稿・商品・投稿者の一意数不明",
+          "条件値110行不明"
+        ]
+      },
+      "validation_results": [
+        "基礎列挙436行全解析。結果302、再観測133、reflow1。",
+        "本文・条件・識別の各対応表302行で、結果集合との欠落0・余分0・重複0。本文参照133件はすべて存在し、全文132・部分1。本文ファイル内容は読戻しなし。",
+        "先頭、部分、取得不能、条件不明、キー確認、B01-R2先頭・欠番・末尾の8行について状態の組を照合。",
+        "非公開作業データのGit除外規則を確認。",
+        "同じAI実行内の別工程としてレビュー。外部・別担当の独立審査を受けたとは扱わない。目標は限定的な本文記述分析可能。全検索結果の完全性や母集団代表性は認めない。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/基礎標本レビュー.md",
+      "return_to": null,
+      "next_step": "18",
+      "next_actor": "基礎標本の商品概念分析担当",
+      "blocker": null,
+      "historical_status_recorded": "limited_sample_review_pass",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "18",
+      "title": "基礎標本の商品概念を上位概念へ整理する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T00:23:26+09:00",
+      "time_note": "開始時刻は個別記録なし。STEP 18完了を2026-10-12T00:23:26+09:00に記録。",
+      "inputs": [
+        "STEP 17 基礎標本レビュー",
+        "STEP 13 識別対応データ",
+        "保存済み本文観測132件"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/基礎商品概念.md",
+        "非公開作業データ/基礎/概念注釈.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_analysis_rows": 132,
+        "B01_rows": 4,
+        "B01_R2_rows": 128,
+        "genre_candidates": 8,
+        "theme_candidates_with_observations": 19,
+        "observations_without_theme_candidate": 13,
+        "confirmed_item_key_rows": 1,
+        "unknown_item_key_rows": 131,
+        "anonymous_alias_rows": 4,
+        "unknown_author_rows": 128,
+        "preview_price_name_fields_recorded": 0,
+        "annotation_rows": 132,
+        "unique_observation_keys": 132
+      },
+      "validation_results": [
+        "非公開注釈JSONLは132行で構文解析でき、観測キー重複0、本文参照欠落0。",
+        "132件は既存の保存記録に基づく全文本文数。保存後読戻しは件数条件にせず、本文テキストはSTEP 18の概念分析入力にのみ使用。",
+        "本文語句の辞書照合で8ジャンル・19テーマ候補。13観測は直接語句がなく未分類として維持。",
+        "商品キー確認済み1行・不明131行、匿名別名あり4行・投稿者不明128行を区別し、未知の商品数・実人数を推定しない。",
+        "価格直下の商品名は保存項目にしておらず、本文語句から補完していない。旧5ジャンル×30テーマ候補は参考保存し、流用していない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "19",
+      "next_actor": "基礎本文の構造分析担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "19",
+      "title": "基礎本文の構造を文型候補へ整理する",
+      "status": "complete",
+      "started_at": "2026-10-12T00:27:11+09:00",
+      "ended_at": "2026-10-12T06:08:16+09:00",
+      "time_note": "STEP19の当初版をユーザー指示に従い全132全文で再集計し直した。修正版完了時刻 2026-10-12T06:08:16+09:00。",
+      "inputs": [
+        "STEP 18 概念注釈",
+        "STEP 17 基礎標本レビュー",
+        "基礎本文対応・条件点検データ",
+        "保存済み全文・部分本文・既存プレビュー断片"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/基礎文型.md",
+        "非公開作業データ/基礎/構造注釈.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "result_rows_annotated": 302,
+        "full_body_rows": 132,
+        "full_pattern_distribution_rows": 132,
+        "condition_match_included_rows": 24,
+        "condition_unknown_included_rows": 108,
+        "partial_body_rows": 1,
+        "preview_only_rows": 163,
+        "preview_only_rows_with_saved_excerpt": 54,
+        "preview_only_rows_without_saved_excerpt": 109,
+        "unavailable_rows": 6,
+        "pattern_families_all_132": {
+          "feature_point_list": 15,
+          "experience_with_caveat": 5,
+          "product_and_feature": 41,
+          "product_reference_with_tags": 36,
+          "tags_with_other_roles": 6,
+          "mixed_or_unclassified": 6,
+          "promotion_before_product": 23
+        },
+        "pattern_families_by_condition_status": {
+          "match": {
+            "feature_point_list": 4,
+            "experience_with_caveat": 2,
+            "product_and_feature": 6,
+            "product_reference_with_tags": 8,
+            "tags_with_other_roles": 2,
+            "mixed_or_unclassified": 1,
+            "promotion_before_product": 1
+          },
+          "unknown": {
+            "product_and_feature": 35,
+            "promotion_before_product": 22,
+            "product_reference_with_tags": 28,
+            "experience_with_caveat": 3,
+            "mixed_or_unclassified": 5,
+            "feature_point_list": 11,
+            "tags_with_other_roles": 4
+          }
+        },
+        "ending_types_all_132": {
+          "tag_marker_at_end": 67,
+          "descriptive_or_other": 39,
+          "cta_marker_at_end": 26
+        },
+        "ending_types_by_condition_status": {
+          "match": {
+            "tag_marker_at_end": 13,
+            "descriptive_or_other": 6,
+            "cta_marker_at_end": 5
+          },
+          "unknown": {
+            "descriptive_or_other": 33,
+            "tag_marker_at_end": 54,
+            "cta_marker_at_end": 21
+          }
+        },
+        "role_presence_all_132": {
+          "product_reference": 122,
+          "feature_or_specification": 79,
+          "opening_hook": 41,
+          "list_or_bullets": 15,
+          "price_or_promotion": 54,
+          "tags": 125,
+          "benefit_or_result": 68,
+          "first_person_or_experience_marker": 63,
+          "uncertainty_or_caution": 20,
+          "comparison": 21,
+          "usage_scene": 43,
+          "reader_question": 17,
+          "social_proof": 11,
+          "call_to_action": 45
+        },
+        "role_presence_by_condition_status": {
+          "match": {
+            "product_reference": 22,
+            "feature_or_specification": 14,
+            "opening_hook": 7,
+            "list_or_bullets": 4,
+            "price_or_promotion": 8,
+            "tags": 23,
+            "benefit_or_result": 12,
+            "first_person_or_experience_marker": 11,
+            "uncertainty_or_caution": 3,
+            "comparison": 5,
+            "usage_scene": 8,
+            "reader_question": 2,
+            "social_proof": 2,
+            "call_to_action": 7
+          },
+          "unknown": {
+            "product_reference": 100,
+            "feature_or_specification": 65,
+            "opening_hook": 34,
+            "list_or_bullets": 11,
+            "price_or_promotion": 46,
+            "tags": 102,
+            "benefit_or_result": 56,
+            "first_person_or_experience_marker": 52,
+            "uncertainty_or_caution": 17,
+            "comparison": 16,
+            "usage_scene": 35,
+            "reader_question": 15,
+            "social_proof": 9,
+            "call_to_action": 38
+          }
+        },
+        "known_item_key_rows_in_full_set": 1,
+        "unknown_item_key_rows_in_full_set": 131,
+        "anonymous_alias_rows_in_full_set": 4,
+        "unknown_author_rows_in_full_set": 128,
+        "editorial_instruction_like_fragments_flagged": 1,
+        "annotation_rows": 302,
+        "unique_result_pairs": 302
+      },
+      "validation_results": [
+        "修正済み構造注釈JSONLは302行で解析でき、基礎列挙302結果位置と一対一対応。重複0。",
+        "本文全文の保存記録132件すべてを全文型・役割・終端の分布対象に含めた。反応条件match24件、不明108件を併記し、不明108件を除外していない。",
+        "部分本文1、プレビューのみ163（保存済み断片54）、取得不能6は全文分布から除外。除外理由は全文不在。",
+        "型分類規則・終端判定を全文132件に共通適用し、観測IDのみを公開資料へ参照。本文全文や固有の決まり文句は公開していない。",
+        "商品キー確認1/不明131、恒久投稿ID0、投稿者別名4/不明128を保持し、投稿・商品・投稿者単位の独立分布とは主張しない。",
+        "本文テキストの分析利用は内容分類のため。収集件数132は保存成功記録に基づき、保存後読戻しを件数条件にしていない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "20",
+      "next_actor": "基礎本文の長さ・タグ測定担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "completed_in_order"
+    },
+    {
+      "step": "19R",
+      "title": "既存の中間分析を本文132件全件で再分析する",
+      "status": "complete",
+      "started_at": "2026-10-12T06:29:23+09:00",
+      "ended_at": "2026-10-12T06:37:14+09:00",
+      "time_note": "開始・終了時刻を今回の実測時刻で記録。",
+      "inputs": [
+        "STEP 19の全件注釈と保存済み本文132件",
+        "plan/イナゴスキル事前準備/分析/以下の既存分析・候補資料",
+        "実行計画STEP 19R"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/中間分析全件再分析.md",
+        "worklogs/projects/preparation/分析/基礎長さタグ.md",
+        "worklogs/projects/preparation/分析/基礎長さタグ.json",
+        "worklogs/projects/preparation/分析/暫定分類と不足.md",
+        "worklogs/projects/preparation/分析/暫定分類.json",
+        "worklogs/projects/preparation/分析/5ジャンル候補.md",
+        "worklogs/projects/preparation/分析/5ジャンル候補.json",
+        "worklogs/projects/preparation/分析/30テーマ候補.md",
+        "worklogs/projects/preparation/分析/30テーマ候補.json",
+        "worklogs/projects/preparation/分析/文型候補.md",
+        "worklogs/projects/preparation/分析/文型候補.json",
+        "worklogs/projects/preparation/分析/本文長さ提案.md",
+        "worklogs/projects/preparation/分析/本文長さ提案.json",
+        "worklogs/projects/preparation/分析/タグ方針提案.md",
+        "worklogs/projects/preparation/分析/タグ方針提案.json",
+        "worklogs/projects/preparation/分析/統合長さタグ.md",
+        "worklogs/projects/preparation/分析/統合長さタグ.json",
+        "worklogs/projects/preparation/分析/統合標本.md",
+        "worklogs/projects/preparation/分析/統合集計.json",
+        "worklogs/projects/preparation/分析/分類適用確認.md",
+        "worklogs/projects/preparation/分析/適用確認.json",
+        "worklogs/projects/preparation/分析/独自紹介文試作.md",
+        "非公開作業データ/基礎/計測値.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_observations": 132,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "genre_candidates": 5,
+        "theme_candidates": 30,
+        "themes_exact_match_any": 104,
+        "themes_no_exact_match": 28,
+        "body_measurement_missing": 0,
+        "tag_measurement_missing": 0
+      },
+      "validation_results": [
+        "全132観測を長さ・タグ・文型・5ジャンル・30テーマ・暫定分類の分母に保持。反応条件match24／unknown108は記述内訳のみ。",
+        "5ジャンルJSONは5群、30テーマJSONは30項目。各資料に全132件使用を明記し、未分類観測も分母に保持。",
+        "分析JSON 10ファイルの構文と、計測値JSONL 133行の構文を確認。計測値は全文132行と過去の部分記録1行。",
+        "構造注釈の全文132観測IDは一意。計測欠測0。既存4件の再計測値は旧記録と一致。",
+        "本文対応表のsource_body_state不一致は分析記録へ明記し、収集履歴は変更していない。",
+        "ハッシュ生成・照合なし。既存の順序外成果物を完了済みとして扱っていない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "20",
+      "next_actor": "基礎本文の長さとタグの実測担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "20",
+      "title": "基礎本文の長さとタグを実測する",
+      "status": "complete",
+      "started_at": "2026-10-12T06:39:19+09:00",
+      "ended_at": "2026-10-12T06:50:54+09:00",
+      "time_note": "今回の実行で記録した開始・終了時刻。",
+      "inputs": [
+        "保存済み本文132件",
+        "plans/projects/preparation/収集分析仕様.md",
+        "worklogs/projects/preparation/execution/全文取得記録.md",
+        "worklogs/projects/preparation/レビュー/基礎標本レビュー.md",
+        "worklogs/projects/preparation/分析/基礎文型.md",
+        "worklogs/projects/preparation/分析/基礎商品概念.md",
+        "STEP19R全件再分析結果",
+        "計画第1～5・7～9節、原典要件1.3、意思決定台帳とヒアリング記録"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/基礎長さタグ.md",
+        "worklogs/projects/preparation/分析/基礎長さタグ.json",
+        "非公開作業データ/基礎/計測値.jsonl",
+        "worklogs/projects/preparation/分析/中間分析全件再分析.md",
+        "worklogs/projects/preparation/分析/本文長さ提案.md",
+        "worklogs/projects/preparation/分析/本文長さ提案.json",
+        "worklogs/projects/preparation/分析/タグ方針提案.json",
+        "worklogs/projects/preparation/分析/統合長さタグ.md",
+        "worklogs/projects/preparation/分析/統合長さタグ.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_observations": 132,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "body_measurement_missing": 0,
+        "tag_measurement_missing": 0,
+        "distinct_displayed_tag_strings": 927,
+        "tag_occurrences": 1261,
+        "concept_groups": 8,
+        "concept_group_memberships": 168,
+        "structure_candidates": 7,
+        "semantic_primary_categories": 7,
+        "selected_direct_recounts": 5,
+        "step19r_body_length_rows_corrected": 7,
+        "step19r_global_distinct_tag_count_corrected_from": 918,
+        "step19r_global_distinct_tag_count_corrected_to": 927
+      },
+      "validation_results": [
+        "JSON 4資料とJSONL 133行を構文解析。計測値は全文132行と既存部分記録1行。",
+        "全文132の観測ID集合は概念注釈・構造注釈と一致し、項目欠測0。全132を分析分母に保持。",
+        "8概念群は重複所属を含み、7構造候補は合計132。条件match24／unknown108は各群の副次内訳のみ。",
+        "タグ意味は固定語彙照合による暫定主分類。カテゴリ別の出現数合計1261、完全一致文字列数合計927。",
+        "本文最短・最長・タグ最多・タグなし・絵文字含有の5観測を個別再計数し、保存済み計測値と一致。URL含有例はなし。",
+        "7観測の本文長さ値を仕様に沿って修正。旧値を非公開計測値の履歴へ保持し、本文取得件数は変更なし。",
+        "恒久投稿ID0、商品キー確認1・不明131、投稿者別名のみ4・不明128。投稿・商品・投稿者の集中度は算出不能。",
+        "200～300文字・タグ3～5個を合否基準にせず、ハッシュ生成・照合なし。非公開作業データは.gitignoreで除外。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "21",
+      "next_actor": "暫定分類と材料不足の判断担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "21",
+      "title": "暫定分類と材料不足を具体化する",
+      "status": "complete",
+      "started_at": "2026-10-12T06:59:03+09:00",
+      "ended_at": "2026-10-12T07:05:56+09:00",
+      "time_note": "開始・終了時刻は作業時に記録。終了は成果物検証後の時刻。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md §1-5, §7-9, STEP21",
+        "docs/specifications/inago/イナゴスキル要件定義書.html v1.3 chapter 5-6",
+        "reports/projects/requirements/意思決定台帳.md D-021/022/026/027/028/038",
+        "reports/projects/requirements/ヒアリング記録.md Q-017/017-a/018/019/012-a/b",
+        "docs/specifications/preparation/原典条件台帳.md",
+        "worklogs/projects/preparation/分析/基礎商品概念.md",
+        "worklogs/projects/preparation/分析/基礎文型.md",
+        "worklogs/projects/preparation/分析/基礎長さタグ.md",
+        "worklogs/projects/preparation/execution/基礎偏り分析.md",
+        "worklogs/projects/preparation/レビュー/基礎標本レビュー.md",
+        "非公開作業データ/基礎/概念注釈.jsonl",
+        "非公開作業データ/基礎/本文対応.jsonl",
+        "非公開作業データ/基礎/条件点検.jsonl",
+        "非公開作業データ/基礎/識別対応.jsonl"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/暫定分類と不足.md",
+        "worklogs/projects/preparation/分析/暫定分類.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "saved_full_body_observations": 132,
+        "body_annotations": 132,
+        "reaction_condition_match": 24,
+        "reaction_condition_unknown": 108,
+        "genre_candidates": 5,
+        "genre_membership_rows": 166,
+        "genre_union_observations": 119,
+        "unclassified_observations": 13,
+        "overlap_observations": 41,
+        "theme_slots": 30,
+        "named_theme_candidates": 28,
+        "unset_theme_slots": 2,
+        "theme_evidence_observation_union": 104,
+        "theme_hit_rows_with_overlap": 177,
+        "confirmed_product_key_rows_in_full_body_set": 1,
+        "unknown_product_key_rows": 131,
+        "independent_product_count": null
+      },
+      "validation_results": [
+        "概念注釈132行・観測ID132件は全文保存記録4件＋全文保存128件のID集合と一致。各参照ファイルの存在を確認。",
+        "全132件の条件状態は一致24／不明108。分類・テーマ一致の対象から除外・重み付けをしていない。",
+        "5ジャンル・30枠を記録。候補28、空欄2。G04-T06を生活家電・照明に絞り、用途だけのG05-T05/T06は空欄。",
+        "群別母数44/23/31/48/20、延べ166・和集合119・未分類13・複数所属41を照合。テーマ根拠参照は全て132件集合内。",
+        "全文集合の店舗＋商品ID確認1行(B0001)、unknown131行。独立商品総数はnullで、観測件数を独立商品数へ置換していない。",
+        "JSON構文、テーマ30枠のIDと件数参照、Markdownのテーマ行30件を検証。本文の商品名対保存や読戻しを取得件数条件にしていない。",
+        "ハッシュ生成・照合なし。テストは依頼されておらず追加・実行していない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "22",
+      "next_actor": "STEP22担当",
+      "blocker": "G05の親境界と商品カテゴリ2枠は本人材料が必要。本文132件の商品キー独立数は1確認・131不明で総数unknown。STEP22で材料不足と補足検索分岐を計画する。",
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "22",
+      "title": "不足ジャンルだけの補足検索を計画する",
+      "status": "complete",
+      "started_at": "2026-10-12T07:06:34+09:00",
+      "ended_at": "2026-10-12T07:07:17+09:00",
+      "time_note": "開始・終了時刻を作業時に記録。検索は計画のみで実行していない。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md §1-5, §7-9, STEP22",
+        "docs/specifications/preparation/原典条件台帳.md D-038",
+        "reports/projects/requirements/意思決定台帳.md D-038",
+        "reports/projects/requirements/ヒアリング記録.md Q-017-a",
+        "worklogs/projects/preparation/分析/暫定分類と不足.md",
+        "worklogs/projects/preparation/分析/暫定分類.json",
+        "worklogs/projects/preparation/execution/実行管理.json"
+      ],
+      "output_paths": [
+        "plans/projects/preparation/補足検索計画.md",
+        "plans/projects/preparation/補足検索計画.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "genre_rows": 5,
+        "not_needed": 4,
+        "unset_owner_material_needed": 1,
+        "searches_planned": 0,
+        "searches_started": 0,
+        "slots_planned": 0,
+        "slots_used": 0,
+        "searches_remaining": 5,
+        "slots_remaining": 250,
+        "full_body_basis": 132,
+        "reaction_match_descriptive": 24,
+        "reaction_unknown_descriptive": 108
+      },
+      "validation_results": [
+        "計画JSON/MDともG01～G05の5判断行を検証。",
+        "G01～G04は全132本文から候補幅ありとして追加検索不要。件数の小ささやunknown商品キーを独自閾値にしていない。",
+        "G05は親ジャンルと商品カテゴリ2枠が未確定のため検索語null、owner-material分岐。",
+        "予算を再計数: 0/5検索、0/250枠を使用、残り5検索・250枠。基礎条件のいいね300以上、コメント条件なしを明記。",
+        "0結果と失敗、重複枠、51件目の拡張禁止、条件緩和・無断再検索禁止を記録。ハッシュなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "23",
+      "next_actor": "STEP23担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "blocker_resolution_note": "G05テーマの本人選定はSTEP27で受領し、選択済みテーマとして反映。"
+    },
+    {
+      "step": "23",
+      "title": "G01の必要な補足を最大50投稿で取得する",
+      "status": "not_needed",
+      "started_at": "2026-10-12T07:08:16+09:00",
+      "ended_at": "2026-10-12T07:08:48+09:00",
+      "time_note": "G01の補足不要分岐を実行。検索・UI操作なし。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md §1-5, §7-9, STEP23",
+        "plan/イナゴスキル事前準備/補足検索計画.md#G01",
+        "plan/イナゴスキル事前準備/補足検索計画.json#S-G01",
+        "plans/projects/preparation/収集分析仕様.md",
+        "docs/standards/preparation/保存公開方針.md",
+        "worklogs/projects/preparation/execution/公開UI確認.md",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/暫定分類.json"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/補足/G01取得記録.md",
+        "非公開作業データ/補足/G01.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "searches_started": 0,
+        "slots_used": 0,
+        "new_observations_saved": 0,
+        "search_results_total": null,
+        "full_body_basis_unchanged": 132
+      },
+      "validation_results": [
+        "STEP22のG01 not_needed計画と一致し、ROOM UI・検索は操作していない。",
+        "補足予算: G01 0/1検索・0/50枠、全体0/5検索・0/250枠。",
+        "結果JSONLはnot_needed制御記録1行。検索未実施のため検索結果総数はnull、実際の0結果・取得失敗と区別。",
+        "公開MDとJSONLの内容を照合。非公開JSONLは.gitignoreで除外。基礎本文132件と条件状態24/108は変更なし。",
+        "ハッシュ生成・照合なし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "24",
+      "next_actor": "STEP24担当",
+      "blocker": null,
+      "historical_status_recorded": "not_needed",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "24",
+      "title": "G02の必要な補足を最大50投稿で取得する",
+      "status": "not_needed",
+      "started_at": "2026-10-12T07:09:06+09:00",
+      "ended_at": "2026-10-12T07:10:33+09:00",
+      "time_note": "検索画面は開かず、計画上不要のため検索を行わなかった。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/補足/G02取得記録.md",
+        "非公開作業データ/補足/G02.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "G02 JSONLの制御行をJSONとして読込。検索未実施・結果総数null・0検索/0枠を確認。",
+        "G02 Markdownに未検索と0結果/失敗の区別、G01との比較対象なし、残予算5検索/250枠を記録。",
+        "基礎本文132件と条件内訳24/108を保持し、補足取得件数を0と確認。",
+        "ハッシュ不使用。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "25",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "not_needed",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "25",
+      "title": "G03の必要な補足を最大50投稿で取得する",
+      "status": "not_needed",
+      "started_at": "2026-10-12T07:11:01+09:00",
+      "ended_at": "2026-10-12T07:11:37+09:00",
+      "time_note": "STEP22計画およびSTEP21の全132件根拠を確認。既存順序外Markdownは保持し、今回の順序内記録を別ファイルに作成した。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/補足/G03取得記録_順序実行.md",
+        "非公開作業データ/補足/G03-順序実行.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "STEP21のG03候補6テーマと31/132観測、STEP22のnot_needed判定を確認。",
+        "JSONL制御行をJSONとして解析し、検索未実施、検索結果未観測(null)、0検索・0枠、全件母数132、反応条件をフィルターにしないことを確認。",
+        "既存の順序外G03取得記録.mdを読み、変更せず保持した。",
+        "ハッシュ不使用。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "26",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "not_needed",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "26",
+      "title": "G04の必要な補足を最大50投稿で取得する",
+      "status": "not_needed",
+      "started_at": "2026-10-12T07:11:51+09:00",
+      "ended_at": "2026-10-12T07:12:20+09:00",
+      "time_note": "STEP22計画およびSTEP21の全132件根拠を確認。既存順序外Markdownは保持し、今回の順序内記録を別ファイルに作成した。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/補足/G04取得記録_順序実行.md",
+        "非公開作業データ/補足/G04-順序実行.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "STEP21のG04候補6テーマと48/132観測、STEP22のnot_needed判定を確認。",
+        "JSONL制御行をJSONとして解析し、検索未実施、検索結果未観測(null)、0検索・0枠、全件母数132、反応条件をフィルターにしないことを確認。",
+        "既存の順序外G04取得記録.mdを読み、変更せず保持した。",
+        "ハッシュ不使用。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "27",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "not_needed",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "27",
+      "title": "G05の必要な補足を最大50投稿で取得する",
+      "status": "complete",
+      "started_at": "2026-10-12T07:12:50+09:00",
+      "ended_at": "2026-10-12T08:11:57+09:00",
+      "time_note": "STEP27は本人選定の固定語で1検索を実行し、ROOM表示101件から先頭50枠を取得して完了。51件目以降は上限外。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/補足/G05取得記録_順序実行.md",
+        "plans/projects/preparation/補足検索計画.md",
+        "plans/projects/preparation/補足検索計画.json",
+        "非公開作業データ/補足/G05-順序実行.jsonl",
+        "非公開作業データ/補足/G05.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "searches_started": 1,
+        "search_result_total": 101,
+        "slots_collected": 50,
+        "max_slots": 50,
+        "full_bodies_saved": 50,
+        "base_full_body_count": 132,
+        "observation_rows": 50,
+        "unique_observation_ids": 50,
+        "full_body_save_flags": 50,
+        "product_name_pair_required_for_body_count": 0
+      },
+      "validation_results": [
+        "STEP27は固定検索語「子ども・ペット用品」、いいね300以上、コメント条件なしで検索を1回だけ送信。ROOM表示101件。",
+        "先頭位置1～50の各投稿をROOM個別プレビューで「閉じる」直前まで確認し、本文全文を保存。位置51以降は取得していない。",
+        "本文保存件数に読戻し確認、商品名との対保存、店舗コード・商品番号・恒久ROOM投稿IDを要求しない。反応条件で対象を絞らず、ハッシュ不使用。",
+        "基礎本文132件は補足資料と区分して保持。G05補足50枠を別区分で追加。STEP28監査は次工程として未開始。",
+        "STEP27の原観測JSONLに欠けていたS05-0001を同じROOM検索タブから復元。結果位置1～50の一意な観測50件、全文状態・保存フラグ50/50、商品名対保存不要をメタデータで確認。保存本文の読戻しは行わず、取得件数条件にも使わない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "28",
+      "next_actor": "G05補足観測担当",
+      "blocker": null,
+      "historical_status_recorded": "not_needed",
+      "sequence_acceptance": "complete_in_order",
+      "resumed_at": "2026-10-12T07:38:42+09:00",
+      "resume_history": [
+        {
+          "previous_ended_at": "2026-10-12T07:13:23+09:00",
+          "trigger": "本人が選定テーマ2件を確定しSTEP27再開を指示",
+          "recorded_at": "2026-10-12T07:38:16+09:00",
+          "previous_status": "needs_owner"
+        }
+      ],
+      "revalidation_status": "complete_after_source_gap_repair",
+      "source_gap_repair": {
+        "metadata_validation": "50 unique observation IDs; positions 1-50; full-body save flags 50/50",
+        "result_position": 1,
+        "method": "existing ROOM result tab and individual preview",
+        "saved_text_readback_required": false,
+        "product_name_pair_required": false,
+        "new_search": false,
+        "observation_id": "S05-0001",
+        "repaired_at": "2026-10-12T09:00:22+09:00"
+      }
+    },
+    {
+      "step": "28",
+      "title": "補足の条件と上限と重複を監査する",
+      "status": "complete",
+      "started_at": "2026-10-12T08:14:15+09:00",
+      "ended_at": "2026-10-12T09:01:47+09:00",
+      "time_note": "補足検索計画と順序内G01～G05実績を照合し、検索・枠上限内であることと識別数の不明範囲を記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/補足監査.md",
+        "worklogs/projects/preparation/レビュー/補足集計.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "genres": 5,
+        "searches_started": 1,
+        "slots_collected": 50,
+        "g05_result_total": 101,
+        "searches_remaining": 4,
+        "slots_remaining": 200,
+        "base_full_body_count": 132,
+        "supplement_unique_posts": null,
+        "supplement_independent_products": null,
+        "slots_collected_after_repair": 50,
+        "unique_g05_observation_ids": 50,
+        "g05_full_bodies": 50,
+        "reaction_filter_exclusions": 0
+      },
+      "validation_results": [
+        "G01～G04は順序内not_needed、0検索・0枠。G05は固定語・いいね300以上・コメント条件なしで1検索、表示101件、位置1～50の50枠。",
+        "各ジャンル1検索・50枠、全体5検索・250枠の上限に適合。再検索、条件緩和、51件目以降の取得なし。",
+        "基礎本文132件を分母として維持し、補足50枠は別区分。反応状態を分析・収集の足切りに使用していない。",
+        "本文件数は個別プレビュー確認・保存成功の記録に基づき、保存後の本文読戻し・価格下の商品名との対保存は要求していない。",
+        "恒久投稿ID、店舗商品キー、商品名による重複照合を行っていないため、補足の一意投稿・独立商品・基礎との重複数は不明と明記。",
+        "既存の順序外監査と集計JSONは削除せず履歴として保全し、今回の順序内実績と区別。ハッシュ不使用。",
+        "修復後のG05観測行50件はID一意、結果位置1～50、全文状態50件・全文保存フラグ50件。本文内容の読戻しは監査項目にしていない。",
+        "固定検索語「子ども・ペット用品」、いいね300以上、コメント条件なし。検索1回、表示101件、枠上限50。最終進捗イベントは50枠・完了、S05-0001復元イベントは既存検索内で検索再送なし。",
+        "検索セッション行のslots_collected=1は送信時の初期スナップショット。後続の10/20/30/40/50進捗と最終完了イベント、修復後の50原観測行と区別して判定。",
+        "G01～G04はnot_neededのまま。全体1/5検索・50/250枠、51件目以降取得なし。",
+        "基礎本文132件を分母に維持。反応match24／unknown108は記述のみ。補足50件は別区分。商品名対保存・本文読戻し不要。重複・独立投稿数・商品数は不明のまま。ハッシュ不使用。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/補足監査.md",
+      "return_to": null,
+      "next_step": "29",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:01:47+09:00",
+      "revalidation_history": [
+        {
+          "final_progress_event": "2026-10-12T08:11:57+09:00",
+          "full_body_flags": 50,
+          "status": "pass",
+          "source_gap_repair_event": "2026-10-12T08:56:18+09:00",
+          "body_readback_performed": false,
+          "result_total": 101,
+          "searches": 1,
+          "used_slots": 50,
+          "product_name_pair_required": false,
+          "unique_ids": 50,
+          "recorded_at": "2026-10-12T09:01:47+09:00",
+          "positions": "1-50",
+          "g05_observations": 50
+        }
+      ]
+    },
+    {
+      "step": "29",
+      "title": "区分と重複を保った統合分析資料を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T08:17:47+09:00",
+      "ended_at": "2026-10-12T08:27:09+09:00",
+      "time_note": "基礎と補足の集合を分離し、全件分析用途別の参照セットと統合台帳を生成・検証。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "非公開作業データ/統合/対応.jsonl",
+        "非公開作業データ/統合/分類用.jsonl",
+        "非公開作業データ/統合/文型用.jsonl",
+        "非公開作業データ/統合/分類対応.jsonl",
+        "worklogs/projects/preparation/分析/統合標本.md",
+        "worklogs/projects/preparation/分析/統合集計.json",
+        "非公開作業データ/統合/履歴/STEP29-順序外参考-20261012/"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_result_rows": 302,
+        "base_full_body_count": 132,
+        "base_partial_body_count": 1,
+        "base_partial_preview_rows": 162,
+        "base_preview_only_rows": 1,
+        "base_unavailable_rows": 6,
+        "g05_supplement_slots": 50,
+        "total_mapping_rows": 352,
+        "unique_source_ids": 352,
+        "classification_reference_rows": 182,
+        "style_reference_rows": 182,
+        "base_denominator_for_classification": 132,
+        "base_denominator_for_style": 132,
+        "base_item_key_rows": 2,
+        "full_body_item_key_rows": 1,
+        "permanent_post_ids": 0,
+        "revalidated_g05_source_rows": 50,
+        "revalidated_g05_source_refs_resolved": 50,
+        "revalidated_source_mapping_rows": 352,
+        "revalidated_classification_base_denominator": 132,
+        "revalidated_style_base_denominator": 132
+      },
+      "validation_results": [
+        "本文対応・識別対応・概念注釈・構造注釈・計測値の既存メタデータを対応付け、本文内容は読み戻さず全件セットと参照を再構成。",
+        "基礎結果302行とG05補足50枠、合計352行。source_id 352件すべて一意。",
+        "基礎全文132件の本文ファイル参照132件が実在。部分本文1件等は全文分母へ入れていない。",
+        "分類用と文型用は各182参照だが、基礎分母は132件。補足50件は別コホートで分母外。",
+        "基礎の概念注釈132件と構造・計測の全件集合132件が対応。match24／unknown108は記述のみ、除外0。",
+        "恒久投稿ID0、基礎商品キー2/302・全文内1/132。G05・基礎間重複、独立投稿数・独立商品数は不明。",
+        "古い順序外統合データ4種を削除せず非公開の履歴フォルダーへコピー。旧Markdown/JSONの内容も参照履歴として保持。ハッシュ不使用。",
+        "統合対応表352行（基礎302＋G05補足50）はsource_idが全行一意。原G05台帳の50 IDと統合表のS05 IDは完全一致し、S05-0001も原台帳・統合表の両方に存在。",
+        "分類用182行・文型用182行は、それぞれ基礎132行を全件主分母へ含み、G05補足50行を別コホートとして保持。反応条件をfilter=trueとした行は両セットとも0。",
+        "STEP29分類対応表とSTEP33派生表は各352件でsource ID集合が統合対応表と一致。全352の本文参照先ファイルが存在することをパス存在のみで確認。本文内容の読戻しはしていない。",
+        "統合集計JSONの基礎分母132、補足50別区分、unique_source_id 352を照合。独立投稿・商品数と基礎／補足間の重複は不明のまま。",
+        "価格下商品名との対保存・本文読戻しを件数条件にせず、ハッシュを使用しない。反応match24／unknown108は補助内訳で、基礎132件の除外に使わない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "30",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:04:03+09:00",
+      "revalidation_history": [
+        {
+          "recorded_at": "2026-10-12T09:04:03+09:00",
+          "unique_source_ids": 352,
+          "g05_source_rows": 50,
+          "all_s05_refs_resolved": true,
+          "style_base_denominator": 132,
+          "body_readback_performed": false,
+          "classification_rows": 182,
+          "reaction_filter_true_rows": 0,
+          "status": "pass",
+          "style_rows": 182,
+          "classification_base_denominator": 132,
+          "integrated_rows": 352,
+          "missing_body_reference_files": 0
+        }
+      ]
+    },
+    {
+      "step": "30",
+      "title": "残る材料不足を解決し分析範囲を決める",
+      "status": "complete",
+      "started_at": "2026-10-12T08:28:25+09:00",
+      "ended_at": "2026-10-12T08:29:19+09:00",
+      "time_note": "候補案の作成に使える範囲と独立数・人気等の不明範囲を判定。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/execution/材料充足判定.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_count": 132,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "genre_body_observations": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "g05_owner_selected_categories": 2,
+        "g05_supplement_full_body_save_successes": 50,
+        "g05_searches_used": 1,
+        "g05_slots_used": 50,
+        "remaining_searches": 4,
+        "remaining_slots": 200,
+        "base_full_body_key_known": 1,
+        "base_full_body_key_unknown": 131,
+        "unique_posts": null,
+        "independent_products": null
+      },
+      "validation_results": [
+        "保存済み基礎本文132件を全件分母とするSTEP19R～21の概念・構造・長さ・タグ分析を確認。反応状態24/108での除外・重みづけなし。",
+        "5ジャンル候補の材料観測数はG01=44、G02=23、G03=31、G04=48、G05=20。重複可能な観測数で独立商品数ではない。",
+        "G05の空欄2枠は本人が子ども移動・車載安全用品、ペット家電・見守り機器を選定済み。直接語句一致は0/132。候補分類の本人材料として記録し、人気実証とは扱わない。",
+        "G05補足50枠は別コホートで保持。個別T05/T06分類・一意性未確定。補足予算の追加消費なし。",
+        "候補作成には十分、商品/投稿一意数・市場割合・効果因果には不十分と範囲を明記。新たな本人資料待ちを作らずSTEP31へ進める。candidate-0.1の採用はSTEP45で本人確認。ハッシュ不使用。",
+        "STEP30成果物を再点検。基礎132件全件利用、反応match24／unknown108は内訳のみ、ジャンル観測44/23/31/48/20、本人選定G05カテゴリ2件、補足50件の別区分、独立数不明が一貫。材料充足結論に変更なし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "31",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step29_repair_revalidation",
+      "revalidated_at": "2026-10-12T09:04:49+09:00"
+    },
+    {
+      "step": "31",
+      "title": "最終候補の5ジャンルを定義する",
+      "status": "complete",
+      "started_at": "2026-10-12T08:30:58+09:00",
+      "ended_at": "2026-10-12T08:32:44+09:00",
+      "time_note": "基礎本文132件全件を使って5親ジャンルの定義・境界・包含例を提案版として作成。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/5ジャンル候補.md",
+        "worklogs/projects/preparation/分析/5ジャンル候補.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_denominator": 132,
+        "all_132_included": true,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_based_exclusions": 0,
+        "genre_observation_counts": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "classified_any": 119,
+        "unclassified": 13,
+        "overlapping_observations": 41,
+        "group_memberships": 166,
+        "candidate_themes": 30,
+        "owner_selected_g05_categories": 2,
+        "g05_supplement_slots_separate": 50
+      },
+      "validation_results": [
+        "5候補に名前・定義・包含例・境界例・除外概念・関連ジャンルを付与し、各親に6候補テーマを対応。",
+        "候補母数は基礎概念注釈132件全件。反応状態24/108は記述内訳のみ、除外0。ジャンル観測数44/23/31/48/20、119分類・13未分類・41重複・166延べ所属を明記。",
+        "G05名を本人選定の「子ども・ペット用品」に更新。T05「子ども移動・車載安全用品」、T06「ペット家電・見守り機器」を反映。2名称の直接語句一致0/132を不存在の証拠にせず、補足50枠を別根拠とした。",
+        "一意商品数・人気順位・市場シェアは不明。主分類＋副分類のルールを定義し、識別不明行を独立商品へ数えない。",
+        "JSON構文、5ジャンル、各6テーマ、全132分母、G05本人選定、未採用proposed状態を確認。ハッシュ不使用。",
+        "STEP31の5ジャンル候補を再検証。5候補・各6テーマ候補、各ジャンル母数132、全件分母利用、反応除外0、G05本人選定2カテゴリ一致、補足50件は別コホート、candidateはproposed_not_adopted。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "32",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:05:28+09:00"
+    },
+    {
+      "step": "32",
+      "title": "各ジャンルの6テーマと境界を定義する",
+      "status": "complete",
+      "started_at": "2026-10-12T08:36:16+09:00",
+      "ended_at": "2026-10-12T08:39:35+09:00",
+      "time_note": "開始・終了時刻は作業時の実時刻を記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/30テーマ候補.md",
+        "worklogs/projects/preparation/分析/30テーマ候補.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_denominator": 132,
+        "all_132_included": true,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_condition_exclusions": 0,
+        "existing_theme_observation_assignments": 177,
+        "existing_theme_observation_union": 104,
+        "unassigned_to_existing_named_themes": 28,
+        "owner_selected_g05_categories": 2,
+        "g05_exact_phrase_hits_each": 0,
+        "g05_supplement_cohort_size": 50,
+        "g05_supplement_per_theme_assignment": null,
+        "genres": 5,
+        "themes_per_genre": 6,
+        "total_themes": 30
+      },
+      "validation_results": [
+        "候補JSONを読み込み、テーマ30件・識別子重複なし・5ジャンル各6件を確認。全テーマの基礎分母は132、状態はproposed_not_adopted。",
+        "既存28テーマの基礎観測参照・材料数がSTEP21暫定分類と一致。合計177割当、観測和集合104/132、未割当28を計数。観測重複を独立商品数としない。",
+        "G05-T05/T06は本人選定名に一致。直接語句一致0/132と個別意味分類未算出を区別し、補足S05-0048/S05-0046は代表例として別コホート記録。",
+        "定義、包含例、境界例、兄弟テーマとの差、主・補助分類ルール、商品識別状態を全30テーマに記録。",
+        "STEP19Rの既存候補Markdown/JSONを参考履歴として保持。JSON構文・必須文言・履歴30テーマを確認。ハッシュ不使用。",
+        "STEP32の候補JSON・Markdownを再検証。5ジャンル×6テーマ=30、theme_id一意、全テーマの基礎分母132、全132件を保持、反応除外0、本人選定G05-T05/T06一致、補足50件は別コホート、候補未採用。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "33",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:06:08+09:00"
+    },
+    {
+      "step": "33",
+      "title": "主テーマと補助テーマの分類例を検証する",
+      "status": "complete",
+      "started_at": "2026-10-12T08:40:52+09:00",
+      "ended_at": "2026-10-12T08:44:40+09:00",
+      "time_note": "開始・終了時刻は作業時の実時刻を記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/分類適用確認.md",
+        "非公開作業データ/統合/分類適用_STEP33.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "integrated_source_rows": 352,
+        "base_full_body_denominator": 132,
+        "all_132_included": true,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_condition_exclusions": 0,
+        "existing_theme_observation_assignments": 177,
+        "existing_theme_observation_union": 104,
+        "unassigned_to_existing_28_themes": 28,
+        "multi_theme_observations": 53,
+        "confirmed_store_item_keys": 2,
+        "confirmed_key_rows_within_full_body_set": 1,
+        "unknown_key_rows_within_full_body_set": 131,
+        "g05_supplement_rows": 50,
+        "g05_supplement_per_record_theme_assignments": 0,
+        "representative_supplement_examples": 2,
+        "product_level_primary_theme_candidates": 2,
+        "revalidated_base_rows": 132,
+        "revalidated_assignments": 177,
+        "revalidated_assigned_rows": 104,
+        "revalidated_unassigned_rows": 28,
+        "revalidated_multi_theme_rows": 53
+      },
+      "validation_results": [
+        "統合分類用入力に基礎全文132件が全件含まれ、反応条件match24／unknown108を内訳として維持、条件による除外0を確認。",
+        "基礎132観測のテーマ候補対応を全行に付与。STEP32の根拠参照と一致し、177割当・和集合104・未割当28・複数テーマ53を直接計数。",
+        "352行の統合対応派生表でsource_id重複なし。識別済みキー2件だけ主テーマ候補を付け、B0001は全文集合内、B0181は部分プレビューで全文集合外と明示。",
+        "30テーマすべてに根拠/適用例状態を一覧化。G05補足50行は未割当状態を維持し、S05-0048/S05-0046を代表例のみとして分離。",
+        "STEP29の既存352行分類対応表は上書きせず保持。計画で同一ファイル名が重複するため、派生表を分類適用_STEP33.jsonlとして保存。",
+        "JSONL行の構文・一意性・132行分母・反応内訳・テーマ参照対応、Markdownに30テーマ・識別例・境界・未解決点を確認。旧STEP33記録を履歴保持。ハッシュ・画像類似なし。",
+        "STEP33派生表を再検証。全352 source ID一意、基礎132行分母、177割当・和集合104・未割当28・複数テーマ53。G05補足50行はnot_doneのまま、代表例2件のみ。反応filter=trueは0。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "34",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "complete",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:07:15+09:00"
+    },
+    {
+      "step": "34",
+      "title": "分類候補をレビューし曖昧さを修正する",
+      "status": "complete",
+      "started_at": "2026-10-12T08:45:33+09:00",
+      "ended_at": null,
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/分類レビュー.md",
+        "worklogs/projects/preparation/分析/30テーマ候補.md",
+        "worklogs/projects/preparation/分析/30テーマ候補.json"
+      ],
+      "source_requirement_version": "1.3",
+      "validation_results": [
+        "STEP34候補レビューを修正後のSTEP31～33に照らして再検証。30 theme_id全件のレビュー表が候補JSONと一致、G03/G05の境界修正と本人選定2テーマを確認。集計・観測参照の変更なし、全132分母、反応除外0、candidate-0.4は未採用。",
+        "順序状態を再照合。STEP33の順序内完了後に実施されたSTEP34再検証（2026-10-12T09:08:53+09:00）と、candidate-0.4の全30テーマレビュー・集計不変・基礎132分母・反応除外0を確認。順序完了として確定。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "35",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "historical_status_before_revalidation": "running",
+      "revalidation_status": "complete_after_step27_source_gap_repair",
+      "revalidated_at": "2026-10-12T09:08:53+09:00",
+      "observed_counts": {
+        "multi_theme_observations": 53,
+        "review_table_ids": 30,
+        "assigned_observations": 104,
+        "base_denominator": 132,
+        "unassigned_observations": 28,
+        "reaction_exclusions": 0,
+        "observation_assignments": 177,
+        "reviewed_themes": 30
+      }
+    },
+    {
+      "step": "35",
+      "title": "統合標本から採用候補の文型を設計する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:08:53+09:00",
+      "ended_at": "2026-10-12T09:15:51+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/文型候補.md",
+        "worklogs/projects/preparation/分析/文型候補.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "themes_covered": 30,
+        "condition_unknown": 108,
+        "base_full_body_count": 132,
+        "residual_rows": 12,
+        "candidate_pattern_observations": 120,
+        "supplement_style_annotation_rows": 0,
+        "condition_match": 24,
+        "all_132_used": true,
+        "supplement_full_body_rows": 50,
+        "candidate_patterns": 5,
+        "observed_structure_rows": 132,
+        "candidate_status": "proposed_not_adopted",
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "文型候補は基礎132件すべての構造注釈を入力とした。反応match24／unknown108を除外せず、7構造区分の合計132を維持。",
+        "商品＋特徴41、商品＋タグ36、販促先行23、特徴箇条書き15、体験＋留保5を5候補に整理。タグ＋他役割6は横断要素、混合・分類不能6は固定型にせず、残余12も母数から落としていない。",
+        "30テーマ全件に一般・条件付き候補の適用見通しを提示。G05-T05/T06は本人選定カテゴリで、専用スタイル根拠を主張していない。",
+        "G05補足50本文は基礎と別区分。構造注釈0/50のため補足パターン頻度・基礎との共通性は不明と明記。",
+        "個別投稿・独立作者・独立商品数は不明。D-037に従い、効果は仮説、因果効果未実証、低反応事前比較不要。価格・体験未確認でも商品保留はしない。候補は未採用。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "36",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "ordered_execution_started_at": "2026-10-12T09:08:53+09:00",
+      "historical_status_before_ordered_run": "reference_only_out_of_sequence",
+      "revalidation_status": "complete_in_order_all132",
+      "ordered_execution_completed_at": "2026-10-12T09:15:51+09:00"
+    },
+    {
+      "step": "36",
+      "title": "統合後の長さとタグの分布を再計測する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:15:51+09:00",
+      "ended_at": "2026-10-12T09:28:19+09:00",
+      "time_note": "開始時刻は今回の続行時点では不明。終了時刻は出力と検証を完了した記録時刻。開始時刻を推定していない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/統合長さタグ.md",
+        "worklogs/projects/preparation/分析/統合長さタグ.json",
+        "非公開作業データ/統合/計測値.jsonl"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_observations": 132,
+        "base_reaction_match_descriptive_only": 24,
+        "base_reaction_unknown_descriptive_only": 108,
+        "reaction_exclusions": 0,
+        "g05_supplement_full_body_observations": 50,
+        "raw_row_sum_not_unique": 182,
+        "deduplicated_post_or_product_union": null,
+        "base_step20_measurement_mismatches": 0,
+        "base_length_or_tag_measurements_missing": 0,
+        "base_genre_memberships": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "base_genre_union_observations": 119,
+        "base_genre_overlap_observations": 41,
+        "base_genre_unassigned_observations": 13,
+        "base_pattern_class_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "cross_cutting_tags": 6,
+          "unfixed_mixed_or_unclassified": 6
+        }
+      },
+      "validation_results": [
+        "基礎の全文132件すべてを計測。参照ファイル欠落0。本文コードポイント、タグ出現、一意タグ数、タグ位置、URL出現のSTEP20値と132件×5項目を照合し、不一致0。これは計測の再計算で、取得件数に読戻し条件を追加していない。",
+        "基礎132件の全体・5ジャンル・STEP35文型候補別の統計を出力。全体分母132、反応match24／unknown108は記述内訳のみ、反応除外0。ジャンル間重複41・未割当13を保持。",
+        "G05補足の全文50件すべてを別コホートで集計。補足タグ配列と本文欄の差を特定し、S05-0001のタグ10件を含めて位置のみ未確認、S05-0002の非#項目1件を除外。50件をT05/T06へ分類せず、型注釈0/50も維持。",
+        "基礎132＋補足50の単純行和182を参考表示したが、恒久投稿ID・商品キー不明のため重複除去後の統合集合や独立投稿/商品数は算出していない。",
+        "STEP20のタグ意味分類集計は基礎132件分として保持。文字列別の固定語彙対応表が保存されていないため、補足50件・182行合算のタグ意味分類を推測で補っていない。",
+        "非公開の統合計測値JSONLは実測182行＋メタデータ1行。元ID集合との一致、ID一意、JSONL構文、本文/タグ原文を複写していないことを検証。Git除外を確認。ハッシュ生成・照合なし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "37",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order",
+      "ordered_execution_started_at": "2026-10-12T09:15:51+09:00",
+      "historical_status_before_ordered_run": "reference_only_out_of_sequence",
+      "revalidation_status": "running_remeasure_all132_and_separate_supplement"
+    },
+    {
+      "step": "37",
+      "title": "本文長さの目安を根拠付きで提案する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:28:19+09:00",
+      "ended_at": "2026-10-12T09:33:13+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/本文長さ提案.md",
+        "worklogs/projects/preparation/分析/本文長さ提案.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_observations": 132,
+        "reaction_match_descriptive": 24,
+        "reaction_unknown_descriptive": 108,
+        "reaction_exclusions": 0,
+        "supplement_observations_separate": 50,
+        "soft_range_min": 150,
+        "soft_range_max": 300,
+        "base_within_range": 68,
+        "supplement_within_range": 23,
+        "genre_n": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "pattern_n": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "cross_cutting_tags": 6,
+          "unfixed_mixed_or_unclassified": 6
+        }
+      },
+      "validation_results": [
+        "JSON/Markdown成果物が存在し、JSONを解析できる。",
+        "非公開計測台帳の基礎132件・補足50件と参照を照合。全体、別コホート、5ジャンル、7文型群の計14群で分布統計・幅内件数の不一致0。",
+        "基礎132件を全て分母に含み、match24/unknown108は記述内訳のみ。反応による除外0。",
+        "150～300 Unicodeコードポイントは任意参考幅であり、合否・保留ゲートにしない。因果主張なし。本人採用判断はSTEP45まで保留。",
+        "ハッシュ生成・照合なし。テストは追加・実行していない。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "38",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "38",
+      "title": "タグの数と使い方を根拠付きで提案する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:33:13+09:00",
+      "ended_at": "2026-10-12T09:40:40+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/タグ方針提案.md",
+        "worklogs/projects/preparation/分析/タグ方針提案.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_observations": 132,
+        "tag_occurrences": 1261,
+        "unique_tags_per_observation_total": 1254,
+        "distinct_exact_strings": 927,
+        "tagged_observations": 124,
+        "tagless_observations": 8,
+        "duplicate_tag_rows": 7,
+        "soft_range_min": 5,
+        "soft_range_max": 12,
+        "soft_range_coverage": 69,
+        "soft_range_coverage_percent": 52.27,
+        "supplement_observations_separate": 50,
+        "genres": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "genre_memberships_total": 166,
+        "patterns": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "cross_cutting_tags": 6,
+          "unfixed_mixed_or_unclassified": 6
+        }
+      },
+      "validation_results": [
+        "JSON/Markdown成果物を読み直し、JSON構文・必須欄を確認。",
+        "STEP36計測台帳を照合。基礎132件、別コホート補足50件。5ジャンル・7文型/残余の全12群でタグ中央値・平均・5～12範囲内件数が一致。",
+        "基礎タグ出現1261、投稿内一意合計1254、完全一致文字列927、タグあり124/なし8、位置79/45/8、重複行7がSTEP36集計と一致。",
+        "意味分類は一次分類の合計1261出現/927表記に一致。G05-T05/T06は分類候補として参照し補足50件をテーマ割当していない。",
+        "D-022とIR-007の提案・本人確認・非ゲート条件を保持。未採用、効果因果主張なし、ハッシュなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "39",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "39",
+      "title": "文型ルールの一つの候補資料にまとめる",
+      "status": "complete",
+      "started_at": "2026-10-12T09:40:40+09:00",
+      "ended_at": "2026-10-12T09:45:07+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/candidates/文型ルール候補.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_observations": 132,
+        "pattern_candidate_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "cross_cutting_tags": 6,
+          "unfixed_mixed_or_unclassified": 6
+        },
+        "genres": {
+          "G01": 44,
+          "G02": 23,
+          "G03": 31,
+          "G04": 48,
+          "G05": 20
+        },
+        "genre_memberships": 166,
+        "themes": 30
+      },
+      "validation_results": [
+        "統合候補Markdownを読み戻し、P01～P05・残余を全件記載し観測数合計132。",
+        "全30テーマ名をcandidate-0.4-step34-reviewedと照合。G05-T05/T06のユーザー選定を反映。",
+        "本文長さ150～300 Unicodeコードポイントとタグ5～12トークンを別単位の未採用・任意案として統合。",
+        "IR-007/012/014とD-018/021/022を照合。1商品1案、他者本文不使用、未確認情報・本人未申告体験を追加しない、情報不足や目安だけで保留しない。",
+        "旧candidate-0.1（全文4件）を履歴として残し、現行で使わないと明記。ハッシュなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "40",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "40",
+      "title": "文型を使った独自の紹介文を小さく試作する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:45:07+09:00",
+      "ended_at": "2026-10-12T09:51:33+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/独自紹介文試作.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "analysis_basis": 132,
+        "application_cases": 6,
+        "pattern_cases": {
+          "P01": 1,
+          "P02": 1,
+          "P03": 1,
+          "P04": 1,
+          "P05": 1
+        },
+        "boundary_cases": 1,
+        "synthetic_cases": 6,
+        "real_posts": 0,
+        "posted": 0
+      },
+      "validation_results": [
+        "MarkdownとJSONを読み戻し、6件の本文とコードポイント/タグ数の表が一致。",
+        "P01～P05各1件と境界1件。すべて仮想例で、分析標本を絞り込んだものではない。基礎分析分母132件を維持。",
+        "販促が未確認なら除外するP03、複数事実を分けるP04、体験を仮想と明記するP05、カテゴリだけのC06を確認。",
+        "長さ・タグ範囲外の例も記録し、ゲート条件はfalse。投稿/日次件数/反応/収益は0。",
+        "旧順序外candidate-0.1の本文・JSONを履歴として保持。ハッシュなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "41",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "41",
+      "title": "文型と目安と試作を内容レビューする",
+      "status": "complete",
+      "started_at": "2026-10-12T09:51:33+09:00",
+      "ended_at": "2026-10-12T09:54:44+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/文型目安レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full": 132,
+        "structural_annotations_total": 302,
+        "reaction_match_descriptive": 24,
+        "reaction_unknown_descriptive": 108,
+        "supplement_separate": 50,
+        "genre_memberships": 166,
+        "theme_candidates": 30,
+        "synthetic_cases": 6,
+        "critical_findings": 0
+      },
+      "validation_results": [
+        "構造注釈から全文132行・一意ID132・全件included=trueを直接確認。型別41/36/23/15/5と残余12、合計132。",
+        "反応match24/unknown108。確認状態による選別なし。STEP36/37/38統計と候補値の単位・群別母数を照合。",
+        "文型/長さ/タグの任意案は分布根拠と一致し、ゲートになっていない。タグ数とコードポイント数を別単位で確認。",
+        "P01～P05の6試作参照を確認。全件仮想、実投稿/実績なし。G05-T05/T06はユーザー選定、テーマ別効果は未観測。",
+        "要件IR-007/012/014との重大な矛盾なし。レビューは同じAIセッション内であり独立査読ではないと開示。旧順序外レビューは履歴保持。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/文型目安レビュー.md#candidate-0.2-step41-all132",
+      "return_to": null,
+      "next_step": "42",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "42",
+      "title": "反例を使って計画条件との相違を点検する",
+      "status": "complete",
+      "started_at": "2026-10-12T09:54:44+09:00",
+      "ended_at": "2026-10-12T10:03:44+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/反例点検.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_result_rows": 302,
+        "base_full_body_files": 132,
+        "full_body_reaction_match": 24,
+        "full_body_reaction_unknown": 108,
+        "reaction_filter_exclusions": 0,
+        "g05_supplement_slots": 50,
+        "counterexample_cases": 20,
+        "major_findings": 1
+      },
+      "validation_results": [
+        "20件の反例を記録し、基礎本文132件と条件match24/unknown108、反応除外0を原データから照合。",
+        "表示数・結果位置・全文数・商品一意数・終端・日付変更・部分/取得不能を分離して記録。",
+        "反応値299/コメント9/実測0/検索0件などの未観測ケースを明示し、実例や挙動試験を捏造していない。",
+        "G05は50枠、検索101件表示。補足と基礎の重複・独立投稿数は不明のまま保持。",
+        "5×6テーマ、重複・識別欠測、タグ/URL/Unicode/分位点/目安超過、本人回答範囲を確認。",
+        "本人確認用candidate-0.1 HTMLに旧4全文・旧G05分類を確認し、現行候補との不整合を重大差異としてSTEP43へ引継ぎ。",
+        "ハッシュ生成・照合なし。ソフトウェア試験・架空ケース試験なし。旧反例記録は履歴として保持。"
+      ],
+      "review_ref": "plan/イナゴスキル事前準備/レビュー/反例点検.md#step-42",
+      "return_to": null,
+      "next_step": "43",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "43",
+      "title": "レビュー指摘を修正し影響範囲を再確認する",
+      "status": "complete",
+      "started_at": "2026-10-12T10:03:44+09:00",
+      "ended_at": "2026-10-12T10:16:35+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/修正再確認.md",
+        "worklogs/projects/preparation/candidates/文型ルール候補.md",
+        "reports/projects/preparation/本人確認用概要.html",
+        "worklogs/projects/preparation/execution/本人確認依頼.md",
+        "reports/projects/preparation/本人確認記録.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_result_rows": 302,
+        "base_full_body_save_success": 132,
+        "full_body_reaction_match_descriptive": 24,
+        "full_body_reaction_unknown_descriptive": 108,
+        "reaction_filter_exclusions": 0,
+        "base_partial": 1,
+        "base_preview_only": 163,
+        "base_unavailable": 6,
+        "g05_supplement_separate": 50,
+        "style_analysis_rows": 182,
+        "base_rows_in_primary_distribution": 132,
+        "theme_candidates": 30,
+        "critical_findings_unresolved": 0
+      },
+      "validation_results": [
+        "指定入力のSTEP17・28・34・41・42レビュー5件の存在と指摘を照合。",
+        "本文対応表302行、全文保存成功132件を計数。文型分析182行のうち基礎132行すべてが主分布に含まれ、反応条件フィルターは全132行でfalse。",
+        "5つの構成候補の版を照合: 分類/30テーマ candidate-0.4-step34-reviewed、文型 candidate-0.3-step35-all132、長さ candidate-0.4-step37-all132、タグ candidate-0.4-step38-all132。",
+        "統合候補candidate-0.3-step43-all132、G05の子ども移動・車載安全用品／ペット家電・見守り機器、旧候補履歴の保持を確認。",
+        "STEP42の重大差異を現行候補の作成と旧本人確認資料の履歴表示で閉鎖。未採用状態を維持し、補足50件は別コホート。ハッシュ・追加検索・ソフトウェア試験なし。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/修正再確認.md",
+      "return_to": null,
+      "next_step": "44",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "44",
+      "title": "本人が採用を判断できる概要資料を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T10:16:35+09:00",
+      "ended_at": "2026-10-12T10:24:59+09:00",
+      "time_note": "工程ごとの開始・終了時刻を個別に記録していない。後から推定しない。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "reports/projects/preparation/本人確認用概要.html",
+        "worklogs/projects/preparation/execution/本人確認依頼.md",
+        "archive/documents/preparation/本人確認用概要_candidate-0.1_旧案.html",
+        "archive/documents/preparation/本人確認依頼_candidate-0.1_旧案.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "candidate_version": "candidate-0.3-step43-all132",
+        "base_full_body_basis": 132,
+        "reaction_match_descriptive": 24,
+        "reaction_unknown_descriptive": 108,
+        "reaction_filter_exclusions": 0,
+        "genres": 5,
+        "themes": 30,
+        "patterns": 5,
+        "observed_structure_groups": 7,
+        "length_guidance_basis": 132,
+        "tag_guidance_basis": 132,
+        "supplement_g05_separate": 50
+      },
+      "validation_results": [
+        "候補版と構成資料5版を照合。現行candidate-0.3とG05本人選定T05/T06を一致させ、旧candidate-0.1の採用を示唆しない。",
+        "HTMLに5ジャンル・全30テーマの名称、短い定義、根拠種別と全132件の分母を掲載。30テーマすべてを候補JSONと照合。",
+        "反応match24/unknown108は内訳のみ、132件全件利用・反応除外0を明記。G05補足50枠は別コホートとして記載。",
+        "5つの文型と構造分布7群、仮想試作への参照、効果未実証を記載。",
+        "本文150～300 Unicodeコードポイント程度・タグ5～12個程度を任意参考として、単位・母数・例外を記載。",
+        "4つの判断対象と回答方法を概要・依頼に明記。既選定G05二分類を再質問せず、検索条件・日次仕様を再承認対象にしていない。",
+        "ローカルリンク19件の参照先が実在し、外部依存・scriptなし。レスポンシブ/印刷CSSは含むが、画面幅別の視覚確認はSTEP50まで未実施。",
+        "旧概要・旧依頼案をcandidate-0.1履歴ファイルへ保存。現在の依頼は未送信、候補全体の回答は未受領。ソフトウェア試験・ハッシュなし。"
+      ],
+      "review_ref": "reports/projects/preparation/本人確認用概要.html",
+      "return_to": null,
+      "next_step": "45",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "45",
+      "title": "本人の実際の採用回答を記録する",
+      "status": "complete",
+      "started_at": "2026-10-12T10:24:59+09:00",
+      "ended_at": null,
+      "time_note": "本人回答の正確な受領時刻を個別保存していないため終了時刻はnull。回答日は2026-10-12。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "reports/projects/preparation/本人確認記録.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": null,
+      "validation_results": [
+        "現会話でcandidate-0.3-step43-all132の分類・文型・本文長さ・タグ4対象すべての採用回答を受領し、本人確認記録へ記録",
+        "文型運用方針とP01～P05各1～2の基礎132件実例を最終成果物へ掲載する指示を記録"
+      ],
+      "review_ref": "reports/projects/preparation/本人確認記録.md",
+      "return_to": null,
+      "next_step": "46",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "46",
+      "title": "採用結果を実装向けの確定資料へ出力する",
+      "status": "complete",
+      "started_at": null,
+      "ended_at": "2026-10-12T12:21:27+09:00",
+      "time_note": "開始時刻は個別保存していないためnull。終了時刻はSTEP46確認完了時に記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "docs/specifications/preparation/ジャンルテーマ確定.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "docs/specifications/preparation/本文長さタグ目安確定.json",
+        "docs/specifications/preparation/初期設定引渡し.json",
+        "reports/projects/preparation/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_records": 132,
+        "genres": 5,
+        "themes": 30,
+        "themes_per_genre": 6,
+        "patterns": 5,
+        "reaction_condition_match": 24,
+        "reaction_condition_unknown": 108,
+        "reaction_condition_exclusions": 0
+      },
+      "validation_results": [
+        "candidate-0.3-step43-all132の分類・文型・本文長さ・タグ4対象すべて採用を本人確認記録と照合",
+        "5ジャンル・30テーマ・各6件を再計数し、必須ID・定義・所属を直接確認",
+        "包含例・境界例を要件データ辞書どおり文字列配列へ修正し、全30テーマで型を確認",
+        "基礎本文132件全件を分析母数とし、反応条件での選別・除外0を確認",
+        "P01～P05の型選択方針と各実例1件を確認し、5例の抜粋を対応する基礎本文ファイルで照合",
+        "長さ150～300コードポイント、タグ5～12個が任意の採用目安として確定JSON・引渡しJSONに一致",
+        "索引9項目のファイル実在、確定版・本人採用参照・JSON構文を確認。ハッシュ不使用"
+      ],
+      "review_ref": "docs/specifications/preparation/初期設定引渡し.json; docs/specifications/preparation/文型ルール確定.md; reports/projects/preparation/結果セット索引.json",
+      "return_to": null,
+      "next_step": "47",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "47",
+      "title": "実装担当として受領だけをリハーサルする",
+      "status": "complete",
+      "started_at": "2026-10-12T12:21:27+09:00",
+      "ended_at": "2026-10-12T12:24:16+09:00",
+      "time_note": "開始・終了を実行記録時刻で保存。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "reports/projects/preparation/実装受領確認.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "genres": 5,
+        "themes": 30,
+        "themes_per_genre": 6,
+        "theme_evidence_refs": 179,
+        "patterns": 5,
+        "base_full_body_records": 132,
+        "reaction_condition_exclusions": 0
+      },
+      "validation_results": [
+        "IR-005～007と要件データ辞書に対し、版・本人採用・分類・文型・目安の受領内容を照合",
+        "5ジャンル・各6・30テーマの名前・定義・親子IDを引渡しJSONと確定MDで直接比較",
+        "包含例・境界例・根拠参照の型、selection_count初期値、5文型、長さ/タグ値と単位を確認",
+        "テーマの179参照先を基礎本文ファイルまたはG05補足JSONLに解決",
+        "独立商品・G05意味分類・効果の不明/未実証を明記。初期登録入力として受領可、実装・DB・UI・システム試験は対象外"
+      ],
+      "review_ref": "reports/projects/preparation/実装受領確認.md",
+      "return_to": null,
+      "next_step": "48",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "48",
+      "title": "全成果物の追跡と検証実績を最終監査する",
+      "status": "complete",
+      "started_at": "2026-10-12T12:24:16+09:00",
+      "ended_at": "2026-10-12T12:34:04+09:00",
+      "time_note": "STEP開始・終了を実行記録時刻で保存。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/総合検証記録.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "workflow_actions": 51,
+        "in_order_steps_before_49": 49,
+        "base_full_body_records": 132,
+        "reaction_exclusions": 0,
+        "genres": 5,
+        "themes": 30,
+        "accepted_targets": 4,
+        "indexed_primary_artifacts": 9
+      },
+      "validation_results": [
+        "全51工程（STEP01～50＋19R）の順序・状態・成果参照を照合。23～26はnot_needed理由を確認し、49/50を未到達として区別。",
+        "基礎本文132件全件を分析母数とし、match24/unknown108・反応除外0、5ジャンル・30テーマ、P01～P05、長さ・タグ分布を照合。",
+        "確定資料9パスの実在・版・本人採用・参照を確認。レビュー17/28/34/41/42/43/47の指摘・対応・限界を確認。",
+        "非公開データのGit除外、本文全文・個人識別の公開成果物混入なし、ハッシュ・追加検索・本番変更なしを確認。",
+        "実装受領可とシステム実装・本番投稿・効果検証未実施を区別。STEP50の視覚確認は未実施。",
+        "管理JSONのcurrent_rule_auditが旧count4だったため履歴へ保存し、保存成功記録に沿う現行132件状態へ更新。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/総合検証記録.md",
+      "return_to": null,
+      "next_step": "49",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "49",
+      "title": "実施内容と成果と検証のHTMLレポートを作る",
+      "status": "complete",
+      "started_at": "2026-10-12T12:34:04+09:00",
+      "ended_at": "2026-10-12T12:40:04+09:00",
+      "time_note": "STEP49の生成・静的検証完了時刻を記録。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "reports/projects/preparation/事前準備完了レポート.html"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "genres": 5,
+        "themes": 30,
+        "patterns": 5,
+        "pattern_examples": 5,
+        "primary_artifacts": 9,
+        "workflow_actions": 51,
+        "base_full_body_records": 132
+      },
+      "validation_results": [
+        "本人採用4対象と候補版candidate-0.3-step43-all132、確定版confirmed-0.3-step46-all132を反映。",
+        "基礎本文132件を全件利用した分析、match24/unknown108・除外0、G05補足との別コホート、検索行・本文状態を区別。",
+        "5ジャンルと30テーマの定義・包含・境界・観測根拠をHTML表へ埋込み、元JSONとのID一致30/30を確認。",
+        "商品ごとに型を選ぶ方針とP01～P05の実本文短抜粋を各1件掲載。確定資料内の連続した原文であることを照合。",
+        "本文・タグの任意目安、定義、分布、例外、レビュー7件、制約、成果物9種、全51工程状態を記載。",
+        "HTML構造、目次、相対リンク11件の実在、画面幅向けCSS、印刷CSS、外部依存なしを静的確認。",
+        "旧順序外HTMLを別ファイルへ保全。保存後読戻し・商品名との対保存・ハッシュ・ソフトウェアテストは件数条件や実施内容に追加していない。"
+      ],
+      "review_ref": "reports/projects/preparation/事前準備完了レポート.html",
+      "return_to": null,
+      "next_step": "50",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "50",
+      "title": "HTMLの内容と表示を検証して完了を確定する",
+      "status": "complete",
+      "started_at": "2026-10-12T12:40:04+09:00",
+      "ended_at": "2026-10-12T13:45:20+09:00",
+      "time_note": "内容照合・静的確認は12:43:43に終了。13:45:20に本人が視覚・印刷確認を省略して完了とするよう明示したため、未確認のまま完了扱いに更新。",
+      "inputs": [
+        "前STEPの指定出力"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/HTML最終検証.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "genres": 5,
+        "themes": 30,
+        "theme_ids_matched": 30,
+        "body_examples": 5,
+        "relative_links": 11,
+        "missing_links": 0,
+        "base_full_body_records": 132,
+        "reaction_exclusions": 0,
+        "workflow_actions": 51
+      },
+      "validation_results": [
+        "本人採用版candidate-0.3-step43-all132と確定版confirmed-0.3-step46-all132を元資料へ照合。",
+        "5ジャンル・30テーマと全定義、各6件、G05本人選定2件、P01～P05選択方針・例文5件を確認。",
+        "本文132件全件分析、match24/unknown108・除外0、302候補行・132全文/1部分/163プレビュー/6不能、補足1/50/5/250を照合。",
+        "本文長さ・タグ目安、任意性、定義、例外、レビュー・未実施事項、全51工程状態を確認。",
+        "成果物9件の存在・版とHTML相対リンク11件の存在を確認。自己完結CSS、狭幅CSS、印刷CSSを静的確認。",
+        "Codex In-app Browserでローカルfile URLを開く操作は安全ポリシーにより拒否。許可外プロトコルはhttp/httpsのみとされ、別ブラウザー・CLI・CDP等の迂回は行わなかった。",
+        "デスクトップ幅、約390px幅、印刷表示の視覚確認は未実施。レイアウト崩れがないとは主張しない。",
+        "ソフトウェアテスト・ハッシュ生成/照合は実施していない。",
+        "本人が画面表示と印刷確認を不要としてSTEP50を完了にするよう指示。実画面・印刷の未確認状態は維持し、表示合格とは扱わない。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/HTML最終検証.md",
+      "return_to": null,
+      "next_step": "52",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "partial_before_explicit_user_waiver",
+      "sequence_acceptance": "complete_in_order_user_waiver_visual_unverified"
+    },
+    {
+      "step": "52",
+      "title": "詳細分析の対象132件と入力版を固定する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:46:01+09:00",
+      "ended_at": "2026-10-12T13:47:34+09:00",
+      "time_note": "対象一覧と入力節の生成・照合を終了。",
+      "inputs": [
+        "非公開作業データ/基礎/本文対応.jsonl",
+        "非公開作業データ/基礎/構造注釈.jsonl",
+        "非公開作業データ/基礎/計測値.jsonl",
+        "非公開作業データ/統合/文型用.jsonl",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "reports/projects/preparation/本人確認記録.md"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "base_full_body_records": 132,
+        "existing_full_files": 4,
+        "full_saved_files": 128,
+        "partial_files_excluded": 1,
+        "preview_only_records": 163,
+        "unavailable_records": 6,
+        "duplicate_target_ids": 0,
+        "missing_body_refs": 0,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "保存成功記録でexisting_full_file_read_back 4件とfull_saved 128件を抽出し、partial 1件を除外。",
+        "対象132件のID一意、本文参照ファイル存在、構造注釈・計測値・統合表への参照を全件確認。重複0・参照欠落0。",
+        "本文状態source_body_stateの旧preview_only表記だけでは除外せず、retrieval_statusの保存成功区分を基準に特定。",
+        "match24／unknown108、旧構造7群の合計132、反応除外0を確認。STEP50はユーザー指示により完了扱い、視覚・印刷確認は未実施。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "53",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "53",
+      "title": "詳細注釈の単位と判定規則を定義する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:47:34+09:00",
+      "ended_at": "2026-10-12T13:49:17+09:00",
+      "time_note": "仕様書の作成と全観点・規則・契約の静的確認を終了。",
+      "inputs": [
+        "plan/イナゴスキル事前準備実行計画.md 第10.2～10.4節",
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "docs/specifications/preparation/本文長さタグ目安確定.json"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "annotation_aspects_defined": 15,
+        "target_denominator": 132,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "第10.3節の15観点A01～A15すべてに定義・採否・注意を付与。",
+        "投稿/段落/行/文/文片/節/タグ/絵文字の単位と位置参照を定義し、文片・改行・複合絵文字の二重計数規則を明示。",
+        "present/absent/unknown/not_applicable、根拠・理由・観測/解釈/設計推奨の区分と、全132分母・型内n・複数回答・項目別欠測の集計を定義。",
+        "論理構成・表現構文・絵文字配置の3注釈JSONL契約を接続。STEP53では新しい観測値・必須スタイル・効果は主張していない。",
+        "静的確認でA01～A15の15項目、unknown規則、反応フィルタ禁止、3ファイル契約を確認。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "54",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order"
+    },
+    {
+      "step": "54",
+      "title": "132件を論理・構成・タグ機能で注釈する",
+      "status": "complete",
+      "started_at": "2026-10-12T13:49:17+09:00",
+      "ended_at": "2026-10-12T14:23:03+09:00",
+      "time_note": "132件の注釈、根拠位置の照合、公開分析節の作成を終了。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "annotation_errors": 0,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108
+      },
+      "validation_results": [
+        "対象132 IDと注釈132 IDの集合が一致し、重複・欠落・余剰は0。",
+        "全132件で9所有観点・分母132・反応フィルターfalse・本文参照を確認。",
+        "根拠ユニットの重複、行番号範囲、抜粋と本文行の不一致、存在しない根拠参照は0。present/absent/unknownの根拠・理由要件を確認。",
+        "旧構造候補7群の分布は41/36/23/15/5/6/6で計132。状態分布と注意事項を分析書へ追記。",
+        "A03～A05の全件presentを共通技法の一律出現と誤読しない説明、CTA・真偽・因果の限界を明記。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "55",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "55",
+      "title": "全132件の言い回し・構文・定型表現・語尾を注釈化する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:23:03+09:00",
+      "ended_at": "2026-10-12T14:37:55+09:00",
+      "time_note": "132件の表現注釈、本文根拠照合、全体集計・交差分析を終了。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "validation_errors": 0,
+        "marker_families": 15,
+        "terminal_or_line_segments": 357,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "source_phrase_templates": 0
+      },
+      "validation_results": [
+        "対象IDと注釈IDは132件で一致。重複・欠落・余剰は0。",
+        "全件でA02/A06-A09/A13の状態・根拠要件を確認。STEP54由来の論理参照、位置、行番号、抜粋の不一致0。",
+        "15表層マーカー族について出現回数と使用投稿数を分離し、全レコードに分母132・reaction_condition_used_as_filter=falseを保持。",
+        "本文区間357件の長さ帯・語尾マーカーを記録し、文法上の文数・絵文字表示幅と混同しない制約を分析書へ明記。",
+        "強い/急ぎ語20投稿、同一行の根拠語候補3投稿、未検証の範囲、CTA候補と実CTAの区別、主語/指示語の確認フラグを記録。",
+        "原文抜粋は非公開注釈内の根拠に限定し、テンプレートへ直写した phrase slot は0。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "56",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "56",
+      "title": "全132件の絵文字・記号・改行・タグ接続を注釈化する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:37:55+09:00",
+      "ended_at": "2026-10-12T14:50:34+09:00",
+      "time_note": "全132件の絵文字・記号・改行・タグ配置注釈と根拠位置照合を完了。既存コードポイント値との差79件は別計数として記録。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl"
+      ],
+      "output_paths": [
+        "非公開作業データ/文章詳細化/絵文字配置注釈.jsonl",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "reaction_exclusions": 0,
+        "annotations": 132,
+        "unique_annotation_ids": 132,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "validation_errors": 0,
+        "total_units": 2506,
+        "emoji_clusters_excluding_tags": 884,
+        "posts_with_emoji": 121,
+        "posts_without_emoji": 11,
+        "tag_occurrences": 1261,
+        "tag_locations_found": 1261,
+        "tag_locations_unknown": 0,
+        "within_post_duplicate_tag_occurrences": 7,
+        "visual_only_candidates": 2,
+        "legacy_codepoint_scope_differences": 79,
+        "condition_match": 24,
+        "condition_unknown": 108
+      },
+      "validation_results": [
+        "対象132 IDと注釈132 IDの集合一致。重複・欠落・余剰、入力参照欠落、本文位置照合エラーは0。",
+        "Unicode絵文字クラスタ884（本文121投稿、絵文字なし11投稿）、タグ領域を含む総数891。コードポイント、表示クラスタ、記号、顔文字、文候補、保存改行を別単位で記録。",
+        "STEP20のタグ文字列1,261個をすべて本文位置へ照合。未知位置0、投稿内重複7出現、タグなし8投稿。",
+        "reaction_condition_used_as_filter=falseを132行で確認。反応条件は選別・重み付けに不使用。",
+        "既存body_codepointsとの差は79行。既存値を変更・合算せず、タグ文字列除外規則による今回のコードポイント計数と別記。",
+        "記号だけ/句読点片の候補2区間を根拠位置付きで保持。情報代用・意味変更・読みにくさは未確定と明記。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "57",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "57",
+      "title": "詳細注釈を全件集計し5型・その他の差を整理する",
+      "status": "complete",
+      "started_at": "2026-10-12T14:50:34+09:00",
+      "ended_at": "2026-10-12T14:57:39+09:00",
+      "time_note": "3注釈集合を全132件で照合し、型別・観点別・複数ラベル交差集計と分析節を作成・検証。",
+      "inputs": [
+        "非公開作業データ/文章詳細化/対象132件.jsonl",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md",
+        "非公開作業データ/文章詳細化/論理構成注釈.jsonl",
+        "非公開作業データ/文章詳細化/表現構文注釈.jsonl",
+        "非公開作業データ/文章詳細化/絵文字配置注釈.jsonl"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "logic_ids": 132,
+        "expression_ids": 132,
+        "emoji_layout_ids": 132,
+        "group_counts_sum": 132,
+        "P01": 41,
+        "P02": 36,
+        "P03": 23,
+        "P04": 15,
+        "P05": 5,
+        "residual_12": 12,
+        "missing_ids": 0,
+        "extra_ids": 0,
+        "duplicate_ids": 0,
+        "annotation_state_errors": 0,
+        "cross_tab_families": 5
+      },
+      "validation_results": [
+        "54/55/56の各注釈ID集合は対象132件と一致。重複・欠落・余剰、本文参照差、観点状態未記録、反応フィルターtrueは0。",
+        "P01～P05の型内nは41/36/23/15/5、残余12件はR01=6/R02=6で別保持。群計132。",
+        "全15観点の状態と多重ラベル、表層マーカーのpost_n/occurrence_n、文区間、絵文字・記号・段落・タグを全群/全体で集計。",
+        "導入×論理、構文×終結、段落×終結、タグ位置×終結、絵文字役割×文位置の5交差表を作成。単位・分母と多重回答の重複を明記。",
+        "反応match24/unknown108は説明用内訳のみで除外・重み付け0。共起・頻度をクリック/購入/反応の因果とは解釈しない。",
+        "公開JSONに本文全文・投稿者対応を含めず、匿名観測IDと集計のみを保存。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "58",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "58",
+      "title": "共通の書き方・根拠付き規則・型選択の契約を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T14:57:39+09:00",
+      "ended_at": "2026-10-12T15:02:38+09:00",
+      "time_note": "全件集計に基づく共通規則・根拠区分・型選択基準・17項目契約を文書化し、内容要件を照合。",
+      "inputs": [
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "docs/specifications/preparation/本文長さタグ目安確定.json"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "reaction_exclusions": 0,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "common_rule_ids": 14,
+        "type_contract_fields": 17
+      },
+      "validation_results": [
+        "本文132件を分母に維持。型別41/36/23/15/5と残余12を明記し、match24／unknown108は記述内訳のみ・反応除外0。",
+        "観測・解釈・設計推奨の区分、根拠と適用条件、共通規則W-C01～W-C14を記載。",
+        "型選択条件・重複適用時の選び方・採用済み切替条件を整理し、ローテーション・頻度優先・商品保留を追加していない。",
+        "計画第10.4節の17項目を個別の契約行として確認。短文・絵文字なし・記号装飾なし・タグなしと任意目安の例外を含む。",
+        "内容チェック、優先順位、出典参照、効果未検証の限界を記載。本文全文・投稿者対応情報の引用なし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "59",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "59",
+      "title": "P01 商品参照＋特徴説明の詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:02:38+09:00",
+      "ended_at": "2026-10-12T15:09:52+09:00",
+      "time_note": "P01の全41件と他型・残余を含む132件全体を比較し、17項目の詳細案と根拠を作成・検証。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md STEP57",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P01.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P01": 41,
+        "other_types_and_residual": 91,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "annotation_sets_each_132": 3,
+        "p01_rule_count": 17
+      },
+      "validation_results": [
+        "対象132件からP01 41一意IDを抽出。P01内n=41、P01以外=91、群合計=132。",
+        "論理・表現・絵文字の注釈集合は各132一意IDで対象集合と一致。reaction_condition_used_as_filter=false、match24/unknown108を記述内訳のみ。",
+        "P01-W01～W17を各項目の入力・手順・構文・省略/切替・例・根拠・確認へ対応づけた。",
+        "P01と全132件の型別・全体比較を記載。本文例はB0228/B0272の短い抜粋。B0259とB0303は本文完全一致のため独立した言い回し根拠として二重評価しない。",
+        "P01のタグ分布・絵文字なし4件・絵文字密度・文区間・留保等を観測と設計推奨に分け、任意目安を必須化していない。",
+        "出典不明の仕様・効果・人気・販促・本人経験を生成に使わない切替と独自弱例の修正を記載."
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "60",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "60",
+      "title": "P02 商品参照＋関連タグの詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:09:52+09:00",
+      "ended_at": "2026-10-12T15:14:39+09:00",
+      "time_note": "P02旧観測36件と全132件を比較し、商品識別・短文構成・任意タグ/絵文字・切替を17規則で作成。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md STEP57",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P02.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P02": 36,
+        "other_types_and_residual": 96,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P02 36件、P02以外96件、全体132件を比較。群合計132、反応条件による除外・重み付け0。match24/unknown108は記述内訳のみ。",
+        "P02-W01～W17を作成。各規則に入力条件・判断、手順、構文候補、省略/切替、具体例、根拠、確認欄あり。",
+        "P02と全体・他群の分子/分母、タグ、絵文字、文構成、販促・評価表現を比較し、観測・解釈・設計推奨と真偽未確認を区別。",
+        "P02群36/36のタグ出現は旧ラベル条件と明記し、生成時の必須条件にせず、5～12個は任意、タグなし・絵文字なし・短文を許容。",
+        "短い実例、仮想独自例、弱い例→修正、確認済み情報増加時のP01/P04切替を記載。P02.mdは29998 bytes、258行、W01～W17の17見出し。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "61",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "61",
+      "title": "P03 確認済み販促情報を先に置く詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:16:00+09:00",
+      "ended_at": "2026-10-12T15:19:20+09:00",
+      "time_note": "P03旧観測23件を本文読取し、A12状態・販促語・導入と詳細役割順を全132件で比較。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md STEP57",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P03.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P03": 23,
+        "other_types_and_residual": 109,
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P03対象23IDは一意23、本文ファイル存在23/23、原本文23件を読取。P03以外109、全群合計132。",
+        "A12数値/販促/社会的証明状態はP03 present23/absent0/unknown0、全体99/32/1、P03以外76/32/1。A12 presentを有効販促の証明とは扱わない。",
+        "販促/根拠語はP03 23/23、全体91/132。A01導入ラベルとA03詳細役割順を比較。P03は21系列で最多3/23、全体114系列で最多15/132。",
+        "全132件のP03以外109件も集計に含め、match24/unknown108は副次内訳、反応除外0。",
+        "P03-W01～W17の各7欄、数値/条件/時点/対象、販促未確認・期限切れ時の別型切替、無絵文字・タグなし、任意CTA、仮想例・弱例修正を確認。P03.mdは29514 bytes・253行。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "62",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "62",
+      "title": "P04 確認済み特徴の箇条書きの詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:19:20+09:00",
+      "ended_at": "2026-10-12T15:23:26+09:00",
+      "time_note": "P04旧観測15件の本文・根拠と全132件の列挙・構文・記号配置を照合。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md STEP57",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "worklogs/projects/preparation/詳細書き方/P03.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P04.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P04": 15,
+        "other_types_and_residual": 117,
+        "condition_match": 4,
+        "condition_unknown": 11,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P04対象15IDは一意15、本文ファイル存在15/15、原本文15件を読取。P04以外117、全群132。",
+        "P04-W01～W17の全規則に入力条件・手順・構文・省略/切替・具体例・根拠・確認欄を記載。",
+        "箇条書き記号P04=12/15、全体49/132。絵文字P04=15/15でも全体の絵文字なし11/132、タグなし8/132の例外を設計に反映。",
+        "特徴2点以上の既存適用条件、非重複の特徴選別、粒度・並列性・配置・P01/P02等への切替を記載。",
+        "A12 present/absent/unknownはP04=13/2/0、全体=99/32/1、他群=86/30/1。効果未実証・本文真偽未確認を明記。",
+        "B0001/B0277は商品紹介本文がほぼ同じでタグ配置に差があり、完全重複とは扱わない。P04.mdは28667 bytes、257行。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "63",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "63",
+      "title": "P05 本人の実体験＋留保の詳細な書き方を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:23:26+09:00",
+      "ended_at": "2026-10-12T15:26:18+09:00",
+      "time_note": "P05旧観測5件の本文を読み、全132件の一人称・留保・主張・時制と比較。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md STEP57",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "worklogs/projects/preparation/詳細書き方/P03.md",
+        "worklogs/projects/preparation/詳細書き方/P04.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P05.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "P05": 5,
+        "other_types_and_residual": 127,
+        "condition_match": 2,
+        "condition_unknown": 3,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P05対象5IDは一意5、本文ファイル存在5/5、原本文5件を読取。P05以外127、全群132。",
+        "P05-W01～W17の全規則に入力・手順・構文・省略/切替・具体例・根拠・確認欄を記載。",
+        "明示一人称3/5、全体37/132。P05群内の一人称・購入後期待・第三者記述と本人の実体験を分離。",
+        "留保節5/5と全体102/132、A07 caveat5/5と全体68/132を比較。個人経験だけで効果・安全を一般化しない。",
+        "P05 A12 present/absent/unknown=3/2/0、全体=99/32/1、他群=96/30/1。絵文字・タグなし/ありを強制しない。",
+        "B0002/B0235の中心経験本文がほぼ同じこと、B0201の使用前期待、B0213/B0252の本人経験不明を区別。P05.mdは28240 bytes・251行。match2/unknown3は説明のみ、反応除外0."
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "64",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "64",
+      "title": "5型を選び一文ずつ作る生成・編集手順へ統合する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:26:18+09:00",
+      "ended_at": "2026-10-12T15:29:21+09:00",
+      "time_note": "5型の詳細・共通規則と採用済み条件を照合し、一商品入力票、選択・編集手順、直接使用プロンプトを候補統合文書へ追記。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "worklogs/projects/preparation/詳細書き方/P03.md",
+        "worklogs/projects/preparation/詳細書き方/P04.md",
+        "worklogs/projects/preparation/詳細書き方/P05.md",
+        "docs/specifications/preparation/文型ルール確定.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "P01～P05各17規則、ID01～17連続、各規則に入力・手順・構文・切替・具体例・根拠・確認欄があることを構造照合。",
+        "1商品ごとの入力票に識別、焦点、読者/場面、確認済み特徴、販促、本人経験、第三者評価、文体、タグ/案内、不明点を記載。",
+        "P05本人経験、P03現行販促、P04独立特徴2点以上、P01特徴1点以上、P02情報限定の採用済み条件を維持。複数候補時は目的と根拠から主型を選び、ローテーションしない。",
+        "事実→焦点→型→構成/表現→装飾/案内→校正の手順、修正優先順位、直接利用プロンプトと出力欄分離を作成。一投稿一商品単位で、文法上一文に固定しない。",
+        "基礎132件全件、match24/unknown108は記述内訳のみ、反応による除外・重み付け0を明記。バズ・反応・売上効果未検証。追加コード・専用skillなし。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "65",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "65",
+      "title": "全5型の独自適用見本と修正過程を作る",
+      "status": "complete",
+      "started_at": "2026-10-12T15:29:21+09:00",
+      "ended_at": "2026-10-12T15:34:55+09:00",
+      "time_note": "20件の架空適用見本と型別修正例を作成。任意文字数を強制せず、絵文字・タグ条件を明記。P04-03の入力条件と記号使用の矛盾を解消。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md 第10節",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md STEP58/64",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "worklogs/projects/preparation/詳細書き方/P03.md",
+        "worklogs/projects/preparation/詳細書き方/P04.md",
+        "worklogs/projects/preparation/詳細書き方/P05.md",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/分析/書き方適用見本.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "hypothetical_cases_target": 20,
+        "cases_per_type": 4
+      },
+      "validation_results": [
+        "P01～P05各4ケース、計20ケースを目視確認。各型に通常・焦点差・絵文字なし・情報不足/切替を配置。",
+        "全20ケースに架空入力、型/理由、規則ID、本文案、任意目安・タグ/締め、絵文字の扱い、事実範囲の説明を記載。文字数目安は強制しない。",
+        "P03で有効販促と期限切れ販促を対比し、P05で本人経験ありとなしを対比。各型に弱い初稿・問題・修正・規則根拠あり。",
+        "全132件分析の母数を維持。見本は架空で、原投稿の抜粋・反応実験・ソフトウェアテストとしていない。match24/unknown108は除外・重み付け0。"
+      ],
+      "review_ref": null,
+      "return_to": null,
+      "next_step": "66",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "complete",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "66",
+      "title": "全件分析・5型全規則・適用見本を内容レビューする",
+      "status": "complete",
+      "started_at": "2026-10-12T15:34:55+09:00",
+      "ended_at": "2026-10-12T15:46:21+09:00",
+      "time_note": "STEP65を順序内で完了。全132件の注釈・集計、5型全17規則、統合手順、20件の適用見本を内容照合する。同一実行内の自己レビューとして記録し、独立審査とは表現しない。P05固有ルールはP05分類の実投稿5件を根拠に確認する。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md STEP66",
+        "worklogs/projects/preparation/execution/実行管理.json",
+        "worklogs/projects/preparation/分析/書き方詳細集計.json",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md",
+        "worklogs/projects/preparation/詳細書き方/P01.md",
+        "worklogs/projects/preparation/詳細書き方/P02.md",
+        "worklogs/projects/preparation/詳細書き方/P03.md",
+        "worklogs/projects/preparation/詳細書き方/P04.md",
+        "worklogs/projects/preparation/詳細書き方/P05.md",
+        "worklogs/projects/preparation/分析/書き方適用見本.md",
+        "plan/イナゴスキル事前準備/非公開作業データ/132件本文・注釈"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "対象132件はID一意132、本文参照切れ0。3注釈集合はいずれも132 IDで対象と一致し、重複・欠落・余剰・reaction_filter_trueは0。",
+        "構造群P01/P02/P03/P04/P05/R01/R02は41/36/23/15/5/6/6で合計132。match24／unknown108は記述内訳のみ。",
+        "P01～P05は各17規則、各規則の7項目を確認。20ケースと生成手順を確認し、型ローテーション・反応条件による除外なし。",
+        "自己レビューとして書き方詳細レビュー.mdを作成。F66-01として、P05の5件を根拠に型固有ルールを決める表現へ修正する指摘を特定。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "67",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "historical_status_recorded": "running",
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "67",
+      "title": "指摘を修正し影響する集計・規則・見本を再確認する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:46:21+09:00",
+      "ended_at": "2026-10-12T15:56:02+09:00",
+      "time_note": "STEP67開始を記録。終了時刻は未記録。",
+      "inputs": [
+        "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md",
+        "worklogs/projects/preparation/詳細書き方/P05.md",
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md",
+        "worklogs/projects/preparation/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/詳細書き方/P05.md",
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md",
+        "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "full_body_denominator": 132,
+        "p05_denominator": 5,
+        "reaction_filter_exclusions": 0
+      },
+      "validation_results": [
+        "レビューF66-01を修正。P05分類済み5件すべてを行別に使い、本人実使用/到着後期待/問題提起の商品案内/仕様・注意の差からP05固有の構成・語尾・絵文字・締めを決定。",
+        "反応条件はP05 match2/unknown3を記述内訳として維持し、5件をすべて含めた。132件と3注釈集合の分母・IDは変更せず、反応除外0。",
+        "詳細書き方/P05.md、統合手順、STEP63/67計画指示を更新。B0002/B0235は両方分母に保持し、近似本文として独立型扱いしない。",
+        "適用見本20件・P05 4件を再確認し、P05-03の誤ったW14参照をW09へ修正。全5型17規則と7項目欄、P05根拠行5件を確認。",
+        "レビュー記録にF66-01解消と再確認結果を追記。原本文・注釈・集計は変更せず、テストは実施していない。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "68",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "68",
+      "title": "詳細な書き方を最終MD・JSONと引渡しへ反映する",
+      "status": "complete",
+      "started_at": "2026-10-12T15:57:05+09:00",
+      "ended_at": "2026-10-12T16:11:01+09:00",
+      "time_note": "P01～P05各17規則と共通14規則をMD・JSONへ統合。P05規則はB0002、B0201、B0213、B0235、B0252の5件だけから導出し、他127件/全132件は比較文脈のみ。基本採用状態は維持。",
+      "inputs": [
+        "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md",
+        "plan/イナゴスキル事前準備/詳細書き方/P01.md～P05.md",
+        "worklogs/projects/preparation/candidates/文型詳細ルール候補.md",
+        "worklogs/projects/preparation/分析/書き方適用見本.md"
+      ],
+      "output_paths": [
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/candidates/文型詳細ルール.json",
+        "docs/specifications/preparation/初期設定引渡し.json",
+        "reports/projects/preparation/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "group_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5,
+          "residual": 12
+        },
+        "condition_match": 24,
+        "condition_unknown": 108,
+        "reaction_exclusions": 0,
+        "p05_rule_basis_records": 5,
+        "pattern_rules_per_type": 17,
+        "common_rules": 14
+      },
+      "validation_results": [
+        "5型各17規則、共通14規則。型別85規則IDに重複なし、各規則の7フィールド空欄なし。",
+        "P05固有ルールの決定根拠はB0002/B0201/B0213/B0235/B0252のみ。他群127件・全132件集計は比較文脈のみ。反応条件除外・重み付け0。",
+        "MD/JSON、引渡し、索引の基礎版・詳細候補版・状態を照合。確認済みbase confirmed-0.3-step46-all132を維持。",
+        "参照先34件の実在を確認。公開追加分に非公開本文全文を含めない。JSON parse/整合検証PASS。テスト未実施。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/書き方詳細レビュー.md",
+      "return_to": null,
+      "next_step": "69",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "69",
+      "title": "最終HTMLに5型の詳細ルールと全件分析を掲載する",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md STEP69",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/candidates/文型詳細ルール.json",
+        "worklogs/projects/preparation/分析/書き方詳細分析.md",
+        "worklogs/projects/preparation/分析/書き方注釈仕様.md",
+        "worklogs/projects/preparation/分析/書き方適用見本.md",
+        "reports/projects/preparation/事前準備完了レポート.html"
+      ],
+      "status": "complete",
+      "started_at": "2026-10-12T16:11:01+09:00",
+      "ended_at": "2026-10-12T16:18:50+09:00",
+      "time_note": "5型の詳細書き方候補と全件分析をHTML本文へ掲載。各型17規則・共通14規則、基礎132件の分析方法・単位・型内n・残余・観測と推奨の区別、実例5件、仮想見本20件、全71工程表を反映。",
+      "output_paths": [
+        "reports/projects/preparation/事前準備完了レポート.html",
+        "reports/projects/preparation/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "pattern_counts": {
+          "P01": 41,
+          "P02": 36,
+          "P03": 23,
+          "P04": 15,
+          "P05": 5
+        },
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "fictional_cases": 20,
+        "workflow_rows": 71,
+        "reaction_exclusions": 0
+      },
+      "validation_results": [
+        "5型別85規則と共通14規則を掲載。実例は各型1件、仮想適用見本は20件。",
+        "母数132、詳細注釈単位、型内n、残余12、観測/解釈/設計推奨、反応効果未実証を記述。P05固有ルールは指定5件のみを根拠と明記。",
+        "工程表は01～50、19R、52～71の71行。STEP51は作らず、STEP69完了、STEP70実行中、STEP71未着手を表示。",
+        "静的確認PASS: 19 unique page IDs、内部リンク切れ0、型別ルール99（共通14+型別85）、仮想例20、追加工程20行。12 source paths exist.",
+        "狭幅・印刷用CSSを用意。視覚確認は次STEP70で可否と実績を記録。STEP50のユーザー指示による完了扱い・視覚未確認を維持。テスト未実施。"
+      ],
+      "review_ref": null,
+      "next_step": "70",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132"
+    },
+    {
+      "step": "70",
+      "title": "詳細版の内容を照合し表示確認の可否と実績を記録する",
+      "status": "complete",
+      "started_at": "2026-10-12T16:18:50+09:00",
+      "ended_at": "2026-10-12T16:22:30+09:00",
+      "time_note": "MD/JSON/HTMLを内容照合し、全体母数・型内n・85規則/14共通規則・20例・71工程を確認。許可済みの実表示は取得できず、file: URLがブラウザーポリシーで拒否されたため、幅別/印刷視覚確認を未確認と記録。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md STEP70",
+        "docs/specifications/preparation/文型ルール確定.md",
+        "worklogs/projects/preparation/candidates/文型詳細ルール.json",
+        "reports/projects/preparation/事前準備完了レポート.html"
+      ],
+      "output_paths": [
+        "worklogs/projects/preparation/レビュー/書き方詳細版最終確認.md",
+        "reports/projects/preparation/事前準備完了レポート.html",
+        "reports/projects/preparation/結果セット索引.json"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "target_denominator": 132,
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "fictional_cases": 20,
+        "workflow_rows": 71,
+        "missing_anchors": 0,
+        "visual_desktop": "unverified",
+        "visual_390px": "unverified",
+        "visual_print": "unverified"
+      },
+      "validation_results": [
+        "MD/JSON/HTMLの版・状態、P01～P05各17規則、共通14規則、全132件の母数と観測数が一致。P05ルールは指定5件のみから決定。",
+        "HTML内部アンカー切れ0、規則カード99、仮想例20、工程行71、詳細参照12件実在。",
+        "Codex preview returned queued without rendered view. In-app Browser rejected local file: URL under browser security policy; no alternate surface or route used.",
+        "デスクトップ・約390px幅・印刷の視覚確認は未確認。CSSの存在を実表示の合格とは扱わない。STEP50のユーザー指示による完了扱いと視覚未確認を維持。",
+        "テスト未実施。静的内容照合は合格。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/書き方詳細版最終確認.md",
+      "return_to": null,
+      "next_step": "71",
+      "next_actor": "指定STEPの担当",
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132_visual_unverified"
+    },
+    {
+      "step": "71",
+      "title": "詳細ルールの受領内容を確認し今回の成果物を納品する",
+      "status": "complete",
+      "started_at": "2026-10-12T16:22:30+09:00",
+      "ended_at": "2026-10-12T16:31:12+09:00",
+      "time_note": "詳細書き方候補を受領可能な資料として版・状態・根拠範囲とともに確認。Git対象をレビューし、22件の計画成果物のみをコミット。mainからorigin/mainへのpush成功。視覚未確認と本人新規採用なしを保持。",
+      "inputs": [
+        "plans/projects/preparation/イナゴスキル事前準備実行計画.md STEP71",
+        "reports/projects/preparation/実装受領確認.md",
+        "reports/projects/preparation/結果セット索引.json"
+      ],
+      "output_paths": [
+        "reports/projects/preparation/実装受領確認.md",
+        "worklogs/projects/preparation/execution/実行管理.md",
+        "reports/projects/preparation/結果セット索引.json",
+        "reports/projects/preparation/事前準備完了レポート.html",
+        "Git commit 296ffea (main → origin/main)"
+      ],
+      "source_requirement_version": "1.3",
+      "observed_counts": {
+        "completed_steps": 71,
+        "pattern_rules": 85,
+        "common_rules": 14,
+        "base_full_body_records": 132,
+        "p05_rule_basis_records": 5,
+        "visual_desktop": "unverified",
+        "visual_390px": "unverified",
+        "visual_print": "unverified"
+      },
+      "validation_results": [
+        "確認済み基本版と詳細候補版の状態を区別。P05規則はB0002/B0201/B0213/B0235/B0252だけから導出。",
+        "受領記録・結果セット索引・HTMLとSTEP70レビューの版・根拠・未確認事項が一致。",
+        "対象22件はplan配下の今回成果物。非公開作業データは .gitignore 対象でステージしない。git diff --cached --check 合格。",
+        "mainのコミット 296ffea を作成し、origin/mainへのpush成功。force push・履歴書換えなし。",
+        "ソフトウェアテストは依頼されていないため実施していない。"
+      ],
+      "review_ref": "worklogs/projects/preparation/レビュー/書き方詳細版最終確認.md",
+      "return_to": null,
+      "next_step": null,
+      "next_actor": null,
+      "blocker": null,
+      "sequence_acceptance": "complete_in_order_all132_visual_unverified"
+    }
+  ],
+  "execution_audit": [
+    {
+      "step": "19",
+      "recorded_at": "2026-10-12T05:55:29+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "結果位置302行の構造注釈を生成",
+        "全型分布を全文・条件matchの24行に限定",
+        "条件不明全文108行、部分、プレビュー、取得不能を区分",
+        "役割順・末尾型・体験語句の出現を整理",
+        "本文収集件数に保存後読戻しを要求していない"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP20で本文長・タグ量を別工程として実測",
+        "STEP45でcandidate-0.1の本人採用判断を取得"
+      ]
+    },
+    {
+      "step": "37",
+      "recorded_at": "2026-10-12T09:33:13+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "本文長さ提案は全132基礎観測を分析分母に使用",
+        "計測台帳と全14分布群を照合し不一致0",
+        "G05補足50件は別コホートで記述",
+        "任意参考幅150～300、未採用、STEP45で本人判断"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP38で基礎132件全てを使ったタグ方針を作成",
+        "STEP45まで本人採用を推測しない"
+      ]
+    },
+    {
+      "step": "38",
+      "recorded_at": "2026-10-12T09:40:40+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "基礎132件を全て分母に含め、反応状態での選別なし",
+        "STEP36台帳で5ジャンル・7文型/残余の計12群を照合し不一致0",
+        "タグ数・配置・関連性・重複・未確認事実・非ゲートを提案",
+        "D-022に従いcandidate-0.4は本人未採用、STEP45で判断"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP39で文型・長さ・タグ候補を一つの候補資料に統合",
+        "STEP45まで本人の採用を推測しない"
+      ]
+    },
+    {
+      "step": "39",
+      "recorded_at": "2026-10-12T09:45:07+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "文型・長さ・タグを一候補へ統合",
+        "基礎132件と30テーマ候補を明記",
+        "未確認商品情報・本文長・タグ数を保留条件にしない",
+        "本人採用待ち、旧candidate0.1を履歴化"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP40で各型の独自試作と適用確認",
+        "本人採用はSTEP45まで求めない"
+      ]
+    },
+    {
+      "step": "40",
+      "recorded_at": "2026-10-12T09:51:33+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "P01～P05各1仮想例と境界例1を試作",
+        "既知/未知/体験申告の範囲を記録",
+        "本文・タグ数を計測し、範囲外だけで保留しない",
+        "他者本文・実投稿・日次件数へ混入なし"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP41で候補と仮想試作を内容レビュー",
+        "基礎分析は132件全件のまま"
+      ]
+    },
+    {
+      "step": "41",
+      "recorded_at": "2026-10-12T09:54:44+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "候補35～40の値・単位・分母・例外を照合",
+        "構造注釈の全文132行を全件includedとして確認",
+        "G05テーマを含む全30テーマの参照と反応条件除外なしを確認",
+        "重大未解決指摘0、本人採用前、同一AIレビューと明記"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP42で反例から基礎範囲・条件・取得状態・採用待ちを点検",
+        "本人採用はSTEP45まで推測しない"
+      ]
+    },
+    {
+      "step": "42",
+      "recorded_at": "2026-10-12T10:03:44+09:00",
+      "result": "completed_in_order_with_documented_findings",
+      "checks": [
+        "基礎本文132件すべてを分母に含み、反応match24/unknown108・除外0を照合",
+        "結果位置302、本文状態132/1/163/6、商品キー2/不明300、投稿ID0を母数別に記録",
+        "G05補足の1検索・表示101件・50枠と基礎重複不明を保持",
+        "20反例中、未観測ケースと本人確認用旧candidate-0.1内容の重大差異を特定",
+        "ハッシュ・ソフトウェア試験を実施せず、旧STEP42記録を履歴保存"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP43で現行候補と旧本人確認概要の差異を修正し影響を再確認",
+        "STEP45で実際の採用範囲・対象版を本人に確認し、candidate-0.1採用を推測しない"
+      ]
+    },
+    {
+      "step": "43",
+      "recorded_at": "2026-10-12T10:16:35+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "STEP17/28/34/41/42のレビュー5件を入力として照合",
+        "基礎本文132件全件を分布対象に含み、反応条件フィルター除外0を確認",
+        "candidate-0.3-step43-all132と5つの構成候補版、G05選定二分類を照合",
+        "STEP42の重大差異を閉鎖し、candidate-0.1関連履歴を保存",
+        "STEP44を開始し、現在地を44に更新"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP44でcandidate-0.3に基づく本人判断資料を作成",
+        "STEP45では候補全体の採用・変更・保留について本人の実回答を得る。G05二分類の選択を候補全体の採用とみなさない"
+      ]
+    },
+    {
+      "step": "44",
+      "recorded_at": "2026-10-12T10:24:59+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "本人判断用candidate-0.3資料と未送信依頼を作成",
+        "5ジャンル・30テーマ全ての定義と根拠種別、全132件の分母を明記",
+        "反応match24/unknown108は内訳のみ・反応除外0、G05補足50枠は別コホートと表示",
+        "文型5案、全体分布、仮想試作、本文長さ/タグ目安と単位・例外を照合",
+        "旧candidate-0.1概要と依頼を別履歴ファイルへ保存",
+        "ローカルリンク・ページ構造を静的検証。視覚確認はSTEP50まで未実施"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP45では候補全体の採用回答を推測せず、分類・文型・本文長さ・タグの範囲別の実回答を記録",
+        "G05のT05/T06選定は受領済みだが、候補全体の採用回答とは別"
+      ]
+    },
+    [
+      {
+        "step": "45",
+        "recorded_at": "2026-10-12T12:21:27+09:00",
+        "result": "completed_in_order",
+        "checks": [
+          "candidate-0.3-step43-all132の分類・文型・本文長さ・タグ4対象すべて採用の本人回答を本人確認記録へ反映",
+          "文型の選択方針とP01～P05の実例掲載指示を記録。回答受領時刻は個別記録なし"
+        ],
+        "blockers": [],
+        "followup_checkpoints": [
+          "STEP46で採用済み内容を確定資料へ反映"
+        ]
+      }
+    ],
+    {
+      "step": "46",
+      "recorded_at": "2026-10-12T12:21:27+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "本人採用済み4対象からconfirmed-0.3-step46-all132を作成",
+        "要件データ辞書との照合で包含例・境界例の配列型を是正",
+        "5ジャンル・30テーマ・各6件、本文132件全件、反応除外0、採用済み目安と5実例・参照を直接検証",
+        "結果セット索引の9参照先とJSON構文を確認。ハッシュ不使用"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP47で初期設定引渡しの受領可否と登録内容の対応をリハーサル"
+      ]
+    },
+    {
+      "step": "47",
+      "recorded_at": "2026-10-12T12:24:16+09:00",
+      "result": "completed_in_order_receivable",
+      "checks": [
+        "IR-005/006/007と要件データ辞書に対する版・値・型・受領可否",
+        "5ジャンル・各6・30テーマ・5文型・目安・参照179件を確認",
+        "基礎132件全件を使用し、反応条件による除外0を確認",
+        "システム実装試験と準備結果の受領リハーサルを区別"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP48で全工程と証拠、残課題、公開/Git境界を監査"
+      ]
+    },
+    {
+      "step": "48",
+      "recorded_at": "2026-10-12T12:34:04+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "51工程の状態・出力・検証参照と不要分岐理由",
+        "保存成功記録による全文132件、分析母数全132件、反応除外0",
+        "本人採用4対象・5×6/30・確定資料9種・P01～P05/長さ/タグ",
+        "レビュー17/28/34/41/42/43/47の指摘・対応・限界",
+        "非公開データ除外、Git境界、ハッシュ・追加検索・本番変更なし",
+        "current_rule_audit旧チェックポイントを履歴化し132件の現行値へ修正"
+      ],
+      "blockers": [
+        "B01未終端、B01-R1の129表示との差16行、独立投稿・商品数不明",
+        "本文対応表の一部source_body_state不一致",
+        "G05-T05/T06基礎意味分類未算出",
+        "効果未実証、独立レビューなし、HTML視覚確認はSTEP50待ち"
+      ],
+      "followup_checkpoints": [
+        "STEP49で採用済み内容・実例・レビュー・制約を自己完結HTML化",
+        "STEP50で内容と可能な表示を検証し、未確認を記録"
+      ]
+    },
+    {
+      "step": "49",
+      "recorded_at": "2026-10-12T12:40:04+09:00",
+      "result": "completed_in_order",
+      "checks": [
+        "HTMLへ本人採用4対象と商品別文型選択を明記",
+        "基礎132件を分母にした分析・反応内訳・補足別コホートを明記",
+        "5ジャンル・30テーマ定義/包含/境界/基礎観測行を掲載",
+        "P01～P05の各短い実本文抜粋を確定資料と照合",
+        "採用済み長さ・タグの任意目安、定義、例外を掲載",
+        "レビュー・検証・制約・未実施事項、成果物9種、全51工程を記載",
+        "静的確認: 5ジャンル、30テーマID全一致、51工程、5実例、11リンク先実在、レスポンシブ/印刷CSS、外部依存なし"
+      ],
+      "blockers": [
+        "STEP50の実画面・390px・印刷確認は未実施"
+      ],
+      "followup_checkpoints": [
+        "STEP50で主要数値・採用値・リンクを元資料と照合",
+        "許可されたプレビューで画面幅別・印刷の見た目を確認し、できない範囲は未確認と記録"
+      ]
+    },
+    {
+      "step": "50",
+      "recorded_at": "2026-10-12T12:43:43+09:00",
+      "result": "partial_in_order_visual_unverified",
+      "checks": [
+        "本人採用・本文132件全分析・全5/30分類・5実例・目安・レビュー・制約を元資料照合",
+        "全51工程状態・成果物9件・相対リンク11件の存在を確認",
+        "静的HTMLにDOCTYPE/日本語lang/応答幅CSS/印刷CSSがあり外部依存なし",
+        "本文全文・投稿者対応情報が公開HTMLへ含まれないことを確認",
+        "file URLのブラウザー表示は拒否され、別経路の回避を行わず、デスクトップ/390px/印刷を未検証として記録"
+      ],
+      "blockers": [
+        "視覚表示未検証: HTMLの実際のレイアウト崩れ有無を確認できない"
+      ],
+      "followup_checkpoints": [
+        "許可済みのレンダリングプレビューが得られた場合のみ画面幅・印刷確認を追加できる。現状の未検証状態は最終HTMLと本記録へ明記"
+      ]
+    },
+    {
+      "step": "58",
+      "recorded_at": "2026-10-12T15:02:38+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "STEP57全件集計と注釈仕様、本人採用済み文型、任意目安を参照。",
+        "P01～P05=41/36/23/15/5、残余R01/R02=6/6、母数132。match24／unknown108を記述内訳として維持し、除外・重み付け0。",
+        "共通規則W-C01～W-C14、根拠区分、型選択と切替、競合時の優先順位、生成後確認を記載。",
+        "第10.4節の17項目を契約表の17行として確認。型別詳細はSTEP59～63に残した。",
+        "短い事実文、装飾なし、絵文字なし、タグなしを許容し、長さ・タグ目安は任意として維持。",
+        "効果未検証、画面表示・印刷未確認を保持。原文全文・投稿者対応情報の引用なし。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP59でP01の17項目を型内41件と全132件比較で具体化する。"
+      ]
+    },
+    {
+      "step": "59",
+      "recorded_at": "2026-10-12T15:09:52+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P01旧構造群41件とP01以外91件を全132件比較。型別頻度を優先順位に使用しない。",
+        "P01-W01～W17を作成し、根拠分子/分母、観測/解釈/設計推奨、例・切替・内容確認を対応。",
+        "注釈3集合は対象132IDと一致。反応除外0、match24/unknown108は記述内訳のみ。",
+        "短い原文例2件、仮想独自例、弱い例の修正、重複本文・絵文字なし・タグなし・長さ等の境界を含む。",
+        "効果未検証・原文の真偽未確認を明記し、既存採用条件を保持。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP60でP02 36件と他型・残余を含む全132件を比較し、簡潔な商品紹介とタグ接続の17項目を作成する。"
+      ]
+    },
+    {
+      "step": "60",
+      "recorded_at": "2026-10-12T15:14:39+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P02旧構造群36件、その他96件、全件132分母。reaction filter/exclusion=0。",
+        "P02-W01～W17と17項目契約に沿う詳細規則、根拠・型内n・全体比較・例・切替を記載。",
+        "タグ5～12、絵文字、CTA、文長を強制せず、タグなし・短文・絵文字なしを明示。",
+        "生成推奨の効果は未検証、原投稿の主張真偽は未確認と区別。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP61でP03 23件と全132件を比較し、販促条件・未確認時の切替を具体化する。"
+      ]
+    },
+    {
+      "step": "61",
+      "recorded_at": "2026-10-12T15:19:20+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P03 23件、P03以外109件、全132件。P03原本文23件を読取。",
+        "A12 present/absent/unknownはP03 23/0/0、全体99/32/1。販促の有効性と区別。",
+        "販促語・A01導入・A03役割順を型内と全体で比較。系列頻度から固定順を導かない。",
+        "P03-W01～W17各項目、条件・期限・数値、別型切替、例・限界を記録。reaction filter/exclusion=0."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP62でP04旧観測15件と全132件を比較し、特徴2点以上の列挙条件と配置規則を作成する。"
+      ]
+    },
+    {
+      "step": "62",
+      "recorded_at": "2026-10-12T15:23:26+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P04 15件、他群117件、全132件。P04の原本文15件を読取.",
+        "P04-W01～W17、17項目、特徴粒度・項目構文・導入/順序・記号/絵文字/タグ配置・別型切替を記載.",
+        "P04の箇条書き記号12/15、絵文字あり15/15、タグあり15/15は旧群観測。全体の反例を保持し必須化しない.",
+        "reaction filter/exclusion=0、match24/unknown108は内訳のみ。効果・真偽未検証."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP63でP05旧観測5件の少数性を明示し、全132件中の体験/主観/留保と他型混在を比較する。"
+      ]
+    },
+    {
+      "step": "63",
+      "recorded_at": "2026-10-12T15:26:18+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P05 5件、他群127件、全132件。原本文5件を読取。",
+        "本人経験要件・時制・条件・観察・感想・留保・効果一般化防止・別型切替をP05-W01～W17へ反映。",
+        "A02一人称3/5・37/132、A07 caveat5/5・68/132、A12 status3/2/0・99/32/1。",
+        "反応除外0。match2/unknown3は内訳のみ。旧群の少数性と近似本文、経験を示さない例を明記。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP64で5型を商品情報と依頼焦点から選ぶ手順、入力欄、編集順、直接使える生成プロンプトへ統合する。"
+      ]
+    },
+    {
+      "step": "64",
+      "recorded_at": "2026-10-12T15:29:21+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "P01～P05の17規則・採用条件を照合。",
+        "一商品ごとの入力フィールド、事実の状態、型選択表、編集手順、直接使用プロンプトを作成。",
+        "複数型の競合は目的と確認済み情報で決め、頻度・型順・反応条件でローテーション/選別しない。",
+        "1商品1案を個別生成する。文法上の一文数・絵文字/タグ/CTAを固定しない。",
+        "全132件、match24/unknown108は内訳のみ、reaction exclusions/weight=0。専用skill/コード追加なし."
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP65で全5型各4ケース、計20の仮想商品入力・本文・規則根拠・弱い初稿の修正例を作成する。"
+      ]
+    },
+    {
+      "step": "68",
+      "recorded_at": "2026-10-12T16:11:01+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "5型各17規則・共通14規則、85 ID一意、全詳細項目が記入済み。",
+        "P05固有ルールの根拠は5件のみ。132件全体は比較文脈でありP05規則の導出に使用していない。",
+        "confirmed base statusを保持し、候補詳細版を引渡し・索引へ接続。参照切れ0。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP69でHTML完了レポートを5型の詳細書き方・132件根拠に合わせて更新する。"
+      ]
+    },
+    {
+      "step": "69",
+      "recorded_at": "2026-10-12T16:18:50+09:00",
+      "result": "completed_in_order_all132",
+      "checks": [
+        "HTML本文に型別85規則・共通14規則、全132件の分析方法、5実例、20仮想ケースを掲載。",
+        "HTML工程表に全71工程を掲載。step51はなく、69完了・70実行中・71未着手。",
+        "静的確認で内部アンカー切れ0、ルール99、仮想例20、参照先12件実在。"
+      ],
+      "blockers": [],
+      "followup_checkpoints": [
+        "STEP70でHTML/MD/JSONの内容を照合し、許可済みプレビューの有無と視覚確認の実績を記録する。"
+      ]
+    },
+    {
+      "step": "70",
+      "recorded_at": "2026-10-12T16:22:30+09:00",
+      "result": "completed_in_order_all132_visual_unverified",
+      "checks": [
+        "MD/JSON/HTML内容照合に重大差異なし。",
+        "許可済みプレビューは描画結果を返さず、file: URL拒否後の代替経路を試していない。視覚・印刷は未確認。",
+        "STEP50のユーザー指示による完了扱いと視覚未確認を保持。"
+      ],
+      "blockers": [
+        "デスクトップ・390px幅・印刷の視覚結果は未確認。"
+      ],
+      "followup_checkpoints": [
+        "STEP71で詳細ルールの受領可能性・Git対象範囲を確認し納品する。"
+      ]
+    },
+    {
+      "step": "71",
+      "recorded_at": "2026-10-12T16:31:12+09:00",
+      "result": "completed_in_order_all132_visual_unverified",
+      "checks": [
+        "実装受領確認.mdへ詳細候補の内容、確認済み基本版との差、P05の5件根拠、132件母数、未実施事項を記録。",
+        "全71工程の順序実績を確認。STEP50はユーザー指示による完了扱い。STEP50/70の視覚確認は未確認。",
+        "task成果22ファイルを確認し非公開作業データを除外。git diff --cached --check合格。",
+        "commit 296ffea on main pushed successfully to origin/main."
+      ],
+      "blockers": [
+        "デスクトップ・約390px幅・印刷の視覚確認は未確認。",
+        "ソフトウェア実装・実投稿・反応効果測定は今回範囲外。"
+      ],
+      "followup_checkpoints": []
+    }
+  ],
+  "historical_out_of_sequence_execution_audits": [
+    {
+      "step": "50",
+      "completed_at": "2026-10-11T20:56:53+09:00",
+      "result": "needs_owner_more_material_and_unverified_visual",
+      "checks": [
+        "50 STEPの出力・状態を実行管理へ反映。STEP11は60/113結果行と画面数129の差からpartial、STEP12は全文4件からpartial。",
+        "基礎173結果行、保存全文4、部分1、プレビューのみ162、取得不能6、恒久投稿ID0、確認済み店舗/商品キー2を参照台帳と照合。",
+        "ROOM UIで同一商品キー 946kitchen/10004123 をB0001と照合。投稿IDがないため同一投稿確定とはせず、商品として二重計上しない。",
+        "本人確認記録はpending。引渡し資料は提案状態。約130件の本文・独立商品目標は未達。",
+        "HTML構造・13リンク・JSON 17件・JSONL 12ファイル/1453レコードを静的確認。ローカルfile URLの表示は拒否され、視覚確認は未実施。"
+      ],
+      "followup_checkpoints": [
+        {
+          "recorded_at": "2026-10-11T19:55:35+09:00",
+          "result": "B01-R1 terminal confirmed; pooled product uniqueness pending",
+          "checks": [
+            "129件表示と最下部スクロール位置を画面で確認。追加スクロールでも新しい完全一致タイトルなし。",
+            "終端スナップショットの84画像・81完全一致タイトル、観測ID B0186-B0188をJSONLへ保存。",
+            "B01とB01-R1の候補結果行は計173。約130商品の達成判定はSTEP13の商品キー照合後に行う。"
+          ]
+        }
+      ]
+    }
+  ],
+  "current_rule_audit": {
+    "recorded_at": "2026-10-12T12:34:04+09:00",
+    "accepted_saved_full_body_count": 132,
+    "approximate_full_body_target": 130,
+    "body_file_readback_required": false,
+    "product_name_pair_storage_required_for_body_count": false,
+    "new_full_body_files_saved_this_run": 128,
+    "initial_full_body_files": 4,
+    "saved_full_body_files_total": 132,
+    "partial_body_files": 1,
+    "preview_only_rows": 163,
+    "preview_unavailable_rows": 6,
+    "raw_result_rows": {
+      "B01": 60,
+      "B01_R1": 113,
+      "B01_R2": 129,
+      "total": 302
+    },
+    "B01_terminal_confirmed": false,
+    "B01_R1_displayed_count": 129,
+    "B01_R1_unresolved_difference": 16,
+    "B01_R2_terminal_confirmed": true,
+    "unsaved_previous_candidates": 0,
+    "title_source_proven_for_collection": false,
+    "alt_or_story_title_used": false,
+    "individual_ROOM_preview_collection_used": true,
+    "previous_browser_refusal_bypassed": false,
+    "hashes_generated_or_compared": false,
+    "reaction_condition_match": 24,
+    "reaction_condition_unknown": 108,
+    "reaction_condition_exclusions": 0,
+    "blocker": "本文全文の目標は達成。B01の終端とB01-R1表示129件との差16件は検索範囲の制約として未解決。独立投稿数・商品数は不明。",
+    "required_input": "追加取得の必須入力なし。残る検索範囲・識別の制約は報告に明記する。"
+  },
+  "user_steering_history": [
+    {
+      "recorded_at": "2026-10-12T06:08:16+09:00",
+      "instruction": "全文型分布、STEP31の5ジャンル選定、STEP32の30テーマ選定は保存済み全文132件すべてを対象にする。反応条件match24／不明108は内訳として保持し、分析対象を狭めない。本文取得件数に保存後読戻し・商品名との対保存を要求しない。",
+      "applied_to_step": "19",
+      "future_steps": [
+        "20",
+        "21",
+        "29",
+        "30",
+        "31",
+        "32",
+        "35",
+        "36",
+        "37",
+        "38"
+      ]
+    },
+    {
+      "recorded_at": "2026-10-12T13:45:20+09:00",
+      "instruction": "画面表示・印刷確認は不要としてSTEP50を完了扱いにし、STEP52～71を1つずつ順番に実行する。視覚確認を実施済みとは記録しない。",
+      "applied_to_step": "50",
+      "future_steps": [
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71"
+      ]
+    }
+  ],
+  "latest_execution_update": "STEP52～71を順番どおり完了（STEP50はユーザー指示による完了扱い）。P05規則は指定5件のみから決定。HTMLの内容確認と受領記録を完了。視覚/印刷は未確認。main commit 296ffeaをorigin/mainへpush済み。",
+  "sequence_revalidation": {
+    "reason": "STEP27 JSONLに統合対応表が参照するS05-0001原観測行が欠けていたため、STEP27修復とSTEP28以降の順次再検証が必要",
+    "reopened_at": "2026-10-12T09:00:22+09:00",
+    "step27": "complete_after_source_gap_repair",
+    "step35_onward": "step35_to_47_complete_in_order; step48_in_progress_in_order",
+    "step28": "complete_after_step27_source_gap_repair",
+    "step29_to_34": "complete_in_order_after_step27_source_gap_repair",
+    "step29": "complete_after_step27_source_gap_repair",
+    "step31_to_34": "complete_in_order_after_step27_source_gap_repair",
+    "step30": "complete_after_step29_revalidation",
+    "step32_to_34": "complete_in_order_after_step27_source_gap_repair",
+    "step31": "complete_after_step27_source_gap_repair",
+    "step33_to_34": "complete_in_order_after_step27_source_gap_repair",
+    "step32": "complete_after_step27_source_gap_repair",
+    "step33": "complete_after_step27_source_gap_repair",
+    "step34": "complete_in_order_after_step27_source_gap_repair",
+    "step36_to_44": "step36_to_47_complete_in_order; step48_in_progress_in_order",
+    "current_revalidation_step": "71",
+    "step35": "complete_in_order_all132",
+    "step36": "complete_in_order_with_documented_data_limitations",
+    "step37_to_44": "step37_to_47_complete_in_order; step48_in_progress_in_order",
+    "step37": "complete_in_order_all132",
+    "step38": "complete_in_order_all132",
+    "step39": "complete_in_order_all132",
+    "step40": "complete_in_order_all132_analysis_basis",
+    "step41": "complete_in_order_all132",
+    "step42": "complete_in_order_with_documented_findings",
+    "step43": "complete_in_order_candidate-0.3",
+    "step44": "complete_in_order_candidate-0.3_owner_materials",
+    "step45": "complete_in_order_all_four_adopted",
+    "step46": "complete_in_order_confirmed-0.3",
+    "step47": "complete_in_order_receivable",
+    "step48": "complete_in_order",
+    "step49": "complete_in_order",
+    "step50": "complete_in_order_user_waiver_visual_unverified",
+    "step52": "complete_in_order_all132",
+    "step53": "complete_in_order",
+    "step54": "complete_in_order_all132",
+    "step55": "complete_in_order_all132",
+    "step56": "complete_in_order_all132",
+    "step57": "complete_in_order_all132",
+    "step58": "complete_in_order_all132",
+    "step59": "complete_in_order_all132",
+    "step60": "complete_in_order_all132",
+    "step61": "complete_in_order_all132",
+    "step62": "complete_in_order_all132",
+    "step63": "complete_in_order_all132",
+    "step64": "complete_in_order_all132",
+    "step65": "complete_in_order_all132",
+    "step66": "complete_in_order_all132",
+    "step67": "complete_in_order_all132",
+    "step68": "running_in_order"
+  },
+  "historical_rule_audits": [
+    {
+      "recorded_at": "2026-10-11T22:46:36+09:00",
+      "accepted_saved_full_body_count": 4,
+      "approximate_full_body_target": 130,
+      "product_name_pair_storage_required_for_body_count": false,
+      "new_full_body_files_saved_this_turn": 0,
+      "existing_full_body_files": 4,
+      "existing_partial_body_files": 1,
+      "preview_only_rows": 162,
+      "preview_unavailable_rows": 6,
+      "raw_result_rows": {
+        "B01": 60,
+        "B01_R1": 113,
+        "total": 173
+      },
+      "B01_R1_displayed_count": 129,
+      "B01_R1_unresolved_difference": 16,
+      "unsaved_previous_candidates_excluded": 128,
+      "title_source_proven_for_current_rule": false,
+      "alt_or_story_title_used": false,
+      "official_room_export_or_save_route_verified": false,
+      "previous_browser_refusal_bypassed": false,
+      "hashes_generated_or_compared": false,
+      "blocker": "許可済みのROOM入力・保存経路が確認できず、B01終端とB01-R1の16件差が未解決。",
+      "required_input": "ROOMが正式に提供するエクスポート／保存、または前回の拒否された経路に依存しない許可済みの入力・保存方法。"
+    }
+  ]
+}

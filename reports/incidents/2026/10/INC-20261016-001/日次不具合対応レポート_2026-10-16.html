@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>イナゴ日次不具合対応レポート（2026-10-16）</title>
+<style>
+:root { color-scheme: light; font-family: system-ui, "Yu Gothic UI", Meiryo, sans-serif; color: #17251d; background: #f4f7f4; }
+* { box-sizing: border-box; }
+body { max-width: 1120px; margin: 0 auto; padding: 1.25rem; line-height: 1.68; }
+header, section, details { background: #fff; border: 1px solid #cbd8ce; border-radius: .7rem; padding: 1rem 1.25rem; margin: 1rem 0; }
+h1, h2, h3 { line-height: 1.3; }
+h1 { margin-bottom: .4rem; }
+h2 { border-bottom: 1px solid #d7e1d9; padding-bottom: .4rem; }
+.status { display: inline-block; padding: .15rem .6rem; border-radius: 999px; background: #e1f2e5; color: #174925; font-weight: 700; }
+.caution { border-left: .3rem solid #c28700; padding: .5rem .8rem; background: #fff8e4; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #cbd8ce; padding: .5rem .6rem; text-align: left; vertical-align: top; }
+th { background: #edf4ee; }
+code { overflow-wrap: anywhere; font-size: .94em; }
+a { color: #075d38; }
+nav a { margin-right: .45rem; }
+.small { color: #42544a; font-size: .93rem; }
+.finding { margin: .8rem 0; }
+.finding h3 { margin-top: .2rem; }
+.label { font-weight: 700; color: #244a32; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: .7rem; }
+.card { background: #f7faf7; border: 1px solid #d7e1d9; border-radius: .5rem; padding: .7rem; }
+@media (max-width: 620px) { body { padding: .5rem; } header, section, details { padding: .8rem; } table { min-width: 640px; } }
+@media print { body { max-width: none; padding: 0; background: #fff; } header, section, details { break-inside: avoid; box-shadow: none; } a { color: #17251d; text-decoration: none; } }
+</style>
+</head>
+<body>
+<header id="top">
+<p class="status">本人による表示確認済み（改訂前）／説明文を改訂</p>
+<h1>イナゴ日次タスク不具合対応レポート</h1>
+<p>対象runは <code>INAGO-2026-10-16</code> です。元の実績は目標15件に対して下書き12件、3件不足でした。各不具合の説明を、日次タスクの大まかな流れを知っている運用者が「どの工程で何をしようとして、どうなり、次からどう動くか」を追える表現に改めました。内部のテスト名や記録項目は、詳細説明の後ろに補足として残しています。</p>
+<p class="caution"><strong>日次全体の17:45・18:00終了期限は廃止しました。</strong> Task Schedulerの実設定も <code>PT0S</code> です。外部リクエストやAI jobごとの有限timeout・有限retryは残ります。2026-10-17の次回日次は未実行のため、将来の供給や成功を保証するものではありません。</p>
+<nav aria-label="レポート内の移動"><a href="#summary">要約</a><a href="#finding-index">F01–F19一覧</a><a href="#tests">試験</a><a href="#workflow">全工程</a><a href="#trace">ログの読み方</a><a href="#requirements">要件更新</a><a href="#operations">次回運用</a><a href="#evidence">証拠</a><a href="../../../../../docs/standards/%E3%82%A4%E3%83%8A%E3%82%B4%E6%97%A5%E6%AC%A1%E4%B8%8D%E5%85%B7%E5%90%88%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88%E4%BD%9C%E6%88%90%E3%83%AB%E3%83%BC%E3%83%AB.md">今後の作成ルール</a></nav>
+</header>
+
+<section id="summary">
+<h2>1. 全体結果</h2>
+<div class="grid">
+<div class="card"><strong>元の日次結果</strong><br>目標15件／確定12件／不足3件。初期目標15件に補充枠を足して18件とする誤集計を訂正しました。</div>
+<div class="card"><strong>最終回帰</strong><br>凍結1,067 node IDを一回実行。最新pytest結果は1,066 PASS、1 SKIP、0 FAIL、0 ERRORです。</div>
+<div class="card"><strong>期限設定</strong><br>2026-10-17 05:16 JSTのread-only確認で、通常タスクはReady/Enabled、ExecutionTimeLimitはPT0S、次回は同日13:00 JSTでした。</div>
+</div>
+<p>初回の全回帰では52件が失敗しました。失敗したnodeだけを再実行し、各回で前回の失敗集合と次回の実行集合が一致することを確認しました。最終的に失敗52件はすべてPASSです。1件のN30は、通常のsuiteでは事前分類済みの条件付きskipとなるためPASS件数には入れていません。同じ完全nodeのR13通常主体Scheduler試験がPASSしており、その証拠で補完しています。</p>
+<p>F01–F18は当初の障害報告と実装計画の不具合群です。全回帰で見つかった認証応答の競合を、追加のF19として記録しました。R15のN25単独再実行はPASSを観測しましたが、専用console/JUnit/exit-codeを保存できていません。隔離された実行rootは残っています。PASS済みnode再実行禁止を守り、再実行していません。</p>
+<p class="caution"><strong>読み方：</strong>F01–F07、F09–F12、F18は当日runの実績または記録上の問題を含みます。F08、F14–F17、F19は主に監査・fixture試験で確認した再発防止上のリスクで、10月16日に本番発生したと確認した事象ではありません。F13は修正後の確認範囲をまとめた項目です。各項目に区分を記し、試験で分かったことを当日の障害と混同しないようにしています。</p>
+<p class="small">「確認」は記録や再現試験で事実を確かめた状態、「限定」は失敗した工程までは分かるが根本原因までは分からない状態、「不明」は安全な記録から原因を特定できない状態です。</p>
+</section>
+
+<section id="finding-index">
+<h2>2. 不具合一覧</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>起きたこと</th><th>発生区分・原因の確度</th><th>対応・確認</th></tr></thead>
+<tbody>
+<tr><th><a href="#f01">F01</a></th><td>15件目標のうち12件で終了したのに、集計では補充枠を足して18件目標としていた</td><td>調査で判明</td><td>目標15件・実績12件・不足3件に訂正</td></tr>
+<tr><th><a href="#f02">F02</a></th><td>Google Trendsで検索語と期間を指定した後、関連ワード一覧を取得できなかった</td><td>当日発生／根本原因は限定</td><td>表示更新後の関連欄を確認し、実接続でTop20取得</td></tr>
+<tr><th><a href="#f03">F03</a></th><td>関連ワード欄を一つに特定できず、0件か複数件かも後から分からなかった</td><td>当日発生／詳細は限定</td><td>欄の種類と表示数を区別して記録</td></tr>
+<tr><th><a href="#f04">F04</a></th><td>ROOMの検索条件画面が閉じず、一度検索に失敗したが再試行で2件取得した</td><td>当日発生／根本原因は限定</td><td>閉じたことを確認してから検索し、回復を記録</td></tr>
+<tr><th><a href="#f05">F05</a></th><td>ROOMの追加検索で先頭商品の詳細を開けず、3回の試行後に検索が止まった</td><td>当日発生／根本原因は限定</td><td>詳細を開く操作と画面遷移を別々に確認</td></tr>
+<tr><th><a href="#f06">F06</a></th><td>一つの商品を取得できない場合と、検索全体が失敗した場合を当日記録から区別できない箇所があった</td><td>調査で判明</td><td>商品ごとの失敗と検索全体の停止条件を分離</td></tr>
+<tr><th><a href="#f07">F07</a></th><td>AIが返した下書きが元の依頼と一致せず、1件を保存しなかった</td><td>当日発生／値の不一致を確認</td><td>依頼と応答が一致する場合だけ下書きを採用</td></tr>
+<tr><th><a href="#f08">F08</a></th><td>AI依頼の拒否後に後片付けも失敗すると、最初の失敗理由が隠れるおそれがあった</td><td>試験で確認</td><td>元の失敗と後片付け結果を別に記録</td></tr>
+<tr><th><a href="#f09">F09</a></th><td>日次が12/15件でもWindowsタスクの終了結果は0だった</td><td>当日発生</td><td>日次結果とOS終了結果を別々に扱う</td></tr>
+<tr><th><a href="#f10">F10</a></th><td>失敗した検索の観測ファイルが残っていても、実行記録から直接たどれなかった</td><td>当日記録の不足／保全は試験確認</td><td>保存済み証拠への参照と保持状態を記録</td></tr>
+<tr><th><a href="#f11">F11</a></th><td>失敗した工程・再試行・原因・証拠のつながりが足りず、過去の根本原因を特定できないものがあった</td><td>当日記録の不足</td><td>工程・依頼・試行・原因・証拠を結び付ける</td></tr>
+<tr><th><a href="#f12">F12</a></th><td>要件本文はQ2.19なのに要件一覧の版表示がQ2.18のままだった</td><td>調査で判明</td><td>要件一覧と関連資料をQ2.19へ同期</td></tr>
+<tr><th><a href="#f13">F13</a></th><td>修正後に全回帰と実接続のどこまで確認できたかをまとめる必要があった</td><td>検証範囲の確認</td><td>凍結回帰と実接続の証拠を分けて記録</td></tr>
+<tr><th><a href="#f14">F14</a></th><td>一時保存したAI応答が後から変わっていても、そのまま再開に使うおそれがあった</td><td>試験で確認</td><td>保存時と同じ応答であることを確かめて再開</td></tr>
+<tr><th><a href="#f15">F15</a></th><td>登録に失敗した観測ファイルが残り続け、保存領域を圧迫するおそれがあった</td><td>試験で確認</td><td>期限後の未登録ファイルを登録済み証拠と分けて回収</td></tr>
+<tr><th><a href="#f16">F16</a></th><td>日時の表し方の違いで観測ファイルの保存期限を誤判定するおそれがあった</td><td>試験で確認</td><td>同じ時刻基準に揃えて期限を判定</td></tr>
+<tr><th><a href="#f17">F17</a></th><td>観測ファイルの後片付けが失敗すると、元のエラーや保全失敗が分からなくなるおそれがあった</td><td>試験で確認</td><td>元の失敗を保ったまま後片付け失敗も伝える</td></tr>
+<tr><th><a href="#f18">F18</a></th><td>設定見本は無期限でも、登録済みタスクには6時間の終了上限が残っていた</td><td>設定と要件のずれを確認</td><td>登録済みタスクをPT0Sへ整合し、現行値を確認</td></tr>
+<tr><th><a href="#f19">F19</a></th><td>認証前に始めた古いAPI応答が、新しく入力した認証状態を取り消す競合があった</td><td>試験で再現・修正</td><td>新しい認証後に戻った古い応答を無視</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="findings">
+<h2>3. 各不具合の内容・原因・修正・試験・trace</h2>
+<p>以下はすべて、まず日次タスクの工程に沿って「何をしようとして、何が起きたか」「次回からどう動くか」を説明し、その後に原因の確度、確認結果、内部追跡情報を載せています。監査や専用試験だけで確認したリスクは、当日発生した障害と区別しています。</p>
+
+<details class="finding" id="f01" open><summary><h3>F01 — 目標15件の集計に補充枠を足していた</h3></summary>
+<p><span class="label">何が起きたか：</span>2026-10-16の日次タスクは、初期目標15件に対して下書き12件で終了し、3件不足しました。報告の初版では、15件の不足を埋めるための補充枠3件を別の目標として足してしまい、目標18件・不足6件と誤って説明していました。これは実績の不足数ではなく、レポートの集計誤りです。</p>
+<p><span class="label">原因・分かっている範囲：</span>実装定数と割当処理から、追加3件は不足を埋める枠で別の目標ではないと確認しました。確度は確認です。検索結果供給不足と集計誤りを分けています。</p>
+<p><span class="label">どう直したか：</span>初期目標15件、補充枠はその15件を埋めるための追加候補、確定した下書き12件という関係に整理し、説明を「目標15件・実績12件・不足3件」に訂正しました。実行記録や過去runのデータは変更していません。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_outcome.py::test_n20_allocation_shortfall_and_posted_count_are_separate</code>で目標・確定・投稿済み件数を分離。R15全回帰ではこのnodeを含む凍結対象を実行しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span><code>run_id</code>、テーマ別割当、確定数、投稿済み数、daily statusを並べて読めます。テーマ別集計を日次目標と混同しません。</p><p><a href="#evidence">証拠索引</a> · <a href="%E6%97%A5%E6%AC%A1%E4%B8%8D%E5%85%B7%E5%90%88%E8%AA%BF%E6%9F%BB%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88_2026-10-16.md">元障害レポート</a></p></details>
+
+<details class="finding" id="f02" open><summary><h3>F02 — Google Trendsで関連ワード一覧を取得できなかった</h3></summary>
+<p><span class="label">何が起きたか：</span>Google Trendsで検索ワードを調べる工程で、検索語を入力し、期間を「過去3か月」にした後、関連ワード欄の表示を待ちました。しかし欄の表示を確認できず、4つの検索グループで計20回試したうち19回が時間切れになりました。残る1回も、対象の関連ワード欄を一つに特定できませんでした。このrunでは関連ワード一覧を取得できず、後続の候補探しは保存済みのルールに沿ってROOM検索へ進みました。</p>
+<p><span class="label">原因・分かっている範囲：</span>失敗段階までは確認できますが、公開ページ側の遅延、描画、script/API、ネットワークのどれが根因かは記録がなく不明です。HTTP 200だけから外部側の原因は断定しません。確度は限定です。</p>
+<p><span class="label">どう直したか：</span>期間を切り替えた後に画面が更新されたことを確認し、その後に表示された関連ワード欄だけを取得対象にします。関連キーワード欄と関連トピック欄も区別し、時間切れや対象欄を特定できない場合は誤った欄を採用せず、その失敗位置を記録します。R15では、画面上で見出しを読み取れる欄を正しく分類できるようにしました。</p>
+<p><span class="label">確認方法・結果：</span>N06/N07bで遅延・旧表示と17:45/18:00を跨ぐ有限retryを確認。N08系列は0件/複数/別type/hidden/heading aliasを検証し、N08のR15失敗限定再実行はPASS。L01 attempt-04では公開TrendsからTop20 snapshotとhealthy traceを確認しています。</p>
+<p><span class="label">内部追跡情報（参考）：</span><code>active_stage</code>、<code>last_completed_stage</code>、可視数、widget種別、更新世代、timeout分類、observation参照を使うと、「期間反映後のどの待機で止まったか」を切り分けられます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/adapters/public_sources.mjs">Trends adapter</a> · <a href="../../../../../tests_inago/test_daily_fix_trends.py">Trends fixture試験</a></p></details>
+
+<details class="finding" id="f03" open><summary><h3>F03 — 関連ワード欄を一つに特定できなかった</h3></summary>
+<p><span class="label">何が起きたか：</span>F02の20回のうち1回は、関連ワード欄を一つに決められず取得を続けられませんでした。当時の記録には画面上の該当欄が0個だったのか、複数あったのかが残っておらず、どちらの状態だったかは後から判断できません。</p>
+<p><span class="label">原因・分かっている範囲：</span>保存されているのは一意な可視widgetを確定できなかった段階までです。0件と複数件のどちらだったかは不明で、確度は限定です。</p>
+<p><span class="label">どう直したか：</span>関連キーワード欄と関連トピック欄を見出しから分類し、画面上に見えている候補数も別に数えるようにしました。これにより、次に同じ失敗が起きた場合は「該当欄が見つからない」「候補が複数あって決められない」「別種の欄しかない」を分けて確認できます。R15では、表示欄の分類に使う見出しの判定も修正しました。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_trends.py::test_n08</code>、N08b/N08c、<code>tests_inago/test_daily_fix_trace.py::test_n08d_trends_widget_selector_versions_keep_trace_healthy</code>をR15で実行。N08はattempt-08でPASSし、その後は再実行していません。</p>
+<p><span class="label">内部追跡情報（参考）：</span>可視/期待数、分類、selector version、更新世代を保存し、0件待機・複数widget・種別違いを別の結果として調査できます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/adapters/public_sources.mjs">widget判定実装</a></p></details>
+
+<details class="finding" id="f04" open><summary><h3>F04 — ROOMの検索条件画面が閉じず、再試行で回復した</h3></summary>
+<p><span class="label">何が起きたか：</span>ROOMで商品を探す前に検索条件を選ぶ工程で、2026-10-16の13:34ごろ、条件値を確認した後も条件画面を閉じられませんでした。閉じる操作とEscapeキーを試しても閉じた状態を確認できず、その試行は失敗しました。直後の再試行では回復して2件を取得できたため、この失敗は当日の不足3件の直接原因ではありません。</p>
+<p><span class="label">原因・分かっている範囲：</span>失敗がpopup close境界で起きたことと直後の回復は確認済みです。クリックが発火しなかった理由など、ブラウザー内部の原因は記録されていません。確度は限定です。</p>
+<p><span class="label">どう直したか：</span>条件画面を閉じる操作の後に、本当に閉じたことを確認してから検索を始めるようにしました。通常の閉じ操作で閉じない場合はEscapeキーでも閉じることを試し、それでも閉じなければ検索を開始せず、その操作のどこで止まったかを記録します。再試行で取得できた商品は一度だけ集計します。</p>
+<p><span class="label">確認方法・結果：</span>ROOM N09/N09b/N09c/N10。L02 attempt-02/07で公開条件と商品詳細到達を確認。回復済みpopupは当日の不足3件の直接原因ではありません。</p>
+<p><span class="label">内部追跡情報（参考）：</span>close begin/end、method、候補数、閉状態、検索開始を別々に記録し、popupが閉じなかった場合と検索自体が失敗した場合を分けます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../tests_inago/test_daily_fix_room.py">ROOM試験</a></p></details>
+
+<details class="finding" id="f05" open><summary><h3>F05 — ROOMの追加検索で商品詳細を開けず、検索が停止した</h3></summary>
+<p><span class="label">何が起きたか：</span>ROOMの追加検索で候補一覧から商品詳細を開く工程にて、2026-10-16の13:42から13:46ごろまで、先頭商品の詳細を開けない失敗が3回続きました。記録上、操作対象は「詳細」に相当する文字があるもののリンク先が設定されていない画面要素で、商品詳細画面への移動や別画面の表示は確認できませんでした。この検索は3回で停止し、追加候補を取得できず、日次の3件不足に影響しました。</p>
+<p><span class="label">原因・分かっている範囲：</span>hrefなしのdivでclick開始まで進み、popupや同一tab遷移の記録がないことは確認できます。actionabilityやブラウザーイベントのどれが妨げたかは不明です。確度は限定です。</p>
+<p><span class="label">どう直したか：</span>「詳細」という文字が見えるだけでリンク先を推測せず、実際に操作できるボタンやリンクを見つけてから開くようにしました。開いた後は、別画面が出た場合と同じ画面内で移動した場合の両方を確認します。どちらの移動も確認できないときは、どの商品で止まったかを残し、1商品の取得失敗と検索全体の停止を区別します。画面側でクリックを妨げた正確な理由は、当日の記録からは確定できません。</p>
+<p><span class="label">確認方法・結果：</span>N11/N12/N13でcontrol、同一tab、復帰を検証。L02 attempt-07では公開商品20件のURL/key到達とhealthy traceを確認しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span>click begin/error、row/query scope、popup/navigation count、destination wait、復帰結果を使い、どの行で止まったかを追えます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../tests_inago/test_daily_fix_room.py">ROOM試験</a></p></details>
+
+<details class="finding" id="f06" open><summary><h3>F06 — 一つの商品を取得できない場合と検索全体の失敗を区別する</h3></summary>
+<p><span class="label">何が起きたか：</span>ROOMの検索結果から商品を一件ずつ確認する工程では、一つの商品だけ詳細を取得できない場合と、検索結果全体を使えない場合があります。当日の記録では、この二つを区別できない箇所がありました。そのため、当時どの失敗が候補数や再試行に影響したかを、記録だけから十分に再構成できません。検索候補が実際に余分に失われたと確認できた項目ではありません。</p>
+<p><span class="label">原因・分かっている範囲：</span>失敗scope、先頭50件、許容境界10/11を分ける契約は試験で再現・確認済みです。元のbrowser側の詳細な作用理由までは推定しません。</p>
+<p><span class="label">どう直したか：</span>商品一件の詳細取得に失敗しても、決められた範囲内では他の商品を続けて確認します。商品ごとの失敗回数と検索全体の結果を別々に記録し、上限を超えたときだけその検索を停止します。これにより、一件の失敗を検索全体の失敗と取り違えて候補や再試行を誤って扱わないようにしました。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_room.py</code>のN14/N15/N16でrow/query scope、先頭50件、10/11境界、失敗後続行/停止を確認しました。全回帰ではPASSです。</p>
+<p><span class="label">内部追跡情報（参考）：</span>各eventにscopeとrow indexを付け、row failure countとquery terminal outcomeを区別します。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../tests_inago/test_daily_fix_room.py">ROOM試験</a></p></details>
+
+<details class="finding" id="f07" open><summary><h3>F07 — AIの下書き応答が元の依頼と一致しなかった</h3></summary>
+<p><span class="label">何が起きたか：</span>商品紹介文をAIに作らせる工程で、1件の応答が、Python制御プログラムから渡された依頼内容と一致しませんでした。その応答は採用されず、下書きも保存されませんでした。AIが別の入力情報を返した理由までは、保存された情報から特定できません。この1件は別の下書き数で補われており、日次の不足3件には加算されません。</p>
+<p><span class="label">原因・分かっている範囲：</span>最初に不一致となったfieldがinput_hashであることは確認できます。なぜAI側の応答値が異なったかは伏字artifactから特定できず不明です。</p>
+<p><span class="label">どう直したか：</span>AIから戻った応答が、元の依頼と同じrun・同じ生成依頼・同じ入力内容に結び付くことを確認してから下書きに採用します。一つでも一致しない場合はその応答を拒否し、正しいように見せるため元の値で書き換えたり、空の下書きとして保存したりしません。</p>
+<p><span class="label">確認方法・結果：</span>N17で不一致field保持と停止、N18で現在turn identity、N23bで誤hash時の採用停止を確認。N19では生成再試行と保存済み応答再利用も検証しています。</p>
+<p><span class="label">内部追跡情報（参考）：</span>run/job/attempt、入力参照、設定版、input_hashの照合結果と最初の不一致fieldを記録し、別turn・別jobの応答を採用しません。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/ai_runner.py">AI runner</a> · <a href="../../../../../tests_inago/test_daily_fix_ai.py">AI契約試験</a></p></details>
+
+<details class="finding" id="f08" open><summary><h3>F08 — AI依頼の拒否理由が後片付けの失敗で隠れるおそれ</h3></summary>
+<p><span class="label">何が起きたか：</span>これは10月16日のrunで発生したと確認した障害ではなく、専用試験で確認した再発防止上のリスクです。AI応答が元の依頼と合わず拒否された後、途中ファイルの後片付けにも失敗すると、後片付けのエラーだけが結果に残り、下書きを拒否した最初の理由が分からなくなるおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>primary/cause/cleanupの分離と契約拒否時の停止伝播はfixtureで決定的に再現されています。確度は実装機構について確認です。</p>
+<p><span class="label">どう直したか：</span>依頼と合わないAI応答は下書きとして採用せず、そこで生成を止めます。後片付けも失敗した場合は、最初に起きた依頼の不一致と後片付けの失敗を別々に残すようにし、どちらか一方が隠れないようにしました。</p>
+<p><span class="label">確認方法・結果：</span>N04、N17、N19、N20c、N23b、N05eで拒否・停止・cleanup結果を確認しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span><code>primary_error_code</code>、<code>cause_code</code>、<code>cleanup_error_code</code>/<code>cleanup_error_class</code>を別欄で記録します。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/trace.py">trace実装</a></p></details>
+
+<details class="finding" id="f09" open><summary><h3>F09 — 日次は12/15件でもWindowsタスクの終了結果は0だった</h3></summary>
+<p><span class="label">何が起きたか：</span>2026-10-16はWindowsのタスク自体が終了コード0を返しましたが、日次アプリの結果は目標15件に対して12件でpartial（未達あり）でした。Windowsのタスク一覧だけを見ると正常終了に見えるため、下書きが3件不足したことを見落とす可能性がありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>CLIの状態とWindows子プロセス終了コードの優先関係を実装と受入で確認しています。確度は確認です。</p>
+<p><span class="label">どう直したか：</span>日次の結果（目標を達成したか、未達があるか）と、Windowsのプロセスが起動・終了できたかを別の状態として伝えるようにしました。運用者は日次結果を確認して完了を判断し、終了コード0だけでは目標達成と判定しません。</p>
+<p><span class="label">確認方法・結果：</span>N20/N21/N21b/N21c、N22c、R13 N30/L04。L04ではhealthとAffiliate/ROOM metricsがobserved、Scheduler終了コード0、cleanup errors 0を確認しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span><code>daily_status</code>、<code>metrics_status</code>、export/preservation結果、CLI exit、Scheduler LastTaskResultを並べて判定します。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/cli.py">CLI</a> · <a href="../../../../../tests_inago/test_daily_fix_outcome.py">結果/exit試験</a></p></details>
+
+<details class="finding" id="f10" open><summary><h3>F10 — 失敗した検索の観測ファイルへ実行記録からたどれなかった</h3></summary>
+<p><span class="label">何が起きたか：</span>当日のTrends検索では、失敗内容を記録した観測ファイル自体は保存されていましたが、各失敗記録からファイルへの参照がなく、実行記録だけでは直接開けませんでした。調査では実行IDを手掛かりにファイルを探す必要がありました。保存途中のファイルや期限後の扱いにも同様の追跡・保全漏れがないか、専用試験で確認しました。</p>
+<p><span class="label">原因・分かっている範囲：</span>atomic保存、DB参照、保持期限、失敗cleanupの各経路は独立fixtureで再現され、仕組みを確認しています。</p>
+<p><span class="label">どう直したか：</span>観測ファイルの保存が完了してから、そのファイルを実行記録に結び付けます。保存できなかった、期限が切れた、または後片付けに失敗した状態は、それぞれ分かる形で記録し、空の検索結果や正常終了として扱いません。定めた保存期間と保管数を適用し、復元確認も本番データから隔離した場所で行います。</p>
+<p><span class="label">確認方法・結果：</span>N05/N05b/N05c/N05d/N05eとN25でartifact参照、改変拒否、期限後処理、保持、隔離restoreを確認しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span><code>evidence_ref</code>と保存状態を対応付けます。expired/書込失敗を空結果や正常保存に置き換えず、cleanup failureも日次結果へ伝えます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/artifact_io.py">artifact保存</a> · <a href="../../../../../automation/inago/retention.py">保持処理</a> · <a href="../../../../../automation/inago/backup.py">backup/restore</a></p></details>
+
+<details class="finding" id="f11" open><summary><h3>F11 — 失敗した工程から原因や証拠へたどる記録が不足</h3></summary>
+<p><span class="label">何が起きたか：</span>当初の記録では、検索や商品確認のどの操作まで成功し、その次に何を待って失敗したのか、どの再試行だったのかが揃っていませんでした。Trendsで関連ワードが表示されなかった理由や、ROOMで商品詳細を開けなかった理由の一部は、後から根本原因まで調べられませんでした。失われた過去の記録は今回の修正で復元できません。</p>
+<p><span class="label">原因・分かっている範囲：</span>trace上の観測項目不足は実装と回帰試験で確認しました。元の外部/browser/AI根因が保存されていないものは今回も不明のままです。</p>
+<p><span class="label">どう直したか：</span>各runについて、完了した工程、いま実行している操作、依頼と再試行の対応、時間切れや取消の有無、最初の失敗と後片付けの結果、関連する安全な証拠を結び付ける記録を追加しました。次回は「どの操作の後に止まったか」と「証拠が残っているか」を同じ実行記録から確認できます。秘密情報、投稿本文、認証用URLは通常の記録に出しません。</p>
+<p><span class="label">確認方法・結果：</span>N03/N04/N29、N22/N22b/N22c/N23a/N23b/N24a/N24b/N25/N26/N27/N30とL01–L04を確認しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span>まず<code>run_id</code>からdaily stateを開き、<code>active_stage</code>/<code>last_completed_stage</code>、request/job/attempt、error/cause/cleanup、<code>evidence_ref</code>の順に追います。容量・保持期限を過ぎた証拠はexpiredとして扱い、欠落を「異常なし」と読み替えません。</p><p><a href="#trace">traceの読み方</a> · <a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/trace.py">trace実装</a></p></details>
+
+<details class="finding" id="f12" open><summary><h3>F12 — 要件本文と要件一覧の版表示がずれていた</h3></summary>
+<p><span class="label">何が起きたか：</span>日次タスクの要件本文はQ2.19へ更新されていましたが、要件データ辞書の先頭には古いQ2.18が残っていました。参照する資料によって、どの要件が現行なのか判断が食い違う状態でした。</p>
+<p><span class="label">原因・分かっている範囲：</span>辞書headerの更新漏れを確認しました。R14で表示本文、embedded source、24件の同梱資料、追跡表、図表を横断照合しています。</p>
+<p><span class="label">どう直したか：</span>要件辞書と関連する同梱資料の版をQ2.19に揃えました。日次全体の17:45・18:00終了上限を設けないこと、個別リクエストやAI処理の有限timeout/retryは残すこと、登録済みタスクの終了上限をPT0Sにすることも、関連資料で同じ現行要件として確認できるようにしました。</p>
+<p><span class="label">確認方法・結果：</span>R14のHTML buildはQ2.19、28章、38図、24資料でPASS。24のembedded payloadとsidecarはbyte一致でした。</p>
+<p><span class="label">内部追跡情報（参考）：</span>要件ID→受入ID→N/L証拠の対応を追跡表とAT-TRACE-01で検索できます。</p><p><a href="#requirements">要件更新一覧</a> · <a href="../../../../../docs/specifications/inago/%E3%82%A4%E3%83%8A%E3%82%B4%E3%82%B9%E3%82%AD%E3%83%AB%E8%A6%81%E4%BB%B6%E5%AE%9A%E7%BE%A9%E6%9B%B8.html">要件正本Q2.19</a> · <a href="#evidence">証拠索引</a></p></details>
+
+<details class="finding" id="f13" open><summary><h3>F13 — 修正後にどこまで確認できたかを整理</h3></summary>
+<p><span class="label">何が起きたか：</span>これは10月16日に利用者へ表れた不具合ではなく、修正後の確認範囲を整理した項目です。画面やAIの動きを模擬する試験だけでは、公開サイトへ接続した取得や通常のWindows実行主体での動作までは確かめられません。また、最終確認前は全試験の最新結果が揃っていませんでした。</p>
+<p><span class="label">原因・分かっている範囲：</span>R15で凍結対象1,067 nodeを一回実行し、集合一致を確認。初回は1,014 PASS/52 FAIL/1 SKIP。FAIL限定再実行の最新は1,066 PASS/1 SKIP/0 FAIL/0 ERRORです。N30 skipは事前分類済みのR13同一node実測で補完しています。</p>
+<p><span class="label">どう直したか：</span>凍結した1,067件の試験を一度実行し、その後は失敗した試験だけを再実行して最新結果を揃えました。最終結果は1,066 PASS、1 SKIP、失敗・実行エラー0件です。SKIPは別の通常主体のScheduler試験で補う証拠を記録しました。公開Trends、ROOM、AI、API・metricsの実接続確認もfixture試験とは分けて記録しています。N25の単独再実行では専用console/JUnit/終了コードが保存されていないため、その制約を残し、PASS済み試験を再実行していません。</p>
+<p><span class="label">確認方法・結果：</span>初回全回帰1回、N25単独PASS、attempt-05～10のFAIL限定チェーン。L01/L02/L03/L04とN30は別の実接続証拠として扱い、再利用しました。</p>
+<p><span class="label">内部追跡情報（参考）：</span>全nodeの初回status、最新status、根拠参照をprivate台帳に保存しました。private rawはGitと本HTMLへの埋込みを避けています。</p><p><a href="#tests">回帰結果</a> · <a href="#evidence">証拠索引</a> · <a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R15/evidence.md">R15台帳概要（非公開）</a></p></details>
+
+<details class="finding" id="f14" open><summary><h3>F14 — 一時保存したAI応答が変わっても再開に使うおそれ</h3></summary>
+<p><span class="label">何が起きたか：</span>これは専用試験で確認したリスクで、10月16日のrunで保存内容が改変された事実は確認していません。AIの応答を一時保存して処理を再開する際、保存後に内容や参照先が変わっていた場合、最初に確認したものとは別の応答を使ってしまうおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>fixtureで改変後のresume拒否を確認しました。確度は実装機構について確認です。</p>
+<p><span class="label">どう直したか：</span>再開時に、一時保存した応答が保存時と同じ内容・参照・依頼に結び付くことを確かめます。どれかが違っていればその応答を再利用せず、誤った下書きを作らないようにしました。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_artifacts.py::test_n05b_rejects_tampered_pending_artifact</code>をR15でPASS。</p>
+<p><span class="label">内部追跡情報（参考）：</span>artifact referenceと検証状態を残します。本文そのものは通常traceへ出しません。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../tests_inago/test_daily_fix_artifacts.py">artifact試験</a></p></details>
+
+<details class="finding" id="f15" open><summary><h3>F15 — 登録されなかった観測ファイルが残り続けるおそれ</h3></summary>
+<p><span class="label">何が起きたか：</span>これは専用試験で確認したリスクで、当日に保存領域が圧迫された事実は確認していません。観測ファイルを保存しても実行記録への登録ができなかった場合、そのファイルは通常の証拠一覧に出ません。期限後も回収されなければ、不要なファイルが残り続けて保存領域を使うおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>未登録・欠損artifactのexpiry/reclaim条件をfixtureで確認しました。</p>
+<p><span class="label">どう直したか：</span>期限を過ぎた未登録ファイルだけを回収し、実行記録に登録済みの必要な証拠は保持するようにしました。回収したことを検索成功や証拠確認済みとは扱いません。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_artifacts.py::test_n05c_expires_unregistered_missing_observation_artifact</code>をR15でPASS。</p>
+<p><span class="label">内部追跡情報（参考）：</span>expiry結果を保存し、削除を証拠が存在したことや業務成功の証拠として扱いません。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/retention.py">保持処理</a></p></details>
+
+<details class="finding" id="f16" open><summary><h3>F16 — 日時表記の違いで証拠の保存期限を誤るおそれ</h3></summary>
+<p><span class="label">何が起きたか：</span>これは期限境界を確かめる専用試験で確認したリスクで、当日に証拠が早く消えたり残り続けたりした事実は確認していません。記録時刻と保存期限が異なる書式や時差で表されていると、同じ時点を比べているつもりでも、期限前の削除や期限後の取り残しが起きるおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>文字列表現の差による境界ずれを専用ケースで検証しました。</p>
+<p><span class="label">どう直したか：</span>記録時刻と保存期限を同じ時刻基準に揃えてから比較し、期限の直前・ちょうどの時刻・直後で判定がずれないようにしました。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_artifacts.py::test_n05d_normalizes_observation_retention_timestamps</code>をR15でPASS。</p>
+<p><span class="label">内部追跡情報（参考）：</span>retention判定は記録/expiryの意味を分け、保持済みか期限後かを確認できます。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../tests_inago/test_daily_fix_artifacts.py">保持境界試験</a></p></details>
+
+<details class="finding" id="f17" open><summary><h3>F17 — 観測ファイルの後片付け失敗が見逃されるおそれ</h3></summary>
+<p><span class="label">何が起きたか：</span>これは専用試験で確認したリスクで、10月16日に後片付けが失敗した事実は確認していません。失敗した検索の途中ファイルを片付ける処理も失敗した場合、日次結果だけを返すと、証拠や不要ファイルを安全に処理できなかったことを運用者が見落とすおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>cleanup failureを注入したfixtureで結果伝播を確認しました。</p>
+<p><span class="label">どう直したか：</span>後片付けに失敗した数と内容を記録し、記録や保全の状態に問題があることを示して日次を停止します。同時に、最初に起きた検索などのエラーも残し、後片付けの失敗で元の原因を上書きしません。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_artifacts.py::test_n05e_reports_and_stops_on_unregistered_artifact_cleanup_failure</code>をR15でPASS。</p>
+<p><span class="label">内部追跡情報（参考）：</span>元のerrorとcleanup errorを別々に記録し、何が先に起きたかを失いません。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/retention.py">保持/cleanup</a></p></details>
+
+<details class="finding" id="f18" open><summary><h3>F18 — 登録済みタスクに6時間の終了上限が残っていた</h3></summary>
+<p><span class="label">何が起きたか：</span>日次全体に終了期限を設けない要件へ変更した後も、Windowsに登録済みの「RakutenRoomInagoDaily」タスクには6時間で強制終了する設定が残っていました。10月16日のrunは6時間に達する前に終了しているため、この設定で当日止まったわけではありませんが、将来6時間を超える実行は途中で終了する可能性がありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>登録処理がWakeToRunだけを比較し、ExecutionTimeLimitのdriftを修復しなかったことを確認しました。</p>
+<p><span class="label">どう直したか：</span>新しいタスク定義だけでなく、Windowsにすでに登録されているタスクの設定も確認し、停止中または待機中のタスクは現行定義に揃えて修正するようにしました。実行中のタスクは変更しません。現行の登録値は終了上限なし（PT0S）で、個々のリクエストやAI処理に設定された時間制限は引き続き有効です。</p>
+<p><span class="label">確認方法・結果：</span>N30はR13の通常主体一時taskでPASS、N30bのparameterized Scheduler mockはPT6H driftのReady/Disabled修復、Running拒否、PT0S受入を確認。R16のread-only照合でも有効taskはReady/Enabled、ExecutionTimeLimit PT0Sでした。</p>
+<p><span class="label">内部追跡情報（参考）：</span>修復前後の設定状態、処理結果、task cleanupを保存し、秘密値や引数全文は本レポートへ転載しません。</p><p><a href="#operations">現在の運用状態</a> · <a href="#evidence">証拠索引</a> · <a href="../../../../../automation/inago/register_tasks.ps1">Scheduler登録処理</a></p></details>
+
+<details class="finding" id="f19" open><summary><h3>F19 — 古い未認証応答が新しいAPI接続を切る競合</h3></summary>
+<p><span class="label">何が起きたか：</span>これはR15の画面試験で再現した不具合で、10月16日の日次runで発生したと確認した事象ではありません。履歴画面が未認証のまま送ったAPI確認の返事が遅れて戻ると、利用者が新しい認証情報を入力して接続できた後なのに、古い「認証されていない」という返事が接続状態を取り消すことがありました。その結果、画面が接続済みにならず、投稿報告の受付結果を待ち続けるおそれがありました。</p>
+<p><span class="label">原因・分かっている範囲：</span>同じ認証世代かを確認せず401 responseから認証状態を戻す経路をコードで再現しました。確度は再現・修正を確認です。</p>
+<p><span class="label">どう直したか：</span>認証情報を新しく受け付けた後は、それより前に始まったAPI確認の遅い返事で新しい接続状態を取り消さないようにしました。新しい接続後に古い未認証応答が戻るケース、接続が成立して受付結果が戻るケースを画面試験で確認しています。認証情報そのものは記録しません。</p>
+<p><span class="label">確認方法・結果：</span><code>tests_inago/test_daily_fix_history.py::test_n26_history_date_copy_report_and_pending_receipt_trace</code>はattempt-05/06で失敗し、認証revision guardと待機条件を修正後、attempt-07でPASS。最終のfailure chainではPASS後に再実行していません。</p>
+<p><span class="label">内部追跡情報（参考）：</span>production traceへtokenを出しません。browser fixtureのrequestObservationsだけで未認証401、認証後receipt 201、接続readyを確認できるようにしました。</p><p><a href="#evidence">証拠索引</a> · <a href="../../../../../rakuten-room-inago/dashboard-assets/history.js">履歴HTMLのAPI接続</a> · <a href="../../../../../tests_inago/test_daily_fix_history.py">N26試験</a></p></details>
+</section>
+
+<section id="tests">
+<h2>4. 実際に行った試験</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>実行</th><th>対象と結果</th><th>意味・範囲</th></tr></thead>
+<tbody>
+<tr><td>R15初回全回帰（1回）</td><td>1,067 node。1,014 PASS / 52 FAIL / 1 SKIP / 0 ERROR</td><td>凍結一覧とJUnit node集合は完全一致。nested 690-node suiteは起動0。</td></tr>
+<tr><td>R15 failure-only attempt-05～10</td><td>51→20→9→5→1→1 node。最終のattempt-10は1 PASS</td><td>各段で直前のFAILだけを次回実行。PASS済みnodeは再実行なし。</td></tr>
+<tr><td>N25 attempt-02</td><td>単独nodeを実行しPASSを観測。専用console/JUnit/exit-code未保存</td><td>隔離実行rootは残存。保存済みのPASSを再実行せず、証拠制約を明記。</td></tr>
+<tr><td>N30代替実測</td><td>通常主体・一時Scheduler taskから同じ完全nodeがPASS。pytest exit 0、LastTaskResult 0、task cleanup確認</td><td>suiteのSKIPはPASSへ加算せず、R14で事前分類した別証拠として対応付け。</td></tr>
+<tr><td>R16 report static review</td><td>anchor/link/ID/外部asset/secret文字列の静的検査PASS。ブラウザー表示は未実施</td><td>文書確認のみ。アプリpytest・日次起動はしていない。</td></tr>
+</tbody></table></div>
+<p>結果台帳では最終pytest statusを1,066 PASS・1 SKIPと分けて記載しています。N30の代替実測があることを理由にskipをPASS件数へ足していません。</p>
+</section>
+
+<section id="workflow">
+<h2>5. 全工程の確認</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>工程</th><th>確認内容</th><th>主な根拠</th></tr></thead>
+<tbody>
+<tr><td>開始・前日報告反映</td><td>同日run/版の再利用、本人報告の保留/適用、再開で同じrunを保持</td><td>N24a、N26/N27</td></tr>
+<tr><td>Trends・語句分類</td><td>公開Top20取得、遅延/0/複数/不明の区別、有限retryとtimeout</td><td>N06–N08d、L01 attempt-04</td></tr>
+<tr><td>ROOM検索・商品識別</td><td>条件popup、商品control、popup/同一tab、row/query scope、10/11境界と先頭50</td><td>N09–N16、L02 attempt-07</td></tr>
+<tr><td>本文生成・採用</td><td>AI identity/input_hash、契約拒否停止、同じ応答の再利用、timeout後の遅い結果不採用</td><td>N17–N19、N23b/N24b</td></tr>
+<tr><td>原子commit・HTML</td><td>本文/予約のtransaction、commit後export、履歴画面の本人操作、receipt</td><td>N22/N26、STEP23.08ケース</td></tr>
+<tr><td>成果・保全・復元</td><td>metrics欠測と0、7世代backup、月次隔離restore、expired artifact非復活</td><td>N22/N25、L04</td></tr>
+<tr><td>終了・次回起動</td><td>daily statusとOS終了結果の分離、request/job cancel、Scheduler PT0S</td><td>N20/N21、N30/N30b、R16 read-only照合</td></tr>
+</tbody></table></div>
+<p>fixture試験は本番日次、実投稿、課金、将来の外部サービス可用性を証明しません。必須の接続点はL01–L04の個別証拠で確認し、各範囲を分けて扱っています。</p>
+</section>
+
+<section id="trace">
+<h2>6. 追加ログの使い方</h2>
+<ol>
+<li><strong>runを選ぶ：</strong><code>run_id</code>と対象日でdaily stateを開き、daily status、確定数/15、設定版、出口結果を確認します。</li>
+<li><strong>止まった工程を探す：</strong><code>active_stage</code>は現在失敗したwait/action、<code>last_completed_stage</code>はその直前までに完了した工程です。完了stageを失敗箇所と取り違えません。</li>
+<li><strong>個別処理をたどる：</strong>request/job/attempt/spanの相関からretry、deadline/timeout、cancel結果を確認します。取消が未確認なら後続処理が始まっていないことも確認します。</li>
+<li><strong>原因と後始末を分ける：</strong><code>primary_error_code</code>/<code>cause_code</code>と<code>cleanup_error_code</code>を分けて読みます。最後のcleanup失敗で元原因を上書きしません。</li>
+<li><strong>証拠を開く：</strong><code>evidence_ref</code>から許可されたobservation/artifactへ進み、status/error/採否を照合します。期限切れ・容量制限・書込失敗は証拠が取れなかった状態として残し、正常や空結果とは扱いません。</li>
+</ol>
+<p>例：Trendsの<code>last_completed_stage=trends_period_reflected</code>、<code>active_stage=trends_top_rows_wait_begin</code>なら、期間反映の後にTop行待ちで失敗したと分かります。これだけで外部サイトの障害原因までは断定できません。</p>
+<p>例：AI jobはrun/job/attemptと現在turnのidentityを照合し、input_hash mismatchなら応答を不採用としてdraftが増えていないことを確認します。ROOMは行単位失敗か検索全体失敗かをscopeで分けます。</p>
+<p class="small">通常traceにtoken、cookie、本文全文、認証URL等を出しません。個別証拠は許可されたローカルrootでアクセス管理し、期限切れrawを復元しません。</p>
+</section>
+
+<section id="requirements">
+<h2>7. 要件定義の更新</h2>
+<ul>
+<li><strong>Q2.15（R10）：</strong>日次全体とSchedulerの17:45/18:00停止上限を廃止。request/job単位の有限timeout、有限retry、Retry-After、取消確認、同一run/日付を維持。</li>
+<li><strong>Q2.18（R13）：</strong>登録済みtaskの設定drift確認を追加。Ready/Disabledのみ修復、Runningは変更しない。修復対象のExecutionTimeLimitをPT0Sへ。</li>
+<li><strong>Q2.19（R14）：</strong>正本HTML、embedded source、図表、要件辞書、追跡表、AT-TRACE-01、sidecarの歴史/現行表現を同期。backupと隔離restore root、日次期限撤廃、個別timeout維持を記載。</li>
+</ul>
+<p>Q2.19は28章・38図・24同梱資料です。R14では24資料のembedded payloadとsidecarがbyte一致し、IR/AT IDを照合しました。歴史上の17:45/18:00記述は履歴として残る箇所がありますが、現在の実行要件としての全体終了期限はありません。</p>
+</section>
+
+<section id="operations">
+<h2>8. 次回運用と残る条件</h2>
+<p>2026-10-17 05:16 JSTのread-only照合では、<code>RakutenRoomInagoDaily</code>はReady/Enabled、通常のInteractive/Limited主体、日次13:00の繰返し、ExecutionTimeLimit PT0S、次回13:00でした。直近LastTaskResultは0ですが、10月16日のアプリ結果はpartial（12/15）でした。Windowsの0だけを日次成功とは見ません。今日13:00のrun結果はまだ観測されていません。</p>
+<ol>
+<li>日次終了後、run ID、daily status、確定数/15、不足理由、各工程、metrics/export/preservationを確認します。</li>
+<li>Scheduler LastTaskResultとPython/CLI exitを記録し、日次statusと別々に判定します。</li>
+<li>active stageと最後の完了stageからrequest/jobを選び、retry回数、timeout/cancel、error/cause/cleanup、evidence referenceを追います。</li>
+<li>同日再開が必要なら同じrun/設定版/使用済み試行/確定本文を保持し、確定済み本文を再生成しません。未確定の原因は未確定と伝えます。</li>
+<li>復元が必要ならまず隔離restore-checkを行います。稼働DBへ試験復元せず、backup後の本人報告/投稿キーを確認します。</li>
+</ol>
+<p>外部サービスの可用性、候補供給、今後15件に到達することは保証できません。正常取得、正当な不足、工程障害を区別できる実装と記録を確認しました。N25の単独retry出力が保存されていないことは、当該nodeの再現資料に残る制約です。</p>
+</section>
+
+<section id="evidence">
+<h2>9. 証拠索引</h2>
+<ul>
+<li><a href="../../../../../docs/standards/%E3%82%A4%E3%83%8A%E3%82%B4%E6%97%A5%E6%AC%A1%E4%B8%8D%E5%85%B7%E5%90%88%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88%E4%BD%9C%E6%88%90%E3%83%AB%E3%83%BC%E3%83%AB.md">今後の日次不具合レポート作成ルール</a></li>
+<li><a href="%E6%97%A5%E6%AC%A1%E4%B8%8D%E5%85%B7%E5%90%88%E8%AA%BF%E6%9F%BB%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88_2026-10-16.md">元の障害事実・当日12/15の集計</a></li>
+<li><a href="../../../../../plans/incidents/2026/10/INC-20261016-001/%E6%97%A5%E6%AC%A1%E4%B8%8D%E5%85%B7%E5%90%88%E4%BF%AE%E6%AD%A3%E8%A8%88%E7%94%BB_2026-10-16.md">全工程計画・R01–R16と各case/要件対応</a></li>
+<li><a href="../../../../../docs/specifications/inago/%E3%82%A4%E3%83%8A%E3%82%B4%E3%82%B9%E3%82%AD%E3%83%AB%E8%A6%81%E4%BB%B6%E5%AE%9A%E7%BE%A9%E6%9B%B8.html">要件正本Q2.19</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R15/evidence.md">R15結果台帳概要（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R15/final-node-results.json">1,067 nodeの初回/最新結果（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R15/full-regression/full-regression.junit.xml">R15初回JUnit（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R15/failure-only/attempt-10/results.junit.xml">最後のFAIL限定attempt（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R14/N28/evidence.md">凍結集合・nested suite防止・SKIP分類（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R13/N30/attempt-04/execution-summary.json">N30通常主体Scheduler実測（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R13/N30/attempt-04/junit.xml">N30 JUnit（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R05/L01/attempt-04/evidence.md">L01 Trends実接続（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R07/L02/attempt-07/summary.json">L02 ROOM実接続（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R09/L03/evidence.json">L03 AI-O/KEY実接続（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R13/L04/attempt-05/execution-summary.json">L04 API/metrics/cleanup（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R14/N30b/evidence.md">N30b Scheduler drift mock（非公開）</a></li>
+<li><a href="../../../../../非公開作業データ/イナゴ実装試験/daily-fix-20261016/R16/current-scheduler-readonly.json">2026-10-17 Scheduler read-only snapshot（非公開）</a></li>
+</ul>
+<p class="small">非公開リンクは同じworkspace内の隔離証拠を指します。raw DB、商品本文、認証値、個人識別情報は本HTMLへ埋め込んでいません。</p>
+<p><a href="#top">ページ先頭へ</a></p>
+</section>
+
+<footer class="small"><p>作成・更新日：2026-10-17 JST。改訂前の表示は本人が確認済みです。今回は説明文を中心に更新し、CSSとページ構造は変えていません。改訂後はHTMLの内部リンク等を静的確認しました。未来の自然日次結果は未観測です。</p></footer>
+</body>
+</html>

@@ -23,12 +23,16 @@ from xml.etree import ElementTree
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PLAN_RELATIVE_PATH = Path("plan/イナゴスキル実装・テスト実行計画.md")
-REQUIREMENTS_RELATIVE_PATH = Path("plan/イナゴ戦略/イナゴスキル要件定義書.html")
-TRACE_RELATIVE_PATH = Path("plan/イナゴ戦略/要件追跡表.md")
-DECISION_RELATIVE_PATH = Path("plan/イナゴ戦略/意思決定台帳.md")
-PREPARATION_ROOT = Path("plan/イナゴスキル事前準備")
-SIMULATION_ROOT = Path("plan/イナゴ戦略/simulation")
+PLAN_RELATIVE_PATH = Path("plans/projects/implementation/イナゴスキル実装・テスト実行計画.md")
+REQUIREMENTS_RELATIVE_PATH = Path("docs/specifications/inago/イナゴスキル要件定義書.html")
+TRACE_RELATIVE_PATH = Path("docs/specifications/inago/要件追跡表.md")
+DECISION_RELATIVE_PATH = Path("reports/projects/requirements/意思決定台帳.md")
+PREPARATION_ROOT = Path("docs/specifications/preparation")
+CANDIDATE_RULES_PATH = Path(
+    "worklogs/projects/preparation/candidates/文型詳細ルール.json"
+)
+OWNER_CONFIRMATION_PATH = Path("reports/projects/preparation/本人確認記録.md")
+SIMULATION_ROOT = Path("worklogs/projects/requirements/simulation")
 PRIVATE_EVIDENCE_RELATIVE_PATH = Path("非公開作業データ/イナゴ実装試験/step-19")
 
 _REQUIREMENT_PATTERN = re.compile(r"\bIR-\d{3}\b")
@@ -458,9 +462,9 @@ def validate_document_contract(
         | set(missing_decision_ids_ledger)
     )
 
-    candidate_path = project_root / PREPARATION_ROOT / "文型詳細ルール.json"
+    candidate_path = project_root / CANDIDATE_RULES_PATH
     basic_path = project_root / PREPARATION_ROOT / "初期設定引渡し.json"
-    owner_record_path = project_root / PREPARATION_ROOT / "本人確認記録.md"
+    owner_record_path = project_root / OWNER_CONFIRMATION_PATH
     candidate, _ = _json_text(candidate_path)
     basic, basic_serialized = _json_text(basic_path)
     owner_record = _read_text(owner_record_path)

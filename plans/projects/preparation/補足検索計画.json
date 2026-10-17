@@ -1,0 +1,206 @@
+{
+  "schema_version": "1.0",
+  "version": "candidate-0.2-step27-complete",
+  "status": "supplement_audit_complete",
+  "execution_id": "20261011-01",
+  "step": "22",
+  "recorded_at": "2026-10-12T08:16:38+09:00",
+  "source_requirement_version": "1.3",
+  "policy_refs": [
+    "plans/projects/preparation/イナゴスキル事前準備実行計画.md §1-5, §7-9, STEP22",
+    "docs/specifications/preparation/原典条件台帳.md D-038",
+    "reports/projects/requirements/意思決定台帳.md D-038",
+    "reports/projects/requirements/ヒアリング記録.md Q-017-a"
+  ],
+  "analysis_basis": {
+    "full_body_observations": 132,
+    "all_132_in_denominator": true,
+    "condition_status_descriptive_only": {
+      "match": 24,
+      "unknown": 108,
+      "used_as_filter": false
+    },
+    "approximate_body_target": 130,
+    "body_target_is_unique_product_target": false
+  },
+  "budget": {
+    "max_searches_per_genre": 1,
+    "max_cards_per_search": 50,
+    "max_genres": 5,
+    "max_searches_total": 5,
+    "max_slots_total": 250,
+    "searches_started_cumulative": 1,
+    "slots_allocated_cumulative": 50,
+    "slots_used_cumulative": 50,
+    "searches_remaining": 4,
+    "slots_remaining": 200,
+    "no_reset_on_query_or_genre_changes": true
+  },
+  "per_genre_decisions": [
+    {
+      "search_id": "S-G01",
+      "genre_id": "G01",
+      "genre_name": "食品・飲料",
+      "status": "not_needed",
+      "reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は44観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。",
+      "search_planned": false,
+      "genre_search_term": null,
+      "condition_if_later_activated": {
+        "likes_min": 300,
+        "comments": "no condition",
+        "basis": "D-038 / Q-017-a"
+      },
+      "max_searches": 1,
+      "max_slots": 50,
+      "searches_started": 0,
+      "slots_allocated": 0,
+      "slots_used": 0,
+      "remaining_searches": 1,
+      "remaining_slots": 50,
+      "body_material_count": 44,
+      "body_denominator": 132,
+      "confirmed_product_key_rows": 1,
+      "independent_product_count": null
+    },
+    {
+      "search_id": "S-G02",
+      "genre_id": "G02",
+      "genre_name": "美容・セルフケア",
+      "status": "not_needed",
+      "reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は23観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。",
+      "search_planned": false,
+      "genre_search_term": null,
+      "condition_if_later_activated": {
+        "likes_min": 300,
+        "comments": "no condition",
+        "basis": "D-038 / Q-017-a"
+      },
+      "max_searches": 1,
+      "max_slots": 50,
+      "searches_started": 0,
+      "slots_allocated": 0,
+      "slots_used": 0,
+      "remaining_searches": 1,
+      "remaining_slots": 50,
+      "body_material_count": 23,
+      "body_denominator": 132,
+      "confirmed_product_key_rows": 0,
+      "independent_product_count": null
+    },
+    {
+      "search_id": "S-G03",
+      "genre_id": "G03",
+      "genre_name": "ファッション・身だしなみ",
+      "status": "not_needed",
+      "reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は31観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。",
+      "search_planned": false,
+      "genre_search_term": null,
+      "condition_if_later_activated": {
+        "likes_min": 300,
+        "comments": "no condition",
+        "basis": "D-038 / Q-017-a"
+      },
+      "max_searches": 1,
+      "max_slots": 50,
+      "searches_started": 0,
+      "slots_allocated": 0,
+      "slots_used": 0,
+      "remaining_searches": 1,
+      "remaining_slots": 50,
+      "body_material_count": 31,
+      "body_denominator": 132,
+      "confirmed_product_key_rows": 0,
+      "independent_product_count": null
+    },
+    {
+      "search_id": "S-G04",
+      "genre_id": "G04",
+      "genre_name": "住まい・暮らし",
+      "status": "not_needed",
+      "reason": "STEP21で本文132件全体から6つの異なる商品テーマ候補を整理できた。ジャンル根拠は48観測。小さいテーマ件数や商品ID不明だけを閾値として検索を追加しない。",
+      "search_planned": false,
+      "genre_search_term": null,
+      "condition_if_later_activated": {
+        "likes_min": 300,
+        "comments": "no condition",
+        "basis": "D-038 / Q-017-a"
+      },
+      "max_searches": 1,
+      "max_slots": 50,
+      "searches_started": 0,
+      "slots_allocated": 0,
+      "slots_used": 0,
+      "remaining_searches": 1,
+      "remaining_slots": 50,
+      "body_material_count": 48,
+      "body_denominator": 132,
+      "confirmed_product_key_rows": 0,
+      "independent_product_count": null
+    },
+    {
+      "search_id": "S-G05",
+      "genre_id": "G05",
+      "genre_name": "子ども・ペット用品",
+      "status": "audited",
+      "reason": "2026-10-12に本人がG05を「子ども・ペット用品」として維持し、空欄2テーマに子ども移動・車載安全用品とペット家電・見守り機器を選定。保存済み本文132件全ての概念注釈を分母にした直接語句一致は0/132。選定カテゴリへのROOM補足材料を得るため、親ジャンル名を固定語として1検索を計画。反応状態24/108は補助内訳のみ。",
+      "search_planned": true,
+      "genre_search_term": "子ども・ペット用品",
+      "condition_if_later_activated": {
+        "likes_min": 300,
+        "comments": "no condition",
+        "basis": "D-038 / Q-017-a"
+      },
+      "max_searches": 1,
+      "max_slots": 50,
+      "searches_started": 1,
+      "slots_allocated": 50,
+      "slots_used": 50,
+      "remaining_searches": 0,
+      "remaining_slots": 0,
+      "body_material_count": 20,
+      "body_denominator": 132,
+      "confirmed_product_key_rows": 0,
+      "independent_product_count": null,
+      "owner_selected_categories": [
+        "子ども移動・車載安全用品",
+        "ペット家電・見守り機器"
+      ],
+      "owner_selection_recorded_at": "2026-10-12T07:38:16+09:00",
+      "superseded_status": "unset_owner_material_needed",
+      "superseded_reason": "STEP22時点は親境界と空欄2テーマが本人待ちだった。STEP27再開時に回答を受けて解消。",
+      "plan_amendment_trigger": "STEP27中に受領した本人回答を反映。STEP22を再実行した扱いにはしない。",
+      "search_result_total": 101,
+      "search_result_state": "observed",
+      "search_submitted_at": "2026-10-12T07:38:42+09:00",
+      "latest_observation_id": "S05-0050"
+    }
+  ],
+  "plan_totals": {
+    "searches_planned": 1,
+    "slots_planned": 50,
+    "not_needed_genres": 4,
+    "unset_owner_material_genres": 0,
+    "searches_started": 1,
+    "slots_allocated": 50,
+    "slots_used": 50
+  },
+  "execution_rules": {
+    "likes_min": 300,
+    "comments_condition": "none",
+    "base_comment_minimum_must_not_carry_over": true,
+    "overlap_and_ineligible_cards_consume_search_slots": true,
+    "do_not_fetch_card_51": true,
+    "zero_results_distinct_from_failure": true,
+    "retry_or_change_query_without_new_authorization": false,
+    "do_not_relax_conditions": true,
+    "do_not_change_used_budget": true
+  },
+  "prior_out_of_order_reference": {
+    "path": "plans/projects/preparation/補足検索計画.md",
+    "historical_basis": "STEP21前のタイトル候補幅と全文4件・173行を参照し、5ジャンル一律not_needed、STEP23～27も完了扱いとしていた。",
+    "disposition": "参考履歴。現在の順序実行結果として採用しない。STEP21の132件全件再分類に基づく本計画で更新。"
+  },
+  "execution_step": "28",
+  "next_step": "29",
+  "hashes_used": false
+}

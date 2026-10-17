@@ -25,7 +25,17 @@ from automation.inago.room_adapter import (
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_CONFIG = ROOT / "tests_inago" / "config" / "fixture.json"
-PREPARATION_ROOT = ROOT / "plan" / "イナゴスキル事前準備"
+BASIC_SETTINGS_PATH = (
+    ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+)
+DETAIL_RULES_PATH = (
+    ROOT
+    / "worklogs"
+    / "projects"
+    / "preparation"
+    / "candidates"
+    / "文型詳細ルール.json"
+)
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 NOW = "2026-10-12T13:01:00+09:00"
 DEADLINE = "2026-10-12T17:45:00+09:00"
@@ -34,10 +44,8 @@ DEADLINE = "2026-10-12T17:45:00+09:00"
 def _seed_daily_run(connection: Any, *, attempt_used: int = 0) -> None:
     from automation.inago.settings import register_external_settings
 
-    basic = json.loads((PREPARATION_ROOT / "初期設定引渡し.json").read_text(encoding="utf-8"))
-    detailed = json.loads(
-        (PREPARATION_ROOT / "文型詳細ルール.json").read_text(encoding="utf-8")
-    )
+    basic = json.loads((BASIC_SETTINGS_PATH).read_text(encoding="utf-8"))
+    detailed = json.loads((DETAIL_RULES_PATH).read_text(encoding="utf-8"))
     register_external_settings(
         connection, basic, detailed, created_at="2026-10-12T12:00:00+09:00"
     )
