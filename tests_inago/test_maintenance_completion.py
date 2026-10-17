@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import sys
 import xml.etree.ElementTree as ET
 
 import pytest
 
 from automation.inago.maintenance.daily_launcher import (
     DailyProcessResult,
+    DailyLauncherError,
+    run_daily_process,
     run_daily_launch,
 )
 from automation.inago.maintenance.store import MaintenanceStoreError
@@ -67,10 +71,12 @@ def test_c08_contract(tmp_path):
 
     store.record_daily_launch_start = record_start
 
-    def preflight_failure(command, cwd):
+    def preflight_failure(command, cwd, on_started):
         assert command[-1] == "automation.inago.cli"
         assert cwd == PROJECT_ROOT
         assert store.counts()["daily_launch"] == 1
+        on_started(8123)
+        events.append("child_started")
         events.append("child_finished")
         return DailyProcessResult(
             returncode=4,
@@ -91,7 +97,8 @@ def test_c08_contract(tmp_path):
     record = _record(store, outcome)
     check = _daily_check(store, outcome.launch_id)
 
-    assert events == ["start_saved", "child_finished"]
+    assert events == ["start_saved", "child_started", "child_finished"]
+    assert record.child_pid == 8123
     assert outcome.exit_code == 4
     assert record.status == "blocked"
     assert record.source_run_id is None
@@ -109,7 +116,8 @@ def test_c09_contract(tmp_path):
     store = make_store(tmp_path)
     sensitive_detail = "secret-config-path-and-sql-text"
 
-    def run_integrity_error(command, cwd):
+    def run_integrity_error(command, cwd, on_started):
+        on_started(8124)
         return DailyProcessResult(
             returncode=4,
             stdout=b"",
@@ -144,7 +152,8 @@ def test_c10_contract(tmp_path):
     draft_sentinel = tmp_path / "draft-sentinel.txt"
     draft_sentinel.write_text("existing draft stays", encoding="utf-8")
 
-    def export_failure(command, cwd):
+    def export_failure(command, cwd, on_started):
+        on_started(8125)
         return DailyProcessResult(
             returncode=4,
             stdout=_json(
@@ -197,7 +206,8 @@ def test_c11_contract(tmp_path):
 
     store.record_daily_launch_completion = record_complete
 
-    def close_and_backup_failure(command, cwd):
+    def close_and_backup_failure(command, cwd, on_started):
+        on_started(8126)
         return DailyProcessResult(
             returncode=4,
             stdout=_json(
@@ -240,7 +250,8 @@ def test_notification_save_failure_keeps_start_and_daily_exit_code(tmp_path):
 
     store.record_daily_launch_completion = fail_completion
 
-    def successful_daily(command, cwd):
+    def successful_daily(command, cwd, on_started):
+        on_started(8127)
         return DailyProcessResult(
             returncode=0,
             stdout=_json(
@@ -269,8 +280,9 @@ def test_c48_contract(tmp_path):
     store = make_store(tmp_path)
     calls = []
 
-    def after_hours_daily(command, cwd):
+    def after_hours_daily(command, cwd, on_started):
         calls.append((command, cwd))
+        on_started(8128)
         return DailyProcessResult(
             returncode=0,
             stdout=_json(
@@ -304,3 +316,222 @@ def test_c48_contract(tmp_path):
     assert task.findtext("task:Settings/task:ExecutionTimeLimit", namespaces=namespace) == "PT0S"
     arguments = task.findtext("task:Actions/task:Exec/task:Arguments", namespaces=namespace)
     assert "automation.inago.maintenance.daily_launcher" in arguments
+    run_script = (PROJECT_ROOT / "automation" / "inago" / "run.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "automation.inago.maintenance.daily_launcher" in run_script
+    assert "Register-ScheduledTask" not in run_script
+
+
+def test_daily_child_pid_is_recorded_and_process_is_joined():
+    started_pids = []
+    result = run_daily_process(
+        (
+            sys.executable,
+            "-c",
+            "import sys; print('daily-result'); print('ignored', file=sys.stderr)",
+        ),
+        PROJECT_ROOT,
+        started_pids.append,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.splitlines() == [b"daily-result"]
+    assert started_pids == [result.pid]
+
+
+def test_child_pid_is_not_written_twice_after_callback(tmp_path):
+    store = make_store(tmp_path)
+    writes = []
+    original_record_child = store.record_daily_launch_child
+
+    def record_child(**kwargs):
+        writes.append(kwargs["child_pid"])
+        if len(writes) > 1:
+            raise sqlite3.OperationalError("late write failed")
+        return original_record_child(**kwargs)
+
+    store.record_daily_launch_child = record_child
+
+    def completed_daily(command, cwd, on_started):
+        on_started(8129)
+        return DailyProcessResult(
+            returncode=5,
+            stdout=_json(
+                {
+                    "status": "partial",
+                    "overall_status": "partial",
+                    "daily_status": "partial",
+                    "target_date": "2026-10-17",
+                    "run_id": "run-partial",
+                }
+            ),
+            stderr=b"",
+            pid=8129,
+        )
+
+    outcome = _launch(store, completed_daily)
+    record = _record(store, outcome)
+
+    assert writes == [8129]
+    assert outcome.exit_code == 5
+    assert record.status == "complete"
+    assert record.child_pid == 8129
+
+
+def test_sqlite_start_error_becomes_safe_launcher_error(tmp_path):
+    store = make_store(tmp_path)
+
+    def fail_start(**kwargs):
+        raise sqlite3.OperationalError("database details are private")
+
+    store.record_daily_launch_start = fail_start
+
+    with pytest.raises(DailyLauncherError, match="daily_launch_start_unavailable"):
+        _launch(store, lambda *args: pytest.fail("daily child must not start"))
+
+
+def test_sqlite_completion_error_preserves_daily_exit_code(tmp_path):
+    store = make_store(tmp_path)
+
+    def fail_completion(**kwargs):
+        raise sqlite3.OperationalError("database details are private")
+
+    store.record_daily_launch_completion = fail_completion
+
+    def shortfall_daily(command, cwd, on_started):
+        on_started(8130)
+        return DailyProcessResult(
+            returncode=5,
+            stdout=_json(
+                {
+                    "status": "partial",
+                    "overall_status": "partial",
+                    "daily_status": "partial",
+                    "target_date": "2026-10-17",
+                    "run_id": "run-partial",
+                }
+            ),
+            stderr=b"",
+            pid=8130,
+        )
+
+    outcome = _launch(store, shortfall_daily)
+
+    assert outcome.exit_code == 5
+    assert outcome.notification_status == "unavailable"
+    assert _record(store, outcome).status == "running"
+    assert store.counts()["daily_check"] == 0
+
+
+def test_store_rejects_inconsistent_terminal_statuses(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-inconsistent",
+        target_date="2026-10-17",
+        owner_pid=8131,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "complete",
+        "exit_code": 0,
+        "source_run_id": "run-inconsistent",
+        "overall_status": "failed",
+        "daily_status": "failed",
+        "reason_code": "daily_runtime_error",
+        "failure_phase": "daily",
+        "failed_checks": [],
+        "primary_error_class": "IntegrityError",
+        "secondary_error_classes": [],
+        "trace_status": "healthy",
+    }
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id="run-inconsistent",
+            launch_status="complete",
+            exit_code=0,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="daily_runtime_error",
+            result_summary=summary,
+        )
+
+
+def _downgrade_fixture_to_v2(store):
+    connection = sqlite3.connect(store.database_path)
+    try:
+        connection.execute(
+            "INSERT INTO daily_check "
+            "(check_id, source_launch_id, source_run_id, target_date, check_status, "
+            "reason_code, observed_at, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "check-preserved",
+                "launch-preserved",
+                None,
+                "2026-10-17",
+                "incomplete",
+                "daily_runtime_error",
+                "2026-10-17T13:00:00+09:00",
+                "2026-10-17T13:00:00+09:00",
+            ),
+        )
+        for trigger_name in (
+            "daily_launch_identity_immutable",
+            "daily_launch_child_pid_immutable",
+            "daily_launch_terminal_immutable",
+            "daily_launch_no_delete",
+        ):
+            connection.execute(f"DROP TRIGGER {trigger_name}")
+        connection.execute("DROP TABLE daily_launch")
+        connection.execute("DELETE FROM schema_migration WHERE version = 3")
+        connection.execute("PRAGMA user_version = 2")
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def test_populated_v2_database_upgrades_to_v3_without_losing_checks(tmp_path):
+    store = make_store(tmp_path)
+    _downgrade_fixture_to_v2(store)
+
+    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 3
+    assert store.counts()["daily_check"] == 1
+    assert store.counts()["daily_launch"] == 0
+    assert store.initialize(applied_at=START + timedelta(minutes=2)) == 3
+
+
+def test_v3_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
+    store = make_store(tmp_path)
+    _downgrade_fixture_to_v2(store)
+    original_read_text = Path.read_text
+
+    def broken_migration(path, *args, **kwargs):
+        if path.name == "003_daily_launch.sql":
+            return "CREATE TABLE daily_launch (source_launch_id TEXT);\nINVALID SQL;"
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", broken_migration)
+
+    with pytest.raises(sqlite3.OperationalError):
+        store.initialize(applied_at=START + timedelta(minutes=1))
+
+    connection = sqlite3.connect(store.database_path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute(
+            "SELECT 1 FROM schema_migration WHERE version = 3"
+        ).fetchone() is None
+        assert connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'daily_launch'"
+        ).fetchone() is None
+        assert connection.execute("SELECT COUNT(*) FROM daily_check").fetchone()[0] == 1
+    finally:
+        connection.close()
