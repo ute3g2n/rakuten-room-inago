@@ -785,3 +785,88 @@ def test_c53_step_review_limit_spans_retries_contract(tmp_path):
         )
 
     assert store.counts()["step_attempt"] == 3
+
+
+def test_c23_contract(tmp_path):
+    store = make_store(tmp_path)
+    same_cause = {
+        "dedupe_key": "daily:component-a:error-a",
+        "component": "daily_pipeline",
+        "event_code": "daily_error",
+    }
+    first = store.record_daily_check(
+        source_launch_id="c23-day-one",
+        source_run_id="run-day-one",
+        target_date="2026-10-17",
+        check_status="abnormal",
+        observed_at=BASE_TIME.isoformat(),
+        reason_code="daily_error",
+        incident=same_cause,
+    )
+    duplicate = store.record_daily_check(
+        source_launch_id="c23-day-one",
+        source_run_id="run-day-one",
+        target_date="2026-10-17",
+        check_status="abnormal",
+        observed_at=BASE_TIME.isoformat(),
+        reason_code="daily_error",
+        incident=same_cause,
+    )
+    assert duplicate.check_id == first.check_id
+    assert not duplicate.created
+    assert duplicate.incident_id == first.incident_id
+
+    next_day = store.record_daily_check(
+        source_launch_id="c23-day-two",
+        source_run_id="run-day-two",
+        target_date="2026-10-18",
+        check_status="abnormal",
+        observed_at=(BASE_TIME + timedelta(days=1)).isoformat(),
+        reason_code="daily_error",
+        incident=same_cause,
+    )
+    assert next_day.check_id != first.check_id
+    assert next_day.incident_id == first.incident_id
+
+    different_cause = store.record_daily_check(
+        source_launch_id="c23-different-cause",
+        source_run_id="run-different-cause",
+        target_date="2026-10-18",
+        check_status="abnormal",
+        observed_at=(BASE_TIME + timedelta(days=1, seconds=1)).isoformat(),
+        reason_code="daily_error",
+        incident={
+            "dedupe_key": "daily:component-a:error-b",
+            "component": "daily_pipeline",
+            "event_code": "different_daily_error",
+        },
+    )
+    assert different_cause.incident_id != first.incident_id
+
+    connection = store._connect()
+    try:
+        connection.execute(
+            "UPDATE incident SET status = 'resolved' WHERE incident_id = ?",
+            (first.incident_id,),
+        )
+    finally:
+        connection.close()
+
+    recurrence = store.record_daily_check(
+        source_launch_id="c23-recurrence",
+        source_run_id="run-recurrence",
+        target_date="2026-10-19",
+        check_status="abnormal",
+        observed_at=(BASE_TIME + timedelta(days=2)).isoformat(),
+        reason_code="daily_error",
+        incident=same_cause,
+    )
+    assert recurrence.incident_id not in {
+        None,
+        first.incident_id,
+        different_cause.incident_id,
+    }
+    counts = store.counts()
+    assert counts["daily_check"] == 4
+    assert counts["incident_run"] == 4
+    assert counts["incident"] == 3
