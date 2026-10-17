@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.25、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identityとwatchdog queueを加えてschema v4とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
+正本：要件定義書HTML 2.27、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identityとwatchdog queueを加えてschema v4とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
 
 ## 共通イベント
 
@@ -201,3 +201,11 @@ event項目はsafe ID、時刻、固定allowlist内のstatus/code/countだけと
 時刻のraw値は厳格なISO日時または有効なUnix秒だけを保持し、parse失敗・書式外・秘密検出値は`null`にする。event/status/component/operation/error等のstring fieldはfield別の有限enumで検証し、未知値は出力せずdrop数へ加算する。daily result statusの`preservation_failed`/`export_failed`/`metrics_failed`は保持する。identity keyはcasefoldして照合し、異なる値を持つ正規化後の重複keyがあるrecordは除外する。credentialらしいGitHub形式のIDは拒否する。日付fallbackは関連identity fieldを一つも持たないrecordに限り、別IDまたは不一致IDを持つrecordは除外する。artifact file名はopaqueな連番とし、入力`source_ref`をWindows file nameとして使わず、writerも生成形式外のpathを拒否する。schemaは26 class IDの各1件、class別source format、X02の`thread_id`を要求し、class集計専用の`not_listed`/`partial`をsource artifact statusで拒否する。
 
 redacted bundleはstage directoryへ新規作成し、artifactとmanifestを全てflushした後に同じ親内でatomic renameする。書込不能・容量上限・不正入力では成功manifestを残さず、保存失敗を明示する。証拠写しの保持期限/容量/孤児回収はMN04とU17 retention契約を適用する。collectorのroot containment/reparse確認はhost側のpath integrityであり、CLI起動前にfolder ACLを設定する条件ではない。
+
+## U11 check-result v1（MN02 preclassification）
+
+U11の純粋判定器は完了通知・当日結果・MN06 manifestをtarget_date/source_launch_id/nullable source_run_idで照合し、`maintenance-check-result-v1`を返す。MN06全体を `automation/inago/schemas/maintenance-evidence.schema.json` で検証し、必須field/型/formatが不正なら証拠完備にしない。正本schemaは `automation/inago/schemas/maintenance-check-result.schema.json`。出力はsafe ID、固定status/reason enum、範囲内count、許可phase、必要証拠class状態だけを持つ。欠測数はnull、run未生成はnull、previous dashboard countは入力項目にしない。OS exit code単独を成功条件にしない。
+
+正常候補・候補不足・回復済みretryは[1] checkだけへ渡す。外部停止は待ち、観測済み失敗は調査へ回す分類、identity/count/retry/phase矛盾は契約違反、観測不足はunknownとする。出力routingは常に `check_only`、自動dispatch false、開始済みstep空、incident書込false。AI check呼び出しとMN02への永続化はU12の対象で、U11の判定関数は状態を変更しない。
+
+正常候補判定で必要なU10 classはL01/L02/M03/S01/V01/B01/B02で、各statusがcollectedであることを確認する。外部stop codeは `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error`。全reason/status enum、15件目標と補充3の分離、不足数、retry/phase invariantsはAT-MAINT-01 U11および同schemaを参照する。

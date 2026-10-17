@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.25 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.27 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -44,6 +44,26 @@ collectorは`automation/inago/maintenance/evidence.py`の入力APIとして、M 
 eventは固定allowlistのIDとfield別有限enumの状態/code、範囲内件数だけを出力する。未知のenum値は出力せずdrop countに加算する。既知のdaily result status `preservation_failed`、`export_failed`、`metrics_failed`は保持する。identity keyは大文字小文字を正規化して照合し、正規化後に異なる値が衝突するrecordは除外する。GitHub形式を含むcredentialらしいIDも拒否する。自由文、prompt/response、商品・投稿本文、URL/query/DOM、認証情報、個人情報、path、commandを出力しない。raw時刻は厳格なISO日時または有効なUnix秒だけを保持し、parse失敗・書式外・秘密検出値はnullにして、取得できる値はUTCへ正規化する。run/job/request/actionが一致すればJST日付をまたぐ同一事象を結び、関連identityを持たない記録だけ対象日のJST時刻で絞る。X02にはtarget `thread_id`を必須とし、同じthread IDが一致するrecordだけを採取する。manifestには元データのretention state/expiryを保持し、元sourceの期限を変更しない。
 
 SQLite sourceは単純copyせず、read-only接続からSQLite backup APIで別のprivate destinationへsnapshotする。snapshotはintegrity checkとforeign-key checkを行い、hashはbounded chunk readで算出する。合成試験ではcommit済み状態だけを確認する。full DB snapshotやbrowser/binary/HTML/unstructured textはAI用redacted eventへ含めない。JSON/JSONLのredacted artifactとmanifestは新規bundleへstageし、全書込後にatomic renameする。artifact名はopaque連番を使い、入力`source_ref`をWindows file nameとして使わない。writerは生成形式`artifacts/<class-id>/source-<sequence>.jsonl`以外を拒否する。schemaは26 class IDを各1件に限定し、classごとのsource formatとX02のthread ID必須条件も検証し、class-only statusをartifactに許さない。失敗時に完成manifestを残さない。schemaは`automation/inago/schemas/maintenance-evidence.schema.json`を正本とし、保存先保持/容量/孤児回収はU17のretention契約に従う。
+
+## U11 日次結果の事前分類・check-result v1
+
+実装正本は `automation/inago/maintenance/detector.py`、出力契約は `automation/inago/schemas/maintenance-check-result.schema.json` の `maintenance-check-result-v1`。これは完了通知、当日の日次結果、U10 evidence manifestを対象日・source_launch_id・nullable source_run_idで照合する純粋な判定器であり、永続保存、AI起動、incident作成・更新はしない。MN02への保存とSol/xhighの[1]check接続は後続U12で行う。
+
+入力の必須ID・日付・status・件数・再試行・phaseを機械的に照合する。U10 manifest全体は `automation/inago/schemas/maintenance-evidence.schema.json` で検証してから使い、必須field欠落・型/format違反・不正な版は `manifest_invalid` としてunknownにする。目標は15、初期枠も15。補充枠3は別項目のまま扱い、確定12なら不足3とする。補充枠を目標へ加算しない。前日画面の12件を本日の結果へ流用しない。確定件数・不足数など不明または欠測の値はnullのまま返し、0や正常に補わない。run未生成の場合は `source_run_id=null` を保持する。
+
+| 出力 | 許容値・意味 |
+|---|---|
+| `preclassification` | `normal_candidate`、`candidate_shortfall`、`recovered_retry`、`external_wait`、`needs_investigation`、`contract_violation`、`unknown`。既知の正常不足と回復済みretryは正常系、観測済み失敗は要調査、外部停止は外部待ち、矛盾は契約違反、根拠不足はunknown。 |
+| `check_status` | `normal`、`normal_shortfall`、`abnormal`、`unknown`、`incomplete`。事前分類と独立してcheckの状態を表す。 |
+| `reason_code` | `daily_complete`、`daily_target_unmet`、`daily_recovered_retry`、`external_dependency_wait`、`daily_failure_observed`、`daily_result_missing`、`evidence_incomplete`、`manifest_invalid`、`identity_mismatch`、`status_mismatch`、`count_invariant_violation`、`retry_contract_violation`、`phase_contract_violation`、`retry_observation_missing`、`daily_observation_incomplete`、`daily_not_due`。 |
+| `counts` / `retry_summary` | 既定の確定数・割当数・不足数・実投稿数・source失敗数・処理error数とretry件数。欠測はnull。各数値は0以上の整数範囲。 |
+| `phase_results` | daily、metrics、export、preservation、開始/終了backup、monthly restore、traceの個別状態。未実行・未構成・unknownを区別する。 |
+| `evidence` | U10 manifest schema・日付・起動ID・run IDの検証結果と不足class。正常候補判定に必要なL01/L02/M03/S01/V01/B01/B02がすべて `collected` でなければ正常にしない。 |
+| `routing` | 常に `next_action=check_only`、`auto_dispatch=false`、空の `steps_started`、`incident_write_allowed=false`。調査・修正・報告の[2]～[6]を起動しない。 |
+
+OS exit code 0だけで成功と判定しない。完了通知・日次status・exit code・phase・件数が矛盾すれば `contract_violation`。既知外部stop code `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error` は失敗時に `external_wait` として切り分ける。証拠や完了通知が不足して判定できない場合は `unknown` とする。候補枯渇による不足は日次理由 `candidate_or_theme_exhausted` とstatusが一致するときだけ正常不足にする。
+
+C20/C21/C22とC55のdetector部分はU11専用fixtureで確認する。C23の同日重複・再発抑止はU09の完了証拠を再利用し、U11では再実行しない。C19のAI check接続はU12で、C55のreport表示受入はU16で検証する。ライブincident・production DB・認証・投稿は変更しない。
 
 ## 受入条件
 

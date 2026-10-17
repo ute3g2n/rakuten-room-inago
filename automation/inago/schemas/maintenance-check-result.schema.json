@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-check-result-v1.schema.json",
+  "title": "Safe daily maintenance preclassification result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "target_date",
+    "checked_at",
+    "source_launch_id",
+    "source_run_id",
+    "preclassification",
+    "check_status",
+    "reason_code",
+    "overall_status",
+    "daily_status",
+    "counts",
+    "retry_summary",
+    "phase_results",
+    "evidence",
+    "routing"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "maintenance-check-result-v1"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_launch_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "source_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "preclassification": {
+      "enum": [
+        "normal_candidate",
+        "candidate_shortfall",
+        "recovered_retry",
+        "external_wait",
+        "needs_investigation",
+        "contract_violation",
+        "unknown"
+      ]
+    },
+    "check_status": {
+      "enum": [
+        "normal",
+        "normal_shortfall",
+        "abnormal",
+        "unknown",
+        "incomplete"
+      ]
+    },
+    "reason_code": {
+      "enum": [
+        "daily_complete",
+        "daily_target_unmet",
+        "daily_recovered_retry",
+        "external_dependency_wait",
+        "daily_failure_observed",
+        "daily_result_missing",
+        "evidence_incomplete",
+        "manifest_invalid",
+        "identity_mismatch",
+        "status_mismatch",
+        "count_invariant_violation",
+        "retry_contract_violation",
+        "phase_contract_violation",
+        "retry_observation_missing",
+        "daily_observation_incomplete",
+        "daily_not_due"
+      ]
+    },
+    "overall_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "shortfall",
+        "failed",
+        "blocked",
+        "unknown",
+        "not_due",
+        "metrics_failed",
+        "export_failed",
+        "preservation_failed"
+      ]
+    },
+    "daily_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "shortfall",
+        "failed",
+        "blocked",
+        "unknown",
+        "not_due"
+      ]
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "daily_target",
+        "initial_allocation_count",
+        "supplemental_allocation_count",
+        "committed_count",
+        "shortfall_count",
+        "actual_posted_count",
+        "source_failures",
+        "error_count"
+      ],
+      "properties": {
+        "daily_target": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "initial_allocation_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "supplemental_allocation_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "committed_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "shortfall_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "actual_posted_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "source_failures": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "error_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "additionalProperties": false
+    },
+    "retry_summary": {
+      "type": "object",
+      "required": [
+        "attempt_count",
+        "recovered_count",
+        "unresolved_count",
+        "contract_violation_count"
+      ],
+      "properties": {
+        "attempt_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "recovered_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "unresolved_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "contract_violation_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "additionalProperties": false
+    },
+    "phase_results": {
+      "type": "object",
+      "required": [
+        "daily",
+        "metrics",
+        "export",
+        "preservation",
+        "start_backup",
+        "end_backup",
+        "monthly_restore",
+        "trace"
+      ],
+      "properties": {
+        "daily": {
+          "enum": [
+            "complete",
+            "partial",
+            "shortfall",
+            "failed",
+            "blocked",
+            "unknown",
+            "not_due"
+          ]
+        },
+        "metrics": {
+          "enum": [
+            "observed",
+            "partial",
+            "failed",
+            "unavailable",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "export": {
+          "enum": [
+            "ready",
+            "failed",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "preservation": {
+          "enum": [
+            "ready",
+            "failed",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "start_backup": {
+          "enum": [
+            "ready",
+            "failed",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "end_backup": {
+          "enum": [
+            "ready",
+            "failed",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "monthly_restore": {
+          "enum": [
+            "ready",
+            "already_checked",
+            "failed",
+            "unknown",
+            "not_run",
+            "not_configured"
+          ]
+        },
+        "trace": {
+          "enum": [
+            "healthy",
+            "degraded",
+            "unavailable",
+            "not_written",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "status",
+        "unavailable_classes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "missing",
+            "invalid",
+            "identity_mismatch"
+          ]
+        },
+        "unavailable_classes": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "required": [
+              "class_id",
+              "status"
+            ],
+            "properties": {
+              "class_id": {
+                "enum": [
+                  "B01",
+                  "B02",
+                  "L01",
+                  "L02",
+                  "M03",
+                  "S01",
+                  "V01"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "collected",
+                  "content_omitted",
+                  "empty",
+                  "empty_response",
+                  "invalid",
+                  "invalid_response",
+                  "not_saved",
+                  "expired",
+                  "unavailable",
+                  "suppressed",
+                  "disappeared",
+                  "omitted_size_limit",
+                  "no_correlated_records",
+                  "not_listed",
+                  "partial",
+                  "unknown"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "routing": {
+      "type": "object",
+      "required": [
+        "next_action",
+        "auto_dispatch",
+        "steps_started",
+        "incident_write_allowed"
+      ],
+      "properties": {
+        "next_action": {
+          "const": "check_only"
+        },
+        "auto_dispatch": {
+          "const": false
+        },
+        "steps_started": {
+          "const": []
+        },
+        "incident_write_allowed": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
