@@ -6,7 +6,7 @@ U04,文書移動・参照更新,BOOT-20261017,Codex,分類済み文書・参照�
 U05,管理DB・状態遷移・キュー・release gate,BOOT-20261017,Codex,automation/inago/maintenance・指定C06/C07/C28/C53 tests・要件同期,Python読取レビューと状態遷移読取レビュー・専用C06/C07/C28/C53,完了,C06/C07/C28/C53専用;全回帰はU20
 U06,6スキル・9担当・3ひな形,BOOT-20261017,Codex,.agents/skills6件・.codex/agents9件・docs/templates/incidents3件・親契約,独立状態レビュー・quick_validate/TOML/HTML静的確認・C29/C31/C44部分,完了,pytest未実施;静的部分のみ
 U07,親A/B・model/Fast・基本sandbox,BOOT-20261017,Codex,maintenance AI adapter/app_server/専用試験,独立Python review+C24～C28＋schema/owner/path境界,完了,AI module 35 passed;実モデルLC01/LC02はU18
-U08,日次完了通知/launcher,BOOT-20261017,Codex,新launcher・完了通知・CLI最小差分・task XML/run.ps1案,独立review+C08～C11/C48,実施中,合成fixtureのみ;実日次再起動なし
+U08,日次完了通知/launcher,BOOT-20261017,Codex,新launcher・完了通知・CLI最小差分・task XML/run.ps1案,独立Python/code review+C08～C11/C32基本field/C48,完了,73 passed; Black 4 unchanged; Q2.24 and C01/C02/C05 PASS
 U09-U18,watchdog・各stage・統合/実接続,BOOT-20261017,計画指定の実装/試験/レビュー担当,指定モジュールと専用試験領域,独立レビューおよびLC実測,未着手,凍結ケース以外は計画順
 U19-U21,ケース固定・全回帰・release gate,BOOT-20261017,計画指定担当,必須ケースとrelease証拠,release gate照合,未着手,U20で全回帰1回
 U22-U24,遡及受付・調査修正・報告,INC-20261017-001（未使用なら）,調査/計画/実装/試験/レビュー/報告の指定担当,案件固有のworktree・隔離証拠・成果物,未着手,U21 ready後のみ
