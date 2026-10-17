@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import io
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ import pytest
 from automation.inago.maintenance.daily_launcher import (
     DailyProcessResult,
     DailyLauncherError,
+    main as daily_launcher_main,
     run_daily_process,
     run_daily_launch,
 )
@@ -103,9 +105,7 @@ def test_c08_contract(tmp_path):
     assert record.status == "blocked"
     assert record.source_run_id is None
     assert record.failure_phase == "preflight"
-    assert json.loads(record.result_json)["failed_checks"] == [
-        "runtime_setup_missing"
-    ]
+    assert json.loads(record.result_json)["failed_checks"] == ["runtime_setup_missing"]
     assert check["source_launch_id"] == outcome.launch_id
     assert check["source_run_id"] is None
     assert check["check_status"] == "incomplete"
@@ -313,8 +313,13 @@ def test_c48_contract(tmp_path):
         PROJECT_ROOT / "automation" / "inago" / "task-xml" / "RakutenRoomInagoDaily.xml"
     ).getroot()
     namespace = {"task": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
-    assert task.findtext("task:Settings/task:ExecutionTimeLimit", namespaces=namespace) == "PT0S"
-    arguments = task.findtext("task:Actions/task:Exec/task:Arguments", namespaces=namespace)
+    assert (
+        task.findtext("task:Settings/task:ExecutionTimeLimit", namespaces=namespace)
+        == "PT0S"
+    )
+    arguments = task.findtext(
+        "task:Actions/task:Exec/task:Arguments", namespaces=namespace
+    )
     assert "automation.inago.maintenance.daily_launcher" in arguments
     run_script = (PROJECT_ROOT / "automation" / "inago" / "run.ps1").read_text(
         encoding="utf-8"
@@ -566,12 +571,179 @@ def test_v3_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
     connection = sqlite3.connect(store.database_path)
     try:
         assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
-        assert connection.execute(
-            "SELECT 1 FROM schema_migration WHERE version = 3"
-        ).fetchone() is None
-        assert connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'daily_launch'"
-        ).fetchone() is None
+        assert (
+            connection.execute(
+                "SELECT 1 FROM schema_migration WHERE version = 3"
+            ).fetchone()
+            is None
+        )
+        assert (
+            connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'daily_launch'"
+            ).fetchone()
+            is None
+        )
         assert connection.execute("SELECT COUNT(*) FROM daily_check").fetchone()[0] == 1
     finally:
         connection.close()
+
+
+def test_non_string_trace_status_does_not_interrupt_completion(tmp_path):
+    store = make_store(tmp_path)
+
+    def daily(command, cwd, on_started):
+        on_started(8134)
+        return DailyProcessResult(
+            returncode=0,
+            stdout=_json(
+                {
+                    "status": "complete",
+                    "overall_status": "complete",
+                    "daily_status": "complete",
+                    "target_date": "2026-10-17",
+                    "run_id": "run-trace-type",
+                    "pipeline_trace": {"status": []},
+                }
+            ),
+            stderr=b"",
+            pid=8134,
+        )
+
+    outcome = _launch(store, daily)
+
+    assert outcome.exit_code == 0
+    assert outcome.notification_status == "saved"
+    assert outcome.summary["trace_status"] == "not_written"
+    assert _record(store, outcome).status == "complete"
+
+
+@pytest.mark.parametrize(
+    "identity_overrides,remove_fields",
+    [
+        ({}, {"target_date"}),
+        ({}, {"run_id"}),
+        ({"target_date": "2026-10-16"}, set()),
+    ],
+)
+def test_success_result_requires_matching_target_and_run_identity(
+    tmp_path, identity_overrides, remove_fields
+):
+    store = make_store(tmp_path)
+    payload = {
+        "status": "complete",
+        "overall_status": "complete",
+        "daily_status": "complete",
+        "target_date": "2026-10-17",
+        "run_id": "run-identity-required",
+    }
+    payload.update(identity_overrides)
+    for field in remove_fields:
+        payload.pop(field)
+
+    def daily(command, cwd, on_started):
+        on_started(8135)
+        return DailyProcessResult(
+            returncode=0,
+            stdout=_json(payload),
+            stderr=b"",
+            pid=8135,
+        )
+
+    outcome = _launch(store, daily)
+
+    assert outcome.exit_code == 4
+    assert outcome.summary["status"] == "failed"
+    assert _record(store, outcome).status == "failed"
+
+
+def test_inconsistent_daily_summary_cannot_return_scheduler_success(tmp_path):
+    store = make_store(tmp_path)
+
+    def daily(command, cwd, on_started):
+        on_started(8136)
+        return DailyProcessResult(
+            returncode=0,
+            stdout=_json(
+                {
+                    "status": "complete",
+                    "overall_status": "complete",
+                    "daily_status": "failed",
+                    "target_date": "2026-10-17",
+                    "run_id": "run-inconsistent-child",
+                }
+            ),
+            stderr=b"",
+            pid=8136,
+        )
+
+    outcome = _launch(store, daily)
+
+    assert outcome.exit_code == 4
+    assert outcome.notification_status == "saved"
+    assert outcome.summary["status"] == "failed"
+    assert _record(store, outcome).status == "failed"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("overall_status", None), ("daily_status", None)],
+)
+def test_store_rejects_missing_required_completion_statuses(tmp_path, field, value):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-missing-status",
+        target_date="2026-10-17",
+        owner_pid=8137,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "failed",
+        "exit_code": 4,
+        "source_run_id": None,
+        "overall_status": "failed",
+        "daily_status": "failed",
+        "reason_code": "daily_runtime_error",
+        "failure_phase": "daily",
+        "failed_checks": [],
+        "primary_error_class": "RuntimeError",
+        "secondary_error_classes": [],
+        "trace_status": "not_written",
+    }
+    summary[field] = value
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id=None,
+            launch_status="failed",
+            exit_code=4,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="daily_runtime_error",
+            result_summary=summary,
+        )
+
+
+def test_main_reports_invalid_runtime_root_without_traceback(tmp_path, monkeypatch):
+    invalid_root = tmp_path / "not-a-directory"
+    invalid_root.write_text("file", encoding="utf-8")
+    stderr = io.StringIO()
+    stdout = io.StringIO()
+    monkeypatch.setattr("sys.stderr", stderr)
+    monkeypatch.setattr("sys.stdout", stdout)
+
+    exit_code = daily_launcher_main(
+        ["--config", str(tmp_path / "config.json"), "--data-root", str(invalid_root)]
+    )
+
+    assert exit_code == 4
+    assert stdout.getvalue() == ""
+    assert json.loads(stderr.getvalue()) == {
+        "status": "blocked",
+        "reason_code": "data_root_not_directory",
+    }
