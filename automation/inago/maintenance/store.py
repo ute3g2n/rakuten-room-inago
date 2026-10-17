@@ -20,7 +20,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 APPLICATION_ID = 0x494E474D  # INGM
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
@@ -70,6 +70,9 @@ _SCHEMA_TABLES = {
     "lease",
     "step_attempt",
     "handoff_artifact",
+    "job_input_manifest",
+    "maintenance_ai_session",
+    "maintenance_ai_observation",
 }
 
 
@@ -163,6 +166,43 @@ class JobStartResult:
     job_id: str | None
     gate_status: str
     reason_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class JobInputManifest:
+    job_id: str
+    incident_id: str
+    source_launch_id: str
+    source_run_id: str | None
+    target_date: str
+    manifest_sha256: str
+    created_at: str
+
+    def identity(self) -> dict[str, object]:
+        return {
+            "incident_id": self.incident_id,
+            "source_launch_id": self.source_launch_id,
+            "source_run_id": self.source_run_id,
+            "target_date": self.target_date,
+            "job_id": self.job_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class AIParentSessionRecord:
+    job_id: str
+    session_key: str
+    parent_key: str
+    role_name: str
+    thread_id: str
+    manifest_sha256: str
+    requested_model: str
+    requested_effort: str
+    requested_service_tier: str
+    requested_fast_mode: bool
+    role_config_sha256: str
+    sandbox: Mapping[str, object]
+    created_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -296,7 +336,7 @@ class MaintenanceStore:
             version = int(connection.execute("PRAGMA user_version").fetchone()[0])
             if application_id not in {0, APPLICATION_ID}:
                 raise UnknownMaintenanceSchemaError("database_application_id_unknown")
-            if version > SCHEMA_VERSION:
+            if version < 0 or version > SCHEMA_VERSION:
                 raise UnknownMaintenanceSchemaError("database_schema_is_newer")
             if version > 0 and application_id != APPLICATION_ID:
                 raise UnknownMaintenanceSchemaError("database_application_id_missing")
@@ -325,16 +365,48 @@ class MaintenanceStore:
                     "INSERT INTO schema_migration (version, applied_at, description) "
                     "VALUES (?, ?, ?)",
                     (
-                        SCHEMA_VERSION,
+                        1,
                         _timestamp(applied_at or datetime.now(timezone.utc)),
                         "initial isolated maintenance state",
                     ),
                 )
                 connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
-                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                connection.execute("PRAGMA user_version = 1")
                 connection.commit()
+                version = 1
             elif application_id != APPLICATION_ID:
                 raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            while version < SCHEMA_VERSION:
+                migration_version = version + 1
+                migration_path = (
+                    Path(__file__).resolve().parent
+                    / "sql"
+                    / f"{migration_version:03d}_job_manifest_ai_sessions.sql"
+                )
+                if not migration_path.is_file():
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_text = migration_path.read_text(encoding="utf-8")
+                connection.execute("BEGIN IMMEDIATE")
+                statement = ""
+                for line in migration_text.splitlines(keepends=True):
+                    statement += line
+                    if sqlite3.complete_statement(statement):
+                        connection.execute(statement)
+                        statement = ""
+                if statement.strip():
+                    raise UnknownMaintenanceSchemaError("migration_incomplete")
+                connection.execute(
+                    "INSERT INTO schema_migration (version, applied_at, description) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        migration_version,
+                        _timestamp(applied_at or datetime.now(timezone.utc)),
+                        "immutable job manifest and AI session ledger",
+                    ),
+                )
+                connection.execute(f"PRAGMA user_version = {migration_version}")
+                connection.commit()
+                version = migration_version
             self._assert_schema(connection)
             integrity = connection.execute("PRAGMA quick_check").fetchone()[0]
             if integrity != "ok":
@@ -421,6 +493,9 @@ class MaintenanceStore:
                 "deployment",
                 "release_gate",
                 "lease",
+                "job_input_manifest",
+                "maintenance_ai_session",
+                "maintenance_ai_observation",
             )
             return {
                 name: int(
@@ -430,6 +505,457 @@ class MaintenanceStore:
             }
         finally:
             connection.close()
+
+    @staticmethod
+    def _manifest_payload(
+        *,
+        job_id: str,
+        incident_id: str,
+        source_launch_id: str,
+        source_run_id: str | None,
+        target_date: str,
+    ) -> str:
+        return json.dumps(
+            {
+                "schema_version": "maintenance-job-input-v1",
+                "incident_id": incident_id,
+                "source_launch_id": source_launch_id,
+                "source_run_id": source_run_id,
+                "target_date": target_date,
+                "job_id": job_id,
+            },
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    @classmethod
+    def _manifest_digest(cls, **identity: object) -> str:
+        payload = cls._manifest_payload(**identity)  # type: ignore[arg-type]
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _validate_manifest_binding(
+        connection: sqlite3.Connection,
+        *,
+        job_id: str,
+        incident_id: str,
+        source_launch_id: str,
+        source_run_id: str | None,
+        target_date: str,
+    ) -> None:
+        rows = connection.execute(
+            "SELECT j.incident_id AS job_incident_id, "
+            "j.source_run_id AS job_source_run_id, "
+            "ir.incident_id AS run_incident_id, "
+            "ir.source_launch_id AS run_source_launch_id, "
+            "ir.source_run_id AS run_source_run_id, "
+            "dc.source_launch_id AS check_source_launch_id, "
+            "dc.source_run_id AS check_source_run_id, "
+            "dc.target_date AS check_target_date "
+            "FROM maintenance_job AS j "
+            "JOIN incident_run AS ir ON ir.incident_id = j.incident_id "
+            "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
+            "WHERE j.job_id = ? AND j.incident_id = ? "
+            "AND ir.incident_id = ? AND ir.source_launch_id = ?",
+            (job_id, incident_id, incident_id, source_launch_id),
+        ).fetchall()
+        if not rows:
+            job_exists = connection.execute(
+                "SELECT 1 FROM maintenance_job WHERE job_id = ?", (job_id,)
+            ).fetchone()
+            if job_exists is None:
+                raise MaintenanceStoreError("job_input_manifest_job_missing")
+            raise MaintenanceStoreError("job_input_manifest_binding_mismatch")
+        if len(rows) != 1:
+            raise MaintenanceStoreError("job_input_manifest_binding_ambiguous")
+        row = rows[0]
+        if (
+            row["job_incident_id"] != incident_id
+            or row["run_incident_id"] != incident_id
+            or row["run_source_launch_id"] != source_launch_id
+            or row["check_source_launch_id"] != source_launch_id
+            or row["job_source_run_id"] != source_run_id
+            or row["run_source_run_id"] != source_run_id
+            or row["check_source_run_id"] != source_run_id
+            or row["check_target_date"] != target_date
+        ):
+            raise MaintenanceStoreError("job_input_manifest_binding_mismatch")
+
+    def bind_job_input_manifest(
+        self,
+        *,
+        incident_id: str,
+        source_launch_id: str,
+        source_run_id: str | None,
+        target_date: str,
+        job_id: str,
+        created_at: datetime | str,
+    ) -> JobInputManifest:
+        """Bind the exact daily-check identity to one job, without inference."""
+
+        identity = {
+            "incident_id": _safe_id(incident_id, "incident_id_invalid"),
+            "source_launch_id": _safe_id(source_launch_id, "source_launch_id_invalid"),
+            "source_run_id": (
+                None
+                if source_run_id is None
+                else _safe_id(source_run_id, "source_run_id_invalid")
+            ),
+            "target_date": _target_date(target_date),
+            "job_id": _safe_id(job_id, "job_id_invalid"),
+        }
+        when = _timestamp(created_at)
+        digest = self._manifest_digest(**identity)
+        with self._transaction() as connection:
+            self._validate_manifest_binding(connection, **identity)
+            existing = connection.execute(
+                "SELECT incident_id, source_launch_id, source_run_id, target_date, "
+                "manifest_sha256, created_at FROM job_input_manifest WHERE job_id = ?",
+                (identity["job_id"],),
+            ).fetchone()
+            if existing is not None:
+                existing_identity = {
+                    key: existing[key] for key in identity if key != "job_id"
+                }
+                if (
+                    existing_identity
+                    != {key: identity[key] for key in identity if key != "job_id"}
+                    or existing["manifest_sha256"] != digest
+                ):
+                    raise IdempotencyConflictError("job_input_manifest_conflict")
+                return JobInputManifest(
+                    job_id=str(identity["job_id"]),
+                    incident_id=str(existing["incident_id"]),
+                    source_launch_id=str(existing["source_launch_id"]),
+                    source_run_id=existing["source_run_id"],
+                    target_date=str(existing["target_date"]),
+                    manifest_sha256=str(existing["manifest_sha256"]),
+                    created_at=str(existing["created_at"]),
+                )
+            connection.execute(
+                "INSERT INTO job_input_manifest "
+                "(job_id, incident_id, source_launch_id, source_run_id, target_date, "
+                "manifest_sha256, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    identity["job_id"],
+                    identity["incident_id"],
+                    identity["source_launch_id"],
+                    identity["source_run_id"],
+                    identity["target_date"],
+                    digest,
+                    when,
+                ),
+            )
+        return JobInputManifest(
+            job_id=str(identity["job_id"]),
+            incident_id=str(identity["incident_id"]),
+            source_launch_id=str(identity["source_launch_id"]),
+            source_run_id=identity["source_run_id"],
+            target_date=str(identity["target_date"]),
+            manifest_sha256=digest,
+            created_at=when,
+        )
+
+    def get_job_input_manifest(
+        self,
+        *,
+        job_id: str,
+        expected_identity: Mapping[str, object] | None = None,
+    ) -> JobInputManifest:
+        job = _safe_id(job_id, "job_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT job_id, incident_id, source_launch_id, source_run_id, "
+                "target_date, manifest_sha256, created_at "
+                "FROM job_input_manifest WHERE job_id = ?",
+                (job,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("job_input_manifest_missing")
+            manifest = JobInputManifest(
+                job_id=str(row["job_id"]),
+                incident_id=str(row["incident_id"]),
+                source_launch_id=str(row["source_launch_id"]),
+                source_run_id=row["source_run_id"],
+                target_date=str(row["target_date"]),
+                manifest_sha256=str(row["manifest_sha256"]),
+                created_at=str(row["created_at"]),
+            )
+            expected_digest = self._manifest_digest(**manifest.identity())
+            if manifest.manifest_sha256 != expected_digest:
+                raise MaintenanceStoreError("job_input_manifest_digest_invalid")
+            self._validate_manifest_binding(connection, **manifest.identity())
+            if expected_identity is not None:
+                required_fields = {
+                    "incident_id",
+                    "source_launch_id",
+                    "source_run_id",
+                    "target_date",
+                    "job_id",
+                }
+                if set(expected_identity) != required_fields:
+                    raise MaintenanceStoreError("job_input_manifest_identity_invalid")
+                if dict(expected_identity) != manifest.identity():
+                    raise MaintenanceStoreError("job_input_manifest_identity_mismatch")
+            return manifest
+        finally:
+            connection.close()
+
+    def bind_ai_parent_session(
+        self,
+        *,
+        job_id: str,
+        session_key: str,
+        parent_key: str,
+        role_name: str,
+        thread_id: str,
+        manifest_sha256: str,
+        requested_model: str,
+        requested_effort: str,
+        requested_service_tier: str,
+        requested_fast_mode: bool,
+        role_config_sha256: str,
+        sandbox: Mapping[str, object],
+        created_at: datetime | str,
+    ) -> AIParentSessionRecord:
+        job = _safe_id(job_id, "job_id_invalid")
+        key = _safe_id(session_key, "ai_session_key_invalid")
+        role = _safe_id(role_name, "ai_role_name_invalid")
+        thread = _safe_id(thread_id, "ai_thread_id_invalid")
+        if parent_key not in {"A", "B"}:
+            raise MaintenanceStoreError("ai_parent_key_invalid")
+        if not isinstance(manifest_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            manifest_sha256
+        ):
+            raise MaintenanceStoreError("ai_manifest_digest_invalid")
+        for value, code in (
+            (requested_model, "ai_model_invalid"),
+            (requested_effort, "ai_effort_invalid"),
+        ):
+            _safe_code(value, code)
+        if requested_service_tier not in {"default", "priority"}:
+            raise MaintenanceStoreError("ai_service_tier_invalid")
+        if type(requested_fast_mode) is not bool:
+            raise MaintenanceStoreError("ai_fast_mode_invalid")
+        if not isinstance(role_config_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            role_config_sha256
+        ):
+            raise MaintenanceStoreError("ai_role_config_digest_invalid")
+        if not isinstance(sandbox, Mapping):
+            raise MaintenanceStoreError("ai_sandbox_invalid")
+        sandbox_value = dict(sandbox)
+        if sandbox_value.get("type") not in {"readOnly", "workspaceWrite"}:
+            raise MaintenanceStoreError("ai_sandbox_invalid")
+        try:
+            sandbox_json = json.dumps(
+                sandbox_value,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        except (TypeError, ValueError) as exc:
+            raise MaintenanceStoreError("ai_sandbox_invalid") from exc
+        when = _timestamp(created_at)
+        with self._transaction() as connection:
+            manifest = connection.execute(
+                "SELECT manifest_sha256 FROM job_input_manifest WHERE job_id = ?",
+                (job,),
+            ).fetchone()
+            if manifest is None:
+                raise MaintenanceStoreError("job_input_manifest_missing")
+            if manifest["manifest_sha256"] != manifest_sha256:
+                raise MaintenanceStoreError("job_input_manifest_digest_mismatch")
+            existing = connection.execute(
+                "SELECT * FROM maintenance_ai_session "
+                "WHERE job_id = ? AND session_key = ?",
+                (job, key),
+            ).fetchone()
+            if existing is not None:
+                record = self._ai_parent_session_from_row(existing)
+                requested = (
+                    record.parent_key,
+                    record.role_name,
+                    record.thread_id,
+                    record.manifest_sha256,
+                    record.requested_model,
+                    record.requested_effort,
+                    record.requested_service_tier,
+                    record.requested_fast_mode,
+                    record.role_config_sha256,
+                    json.dumps(
+                        record.sandbox,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                )
+                incoming = (
+                    parent_key,
+                    role,
+                    thread,
+                    manifest_sha256,
+                    requested_model,
+                    requested_effort,
+                    requested_service_tier,
+                    requested_fast_mode,
+                    role_config_sha256,
+                    sandbox_json,
+                )
+                if requested != incoming:
+                    raise IdempotencyConflictError("ai_session_identity_conflict")
+                return record
+            connection.execute(
+                "INSERT INTO maintenance_ai_session "
+                "(job_id, session_key, parent_key, role_name, thread_id, "
+                "manifest_sha256, requested_model, requested_effort, "
+                "requested_service_tier, requested_fast_mode, role_config_sha256, "
+                "sandbox_json, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    job,
+                    key,
+                    parent_key,
+                    role,
+                    thread,
+                    manifest_sha256,
+                    requested_model,
+                    requested_effort,
+                    requested_service_tier,
+                    int(requested_fast_mode),
+                    role_config_sha256,
+                    sandbox_json,
+                    when,
+                ),
+            )
+        return AIParentSessionRecord(
+            job_id=job,
+            session_key=key,
+            parent_key=parent_key,
+            role_name=role,
+            thread_id=thread,
+            manifest_sha256=manifest_sha256,
+            requested_model=requested_model,
+            requested_effort=requested_effort,
+            requested_service_tier=requested_service_tier,
+            requested_fast_mode=requested_fast_mode,
+            role_config_sha256=role_config_sha256,
+            sandbox=sandbox_value,
+            created_at=when,
+        )
+
+    @staticmethod
+    def _ai_parent_session_from_row(row: sqlite3.Row) -> AIParentSessionRecord:
+        try:
+            sandbox = json.loads(row["sandbox_json"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise MaintenanceStoreError("ai_sandbox_invalid") from exc
+        if not isinstance(sandbox, dict):
+            raise MaintenanceStoreError("ai_sandbox_invalid")
+        return AIParentSessionRecord(
+            job_id=str(row["job_id"]),
+            session_key=str(row["session_key"]),
+            parent_key=str(row["parent_key"]),
+            role_name=str(row["role_name"]),
+            thread_id=str(row["thread_id"]),
+            manifest_sha256=str(row["manifest_sha256"]),
+            requested_model=str(row["requested_model"]),
+            requested_effort=str(row["requested_effort"]),
+            requested_service_tier=str(row["requested_service_tier"]),
+            requested_fast_mode=bool(row["requested_fast_mode"]),
+            role_config_sha256=str(row["role_config_sha256"]),
+            sandbox=sandbox,
+            created_at=str(row["created_at"]),
+        )
+
+    def get_ai_parent_session(
+        self, *, job_id: str, session_key: str
+    ) -> AIParentSessionRecord | None:
+        job = _safe_id(job_id, "job_id_invalid")
+        key = _safe_id(session_key, "ai_session_key_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM maintenance_ai_session "
+                "WHERE job_id = ? AND session_key = ?",
+                (job, key),
+            ).fetchone()
+            return None if row is None else self._ai_parent_session_from_row(row)
+        finally:
+            connection.close()
+
+    def record_ai_session_observation(
+        self,
+        *,
+        job_id: str,
+        session_key: str,
+        thread_id: str,
+        status: str,
+        observed_at: datetime | str,
+        observed_model: str | None = None,
+        observed_effort: str | None = None,
+        observed_service_tier: str | None = None,
+        reason_code: str | None = None,
+    ) -> str:
+        job = _safe_id(job_id, "job_id_invalid")
+        key = _safe_id(session_key, "ai_session_key_invalid")
+        thread = _safe_id(thread_id, "ai_thread_id_invalid")
+        if status not in {"configured_unverified", "verified", "blocked"}:
+            raise MaintenanceStoreError("ai_observation_status_invalid")
+        observed = (observed_model, observed_effort, observed_service_tier)
+        if any(
+            value is not None and (not isinstance(value, str) or not value)
+            for value in observed
+        ):
+            raise MaintenanceStoreError("ai_observation_value_invalid")
+        if status == "configured_unverified" and any(
+            value is not None for value in observed
+        ):
+            raise MaintenanceStoreError("ai_observation_status_mismatch")
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "ai_observation_reason_invalid")
+        when = _timestamp(observed_at)
+        observation_id = uuid.uuid4().hex
+        with self._transaction() as connection:
+            session = connection.execute(
+                "SELECT thread_id, requested_model, requested_effort, "
+                "requested_service_tier FROM maintenance_ai_session "
+                "WHERE job_id = ? AND session_key = ?",
+                (job, key),
+            ).fetchone()
+            if session is None:
+                raise MaintenanceStoreError("ai_session_missing")
+            if session["thread_id"] != thread:
+                raise MaintenanceStoreError("ai_session_thread_mismatch")
+            if status == "verified" and (
+                observed_model != session["requested_model"]
+                or observed_effort != session["requested_effort"]
+                or observed_service_tier != session["requested_service_tier"]
+                or reason_code is not None
+            ):
+                raise MaintenanceStoreError("ai_observation_status_mismatch")
+            connection.execute(
+                "INSERT INTO maintenance_ai_observation "
+                "(observation_id, job_id, session_key, thread_id, status, observed_model, "
+                "observed_effort, observed_service_tier, reason_code, observed_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    observation_id,
+                    job,
+                    key,
+                    thread,
+                    status,
+                    observed_model,
+                    observed_effort,
+                    observed_service_tier,
+                    reason_code,
+                    when,
+                ),
+            )
+        return observation_id
 
     def record_daily_check(
         self,

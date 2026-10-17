@@ -24,6 +24,7 @@ from automation.inago.maintenance.store import (
     LeaseToken,
     MaintenanceStore,
     MaintenanceStoreError,
+    SCHEMA_VERSION,
 )
 
 
@@ -122,12 +123,18 @@ def _emit(payload: dict[str, object]) -> None:
 def _run(args: argparse.Namespace) -> int:
     if args.command == "init":
         store = _store_for(args, initialize=True)
-        _emit({"status": "initialized", "schema_version": 1})
+        _emit({"status": "initialized", "schema_version": SCHEMA_VERSION})
         return 0
     store = _store_for(args)
     controller = MaintenanceController(store)
     if args.command == "status":
-        _emit({"status": "ok", "schema_version": 1, "counts": store.counts()})
+        _emit(
+            {
+                "status": "ok",
+                "schema_version": SCHEMA_VERSION,
+                "counts": store.counts(),
+            }
+        )
         return 0
     if args.command == "release-gate":
         gate = controller.evaluate_release_gate(

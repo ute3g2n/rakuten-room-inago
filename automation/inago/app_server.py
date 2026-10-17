@@ -10,11 +10,13 @@ import json
 import os
 from pathlib import Path
 import queue
+import stat
 import subprocess
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 
 class AppServerError(RuntimeError):
@@ -28,6 +30,9 @@ class AppServerTurn:
     final_text: str
     events: tuple[Mapping[str, Any], ...]
     process_returncode: int | None
+    observed_model: str | None = None
+    observed_effort: str | None = None
+    observed_service_tier: str | None = None
 
 
 class AppServerSession:
@@ -41,6 +46,16 @@ class AppServerSession:
         log_path: Path,
         environment: Mapping[str, str] | None = None,
         resume_thread_id: str | None = None,
+        log_root: Path | None = None,
+        model: str | None = None,
+        effort: str | None = None,
+        service_tier: str | None = None,
+        fast_mode: bool | None = None,
+        role_name: str | None = None,
+        role_config_sha256: str | None = None,
+        developer_instructions: str | None = None,
+        sandbox_policy: Mapping[str, Any] | None = None,
+        on_thread_ready: Callable[[str], None] | None = None,
     ):
         if not command or any(
             not isinstance(item, str) or not item for item in command
@@ -48,9 +63,41 @@ class AppServerSession:
             raise ValueError("command must be a nonempty argument array")
         self.command = tuple(command)
         self.cwd = Path(cwd).resolve()
-        self.log_path = Path(log_path).resolve()
+        self.log_root = Path(log_root).absolute() if log_root is not None else None
+        self.log_path = (
+            Path(log_path).absolute()
+            if self.log_root is not None
+            else Path(log_path).resolve()
+        )
         self.environment = dict(environment) if environment is not None else None
         self.resume_thread_id = resume_thread_id
+        self.model = model
+        self.effort = effort
+        self.service_tier = service_tier
+        self.fast_mode = fast_mode
+        self.role_name = role_name
+        self.role_config_sha256 = role_config_sha256
+        self.developer_instructions = developer_instructions
+        self.sandbox_policy = dict(sandbox_policy or {"type": "readOnly"})
+        self.on_thread_ready = on_thread_ready
+        self.observed_settings = {
+            "model": None,
+            "effort": None,
+            "service_tier": None,
+        }
+        if self.sandbox_policy.get("type") not in {"readOnly", "workspaceWrite"}:
+            raise ValueError("sandbox policy must not grant full access")
+        if effort is not None and model is None:
+            raise ValueError("effort requires an explicit model")
+        if service_tier not in {None, "default", "priority"}:
+            raise ValueError("unsupported service tier")
+        if fast_mode is not None and type(fast_mode) is not bool:
+            raise ValueError("fast mode must be a boolean")
+        if developer_instructions is not None and (
+            not isinstance(developer_instructions, str)
+            or not developer_instructions.strip()
+        ):
+            raise ValueError("developer instructions must be nonempty text")
         self.thread_id: str | None = None
         self.turn_id: str | None = None
         self.starts = 0
@@ -86,15 +133,87 @@ class AppServerSession:
             "status",
             "returncode",
             "code",
+            "model",
+            "effort",
+            "service_tier",
+            "fast_mode",
+            "role_name",
+            "role_config_sha256",
+            "sandbox_profile",
+            "observation_status",
         }
         record = {
             "event": event,
             "at": time.time(),
             **{key: value for key, value in fields.items() if key in allowed},
         }
-        self.log_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._log_lock, self.log_path.open("a", encoding="utf-8") as file:
-            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+        try:
+            with self._log_lock:
+                if self.log_root is not None:
+                    self._validate_log_target()
+                self.log_path.parent.mkdir(parents=True, exist_ok=True)
+                if self.log_root is not None:
+                    self._validate_log_target()
+                with self.log_path.open("a", encoding="utf-8") as file:
+                    file.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except AppServerError:
+            raise
+        except OSError as exc:
+            raise AppServerError("log_write_failed") from exc
+
+    def _maintenance_log_fields(self, observation_status: str) -> dict[str, Any]:
+        if self.role_name is None:
+            return {}
+        return {
+            "model": self.model,
+            "effort": self.effort,
+            "service_tier": self.service_tier,
+            "fast_mode": self.fast_mode,
+            "role_name": self.role_name,
+            "role_config_sha256": self.role_config_sha256,
+            "sandbox_profile": self.sandbox_policy.get("type"),
+            "observation_status": observation_status,
+        }
+
+    @staticmethod
+    def _contains_reparse_point(path: Path) -> bool:
+        absolute = Path(path).absolute()
+        current = Path(absolute.anchor)
+        for part in absolute.parts[1:]:
+            current = current / part
+            try:
+                metadata = current.lstat()
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                raise AppServerError("log_path_uninspectable") from exc
+            if stat.S_ISLNK(metadata.st_mode):
+                return True
+            try:
+                attributes = metadata.st_file_attributes
+            except AttributeError:
+                continue
+            if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+                return True
+        return False
+
+    def _validate_log_target(self) -> None:
+        if self.log_root is None:
+            return
+        if self._contains_reparse_point(self.log_root) or self._contains_reparse_point(
+            self.log_path
+        ):
+            raise AppServerError("log_path_invalid")
+        try:
+            root = self.log_root.resolve(strict=True)
+            target = self.log_path.resolve(strict=False)
+            relative = target.relative_to(root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise AppServerError("log_path_out_of_scope") from exc
+        if not relative.parts or (
+            self.log_path.exists() and not self.log_path.is_file()
+        ):
+            raise AppServerError("log_path_invalid")
 
     def _reader(self):
         try:
@@ -224,6 +343,7 @@ class AppServerSession:
         if self._closed:
             raise AppServerError("server_closed")
         try:
+            self._verify_restricted_read_capability()
             self.process = subprocess.Popen(
                 list(self.command),
                 cwd=self.cwd,
@@ -268,11 +388,25 @@ class AppServerSession:
                 or account["account"].get("type") != "chatgpt"
             ):
                 raise AppServerError("auth_mode_not_permitted")
+            if self.model is not None:
+                self._verify_model_capability(deadline=deadline)
+            if self.fast_mode:
+                self._verify_fast_mode_capability(deadline=deadline)
             params = {
                 "cwd": str(self.cwd),
-                "sandbox": "read-only",
+                "sandbox": (
+                    "workspace-write"
+                    if self.sandbox_policy["type"] == "workspaceWrite"
+                    else "read-only"
+                ),
                 "approvalPolicy": "never",
             }
+            if self.model is not None:
+                params["model"] = self.model
+            if self.service_tier is not None:
+                params["serviceTier"] = self.service_tier
+            if self.developer_instructions is not None:
+                params["developerInstructions"] = self.developer_instructions
             method = "thread/start"
             if self.resume_thread_id:
                 params["threadId"] = self.resume_thread_id
@@ -286,12 +420,182 @@ class AppServerSession:
             ):
                 raise AppServerError("root_thread_identity_invalid")
             self.thread_id = thread
-            self._log("root_ready", thread_id=thread, process_pid=self.process_id)
+            if self.on_thread_ready is not None:
+                self.on_thread_ready(thread)
+            root_ready_fields = {
+                "thread_id": thread,
+                "process_pid": self.process_id,
+                **self._maintenance_log_fields("configured_unverified"),
+            }
+            self._log("root_ready", **root_ready_fields)
             self._pending_notifications.clear()
             return thread
-        except (OSError, AppServerError):
-            self.close()
+        except AppServerError as exc:
+            try:
+                self._log(
+                    "session_start_blocked",
+                    code=str(exc),
+                    **self._maintenance_log_fields("blocked"),
+                )
+            finally:
+                self.close()
             raise
+        except Exception:
+            try:
+                self._log(
+                    "session_start_failed",
+                    code="session_start_failed",
+                    **self._maintenance_log_fields("blocked"),
+                )
+            finally:
+                self.close()
+            raise
+
+    def _verify_restricted_read_capability(self) -> None:
+        """Fail closed if this CLI cannot enforce the requested read roots."""
+
+        if not any(key in self.sandbox_policy for key in ("access", "readOnlyAccess")):
+            return
+        try:
+            app_server_index = next(
+                index
+                for index, value in enumerate(self.command)
+                if value.lower() == "app-server"
+            )
+        except StopIteration as exc:
+            raise AppServerError("sandbox_capability_probe_failed") from exc
+        command = [
+            *self.command[: app_server_index + 1],
+            "generate-json-schema",
+        ]
+        try:
+            with tempfile.TemporaryDirectory(prefix="inago-app-server-schema-") as out:
+                completed = subprocess.run(
+                    [*command, "--out", out],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    shell=False,
+                    timeout=15,
+                    check=False,
+                )
+                if completed.returncode != 0:
+                    raise AppServerError("sandbox_capability_probe_failed")
+                schema_path = Path(out) / "codex_app_server_protocol.v2.schemas.json"
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+                variants = schema["definitions"]["SandboxPolicy"]["oneOf"]
+                read_only = next(
+                    variant
+                    for variant in variants
+                    if variant.get("title") == "ReadOnlySandboxPolicy"
+                )
+                workspace_write = next(
+                    variant
+                    for variant in variants
+                    if variant.get("title") == "WorkspaceWriteSandboxPolicy"
+                )
+                if "access" not in read_only.get(
+                    "properties", {}
+                ) or "readOnlyAccess" not in workspace_write.get("properties", {}):
+                    raise AppServerError("restricted_read_roots_unsupported")
+        except AppServerError:
+            raise
+        except (
+            OSError,
+            subprocess.SubprocessError,
+            ValueError,
+            KeyError,
+            StopIteration,
+        ) as exc:
+            raise AppServerError("sandbox_capability_probe_failed") from exc
+
+    def _verify_model_capability(self, *, deadline: float) -> None:
+        cursor = None
+        seen_cursors = set()
+        matched = None
+        while True:
+            params = {"limit": 100, "includeHidden": False}
+            if cursor is not None:
+                params["cursor"] = cursor
+            result = self._call("model/list", params, deadline=deadline)
+            entries = result.get("data")
+            if not isinstance(entries, list):
+                raise AppServerError("model_catalog_invalid")
+            matched = next(
+                (
+                    item
+                    for item in entries
+                    if isinstance(item, dict)
+                    and (
+                        item.get("model") == self.model or item.get("id") == self.model
+                    )
+                ),
+                None,
+            )
+            if matched is not None:
+                break
+            next_cursor = result.get("nextCursor")
+            if next_cursor is None:
+                break
+            if (
+                not isinstance(next_cursor, str)
+                or not next_cursor
+                or next_cursor in seen_cursors
+            ):
+                raise AppServerError("model_catalog_invalid")
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
+        if matched is None:
+            raise AppServerError("model_unavailable")
+        if self.effort is not None:
+            efforts = matched.get("supportedReasoningEfforts")
+            if not isinstance(efforts, list) or not any(
+                isinstance(item, dict) and item.get("reasoningEffort") == self.effort
+                for item in efforts
+            ):
+                raise AppServerError("effort_unavailable")
+        if self.service_tier == "priority":
+            service_tiers = matched.get("serviceTiers")
+            if not isinstance(service_tiers, list) or not any(
+                isinstance(item, dict) and item.get("id") == "priority"
+                for item in service_tiers
+            ):
+                raise AppServerError("service_tier_unavailable")
+
+    def _verify_fast_mode_capability(self, *, deadline: float) -> None:
+        cursor = None
+        seen_cursors = set()
+        while True:
+            params = {"limit": 100}
+            if cursor is not None:
+                params["cursor"] = cursor
+            result = self._call("experimentalFeature/list", params, deadline=deadline)
+            entries = result.get("data")
+            if not isinstance(entries, list):
+                raise AppServerError("feature_catalog_invalid")
+            feature = next(
+                (
+                    item
+                    for item in entries
+                    if isinstance(item, dict) and item.get("name") == "fast_mode"
+                ),
+                None,
+            )
+            if feature is not None:
+                if feature.get("enabled") is not True:
+                    raise AppServerError("fast_mode_unavailable")
+                return
+            next_cursor = result.get("nextCursor")
+            if next_cursor is None:
+                raise AppServerError("fast_mode_unavailable")
+            if (
+                not isinstance(next_cursor, str)
+                or not next_cursor
+                or next_cursor in seen_cursors
+            ):
+                raise AppServerError("feature_catalog_invalid")
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
 
     def run_turn(
         self,
@@ -314,7 +618,14 @@ class AppServerSession:
                     "input": [{"type": "text", "text": prompt}],
                     "outputSchema": dict(output_schema),
                     "approvalPolicy": "never",
-                    "sandboxPolicy": {"type": "readOnly"},
+                    "sandboxPolicy": dict(self.sandbox_policy),
+                    **({"model": self.model} if self.model is not None else {}),
+                    **({"effort": self.effort} if self.effort is not None else {}),
+                    **(
+                        {"serviceTierForTurn": self.service_tier}
+                        if self.service_tier is not None
+                        else {}
+                    ),
                 },
                 deadline=deadline,
                 cancel_event=cancel_event,
@@ -331,6 +642,11 @@ class AppServerSession:
             )
             final = None
             events = []
+            observed = {
+                "model": None,
+                "effort": None,
+                "service_tier": None,
+            }
             pending, self._pending_notifications = self._pending_notifications, []
             while True:
                 message = (
@@ -353,6 +669,22 @@ class AppServerSession:
                 if current_turn != turn_id:
                     continue
                 events.append(message)
+                event_turn = params.get("turn")
+                if isinstance(event_turn, dict):
+                    for output_key, candidates in (
+                        ("model", ("model",)),
+                        ("effort", ("effort", "reasoningEffort")),
+                        ("service_tier", ("serviceTier", "serviceTierForTurn")),
+                    ):
+                        for candidate in candidates:
+                            value = event_turn.get(candidate)
+                            if isinstance(value, str) and value:
+                                observed[output_key] = value
+                                break
+                if method == "model/rerouted":
+                    to_model = params.get("toModel")
+                    if isinstance(to_model, str) and to_model:
+                        observed["model"] = to_model
                 if method == "item/completed":
                     item = params.get("item", {})
                     if (
@@ -364,6 +696,40 @@ class AppServerSession:
                         final = item.get("text")
                 elif method == "turn/completed":
                     status = params["turn"].get("status")
+                    self.observed_settings = dict(observed)
+                    expected = {
+                        "model": self.model,
+                        "effort": self.effort,
+                        "service_tier": self.service_tier,
+                    }
+                    mismatched = any(
+                        observed[key] is not None and observed[key] != expected[key]
+                        for key in observed
+                        if expected[key] is not None
+                    )
+                    observed_complete = all(
+                        expected[key] is None or observed[key] is not None
+                        for key in observed
+                    )
+                    observation_status = (
+                        "blocked"
+                        if mismatched
+                        else (
+                            "verified"
+                            if observed_complete and self.model is not None
+                            else "configured_unverified"
+                        )
+                    )
+                    if self.model is not None:
+                        self._log(
+                            "runtime_observed",
+                            thread_id=self.thread_id,
+                            turn_id=turn_id,
+                            model=observed["model"],
+                            effort=observed["effort"],
+                            service_tier=observed["service_tier"],
+                            observation_status=observation_status,
+                        )
                     self._log(
                         "turn_finished",
                         thread_id=self.thread_id,
@@ -382,18 +748,31 @@ class AppServerSession:
                         final,
                         tuple(events),
                         self.process.poll(),
+                        observed["model"],
+                        observed["effort"],
+                        observed["service_tier"],
                     )
         except AppServerError as exc:
-            self._log(
-                "job_transport_failed",
-                code=(
-                    str(exc)
-                    if str(exc) in {"timed_out", "cancelled"}
-                    else "transport_failed"
-                ),
-            )
-            self.interrupt()
-            self.close()
+            try:
+                self._log(
+                    "job_transport_failed",
+                    code=(
+                        str(exc)
+                        if str(exc) in {"timed_out", "cancelled"}
+                        else "transport_failed"
+                    ),
+                )
+            except Exception:
+                pass
+            finally:
+                try:
+                    self.interrupt()
+                except Exception:
+                    pass
+                try:
+                    self.close()
+                except Exception:
+                    pass
             raise
         finally:
             self._job_lock.release()

@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.21、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05で保守専用管理DBは`D/maintenance/state.sqlite` SQLite schema v1として固定した。保守JSONLは日次業務DB/L02 JSONLと分離し、schema/path/quotaは後続STEPで確定する。
+正本：要件定義書HTML 2.22、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1に、U07 migrationでmanifest/AI session/observationを追加し、現行`D/maintenance/state.sqlite`をschema v2とした。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
 
 ## 共通イベント
 
@@ -151,6 +151,16 @@ N26/N27の完全node、隔離root、command、期待/実測、SQLite件数・res
 日次の終了期限はJSONL traceへ混ぜず、Windows Task Scheduler APIから実設定を取得してprivate execution evidenceへ記録する。許可する証拠項目はtask名、state、principal SID、logon type、run level、ExecutionTimeLimit、restart設定、command/arguments/working directoryの期待値比較結果、trigger種別、前後設定の同一性だけとする。アカウント名・環境変数値・認証情報・任意の外部データは公開traceへ記録しない。
 
 日次taskのExecutionTimeLimitはPT0Sでなければならない。登録処理は実登録値とテンプレートを照合し、Ready/Disabledで値が異なる場合だけ定義済みXMLへ再登録する。実行中taskは変更しない。修復後にprincipal/action/working directory/triggerが保持されたことをScheduler APIで確認する。N30は現行の実日次taskと一時taskの設定を読み、通常主体から隔離probeを実行する。L04は同主体でread-only Human API healthおよびmetrics接続を実証する。これらは実production日次の実行・投稿を示さない。
+
+## U07 app-server session transport log（MN05）
+
+MN05はmaintenance parent sessionのtransport診断用JSONLで、日次L04の汎用`app_server`出力、日次L02 common trace、MN04のworkflow全体traceとは別の出力である。標準pathは`D/maintenance/logs/<target_date>/<job_id>/<parent>--<role>.jsonl`。attempt output/worktreeの外に置くhost-owned rootに保存し、AI roleからの直接書込を許さない。path escapeまたはreparse pointを検出した場合は記録を拒否する。
+
+MN05の共通fieldはevent名とUnix epoch秒の`at`。許可する追加fieldは`method`、safe `thread_id`/`turn_id`、`process_pid`、safe `status`/`returncode`/`code`、要求`model`/`effort`/`service_tier`/`fast_mode`、`role_name`、`role_config_sha256`、`sandbox_profile`、`observation_status`。保守role付きsessionだけがmodel・role等を記録するため、一般の日次T02/L04の`root_ready` field setは従来どおり維持する。
+
+`root_ready`は指定値を含むが、観測状態を`configured_unverified`とする。実際のturn eventから受け取ったmodel/effort/tierだけを`runtime_observed`に記録し、欠けた値は未確認のままとする。開始前にsandbox/model/tier/Fast capabilityを確認し、unsupportedは`session_start_blocked`としてsafe codeと要求設定を記録する。requested値をobserved値として扱わない。prompt、developer instructions本文、AI応答本文、任意例外本文、認証情報、URL/query/DOMは出力しない。
+
+MN05はcommon traceの`schema_version`/UUID span/JST/quota envelopeを実装したものとは扱わない。90日/4 MiB/日20件の保持・quota、atomic workflow events、stage相関はMN04の実装条件であり、MN05を本番運用可能とする前に別途確定する。U07での実モデル接続は行わず、LC01/LC02をU18で確認する。インストール済みCLIがrestricted sandbox rootsを強制できない場合、sessionはprocess起動前にblockedとする。
 
 ## Maintenance保守JSONL（MR-012/013/014/021/022）
 

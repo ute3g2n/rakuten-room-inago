@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.21 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.22 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -16,6 +16,14 @@
 管理DBは`D/maintenance/state.sqlite`（SQLite schema v1）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)の「U05 management DB schema v1」を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,release-gate,start-job,finish-job}`。
 
 U05でC06/C07/C28/C53の専用受入ケースを隔離DBに対して確認した。step順序は最新の独立承認を要求し、`changes_requested`後は新attemptで再開する。handoffは現在job leaseと一致する場合だけ受理し、受理後のreview更新を拒否する。reviewはrelease単位、および同一job内のstep単位（全attempt通算）で最大3巡。上限後は追加reviewと次attempt開始を拒否して保留する。`finish-job complete`はrelease gateと全step承認を再確認し、active job枠を解放する。failed/blocked/cancelledではrunning attemptも閉じる。再開上限到達時は`blocked`終端化できる。CLIのinit/status/blocked gate/DB alias拒否/finish-job完了を確認した。productionのmanagement DBは初期化・変更しておらず、本番日次の再実行、AI/ブラウザー実接続、production deploymentは未実施。各機能の実装範囲と後続条件は実行計画M §9/§14に記録する。
+
+## U07 parent session・manifest・sandbox契約
+
+U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest`、`maintenance_ai_session`、`maintenance_ai_observation`を加える。job inputは`incident_id`/`source_launch_id`/nullable `source_run_id`/`target_date`/`job_id`を完全一致で固定する。欠落・不一致・曖昧さ・nullness不一致を推測で補わず、session開始前にblockedとする。manifestとsession設定はimmutable、観測はappend-onlyとする。
+
+親Aのroleは`gpt-6.1-sol`/`xhigh`/`default`/Fast disabled、親Bのroleは`gpt-6-luna`/`max`/Fastを指定する。role TOMLのdeveloper instructions、設定digest、model/effort/tier、sandbox境界をsessionへ結び、requestedとobservedを分ける。Fastは`service_tier="fast"`と`features.fast_mode=true`で要求し、protocol上のtier `priority`として capability を確認する。モデル/effort/tier/Fastまたはrestricted sandboxが未対応ならfallbackせず拒否する。観測イベントに設定値がない場合は`configured_unverified`とし、設定した事実だけで`verified`にしない。
+
+調査roleはattempt outputだけ、親Bの実装/試験roleはmanaged worktreeだけをwrite rootとする。reviewerはread-only。restricted read/write rootsをapp-serverが強制できない場合はprocess起動前にblockedとする。親セッション実接続のLC01/LC02はU18で一度確認し、U07の設定・隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
 
 ## 受入条件
 
