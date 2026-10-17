@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.19、§8・§27.6～27.16・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。
+正本：要件定義書HTML 2.20、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。保守専用の管理DB/JSONL schemaは既存の日次業務DB/L02 JSONLとは別にU05以降で確定する。
 
 ## 共通イベント
 
@@ -151,3 +151,11 @@ N26/N27の完全node、隔離root、command、期待/実測、SQLite件数・res
 日次の終了期限はJSONL traceへ混ぜず、Windows Task Scheduler APIから実設定を取得してprivate execution evidenceへ記録する。許可する証拠項目はtask名、state、principal SID、logon type、run level、ExecutionTimeLimit、restart設定、command/arguments/working directoryの期待値比較結果、trigger種別、前後設定の同一性だけとする。アカウント名・環境変数値・認証情報・任意の外部データは公開traceへ記録しない。
 
 日次taskのExecutionTimeLimitはPT0Sでなければならない。登録処理は実登録値とテンプレートを照合し、Ready/Disabledで値が異なる場合だけ定義済みXMLへ再登録する。実行中taskは変更しない。修復後にprincipal/action/working directory/triggerが保持されたことをScheduler APIで確認する。N30は現行の実日次taskと一時taskの設定を読み、通常主体から隔離probeを実行する。L04は同主体でread-only Human API healthおよびmetrics接続を実証する。これらは実production日次の実行・投稿を示さない。
+
+## Maintenance保守JSONL（MR-012/013/014/021/022）
+
+これは将来実装する保守基盤専用の診断JSONLであり、L02の日次共通traceのschema/path/quotaへ混ぜない。計画保存先は `D/maintenance/logs/<実行日>/<maintenance_id>.jsonl`。正確なschema_version、field enum、atomic append、quota処理はU05/U10で実装に合わせて確定する。予定fieldは `event_id`、`maintenance_id`、`source_launch_id`、nullable `source_run_id`、`target_date`、nullable `incident_id`、`stage`、`attempt`、`phase`、safe `status`/`error_code`、`at`、`requested_model/observed_model`、effort/tier、`base_commit/result_version`、安全な入力/証拠/出力参照、`reviewed_version`、`retention_expires_at`。件数/試行番号は非負整数または正整数の範囲検証を行う。
+
+新規maintenance log retentionは90日、1ファイル4 MiB、1日20ファイルを初期値とし、1ファイル単位で期限管理・rotateする。監査必須eventを保存できない場合は省略を隠さず、stageまたはdeployment/releaseを保留して欠測を記録する。採取証拠の写しは元データの期限を引き継ぎ、元期限がない場合だけ採取後90日を初期値とする。既存L01～L05、O01～O03、A02/A03、M01/M02等の現在の保持規則を変更しない。
+
+診断記録にprompt、AI応答本文、商品/投稿本文、URL/query/DOM、credential、秘密、自由文exception messageを含めない。primary/cause/cleanupを分け、書込失敗やquota到達はhealthy/successとして再表示しない。maintenance管理DBのcommit済み状態と元日次状態をtraceの成否で上書きしない。

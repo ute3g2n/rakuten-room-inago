@@ -57,6 +57,11 @@ export const flows = [
     "id": "F11",
     "title": "T11 実装テスト → 本番 → 随時デバッグ",
     "desc": "各手順の担当者は、何のために、何をどうするかを全文で説明します。条件や注意点も文章で示します。"
+  },
+  {
+    "id": "F12",
+    "title": "日次後の保守確認から障害対応・次回観測まで",
+    "desc": "正常日を最小checkで終え、異常だけを別担当の調査・修正・反映・報告へつなぎます。"
   }
 ];
 flows.forEach(flow => { flow.title = flowNames[flow.id]; flow.desc = flowRoles[flow.id] + '各担当が何のために、何をどうするかを全文で説明します。'; });
