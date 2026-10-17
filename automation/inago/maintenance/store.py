@@ -20,10 +20,18 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 APPLICATION_ID = 0x494E474D  # INGM
+_MIGRATIONS = {
+    2: (
+        "002_job_manifest_ai_sessions.sql",
+        "immutable job manifest and AI session ledger",
+    ),
+    3: ("003_daily_launch.sql", "daily launcher start and completion ledger"),
+}
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
+_ERROR_CLASS_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 _DAILY_CHECK_STATUSES = {
     "normal",
@@ -73,6 +81,7 @@ _SCHEMA_TABLES = {
     "job_input_manifest",
     "maintenance_ai_session",
     "maintenance_ai_observation",
+    "daily_launch",
 }
 
 
@@ -109,6 +118,53 @@ class DailyCheckResult:
     check_id: str
     created: bool
     incident_id: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class DailyLaunchRecord:
+    source_launch_id: str
+    target_date: str
+    owner_pid: int
+    started_at: str
+    status: str
+    child_pid: int | None
+    source_run_id: str | None
+    exit_code: int | None
+    completed_at: str | None
+    result_json: str | None
+
+    @property
+    def result_summary(self) -> Mapping[str, object] | None:
+        if self.result_json is None:
+            return None
+        value = json.loads(self.result_json)
+        return value if isinstance(value, dict) else None
+
+    @property
+    def failure_phase(self) -> str | None:
+        summary = self.result_summary
+        value = summary.get("failure_phase") if summary is not None else None
+        return str(value) if value is not None else None
+
+    @property
+    def primary_error_class(self) -> str | None:
+        summary = self.result_summary
+        value = summary.get("primary_error_class") if summary is not None else None
+        return str(value) if value is not None else None
+
+    @property
+    def secondary_error_classes(self) -> tuple[str, ...]:
+        summary = self.result_summary
+        values = (
+            summary.get("secondary_error_classes", []) if summary is not None else []
+        )
+        return tuple(str(value) for value in values) if isinstance(values, list) else ()
+
+    @property
+    def trace_status(self) -> str:
+        summary = self.result_summary
+        value = summary.get("trace_status") if summary is not None else None
+        return str(value) if value is not None else "not_written"
 
 
 @dataclass(frozen=True, slots=True)
@@ -378,10 +434,12 @@ class MaintenanceStore:
                 raise UnknownMaintenanceSchemaError("database_application_id_missing")
             while version < SCHEMA_VERSION:
                 migration_version = version + 1
+                migration = _MIGRATIONS.get(migration_version)
+                if migration is None:
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_filename, migration_description = migration
                 migration_path = (
-                    Path(__file__).resolve().parent
-                    / "sql"
-                    / f"{migration_version:03d}_job_manifest_ai_sessions.sql"
+                    Path(__file__).resolve().parent / "sql" / migration_filename
                 )
                 if not migration_path.is_file():
                     raise UnknownMaintenanceSchemaError("migration_missing")
@@ -401,7 +459,7 @@ class MaintenanceStore:
                     (
                         migration_version,
                         _timestamp(applied_at or datetime.now(timezone.utc)),
-                        "immutable job manifest and AI session ledger",
+                        migration_description,
                     ),
                 )
                 connection.execute(f"PRAGMA user_version = {migration_version}")
@@ -496,6 +554,7 @@ class MaintenanceStore:
                 "job_input_manifest",
                 "maintenance_ai_session",
                 "maintenance_ai_observation",
+                "daily_launch",
             )
             return {
                 name: int(
@@ -956,6 +1015,386 @@ class MaintenanceStore:
                 ),
             )
         return observation_id
+
+    def record_daily_launch_start(
+        self,
+        *,
+        source_launch_id: str,
+        target_date: str,
+        owner_pid: int,
+        started_at: datetime | str,
+    ) -> DailyLaunchRecord:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        target = _target_date(target_date)
+        if (
+            isinstance(owner_pid, bool)
+            or not isinstance(owner_pid, int)
+            or owner_pid <= 0
+        ):
+            raise MaintenanceStoreError("daily_launch_owner_pid_invalid")
+        started = _timestamp(started_at)
+        with self._transaction() as connection:
+            existing = connection.execute(
+                "SELECT source_launch_id FROM daily_launch WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if existing is not None:
+                raise IdempotencyConflictError("daily_launch_id_already_used")
+            connection.execute(
+                "INSERT INTO daily_launch "
+                "(source_launch_id, target_date, owner_pid, started_at, status) "
+                "VALUES (?, ?, ?, ?, 'running')",
+                (launch_id, target, owner_pid, started),
+            )
+        record = self.get_daily_launch(launch_id)
+        if record is None:
+            raise MaintenanceStoreError("daily_launch_start_unavailable")
+        return record
+
+    def record_daily_launch_child(
+        self, *, source_launch_id: str, child_pid: int
+    ) -> DailyLaunchRecord:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        if (
+            isinstance(child_pid, bool)
+            or not isinstance(child_pid, int)
+            or child_pid <= 0
+        ):
+            raise MaintenanceStoreError("daily_launch_child_pid_invalid")
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT status, child_pid FROM daily_launch WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("daily_launch_not_started")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("daily_launch_not_running")
+            if row["child_pid"] is not None and int(row["child_pid"]) != child_pid:
+                raise IdempotencyConflictError("daily_launch_child_pid_conflict")
+            connection.execute(
+                "UPDATE daily_launch SET child_pid = ? "
+                "WHERE source_launch_id = ? AND status = 'running'",
+                (child_pid, launch_id),
+            )
+        record = self.get_daily_launch(launch_id)
+        if record is None:
+            raise MaintenanceStoreError("daily_launch_child_unavailable")
+        return record
+
+    def get_daily_launch(self, source_launch_id: str) -> DailyLaunchRecord | None:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT source_launch_id, target_date, owner_pid, started_at, status, "
+                "child_pid, source_run_id, exit_code, completed_at, result_json "
+                "FROM daily_launch WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return DailyLaunchRecord(
+                source_launch_id=str(row["source_launch_id"]),
+                target_date=str(row["target_date"]),
+                owner_pid=int(row["owner_pid"]),
+                started_at=str(row["started_at"]),
+                status=str(row["status"]),
+                child_pid=(
+                    int(row["child_pid"]) if row["child_pid"] is not None else None
+                ),
+                source_run_id=(
+                    str(row["source_run_id"])
+                    if row["source_run_id"] is not None
+                    else None
+                ),
+                exit_code=(
+                    int(row["exit_code"]) if row["exit_code"] is not None else None
+                ),
+                completed_at=(
+                    str(row["completed_at"])
+                    if row["completed_at"] is not None
+                    else None
+                ),
+                result_json=(
+                    str(row["result_json"]) if row["result_json"] is not None else None
+                ),
+            )
+        finally:
+            connection.close()
+
+    def record_daily_launch_completion(
+        self,
+        *,
+        source_launch_id: str,
+        target_date: str,
+        child_pid: int | None,
+        source_run_id: str | None,
+        launch_status: str,
+        exit_code: int,
+        completed_at: datetime | str,
+        check_status: str,
+        reason_code: str | None,
+        result_summary: Mapping[str, object],
+    ) -> DailyLaunchRecord:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        target = _target_date(target_date)
+        run_id = (
+            None
+            if source_run_id is None
+            else _safe_id(source_run_id, "source_run_id_invalid")
+        )
+        if child_pid is not None and (
+            isinstance(child_pid, bool)
+            or not isinstance(child_pid, int)
+            or child_pid <= 0
+        ):
+            raise MaintenanceStoreError("daily_launch_child_pid_invalid")
+        if launch_status not in {"complete", "failed", "blocked", "unknown"}:
+            raise MaintenanceStoreError("daily_launch_status_invalid")
+        if (
+            isinstance(exit_code, bool)
+            or not isinstance(exit_code, int)
+            or not 0 <= exit_code <= 255
+        ):
+            raise MaintenanceStoreError("daily_launch_exit_code_invalid")
+        if check_status not in {"normal", "normal_shortfall", "unknown", "incomplete"}:
+            raise MaintenanceStoreError("daily_launch_check_status_invalid")
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "reason_code_invalid")
+        completed = _timestamp(completed_at)
+
+        summary_keys = {
+            "schema_version",
+            "source_launch_id",
+            "target_date",
+            "status",
+            "exit_code",
+            "source_run_id",
+            "overall_status",
+            "daily_status",
+            "reason_code",
+            "failure_phase",
+            "failed_checks",
+            "primary_error_class",
+            "secondary_error_classes",
+            "trace_status",
+        }
+        if (
+            not isinstance(result_summary, Mapping)
+            or set(result_summary) != summary_keys
+        ):
+            raise MaintenanceStoreError("daily_launch_summary_schema_invalid")
+        summary = dict(result_summary)
+        summary_exit_code = summary["exit_code"]
+        if (
+            isinstance(summary_exit_code, bool)
+            or not isinstance(summary_exit_code, int)
+            or not 0 <= summary_exit_code <= 255
+        ):
+            raise MaintenanceStoreError("daily_launch_summary_exit_code_invalid")
+        if (
+            summary["schema_version"] != "daily-launch-completion-v1"
+            or summary["source_launch_id"] != launch_id
+            or summary["target_date"] != target
+            or summary["status"] != launch_status
+            or summary["exit_code"] != exit_code
+            or summary["source_run_id"] != run_id
+            or summary["reason_code"] != reason_code
+        ):
+            raise MaintenanceStoreError("daily_launch_summary_identity_invalid")
+        for key in ("overall_status", "daily_status"):
+            value = summary[key]
+            if value is None:
+                raise MaintenanceStoreError("daily_launch_summary_value_invalid")
+            summary[key] = _safe_code(value, "daily_launch_summary_value_invalid")
+        if summary["failure_phase"] is not None:
+            summary["failure_phase"] = _safe_code(
+                summary["failure_phase"], "daily_launch_summary_value_invalid"
+            )
+        failed_checks = summary["failed_checks"]
+        if not isinstance(failed_checks, (list, tuple)) or len(failed_checks) > 32:
+            raise MaintenanceStoreError("daily_launch_failed_checks_invalid")
+        summary["failed_checks"] = [
+            _safe_code(value, "daily_launch_failed_checks_invalid")
+            for value in failed_checks
+        ]
+        primary_error_class = summary["primary_error_class"]
+        if primary_error_class is not None and (
+            not isinstance(primary_error_class, str)
+            or not _ERROR_CLASS_PATTERN.fullmatch(primary_error_class)
+        ):
+            raise MaintenanceStoreError("daily_launch_error_class_invalid")
+        secondary_error_classes = summary["secondary_error_classes"]
+        if (
+            not isinstance(secondary_error_classes, (list, tuple))
+            or len(secondary_error_classes) > 32
+        ):
+            raise MaintenanceStoreError("daily_launch_error_class_invalid")
+        summary["secondary_error_classes"] = []
+        for value in secondary_error_classes:
+            if not isinstance(value, str) or not _ERROR_CLASS_PATTERN.fullmatch(value):
+                raise MaintenanceStoreError("daily_launch_error_class_invalid")
+            summary["secondary_error_classes"].append(value)
+        trace_status = summary["trace_status"]
+        if not isinstance(trace_status, str) or trace_status not in {
+            "healthy",
+            "degraded",
+            "unavailable",
+            "not_written",
+        }:
+            raise MaintenanceStoreError("daily_launch_trace_status_invalid")
+        overall_status = summary["overall_status"]
+        daily_status = summary["daily_status"]
+        if launch_status == "complete":
+            if check_status == "normal":
+                consistent = (
+                    overall_status == "complete"
+                    and daily_status == "complete"
+                    and exit_code == 0
+                    and run_id is not None
+                    and reason_code is None
+                )
+            elif check_status == "normal_shortfall":
+                consistent = (
+                    overall_status in {"partial", "shortfall"}
+                    and daily_status in {"partial", "shortfall"}
+                    and exit_code == 5
+                    and run_id is not None
+                )
+            elif check_status == "unknown":
+                consistent = (
+                    overall_status == "not_due"
+                    and daily_status == "not_due"
+                    and exit_code == 0
+                    and reason_code == "daily_not_due"
+                )
+            else:
+                consistent = False
+        else:
+            consistent = check_status == "incomplete"
+            if launch_status == "blocked":
+                consistent = (
+                    consistent
+                    and overall_status == "blocked"
+                    and daily_status == "unknown"
+                    and exit_code == 4
+                )
+            elif launch_status == "unknown":
+                consistent = (
+                    consistent
+                    and overall_status == "unknown"
+                    and daily_status == "unknown"
+                    and exit_code != 0
+                )
+            else:
+                consistent = (
+                    consistent
+                    and overall_status
+                    not in {
+                        "blocked",
+                        "unknown",
+                        "complete",
+                        "partial",
+                        "shortfall",
+                        "not_due",
+                    }
+                    and exit_code not in {0, 5}
+                )
+        if not consistent:
+            raise MaintenanceStoreError("daily_launch_completion_status_mismatch")
+        encoded_summary = json.dumps(
+            summary,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+        with self._transaction() as connection:
+            existing = connection.execute(
+                "SELECT target_date, status, child_pid, source_run_id, exit_code, "
+                "completed_at, result_json FROM daily_launch "
+                "WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if existing is None:
+                raise MaintenanceStoreError("daily_launch_not_started")
+            if existing["target_date"] != target:
+                raise IdempotencyConflictError("daily_launch_target_date_conflict")
+            current_child_pid = (
+                int(existing["child_pid"])
+                if existing["child_pid"] is not None
+                else None
+            )
+            if current_child_pid is not None and current_child_pid != child_pid:
+                raise IdempotencyConflictError("daily_launch_child_pid_conflict")
+
+            check = connection.execute(
+                "SELECT source_run_id, target_date, check_status, reason_code, observed_at "
+                "FROM daily_check WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if existing["status"] != "running":
+                if (
+                    existing["status"] != launch_status
+                    or existing["source_run_id"] != run_id
+                    or existing["exit_code"] != exit_code
+                    or existing["completed_at"] != completed
+                    or existing["result_json"] != encoded_summary
+                    or check is None
+                    or check["source_run_id"] != run_id
+                    or check["target_date"] != target
+                    or check["check_status"] != check_status
+                    or check["reason_code"] != reason_code
+                    or check["observed_at"] != completed
+                ):
+                    raise IdempotencyConflictError("daily_launch_completion_conflict")
+            else:
+                if check is not None:
+                    if (
+                        check["source_run_id"] != run_id
+                        or check["target_date"] != target
+                        or check["check_status"] != check_status
+                        or check["reason_code"] != reason_code
+                        or check["observed_at"] != completed
+                    ):
+                        raise IdempotencyConflictError("daily_launch_check_conflict")
+                else:
+                    connection.execute(
+                        "INSERT INTO daily_check "
+                        "(check_id, source_launch_id, source_run_id, target_date, "
+                        "check_status, reason_code, observed_at, created_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            str(uuid.uuid4()),
+                            launch_id,
+                            run_id,
+                            target,
+                            check_status,
+                            reason_code,
+                            completed,
+                            completed,
+                        ),
+                    )
+                connection.execute(
+                    "UPDATE daily_launch SET status = ?, child_pid = ?, source_run_id = ?, "
+                    "exit_code = ?, completed_at = ?, result_json = ? "
+                    "WHERE source_launch_id = ? AND status = 'running'",
+                    (
+                        launch_status,
+                        child_pid if child_pid is not None else current_child_pid,
+                        run_id,
+                        exit_code,
+                        completed,
+                        encoded_summary,
+                        launch_id,
+                    ),
+                )
+        record = self.get_daily_launch(launch_id)
+        if record is None:
+            raise MaintenanceStoreError("daily_launch_completion_unavailable")
+        return record
 
     def record_daily_check(
         self,

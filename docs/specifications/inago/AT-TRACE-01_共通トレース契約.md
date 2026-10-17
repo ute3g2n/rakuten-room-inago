@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.23、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1に、U07 migrationでmanifest/AI session/observationを追加し、現行`D/maintenance/state.sqlite`をschema v2とした。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
+正本：要件定義書HTML 2.24、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
 
 ## 共通イベント
 
@@ -161,6 +161,14 @@ MN05の共通fieldはevent名とUnix epoch秒の`at`。許可する追加field�
 root_readyは指定値を含むが、観測状態をconfigured_unverifiedとする。実際のturn eventから受け取ったmodel/effort/tierだけをruntime_observedに記録し、欠けた値は未確認のままとする。開始前にbasic sandbox mode/model/tier/Fast capabilityを確認し、unsupportedはsession_start_blockedとしてsafe codeと要求設定を記録する。per-folder rootsの有無はcapability条件に含めない。requested値をobserved値として扱わない。prompt、developer instructions本文、AI応答本文、任意例外本文、認証情報、URL/query/DOMは出力しない。
 
 MN05はcommon traceのschema_version/UUID span/JST/quota envelopeを実装したものとは扱わない。90日/4 MiB/日20件の保持・quota、atomic workflow events、stage相関はMN04の実装条件であり、MN05を本番運用可能とする前に別途確定する。U07での実モデル接続は行わず、LC01/LC02をU18で確認する。per-folder roots項目のないCLIでもreadOnly/workspaceWriteのbasic modeを使える場合はsessionを起動できる。
+
+## U08 daily launcher ledger（MN01・schema v3）
+
+日次launcherの起動/完了通知はmaintenance管理SQLite `D/maintenance/state.sqlite`の`daily_launch`と`daily_check`に保存し、日次L01/L02、日次業務DB、MN04 workflow診断JSONLへ混ぜない。`source_launch_id`とJST `target_date`を先にcommitし、起動owner/child PIDとrunning/terminal statusを結ぶ。日次子processがexport、終了保全、共通trace、L01最終記録を含む処理を終えて戻った後でだけ、結果summaryとcheckを同一transactionでterminal化する。terminal launch行はimmutableとする。
+
+結果JSON schema `daily-launch-completion-v1`は`source_launch_id`、`target_date`、`status`、整数`exit_code`、nullable `source_run_id`、必須の`overall_status`/`daily_status`、safe `reason_code`/`failure_phase`、`failed_checks`、primary/secondary error class、`trace_status`を持つ。run未生成時はnullとし、架空IDを作らない。正常・不足・未実施の結果はparsed `target_date`が起動対象日と一致し、正常/不足なら`source_run_id`を持つ。失敗statusに成功overall statusを組み合わせず、not_dueはrun IDなしを許す。非文字列trace statusは`not_written`として安全に処理する。終了コード0なのにparse可能な結果がない場合、およびstatus・daily_check・終了コードが矛盾する子要約は契約エラーexit 4へ正規化し、Schedulerへ成功を返さない。記録/標準出力/標準エラーにはraw stderr/stdout、例外本文、stack、path、下書き数、秘密、個人情報を含めない。有効な日次結果の通知保存失敗時は起動行を`running`で残し、日次CLIの本来のexit codeを維持してU09 watchdogへ委ねる。
+
+launcherはproduction管理DBを自動migrationしない。schema v3がない場合はdaily childを起動しない。U08では専用隔離DBのmigrationを確認し、production DBの初期化・移行、Scheduler登録、日次起動を行っていない。C32のrun-null基本summaryはU08で観測し、計画追加ログ契約全体はU13の受入対象とする。
 
 ## Maintenance保守JSONL（MR-012/013/014/021/022）
 

@@ -1115,7 +1115,7 @@ def test_u07_management_schema_v1_upgrades_without_fabricating_manifest(tmp_path
         connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
         connection.execute("PRAGMA user_version = 1")
 
-    assert store.initialize(applied_at=BASE_TIME) == 2
+    assert store.initialize(applied_at=BASE_TIME) == 3
     assert store.counts()["job_input_manifest"] == 0
     with pytest.raises(MaintenanceStoreError, match="job_input_manifest_missing"):
         store.get_job_input_manifest(job_id="legacy-job")

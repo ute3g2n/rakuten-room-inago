@@ -17,7 +17,11 @@ if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
 }
 Push-Location $projectRoot
 try {
-    & $pythonExe -B -m automation.inago.cli $Mode --environment production --config $configPath --data-root $runtimeRoot
+    if ($Mode -eq 'daily') {
+        & $pythonExe -B -m automation.inago.maintenance.daily_launcher --config $configPath --data-root $runtimeRoot
+    } else {
+        & $pythonExe -B -m automation.inago.cli $Mode --environment production --config $configPath --data-root $runtimeRoot
+    }
     $result = $LASTEXITCODE
 } finally {
     Pop-Location

@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.23 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.24 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -24,6 +24,14 @@ U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest
 親Aのroleはgpt-6.1-sol/xhigh/default/Fast disabled、親Bのroleはgpt-6-luna/max/Fastを指定する。role TOMLのdeveloper instructions、設定digest、model/effort/tier、基本sandbox modeをsessionへ結び、requestedとobservedを分ける。Fastはservice_tier="fast"とfeatures.fast_mode=trueで要求し、protocol上のtier priorityとしてcapabilityを確認する。モデル/effort/tier/FastまたはreadOnly/workspaceWrite modeが未対応ならfallbackせず拒否する。per-folder access/readOnlyAccess/readableRoots/writableRootsがないことは拒否理由にしない。観測イベントに設定値がない場合はconfigured_unverifiedとし、設定した事実だけでverifiedにしない。
 
 調査/review roleはreadOnly mode、親Bの実装/試験roleは専用managed worktree cwdでworkspaceWrite modeを使う。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。各turnはDraft 2020-12 JSON Schemaで返却JSONを検証し、manifestの5項目identityが完全一致することを確認する。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
+
+## U08 daily launcher・最終完了通知
+
+U08は日次taskと`run.ps1 daily`から専用launcherを呼び、maintenance DBへ起動記録をcommitしてから日次CLIを子processとして開始する。実際の子PIDを記録して終了を待ち、CLIがexport・終了保全・共通trace・L01最終記録を含む全処理を返した後にだけ最終通知を確定する。launcher、子process、ownerの終了確認前にmaintenance workerを起動しない。有効で整合する日次結果のexit code 0/4/5（正常/実行・保全等の失敗/処理エラーのない不足）は保ったまま返す。結果JSONがないのにexit 0、またはstatus・終了codeが矛盾する要約は契約失敗exit 4へ正規化する。日次全体の固定期限は設定せず、Schedulerの`ExecutionTimeLimit=PT0S`と個別有限timeoutを維持する。
+
+U08 migration `003_daily_launch.sql`でmaintenance schemaをv3へ進め、`daily_launch`に`source_launch_id`、JST `target_date`、owner/child PID、`running/complete/failed/blocked/unknown` status、nullable `source_run_id`、exit code、完了時刻、安全な結果summaryを保存する。起動前停止はrun IDを創作せず、失敗phase/class、failed check、trace欠測を記録する。正常・不足・未実施の要約は対象日一致、正常/不足はrun IDを必須とし、overall/daily statusはnullにしない。daily_checkとterminal launch resultは同一transactionで確定し、terminal recordは変更/削除できない。結果summaryとstderrにはallowlist済みの識別値・状態・code/classのみを記録し、raw stderr、自由文、秘密、path、下書き数は記録しない。
+
+起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、schema v3が事前に導入済みの場合にだけ日次CLIへ進む。U08のtask XML変更は予定差分であり、Scheduler登録と実日次起動はU21の導入ゲート後に行う。
 
 ## 受入条件
 

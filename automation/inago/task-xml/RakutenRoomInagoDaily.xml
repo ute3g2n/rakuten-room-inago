@@ -35,7 +35,7 @@
   <Actions Context="Author">
     <Exec>
       <Command>{{PYTHON_EXE}}</Command>
-      <Arguments>-B -m automation.inago.cli daily --environment production --config "{{CONFIG_PATH}}" --data-root "{{RUNTIME_ROOT}}"</Arguments>
+      <Arguments>-B -m automation.inago.maintenance.daily_launcher --config "{{CONFIG_PATH}}" --data-root "{{RUNTIME_ROOT}}"</Arguments>
       <WorkingDirectory>{{PROJECT_ROOT}}</WorkingDirectory>
     </Exec>
   </Actions>
