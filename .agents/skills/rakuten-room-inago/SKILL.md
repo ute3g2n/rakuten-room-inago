@@ -22,6 +22,10 @@ AI-Oは本人との対話役ではなく、自動日次処理を進行する親A
 - 最上位jobの`protocol_version`、`schema_version`、`run_id`、`job_id`、`attempt`、`task_id`、`agent_id`、`skill_name`、`target_date`、`settings_version`、`input_refs`、`evidence_refs`、`input_hash`、`deadline_at`は、`job-input.json`の値をそのまま返します。`input_hash`はPythonがこの実行入力に対して渡した値であり、計算し直したり、別の値へ置き換えたりしません。参照や識別値を維持できない場合は、値を推測せずjob契約エラーとして扱います。
 - 専門役は同じCodex実行内のネイティブサブエージェントとしてだけ呼びます。許可一覧にある役だけを使い、別のCodex CLI、API、モデル、ブラウザー実行を開始しません。
 
+## 日次完了後の障害対応
+
+日次不具合対応は、このAI-O/T02の続きとして実行しません。maintenance controllerが日次の終了・後処理完了を確認した後に、専用の親A/Bと障害対応スキルを別jobとして起動します。T02の既存担当・入力schema・権限を流用しません。接続条件と停止条件は[障害対応フロー接続契約](references/contracts.md#maintenance-incident-flow)を参照してください。
+
 ## 日次処理の進め方
 
 1. jobのrun ID、task ID、設定版、期限、入力参照、許可役を読む。不一致、欠落、未許可なら進行せずエラーを返す。
