@@ -1,0 +1,1670 @@
+"""Transactional maintenance state, lease, handoff, and release-gate store."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sqlite3
+import uuid
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path, PurePosixPath
+from typing import Iterator, Mapping
+
+from automation.inago.maintenance.paths import (
+    UnsafeMaintenancePathError,
+    _has_reparse_point,
+    resolve_maintenance_database_path,
+)
+
+
+SCHEMA_VERSION = 1
+APPLICATION_ID = 0x494E474D  # INGM
+_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
+_SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
+_DAILY_CHECK_STATUSES = {
+    "normal",
+    "normal_shortfall",
+    "abnormal",
+    "unknown",
+    "incomplete",
+}
+_TEST_STATUSES = {
+    "PASS",
+    "FAIL",
+    "SKIP",
+    "XFAIL",
+    "ERROR",
+    "NOT_RUN",
+    "UNVERIFIED",
+}
+_REVIEW_STATUSES = {"approved", "changes_requested", "rejected", "unavailable"}
+_DEPLOYMENT_STATUSES = {"pending", "deployed", "failed", "blocked", "rolled_back"}
+_STEP_TERMINAL_STATUSES = {"complete", "handoff_accepted"}
+_JOB_TERMINAL_STATUSES = {"complete", "failed", "blocked", "cancelled"}
+_HANDOFF_KEYS = {
+    "schema_version",
+    "incident_id",
+    "job_id",
+    "attempt_id",
+    "source_run_id",
+    "result_version",
+    "reviewed_version",
+    "output",
+}
+_SCHEMA_TABLES = {
+    "schema_migration",
+    "daily_check",
+    "incident",
+    "incident_run",
+    "release",
+    "release_required_test",
+    "test_ledger",
+    "review_result",
+    "deployment",
+    "release_gate",
+    "maintenance_job",
+    "lease",
+    "step_attempt",
+    "handoff_artifact",
+}
+
+
+class MaintenanceStoreError(RuntimeError):
+    """A safe, non-content-bearing maintenance storage error."""
+
+    def __init__(self, code: str) -> None:
+        self.code = code
+        super().__init__(code)
+
+
+class UnknownMaintenanceSchemaError(MaintenanceStoreError):
+    """The target database is not this maintenance schema or is too new."""
+
+
+class IdempotencyConflictError(MaintenanceStoreError):
+    """A repeated identity arrived with incompatible source facts."""
+
+
+class LeaseBusyError(MaintenanceStoreError):
+    """A held lease cannot be reclaimed without safe owner confirmation."""
+
+
+class LeaseOwnershipError(MaintenanceStoreError):
+    """A lease token is stale, expired, or belongs to another owner."""
+
+
+class HandoffContractError(MaintenanceStoreError):
+    """A handoff identity, version, review, path, or digest is invalid."""
+
+
+@dataclass(frozen=True, slots=True)
+class DailyCheckResult:
+    check_id: str
+    created: bool
+    incident_id: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class LeaseToken:
+    lease_key: str
+    owner_id: str
+    generation: int
+
+
+@dataclass(frozen=True, slots=True)
+class StepAttemptResult:
+    attempt_id: str
+    attempt_no: int
+    status: str
+    reused: bool
+
+
+@dataclass(frozen=True, slots=True)
+class StepAttemptRecord:
+    attempt_id: str
+    job_id: str
+    step_key: str
+    sequence: int
+    attempt_no: int
+    source_run_id: str | None
+    status: str
+    result_version: str | None
+    output_path: str | None
+    output_sha256: str | None
+    started_at: str
+    finished_at: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseRecord:
+    release_id: str
+    result_commit: str
+    result_version: str
+    config_version: str
+    state: str
+
+
+@dataclass(frozen=True, slots=True)
+class GateResult:
+    release_id: str
+    status: str
+    reason_codes: tuple[str, ...]
+    evaluated_at: str
+    result_commit: str
+
+
+@dataclass(frozen=True, slots=True)
+class JobStartResult:
+    started: bool
+    job_id: str | None
+    gate_status: str
+    reason_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class JobFinalizeResult:
+    job_id: str
+    status: str
+    finalized_at: str
+    reason_code: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class HandoffResult:
+    accepted: bool
+    attempt_id: str
+    job_id: str
+    incident_id: str
+    source_run_id: str | None
+    result_version: str
+    output_path: str
+    output_sha256: str
+
+
+def _safe_id(value: object, code: str) -> str:
+    if not isinstance(value, str) or not _ID_PATTERN.fullmatch(value):
+        raise MaintenanceStoreError(code)
+    return value
+
+
+def _safe_code(value: object, code: str) -> str:
+    if not isinstance(value, str) or not _CODE_PATTERN.fullmatch(value):
+        raise MaintenanceStoreError(code)
+    return value
+
+
+def _timestamp(value: datetime | str, code: str = "timestamp_invalid") -> str:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise MaintenanceStoreError(code) from exc
+    else:
+        raise MaintenanceStoreError(code)
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise MaintenanceStoreError(code)
+    return (
+        parsed.astimezone(timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _target_date(value: object) -> str:
+    if not isinstance(value, str):
+        raise MaintenanceStoreError("target_date_invalid")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise MaintenanceStoreError("target_date_invalid") from exc
+    if parsed.isoformat() != value:
+        raise MaintenanceStoreError("target_date_invalid")
+    return value
+
+
+def _relative_output_path(value: object) -> str:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise HandoffContractError("handoff_output_path_invalid")
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        raise HandoffContractError("handoff_output_path_invalid")
+    return path.as_posix()
+
+
+class MaintenanceStore:
+    """Owns the isolated ``data_root/maintenance/state.sqlite`` database."""
+
+    def __init__(
+        self,
+        data_root: str | Path,
+        *,
+        daily_database_path: str | Path | None = None,
+        job_resume_limit: int = 3,
+        review_round_limit: int = 3,
+    ) -> None:
+        if (
+            isinstance(job_resume_limit, bool)
+            or not isinstance(job_resume_limit, int)
+            or not 0 <= job_resume_limit <= 10
+        ):
+            raise MaintenanceStoreError("job_resume_limit_invalid")
+        if (
+            isinstance(review_round_limit, bool)
+            or not isinstance(review_round_limit, int)
+            or not 1 <= review_round_limit <= 10
+        ):
+            raise MaintenanceStoreError("review_round_limit_invalid")
+        if daily_database_path is None and data_root is not None:
+            daily_database_path = Path(data_root).expanduser() / "state.sqlite"
+        self.job_resume_limit = job_resume_limit
+        self.review_round_limit = review_round_limit
+        self.database_path = resolve_maintenance_database_path(
+            data_root,
+            daily_database_path=daily_database_path,
+        )
+
+    def initialize(self, *, applied_at: datetime | str | None = None) -> int:
+        """Create the maintenance database or verify its known schema version."""
+
+        if self.database_path.exists() and not self.database_path.is_file():
+            raise UnsafeMaintenancePathError("maintenance_database_not_file")
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.database_path.is_symlink():
+            raise UnsafeMaintenancePathError("maintenance_database_reparse_point")
+        connection = sqlite3.connect(
+            self.database_path,
+            timeout=5.0,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA busy_timeout = 5000")
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if application_id not in {0, APPLICATION_ID}:
+                raise UnknownMaintenanceSchemaError("database_application_id_unknown")
+            if version > SCHEMA_VERSION:
+                raise UnknownMaintenanceSchemaError("database_schema_is_newer")
+            if version > 0 and application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            if version == 0:
+                existing = connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+                if existing:
+                    raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+            connection.execute("PRAGMA journal_mode = WAL")
+            if version == 0:
+                migration_text = (
+                    Path(__file__).resolve().parent / "sql" / "001_initial.sql"
+                ).read_text(encoding="utf-8")
+                connection.execute("BEGIN IMMEDIATE")
+                statement = ""
+                for line in migration_text.splitlines(keepends=True):
+                    statement += line
+                    if sqlite3.complete_statement(statement):
+                        connection.execute(statement)
+                        statement = ""
+                if statement.strip():
+                    raise UnknownMaintenanceSchemaError("migration_incomplete")
+                connection.execute(
+                    "INSERT INTO schema_migration (version, applied_at, description) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        SCHEMA_VERSION,
+                        _timestamp(applied_at or datetime.now(timezone.utc)),
+                        "initial isolated maintenance state",
+                    ),
+                )
+                connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                connection.commit()
+            elif application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            self._assert_schema(connection)
+            integrity = connection.execute("PRAGMA quick_check").fetchone()[0]
+            if integrity != "ok":
+                raise UnknownMaintenanceSchemaError("database_integrity_failed")
+            return SCHEMA_VERSION
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def _connect(self) -> sqlite3.Connection:
+        if not self.database_path.is_file() or self.database_path.is_symlink():
+            raise MaintenanceStoreError("maintenance_database_unavailable")
+        try:
+            uri = f"{self.database_path.resolve(strict=True).as_uri()}?mode=rw"
+            connection = sqlite3.connect(
+                uri,
+                uri=True,
+                timeout=5.0,
+                isolation_level=None,
+            )
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            raise MaintenanceStoreError("maintenance_database_unavailable") from exc
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA busy_timeout = 5000")
+        self._assert_schema(connection)
+        return connection
+
+    @staticmethod
+    def _assert_schema(connection: sqlite3.Connection) -> None:
+        try:
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            migration = connection.execute(
+                "SELECT version FROM schema_migration WHERE version = ?",
+                (SCHEMA_VERSION,),
+            ).fetchone()
+            tables = {
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+            }
+        except sqlite3.Error as exc:
+            raise UnknownMaintenanceSchemaError("database_schema_unrecognized") from exc
+        if (
+            application_id != APPLICATION_ID
+            or version != SCHEMA_VERSION
+            or migration is None
+            or tables != _SCHEMA_TABLES
+        ):
+            raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+
+    @contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def counts(self) -> dict[str, int]:
+        connection = self._connect()
+        try:
+            names = (
+                "daily_check",
+                "incident",
+                "incident_run",
+                "maintenance_job",
+                "step_attempt",
+                "review_result",
+                "test_ledger",
+                "deployment",
+                "release_gate",
+                "lease",
+            )
+            return {
+                name: int(
+                    connection.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
+                )
+                for name in names
+            }
+        finally:
+            connection.close()
+
+    def record_daily_check(
+        self,
+        *,
+        source_launch_id: str,
+        source_run_id: str | None,
+        target_date: str,
+        check_status: str,
+        observed_at: datetime | str,
+        reason_code: str | None,
+        incident: Mapping[str, object] | None,
+    ) -> DailyCheckResult:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        run_id = (
+            None
+            if source_run_id is None
+            else _safe_id(source_run_id, "source_run_id_invalid")
+        )
+        target = _target_date(target_date)
+        if check_status not in _DAILY_CHECK_STATUSES:
+            raise MaintenanceStoreError("check_status_invalid")
+        observed = _timestamp(observed_at)
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "reason_code_invalid")
+        incident_values: tuple[str, str, str] | None = None
+        if incident is not None:
+            if set(incident) != {"dedupe_key", "component", "event_code"}:
+                raise MaintenanceStoreError("incident_input_invalid")
+            incident_values = (
+                _safe_id(incident["dedupe_key"], "incident_dedupe_key_invalid"),
+                _safe_code(incident["component"], "incident_component_invalid"),
+                _safe_code(incident["event_code"], "incident_event_code_invalid"),
+            )
+        if check_status == "abnormal" and incident_values is None:
+            raise MaintenanceStoreError("abnormal_check_requires_incident")
+        if (
+            check_status in {"normal", "normal_shortfall"}
+            and incident_values is not None
+        ):
+            raise MaintenanceStoreError("normal_check_cannot_create_incident")
+
+        with self._transaction() as connection:
+            existing = connection.execute(
+                "SELECT check_id, source_run_id, target_date, check_status, reason_code, observed_at "
+                "FROM daily_check WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if existing is not None:
+                if (
+                    existing["source_run_id"] != run_id
+                    or existing["target_date"] != target
+                    or existing["check_status"] != check_status
+                    or existing["reason_code"] != reason_code
+                    or existing["observed_at"] != observed
+                ):
+                    raise IdempotencyConflictError("launch_identity_conflict")
+                incident_id = None
+                associated = connection.execute(
+                    "SELECT i.incident_id, i.dedupe_key, i.component, i.event_code "
+                    "FROM incident_run ir "
+                    "JOIN incident i ON i.incident_id = ir.incident_id "
+                    "WHERE ir.check_id = ?",
+                    (existing["check_id"],),
+                ).fetchone()
+                if associated is not None:
+                    if (
+                        incident_values is None
+                        or (
+                            associated["dedupe_key"],
+                            associated["component"],
+                            associated["event_code"],
+                        )
+                        != incident_values
+                    ):
+                        raise IdempotencyConflictError("launch_incident_conflict")
+                    incident_id = str(associated["incident_id"])
+                elif incident_values is not None:
+                    raise IdempotencyConflictError("launch_incident_conflict")
+                return DailyCheckResult(str(existing["check_id"]), False, incident_id)
+
+            check_id = str(uuid.uuid4())
+            created_at = _timestamp(datetime.now(timezone.utc))
+            connection.execute(
+                "INSERT INTO daily_check "
+                "(check_id, source_launch_id, source_run_id, target_date, check_status, "
+                "reason_code, observed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    check_id,
+                    launch_id,
+                    run_id,
+                    target,
+                    check_status,
+                    reason_code,
+                    observed,
+                    created_at,
+                ),
+            )
+            incident_id: str | None = None
+            if incident_values is not None:
+                dedupe_key, component, event_code = incident_values
+                existing_incident = connection.execute(
+                    "SELECT incident_id, component, event_code FROM incident WHERE dedupe_key = ? "
+                    "AND status IN ('open', 'in_progress', 'blocked')",
+                    (dedupe_key,),
+                ).fetchone()
+                if existing_incident is None:
+                    incident_id = str(uuid.uuid4())
+                    connection.execute(
+                        "INSERT INTO incident "
+                        "(incident_id, dedupe_key, component, event_code, status, created_at, updated_at) "
+                        "VALUES (?, ?, ?, ?, 'open', ?, ?)",
+                        (
+                            incident_id,
+                            dedupe_key,
+                            component,
+                            event_code,
+                            created_at,
+                            created_at,
+                        ),
+                    )
+                else:
+                    if (
+                        existing_incident["component"] != component
+                        or existing_incident["event_code"] != event_code
+                    ):
+                        raise IdempotencyConflictError("incident_identity_conflict")
+                    incident_id = str(existing_incident["incident_id"])
+                connection.execute(
+                    "INSERT INTO incident_run "
+                    "(incident_id, check_id, source_launch_id, source_run_id, created_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (incident_id, check_id, launch_id, run_id, created_at),
+                )
+            return DailyCheckResult(check_id, True, incident_id)
+
+    def create_release(
+        self,
+        *,
+        release_id: str,
+        author_id: str,
+        base_commit: str,
+        result_commit: str,
+        result_version: str,
+        config_version: str,
+        required_case_ids: tuple[str, ...],
+        created_at: datetime | str,
+    ) -> ReleaseRecord:
+        release = _safe_id(release_id, "release_id_invalid")
+        author = _safe_id(author_id, "release_author_invalid")
+        base = _safe_id(base_commit, "base_commit_invalid")
+        result = _safe_id(result_commit, "result_commit_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        config = _safe_id(config_version, "config_version_invalid")
+        cases = tuple(
+            _safe_id(case_id, "required_case_id_invalid")
+            for case_id in required_case_ids
+        )
+        if not cases or len(set(cases)) != len(cases):
+            raise MaintenanceStoreError("required_case_set_invalid")
+        created = _timestamp(created_at)
+        manifest_hash = hashlib.sha256(
+            json.dumps(cases, ensure_ascii=True, separators=(",", ":")).encode("ascii")
+        ).hexdigest()
+        with self._transaction() as connection:
+            connection.execute(
+                "INSERT INTO release "
+                "(release_id, author_id, base_commit, result_commit, result_version, "
+                "config_version, case_manifest_sha256, state, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'frozen', ?)",
+                (
+                    release,
+                    author,
+                    base,
+                    result,
+                    version,
+                    config,
+                    manifest_hash,
+                    created,
+                ),
+            )
+            connection.executemany(
+                "INSERT INTO release_required_test (release_id, case_id, sequence) "
+                "VALUES (?, ?, ?)",
+                ((release, case_id, index) for index, case_id in enumerate(cases, 1)),
+            )
+        return ReleaseRecord(release, result, version, config, "frozen")
+
+    def record_test_result(
+        self,
+        *,
+        release_id: str,
+        case_id: str,
+        attempt: int,
+        result_version: str,
+        status: str,
+        recorded_at: datetime | str,
+        evidence_ref: str | None = None,
+    ) -> str:
+        release = _safe_id(release_id, "release_id_invalid")
+        case = _safe_id(case_id, "case_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
+            raise MaintenanceStoreError("test_attempt_invalid")
+        if status not in _TEST_STATUSES:
+            raise MaintenanceStoreError("test_status_invalid")
+        evidence = None if evidence_ref is None else _relative_output_path(evidence_ref)
+        result_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            required = connection.execute(
+                "SELECT 1 FROM release_required_test WHERE release_id = ? AND case_id = ?",
+                (release, case),
+            ).fetchone()
+            if required is None:
+                raise MaintenanceStoreError("test_case_not_in_frozen_release")
+            connection.execute(
+                "INSERT INTO test_ledger "
+                "(test_result_id, release_id, case_id, attempt, result_version, status, "
+                "evidence_ref, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    result_id,
+                    release,
+                    case,
+                    attempt,
+                    version,
+                    status,
+                    evidence,
+                    _timestamp(recorded_at),
+                ),
+            )
+        return result_id
+
+    def record_release_review(
+        self,
+        *,
+        release_id: str,
+        reviewer_id: str,
+        reviewed_version: str,
+        status: str,
+        reviewed_at: datetime | str,
+    ) -> str:
+        release = _safe_id(release_id, "release_id_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        version = _safe_id(reviewed_version, "reviewed_version_invalid")
+        if status not in _REVIEW_STATUSES:
+            raise MaintenanceStoreError("review_status_invalid")
+        review_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT author_id FROM release WHERE release_id = ?", (release,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("release_not_found")
+            if reviewer == row["author_id"]:
+                raise MaintenanceStoreError("reviewer_must_be_independent")
+            review_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM review_result "
+                    "WHERE scope_type = 'release' AND scope_id = ?",
+                    (release,),
+                ).fetchone()[0]
+            )
+            if review_count >= self.review_round_limit:
+                raise MaintenanceStoreError("review_round_limit_exceeded")
+            connection.execute(
+                "INSERT INTO review_result "
+                "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
+                "VALUES (?, 'release', ?, ?, ?, ?, ?)",
+                (
+                    review_id,
+                    release,
+                    reviewer,
+                    version,
+                    status,
+                    _timestamp(reviewed_at),
+                ),
+            )
+        return review_id
+
+    def record_deployment(
+        self,
+        *,
+        release_id: str,
+        result_commit: str,
+        config_version: str,
+        status: str,
+        deployed_at: datetime | str,
+    ) -> str:
+        release = _safe_id(release_id, "release_id_invalid")
+        commit = _safe_id(result_commit, "result_commit_invalid")
+        config = _safe_id(config_version, "config_version_invalid")
+        if status not in _DEPLOYMENT_STATUSES:
+            raise MaintenanceStoreError("deployment_status_invalid")
+        deployment_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM release WHERE release_id = ?", (release,)
+                ).fetchone()
+                is None
+            ):
+                raise MaintenanceStoreError("release_not_found")
+            attempt = int(
+                connection.execute(
+                    "SELECT COALESCE(MAX(attempt), 0) + 1 FROM deployment WHERE release_id = ?",
+                    (release,),
+                ).fetchone()[0]
+            )
+            connection.execute(
+                "INSERT INTO deployment "
+                "(deployment_id, release_id, attempt, result_commit, config_version, status, deployed_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    deployment_id,
+                    release,
+                    attempt,
+                    commit,
+                    config,
+                    status,
+                    _timestamp(deployed_at),
+                ),
+            )
+        return deployment_id
+
+    @staticmethod
+    def _evaluate_release_gate(
+        connection: sqlite3.Connection,
+        release_id: str,
+        evaluated_at: str,
+    ) -> GateResult:
+        release = connection.execute(
+            "SELECT * FROM release WHERE release_id = ?", (release_id,)
+        ).fetchone()
+        if release is None:
+            raise MaintenanceStoreError("release_not_found")
+        reasons: list[str] = []
+        if release["state"] != "frozen":
+            reasons.append("release_not_frozen")
+        required = connection.execute(
+            "SELECT case_id FROM release_required_test WHERE release_id = ? ORDER BY sequence",
+            (release_id,),
+        ).fetchall()
+        if not required:
+            reasons.append("required_test_set_empty")
+        manifest = tuple(str(row["case_id"]) for row in required)
+        manifest_hash = hashlib.sha256(
+            json.dumps(manifest, ensure_ascii=True, separators=(",", ":")).encode(
+                "ascii"
+            )
+        ).hexdigest()
+        if manifest_hash != release["case_manifest_sha256"]:
+            reasons.append("required_test_manifest_mismatch")
+        for required_row in required:
+            case_id = str(required_row["case_id"])
+            test = connection.execute(
+                "SELECT status, result_version FROM test_ledger "
+                "WHERE release_id = ? AND case_id = ? ORDER BY attempt DESC LIMIT 1",
+                (release_id, case_id),
+            ).fetchone()
+            if test is None:
+                reasons.append("required_test_missing")
+            else:
+                if test["status"] != "PASS":
+                    reasons.append("required_test_not_pass")
+                if test["result_version"] != release["result_version"]:
+                    reasons.append("required_test_version_mismatch")
+
+        review = connection.execute(
+            "SELECT reviewer_id, reviewed_version, status FROM review_result "
+            "WHERE scope_type = 'release' AND scope_id = ? "
+            "ORDER BY rowid DESC LIMIT 1",
+            (release_id,),
+        ).fetchone()
+        if review is None:
+            reasons.append("release_review_missing")
+        else:
+            if review["status"] != "approved":
+                reasons.append("release_review_not_approved")
+            if review["reviewed_version"] != release["result_version"]:
+                reasons.append("release_review_version_mismatch")
+            if review["reviewer_id"] == release["author_id"]:
+                reasons.append("release_review_not_independent")
+
+        deployment = connection.execute(
+            "SELECT result_commit, config_version, status FROM deployment "
+            "WHERE release_id = ? ORDER BY attempt DESC LIMIT 1",
+            (release_id,),
+        ).fetchone()
+        if deployment is None:
+            reasons.append("deployment_missing")
+        else:
+            if deployment["status"] != "deployed":
+                reasons.append("deployment_not_successful")
+            if deployment["result_commit"] != release["result_commit"]:
+                reasons.append("deployment_commit_mismatch")
+            if deployment["config_version"] != release["config_version"]:
+                reasons.append("deployment_config_mismatch")
+
+        reason_codes = tuple(sorted(set(reasons)))
+        status = "ready" if not reason_codes else "blocked"
+        connection.execute(
+            "INSERT INTO release_gate (release_id, status, reasons_json, evaluated_at, result_commit) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT(release_id) DO UPDATE SET "
+            "status = excluded.status, reasons_json = excluded.reasons_json, "
+            "evaluated_at = excluded.evaluated_at, result_commit = excluded.result_commit",
+            (
+                release_id,
+                status,
+                json.dumps(reason_codes, separators=(",", ":")),
+                evaluated_at,
+                release["result_commit"],
+            ),
+        )
+        return GateResult(
+            release_id,
+            status,
+            reason_codes,
+            evaluated_at,
+            str(release["result_commit"]),
+        )
+
+    def evaluate_release_gate(
+        self,
+        *,
+        release_id: str,
+        evaluated_at: datetime | str,
+    ) -> GateResult:
+        release = _safe_id(release_id, "release_id_invalid")
+        when = _timestamp(evaluated_at)
+        with self._transaction() as connection:
+            return self._evaluate_release_gate(connection, release, when)
+
+    def start_fix_job(
+        self,
+        *,
+        incident_id: str,
+        release_id: str,
+        job_id: str,
+        started_at: datetime | str,
+        source_run_id: str | None = None,
+    ) -> JobStartResult:
+        incident = _safe_id(incident_id, "incident_id_invalid")
+        release = _safe_id(release_id, "release_id_invalid")
+        job = _safe_id(job_id, "job_id_invalid")
+        run_id = (
+            None
+            if source_run_id is None
+            else _safe_id(source_run_id, "source_run_id_invalid")
+        )
+        when = _timestamp(started_at)
+        with self._transaction() as connection:
+            gate = self._evaluate_release_gate(connection, release, when)
+            if gate.status != "ready":
+                return JobStartResult(False, None, gate.status, gate.reason_codes)
+            incident_row = connection.execute(
+                "SELECT status FROM incident WHERE incident_id = ?", (incident,)
+            ).fetchone()
+            if incident_row is None:
+                raise MaintenanceStoreError("incident_not_found")
+            if incident_row["status"] not in {"open", "in_progress", "blocked"}:
+                raise MaintenanceStoreError("incident_not_active")
+            existing = connection.execute(
+                "SELECT job_id, status FROM maintenance_job "
+                "WHERE incident_id = ? AND release_id = ?",
+                (incident, release),
+            ).fetchone()
+            if existing is not None:
+                return JobStartResult(
+                    False,
+                    str(existing["job_id"]),
+                    gate.status,
+                    ("job_already_exists",),
+                )
+            job_identity = connection.execute(
+                "SELECT incident_id, release_id FROM maintenance_job WHERE job_id = ?",
+                (job,),
+            ).fetchone()
+            if job_identity is not None:
+                if (
+                    job_identity["incident_id"] != incident
+                    or job_identity["release_id"] != release
+                ):
+                    raise IdempotencyConflictError("job_identity_conflict")
+                return JobStartResult(False, job, gate.status, ("job_already_exists",))
+            active_job = connection.execute(
+                "SELECT job_id FROM maintenance_job "
+                "WHERE status IN ('queued', 'running') LIMIT 1"
+            ).fetchone()
+            if active_job is not None:
+                return JobStartResult(
+                    False,
+                    str(active_job["job_id"]),
+                    gate.status,
+                    ("maintenance_job_busy",),
+                )
+            connection.execute(
+                "INSERT INTO maintenance_job "
+                "(job_id, incident_id, release_id, source_run_id, result_version, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)",
+                (
+                    job,
+                    incident,
+                    release,
+                    run_id,
+                    self._release_version(connection, release),
+                    when,
+                    when,
+                ),
+            )
+            return JobStartResult(True, job, gate.status, ())
+
+    @staticmethod
+    def _release_version(connection: sqlite3.Connection, release_id: str) -> str:
+        row = connection.execute(
+            "SELECT result_version FROM release WHERE release_id = ?", (release_id,)
+        ).fetchone()
+        if row is None:
+            raise MaintenanceStoreError("release_not_found")
+        return str(row["result_version"])
+
+    def acquire_lease(
+        self,
+        *,
+        lease_key: str,
+        owner_id: str,
+        owner_pid: int,
+        owner_start_time: datetime | str,
+        now: datetime | str,
+        ttl_seconds: int = 90,
+        prior_owner_observation: str = "unknown",
+    ) -> LeaseToken:
+        key = _safe_id(lease_key, "lease_key_invalid")
+        owner = _safe_id(owner_id, "lease_owner_invalid")
+        start = _timestamp(owner_start_time, "owner_start_time_invalid")
+        when = _timestamp(now)
+        if (
+            isinstance(owner_pid, bool)
+            or not isinstance(owner_pid, int)
+            or owner_pid < 1
+        ):
+            raise MaintenanceStoreError("owner_pid_invalid")
+        if (
+            isinstance(ttl_seconds, bool)
+            or not isinstance(ttl_seconds, int)
+            or not 1 <= ttl_seconds <= 300
+        ):
+            raise MaintenanceStoreError("lease_ttl_invalid")
+        if prior_owner_observation not in {"unknown", "alive", "dead", "reused"}:
+            raise MaintenanceStoreError("owner_observation_invalid")
+        acquired = _parse_timestamp(when)
+        expires = _timestamp(acquired + timedelta(seconds=ttl_seconds))
+        with self._transaction() as connection:
+            current = connection.execute(
+                "SELECT * FROM lease WHERE lease_key = ?", (key,)
+            ).fetchone()
+            if current is not None:
+                reclaimable = current["state"] == "released"
+                if current["state"] == "held":
+                    expired = _parse_timestamp(when) >= _parse_timestamp(
+                        current["expires_at"]
+                    )
+                    reclaimable = expired and prior_owner_observation in {
+                        "dead",
+                        "reused",
+                    }
+                    if not reclaimable:
+                        raise LeaseBusyError("lease_busy")
+                generation = int(current["generation"]) + 1
+            else:
+                generation = 1
+            connection.execute(
+                "INSERT INTO lease "
+                "(lease_key, owner_id, owner_pid, owner_start_time, generation, state, "
+                "acquired_at, heartbeat_at, expires_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, 'held', ?, ?, ?, ?) "
+                "ON CONFLICT(lease_key) DO UPDATE SET owner_id = excluded.owner_id, "
+                "owner_pid = excluded.owner_pid, owner_start_time = excluded.owner_start_time, "
+                "generation = excluded.generation, state = 'held', acquired_at = excluded.acquired_at, "
+                "heartbeat_at = excluded.heartbeat_at, expires_at = excluded.expires_at, "
+                "updated_at = excluded.updated_at",
+                (key, owner, owner_pid, start, generation, when, when, expires, when),
+            )
+        return LeaseToken(key, owner, generation)
+
+    @staticmethod
+    def _assert_lease(
+        connection: sqlite3.Connection,
+        lease: LeaseToken,
+        now: str,
+    ) -> None:
+        row = connection.execute(
+            "SELECT owner_id, generation, state, expires_at FROM lease WHERE lease_key = ?",
+            (lease.lease_key,),
+        ).fetchone()
+        if (
+            row is None
+            or row["owner_id"] != lease.owner_id
+            or int(row["generation"]) != lease.generation
+            or row["state"] != "held"
+            or _parse_timestamp(now) >= _parse_timestamp(row["expires_at"])
+        ):
+            raise LeaseOwnershipError("lease_token_invalid_or_expired")
+
+    def heartbeat_lease(
+        self,
+        *,
+        lease: LeaseToken,
+        now: datetime | str,
+        ttl_seconds: int = 90,
+    ) -> LeaseToken:
+        when = _timestamp(now)
+        if (
+            isinstance(ttl_seconds, bool)
+            or not isinstance(ttl_seconds, int)
+            or not 1 <= ttl_seconds <= 300
+        ):
+            raise MaintenanceStoreError("lease_ttl_invalid")
+        expires = _timestamp(_parse_timestamp(when) + timedelta(seconds=ttl_seconds))
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            connection.execute(
+                "UPDATE lease SET heartbeat_at = ?, expires_at = ?, updated_at = ? "
+                "WHERE lease_key = ? AND generation = ?",
+                (when, expires, when, lease.lease_key, lease.generation),
+            )
+        return lease
+
+    def release_lease(self, *, lease: LeaseToken, released_at: datetime | str) -> None:
+        when = _timestamp(released_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            connection.execute(
+                "UPDATE lease SET state = 'released', updated_at = ? "
+                "WHERE lease_key = ? AND owner_id = ? AND generation = ?",
+                (when, lease.lease_key, lease.owner_id, lease.generation),
+            )
+
+    def begin_step_attempt(
+        self,
+        *,
+        job_id: str,
+        step_key: str,
+        sequence: int,
+        lease: LeaseToken,
+        started_at: datetime | str,
+    ) -> StepAttemptResult:
+        job = _safe_id(job_id, "job_id_invalid")
+        step = _safe_code(step_key, "step_key_invalid")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise MaintenanceStoreError("step_sequence_invalid")
+        when = _timestamp(started_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            job_row = connection.execute(
+                "SELECT source_run_id, status, lease_key, lease_generation, resume_count "
+                "FROM maintenance_job WHERE job_id = ?",
+                (job,),
+            ).fetchone()
+            if job_row is None:
+                raise MaintenanceStoreError("job_not_found")
+            if job_row["status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if (
+                job_row["lease_key"] is not None
+                and job_row["lease_key"] != lease.lease_key
+            ):
+                raise MaintenanceStoreError("job_lease_key_conflict")
+            if job_row["lease_generation"] is not None:
+                current_generation = int(job_row["lease_generation"])
+                if lease.generation < current_generation:
+                    raise MaintenanceStoreError("lease_generation_not_advanced")
+                if lease.generation > current_generation:
+                    if int(job_row["resume_count"]) >= self.job_resume_limit:
+                        raise MaintenanceStoreError("job_resume_limit_exceeded")
+                    connection.execute(
+                        "UPDATE maintenance_job SET lease_generation = ?, resume_count = ?, "
+                        "updated_at = ? WHERE job_id = ?",
+                        (
+                            lease.generation,
+                            int(job_row["resume_count"]) + 1,
+                            when,
+                            job,
+                        ),
+                    )
+            else:
+                connection.execute(
+                    "UPDATE maintenance_job SET lease_key = ?, lease_generation = ?, "
+                    "updated_at = ? WHERE job_id = ?",
+                    (lease.lease_key, lease.generation, when, job),
+                )
+            prior_rows = connection.execute(
+                "SELECT DISTINCT sequence FROM step_attempt "
+                "WHERE job_id = ? AND sequence < ? ORDER BY sequence",
+                (job, sequence),
+            ).fetchall()
+            prior_sequences = {int(row["sequence"]) for row in prior_rows}
+            if prior_sequences != set(range(1, sequence)):
+                raise MaintenanceStoreError("step_predecessor_incomplete")
+            for prior_sequence in range(1, sequence):
+                prior = connection.execute(
+                    "SELECT s.attempt_id, s.status, s.result_version, r.author_id "
+                    "FROM step_attempt s "
+                    "JOIN maintenance_job j ON j.job_id = s.job_id "
+                    "JOIN release r ON r.release_id = j.release_id "
+                    "WHERE s.job_id = ? AND s.sequence = ? "
+                    "ORDER BY s.attempt_no DESC LIMIT 1",
+                    (job, prior_sequence),
+                ).fetchone()
+                if prior is None or prior["status"] not in _STEP_TERMINAL_STATUSES:
+                    raise MaintenanceStoreError("step_predecessor_incomplete")
+                review = connection.execute(
+                    "SELECT reviewer_id, reviewed_version, status FROM review_result "
+                    "WHERE scope_type = 'step_attempt' AND scope_id = ? "
+                    "ORDER BY rowid DESC LIMIT 1",
+                    (prior["attempt_id"],),
+                ).fetchone()
+                if (
+                    review is None
+                    or review["reviewer_id"] == prior["author_id"]
+                    or review["reviewed_version"] != prior["result_version"]
+                    or review["status"] != "approved"
+                ):
+                    raise MaintenanceStoreError("step_predecessor_not_approved")
+            latest = connection.execute(
+                "SELECT * FROM step_attempt WHERE job_id = ? AND step_key = ? "
+                "ORDER BY attempt_no DESC LIMIT 1",
+                (job, step),
+            ).fetchone()
+            if latest is not None and int(latest["sequence"]) != sequence:
+                raise MaintenanceStoreError("step_sequence_conflict")
+            if latest is not None and latest["status"] in _STEP_TERMINAL_STATUSES:
+                review = connection.execute(
+                    "SELECT reviewed_version, status FROM review_result "
+                    "WHERE scope_type = 'step_attempt' AND scope_id = ? "
+                    "ORDER BY rowid DESC LIMIT 1",
+                    (latest["attempt_id"],),
+                ).fetchone()
+                if latest["status"] == "handoff_accepted":
+                    if (
+                        review is None
+                        or review["reviewed_version"] != latest["result_version"]
+                        or review["status"] != "approved"
+                    ):
+                        raise MaintenanceStoreError(
+                            "handoff_review_not_approved_for_version"
+                        )
+                    return StepAttemptResult(
+                        str(latest["attempt_id"]),
+                        int(latest["attempt_no"]),
+                        str(latest["status"]),
+                        True,
+                    )
+                if (
+                    review is not None
+                    and review["reviewed_version"] == latest["result_version"]
+                    and review["status"] == "approved"
+                ):
+                    return StepAttemptResult(
+                        str(latest["attempt_id"]),
+                        int(latest["attempt_no"]),
+                        str(latest["status"]),
+                        True,
+                    )
+                if review is None or review["status"] != "changes_requested":
+                    raise MaintenanceStoreError("step_attempt_review_not_actionable")
+                review_count = int(
+                    connection.execute(
+                        "SELECT COUNT(*) FROM review_result r "
+                        "JOIN step_attempt s ON s.attempt_id = r.scope_id "
+                        "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                        "AND s.step_key = ? AND s.sequence = ?",
+                        (job, step, sequence),
+                    ).fetchone()[0]
+                )
+                if review_count >= self.review_round_limit:
+                    raise MaintenanceStoreError("review_round_limit_exceeded")
+            if latest is not None and latest["status"] == "running":
+                if (
+                    latest["lease_key"] == lease.lease_key
+                    and int(latest["lease_generation"]) == lease.generation
+                ):
+                    raise MaintenanceStoreError("step_attempt_already_running")
+                connection.execute(
+                    "UPDATE step_attempt SET status = 'interrupted', finished_at = ? "
+                    "WHERE attempt_id = ? AND status = 'running'",
+                    (when, latest["attempt_id"]),
+                )
+            prior_sequence = connection.execute(
+                "SELECT step_key FROM step_attempt WHERE job_id = ? AND sequence = ? "
+                "AND step_key <> ? LIMIT 1",
+                (job, sequence, step),
+            ).fetchone()
+            if prior_sequence is not None:
+                raise MaintenanceStoreError("step_sequence_conflict")
+            attempt_no = 1 if latest is None else int(latest["attempt_no"]) + 1
+            attempt_id = str(uuid.uuid4())
+            connection.execute(
+                "INSERT INTO step_attempt "
+                "(attempt_id, job_id, step_key, sequence, attempt_no, source_run_id, "
+                "lease_key, lease_generation, status, started_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'running', ?)",
+                (
+                    attempt_id,
+                    job,
+                    step,
+                    sequence,
+                    attempt_no,
+                    job_row["source_run_id"],
+                    lease.lease_key,
+                    lease.generation,
+                    when,
+                ),
+            )
+            connection.execute(
+                "UPDATE maintenance_job SET status = 'running', updated_at = ? WHERE job_id = ?",
+                (when, job),
+            )
+            return StepAttemptResult(attempt_id, attempt_no, "running", False)
+
+    def complete_step_attempt(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        result_version: str,
+        completed_at: datetime | str,
+        output_path: str | None = None,
+        output_sha256: str | None = None,
+    ) -> None:
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        when = _timestamp(completed_at)
+        if (output_path is None) != (output_sha256 is None):
+            raise MaintenanceStoreError("attempt_output_incomplete")
+        output = None if output_path is None else _relative_output_path(output_path)
+        digest = output_sha256
+        if digest is not None and (
+            not isinstance(digest, str) or not _SHA256_PATTERN.fullmatch(digest)
+        ):
+            raise MaintenanceStoreError("attempt_output_digest_invalid")
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT s.status, s.lease_key, s.lease_generation, j.status AS job_status "
+                "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            if (
+                row["lease_key"] != lease.lease_key
+                or int(row["lease_generation"]) != lease.generation
+            ):
+                raise MaintenanceStoreError("step_attempt_lease_mismatch")
+            connection.execute(
+                "UPDATE step_attempt SET status = 'complete', result_version = ?, "
+                "output_path = ?, output_sha256 = ?, finished_at = ? WHERE attempt_id = ?",
+                (version, output, digest, when, attempt),
+            )
+
+    def record_step_review(
+        self,
+        *,
+        attempt_id: str,
+        reviewer_id: str,
+        reviewed_version: str,
+        status: str,
+        reviewed_at: datetime | str,
+    ) -> str:
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        version = _safe_id(reviewed_version, "reviewed_version_invalid")
+        if status not in _REVIEW_STATUSES:
+            raise MaintenanceStoreError("review_status_invalid")
+        review_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT r.author_id, s.job_id, s.step_key, s.sequence, "
+                "s.status AS attempt_status, "
+                "s.result_version AS attempt_result_version FROM step_attempt s "
+                "JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["attempt_status"] == "handoff_accepted":
+                raise MaintenanceStoreError("step_handoff_already_accepted")
+            if row["attempt_status"] != "complete":
+                raise MaintenanceStoreError("step_attempt_not_complete")
+            if row["attempt_result_version"] != version:
+                raise MaintenanceStoreError("step_review_version_mismatch")
+            if reviewer == row["author_id"]:
+                raise MaintenanceStoreError("reviewer_must_be_independent")
+            review_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM review_result r "
+                    "JOIN step_attempt s ON s.attempt_id = r.scope_id "
+                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                    "AND s.step_key = ? AND s.sequence = ?",
+                    (row["job_id"], row["step_key"], row["sequence"]),
+                ).fetchone()[0]
+            )
+            if review_count >= self.review_round_limit:
+                raise MaintenanceStoreError("review_round_limit_exceeded")
+            connection.execute(
+                "INSERT INTO review_result "
+                "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
+                "VALUES (?, 'step_attempt', ?, ?, ?, ?, ?)",
+                (
+                    review_id,
+                    attempt,
+                    reviewer,
+                    version,
+                    status,
+                    _timestamp(reviewed_at),
+                ),
+            )
+        return review_id
+
+    def accept_handoff(
+        self,
+        payload: object,
+        *,
+        handoff_root: str | Path,
+        lease: LeaseToken,
+        accepted_at: datetime | str,
+    ) -> HandoffResult:
+        if not isinstance(payload, dict) or set(payload) != _HANDOFF_KEYS:
+            raise HandoffContractError("handoff_envelope_invalid")
+        if payload["schema_version"] != "maintenance-handoff-v1":
+            raise HandoffContractError("handoff_schema_version_mismatch")
+        incident = _safe_id(payload["incident_id"], "handoff_incident_id_invalid")
+        job = _safe_id(payload["job_id"], "handoff_job_id_invalid")
+        attempt = _safe_id(payload["attempt_id"], "handoff_attempt_id_invalid")
+        run_id = (
+            None
+            if payload["source_run_id"] is None
+            else _safe_id(payload["source_run_id"], "handoff_source_run_id_invalid")
+        )
+        result_version = _safe_id(
+            payload["result_version"], "handoff_result_version_invalid"
+        )
+        reviewed_version = _safe_id(
+            payload["reviewed_version"], "handoff_reviewed_version_invalid"
+        )
+        output = payload["output"]
+        if not isinstance(output, dict) or set(output) != {"path", "sha256"}:
+            raise HandoffContractError("handoff_output_invalid")
+        output_path = _relative_output_path(output["path"])
+        output_sha256 = output["sha256"]
+        if not isinstance(output_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            output_sha256
+        ):
+            raise HandoffContractError("handoff_output_digest_invalid")
+        when = _timestamp(accepted_at)
+
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT s.*, j.incident_id, j.source_run_id AS job_source_run_id, "
+                "j.status AS job_status, j.lease_key AS job_lease_key, "
+                "j.lease_generation AS job_lease_generation, r.author_id "
+                "FROM step_attempt s "
+                "JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise HandoffContractError("handoff_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise HandoffContractError("handoff_job_not_active")
+            if (
+                row["job_lease_key"] != lease.lease_key
+                or row["job_lease_generation"] is None
+                or int(row["job_lease_generation"]) != lease.generation
+                or row["lease_key"] != row["job_lease_key"]
+                or int(row["lease_generation"]) > int(row["job_lease_generation"])
+            ):
+                raise HandoffContractError("handoff_job_lease_mismatch")
+            latest_attempt = connection.execute(
+                "SELECT attempt_id FROM step_attempt WHERE job_id = ? AND step_key = ? "
+                "ORDER BY attempt_no DESC LIMIT 1",
+                (job, row["step_key"]),
+            ).fetchone()
+            if latest_attempt is None or latest_attempt["attempt_id"] != attempt:
+                raise HandoffContractError("handoff_attempt_not_current")
+            if row["incident_id"] != incident:
+                raise HandoffContractError("handoff_incident_mismatch")
+            if row["job_id"] != job:
+                raise HandoffContractError("handoff_job_mismatch")
+            if row["source_run_id"] != run_id or row["job_source_run_id"] != run_id:
+                raise HandoffContractError("handoff_source_run_mismatch")
+            if row["status"] != "complete":
+                raise HandoffContractError("handoff_attempt_not_complete")
+            if row["result_version"] != result_version:
+                raise HandoffContractError("handoff_result_version_mismatch")
+            if (
+                row["output_path"] != output_path
+                or row["output_sha256"] != output_sha256
+            ):
+                raise HandoffContractError("handoff_output_identity_mismatch")
+            if reviewed_version != result_version:
+                raise HandoffContractError("handoff_review_version_mismatch")
+            review = connection.execute(
+                "SELECT reviewer_id, reviewed_version, status FROM review_result "
+                "WHERE scope_type = 'step_attempt' AND scope_id = ? "
+                "ORDER BY rowid DESC LIMIT 1",
+                (attempt,),
+            ).fetchone()
+            if (
+                review is None
+                or review["reviewer_id"] == row["author_id"]
+                or review["reviewed_version"] != reviewed_version
+                or review["status"] != "approved"
+            ):
+                raise HandoffContractError("handoff_review_not_approved_for_version")
+
+            requested_root = Path(handoff_root).expanduser()
+            try:
+                if _has_reparse_point(requested_root):
+                    raise HandoffContractError("handoff_root_reparse_point")
+                root = requested_root.resolve(strict=True)
+            except HandoffContractError:
+                raise
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise HandoffContractError("handoff_root_unavailable") from exc
+            if not root.is_dir():
+                raise HandoffContractError("handoff_root_unavailable")
+            artifact = root.joinpath(*PurePosixPath(output_path).parts)
+            cursor = root
+            for part in PurePosixPath(output_path).parts:
+                cursor = cursor / part
+                try:
+                    has_reparse_point = _has_reparse_point(cursor)
+                except UnsafeMaintenancePathError as exc:
+                    raise HandoffContractError("handoff_output_uninspectable") from exc
+                if has_reparse_point:
+                    raise HandoffContractError("handoff_output_reparse_point")
+            try:
+                resolved_artifact = artifact.resolve(strict=True)
+                resolved_artifact.relative_to(root)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise HandoffContractError(
+                    "handoff_output_missing_or_outside_root"
+                ) from exc
+            if not resolved_artifact.is_file():
+                raise HandoffContractError("handoff_output_missing_or_outside_root")
+            digest = hashlib.sha256()
+            with resolved_artifact.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            actual_digest = digest.hexdigest()
+            if actual_digest != output_sha256:
+                raise HandoffContractError("handoff_output_digest_mismatch")
+            connection.execute(
+                "INSERT INTO handoff_artifact "
+                "(attempt_id, source_run_id, result_version, output_path, output_sha256, accepted_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (attempt, run_id, result_version, output_path, output_sha256, when),
+            )
+            connection.execute(
+                "UPDATE step_attempt SET status = 'handoff_accepted', finished_at = ? "
+                "WHERE attempt_id = ? AND status = 'complete'",
+                (when, attempt),
+            )
+            return HandoffResult(
+                True,
+                attempt,
+                job,
+                incident,
+                run_id,
+                result_version,
+                output_path,
+                output_sha256,
+            )
+
+    def finalize_job(
+        self,
+        *,
+        job_id: str,
+        final_status: str,
+        lease: LeaseToken,
+        finalized_at: datetime | str,
+        reason_code: str | None = None,
+    ) -> JobFinalizeResult:
+        """Finish an active job after checking lease and, for success, approvals."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        if final_status not in _JOB_TERMINAL_STATUSES:
+            raise MaintenanceStoreError("job_final_status_invalid")
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "reason_code_invalid")
+        if final_status != "complete" and reason_code is None:
+            raise MaintenanceStoreError("job_terminal_reason_required")
+        if reason_code == "job_resume_limit_exceeded" and final_status != "blocked":
+            raise MaintenanceStoreError("job_final_status_invalid")
+        when = _timestamp(finalized_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM maintenance_job WHERE job_id = ?", (job,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("job_not_found")
+            if row["status"] in _JOB_TERMINAL_STATUSES:
+                if (
+                    row["status"] == final_status
+                    and row["terminal_reason_code"] == reason_code
+                    and row["lease_key"] == lease.lease_key
+                    and row["lease_generation"] is not None
+                    and int(row["lease_generation"]) == lease.generation
+                ):
+                    return JobFinalizeResult(
+                        job,
+                        str(row["status"]),
+                        str(row["finished_at"]),
+                        row["terminal_reason_code"],
+                    )
+                raise MaintenanceStoreError("job_already_finalized")
+            if row["status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            final_lease_key = lease.lease_key
+            final_lease_generation = lease.generation
+            final_resume_count = int(row["resume_count"])
+            if row["lease_key"] is not None:
+                if row["lease_key"] != lease.lease_key:
+                    raise MaintenanceStoreError("job_lease_key_conflict")
+                if row["lease_generation"] is None:
+                    raise MaintenanceStoreError("job_lease_mismatch")
+                current_generation = int(row["lease_generation"])
+                if lease.generation < current_generation:
+                    raise MaintenanceStoreError("lease_generation_not_advanced")
+                if lease.generation > current_generation:
+                    if final_resume_count >= self.job_resume_limit:
+                        if (
+                            final_status != "blocked"
+                            or reason_code != "job_resume_limit_exceeded"
+                        ):
+                            raise MaintenanceStoreError("job_resume_limit_exceeded")
+                    else:
+                        final_resume_count += 1
+
+            if final_status == "complete":
+                gate = self._evaluate_release_gate(
+                    connection, str(row["release_id"]), when
+                )
+                if gate.status != "ready":
+                    raise MaintenanceStoreError("job_release_gate_not_ready")
+                attempts = connection.execute(
+                    "SELECT s.attempt_id, s.sequence, s.attempt_no, s.status, "
+                    "s.result_version, r.author_id FROM step_attempt s "
+                    "JOIN maintenance_job j ON j.job_id = s.job_id "
+                    "JOIN release r ON r.release_id = j.release_id "
+                    "WHERE s.job_id = ? ORDER BY s.sequence, s.attempt_no DESC",
+                    (job,),
+                ).fetchall()
+                latest_by_sequence: dict[int, sqlite3.Row] = {}
+                for attempt in attempts:
+                    latest_by_sequence.setdefault(int(attempt["sequence"]), attempt)
+                if not latest_by_sequence or set(latest_by_sequence) != set(
+                    range(1, max(latest_by_sequence) + 1)
+                ):
+                    raise MaintenanceStoreError("job_steps_not_approved")
+                for attempt in latest_by_sequence.values():
+                    if (
+                        attempt["status"] not in _STEP_TERMINAL_STATUSES
+                        or attempt["result_version"] is None
+                    ):
+                        raise MaintenanceStoreError("job_steps_not_approved")
+                    review = connection.execute(
+                        "SELECT reviewer_id, reviewed_version, status "
+                        "FROM review_result WHERE scope_type = 'step_attempt' "
+                        "AND scope_id = ? ORDER BY rowid DESC LIMIT 1",
+                        (attempt["attempt_id"],),
+                    ).fetchone()
+                    if (
+                        review is None
+                        or review["reviewer_id"] == attempt["author_id"]
+                        or review["reviewed_version"] != attempt["result_version"]
+                        or review["status"] != "approved"
+                    ):
+                        raise MaintenanceStoreError("job_steps_not_approved")
+
+            if final_status in {"failed", "blocked", "cancelled"}:
+                connection.execute(
+                    "UPDATE step_attempt SET status = ?, finished_at = ? "
+                    "WHERE job_id = ? AND status = 'running'",
+                    (final_status, when, job),
+                )
+            connection.execute(
+                "UPDATE maintenance_job SET status = ?, lease_key = ?, "
+                "lease_generation = ?, resume_count = ?, finished_at = ?, "
+                "terminal_reason_code = ?, updated_at = ? WHERE job_id = ?",
+                (
+                    final_status,
+                    final_lease_key,
+                    final_lease_generation,
+                    final_resume_count,
+                    when,
+                    reason_code,
+                    when,
+                    job,
+                ),
+            )
+            return JobFinalizeResult(job, final_status, when, reason_code)
+
+    def get_step_attempt(self, attempt_id: str) -> StepAttemptRecord:
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM step_attempt WHERE attempt_id = ?", (attempt,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            return StepAttemptRecord(
+                str(row["attempt_id"]),
+                str(row["job_id"]),
+                str(row["step_key"]),
+                int(row["sequence"]),
+                int(row["attempt_no"]),
+                row["source_run_id"],
+                str(row["status"]),
+                row["result_version"],
+                row["output_path"],
+                row["output_sha256"],
+                str(row["started_at"]),
+                row["finished_at"],
+            )
+        finally:
+            connection.close()

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-17T15:43:04+09:00",
+  "generated_at": "2026-10-17T16:23:23+09:00",
   "index_path": "docs/document-index.json",
   "manifest_path": "worklogs/projects/maintenance/移行manifest.csv",
   "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
@@ -69,7 +69,7 @@
       "added_in": "U01",
       "scope_note": "現在の場所を継続",
       "extension": ".md",
-      "bytes": 54456,
+      "bytes": 54580,
       "reference_count": 36
     },
     {
@@ -1749,7 +1749,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 33368,
+      "bytes": 33456,
       "reference_count": 0
     },
     {
@@ -5589,7 +5589,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".html",
-      "bytes": 3269834,
+      "bytes": 3304720,
       "reference_count": 160
     },
     {
@@ -5859,7 +5859,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 71179,
+      "bytes": 75135,
       "reference_count": 0
     },
     {
@@ -5889,7 +5889,7 @@
       "added_in": "U01",
       "scope_note": "要件正本・同梱参照・図の整合を確認",
       "extension": ".md",
-      "bytes": 71038,
+      "bytes": 71421,
       "reference_count": 6
     },
     {
@@ -5964,8 +5964,8 @@
       "added_in": "U02",
       "scope_note": "U02で追加。Aの2026-10-17提案393件に含まれない増分。",
       "extension": ".md",
-      "bytes": 8300,
-      "reference_count": 0
+      "bytes": 9959,
+      "reference_count": 1
     },
     {
       "document_id": "DOC-0396",
@@ -5979,8 +5979,8 @@
       "added_in": "U02",
       "scope_note": "U02で追加。Aの2026-10-17提案393件に含まれない増分。",
       "extension": ".md",
-      "bytes": 5809,
-      "reference_count": 0
+      "bytes": 8592,
+      "reference_count": 1
     },
     {
       "document_id": "DOC-0397",
@@ -6213,6 +6213,30 @@
       "path": "automation/inago/live_sources.py"
     },
     {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-INIT-PY",
+      "path": "automation/inago/maintenance/__init__.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-CLI-PY",
+      "path": "automation/inago/maintenance/cli.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-CONTROLLER-PY",
+      "path": "automation/inago/maintenance/controller.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-PATHS-PY",
+      "path": "automation/inago/maintenance/paths.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
+      "path": "automation/inago/maintenance/settings.py"
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-STORE-PY",
+      "path": "automation/inago/maintenance/store.py"
+    },
+    {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-METRICS-PY",
       "path": "automation/inago/metrics.py"
     },
@@ -6321,6 +6345,10 @@
       "path": "tests_inago/fixtures_q14.py"
     },
     {
+      "source_id": "SRC-TESTS-TESTS-INAGO-MAINTENANCE-SUPPORT-PY",
+      "path": "tests_inago/maintenance_support.py"
+    },
+    {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-ACCEPTANCE-PY",
       "path": "tests_inago/test_acceptance.py"
     },
@@ -6363,6 +6391,14 @@
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-TRENDS-PY",
       "path": "tests_inago/test_daily_fix_trends.py"
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-AI-PY",
+      "path": "tests_inago/test_maintenance_ai.py"
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "path": "tests_inago/test_maintenance_store.py"
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-RELEASE-PY",
@@ -39316,7 +39352,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39328,7 +39364,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39340,7 +39376,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39352,7 +39388,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39364,7 +39400,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39376,7 +39412,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39388,7 +39424,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39400,7 +39436,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39412,7 +39448,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39424,7 +39460,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39436,7 +39472,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39448,7 +39484,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39460,7 +39496,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39472,7 +39508,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39484,7 +39520,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39496,7 +39532,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39508,7 +39544,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39520,7 +39556,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39532,7 +39568,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39544,7 +39580,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39556,7 +39592,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39568,7 +39604,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39580,7 +39616,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39592,7 +39628,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39604,7 +39640,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -39616,7 +39652,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4542,
+      "line": 4566,
       "kind": "embedded_document",
       "status": "resolved_current",
       "reason_code": "stable_attachment_document_id",
@@ -40456,7 +40492,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4166,
+      "line": 4169,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40468,7 +40504,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4451,
+      "line": 4475,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40564,7 +40600,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4166,
+      "line": 4169,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40588,7 +40624,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4166,
+      "line": 4169,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40624,7 +40660,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4166,
+      "line": 4169,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40660,7 +40696,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4166,
+      "line": 4169,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40696,7 +40732,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4182,
+      "line": 4185,
       "kind": "html_href",
       "status": "anchor_resolved",
       "reason_code": "same_document_fragment",
@@ -40912,7 +40948,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4335,
+      "line": 4338,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -40924,7 +40960,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4310,
+      "line": 4313,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -40936,7 +40972,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4249,
+      "line": 4252,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41128,7 +41164,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 3297,
+      "line": 3299,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41140,7 +41176,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4384,
+      "line": 4393,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41188,7 +41224,7 @@
     },
     {
       "source_id": "DOC-0370",
-      "line": 4155,
+      "line": 4157,
       "kind": "html_href",
       "status": "embedded",
       "reason_code": "data",
@@ -41308,7 +41344,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 220,
+      "line": 222,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -41320,7 +41356,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 23,
+      "line": 25,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -41332,7 +41368,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 23,
+      "line": 25,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -41344,7 +41380,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 23,
+      "line": 25,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -41356,7 +41392,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 23,
+      "line": 25,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -41368,7 +41404,7 @@
     },
     {
       "source_id": "DOC-0390",
-      "line": 23,
+      "line": 25,
       "kind": "markdown_link",
       "status": "resolved_current",
       "reason_code": "indexed_current_path",
@@ -42503,6 +42539,30 @@
       "target_document_id": null,
       "projected_reference": null,
       "projection_status": "follow_up_required",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "DOC-0395",
+      "line": 16,
+      "kind": "markdown_link",
+      "status": "resolved_current",
+      "reason_code": "indexed_current_path",
+      "target_document_id": "DOC-0388",
+      "projected_reference": "%E8%A6%81%E4%BB%B6%E3%83%87%E3%83%BC%E3%82%BF%E8%BE%9E%E6%9B%B8.md",
+      "projection_status": "projected",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "DOC-0396",
+      "line": 80,
+      "kind": "markdown_link",
+      "status": "resolved_current",
+      "reason_code": "indexed_current_path",
+      "target_document_id": "DOC-0388",
+      "projected_reference": "%E8%A6%81%E4%BB%B6%E3%83%87%E3%83%BC%E3%82%BF%E8%BE%9E%E6%9B%B8.md",
+      "projection_status": "projected",
       "percent_encoded": false,
       "query_present": false
     },
@@ -44163,6 +44223,42 @@
       "query_present": false
     },
     {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
+      "line": 72,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-SETTINGS-PY",
+      "line": 96,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-STORE-PY",
+      "line": 1488,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-METRICS-PY",
       "line": 957,
       "kind": "program_path",
@@ -44356,7 +44452,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-AI-PY",
-      "line": 362,
+      "line": 373,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44368,7 +44464,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-AI-PY",
-      "line": 728,
+      "line": 739,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44380,7 +44476,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-AI-PY",
-      "line": 823,
+      "line": 834,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44392,7 +44488,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-AI-PY",
-      "line": 895,
+      "line": 906,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44404,7 +44500,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-AI-PY",
-      "line": 220,
+      "line": 231,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44667,6 +44763,78 @@
       "query_present": false
     },
     {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-AI-PY",
+      "line": 65,
+      "kind": "program_output_path",
+      "status": "generated_output",
+      "reason_code": "program_writes_artifact",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "generated_output_requires_rebase",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "line": 97,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "line": 66,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "line": 29,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "line": 52,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-STORE-PY",
+      "line": 67,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP03-PY",
       "line": 36,
       "kind": "program_path",
@@ -44884,7 +45052,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP11-PY",
-      "line": 251,
+      "line": 258,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44980,7 +45148,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 819,
+      "line": 830,
       "kind": "program_path",
       "status": "resolved_unindexed",
       "reason_code": "existing_repository_file",
@@ -44992,7 +45160,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 875,
+      "line": 886,
       "kind": "program_path",
       "status": "resolved_unindexed",
       "reason_code": "existing_repository_file",
@@ -45004,121 +45172,13 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 850,
+      "line": 861,
       "kind": "program_path",
       "status": "resolved_unindexed",
       "reason_code": "existing_repository_file",
       "target_document_id": null,
       "projected_reference": "automation/inago/adapters/room_metrics.mjs",
       "projection_status": "projected",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 143,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 144,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 164,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 198,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 254,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 492,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 493,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 508,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 527,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
       "percent_encoded": false,
       "query_present": false
     },
@@ -45148,7 +45208,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 223,
+      "line": 171,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45160,7 +45220,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 499,
+      "line": 205,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45172,7 +45232,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 500,
+      "line": 261,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45184,7 +45244,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 668,
+      "line": 501,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45196,7 +45256,115 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
-      "line": 669,
+      "line": 502,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 517,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 536,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 157,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 158,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 230,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 508,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 509,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 679,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP14-PY",
+      "line": 680,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45892,7 +46060,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 825,
+      "line": 834,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45904,7 +46072,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 1020,
+      "line": 1029,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45916,7 +46084,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 290,
+      "line": 299,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45928,7 +46096,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 310,
+      "line": 319,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45940,7 +46108,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 789,
+      "line": 798,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45952,7 +46120,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 735,
+      "line": 744,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45964,7 +46132,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 753,
+      "line": 762,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45976,7 +46144,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 871,
+      "line": 880,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45988,7 +46156,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 57,
+      "line": 66,
       "kind": "program_path",
       "status": "resolved_control",
       "reason_code": "indexed_control_source",
@@ -46000,7 +46168,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP23-12-DAILY-E2E-PY",
-      "line": 717,
+      "line": 726,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46012,7 +46180,7 @@
     }
   ],
   "reference_summary": {
-    "count": 3289,
+    "count": 3300,
     "status_counts": {
       "anchor_resolved": 1175,
       "anchor_unverified": 63,
@@ -46021,13 +46189,13 @@
       "empty_target": 4,
       "external": 82,
       "external_absolute": 37,
-      "external_dependency": 144,
-      "generated_output": 71,
+      "external_dependency": 152,
+      "generated_output": 72,
       "historical_unresolved": 130,
       "private_unavailable": 103,
       "reference_group": 14,
       "resolved_control": 54,
-      "resolved_current": 1134,
+      "resolved_current": 1136,
       "resolved_directory": 8,
       "resolved_non_public": 3,
       "resolved_private": 1,

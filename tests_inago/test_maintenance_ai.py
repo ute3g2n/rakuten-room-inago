@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from datetime import timedelta
 
 import pytest
 
-from automation.inago.maintenance.store import HandoffContractError
+from automation.inago.maintenance.store import (
+    HandoffContractError,
+    MaintenanceStoreError,
+)
 from tests_inago.maintenance_support import (
     BASE_TIME,
     create_incident,
@@ -37,6 +41,15 @@ def test_c28_contract(tmp_path):
         started_at=(BASE_TIME + timedelta(seconds=11)).isoformat(),
     )
 
+    with pytest.raises(MaintenanceStoreError, match="step_attempt_not_complete"):
+        store.record_step_review(
+            attempt_id=attempt.attempt_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="result-v1",
+            status="approved",
+            reviewed_at=(BASE_TIME + timedelta(seconds=11)).isoformat(),
+        )
+
     handoff_root = tmp_path / "handoffs"
     output_path = handoff_root / "jobs" / job.job_id / "investigation.json"
     output_path.parent.mkdir(parents=True)
@@ -53,13 +66,27 @@ def test_c28_contract(tmp_path):
         output_sha256=output_hash,
         completed_at=(BASE_TIME + timedelta(seconds=12)).isoformat(),
     )
-    store.record_step_review(
-        attempt_id=attempt.attempt_id,
-        reviewer_id="independent-reviewer",
-        reviewed_version="old-result-v0",
-        status="approved",
-        reviewed_at=(BASE_TIME + timedelta(seconds=13)).isoformat(),
-    )
+    with pytest.raises(MaintenanceStoreError, match="step_review_version_mismatch"):
+        store.record_step_review(
+            attempt_id=attempt.attempt_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="old-result-v0",
+            status="approved",
+            reviewed_at=(BASE_TIME + timedelta(seconds=12)).isoformat(),
+        )
+    with sqlite3.connect(store.database_path) as connection:
+        connection.execute(
+            "INSERT INTO review_result "
+            "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
+            "VALUES (?, 'step_attempt', ?, ?, ?, 'approved', ?)",
+            (
+                "stale-review",
+                attempt.attempt_id,
+                "independent-reviewer",
+                "old-result-v0",
+                (BASE_TIME + timedelta(seconds=13)).isoformat(),
+            ),
+        )
 
     payload = {
         "schema_version": "maintenance-handoff-v1",
@@ -87,6 +114,7 @@ def test_c28_contract(tmp_path):
             store.accept_handoff(
                 {**payload, field: value},
                 handoff_root=handoff_root,
+                lease=lease,
                 accepted_at=(BASE_TIME + timedelta(seconds=14)).isoformat(),
             )
 
@@ -95,6 +123,7 @@ def test_c28_contract(tmp_path):
         store.accept_handoff(
             payload,
             handoff_root=handoff_root,
+            lease=lease,
             accepted_at=(BASE_TIME + timedelta(seconds=15)).isoformat(),
         )
     output_path.write_bytes(output_bytes + b"tampered")
@@ -102,6 +131,7 @@ def test_c28_contract(tmp_path):
         store.accept_handoff(
             payload,
             handoff_root=handoff_root,
+            lease=lease,
             accepted_at=(BASE_TIME + timedelta(seconds=16)).isoformat(),
         )
     output_path.write_bytes(output_bytes)
@@ -110,14 +140,52 @@ def test_c28_contract(tmp_path):
         attempt_id=attempt.attempt_id,
         reviewer_id="independent-reviewer",
         reviewed_version="result-v1",
-        status="approved",
-        reviewed_at=(BASE_TIME + timedelta(seconds=17)).isoformat(),
+        status="changes_requested",
+        reviewed_at=(BASE_TIME + timedelta(seconds=18)).isoformat(),
     )
+    with pytest.raises(HandoffContractError):
+        store.accept_handoff(
+            payload,
+            handoff_root=handoff_root,
+            lease=lease,
+            accepted_at=(BASE_TIME + timedelta(seconds=19)).isoformat(),
+        )
+    store.record_step_review(
+        attempt_id=attempt.attempt_id,
+        reviewer_id="independent-reviewer",
+        reviewed_version="result-v1",
+        status="approved",
+        reviewed_at=(BASE_TIME + timedelta(seconds=20)).isoformat(),
+    )
+    unrelated_lease = store.acquire_lease(
+        lease_key="other-maintenance-worker",
+        owner_id="worker-b",
+        owner_pid=4202,
+        owner_start_time=(BASE_TIME + timedelta(seconds=20)).isoformat(),
+        now=BASE_TIME + timedelta(seconds=20),
+        ttl_seconds=30,
+    )
+    with pytest.raises(HandoffContractError, match="handoff_job_lease_mismatch"):
+        store.accept_handoff(
+            payload,
+            handoff_root=handoff_root,
+            lease=unrelated_lease,
+            accepted_at=(BASE_TIME + timedelta(seconds=20)).isoformat(),
+        )
     accepted = store.accept_handoff(
         payload,
         handoff_root=handoff_root,
-        accepted_at=(BASE_TIME + timedelta(seconds=18)).isoformat(),
+        lease=lease,
+        accepted_at=(BASE_TIME + timedelta(seconds=21)).isoformat(),
     )
     assert accepted.accepted
     assert accepted.source_run_id is None
     assert store.get_step_attempt(attempt.attempt_id).status == "handoff_accepted"
+    with pytest.raises(MaintenanceStoreError, match="step_handoff_already_accepted"):
+        store.record_step_review(
+            attempt_id=attempt.attempt_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="result-v1",
+            status="changes_requested",
+            reviewed_at=(BASE_TIME + timedelta(seconds=22)).isoformat(),
+        )
