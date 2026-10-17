@@ -684,6 +684,25 @@ def test_inconsistent_daily_summary_cannot_return_scheduler_success(tmp_path):
     assert _record(store, outcome).status == "failed"
 
 
+def test_missing_json_result_cannot_return_scheduler_success(tmp_path):
+    store = make_store(tmp_path)
+
+    def daily(command, cwd, on_started):
+        on_started(8138)
+        return DailyProcessResult(
+            returncode=0,
+            stdout=b"",
+            stderr=b"",
+            pid=8138,
+        )
+
+    outcome = _launch(store, daily)
+
+    assert outcome.exit_code == 4
+    assert outcome.summary["status"] == "failed"
+    assert _record(store, outcome).status == "failed"
+
+
 @pytest.mark.parametrize(
     "field,value",
     [("overall_status", None), ("daily_status", None)],
@@ -713,6 +732,46 @@ def test_store_rejects_missing_required_completion_statuses(tmp_path, field, val
         "trace_status": "not_written",
     }
     summary[field] = value
+
+    with pytest.raises(MaintenanceStoreError):
+        store.record_daily_launch_completion(
+            source_launch_id=launch.source_launch_id,
+            target_date=launch.target_date,
+            child_pid=None,
+            source_run_id=None,
+            launch_status="failed",
+            exit_code=4,
+            completed_at=START + timedelta(minutes=5),
+            check_status="incomplete",
+            reason_code="daily_runtime_error",
+            result_summary=summary,
+        )
+
+
+def test_store_rejects_non_string_trace_status_without_type_error(tmp_path):
+    store = make_store(tmp_path)
+    launch = store.record_daily_launch_start(
+        source_launch_id="launch-invalid-trace-type",
+        target_date="2026-10-17",
+        owner_pid=8139,
+        started_at=START,
+    )
+    summary = {
+        "schema_version": "daily-launch-completion-v1",
+        "source_launch_id": launch.source_launch_id,
+        "target_date": launch.target_date,
+        "status": "failed",
+        "exit_code": 4,
+        "source_run_id": None,
+        "overall_status": "failed",
+        "daily_status": "failed",
+        "reason_code": "daily_runtime_error",
+        "failure_phase": "daily",
+        "failed_checks": [],
+        "primary_error_class": "RuntimeError",
+        "secondary_error_classes": [],
+        "trace_status": [],
+    }
 
     with pytest.raises(MaintenanceStoreError):
         store.record_daily_launch_completion(
