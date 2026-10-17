@@ -2,8 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping
+import json
+from pathlib import Path
+from typing import Any
+
+from automation.inago.maintenance.investigation import (
+    InvestigationContractError,
+    MaintenanceCheckStageResult,
+    build_investigation_handoff_payload,
+    render_investigation_markdown,
+    run_check_stage,
+    save_attempt_artifact,
+    validate_investigation_response,
+    validate_investigation_review,
+)
 
 from automation.inago.maintenance.store import (
     AIParentSessionRecord,
@@ -12,10 +27,234 @@ from automation.inago.maintenance.store import (
     JobInputManifest,
     JobFinalizeResult,
     JobStartResult,
+    HandoffResult,
     LeaseToken,
     MaintenanceStore,
+    StepAttemptResult,
     StepAttemptRecord,
 )
+
+
+@dataclass(frozen=True)
+class MaintenanceDailyCheckOutcome:
+    """The check-stage route and its durable daily-check record."""
+
+    stage: MaintenanceCheckStageResult
+    record: DailyCheckResult
+
+
+@dataclass(frozen=True)
+class InvestigationAttemptOutcome:
+    """Persisted investigation artifacts and the decision after review."""
+
+    attempt_id: str
+    result_version: str
+    investigation_status: str
+    review_status: str
+    next_action: str
+    output_path: str
+    output_sha256: str
+    facts_path: str
+    facts_sha256: str
+    markdown_path: str
+    markdown_sha256: str
+    review_findings: tuple[str, ...]
+    review_reason_code: str | None
+    handoff: HandoffResult | None
+
+
+@dataclass(frozen=True)
+class InvestigationAttemptRequest:
+    """All caller-owned inputs for one investigation/review attempt."""
+
+    context: Mapping[str, Any]
+    response: object
+    attempts_root: str | Path
+    output_root: str | Path
+    result_version: str
+    created_at: datetime | str
+    completed_at: datetime | str
+    review_started_at: datetime | str
+    reviewed_at: datetime | str
+    accepted_at: datetime | str
+    lease: LeaseToken
+    author_id: str
+    author_execution_id: str
+    reviewer_id: str
+    reviewer_execution_id: str
+    review_runner: Callable[[Mapping[str, object]], object]
+    review_round: int
+    handoff_root: str | Path
+    synthetic_fixture: bool = False
+
+
+def _investigation_identity(context: Mapping[str, Any]) -> dict[str, object]:
+    return {
+        key: context[key]
+        for key in (
+            "incident_id",
+            "source_launch_id",
+            "source_run_id",
+            "target_date",
+            "job_id",
+        )
+    }
+
+
+def _save_investigation_inputs(
+    request: InvestigationAttemptRequest,
+    attempt_id: str,
+    validated: Mapping[str, Any],
+    identity: Mapping[str, object],
+) -> tuple[str, str, str, str]:
+    markdown = render_investigation_markdown(
+        validated,
+        request.context,
+        result_version=request.result_version,
+        created_at=request.created_at,
+        synthetic_fixture=request.synthetic_fixture,
+    )
+    facts_json = (
+        json.dumps(
+            {
+                "schema_version": "maintenance-investigation-facts-v1",
+                "identity": identity,
+                "attempt_id": attempt_id,
+                "result_version": request.result_version,
+                "evidence_refs": list(validated["evidence_refs"]),
+                "facts": validated["facts"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    )
+    facts_path, facts_sha256 = save_attempt_artifact(
+        request.output_root,
+        request.attempts_root,
+        request.context,
+        filename="facts.json",
+        content=facts_json,
+    )
+    markdown_path, markdown_sha256 = save_attempt_artifact(
+        request.output_root,
+        request.attempts_root,
+        request.context,
+        filename="investigation.md",
+        content=markdown,
+    )
+    return facts_path, facts_sha256, markdown_path, markdown_sha256
+
+
+def _run_investigation_review(
+    request: InvestigationAttemptRequest,
+    *,
+    attempt_id: str,
+    facts_path: str,
+    facts_sha256: str,
+    markdown_path: str,
+    markdown_sha256: str,
+) -> tuple[dict[str, Any], str | None]:
+    review_input = {
+        "attempt_id": attempt_id,
+        "result_version": request.result_version,
+        "facts_path": facts_path,
+        "facts_sha256": facts_sha256,
+        "markdown_path": markdown_path,
+        "markdown_sha256": markdown_sha256,
+        "review_execution_id": request.reviewer_execution_id,
+    }
+    try:
+        response = request.review_runner(review_input)
+    except Exception:
+        return (
+            {
+                "handoff_allowed": False,
+                "next_action": "blocked",
+                "reviewer_id": request.reviewer_id,
+                "review_execution_id": request.reviewer_execution_id,
+                "reviewed_version": request.result_version,
+                "review_round": request.review_round,
+                "status": "unavailable",
+                "findings": [],
+            },
+            "review_runner_failed",
+        )
+    try:
+        review = validate_investigation_review(
+            response,
+            request.context,
+            result_version=request.result_version,
+            author_id=request.author_id,
+            author_execution_id=request.author_execution_id,
+            reviewer_id=request.reviewer_id,
+            reviewer_execution_id=request.reviewer_execution_id,
+            review_round=request.review_round,
+            max_review_rounds=3,
+        )
+    except Exception:
+        return (
+            {
+                "handoff_allowed": False,
+                "next_action": "blocked",
+                "reviewer_id": request.reviewer_id,
+                "review_execution_id": request.reviewer_execution_id,
+                "reviewed_version": request.result_version,
+                "review_round": request.review_round,
+                "status": "unavailable",
+                "findings": [],
+            },
+            "review_response_invalid",
+        )
+    return review, None
+
+
+def _investigation_result_document(
+    request: InvestigationAttemptRequest,
+    *,
+    attempt_id: str,
+    identity: Mapping[str, object],
+    validated: Mapping[str, Any],
+    facts_path: str,
+    facts_sha256: str,
+    markdown_path: str,
+    markdown_sha256: str,
+    review: Mapping[str, Any],
+    review_failure: str | None,
+    store_review_status: str,
+    next_action: str,
+) -> dict[str, object]:
+    return {
+        "schema_version": "maintenance-investigation-result-v1",
+        "identity": dict(identity),
+        "attempt_id": attempt_id,
+        "result_version": request.result_version,
+        "created_at": (
+            request.created_at.isoformat()
+            if isinstance(request.created_at, datetime)
+            else request.created_at
+        ),
+        "investigation_status": validated["status"],
+        "summary": validated["summary"],
+        "facts": {"path": facts_path, "sha256": facts_sha256},
+        "report": {"path": markdown_path, "sha256": markdown_sha256},
+        "review": {
+            "author_id": request.author_id,
+            "author_execution_id": request.author_execution_id,
+            "reviewer_id": review["reviewer_id"],
+            "review_execution_id": review["review_execution_id"],
+            "reviewed_version": review["reviewed_version"],
+            "review_round": review["review_round"],
+            "status": review["status"],
+            "gate_status": store_review_status,
+            "reason_code": review_failure
+            or ("investigation_blocked" if validated["status"] != "complete" else None),
+            "findings": list(review["findings"]),
+        },
+        "next_action": next_action,
+    }
 
 
 class MaintenanceController:
@@ -85,6 +324,212 @@ class MaintenanceController:
 
     def get_step_attempt(self, *, attempt_id: str) -> StepAttemptRecord:
         return self._store.get_step_attempt(attempt_id)
+
+    def begin_step_attempt(
+        self,
+        *,
+        job_id: str,
+        step_key: str,
+        sequence: int,
+        lease: LeaseToken,
+        started_at: datetime | str,
+    ) -> StepAttemptResult:
+        return self._store.begin_step_attempt(
+            job_id=job_id,
+            step_key=step_key,
+            sequence=sequence,
+            lease=lease,
+            started_at=started_at,
+        )
+
+    def run_daily_check_stage(
+        self,
+        *,
+        context: Mapping[str, Any],
+        preclassification: str,
+        check_runner: Callable[[dict[str, Any]], object],
+        observed_at: datetime | str,
+        incident: dict[str, object] | None = None,
+    ) -> MaintenanceDailyCheckOutcome:
+        """Run the pure check-stage router and record its durable result."""
+
+        stage = run_check_stage(context, preclassification, check_runner)
+        if stage.status == "checked_ok":
+            check_status = (
+                "normal_shortfall"
+                if preclassification == "candidate_shortfall"
+                else "normal"
+            )
+        elif stage.status == "waiting_external":
+            check_status = "incomplete"
+        elif stage.status == "investigation_required":
+            check_status = "abnormal"
+        elif preclassification == "contract_violation":
+            check_status = "abnormal"
+        elif preclassification == "unknown":
+            check_status = "unknown"
+        else:
+            check_status = "incomplete"
+
+        if check_status == "abnormal" and incident is None:
+            raise ValueError("daily_check_incident_required")
+
+        reason_code = stage.reason_code
+        record = self.record_daily_check(
+            source_launch_id=str(context.get("source_launch_id", "")),
+            source_run_id=context.get("source_run_id"),
+            target_date=str(context.get("target_date", "")),
+            check_status=check_status,
+            observed_at=observed_at,
+            reason_code=reason_code,
+            incident=incident if check_status == "abnormal" else None,
+        )
+        return MaintenanceDailyCheckOutcome(stage=stage, record=record)
+
+    def complete_investigation_attempt(
+        self, request: InvestigationAttemptRequest
+    ) -> InvestigationAttemptOutcome:
+        """Persist, independently review, and hash-bind one investigation attempt."""
+        context = request.context
+        validated = validate_investigation_response(request.response, context)
+        attempt = self._store.get_step_attempt(str(context["attempt_id"]))
+        if (
+            attempt.job_id != context["job_id"]
+            or attempt.source_run_id != context["source_run_id"]
+            or attempt.step_key != "investigation"
+            or attempt.status != "running"
+        ):
+            raise ValueError("step_attempt_identity_invalid")
+        self._store.validate_step_attempt_lease(
+            attempt_id=attempt.attempt_id,
+            lease=request.lease,
+            at=request.created_at,
+            author_id=request.author_id,
+            reviewer_id=request.reviewer_id,
+        )
+
+        manifest_identity = _investigation_identity(context)
+        self.get_job_input_manifest(
+            job_id=str(context["job_id"]), expected_identity=manifest_identity
+        )
+        (
+            facts_path,
+            facts_sha256,
+            markdown_path,
+            markdown_sha256,
+        ) = _save_investigation_inputs(
+            request,
+            attempt.attempt_id,
+            validated,
+            manifest_identity,
+        )
+        self._store.validate_step_attempt_lease(
+            attempt_id=attempt.attempt_id,
+            lease=request.lease,
+            at=request.review_started_at,
+            author_id=request.author_id,
+            reviewer_id=request.reviewer_id,
+        )
+        review, review_failure = _run_investigation_review(
+            request,
+            attempt_id=attempt.attempt_id,
+            facts_path=facts_path,
+            facts_sha256=facts_sha256,
+            markdown_path=markdown_path,
+            markdown_sha256=markdown_sha256,
+        )
+        handoff_allowed = (
+            review["handoff_allowed"] is True
+            and validated["status"] == "complete"
+            and review["status"] == "approved"
+        )
+        next_action = (
+            review["next_action"] if validated["status"] == "complete" else "blocked"
+        )
+        store_review_status = str(review["status"])
+        if validated["status"] != "complete" and store_review_status == "approved":
+            store_review_status = "rejected"
+        result_document = _investigation_result_document(
+            request,
+            attempt_id=attempt.attempt_id,
+            identity=manifest_identity,
+            validated=validated,
+            facts_path=facts_path,
+            facts_sha256=facts_sha256,
+            markdown_path=markdown_path,
+            markdown_sha256=markdown_sha256,
+            review=review,
+            review_failure=review_failure,
+            store_review_status=store_review_status,
+            next_action=next_action,
+        )
+        result_json = (
+            json.dumps(
+                result_document,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        )
+        output_path, output_sha256 = save_attempt_artifact(
+            request.output_root,
+            request.attempts_root,
+            context,
+            filename="result.json",
+            content=result_json,
+        )
+        self._store.complete_step_attempt_with_review(
+            attempt_id=attempt.attempt_id,
+            lease=request.lease,
+            result_version=request.result_version,
+            completed_at=request.completed_at,
+            output_path=output_path,
+            output_sha256=output_sha256,
+            reviewer_id=str(review["reviewer_id"]),
+            reviewed_version=str(review["reviewed_version"]),
+            review_status=store_review_status,
+            reviewed_at=request.reviewed_at,
+        )
+
+        accepted_handoff = None
+        if handoff_allowed:
+            payload = build_investigation_handoff_payload(
+                context,
+                result_version=request.result_version,
+                reviewed_version=str(review["reviewed_version"]),
+                output_path=output_path,
+                output_sha256=output_sha256,
+                facts_path=facts_path,
+                facts_sha256=facts_sha256,
+                report_path=markdown_path,
+                report_sha256=markdown_sha256,
+                review_status=str(review["status"]),
+            )
+            accepted_handoff = self._store.accept_handoff(
+                payload,
+                handoff_root=request.handoff_root,
+                lease=request.lease,
+                accepted_at=request.accepted_at,
+            )
+
+        return InvestigationAttemptOutcome(
+            attempt_id=attempt.attempt_id,
+            result_version=request.result_version,
+            investigation_status=str(validated["status"]),
+            review_status=str(review["status"]),
+            next_action=next_action,
+            output_path=output_path,
+            output_sha256=output_sha256,
+            facts_path=facts_path,
+            facts_sha256=facts_sha256,
+            markdown_path=markdown_path,
+            markdown_sha256=markdown_sha256,
+            review_findings=tuple(str(item) for item in review["findings"]),
+            review_reason_code=review_failure,
+            handoff=accepted_handoff,
+        )
 
     def bind_ai_parent_session(
         self,

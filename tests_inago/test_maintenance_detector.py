@@ -269,3 +269,103 @@ def test_c22_contract():
     assert mismatch["preclassification"] == "contract_violation"
     assert mismatch["reason_code"] == "status_mismatch"
     _assert_result_schema(mismatch)
+
+
+def test_c19_contract():
+    from automation.inago.maintenance.investigation import run_check_stage
+    from tests_inago.maintenance_investigation_support import (
+        make_check_response,
+        make_context,
+    )
+
+    cases = (
+        ("normal_candidate", "normal", "checked_ok", None, 1),
+        ("candidate_shortfall", "normal", "checked_ok", None, 1),
+        ("recovered_retry", "normal", "checked_ok", None, 1),
+        (
+            "needs_investigation",
+            "needs_investigation",
+            "investigation_required",
+            "investigation",
+            1,
+        ),
+        # A machine/AI mismatch is routed to investigation, never accepted as
+        # a normal completion.
+        (
+            "needs_investigation",
+            "normal",
+            "investigation_required",
+            "investigation",
+            1,
+        ),
+        (
+            "needs_investigation",
+            "waiting_external",
+            "investigation_required",
+            "investigation",
+            1,
+        ),
+        ("external_wait", "waiting_external", "waiting_external", None, 1),
+        # Machine-observed external waits remain waiting even if the model
+        # reports normal. Unknown or contradictory machine results never call AI.
+        ("external_wait", "normal", "waiting_external", None, 1),
+        ("unknown", "waiting_external", "blocked", None, 0),
+        ("contract_violation", "waiting_external", "blocked", None, 0),
+    )
+
+    for index, (
+        preclassification,
+        assessment,
+        status,
+        next_stage,
+        expected_calls,
+    ) in enumerate(cases):
+        context = make_context(
+            incident_id=f"incident-c19-{index:02d}",
+            job_id=f"job-c19-{index:02d}",
+            attempt_id=f"attempt-c19-{index:02d}",
+        )
+        calls: list[dict] = []
+
+        def check_runner(job):
+            calls.append(job)
+            response = make_check_response(context, assessment=assessment)
+            expected_reason = {
+                "candidate_shortfall": "daily_target_unmet",
+                "recovered_retry": "daily_recovered_retry",
+            }.get(preclassification)
+            if expected_reason is not None:
+                response["reason_code"] = expected_reason
+            return response
+
+        result = run_check_stage(context, preclassification, check_runner)
+
+        assert len(calls) == expected_calls
+        if calls:
+            assert calls[0]["stage"] == "check"
+            assert all(calls[0][key] == value for key, value in context.items())
+        assert result.status == status
+        assert result.next_stage == next_stage
+        assert result.started_steps == (("check",) if calls else ())
+        assert result.incident_write_allowed is False
+
+    context = make_context()
+
+    def mutate_identity(job):
+        job["source_launch_id"] = "launch-mutated"
+        return make_check_response(job, assessment="normal")
+
+    mutated = run_check_stage(context, "normal_candidate", mutate_identity)
+    assert mutated.status == "blocked"
+    assert mutated.reason_code == "check_response_invalid"
+
+    context = make_context()
+
+    def contradictory_reason(job):
+        response = make_check_response(job, assessment="normal")
+        response["reason_code"] = "daily_failure_observed"
+        return response
+
+    mismatch = run_check_stage(context, "normal_candidate", contradictory_reason)
+    assert mismatch.status == "blocked"
+    assert mismatch.reason_code == "check_response_invalid"

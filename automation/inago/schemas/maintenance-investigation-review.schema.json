@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-investigation-review-v1.schema.json",
+  "title": "Maintenance independent investigation review",
+  "type": "object",
+  "allOf": [{"$ref": "#/$defs/context"}],
+  "properties": {
+    "schema_version": {"const": "maintenance-investigation-review-v1"},
+    "stage": {"const": "investigation_review"},
+    "reviewer_id": {"$ref": "#/$defs/identifier"},
+    "review_execution_id": {"$ref": "#/$defs/identifier"},
+    "reviewed_version": {"$ref": "#/$defs/identifier"},
+    "status": {"enum": ["approved", "changes_requested", "rejected", "unavailable"]},
+    "findings": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 2000}}
+  },
+  "required": ["schema_version", "stage", "reviewer_id", "review_execution_id", "reviewed_version", "status", "findings"],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "reference": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$"},
+    "context": {
+      "type": "object",
+      "properties": {
+        "incident_id": {"$ref": "#/$defs/identifier"},
+        "source_launch_id": {"$ref": "#/$defs/identifier"},
+        "source_run_id": {"oneOf": [{"$ref": "#/$defs/identifier"}, {"type": "null"}]},
+        "target_date": {"type": "string", "format": "date"},
+        "job_id": {"$ref": "#/$defs/identifier"},
+        "attempt_id": {"$ref": "#/$defs/identifier"},
+        "attempt": {"type": "integer", "minimum": 1},
+        "base_commit": {"type": "string", "pattern": "^[0-9a-fA-F]{7,64}$"},
+        "input_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reference"}},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reference"}},
+        "allowed_outputs": {}
+      },
+      "required": ["incident_id", "source_launch_id", "source_run_id", "target_date", "job_id", "attempt_id", "base_commit", "input_refs", "evidence_refs"]
+    }
+  }
+}

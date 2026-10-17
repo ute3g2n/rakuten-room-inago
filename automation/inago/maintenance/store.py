@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import uuid
@@ -412,6 +413,35 @@ def _relative_output_path(value: object) -> str:
     if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
         raise HandoffContractError("handoff_output_path_invalid")
     return path.as_posix()
+
+
+def _read_handoff_artifact(
+    root: Path, relative_path: str, expected_sha256: str, code: str
+) -> bytes:
+    """Read one regular handoff file under root and verify its digest."""
+
+    artifact = root.joinpath(*PurePosixPath(relative_path).parts)
+    cursor = root
+    try:
+        for part in PurePosixPath(relative_path).parts:
+            cursor = cursor / part
+            if _has_reparse_point(cursor):
+                raise HandoffContractError(f"{code}_reparse_point")
+        resolved = artifact.resolve(strict=True)
+        resolved.relative_to(root)
+        if not resolved.is_file():
+            raise HandoffContractError(f"{code}_unavailable")
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(resolved, flags)
+        with os.fdopen(descriptor, "rb") as stream:
+            content = stream.read()
+    except HandoffContractError:
+        raise
+    except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
+        raise HandoffContractError(f"{code}_unavailable") from exc
+    if hashlib.sha256(content).hexdigest() != expected_sha256:
+        raise HandoffContractError(f"{code}_digest_mismatch")
+    return content
 
 
 class MaintenanceStore:
@@ -2519,7 +2549,8 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("step_predecessor_incomplete")
             for prior_sequence in range(1, sequence):
                 prior = connection.execute(
-                    "SELECT s.attempt_id, s.status, s.result_version, r.author_id "
+                    "SELECT s.attempt_id, s.job_id, s.step_key, s.status, "
+                    "s.result_version, s.output_path, r.author_id "
                     "FROM step_attempt s "
                     "JOIN maintenance_job j ON j.job_id = s.job_id "
                     "JOIN release r ON r.release_id = j.release_id "
@@ -2542,6 +2573,13 @@ class MaintenanceStore:
                     or review["status"] != "approved"
                 ):
                     raise MaintenanceStoreError("step_predecessor_not_approved")
+                if (
+                    prior["step_key"] == "investigation"
+                    and prior["output_path"]
+                    == f"{prior['job_id']}/{prior['attempt_id']}/result.json"
+                    and prior["status"] != "handoff_accepted"
+                ):
+                    raise MaintenanceStoreError("step_predecessor_handoff_not_accepted")
             latest = connection.execute(
                 "SELECT * FROM step_attempt WHERE job_id = ? AND step_key = ? "
                 "ORDER BY attempt_no DESC LIMIT 1",
@@ -2684,6 +2722,153 @@ class MaintenanceStore:
                 (version, output, digest, when, attempt),
             )
 
+    def validate_step_attempt_lease(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        at: datetime | str,
+        author_id: str | None = None,
+        reviewer_id: str | None = None,
+    ) -> None:
+        """Fail before side effects if an attempt no longer owns a live lease."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        when = _timestamp(at)
+        author = (
+            _safe_id(author_id, "step_author_id_invalid")
+            if author_id is not None
+            else None
+        )
+        reviewer = (
+            _safe_id(reviewer_id, "reviewer_id_invalid")
+            if reviewer_id is not None
+            else None
+        )
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT s.status, s.lease_key, s.lease_generation, "
+                "j.status AS job_status, j.lease_key AS job_lease_key, "
+                "j.lease_generation AS job_lease_generation, r.author_id, "
+                "s.job_id, s.step_key, s.sequence "
+                "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            if (
+                row["lease_key"] != lease.lease_key
+                or int(row["lease_generation"]) != lease.generation
+                or row["job_lease_key"] != lease.lease_key
+                or row["job_lease_generation"] is None
+                or int(row["job_lease_generation"]) != lease.generation
+            ):
+                raise MaintenanceStoreError("step_attempt_lease_mismatch")
+            if author is not None and author != row["author_id"]:
+                raise MaintenanceStoreError("step_author_identity_mismatch")
+            if reviewer is not None:
+                if reviewer == row["author_id"]:
+                    raise MaintenanceStoreError("reviewer_must_be_independent")
+                review_count = int(
+                    connection.execute(
+                        "SELECT COUNT(*) FROM review_result r "
+                        "JOIN step_attempt s ON s.attempt_id = r.scope_id "
+                        "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                        "AND s.step_key = ? AND s.sequence = ?",
+                        (row["job_id"], row["step_key"], row["sequence"]),
+                    ).fetchone()[0]
+                )
+                if review_count >= self.review_round_limit:
+                    raise MaintenanceStoreError("review_round_limit_exceeded")
+
+    def complete_step_attempt_with_review(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        result_version: str,
+        completed_at: datetime | str,
+        output_path: str,
+        output_sha256: str,
+        reviewer_id: str,
+        reviewed_version: str,
+        review_status: str,
+        reviewed_at: datetime | str,
+    ) -> str:
+        """Atomically finish a step and persist its review gate record."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        reviewed = _safe_id(reviewed_version, "reviewed_version_invalid")
+        if version != reviewed:
+            raise MaintenanceStoreError("step_review_version_mismatch")
+        if review_status not in _REVIEW_STATUSES:
+            raise MaintenanceStoreError("review_status_invalid")
+        output = _relative_output_path(output_path)
+        if not isinstance(output_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            output_sha256
+        ):
+            raise MaintenanceStoreError("attempt_output_digest_invalid")
+        completed = _timestamp(completed_at)
+        reviewed_time = _timestamp(reviewed_at)
+        review_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, completed)
+            row = connection.execute(
+                "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
+                "s.step_key, s.sequence, j.status AS job_status, "
+                "r.author_id FROM step_attempt s "
+                "JOIN maintenance_job j ON j.job_id = s.job_id "
+                "JOIN release r ON r.release_id = j.release_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            if (
+                row["lease_key"] != lease.lease_key
+                or int(row["lease_generation"]) != lease.generation
+            ):
+                raise MaintenanceStoreError("step_attempt_lease_mismatch")
+            if reviewer == row["author_id"]:
+                raise MaintenanceStoreError("reviewer_must_be_independent")
+            review_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM review_result r "
+                    "JOIN step_attempt s ON s.attempt_id = r.scope_id "
+                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                    "AND s.step_key = ? AND s.sequence = ?",
+                    (row["job_id"], row["step_key"], row["sequence"]),
+                ).fetchone()[0]
+            )
+            if review_count >= self.review_round_limit:
+                raise MaintenanceStoreError("review_round_limit_exceeded")
+            connection.execute(
+                "UPDATE step_attempt SET status = 'complete', result_version = ?, "
+                "output_path = ?, output_sha256 = ?, finished_at = ? "
+                "WHERE attempt_id = ?",
+                (version, output, output_sha256, completed, attempt),
+            )
+            connection.execute(
+                "INSERT INTO review_result "
+                "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
+                "VALUES (?, 'step_attempt', ?, ?, ?, ?, ?)",
+                (review_id, attempt, reviewer, reviewed, review_status, reviewed_time),
+            )
+        return review_id
+
     def record_step_review(
         self,
         *,
@@ -2772,7 +2957,11 @@ class MaintenanceStore:
             payload["reviewed_version"], "handoff_reviewed_version_invalid"
         )
         output = payload["output"]
-        if not isinstance(output, dict) or set(output) != {"path", "sha256"}:
+        if (
+            not isinstance(output, dict)
+            or not {"path", "sha256"}.issubset(output)
+            or set(output) - {"path", "sha256", "artifacts"}
+        ):
             raise HandoffContractError("handoff_output_invalid")
         output_path = _relative_output_path(output["path"])
         output_sha256 = output["sha256"]
@@ -2780,6 +2969,35 @@ class MaintenanceStore:
             output_sha256
         ):
             raise HandoffContractError("handoff_output_digest_invalid")
+        artifacts = output.get("artifacts")
+        if artifacts is not None:
+            if not isinstance(artifacts, dict) or set(artifacts) != {
+                "facts",
+                "report",
+            }:
+                raise HandoffContractError("handoff_artifacts_invalid")
+            normalized_artifacts: dict[str, dict[str, str]] = {}
+            for key, filename in (
+                ("facts", "facts.json"),
+                ("report", "investigation.md"),
+            ):
+                item = artifacts[key]
+                if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+                    raise HandoffContractError("handoff_artifacts_invalid")
+                item_path = _relative_output_path(item["path"])
+                item_digest = item["sha256"]
+                if (
+                    not isinstance(item_digest, str)
+                    or not _SHA256_PATTERN.fullmatch(item_digest)
+                    or item_path != f"{job}/{attempt}/{filename}"
+                ):
+                    raise HandoffContractError("handoff_artifacts_invalid")
+                normalized_artifacts[key] = {
+                    "path": item_path,
+                    "sha256": item_digest,
+                }
+        else:
+            normalized_artifacts = {}
         when = _timestamp(accepted_at)
 
         with self._transaction() as connection:
@@ -2817,6 +3035,12 @@ class MaintenanceStore:
                 raise HandoffContractError("handoff_incident_mismatch")
             if row["job_id"] != job:
                 raise HandoffContractError("handoff_job_mismatch")
+            u12_investigation = (
+                row["step_key"] == "investigation"
+                and output_path == f"{job}/{attempt}/result.json"
+            )
+            if u12_investigation and not normalized_artifacts:
+                raise HandoffContractError("handoff_artifacts_missing")
             if row["source_run_id"] != run_id or row["job_source_run_id"] != run_id:
                 raise HandoffContractError("handoff_source_run_mismatch")
             if row["status"] != "complete":
@@ -2855,32 +3079,66 @@ class MaintenanceStore:
                 raise HandoffContractError("handoff_root_unavailable") from exc
             if not root.is_dir():
                 raise HandoffContractError("handoff_root_unavailable")
-            artifact = root.joinpath(*PurePosixPath(output_path).parts)
-            cursor = root
-            for part in PurePosixPath(output_path).parts:
-                cursor = cursor / part
+            if u12_investigation:
+                if output_path != f"{job}/{attempt}/result.json":
+                    raise HandoffContractError("handoff_output_path_invalid")
+                manifest = connection.execute(
+                    "SELECT source_launch_id, target_date FROM job_input_manifest "
+                    "WHERE job_id = ?",
+                    (job,),
+                ).fetchone()
+                if manifest is None:
+                    raise HandoffContractError("handoff_manifest_missing")
+                for name, item in normalized_artifacts.items():
+                    _read_handoff_artifact(
+                        root,
+                        item["path"],
+                        item["sha256"],
+                        f"handoff_{name}",
+                    )
+            output_content = _read_handoff_artifact(
+                root, output_path, output_sha256, "handoff_output"
+            )
+            if u12_investigation:
                 try:
-                    has_reparse_point = _has_reparse_point(cursor)
-                except UnsafeMaintenancePathError as exc:
-                    raise HandoffContractError("handoff_output_uninspectable") from exc
-                if has_reparse_point:
-                    raise HandoffContractError("handoff_output_reparse_point")
-            try:
-                resolved_artifact = artifact.resolve(strict=True)
-                resolved_artifact.relative_to(root)
-            except (OSError, RuntimeError, ValueError) as exc:
-                raise HandoffContractError(
-                    "handoff_output_missing_or_outside_root"
-                ) from exc
-            if not resolved_artifact.is_file():
-                raise HandoffContractError("handoff_output_missing_or_outside_root")
-            digest = hashlib.sha256()
-            with resolved_artifact.open("rb") as stream:
-                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                    digest.update(chunk)
-            actual_digest = digest.hexdigest()
-            if actual_digest != output_sha256:
-                raise HandoffContractError("handoff_output_digest_mismatch")
+                    result_document = json.loads(output_content)
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise HandoffContractError("handoff_result_invalid") from exc
+                review_document = (
+                    result_document.get("review")
+                    if isinstance(result_document, dict)
+                    else None
+                )
+                expected_identity = {
+                    "incident_id": incident,
+                    "source_launch_id": manifest["source_launch_id"],
+                    "source_run_id": run_id,
+                    "target_date": manifest["target_date"],
+                    "job_id": job,
+                }
+                if (
+                    not isinstance(result_document, dict)
+                    or result_document.get("schema_version")
+                    != "maintenance-investigation-result-v1"
+                    or result_document.get("attempt_id") != attempt
+                    or result_document.get("result_version") != result_version
+                    or result_document.get("investigation_status") != "complete"
+                    or result_document.get("next_action") != "handoff"
+                    or not isinstance(review_document, dict)
+                    or review_document.get("gate_status") != "approved"
+                    or review_document.get("status") != "approved"
+                    or review_document.get("reviewed_version") != result_version
+                ):
+                    raise HandoffContractError("handoff_result_invalid")
+                identity = result_document.get("identity")
+                if not isinstance(identity, dict) or any(
+                    identity.get(key) != value
+                    for key, value in expected_identity.items()
+                ):
+                    raise HandoffContractError("handoff_result_identity_mismatch")
+                for key in ("facts", "report"):
+                    if result_document.get(key) != normalized_artifacts[key]:
+                        raise HandoffContractError("handoff_result_artifacts_mismatch")
             connection.execute(
                 "INSERT INTO handoff_artifact "
                 "(attempt_id, source_run_id, result_version, output_path, output_sha256, accepted_at) "

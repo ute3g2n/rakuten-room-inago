@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-check-response-v1.schema.json",
+  "title": "Maintenance check-stage response",
+  "type": "object",
+  "allOf": [{"$ref": "#/$defs/context"}],
+  "properties": {
+    "schema_version": {"const": "maintenance-check-response-v1"},
+    "stage": {"const": "check"},
+    "assessment": {
+      "enum": ["normal", "needs_investigation", "waiting_external", "unknown"]
+    },
+    "reason_code": {
+      "enum": [
+        "daily_complete",
+        "daily_target_unmet",
+        "daily_recovered_retry",
+        "daily_failure_observed",
+        "external_dependency_wait",
+        "daily_observation_incomplete"
+      ]
+    },
+    "summary": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/reference"}
+    }
+  },
+  "required": ["schema_version", "stage", "assessment", "reason_code", "summary"],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "reference": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$"},
+    "context": {
+      "type": "object",
+      "properties": {
+        "incident_id": {"$ref": "#/$defs/identifier"},
+        "source_launch_id": {"$ref": "#/$defs/identifier"},
+        "source_run_id": {"oneOf": [{"$ref": "#/$defs/identifier"}, {"type": "null"}]},
+        "target_date": {"type": "string", "format": "date"},
+        "job_id": {"$ref": "#/$defs/identifier"},
+        "attempt_id": {"$ref": "#/$defs/identifier"},
+        "attempt": {"type": "integer", "minimum": 1},
+        "base_commit": {"type": "string", "pattern": "^[0-9a-fA-F]{7,64}$"},
+        "input_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reference"}},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reference"}},
+        "allowed_outputs": {}
+      },
+      "required": ["incident_id", "source_launch_id", "source_run_id", "target_date", "job_id", "attempt_id", "base_commit", "input_refs", "evidence_refs"]
+    }
+  }
+}
