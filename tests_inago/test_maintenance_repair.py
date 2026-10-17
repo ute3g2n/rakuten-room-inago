@@ -166,7 +166,10 @@ def test_c35_contract():
         "semantic-new": "tests_inago/test_fix.py::test_new",
     }
     ledger = ledger_type(
-        campaign_id="campaign-c35", required_cases=cases, code_sha256=BASE_SHA
+        campaign_id="campaign-c35",
+        required_cases=cases,
+        code_sha256=BASE_SHA,
+        invocation_parent_id=None,
     )
     ledger.record_result("semantic-pass", outcome="PASS", code_sha256=BASE_SHA)
     ledger.record_result("semantic-fail", outcome="FAIL", code_sha256=BASE_SHA)
@@ -182,16 +185,26 @@ def test_c35_contract():
 
     token = ledger.begin_full_regression()
     with pytest.raises(error_type):
-        ledger.begin_full_regression(nested=True)
-    with pytest.raises(error_type):
         ledger.begin_full_regression()
     assert token
+
+    nested_ledger = ledger_type(
+        campaign_id="campaign-c35-nested",
+        required_cases=cases,
+        code_sha256=BASE_SHA,
+        invocation_parent_id="full-regression-parent-run",
+    )
+    with pytest.raises(error_type):
+        nested_ledger.begin_full_regression()
+    with pytest.raises((AttributeError, TypeError)):
+        nested_ledger.invocation_parent_id = None
 
     for invalid_status in ("SKIP", "XFAIL", "ERROR", "UNVERIFIED"):
         invalid_status_ledger = ledger_type(
             campaign_id=f"campaign-c35-{invalid_status.lower()}",
             required_cases=cases,
             code_sha256=BASE_SHA,
+            invocation_parent_id=None,
         )
         invalid_status_ledger.record_result(
             "semantic-pass", outcome=invalid_status, code_sha256=BASE_SHA
@@ -204,7 +217,10 @@ def test_c36_contract():
     _, ledger_type, _, _, error_type = _require_repair_api()
     cases = {"existing-case": "tests_inago/test_fix.py::test_existing"}
     ledger = ledger_type(
-        campaign_id="campaign-c36", required_cases=cases, code_sha256=BASE_SHA
+        campaign_id="campaign-c36",
+        required_cases=cases,
+        code_sha256=BASE_SHA,
+        invocation_parent_id=None,
     )
     token = ledger.begin_full_regression()
     ledger.record_full_regression(
