@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.24、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
+正本：要件定義書HTML 2.25、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identityとwatchdog queueを加えてschema v4とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
 
 ## 共通イベント
 
@@ -168,7 +168,17 @@ MN05はcommon traceのschema_version/UUID span/JST/quota envelopeを実装した
 
 結果JSON schema `daily-launch-completion-v1`は`source_launch_id`、`target_date`、`status`、整数`exit_code`、nullable `source_run_id`、必須の`overall_status`/`daily_status`、safe `reason_code`/`failure_phase`、`failed_checks`、primary/secondary error class、`trace_status`を持つ。run未生成時はnullとし、架空IDを作らない。正常・不足・未実施の結果はparsed `target_date`が起動対象日と一致し、正常/不足なら`source_run_id`を持つ。失敗statusに成功overall statusを組み合わせず、not_dueはrun IDなしを許す。非文字列trace statusは`not_written`として安全に処理する。終了コード0なのにparse可能な結果がない場合、およびstatus・daily_check・終了コードが矛盾する子要約は契約エラーexit 4へ正規化し、Schedulerへ成功を返さない。記録/標準出力/標準エラーにはraw stderr/stdout、例外本文、stack、path、下書き数、秘密、個人情報を含めない。有効な日次結果の通知保存失敗時は起動行を`running`で残し、日次CLIの本来のexit codeを維持してU09 watchdogへ委ねる。
 
-launcherはproduction管理DBを自動migrationしない。schema v3がない場合はdaily childを起動しない。U08では専用隔離DBのmigrationを確認し、production DBの初期化・移行、Scheduler登録、日次起動を行っていない。C32のrun-null基本summaryはU08で観測し、計画追加ログ契約全体はU13の受入対象とする。
+launcherはproduction管理DBを自動migrationしない。schema v4がない場合はdaily childを起動しない。U08では専用隔離DBのmigrationを確認し、production DBの初期化・移行、Scheduler登録、日次起動を行っていない。C32のrun-null基本summaryはU08で観測し、計画追加ログ契約全体はU13の受入対象とする。
+
+## U09 watchdog確認queue（MN01・schema v4）
+
+U09 migration `004_watchdog_confirmation_queue.sql`は`daily_launch.owner_start_time`/`child_start_time`、`watchdog_cursor`、running launch用partial indexと、task key/target dateから作る安定した`occurrence_key`およびnullable `source_launch_id`がそれぞれuniqueな`watchdog_queue`を加える。schedule時刻が変わっても同じ対象日のqueueを再利用する。cursorは日付を後退させず、各runで新しい予定日、当日、未解決queue、running launchの対象日だけを再照合する。未解決queue日は現在のScheduler開始境界より古くても再読込する。U08以前のprocess開始時刻がNULLの行は推測補完せず、該当PIDが動作中なら所有不明として保留する。開始時刻不一致はPID再利用とみなして旧processの停止確認に使うが、別processを終了しない。child PID未記録は子なしの証明ではなく保留する。ownerと記録済みchildの両方について停止またはPID再利用が確認できた未完了起動だけを確認queueへ入れる。
+
+日次予定の欠落はScheduler historyに依存せず、日次taskとwatchdog監視開始のschedule境界から生成する。5分の猶予後も当日の`daily_launch`がなければ`unknown/daily_launcher_not_started`として一度記録する。正常な遅延起動が後から現れた場合は同じoccurrenceへsource launchを結び、`awaiting_completion`または`resolved`へ進める。後着launchが通知前に停止した場合はそのqueueのreasonを更新し、同じ`source_launch_id`を持つ別queueを作らない。cursorより前の日付を毎回再走査せず、当日と未解決queue/running launchの日付は継続照合する。schedule時刻の変更後もtask/対象日で同じqueueを特定し、既存queue日は現在の開始境界より古くても読み直す。未解決・所有不明はqueue上に残し、watchdog自身はdailyを再起動せず、workerは通常dispatchだけで起動する。`daily-watchdog` leaseが不明/生存中ならそのrunは状態を更新しない。
+
+## U09 task XML・登録手順
+
+`RakutenRoomInagoWatchdog.xml`は1分ごとにmaintenance CLI `watchdog`を起動し、`MultipleInstancesPolicy=IgnoreNew`と`ExecutionTimeLimit=PT0S`を使う。`RakutenRoomInagoWorker.xml`はtriggerなしで、通常queue dispatch後の明示起動に限る。`register_maintenance_tasks.ps1`は既定でXMLをrenderするだけで、`-Register`指定とShouldProcess承認なしにtaskを登録しない。実登録前に両task名の衝突、CLIの`worker` command、および`worker --help`に実際の`--once` optionがあることを確認し、登録後検証失敗時は今回追加したtaskだけをrollbackする。U09時点では`worker` commandが未実装なので、登録経路はfail-closedとなる。U09ではScheduler登録・production DB migration・実日次起動をしていない。
 
 ## Maintenance保守JSONL（MR-012/013/014/021/022）
 

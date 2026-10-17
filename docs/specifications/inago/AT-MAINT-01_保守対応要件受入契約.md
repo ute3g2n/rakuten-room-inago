@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.24 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.25 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C60、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -31,7 +31,9 @@ U08は日次taskと`run.ps1 daily`から専用launcherを呼び、maintenance DB
 
 U08 migration `003_daily_launch.sql`でmaintenance schemaをv3へ進め、`daily_launch`に`source_launch_id`、JST `target_date`、owner/child PID、`running/complete/failed/blocked/unknown` status、nullable `source_run_id`、exit code、完了時刻、安全な結果summaryを保存する。起動前停止はrun IDを創作せず、失敗phase/class、failed check、trace欠測を記録する。正常・不足・未実施の要約は対象日一致、正常/不足はrun IDを必須とし、overall/daily statusはnullにしない。daily_checkとterminal launch resultは同一transactionで確定し、terminal recordは変更/削除できない。結果summaryとstderrにはallowlist済みの識別値・状態・code/classのみを記録し、raw stderr、自由文、秘密、path、下書き数は記録しない。
 
-起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、schema v3が事前に導入済みの場合にだけ日次CLIへ進む。U08のtask XML変更は予定差分であり、Scheduler登録と実日次起動はU21の導入ゲート後に行う。
+起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、schema v4が事前に導入済みの場合にだけ日次CLIへ進む。U08/U09のtask XML変更は予定差分であり、Scheduler登録と実日次起動はU21の導入ゲート後に行う。
+
+U09 migration `004_watchdog_confirmation_queue.sql`でmaintenance schemaをv4へ進める。daily launch owner/childのPID開始時刻を追加し、未起動/途中終了の`watchdog_queue`をtask/対象日単位のoccurrenceおよびsource launch単位で一意化する。occurrence keyは予定時刻ではなくtask keyと対象日から作り、schedule時刻変更後も同じqueueへ結び直せるようにする。Scheduler historyが無効でも予定時刻から欠落を検知し、5分猶予後にrunがない場合は`unknown`として確認queueへ置く。遅れて起動したrunは同じqueueへ結び直し、その後通知前に停止した場合も同じqueueの理由を更新する。所有PIDが生存中、観測不明、またはchild PID未記録の行はqueueせず、別processをkillしない。`watchdog_cursor`は照合済みの最新日を単調に保持し、各回は新しい予定日、当日、未解決queue日、running launch日だけを照合する。既存の未解決queue日は現在のScheduler開始境界より古くても照合する。running launch用partial indexと日付単位の一括読取で過去全履歴の再走査と日付ごとのDB lookupを避ける。watchdog/worker task XMLと明示的なrender/registration scriptを追加する。実登録前にCLI worker commandと`worker --help`の`--once` option、および全task名を確認し、登録失敗時は今回追加したtaskだけをrollbackする。U09ではworker command未実装のため登録経路はfail-closedで、Scheduler登録・production migrationはU21まで行わない。
 
 ## 受入条件
 

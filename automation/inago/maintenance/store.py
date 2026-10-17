@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
-from typing import Iterator, Mapping
+from typing import Iterable, Iterator, Mapping
 
 from automation.inago.maintenance.paths import (
     UnsafeMaintenancePathError,
@@ -20,7 +20,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -28,6 +28,10 @@ _MIGRATIONS = {
         "immutable job manifest and AI session ledger",
     ),
     3: ("003_daily_launch.sql", "daily launcher start and completion ledger"),
+    4: (
+        "004_watchdog_confirmation_queue.sql",
+        "process identity and idempotent watchdog confirmation queue",
+    ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
@@ -82,6 +86,8 @@ _SCHEMA_TABLES = {
     "maintenance_ai_session",
     "maintenance_ai_observation",
     "daily_launch",
+    "watchdog_queue",
+    "watchdog_cursor",
 }
 
 
@@ -132,6 +138,8 @@ class DailyLaunchRecord:
     exit_code: int | None
     completed_at: str | None
     result_json: str | None
+    owner_start_time: str | None
+    child_start_time: str | None
 
     @property
     def result_summary(self) -> Mapping[str, object] | None:
@@ -172,6 +180,75 @@ class LeaseToken:
     lease_key: str
     owner_id: str
     generation: int
+
+
+@dataclass(frozen=True, slots=True)
+class LeaseRecord:
+    lease_key: str
+    owner_id: str
+    owner_pid: int
+    owner_start_time: str
+    generation: int
+    state: str
+    expires_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class WatchdogQueueRecord:
+    queue_id: str
+    occurrence_key: str
+    target_date: str
+    source_launch_id: str | None
+    status: str
+    reason_code: str
+    created_at: str
+    updated_at: str
+
+
+def _daily_launch_from_row(row: sqlite3.Row) -> DailyLaunchRecord:
+    return DailyLaunchRecord(
+        source_launch_id=str(row["source_launch_id"]),
+        target_date=str(row["target_date"]),
+        owner_pid=int(row["owner_pid"]),
+        started_at=str(row["started_at"]),
+        status=str(row["status"]),
+        child_pid=int(row["child_pid"]) if row["child_pid"] is not None else None,
+        source_run_id=(
+            str(row["source_run_id"]) if row["source_run_id"] is not None else None
+        ),
+        exit_code=int(row["exit_code"]) if row["exit_code"] is not None else None,
+        completed_at=(
+            str(row["completed_at"]) if row["completed_at"] is not None else None
+        ),
+        result_json=str(row["result_json"]) if row["result_json"] is not None else None,
+        owner_start_time=(
+            str(row["owner_start_time"])
+            if row["owner_start_time"] is not None
+            else None
+        ),
+        child_start_time=(
+            str(row["child_start_time"])
+            if row["child_start_time"] is not None
+            else None
+        ),
+    )
+
+
+def _watchdog_queue_from_row(row: sqlite3.Row) -> WatchdogQueueRecord:
+    return WatchdogQueueRecord(
+        queue_id=str(row["queue_id"]),
+        occurrence_key=str(row["occurrence_key"]),
+        target_date=str(row["target_date"]),
+        source_launch_id=(
+            str(row["source_launch_id"])
+            if row["source_launch_id"] is not None
+            else None
+        ),
+        status=str(row["status"]),
+        reason_code=str(row["reason_code"]),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -555,6 +632,8 @@ class MaintenanceStore:
                 "maintenance_ai_session",
                 "maintenance_ai_observation",
                 "daily_launch",
+                "watchdog_queue",
+                "watchdog_cursor",
             )
             return {
                 name: int(
@@ -1023,6 +1102,7 @@ class MaintenanceStore:
         target_date: str,
         owner_pid: int,
         started_at: datetime | str,
+        owner_start_time: datetime | str | None = None,
     ) -> DailyLaunchRecord:
         launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
         target = _target_date(target_date)
@@ -1033,6 +1113,11 @@ class MaintenanceStore:
         ):
             raise MaintenanceStoreError("daily_launch_owner_pid_invalid")
         started = _timestamp(started_at)
+        owner_started = (
+            _timestamp(owner_start_time, "owner_start_time_invalid")
+            if owner_start_time is not None
+            else None
+        )
         with self._transaction() as connection:
             existing = connection.execute(
                 "SELECT source_launch_id FROM daily_launch WHERE source_launch_id = ?",
@@ -1042,9 +1127,9 @@ class MaintenanceStore:
                 raise IdempotencyConflictError("daily_launch_id_already_used")
             connection.execute(
                 "INSERT INTO daily_launch "
-                "(source_launch_id, target_date, owner_pid, started_at, status) "
-                "VALUES (?, ?, ?, ?, 'running')",
-                (launch_id, target, owner_pid, started),
+                "(source_launch_id, target_date, owner_pid, owner_start_time, started_at, status) "
+                "VALUES (?, ?, ?, ?, ?, 'running')",
+                (launch_id, target, owner_pid, owner_started, started),
             )
         record = self.get_daily_launch(launch_id)
         if record is None:
@@ -1052,7 +1137,11 @@ class MaintenanceStore:
         return record
 
     def record_daily_launch_child(
-        self, *, source_launch_id: str, child_pid: int
+        self,
+        *,
+        source_launch_id: str,
+        child_pid: int,
+        child_start_time: datetime | str | None = None,
     ) -> DailyLaunchRecord:
         launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
         if (
@@ -1063,7 +1152,8 @@ class MaintenanceStore:
             raise MaintenanceStoreError("daily_launch_child_pid_invalid")
         with self._transaction() as connection:
             row = connection.execute(
-                "SELECT status, child_pid FROM daily_launch WHERE source_launch_id = ?",
+                "SELECT status, child_pid, child_start_time FROM daily_launch "
+                "WHERE source_launch_id = ?",
                 (launch_id,),
             ).fetchone()
             if row is None:
@@ -1072,10 +1162,22 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("daily_launch_not_running")
             if row["child_pid"] is not None and int(row["child_pid"]) != child_pid:
                 raise IdempotencyConflictError("daily_launch_child_pid_conflict")
+            child_started = (
+                _timestamp(child_start_time, "child_start_time_invalid")
+                if child_start_time is not None
+                else None
+            )
+            if (
+                row["child_start_time"] is not None
+                and child_started is not None
+                and str(row["child_start_time"]) != child_started
+            ):
+                raise IdempotencyConflictError("daily_launch_child_start_conflict")
             connection.execute(
-                "UPDATE daily_launch SET child_pid = ? "
+                "UPDATE daily_launch SET child_pid = ?, child_start_time = "
+                "COALESCE(child_start_time, ?) "
                 "WHERE source_launch_id = ? AND status = 'running'",
-                (child_pid, launch_id),
+                (child_pid, child_started, launch_id),
             )
         record = self.get_daily_launch(launch_id)
         if record is None:
@@ -1087,41 +1189,341 @@ class MaintenanceStore:
         connection = self._connect()
         try:
             row = connection.execute(
-                "SELECT source_launch_id, target_date, owner_pid, started_at, status, "
-                "child_pid, source_run_id, exit_code, completed_at, result_json "
+                "SELECT source_launch_id, target_date, owner_pid, owner_start_time, started_at, status, "
+                "child_pid, child_start_time, source_run_id, exit_code, completed_at, result_json "
                 "FROM daily_launch WHERE source_launch_id = ?",
                 (launch_id,),
             ).fetchone()
-            if row is None:
-                return None
-            return DailyLaunchRecord(
-                source_launch_id=str(row["source_launch_id"]),
-                target_date=str(row["target_date"]),
-                owner_pid=int(row["owner_pid"]),
-                started_at=str(row["started_at"]),
-                status=str(row["status"]),
-                child_pid=(
-                    int(row["child_pid"]) if row["child_pid"] is not None else None
-                ),
-                source_run_id=(
-                    str(row["source_run_id"])
-                    if row["source_run_id"] is not None
-                    else None
-                ),
-                exit_code=(
-                    int(row["exit_code"]) if row["exit_code"] is not None else None
-                ),
-                completed_at=(
-                    str(row["completed_at"])
-                    if row["completed_at"] is not None
-                    else None
-                ),
-                result_json=(
-                    str(row["result_json"]) if row["result_json"] is not None else None
-                ),
-            )
+            return _daily_launch_from_row(row) if row is not None else None
         finally:
             connection.close()
+
+    def list_daily_launches(
+        self,
+        *,
+        target_date: str | None = None,
+        target_date_from: str | None = None,
+        target_date_to: str | None = None,
+        target_dates: Iterable[str] | None = None,
+        running_only: bool = False,
+    ) -> tuple[DailyLaunchRecord, ...]:
+        target = _target_date(target_date) if target_date is not None else None
+        date_from = (
+            _target_date(target_date_from) if target_date_from is not None else None
+        )
+        date_to = _target_date(target_date_to) if target_date_to is not None else None
+        selected_dates = (
+            tuple(dict.fromkeys(_target_date(item) for item in target_dates))
+            if target_dates is not None
+            else None
+        )
+        selector_count = sum(
+            (
+                target is not None,
+                date_from is not None or date_to is not None,
+                selected_dates is not None,
+            )
+        )
+        if selector_count > 1 or (date_from is None) != (date_to is None):
+            raise MaintenanceStoreError("daily_launch_date_range_invalid")
+        if date_from is not None and date_from > date_to:
+            raise MaintenanceStoreError("daily_launch_date_range_invalid")
+        if selected_dates == ():
+            return ()
+        conditions: list[str] = []
+        parameters: list[object] = []
+        if target is not None:
+            conditions.append("target_date = ?")
+            parameters.append(target)
+        if date_from is not None:
+            conditions.extend(("target_date >= ?", "target_date <= ?"))
+            parameters.extend((date_from, date_to))
+        if selected_dates is not None:
+            conditions.append(
+                "target_date IN (" + ", ".join("?" for _ in selected_dates) + ")"
+            )
+            parameters.extend(selected_dates)
+        if running_only:
+            conditions.append("status = 'running'")
+        where = " WHERE " + " AND ".join(conditions) if conditions else ""
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT source_launch_id, target_date, owner_pid, owner_start_time, started_at, status, "
+                "child_pid, child_start_time, source_run_id, exit_code, completed_at, result_json "
+                "FROM daily_launch" + where + " ORDER BY started_at, source_launch_id",
+                parameters,
+            ).fetchall()
+        finally:
+            connection.close()
+        return tuple(_daily_launch_from_row(row) for row in rows)
+
+    def record_watchdog_queue(
+        self,
+        *,
+        occurrence_key: str,
+        target_date: str,
+        reason_code: str,
+        now: datetime | str,
+        source_launch_id: str | None = None,
+        status: str = "unknown",
+    ) -> tuple[WatchdogQueueRecord, bool]:
+        key = _safe_id(occurrence_key, "watchdog_occurrence_key_invalid")
+        target = _target_date(target_date)
+        reason = _safe_code(reason_code, "watchdog_reason_code_invalid")
+        when = _timestamp(now)
+        launch_id = (
+            _safe_id(source_launch_id, "source_launch_id_invalid")
+            if source_launch_id is not None
+            else None
+        )
+        if status not in {"unknown", "awaiting_completion", "resolved", "blocked"}:
+            raise MaintenanceStoreError("watchdog_queue_status_invalid")
+        if launch_id is None and status in {"awaiting_completion", "resolved"}:
+            raise MaintenanceStoreError("watchdog_queue_launch_required")
+        created = False
+        result: WatchdogQueueRecord | None = None
+        with self._transaction() as connection:
+            if launch_id is not None:
+                launch_row = connection.execute(
+                    "SELECT target_date FROM daily_launch WHERE source_launch_id = ?",
+                    (launch_id,),
+                ).fetchone()
+                if launch_row is None:
+                    raise MaintenanceStoreError("watchdog_launch_not_found")
+                if str(launch_row["target_date"]) != target:
+                    raise IdempotencyConflictError("watchdog_launch_date_conflict")
+                duplicate_launch = connection.execute(
+                    "SELECT occurrence_key FROM watchdog_queue "
+                    "WHERE source_launch_id = ? AND occurrence_key <> ? LIMIT 1",
+                    (launch_id, key),
+                ).fetchone()
+                if duplicate_launch is not None:
+                    raise IdempotencyConflictError("watchdog_launch_queue_conflict")
+            current = connection.execute(
+                "SELECT * FROM watchdog_queue WHERE occurrence_key = ?", (key,)
+            ).fetchone()
+            if current is None:
+                queue_id = uuid.uuid4().hex
+                connection.execute(
+                    "INSERT INTO watchdog_queue "
+                    "(queue_id, occurrence_key, target_date, source_launch_id, status, "
+                    "reason_code, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (queue_id, key, target, launch_id, status, reason, when, when),
+                )
+                created = True
+                result = WatchdogQueueRecord(
+                    queue_id=queue_id,
+                    occurrence_key=key,
+                    target_date=target,
+                    source_launch_id=launch_id,
+                    status=status,
+                    reason_code=reason,
+                    created_at=when,
+                    updated_at=when,
+                )
+            else:
+                if str(current["target_date"]) != target:
+                    raise IdempotencyConflictError("watchdog_occurrence_date_conflict")
+                existing_launch_id = (
+                    str(current["source_launch_id"])
+                    if current["source_launch_id"] is not None
+                    else None
+                )
+                if (
+                    existing_launch_id is not None
+                    and launch_id is not None
+                    and existing_launch_id != launch_id
+                ):
+                    raise IdempotencyConflictError(
+                        "watchdog_occurrence_launch_conflict"
+                    )
+                resolved_launch_id = existing_launch_id or launch_id
+                current_status = str(current["status"])
+                desired_status = status
+                if current_status in {"resolved", "blocked"}:
+                    desired_status = current_status
+                elif current_status == "awaiting_completion" and status == "unknown":
+                    desired_status = current_status
+                needs_update = (
+                    current["source_launch_id"] != resolved_launch_id
+                    or str(current["status"]) != desired_status
+                    or str(current["reason_code"]) != reason
+                )
+                if needs_update:
+                    connection.execute(
+                        "UPDATE watchdog_queue SET source_launch_id = ?, status = ?, "
+                        "reason_code = ?, updated_at = ? WHERE queue_id = ?",
+                        (
+                            resolved_launch_id,
+                            desired_status,
+                            reason,
+                            when,
+                            str(current["queue_id"]),
+                        ),
+                    )
+                    result = WatchdogQueueRecord(
+                        queue_id=str(current["queue_id"]),
+                        occurrence_key=key,
+                        target_date=target,
+                        source_launch_id=resolved_launch_id,
+                        status=desired_status,
+                        reason_code=reason,
+                        created_at=str(current["created_at"]),
+                        updated_at=when,
+                    )
+                else:
+                    result = _watchdog_queue_from_row(current)
+                queue_id = str(current["queue_id"])
+        if result is None:
+            raise MaintenanceStoreError("watchdog_queue_unavailable")
+        return result, created
+
+    def get_watchdog_cursor(self) -> str | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT reconciled_through_date FROM watchdog_cursor "
+                "WHERE cursor_key = 'daily'"
+            ).fetchone()
+        finally:
+            connection.close()
+        return (
+            _target_date(str(row["reconciled_through_date"]))
+            if row is not None
+            else None
+        )
+
+    def advance_watchdog_cursor(
+        self, *, reconciled_through_date: str, updated_at: datetime | str
+    ) -> str:
+        target = _target_date(reconciled_through_date)
+        when = _timestamp(updated_at)
+        with self._transaction() as connection:
+            connection.execute(
+                "INSERT INTO watchdog_cursor "
+                "(cursor_key, reconciled_through_date, updated_at) VALUES ('daily', ?, ?) "
+                "ON CONFLICT(cursor_key) DO UPDATE SET "
+                "reconciled_through_date = excluded.reconciled_through_date, "
+                "updated_at = excluded.updated_at "
+                "WHERE excluded.reconciled_through_date > "
+                "watchdog_cursor.reconciled_through_date",
+                (target, when),
+            )
+            row = connection.execute(
+                "SELECT reconciled_through_date FROM watchdog_cursor "
+                "WHERE cursor_key = 'daily'"
+            ).fetchone()
+        if row is None:
+            raise MaintenanceStoreError("watchdog_cursor_unavailable")
+        return _target_date(str(row["reconciled_through_date"]))
+
+    def get_watchdog_queue(self, queue_id: str) -> WatchdogQueueRecord | None:
+        key = _safe_id(queue_id, "watchdog_queue_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT queue_id, occurrence_key, target_date, source_launch_id, status, "
+                "reason_code, created_at, updated_at FROM watchdog_queue WHERE queue_id = ?",
+                (key,),
+            ).fetchone()
+            return _watchdog_queue_from_row(row) if row is not None else None
+        finally:
+            connection.close()
+
+    def get_watchdog_queue_by_occurrence(
+        self, occurrence_key: str
+    ) -> WatchdogQueueRecord | None:
+        key = _safe_id(occurrence_key, "watchdog_occurrence_key_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT queue_id, occurrence_key, target_date, source_launch_id, status, "
+                "reason_code, created_at, updated_at FROM watchdog_queue "
+                "WHERE occurrence_key = ?",
+                (key,),
+            ).fetchone()
+        finally:
+            connection.close()
+        return _watchdog_queue_from_row(row) if row is not None else None
+
+    def get_watchdog_queue_by_source_launch_id(
+        self, source_launch_id: str
+    ) -> WatchdogQueueRecord | None:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT queue_id, occurrence_key, target_date, source_launch_id, status, "
+                "reason_code, created_at, updated_at FROM watchdog_queue "
+                "WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        return _watchdog_queue_from_row(row) if row is not None else None
+
+    def list_watchdog_queue(
+        self,
+        *,
+        open_only: bool = False,
+        reconciliation_only: bool = False,
+        target_date_from: str | None = None,
+        target_date_to: str | None = None,
+        target_dates: Iterable[str] | None = None,
+    ) -> tuple[WatchdogQueueRecord, ...]:
+        date_from = (
+            _target_date(target_date_from) if target_date_from is not None else None
+        )
+        date_to = _target_date(target_date_to) if target_date_to is not None else None
+        selected_dates = (
+            tuple(dict.fromkeys(_target_date(item) for item in target_dates))
+            if target_dates is not None
+            else None
+        )
+        if (
+            (date_from is None) != (date_to is None)
+            or (
+                selected_dates is not None
+                and (date_from is not None or date_to is not None)
+            )
+            or (selected_dates is not None and open_only)
+            or (reconciliation_only and open_only)
+        ):
+            raise MaintenanceStoreError("watchdog_queue_date_range_invalid")
+        if date_from is not None and date_from > date_to:
+            raise MaintenanceStoreError("watchdog_queue_date_range_invalid")
+        if selected_dates == ():
+            return ()
+        connection = self._connect()
+        try:
+            conditions: list[str] = []
+            parameters: list[object] = []
+            if open_only:
+                conditions.append(
+                    "status IN ('unknown', 'awaiting_completion', 'blocked')"
+                )
+            if reconciliation_only:
+                conditions.append("status IN ('unknown', 'awaiting_completion')")
+            if date_from is not None:
+                conditions.extend(("target_date >= ?", "target_date <= ?"))
+                parameters.extend((date_from, date_to))
+            if selected_dates is not None:
+                conditions.append(
+                    "target_date IN (" + ", ".join("?" for _ in selected_dates) + ")"
+                )
+                parameters.extend(selected_dates)
+            where = " WHERE " + " AND ".join(conditions) if conditions else ""
+            rows = connection.execute(
+                "SELECT queue_id, occurrence_key, target_date, source_launch_id, status, "
+                "reason_code, created_at, updated_at FROM watchdog_queue"
+                + where
+                + " ORDER BY target_date, created_at, queue_id",
+                parameters,
+            ).fetchall()
+        finally:
+            connection.close()
+        return tuple(_watchdog_queue_from_row(row) for row in rows)
 
     def record_daily_launch_completion(
         self,
@@ -1977,6 +2379,29 @@ class MaintenanceStore:
                 (key, owner, owner_pid, start, generation, when, when, expires, when),
             )
         return LeaseToken(key, owner, generation)
+
+    def get_lease(self, lease_key: str) -> LeaseRecord | None:
+        key = _safe_id(lease_key, "lease_key_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT lease_key, owner_id, owner_pid, owner_start_time, generation, "
+                "state, expires_at FROM lease WHERE lease_key = ?",
+                (key,),
+            ).fetchone()
+            if row is None:
+                return None
+            return LeaseRecord(
+                lease_key=str(row["lease_key"]),
+                owner_id=str(row["owner_id"]),
+                owner_pid=int(row["owner_pid"]),
+                owner_start_time=str(row["owner_start_time"]),
+                generation=int(row["generation"]),
+                state=str(row["state"]),
+                expires_at=str(row["expires_at"]),
+            )
+        finally:
+            connection.close()
 
     @staticmethod
     def _assert_lease(

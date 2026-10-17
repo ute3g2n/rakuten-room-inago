@@ -528,29 +528,132 @@ def _downgrade_fixture_to_v2(store):
                 "2026-10-17T13:00:00+09:00",
             ),
         )
-        for trigger_name in (
-            "daily_launch_identity_immutable",
-            "daily_launch_child_pid_immutable",
-            "daily_launch_terminal_immutable",
-            "daily_launch_no_delete",
-        ):
-            connection.execute(f"DROP TRIGGER {trigger_name}")
+        connection.execute("DROP TABLE watchdog_queue")
         connection.execute("DROP TABLE daily_launch")
-        connection.execute("DELETE FROM schema_migration WHERE version = 3")
+        connection.execute("DROP TABLE watchdog_cursor")
+        connection.execute("DELETE FROM schema_migration WHERE version > 2")
         connection.execute("PRAGMA user_version = 2")
         connection.commit()
     finally:
         connection.close()
 
 
-def test_populated_v2_database_upgrades_to_v3_without_losing_checks(tmp_path):
+def test_populated_v2_database_upgrades_to_v4_without_losing_checks(tmp_path):
     store = make_store(tmp_path)
     _downgrade_fixture_to_v2(store)
 
-    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 3
+    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 4
     assert store.counts()["daily_check"] == 1
     assert store.counts()["daily_launch"] == 0
-    assert store.initialize(applied_at=START + timedelta(minutes=2)) == 3
+    assert store.initialize(applied_at=START + timedelta(minutes=2)) == 4
+
+
+def test_v3_daily_launch_migration_preserves_launch_and_marks_old_identity_unknown(
+    tmp_path,
+):
+    store = make_store(tmp_path)
+    connection = sqlite3.connect(store.database_path)
+    try:
+        connection.execute("DROP TABLE watchdog_queue")
+        connection.execute("DROP TABLE daily_launch")
+        connection.execute("DROP TABLE watchdog_cursor")
+        migration = Path(__file__).resolve().parents[1] / (
+            "automation/inago/maintenance/sql/003_daily_launch.sql"
+        )
+        connection.executescript(migration.read_text(encoding="utf-8"))
+        connection.execute(
+            "INSERT INTO daily_launch "
+            "(source_launch_id, target_date, owner_pid, started_at, status, child_pid) "
+            "VALUES (?, ?, ?, ?, 'running', ?)",
+            (
+                "launch-v3-preserved",
+                "2026-10-17",
+                8301,
+                "2026-10-17T04:00:00Z",
+                8302,
+            ),
+        )
+        connection.execute("DELETE FROM schema_migration WHERE version = 4")
+        connection.execute("PRAGMA user_version = 3")
+        connection.commit()
+    finally:
+        connection.close()
+
+    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 4
+    launch = store.get_daily_launch("launch-v3-preserved")
+    assert launch is not None
+    assert launch.status == "running"
+    assert launch.owner_start_time is None
+    assert launch.child_start_time is None
+
+
+def test_v4_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
+    store = make_store(tmp_path)
+    connection = sqlite3.connect(store.database_path)
+    try:
+        connection.execute("DROP TABLE watchdog_queue")
+        connection.execute("DROP TABLE daily_launch")
+        connection.execute("DROP TABLE watchdog_cursor")
+        migration = Path(__file__).resolve().parents[1] / (
+            "automation/inago/maintenance/sql/003_daily_launch.sql"
+        )
+        connection.executescript(migration.read_text(encoding="utf-8"))
+        connection.execute(
+            "INSERT INTO daily_launch "
+            "(source_launch_id, target_date, owner_pid, started_at, status) "
+            "VALUES (?, ?, ?, ?, 'running')",
+            (
+                "launch-v3-rollback",
+                "2026-10-17",
+                8303,
+                "2026-10-17T04:00:00Z",
+            ),
+        )
+        connection.execute("DELETE FROM schema_migration WHERE version = 4")
+        connection.execute("PRAGMA user_version = 3")
+        connection.commit()
+    finally:
+        connection.close()
+
+    original_read_text = Path.read_text
+
+    def broken_migration(path, *args, **kwargs):
+        if path.name == "004_watchdog_confirmation_queue.sql":
+            return original_read_text(path, *args, **kwargs) + "\nINVALID SQL;\n"
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", broken_migration)
+    with pytest.raises(sqlite3.OperationalError):
+        store.initialize(applied_at=START + timedelta(minutes=1))
+
+    connection = sqlite3.connect(store.database_path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert (
+            connection.execute(
+                "SELECT 1 FROM schema_migration WHERE version = 4"
+            ).fetchone()
+            is None
+        )
+        columns = {
+            str(row[1]) for row in connection.execute("PRAGMA table_info(daily_launch)")
+        }
+        assert "owner_start_time" not in columns
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM daily_launch WHERE source_launch_id = ?",
+                ("launch-v3-rollback",),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'watchdog_queue'"
+            ).fetchone()
+            is None
+        )
+    finally:
+        connection.close()
 
 
 def test_v3_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
@@ -1027,6 +1130,8 @@ def test_c12_contract(tmp_path):
         ("launch-unknown", 10102),
         ("launch-reused", 10103),
         ("launch-stopped", 10104),
+        ("launch-confirmed-child-stopped", 10105),
+        ("launch-owner-stopped-child-alive", 10106),
     ):
         store.record_daily_launch_start(
             source_launch_id=launch_id,
@@ -1051,6 +1156,16 @@ def test_c12_contract(tmp_path):
         child_pid=20103,
         child_start_time=child_start,
     )
+    store.record_daily_launch_child(
+        source_launch_id="launch-confirmed-child-stopped",
+        child_pid=20105,
+        child_start_time=child_start,
+    )
+    store.record_daily_launch_child(
+        source_launch_id="launch-owner-stopped-child-alive",
+        child_pid=20106,
+        child_start_time=child_start,
+    )
 
     def process_probe(pid):
         if pid == 10101:
@@ -1067,6 +1182,14 @@ def test_c12_contract(tmp_path):
             return watchdog.ProcessObservation("stopped", None)
         if pid == 10104:
             return watchdog.ProcessObservation("stopped", None)
+        if pid == 10105:
+            return watchdog.ProcessObservation("stopped", None)
+        if pid == 20105:
+            return watchdog.ProcessObservation("stopped", None)
+        if pid == 10106:
+            return watchdog.ProcessObservation("stopped", None)
+        if pid == 20106:
+            return watchdog.ProcessObservation("running", child_start)
         raise AssertionError(f"unexpected process id: {pid}")
 
     result = watchdog.run_watchdog_once(
@@ -1080,10 +1203,14 @@ def test_c12_contract(tmp_path):
     )
 
     assert result.queued_source_launch_ids == (
+        "launch-confirmed-child-stopped",
         "launch-reused",
-        "launch-stopped",
     )
     assert store.counts()["watchdog_queue"] == 2
+    queue_timestamps = {
+        launch_id: store.get_watchdog_queue_by_source_launch_id(launch_id).updated_at
+        for launch_id in result.queued_source_launch_ids
+    }
     watchdog.run_watchdog_once(
         store,
         now=START + timedelta(minutes=1),
@@ -1094,6 +1221,10 @@ def test_c12_contract(tmp_path):
         owner_start_time=(START + timedelta(minutes=1)).isoformat(),
     )
     assert store.counts()["watchdog_queue"] == 2
+    assert {
+        launch_id: store.get_watchdog_queue_by_source_launch_id(launch_id).updated_at
+        for launch_id in result.queued_source_launch_ids
+    } == queue_timestamps
 
 
 def test_c13_contract(tmp_path):
@@ -1107,6 +1238,18 @@ def test_c13_contract(tmp_path):
         history_available=False,
         last_run_time=None,
         last_result=None,
+    )
+    rescheduled_occurrence = watchdog.SchedulerOccurrence(
+        task_key=occurrence.task_key,
+        target_date=occurrence.target_date,
+        scheduled_at=occurrence.scheduled_at + timedelta(hours=1),
+        enabled=occurrence.enabled,
+        history_available=occurrence.history_available,
+        last_run_time=occurrence.last_run_time,
+        last_result=occurrence.last_result,
+    )
+    assert watchdog._occurrence_key(occurrence) == watchdog._occurrence_key(
+        rescheduled_occurrence
     )
 
     result = watchdog.run_watchdog_once(
@@ -1130,7 +1273,7 @@ def test_c13_contract(tmp_path):
         ).fetchone()
     finally:
         connection.close()
-    assert row["occurrence_key"].startswith("scheduled:daily-1300:2026-10-17:")
+    assert row["occurrence_key"] == "scheduled:daily-1300:2026-10-17"
     assert row["status"] == "unknown"
     assert row["reason_code"] == "daily_launcher_not_started"
 
@@ -1145,3 +1288,205 @@ def test_c13_contract(tmp_path):
         start_grace=timedelta(minutes=5),
     )
     assert store.counts()["watchdog_queue"] == 1
+
+
+def test_c13_does_not_enqueue_before_start_grace(tmp_path):
+    watchdog = _load_watchdog_module()
+    store = make_store(tmp_path)
+    occurrence = watchdog.SchedulerOccurrence(
+        task_key="daily-1300",
+        target_date="2026-10-17",
+        scheduled_at=START,
+        enabled=True,
+        history_available=False,
+        last_run_time=None,
+        last_result=None,
+    )
+
+    result = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=4, seconds=59),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-grace",
+        owner_pid=30203,
+        owner_start_time=(START + timedelta(minutes=4)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+
+    assert result.queued_queue_ids == ()
+    assert store.counts()["watchdog_queue"] == 0
+
+
+def test_c13_reconciles_late_daily_launch_to_existing_queue(tmp_path):
+    watchdog = _load_watchdog_module()
+    store = make_store(tmp_path)
+    occurrence = watchdog.SchedulerOccurrence(
+        task_key="daily-1300",
+        target_date="2026-10-17",
+        scheduled_at=START,
+        enabled=True,
+        history_available=False,
+        last_run_time=None,
+        last_result=None,
+    )
+    first = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=10),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-late-first",
+        owner_pid=30204,
+        owner_start_time=(START + timedelta(minutes=10)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+    assert len(first.queued_queue_ids) == 1
+    store.record_daily_launch_start(
+        source_launch_id="launch-c13-late",
+        target_date="2026-10-17",
+        owner_pid=30205,
+        owner_start_time=(START + timedelta(minutes=11)).isoformat(),
+        started_at=START + timedelta(minutes=11),
+    )
+
+    result = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=12),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-late-second",
+        owner_pid=30206,
+        owner_start_time=(START + timedelta(minutes=12)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+
+    assert result.reconciled_queue_ids == first.queued_queue_ids
+    queue = store.get_watchdog_queue(first.queued_queue_ids[0])
+    assert queue is not None
+    assert queue.source_launch_id == "launch-c13-late"
+    assert queue.status == "awaiting_completion"
+    assert store.counts()["watchdog_queue"] == 1
+
+    child_start = (START + timedelta(minutes=12)).isoformat()
+    store.record_daily_launch_child(
+        source_launch_id="launch-c13-late",
+        child_pid=30207,
+        child_start_time=child_start,
+    )
+
+    def stopped_process_probe(pid):
+        if pid in {30205, 30207}:
+            return watchdog.ProcessObservation("stopped", None)
+        raise AssertionError(f"unexpected process id: {pid}")
+
+    stopped = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=20),
+        occurrences=(occurrence,),
+        process_probe=stopped_process_probe,
+        owner_id="watchdog-c13-late-stopped",
+        owner_pid=30208,
+        owner_start_time=(START + timedelta(minutes=20)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+
+    same_queue = store.get_watchdog_queue(first.queued_queue_ids[0])
+    assert stopped.queued_source_launch_ids == ()
+    assert stopped.queued_queue_ids == ()
+    assert same_queue is not None
+    assert same_queue.queue_id == queue.queue_id
+    assert same_queue.source_launch_id == "launch-c13-late"
+    assert same_queue.status == "awaiting_completion"
+    assert same_queue.reason_code == "daily_launch_terminated_without_notice"
+    assert store.counts()["watchdog_queue"] == 1
+
+
+def test_c13_keeps_existing_launch_link_when_earlier_record_arrives(tmp_path):
+    watchdog = _load_watchdog_module()
+    store = make_store(tmp_path)
+    occurrence = watchdog.SchedulerOccurrence(
+        task_key="daily-1300",
+        target_date="2026-10-17",
+        scheduled_at=START,
+        enabled=True,
+        history_available=False,
+        last_run_time=None,
+        last_result=None,
+    )
+    rescheduled_occurrence = watchdog.SchedulerOccurrence(
+        task_key=occurrence.task_key,
+        target_date=occurrence.target_date,
+        scheduled_at=occurrence.scheduled_at + timedelta(hours=1),
+        enabled=occurrence.enabled,
+        history_available=occurrence.history_available,
+        last_run_time=occurrence.last_run_time,
+        last_result=occurrence.last_result,
+    )
+    assert watchdog._occurrence_key(occurrence) == watchdog._occurrence_key(
+        rescheduled_occurrence
+    )
+    first = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=10),
+        occurrences=(occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-linked-first",
+        owner_pid=30210,
+        owner_start_time=(START + timedelta(minutes=10)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+    store.record_daily_launch_start(
+        source_launch_id="launch-c13-linked-first",
+        target_date="2026-10-17",
+        owner_pid=30211,
+        owner_start_time=(START + timedelta(minutes=11)).isoformat(),
+        started_at=START + timedelta(minutes=11),
+    )
+    watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=12),
+        occurrences=(rescheduled_occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-linked-second",
+        owner_pid=30212,
+        owner_start_time=(START + timedelta(minutes=12)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+    store.record_daily_launch_start(
+        source_launch_id="launch-c13-earlier-recorded-late",
+        target_date="2026-10-17",
+        owner_pid=30213,
+        owner_start_time=(START + timedelta(minutes=10)).isoformat(),
+        started_at=START + timedelta(minutes=10, seconds=30),
+    )
+
+    result = watchdog.run_watchdog_once(
+        store,
+        now=START + timedelta(minutes=13),
+        occurrences=(rescheduled_occurrence,),
+        process_probe=lambda _pid: watchdog.ProcessObservation("unknown", None),
+        owner_id="watchdog-c13-linked-third",
+        owner_pid=30214,
+        owner_start_time=(START + timedelta(minutes=13)).isoformat(),
+        start_grace=timedelta(minutes=5),
+    )
+
+    queue = store.get_watchdog_queue(first.queued_queue_ids[0])
+    assert result.queued_queue_ids == ()
+    assert queue is not None
+    assert queue.source_launch_id == "launch-c13-linked-first"
+    assert store.counts()["watchdog_queue"] == 1
+
+
+def test_watchdog_cursor_advances_monotonically(tmp_path):
+    store = make_store(tmp_path)
+    assert store.get_watchdog_cursor() is None
+
+    store.advance_watchdog_cursor(
+        reconciled_through_date="2026-10-18", updated_at=START
+    )
+    store.advance_watchdog_cursor(
+        reconciled_through_date="2026-10-17", updated_at=START + timedelta(days=1)
+    )
+
+    assert store.get_watchdog_cursor() == "2026-10-18"

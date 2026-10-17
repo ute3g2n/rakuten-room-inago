@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
 from typing import Sequence
+import uuid
 
 from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.paths import (
@@ -26,6 +29,11 @@ from automation.inago.maintenance.store import (
     MaintenanceStoreError,
     SCHEMA_VERSION,
 )
+from automation.inago.maintenance.process_identity import current_process_start_time
+from automation.inago.maintenance.watchdog import (
+    read_daily_scheduler_occurrences,
+    run_watchdog_once,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -39,6 +47,9 @@ def _parser() -> argparse.ArgumentParser:
 
     commands.add_parser("init", help="create the management DB and initial settings")
     commands.add_parser("status", help="show schema version and safe row counts")
+    commands.add_parser(
+        "watchdog", help="reconcile stale daily launch and scheduler records"
+    )
 
     gate = commands.add_parser(
         "release-gate", help="recompute a release readiness gate"
@@ -126,6 +137,35 @@ def _run(args: argparse.Namespace) -> int:
         _emit({"status": "initialized", "schema_version": SCHEMA_VERSION})
         return 0
     store = _store_for(args)
+    if args.command == "watchdog":
+        now = datetime.now(timezone.utc)
+        owner_start_time = current_process_start_time()
+        if owner_start_time is None:
+            raise MaintenanceStoreError("process_start_time_unavailable")
+        cursor = store.get_watchdog_cursor()
+        pending_queues = store.list_watchdog_queue(reconciliation_only=True)
+        occurrences = read_daily_scheduler_occurrences(
+            now=now,
+            after_date=cursor,
+            include_dates=tuple(queue.target_date for queue in pending_queues),
+        )
+        result = run_watchdog_once(
+            store,
+            now=now,
+            occurrences=occurrences,
+            owner_id=uuid.uuid4().hex,
+            owner_pid=os.getpid(),
+            owner_start_time=owner_start_time,
+        )
+        _emit(
+            {
+                "status": "ok" if result.lease_acquired else "busy",
+                "queued_source_launch_ids": list(result.queued_source_launch_ids),
+                "queued_queue_ids": list(result.queued_queue_ids),
+                "reconciled_queue_ids": list(result.reconciled_queue_ids),
+            }
+        )
+        return 0
     controller = MaintenanceController(store)
     if args.command == "status":
         _emit(
@@ -202,7 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ) as exc:
         _emit({"status": "error", "reason_code": exc.code})
         return 2
-    except (OSError, sqlite3.Error, ValueError):
+    except (OSError, sqlite3.Error, ValueError, RuntimeError):
         _emit({"status": "error", "reason_code": "maintenance_operation_failed"})
         return 2
 

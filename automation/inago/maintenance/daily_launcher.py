@@ -21,6 +21,10 @@ from automation.inago.maintenance.store import (
     MaintenanceStoreError,
 )
 from automation.inago.maintenance.paths import UnsafeMaintenancePathError
+from automation.inago.maintenance.process_identity import (
+    current_process_start_time,
+    observe_process,
+)
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -430,6 +434,7 @@ def run_daily_launch(
             source_launch_id=launch_id,
             target_date=target_date,
             owner_pid=os.getpid(),
+            owner_start_time=current_process_start_time(),
             started_at=launched_at,
         )
     except MaintenanceStoreError as exc:
@@ -462,6 +467,7 @@ def run_daily_launch(
             store.record_daily_launch_child(
                 source_launch_id=launch_id,
                 child_pid=pid,
+                child_start_time=observe_process(pid).start_time,
             )
             child_pid = pid
 
