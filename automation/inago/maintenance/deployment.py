@@ -258,6 +258,10 @@ class RuntimeSwitcher(Protocol):
     def healthy(self, expected_commit: str) -> bool:
         ...
 
+    def confirm_active(self, commit: str) -> None:
+        """Finalize switch bookkeeping after the deployment row is durable."""
+        ...
+
 
 class DeploymentExclusionGuard(Protocol):
     """Shared host lock used by daily, API-apply, and deployment entry points."""
@@ -1005,6 +1009,7 @@ class DeploymentCoordinator:
             raise DeploymentError("deployment_exclusion_unavailable")
 
         resume_record = None
+        completed_record = None
         if resume_deployment_id is not None:
             try:
                 resume_record = self.store.get_deployment(
@@ -1016,7 +1021,7 @@ class DeploymentCoordinator:
                 ) from exc
             if (
                 resume_record is None
-                or resume_record.status != "pending"
+                or resume_record.status not in {"pending", "deployed"}
                 or resume_record.release_id != release_id
                 or resume_record.source_commit != tested
                 or resume_record.base_commit != base
@@ -1070,13 +1075,16 @@ class DeploymentCoordinator:
                 except MaintenanceStoreError:
                     pass
                 raise DeploymentError("deployment_resume_identity_mismatch")
-            if current_record.status != "pending":
+            if current_record.status == "deployed":
+                completed_record = current_record
+            elif current_record.status != "pending":
                 try:
                     self.store.release_lease(lease=lease, released_at=self._now())
                 except MaintenanceStoreError:
                     pass
                 return self._result(current_record)
-            resume_record = current_record
+            else:
+                resume_record = current_record
 
         try:
             guard_acquired = self.exclusion_guard.acquire()
@@ -1097,7 +1105,37 @@ class DeploymentCoordinator:
         pushed: str | None = None
         previous_active: str | None = None
         runtime_switch_attempted = False
+        production_checkout_advanced = False
+        deployment_finalized = False
+
+        def block_or_keep_pending(
+            *,
+            deployment_id: str,
+            pushed: str | None,
+            active: str | None,
+            reason: str,
+        ):
+            if production_checkout_advanced:
+                raise DeploymentError("deployment_finalize_pending")
+            return self._blocked(
+                deployment_id=deployment_id,
+                pushed=pushed,
+                active=active,
+                reason=reason,
+            )
+
         try:
+            if completed_record is not None:
+                if not self._daily_idle():
+                    raise DeploymentError("daily_owner_active_or_unknown")
+                confirm_active = getattr(self.runtime_switcher, "confirm_active", None)
+                if callable(confirm_active):
+                    try:
+                        confirm_active(tested)
+                    except Exception as exc:
+                        raise DeploymentError("runtime_task_release_pending") from exc
+                return self._result(completed_record)
+
             deployment_id = (
                 resume_record.deployment_id
                 if resume_record is not None
@@ -1111,8 +1149,13 @@ class DeploymentCoordinator:
                     started_at=self._now(),
                 )
             )
+            active_root = _repository_root(active_checkout)
+            active_head = _commit(
+                active_root, _text(_git(active_root, "rev-parse", "HEAD"))
+            )
+            production_checkout_advanced = base != tested and active_head == tested
             if not self._daily_idle():
-                return self._blocked(
+                return block_or_keep_pending(
                     deployment_id=deployment_id,
                     pushed=None,
                     active=None,
@@ -1120,7 +1163,7 @@ class DeploymentCoordinator:
                 )
             pending_before = self._pending()
             if pending_before is None:
-                return self._blocked(
+                return block_or_keep_pending(
                     deployment_id=deployment_id,
                     pushed=None,
                     active=None,
@@ -1133,18 +1176,17 @@ class DeploymentCoordinator:
                 if _commit(
                     candidate_path, _text(_git(candidate_path, "rev-parse", "HEAD"))
                 ) != tested or _status(candidate_path):
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
                         reason="managed_worktree_not_clean_at_release",
                     )
-                active_root = _repository_root(active_checkout)
                 if (
                     _text(_git(active_root, "branch", "--show-current"))
                     != target_branch
                 ):
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1169,7 +1211,7 @@ class DeploymentCoordinator:
                     source_remote != active_remote
                     or upstream != f"{remote_name}/{target_branch}"
                 ):
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1178,8 +1220,10 @@ class DeploymentCoordinator:
                 active_head = _commit(
                     active_root, _text(_git(active_root, "rev-parse", "HEAD"))
                 )
-                if active_head != base:
-                    return self._blocked(
+                if active_head != base and not (
+                    resume_record is not None and active_head == tested
+                ):
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1188,7 +1232,7 @@ class DeploymentCoordinator:
                 change_paths = _changed_paths(self.repository, base, tested)
                 user_paths = _working_paths(active_root)
                 if change_paths & user_paths:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1197,14 +1241,14 @@ class DeploymentCoordinator:
                 user_status_before = _status(active_root)
                 remote_head = _remote_head(self.repository, remote_name, target_branch)
                 if remote_head not in {base, tested}:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
                         reason="remote_target_changed",
                     )
                 if not _is_ancestor(self.repository, base, tested):
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1215,7 +1259,7 @@ class DeploymentCoordinator:
                 except Exception:
                     observed_active = None
                 if observed_active is None:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
@@ -1229,7 +1273,7 @@ class DeploymentCoordinator:
                 )
                 if previous_active is None:
                     if observed_active != base:
-                        return self._blocked(
+                        return block_or_keep_pending(
                             deployment_id=deployment_id,
                             pushed=None,
                             active=observed_active,
@@ -1243,7 +1287,7 @@ class DeploymentCoordinator:
                             recorded_at=self._now(),
                         )
                     except MaintenanceStoreError as exc:
-                        return self._blocked(
+                        return block_or_keep_pending(
                             deployment_id=deployment_id,
                             pushed=None,
                             active=observed_active,
@@ -1258,7 +1302,7 @@ class DeploymentCoordinator:
                     previous_active,
                     tested,
                 }:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=observed_active,
@@ -1277,7 +1321,7 @@ class DeploymentCoordinator:
                             failure_code="git_push_failed",
                         )
                     except DeploymentError:
-                        return self._blocked(
+                        return block_or_keep_pending(
                             deployment_id=deployment_id,
                             pushed=None,
                             active=previous_active,
@@ -1285,21 +1329,21 @@ class DeploymentCoordinator:
                         )
                 pushed = _remote_head(self.repository, remote_name, target_branch)
                 if pushed != tested:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=pushed,
                         active=previous_active,
                         reason="pushed_commit_unverified",
                     )
                 if not self._daily_idle():
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=pushed,
                         active=previous_active,
                         reason="daily_owner_started",
                     )
                 if self._pending() != pending_before:
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=pushed,
                         active=previous_active,
@@ -1316,6 +1360,9 @@ class DeploymentCoordinator:
                 except Exception:
                     healthy = False
                 if not healthy:
+                    if production_checkout_advanced:
+                        runtime_switch_attempted = False
+                        raise DeploymentError("deployment_finalize_pending")
                     restored = self._restore_runtime(previous_active)
                     runtime_switch_attempted = False
                     result = self.store.finish_deployment(
@@ -1323,13 +1370,18 @@ class DeploymentCoordinator:
                         status="rolled_back" if restored else "blocked",
                         pushed_commit=pushed,
                         active_commit=previous_active if restored else None,
-                        reason_code="health_check_failed"
-                        if restored
-                        else "runtime_restore_failed",
+                        reason_code=(
+                            "health_check_failed"
+                            if restored
+                            else "runtime_restore_failed"
+                        ),
                         finished_at=self._now(),
                     )
                     return self._result(result)
                 if not self._daily_idle() or self._pending() != pending_before:
+                    if production_checkout_advanced:
+                        runtime_switch_attempted = False
+                        raise DeploymentError("deployment_finalize_pending")
                     restored = self._restore_runtime(previous_active)
                     runtime_switch_attempted = False
                     result = self._blocked(
@@ -1346,6 +1398,9 @@ class DeploymentCoordinator:
                 try:
                     active_status_changed = _status(active_root) != user_status_before
                 except Exception as exc:
+                    if production_checkout_advanced:
+                        runtime_switch_attempted = False
+                        raise DeploymentError("deployment_finalize_pending") from exc
                     restored = self._restore_runtime(previous_active)
                     runtime_switch_attempted = False
                     reason = (
@@ -1353,13 +1408,16 @@ class DeploymentCoordinator:
                         if restored
                         else "runtime_restore_failed"
                     )
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=pushed,
                         active=previous_active if restored else None,
                         reason=reason,
                     )
                 if active_status_changed:
+                    if production_checkout_advanced:
+                        runtime_switch_attempted = False
+                        raise DeploymentError("deployment_finalize_pending")
                     restored = self._restore_runtime(previous_active)
                     runtime_switch_attempted = False
                     result = self._blocked(
@@ -1373,6 +1431,68 @@ class DeploymentCoordinator:
                         ),
                     )
                     return result
+                active_head = _commit(
+                    active_root, _text(_git(active_root, "rev-parse", "HEAD"))
+                )
+                production_checkout_advanced = production_checkout_advanced or (
+                    base != tested and active_head == tested
+                )
+                if active_head == base:
+                    try:
+                        _git(
+                            active_root,
+                            "fetch",
+                            "--no-tags",
+                            remote_name,
+                            f"refs/heads/{target_branch}",
+                            failure_code="active_checkout_remote_update_failed",
+                        )
+                        _git(
+                            active_root,
+                            "merge",
+                            "--ff-only",
+                            tested,
+                            failure_code="active_checkout_fast_forward_failed",
+                        )
+                        production_checkout_advanced = True
+                        active_head = _commit(
+                            active_root,
+                            _text(_git(active_root, "rev-parse", "HEAD")),
+                        )
+                        if active_head != tested:
+                            raise DeploymentError(
+                                "active_checkout_fast_forward_unverified"
+                            )
+                    except DeploymentError as exc:
+                        if production_checkout_advanced:
+                            runtime_switch_attempted = False
+                            raise DeploymentError(
+                                "deployment_finalize_pending"
+                            ) from exc
+                        restored = self._restore_runtime(previous_active)
+                        runtime_switch_attempted = False
+                        return block_or_keep_pending(
+                            deployment_id=deployment_id,
+                            pushed=pushed,
+                            active=previous_active if restored else None,
+                            reason=(exc.code if restored else "runtime_restore_failed"),
+                        )
+                elif resume_record is None or active_head != tested:
+                    if production_checkout_advanced:
+                        runtime_switch_attempted = False
+                        raise DeploymentError("deployment_finalize_pending")
+                    restored = self._restore_runtime(previous_active)
+                    runtime_switch_attempted = False
+                    return block_or_keep_pending(
+                        deployment_id=deployment_id,
+                        pushed=pushed,
+                        active=previous_active if restored else None,
+                        reason=(
+                            "active_checkout_fast_forward_unexpected"
+                            if restored
+                            else "runtime_restore_failed"
+                        ),
+                    )
                 result = self.store.finish_deployment(
                     deployment_id=deployment_id,
                     status="deployed",
@@ -1382,21 +1502,43 @@ class DeploymentCoordinator:
                     finished_at=self._now(),
                     capability=self.store._deployment_capability,
                 )
+                deployment_finalized = True
                 runtime_switch_attempted = False
+                confirm_active = getattr(self.runtime_switcher, "confirm_active", None)
+                if callable(confirm_active):
+                    confirm_error: Exception | None = None
+                    for _ in range(2):
+                        try:
+                            confirm_active(tested)
+                            confirm_error = None
+                            break
+                        except Exception as exc:
+                            confirm_error = exc
+                    if confirm_error is not None:
+                        raise DeploymentError(
+                            "runtime_task_release_pending"
+                        ) from confirm_error
                 return self._result(result)
             except DeploymentError as exc:
+                if deployment_finalized or completed_record is not None:
+                    raise
+                if production_checkout_advanced:
+                    # Keep scheduler tasks fenced and the deployment pending so
+                    # a later run can finish from the already advanced checkout.
+                    runtime_switch_attempted = False
+                    raise DeploymentError("deployment_finalize_pending") from exc
                 if runtime_switch_attempted:
                     restored = previous_active is not None and self._restore_runtime(
                         previous_active
                     )
                     runtime_switch_attempted = False
-                    return self._blocked(
+                    return block_or_keep_pending(
                         deployment_id=deployment_id,
                         pushed=pushed,
                         active=previous_active if restored else None,
                         reason=(exc.code if restored else "runtime_restore_failed"),
                     )
-                return self._blocked(
+                return block_or_keep_pending(
                     deployment_id=deployment_id,
                     pushed=pushed,
                     active=previous_active,
@@ -1405,6 +1547,11 @@ class DeploymentCoordinator:
             except Exception as exc:
                 if not runtime_switch_attempted:
                     raise
+                if production_checkout_advanced:
+                    # Do not try to restore base from a checkout already at tested.
+                    # The pending deployment and runtime fence are resume state.
+                    runtime_switch_attempted = False
+                    raise DeploymentError("deployment_finalize_pending") from exc
                 restored = previous_active is not None and self._restore_runtime(
                     previous_active
                 )
@@ -1416,7 +1563,7 @@ class DeploymentCoordinator:
                     and _CODE_PATTERN.fullmatch(raw_reason)
                     else "deployment_runtime_failure"
                 )
-                return self._blocked(
+                return block_or_keep_pending(
                     deployment_id=deployment_id,
                     pushed=pushed,
                     active=previous_active if restored else None,
@@ -1438,6 +1585,13 @@ class DeploymentCoordinator:
             return False
         try:
             switcher.activate(commit, None)
-            return switcher.current_commit() == commit and switcher.healthy(commit)
+            if switcher.current_commit() != commit:
+                return False
+            confirm_active = getattr(switcher, "confirm_active", None)
+            if callable(confirm_active):
+                confirm_active(commit)
+            elif not switcher.healthy(commit):
+                return False
+            return switcher.current_commit() == commit
         except Exception:
             return False

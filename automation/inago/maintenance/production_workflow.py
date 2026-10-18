@@ -78,6 +78,7 @@ from automation.inago.maintenance.repair import (
     _validate_schema as _validate_repair_schema,
     repository_code_sha256,
 )
+from automation.inago.maintenance.runtime_switcher import TaskSchedulerRuntimeSwitcher
 from automation.inago.maintenance.reporting import (
     ReportContractError,
     finalize_report_review,
@@ -5887,9 +5888,28 @@ def run_daily_deployment_execution_stage(
                 ),
                 resume_deployment_id=pending_records[0].deployment_id,
             )
+        elif records and records[-1].status == "deployed":
+            # Reconcile an interrupted task release after the durable deployment.
+            deployment = coordinator.deploy(
+                release_id=release_id,
+                tested_version=result_version,
+                reviewed_version=result_version,
+                remote_name=remote_name,
+                target_branch=target_branch,
+                active_checkout=active_checkout,
+                expected_target_commit=base_commit,
+                owner_id=(
+                    "deployment-"
+                    + hashlib.sha256(
+                        f"{workflow.launch.source_launch_id}\0{release_id}".encode(
+                            "utf-8"
+                        )
+                    ).hexdigest()[:40]
+                ),
+                resume_deployment_id=records[-1].deployment_id,
+            )
         elif records:
-            # A final deployment is terminal for this frozen release. Reuse it;
-            # an operator must create a new release to retry a failed switch.
+            # Other final states remain terminal for this frozen release.
             deployment = _deployment_result_from_record(records[-1])
         else:
             deployment = coordinator.deploy(
@@ -5908,6 +5928,12 @@ def run_daily_deployment_execution_stage(
                         )
                     ).hexdigest()[:40]
                 ),
+            )
+
+        if deployment.status == "pending":
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="deployment_runtime_task_release_pending",
             )
 
         document = deployment.to_dict()
@@ -7363,9 +7389,11 @@ def run_daily_report_stage(
             created_at_jst = (
                 current_input.get("created_at_jst")
                 if isinstance(current_input, dict)
-                else author_recovery[2]
-                if author_recovery is not None
-                else _daily_report_jst_now()
+                else (
+                    author_recovery[2]
+                    if author_recovery is not None
+                    else _daily_report_jst_now()
+                )
             )
             report_input = {
                 "schema_version": "maintenance-report-input-v1",
@@ -9817,6 +9845,55 @@ def _production_deployment_target(repository: Path) -> tuple[str, str]:
     return remote, merge_ref[len(prefix) :]
 
 
+def _configured_production_repository(runtime_root: Path) -> Path:
+    """Resolve the stable application checkout from its runtime settings."""
+
+    config_path = runtime_root / "config" / "settings.json"
+    if (
+        _has_reparse_point(runtime_root)
+        or _has_reparse_point(config_path.parent)
+        or _has_reparse_point(config_path)
+        or not config_path.is_file()
+    ):
+        raise DeploymentError("deployment_runtime_config_unavailable")
+    try:
+        content = config_path.read_bytes()
+        if len(content) > 1024 * 1024:
+            raise DeploymentError("deployment_runtime_config_invalid")
+        document = json.loads(content.decode("utf-8"))
+    except DeploymentError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise DeploymentError("deployment_runtime_config_invalid") from exc
+    application_root_value = (
+        document.get("application_root") if isinstance(document, dict) else None
+    )
+    if not isinstance(application_root_value, str):
+        raise DeploymentError("deployment_runtime_application_root_invalid")
+    application_root_input = Path(application_root_value).expanduser()
+    if not application_root_input.is_absolute() or _has_reparse_point(
+        application_root_input
+    ):
+        raise DeploymentError("deployment_runtime_application_root_invalid")
+    try:
+        application_root = application_root_input.resolve(strict=True)
+        resolved_runtime = runtime_root.resolve(strict=True)
+        expected_runtime = (
+            application_root / "rakuten-room-inago" / "runtime"
+        ).resolve(strict=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise DeploymentError("deployment_runtime_application_root_invalid") from exc
+    if (
+        not application_root.is_dir()
+        or _has_reparse_point(application_root)
+        or not (application_root / ".git").exists()
+        or os.path.normcase(os.path.normpath(str(expected_runtime)))
+        != os.path.normcase(os.path.normpath(str(resolved_runtime)))
+    ):
+        raise DeploymentError("deployment_runtime_application_root_invalid")
+    return application_root
+
+
 def build_production_workflow_provider(
     store: MaintenanceStore,
     *,
@@ -9830,10 +9907,24 @@ def build_production_workflow_provider(
     exclusion_guard = FileDeploymentExclusionGuard(
         runtime_root / ".maintenance-deployment.lock"
     )
-    repository = Path(__file__).resolve().parents[3]
+    code_root = Path(__file__).resolve().parents[3]
+    repository = code_root
+    production_runtime_layout = False
     try:
+        repository = _configured_production_repository(runtime_root)
+        production_runtime_layout = True
         remote_name, target_branch = _production_deployment_target(repository)
         local_app_data = os.environ.get("LOCALAPPDATA")
+        if runtime_switcher is None and production_runtime_layout and local_app_data:
+            runtime_switcher = TaskSchedulerRuntimeSwitcher(
+                repository=repository,
+                runtime_root=runtime_root,
+                worktree_root=(
+                    Path(local_app_data)
+                    / "RakutenRoomInago"
+                    / "maintenance-deployment-worktrees"
+                ),
+            )
         if (
             deployment_coordinator is None
             and runtime_switcher is not None
