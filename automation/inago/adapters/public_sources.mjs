@@ -830,10 +830,27 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
         try {
           await close.click({timeout:Math.min(1000,deadline-Date.now())});
         } catch (error) {
-          trace('room_product_modal_close_error',{
+          trace('room_product_modal_close_control_error',{
             ...detail,scope:'query',error_class:safeThrownErrorClass(error),
           });
-          throw new SourceFailure('room_search_restore_failed');
+        }
+        if (await page.locator('.close-button').filter({visible:true}).count()) {
+          trace('room_product_modal_escape_close_begin',{...detail,scope:'query'});
+          try {
+            const remaining = deadline-Date.now();
+            if (remaining <= 0) throw new SourceFailure('source_timeout');
+            await page.keyboard.press('Escape');
+            trace('room_product_modal_escape_close_sent',{...detail,scope:'query'});
+            await close.waitFor({
+              state:'hidden',
+              timeout:Math.min(1000,Math.max(1,deadline-Date.now())),
+            });
+            trace('room_product_modal_escape_close_complete',{...detail,scope:'query'});
+          } catch (error) {
+            trace('room_product_modal_escape_close_error',{
+              ...detail,scope:'query',error_class:safeThrownErrorClass(error),
+            });
+          }
         }
         if (await page.locator('.close-button').filter({visible:true}).count()) {
           trace('room_product_modal_close_error',{

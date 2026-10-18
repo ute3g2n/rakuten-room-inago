@@ -33,10 +33,10 @@ def _period_refresh_delayed_fixture() -> str:
     )
     html = browser_fixtures.trends_with_period_picker(html)
     return html.replace(
-        "document.querySelector('#period-menu').style.display='none'}",
+        "document.querySelector('#period-menu').style.display='none';",
         "document.querySelector('#period-menu').style.display='none';"
         "setTimeout(()=>{window.__periodDataReady=true;"
-        "document.querySelector('#words').textContent='期間データ更新'},650)}",
+        "document.querySelector('#words').textContent='期間データ更新'},650)",
     )
 
 
@@ -626,6 +626,7 @@ def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_s
             "if(widget)widget.querySelectorAll('.label-text span').forEach((row,index)=>"
             "row.textContent='期間反映語'+(index+1))},50)"
         ),
+        inject_period_script=True,
     )
     snapshot, response, events = _n08_fetch(
         tmp_path, ui_server, "title-container", title_page
