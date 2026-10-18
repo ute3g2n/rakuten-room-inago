@@ -133,7 +133,8 @@ function Read-OriginalEnabledStates {
         }
         $states[$name] = [bool]$property.Value
     }
-    if ($document.PSObject.Properties.Count -ne $taskNames.Count) {
+    $propertyCount = @($document.PSObject.Properties).Count
+    if ($propertyCount -ne $taskNames.Count) {
         throw 'runtime_original_task_state_invalid'
     }
     return $states
