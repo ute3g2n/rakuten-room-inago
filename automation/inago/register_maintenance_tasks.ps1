@@ -19,6 +19,19 @@ $userId = $identity.User.Value
 $startBoundary = [DateTimeOffset]::Now.ToOffset([TimeSpan]::FromHours(9)).Date.AddDays(1).ToString('yyyy-MM-dd') + 'T00:00:00+09:00'
 $namespace = 'http://schemas.microsoft.com/windows/2004/02/mit/task'
 
+function Resolve-TaskUserSid([object]$UserId) {
+    if ($null -eq $UserId -or [string]::IsNullOrWhiteSpace([string]$UserId)) { return $null }
+    $value = [string]$UserId
+    try {
+        if ($value -match '^S-1-') {
+            return ([Security.Principal.SecurityIdentifier]::new($value)).Value
+        }
+        return ([Security.Principal.NTAccount]::new($value)).Translate([Security.Principal.SecurityIdentifier]).Value
+    } catch {
+        return $null
+    }
+}
+
 function New-MaintenanceTaskXml([string]$TemplateName, [string]$Arguments) {
     [xml]$document = Get-Content -LiteralPath (Join-Path $PSScriptRoot "task-xml\$TemplateName") -Raw -Encoding UTF8
     $manager = New-Object System.Xml.XmlNamespaceManager($document.NameTable)
@@ -119,13 +132,14 @@ try {
         Register-ScheduledTask -TaskName $definition.TaskName -TaskPath '\' -Xml $definition.Xml -ErrorAction Stop | Out-Null
         $registeredNames.Add($definition.TaskName)
         $registered = Get-ScheduledTask -TaskName $definition.TaskName -TaskPath '\' -ErrorAction Stop
+        $registeredUserSid = Resolve-TaskUserSid $registered.Principal.UserId
         if ($registered.Actions.Count -ne 1 -or
             [IO.Path]::GetFullPath($registered.Actions[0].Execute).ToLowerInvariant() -ne $pythonExe.ToLowerInvariant() -or
             $registered.Actions[0].Arguments -cne $definition.Arguments -or
             [IO.Path]::GetFullPath($registered.Actions[0].WorkingDirectory).ToLowerInvariant() -ne $projectRoot.ToLowerInvariant() -or
             $registered.Settings.MultipleInstances.ToString() -ne 'IgnoreNew' -or
             -not $registered.Settings.Hidden -or
-            $registered.Principal.UserId -ne $userId -or
+            $registeredUserSid -ne $userId -or
             $registered.Principal.LogonType.ToString() -ne 'Interactive' -or
             $registered.Principal.RunLevel.ToString() -ne 'Limited' -or
             $registered.Settings.Enabled -ne $false -or
