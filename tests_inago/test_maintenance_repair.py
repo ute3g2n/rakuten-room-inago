@@ -277,6 +277,8 @@ def _make_ledger(
     *,
     campaign_id="campaign-test",
     code_sha256="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    job_id=None,
+    attempt_id=None,
 ):
     return ledger_type(
         campaign_id=campaign_id,
@@ -284,6 +286,8 @@ def _make_ledger(
         semantic_signatures={case_id: f"meaning:{case_id}" for case_id in cases},
         code_sha256=code_sha256,
         invocation_parent_id=None,
+        _job_id=job_id,
+        _attempt_id=attempt_id,
     )
 
 
@@ -447,6 +451,9 @@ def test_c33_contract(tmp_path):
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=18),
     )
+    predecessor_pin = store.get_repair_step_predecessor(
+        attempt_id=repair_attempt.attempt_id
+    )
     repair_context = {
         field: (
             repair_attempt.attempt_id if field == "attempt_id" else plan_context[field]
@@ -496,7 +503,13 @@ def test_c33_contract(tmp_path):
 
     received_contexts = []
     cases = {"c34": "tests_inago/test_maintenance_repair.py::test_c34_contract"}
-    not_ready_ledger = _make_ledger(ledger_type, cases, campaign_id="host-evidence")
+    not_ready_ledger = _make_ledger(
+        ledger_type,
+        cases,
+        campaign_id="host-evidence",
+        job_id=repair_context["job_id"],
+        attempt_id=repair_context["attempt_id"],
+    )
 
     def trusted_resolver(evidence_context):
         received_contexts.append(evidence_context)
@@ -508,6 +521,14 @@ def test_c33_contract(tmp_path):
             test_ledger=not_ready_ledger,
             current_code_sha256=BASE_SHA,
             test_evidence=(),
+            approved_cases=cases,
+            job_id=evidence_context.job_id,
+            attempt_id=evidence_context.attempt_id,
+            base_commit=evidence_context.base_commit,
+            plan_attempt_id=predecessor_pin["attempt_id"],
+            plan_result_version=predecessor_pin["result_version"],
+            plan_output_sha256=predecessor_pin["output_sha256"],
+            checkout_root=str(tmp_path),
         )
 
     trusted_controller = maintenance_controller_type(

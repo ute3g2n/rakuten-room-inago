@@ -97,6 +97,11 @@ repair artifactはattempt専用rootに`patch-assessment.json`、`test-ledger.jso
 
 ## 受入条件
 
+### U14ローカル検証の受入条件（2026-10-18 本人決定）
+U14開発段階の合否は、合成fixtureと一時DBを使う通常のローカルpytestで判定する。検証済みOS sandbox、repair HostPytestRunner receipt、C34のrepair runner実測、host-observed review receiptはU14のテスト前提・完了条件にしない。C34は通常pytestのcase実行記録で確認し、独立reviewは対象コードhashと結果を記した通常のレビュー記録で確認する。証拠はcommand、JST時刻、case/node、コード/test hash、期待/実結果、exit code、console/JUnitとする。テストはsynthetic fixture・一時DBに限定し、production DB、Scheduler、実AI、投稿状態を変更しない。
+
+この緩和はU14の開発テストの証拠要件だけに適用する。実運用の修復attempt完了では、上記runtime契約に記すsandbox、runner receipt、review receiptの照合を引き続き要求し、provider欠落時は安全停止する。通常pytestの結果やreview記録を実運用receiptの代替として扱わない。
+
 | ID | 合格条件 |
 |---|---|
 | MA-001 | 基準一覧と移行結果が文書ID単位で対応し、同じ文書の重複移動・欠落・未分類・移動先衝突が0。既存3件のGit除外ファイルもローカル実在文書として扱う。 |
@@ -115,8 +120,8 @@ repair artifactはattempt専用rootに`patch-assessment.json`、`test-ledger.jso
 | MA-014 | 元の日次結果と主例外を維持し、maintenanceログ・証拠コピーの期限、容量、回収、抑止/書込不能を明示する。元データの期限を延長・短縮せず、保持失敗を成功扱いしない。 |
 | MA-015 | 調査レポートが計画で定める9章を備え、事実/推定/未確認と根拠を追跡でき、別担当のレビューを通る。原因をerror名だけで断定しない。 |
 | MA-016 | 修正計画が0～14節、STEPごとの14項目、ケースごとの12項目、各STEPの独立promptを備え、STEP・ケース・受入・出力が相互追跡できる。 |
-| MA-017 | 実装・テスト・レビューの所有が分かれ、意味のある再現REDまたは証拠に基づく「再現不可/文書契約違反」の記録が修正前に残る。C34はapproved case/nodeの実runner receiptで確認し、合成fixtureのcaller-made証拠を認めない。独立reviewはattempt/version/code/patch/test/output hashとhost-observed read-only session/turnに結び付くreceiptを消費する。同一payloadの再試行は冪等とし、provider欠落は保留する。managed worktree外と所有外ファイルを変更しない。 |
-| MA-018 | U19で凍結した全必須対象を途中は新規/未実施/FAILだけ実行し、U20の全回帰は1回。修復対象PythonのrunnerはOS sandbox内でのみ実行し、sandbox未構成ならchild process前に保留し、安全な拒否だけをrunner成功としない。full regressionは個別PASS/frozenを含む全approved case/nodeを一度実行し、今回のrun receiptだけで全件PASSを示す。code hash変更時は旧PASS receiptを無効化し、case定義だけを保持して全登録caseを新hashで再実行する。回帰後は影響が不確実な既存PASSを流用せず、不成立ならreleaseを止める。 |
+| MA-017 | 実装・テスト・レビューの所有を分け、修正前の意味あるREDまたは根拠付きの「再現不可/文書契約違反」を記録する。U14のC34は通常pytestの直接実行記録で判定し、host-runner receiptを要求しない。独立reviewはU14では通常の別担当レビュー記録でよく、host-observed receiptを要求しない。実運用attemptでは上記runtime契約のreceipt要件を適用する。managed worktree外と所有外ファイルを変更しない。 |
+| MA-018 | 実運用runnerはOS sandbox内だけで修復対象Pythonを実行し、sandbox未構成ならchild process前に保留する。U14の開発テストでは通常pytestを直接実行してcampaign/runner境界の合成fixtureを検証でき、sandbox内positive executionやrepair HostPytestRunner receiptを要求しない。U19/U20の運用回帰・全件完了判定には既定のcampaign/receipt規則を適用し、code hash変更時の旧PASS無効化、全case再実行、不成立時のrelease停止を維持する。 |
 | MA-019 | 差分対象を限定し、作業commitを追跡先へ通常pushし、レビュー済みの正確な版だけを通常fast-forwardで反映する。非交差の既存ユーザー変更を保持して差分不変を確認し、交差またはff不能時は保留する。force push、reset、履歴書換えを行わない。 |
 | MA-020 | 対応HTMLが事象、原因確度、修正、試験、レビュー、反映、未完了を平易に説明し、独立した報告レビューを通る。要求された表示確認方法で対象版を確認し、未確認を表示する。 |
 | MA-021 | maintenanceの全stage・担当・指定/観測model/effort/tier・入力/証拠/成果参照・base/result版・レビュー・試験・停止/再開・deployment結果が追跡される。 |
