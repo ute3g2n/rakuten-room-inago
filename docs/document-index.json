@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-18T18:56:50+09:00",
+  "generated_at": "2026-10-18T20:45:22+09:00",
   "index_path": "docs/document-index.json",
   "manifest_path": "worklogs/projects/maintenance/移行manifest.csv",
   "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
@@ -44160,6 +44160,18 @@
     },
     {
       "source_id": "SRC-M",
+      "line": 1304,
+      "kind": "markdown_link",
+      "status": "resolved_unindexed",
+      "reason_code": "existing_repository_file",
+      "target_document_id": null,
+      "projected_reference": "../../../worklogs/projects/maintenance/U20_%E5%AE%9F%E8%A1%8C%E8%A8%98%E9%8C%B2.md",
+      "projection_status": "projected",
+      "percent_encoded": true,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-M",
       "line": 63,
       "kind": "markdown_link",
       "status": "resolved_current",
@@ -44330,11 +44342,23 @@
       "source_id": "SRC-ACCEPTANCE",
       "line": 36,
       "kind": "program_path",
-      "status": "private_unavailable",
+      "status": "resolved_private",
       "reason_code": "private_evidence_reference",
       "target_document_id": null,
       "projected_reference": null,
-      "projection_status": "follow_up_required",
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-SETTINGS",
+      "line": 239,
+      "kind": "program_path",
+      "status": "resolved_current",
+      "reason_code": "indexed_current_path",
+      "target_document_id": "DOC-0072",
+      "projected_reference": "reports/projects/preparation/本人確認記録.md",
+      "projection_status": "projected",
       "percent_encoded": false,
       "query_present": false
     },
@@ -44412,7 +44436,7 @@
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-COPY-SERVICE-PY",
-      "line": 311,
+      "line": 312,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44424,7 +44448,7 @@
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-COPY-SERVICE-PY",
-      "line": 1358,
+      "line": 1360,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44604,7 +44628,7 @@
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-MAINTENANCE-DIAGNOSTIC-TRACE-PY",
-      "line": 532,
+      "line": 542,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -44940,19 +44964,7 @@
     },
     {
       "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-ORCHESTRATOR-PY",
-      "line": 259,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-AUTOMATION-AUTOMATION-INAGO-ORCHESTRATOR-PY",
-      "line": 1438,
+      "line": 1439,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45083,6 +45095,30 @@
       "query_present": false
     },
     {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-OUTCOME-PY",
+      "line": 1113,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
+      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
+      "line": 864,
+      "kind": "program_path",
+      "status": "external_dependency",
+      "reason_code": "module_or_package_specifier",
+      "target_document_id": null,
+      "projected_reference": null,
+      "projection_status": "not_rewritten",
+      "percent_encoded": false,
+      "query_present": false
+    },
+    {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
       "line": 865,
       "kind": "program_path",
@@ -45096,7 +45132,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 866,
+      "line": 880,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45108,7 +45144,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 881,
+      "line": 891,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45120,7 +45156,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 892,
+      "line": 904,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45132,7 +45168,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 905,
+      "line": 923,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45144,7 +45180,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 924,
+      "line": 930,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45156,7 +45192,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 931,
+      "line": 824,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45168,7 +45204,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 825,
+      "line": 871,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45192,34 +45228,10 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 873,
+      "line": 939,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 940,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-DAILY-FIX-PIPELINE-PY",
-      "line": 768,
-      "kind": "program_path",
-      "status": "resolved_private",
-      "reason_code": "private_evidence_reference",
       "target_document_id": null,
       "projected_reference": null,
       "projection_status": "not_rewritten",
@@ -45312,7 +45324,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-AI-PY",
-      "line": 1420,
+      "line": 1424,
       "kind": "program_output_path",
       "status": "generated_output",
       "reason_code": "program_writes_artifact",
@@ -45408,7 +45420,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1145,
+      "line": 1179,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45420,7 +45432,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 475,
+      "line": 479,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45432,7 +45444,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1056,
+      "line": 1090,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45444,7 +45456,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1456,
+      "line": 1490,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45456,7 +45468,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1345,
+      "line": 1379,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45468,7 +45480,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1372,
+      "line": 1406,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45480,7 +45492,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1439,
+      "line": 1473,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45492,7 +45504,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1160,
+      "line": 1194,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45504,7 +45516,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1016,
+      "line": 1050,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45516,7 +45528,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 435,
+      "line": 439,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45528,7 +45540,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 885,
+      "line": 919,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45540,7 +45552,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 844,
+      "line": 878,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45552,7 +45564,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 934,
+      "line": 968,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45564,7 +45576,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 974,
+      "line": 1008,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45576,7 +45588,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1165,
+      "line": 1199,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45588,7 +45600,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1155,
+      "line": 1189,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45600,7 +45612,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1150,
+      "line": 1184,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45612,7 +45624,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 1043,
+      "line": 1077,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45624,7 +45636,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-COMPLETION-PY",
-      "line": 462,
+      "line": 466,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45924,7 +45936,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-PLANNING-PY",
-      "line": 893,
+      "line": 897,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45936,7 +45948,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-PLANNING-PY",
-      "line": 260,
+      "line": 263,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45948,7 +45960,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-PLANNING-PY",
-      "line": 282,
+      "line": 285,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45960,7 +45972,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-PLANNING-PY",
-      "line": 297,
+      "line": 300,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -45972,7 +45984,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-MAINTENANCE-PLANNING-PY",
-      "line": 903,
+      "line": 907,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46452,7 +46464,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP12-PY",
-      "line": 242,
+      "line": 243,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46464,7 +46476,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP12-PY",
-      "line": 216,
+      "line": 217,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46476,19 +46488,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP12-PY",
-      "line": 196,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP12-PY",
-      "line": 263,
+      "line": 197,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46500,7 +46500,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 361,
+      "line": 355,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46512,19 +46512,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 395,
-      "kind": "program_path",
-      "status": "external_dependency",
-      "reason_code": "module_or_package_specifier",
-      "target_document_id": null,
-      "projected_reference": null,
-      "projection_status": "not_rewritten",
-      "percent_encoded": false,
-      "query_present": false
-    },
-    {
-      "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 1218,
+      "line": 1212,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -47568,7 +47556,7 @@
     }
   ],
   "reference_summary": {
-    "count": 3405,
+    "count": 3404,
     "status_counts": {
       "anchor_resolved": 1185,
       "anchor_unverified": 63,
@@ -47577,17 +47565,17 @@
       "empty_target": 4,
       "external": 82,
       "external_absolute": 43,
-      "external_dependency": 219,
+      "external_dependency": 217,
       "generated_output": 88,
       "historical_unresolved": 130,
-      "private_unavailable": 103,
+      "private_unavailable": 102,
       "reference_group": 14,
       "resolved_control": 54,
-      "resolved_current": 1140,
+      "resolved_current": 1141,
       "resolved_directory": 8,
       "resolved_non_public": 3,
       "resolved_private": 1,
-      "resolved_unindexed": 29
+      "resolved_unindexed": 30
     },
     "occupied_destination_dependencies": [],
     "percent_encoded_literal_paths": [
