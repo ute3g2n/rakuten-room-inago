@@ -62,6 +62,7 @@ from automation.inago.maintenance.store import (
     LeaseToken,
     MaintenanceStore,
     MaintenanceStoreError,
+    RepairHostReviewExecutionRecord,
     StepAttemptResult,
     StepAttemptRecord,
 )
@@ -135,6 +136,7 @@ class InvestigationAttemptRequest:
     review_round: int
     handoff_root: str | Path
     synthetic_fixture: bool = False
+    time_provider: Callable[[], datetime] | None = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +159,7 @@ class PlanningAttemptRequest:
     reviewer_execution_id: str
     review_runner: Callable[[Mapping[str, object]], object]
     review_round: int
+    time_provider: Callable[[], datetime] | None = None
 
 
 _SAFE_DAILY_CODE = re.compile(r"^[a-z][a-z0-9._:-]{0,127}$")
@@ -683,6 +686,44 @@ class MaintenanceController:
         return runner.run_full_regression(ledger)
 
     @audit_maintenance_stage("repair", include_review=True)
+    def record_repair_review_execution(
+        self,
+        *,
+        context: RepairReviewContext,
+        reviewer_session_key: str,
+        reviewer_turn_id: str,
+        reviewer_output_sha256: str,
+        approved: bool,
+        unresolved_critical_findings: tuple[str, ...],
+        created_at: datetime | str,
+    ) -> RepairHostReviewExecutionRecord:
+        """Persist an idempotent host-observed reviewer decision."""
+
+        if not isinstance(context, RepairReviewContext):
+            raise RepairContractError("repair_review_context_invalid")
+        try:
+            return self._store._record_host_repair_review_execution(
+                capability=self._store._repair_review_capability,
+                job_id=context.job_id,
+                attempt_id=context.attempt_id,
+                result_version=context.result_version,
+                author_id=context.author_id,
+                reviewer_id=context.reviewer_id,
+                reviewer_session_key=reviewer_session_key,
+                reviewer_turn_id=reviewer_turn_id,
+                reviewer_output_sha256=reviewer_output_sha256,
+                reviewed_output_sha256=context.reviewed_output_sha256,
+                code_sha256=context.code_sha256,
+                patch_sha256=context.patch_sha256,
+                test_ledger_sha256=context.test_ledger_sha256,
+                approved=approved,
+                unresolved_critical_findings=unresolved_critical_findings,
+                created_at=created_at,
+            )
+        except MaintenanceStoreError as exc:
+            raise RepairContractError(exc.code) from exc
+
+    @audit_maintenance_stage("repair", include_review=True)
     def complete_repair_attempt(
         self, request: RepairAttemptRequest
     ) -> RepairAttemptOutcome:
@@ -1024,31 +1065,44 @@ class MaintenanceController:
             or review_evidence.code_sha256 != review_context.code_sha256
             or review_evidence.patch_sha256 != review_context.patch_sha256
             or review_evidence.test_ledger_sha256 != review_context.test_ledger_sha256
-            or review_evidence.approved is not True
+            or review_evidence.approved is not (review.status == "approved")
             or review_evidence.unresolved_critical_findings
-            or review.unresolved_critical_findings
+            != review.unresolved_critical_findings
         ):
             raise RepairContractError("repair_review_receipt_mismatch")
-        try:
-            review_receipt = self._store.record_repair_review_receipt(
-                capability=self._store._repair_review_capability,
-                job_id=review_context.job_id,
-                attempt_id=review_context.attempt_id,
-                result_version=review_context.result_version,
-                author_id=review_context.author_id,
-                reviewer_id=review_context.reviewer_id,
-                host_receipt_id=review_evidence.host_receipt_id,
-                reviewed_output_sha256=review_context.reviewed_output_sha256,
-                code_sha256=review_context.code_sha256,
-                patch_sha256=review_context.patch_sha256,
-                test_ledger_sha256=review_context.test_ledger_sha256,
-                created_at=request.reviewed_at,
-            )
-        except MaintenanceStoreError as exc:
-            raise RepairContractError(exc.code) from exc
+        review_receipt = None
+        if review.status == "approved":
+            try:
+                review_receipt = self._store.record_repair_review_receipt(
+                    capability=self._store._repair_review_capability,
+                    job_id=review_context.job_id,
+                    attempt_id=review_context.attempt_id,
+                    result_version=review_context.result_version,
+                    author_id=review_context.author_id,
+                    reviewer_id=review_context.reviewer_id,
+                    host_receipt_id=review_evidence.host_receipt_id,
+                    reviewed_output_sha256=review_context.reviewed_output_sha256,
+                    code_sha256=review_context.code_sha256,
+                    patch_sha256=review_context.patch_sha256,
+                    test_ledger_sha256=review_context.test_ledger_sha256,
+                    created_at=request.reviewed_at,
+                )
+            except MaintenanceStoreError as exc:
+                raise RepairContractError(exc.code) from exc
+        elif (
+            review.status != "changes_requested"
+            or not review.unresolved_critical_findings
+            or not isinstance(review_evidence.reviewer_session_key, str)
+            or not isinstance(review_evidence.reviewer_turn_id, str)
+            or not isinstance(review_evidence.reviewer_output_sha256, str)
+            or re.fullmatch(r"[a-f0-9]{64}", review_evidence.reviewer_output_sha256)
+            is None
+        ):
+            raise RepairContractError("repair_review_receipt_mismatch")
         review_document = {
             "schema_version": "maintenance-repair-review-v1",
             "attestation_source": "host_collected",
+            "status": review.status,
             "identity": identity,
             "attempt_id": attempt.attempt_id,
             "result_version": request.result_version,
@@ -1061,12 +1115,14 @@ class MaintenanceController:
             ),
             "tested_code_sha256": current_code_hash,
             "reviewed_code_sha256": current_code_hash,
-            "host_receipt_id": review_receipt.host_receipt_id,
-            "receipt_id": review_receipt.receipt_id,
-            "receipt_sha256": review_receipt.receipt_sha256,
-            "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
-            "patch_sha256": review_receipt.patch_sha256,
-            "test_ledger_sha256": review_receipt.test_ledger_sha256,
+            "host_receipt_id": review_evidence.host_receipt_id,
+            "receipt_id": None if review_receipt is None else review_receipt.receipt_id,
+            "receipt_sha256": (
+                None if review_receipt is None else review_receipt.receipt_sha256
+            ),
+            "reviewed_output_sha256": review_context.reviewed_output_sha256,
+            "patch_sha256": patch_sha256,
+            "test_ledger_sha256": ledger_sha256,
         }
         _validate_repair_schema(
             "maintenance-repair-review.schema.json",
@@ -1083,8 +1139,10 @@ class MaintenanceController:
             "result_version": request.result_version,
             "tested_code_sha256": current_code_hash,
             "repair_status": "complete",
-            "completion_status": "ready",
-            "review_status": "approved",
+            "completion_status": (
+                "ready" if review.status == "approved" else "needs_changes"
+            ),
+            "review_status": review.status,
             "output": {
                 "patch_assessment": {
                     "path": artifacts["patch-assessment.json"][0],
@@ -1106,7 +1164,7 @@ class MaintenanceController:
             "reviewer_id": review.reviewer_id,
             "reviewed_result_version": review.reviewed_result_version,
             "reviewed_code_sha256": review.reviewed_code_sha256,
-            "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
+            "reviewed_output_sha256": review_context.reviewed_output_sha256,
         }
         try:
             _validate_repair_schema(
@@ -1152,18 +1210,40 @@ class MaintenanceController:
                 output_sha256=output_sha256,
                 reviewer_id=review.reviewer_id,
                 reviewed_version=review.reviewed_result_version,
-                review_status="approved",
+                review_status=review.status,
                 reviewed_at=request.reviewed_at,
                 review_round=review_round,
-                repair_review_receipt_id=review_receipt.receipt_id,
-                repair_review_expected={
-                    "reviewed_output_sha256": review_receipt.reviewed_output_sha256,
-                    "code_sha256": current_code_hash,
-                    "patch_sha256": patch_sha256,
-                    "test_ledger_sha256": ledger_sha256,
-                    "host_receipt_id": review_receipt.host_receipt_id,
-                    "receipt_sha256": review_receipt.receipt_sha256,
-                },
+                repair_review_receipt_id=(
+                    None if review_receipt is None else review_receipt.receipt_id
+                ),
+                repair_review_expected=(
+                    {
+                        "reviewed_output_sha256": (
+                            review_context.reviewed_output_sha256
+                        ),
+                        "code_sha256": current_code_hash,
+                        "patch_sha256": patch_sha256,
+                        "test_ledger_sha256": ledger_sha256,
+                        "host_receipt_id": review_evidence.host_receipt_id,
+                        "receipt_sha256": review_receipt.receipt_sha256,
+                    }
+                    if review_receipt is not None
+                    else {
+                        "host_receipt_id": review_evidence.host_receipt_id,
+                        "reviewer_session_key": review_evidence.reviewer_session_key,
+                        "reviewer_turn_id": review_evidence.reviewer_turn_id,
+                        "reviewer_output_sha256": review_evidence.reviewer_output_sha256,
+                        "reviewed_output_sha256": (
+                            review_context.reviewed_output_sha256
+                        ),
+                        "code_sha256": current_code_hash,
+                        "patch_sha256": patch_sha256,
+                        "test_ledger_sha256": ledger_sha256,
+                        "unresolved_critical_findings": list(
+                            review_evidence.unresolved_critical_findings
+                        ),
+                    }
+                ),
             )
         except MaintenanceStoreError as exc:
             raise RepairContractError(exc.code) from exc
@@ -1173,7 +1253,7 @@ class MaintenanceController:
             attempt_id=attempt.attempt_id,
             result_version=request.result_version,
             code_sha256=current_code_hash,
-            review_status="approved",
+            review_status=review.status,
             output_path=output_path,
             output_sha256=output_sha256,
             artifacts=artifacts,
@@ -1277,10 +1357,15 @@ class MaintenanceController:
             validated,
             manifest_identity,
         )
+        review_started_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.review_started_at
+        )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.review_started_at,
+            at=review_started_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
@@ -1292,17 +1377,27 @@ class MaintenanceController:
             markdown_path=markdown_path,
             markdown_sha256=markdown_sha256,
         )
+        completed_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.completed_at
+        )
+        reviewed_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.reviewed_at
+        )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.completed_at,
+            at=completed_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.reviewed_at,
+            at=reviewed_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
@@ -1352,13 +1447,13 @@ class MaintenanceController:
             attempt_id=attempt.attempt_id,
             lease=request.lease,
             result_version=request.result_version,
-            completed_at=request.completed_at,
+            completed_at=completed_at,
             output_path=output_path,
             output_sha256=output_sha256,
             reviewer_id=str(review["reviewer_id"]),
             reviewed_version=str(review["reviewed_version"]),
             review_status=store_review_status,
-            reviewed_at=request.reviewed_at,
+            reviewed_at=reviewed_at,
             review_round=review_round,
         )
 
@@ -1380,7 +1475,11 @@ class MaintenanceController:
                 payload,
                 handoff_root=request.handoff_root,
                 lease=request.lease,
-                accepted_at=request.accepted_at,
+                accepted_at=(
+                    request.time_provider()
+                    if request.time_provider is not None
+                    else request.accepted_at
+                ),
             )
 
         return InvestigationAttemptOutcome(
@@ -1949,10 +2048,15 @@ class MaintenanceController:
         plan_artifacts: Mapping[str, Any],
     ) -> dict[str, Any]:
         attempt = dependencies["attempt"]
+        review_started_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.review_started_at
+        )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.review_started_at,
+            at=review_started_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
@@ -1960,10 +2064,15 @@ class MaintenanceController:
             request, dependencies, plan_artifacts
         )
         review, review_failure = self._invoke_planning_review(request, review_input)
+        reviewed_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.reviewed_at
+        )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.reviewed_at,
+            at=reviewed_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
@@ -1978,6 +2087,7 @@ class MaintenanceController:
             "gate_status": gate_status,
             "reason_code": review_failure,
             "next_action": next_action,
+            "reviewed_at": reviewed_at,
             "artifacts": {
                 "review.json": artifacts["review.json"],
                 "review.md": artifacts["review.md"],
@@ -2111,10 +2221,15 @@ class MaintenanceController:
             request, dependencies["context"], "result.json", result_json
         )
         attempt = dependencies["attempt"]
+        completed_at = (
+            request.time_provider()
+            if request.time_provider is not None
+            else request.completed_at
+        )
         self._store.validate_step_attempt_lease(
             attempt_id=attempt.attempt_id,
             lease=request.lease,
-            at=request.completed_at,
+            at=completed_at,
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
@@ -2123,13 +2238,13 @@ class MaintenanceController:
             attempt_id=attempt.attempt_id,
             lease=request.lease,
             result_version=request.result_version,
-            completed_at=request.completed_at,
+            completed_at=completed_at,
             output_path=output_path,
             output_sha256=output_hash,
             reviewer_id=review["reviewer_id"],
             reviewed_version=review["reviewed_version"],
             review_status=review_outcome["gate_status"],
-            reviewed_at=request.reviewed_at,
+            reviewed_at=review_outcome["reviewed_at"],
             review_round=dependencies["review_round"],
         )
         return output_path, output_hash
@@ -2375,6 +2490,7 @@ class MaintenanceController:
         lease: LeaseToken,
         finalized_at: datetime | str,
         reason_code: str | None = None,
+        incident_status: str | None = None,
     ) -> JobFinalizeResult:
         return self._store.finalize_job(
             job_id=job_id,
@@ -2382,4 +2498,5 @@ class MaintenanceController:
             lease=lease,
             finalized_at=finalized_at,
             reason_code=reason_code,
+            incident_status=incident_status,
         )

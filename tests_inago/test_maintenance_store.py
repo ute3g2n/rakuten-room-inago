@@ -322,6 +322,85 @@ def test_c07_job_finalization_releases_active_slot(tmp_path):
     assert second_job.started
 
 
+def test_job_completion_updates_incident_and_recovers_idempotently(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    first_lease = store.acquire_lease(
+        lease_key="maintenance-worker-terminal",
+        owner_id="worker-a",
+        owner_pid=4321,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME + timedelta(seconds=10),
+        ttl_seconds=30,
+    )
+    attempt = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="investigation",
+        sequence=1,
+        lease=first_lease,
+        started_at=BASE_TIME + timedelta(seconds=11),
+    )
+    store.complete_step_attempt(
+        attempt_id=attempt.attempt_id,
+        lease=first_lease,
+        result_version="investigation-u21-v1",
+        completed_at=BASE_TIME + timedelta(seconds=12),
+    )
+    store.record_step_review(
+        attempt_id=attempt.attempt_id,
+        reviewer_id="independent-reviewer",
+        reviewed_version="investigation-u21-v1",
+        status="approved",
+        reviewed_at=BASE_TIME + timedelta(seconds=13),
+    )
+
+    finalized = store.finalize_job(
+        job_id=job.job_id,
+        final_status="complete",
+        lease=first_lease,
+        finalized_at=BASE_TIME + timedelta(seconds=14),
+        incident_status="resolved",
+    )
+    assert finalized.status == "complete"
+    with store._connect() as connection:
+        job_status = connection.execute(
+            "SELECT status FROM maintenance_job WHERE job_id = ?", (job.job_id,)
+        ).fetchone()["status"]
+        incident_status = connection.execute(
+            "SELECT status FROM incident WHERE incident_id = ?", (incident_id,)
+        ).fetchone()["status"]
+    assert job_status == "complete"
+    assert incident_status == "resolved"
+
+    resumed_at = BASE_TIME + timedelta(seconds=41)
+    resumed_lease = store.acquire_lease(
+        lease_key="maintenance-worker-terminal",
+        owner_id="worker-b",
+        owner_pid=4322,
+        owner_start_time=resumed_at.isoformat(),
+        now=resumed_at,
+        ttl_seconds=30,
+        prior_owner_observation="dead",
+    )
+    resumed = store.finalize_job(
+        job_id=job.job_id,
+        final_status="complete",
+        lease=resumed_lease,
+        finalized_at=resumed_at + timedelta(seconds=1),
+        incident_status="resolved",
+    )
+    assert resumed.status == "complete"
+    assert store.get_step_attempt(attempt.attempt_id).status == "complete"
+    with store._connect() as connection:
+        assert (
+            connection.execute(
+                "SELECT status FROM incident WHERE incident_id = ?", (incident_id,)
+            ).fetchone()["status"]
+            == "resolved"
+        )
+
+
 def test_c07_terminal_job_closes_running_attempt(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)

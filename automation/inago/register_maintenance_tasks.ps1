@@ -25,8 +25,10 @@ function New-MaintenanceTaskXml([string]$TemplateName, [string]$Arguments) {
     $manager.AddNamespace('t', $namespace)
     $principal = $document.SelectSingleNode('//t:Principal/t:UserId', $manager)
     $exec = $document.SelectSingleNode('//t:Actions/t:Exec', $manager)
-    if ($null -eq $principal -or $null -eq $exec) { throw 'The maintenance task template is incomplete.' }
+    $enabled = $document.SelectSingleNode('//t:Settings/t:Enabled', $manager)
+    if ($null -eq $principal -or $null -eq $exec -or $null -eq $enabled) { throw 'The maintenance task template is incomplete.' }
     $principal.InnerText = $userId
+    $enabled.InnerText = 'false'
     $exec.SelectSingleNode('t:Command', $manager).InnerText = $pythonExe
     $exec.SelectSingleNode('t:Arguments', $manager).InnerText = $Arguments
     $exec.SelectSingleNode('t:WorkingDirectory', $manager).InnerText = $projectRoot
@@ -126,6 +128,7 @@ try {
             $registered.Principal.UserId -ne $userId -or
             $registered.Principal.LogonType.ToString() -ne 'Interactive' -or
             $registered.Principal.RunLevel.ToString() -ne 'Limited' -or
+            $registered.Settings.Enabled -ne $false -or
             [string]$registered.Settings.ExecutionTimeLimit -notin @('PT0S', '00:00:00')) {
             throw "Task '$($definition.TaskName)' did not retain its reviewed action or safety settings."
         }
@@ -153,4 +156,5 @@ catch {
     Registered = $registeredNames.Count -eq $tasks.Count
     TaskNames = @($registeredNames)
     PlannedTaskNames = @($tasks.Name)
+    Enabled = $false
 } | ConvertTo-Json -Compress

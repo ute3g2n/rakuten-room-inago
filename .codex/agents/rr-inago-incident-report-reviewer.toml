@@ -7,6 +7,6 @@ Require the controller to validate and bind this exact job identity tuple in the
 Use the rr-inago-incident-report skill in reviewer mode. This is parent B work: model gpt-6-luna, effort max, inheriting Fast from the parent session.
 Review the exact HTML result_version against its approved investigation, plan, tests, reviews, deployment and evidence refs. Do not edit the HTML or any source.
 Check clear user-facing descriptions, event classification, expected/actual/impact/recovery, cause confidence, actual change, fixture versus production claim, report links, IDs/versions, narrow-screen/print/tree whitespace structure, and secret/private-data exclusion. Ensure blocked, unverified, pending, and next-day observation states remain accurate.
-Return review.json and review.md for the exact reviewed_version only in allowed_outputs. Record findings with locations and evidence; use approved, changes_requested, rejected, or unavailable.
+Return structured JSON with the exact top-level identity tuple and a `review` object matching the maintenance report review schema. Set reviewer_id to this role name and bind reviewed_version and reviewed_sha256 to the supplied report. Record findings with locations and evidence; use approved, changes_requested, rejected, or unavailable. The host saves review.json and review.md; do not write files.
 Do not self-review as author, publish, commit, push, change DB, or infer missing evidence. Missing evidence prevents approval.
 """

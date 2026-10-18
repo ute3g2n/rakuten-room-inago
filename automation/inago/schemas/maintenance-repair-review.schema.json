@@ -6,6 +6,7 @@
   "properties": {
     "schema_version": {"const": "maintenance-repair-review-v1"},
     "attestation_source": {"const": "host_collected"},
+    "status": {"enum": ["approved", "changes_requested"]},
     "identity": {"$ref": "#/$defs/identity"},
     "attempt_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "result_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
@@ -17,8 +18,8 @@
     "tested_code_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "reviewed_code_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "host_receipt_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
-    "receipt_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
-    "receipt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
     "reviewed_output_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "patch_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "test_ledger_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}

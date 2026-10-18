@@ -603,6 +603,11 @@ def program_path_kind(line_text: str) -> str:
         return "program_cleanup_path"
     if re.search(r"(?i)(?:facts\.json|investigation\.md|result\.json)", line_text):
         return "program_output_path"
+    if re.search(
+        r"(?i)\b(?:deployment-candidate|patch-assessment|repair-handoff|repair-setup|report-input|report-publication|report-response|report|review-input|review-response|review-target|review|test-ledger)\.(?:json|md|html)\b",
+        line_text,
+    ):
+        return "program_output_path"
     if re.search(r"\b(?:writeFile|writeFileSync|saveAs|screenshot|page\.pdf|mkdir|copyFile)\b", line_text):
         return "program_output_path"
     if re.search(r"(?i)\b(?:output|destination|dest|artifact|report)[\w]*\s*[:=]", line_text):
@@ -755,6 +760,7 @@ def safe_resolution(
             "post-status.json",
             "drafts.json",
             "review-target.json",
+            "tests_inago/test_candidate.py",
         }
     ):
         return {"status": "generated_output", "reason_code": "test_temporary_runtime_file"}

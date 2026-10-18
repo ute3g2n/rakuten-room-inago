@@ -455,6 +455,7 @@ def preclassify_daily_outcome(
                 elif (
                     isinstance(raw_daily_status, str)
                     and raw_daily_status in _DAILY_STATUSES
+                    and raw_daily_phase_status != "unknown"
                     and raw_daily_phase_status != raw_daily_status
                 ):
                     violations.append("status_mismatch")

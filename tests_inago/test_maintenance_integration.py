@@ -15,6 +15,7 @@ from automation.inago.maintenance.daily_launcher import (
 )
 from automation.inago.maintenance.process_identity import ProcessObservation
 from automation.inago.maintenance.store import MaintenanceStore
+from automation.inago.maintenance.settings import ensure_settings_file
 from tests_inago.maintenance_investigation_support import (
     BASE_COMMIT,
     make_check_response,
@@ -257,6 +258,91 @@ def test_c59_contract(tmp_path):
     assert duplicate.check_id == complete.check_id
     assert store.counts()["daily_check"] == 1
     assert store.counts()["worker_queue"] == 1
+
+
+def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
+    store = make_store(tmp_path)
+
+    def failed_daily_process(_command, _cwd, on_started):
+        on_started(9321)
+        return DailyProcessResult(
+            returncode=4,
+            stdout=b'{"status":"runtime_error","reason":"ExampleError"}',
+            stderr=b"",
+            pid=9321,
+        )
+
+    launch = run_daily_launch(
+        store,
+        data_root=tmp_path / "runtime",
+        config_path=tmp_path / "config.json",
+        now=BASE_TIME,
+        process_runner=failed_daily_process,
+        command=("synthetic-daily-child",),
+        cwd=tmp_path,
+    )
+
+    blocked = run_worker_once(
+        store,
+        now=BASE_TIME + timedelta(minutes=3),
+        owner_id="worker-blocked-c59",
+        owner_pid=9322,
+        owner_start_time=(BASE_TIME + timedelta(minutes=3)).isoformat(),
+        process_probe=lambda _pid: ProcessObservation("stopped", None),
+        source_launch_id=launch.launch_id,
+    )
+    queue = store.get_worker_queue(launch.launch_id)
+    assert blocked.status == "blocked"
+    assert blocked.reason_code == "maintenance_workflow_provider_unavailable"
+    assert queue is not None
+    assert queue.status == "blocked"
+    assert queue.reason_code == "maintenance_workflow_provider_unavailable"
+    assert queue.check_id is None
+    events = store.list_worker_queue_events(queue.queue_id)
+    assert [event.event_type for event in events] == ["blocked"]
+    assert events[0].check_id == blocked.check_id
+
+    data_root = tmp_path / "data"
+    ensure_settings_file(data_root / "maintenance" / "settings.json")
+    common_args = [
+        "--data-root",
+        str(data_root),
+        "--daily-database",
+        str(tmp_path / "daily-runtime" / "state.sqlite"),
+        "resume-worker",
+        "--source-launch-id",
+        launch.launch_id,
+    ]
+    assert (
+        maintenance_cli_main(
+            [
+                *common_args,
+                "--expected-reason-code",
+                "different_block_reason",
+            ]
+        )
+        == 3
+    )
+    capsys.readouterr()
+    assert (
+        maintenance_cli_main(
+            [
+                *common_args,
+                "--expected-reason-code",
+                "maintenance_workflow_provider_unavailable",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    resumed = store.get_worker_queue(launch.launch_id)
+    assert resumed is not None
+
+    assert resumed.status == "queued"
+    assert resumed.reason_code is None
+    events = store.list_worker_queue_events(queue.queue_id)
+    assert [event.event_type for event in events] == ["blocked", "resumed"]
+    assert events[1].reason_code == "maintenance_workflow_provider_unavailable"
 
 
 def test_c54_contract(tmp_path, capsys):

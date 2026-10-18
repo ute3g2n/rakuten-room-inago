@@ -13,11 +13,14 @@ import json
 import os
 import re
 import subprocess
+import tempfile
+import threading
+import time
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Callable, Protocol, Sequence
+from typing import Callable, Mapping, Protocol, Sequence
 
 from automation.inago.maintenance.diagnostic_trace import (
     MaintenanceDiagnosticTrace,
@@ -58,6 +61,189 @@ class PendingSnapshot:
             raise ValueError("deployment_pending_count_invalid")
         if not isinstance(self.revision, str) or not self.revision:
             raise ValueError("deployment_pending_revision_invalid")
+
+
+class FileDeploymentExclusionGuard:
+    """A process-wide OS lock shared by deployment and runtime mutators."""
+
+    def __init__(self, lock_path: str | Path) -> None:
+        self.lock_path = Path(lock_path).expanduser()
+        self._handle = None
+        self._state_lock = threading.Lock()
+
+    def acquire(self) -> bool:
+        if self._handle is not None or not self._state_lock.acquire(blocking=False):
+            return False
+        handle = None
+        lock_attempted = False
+        try:
+            if _has_reparse_point(self.lock_path):
+                raise DeploymentError("deployment_exclusion_path_invalid")
+            handle = self.lock_path.open("a+b")
+            if handle.seek(0, os.SEEK_END) == 0:
+                handle.write(b"\0")
+                handle.flush()
+                os.fsync(handle.fileno())
+            handle.seek(0)
+            lock_attempted = True
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            elif os.name == "posix":
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            else:
+                raise DeploymentError("deployment_exclusion_unavailable")
+        except OSError as exc:
+            try:
+                if handle is not None:
+                    handle.close()
+            except OSError:
+                pass
+            self._state_lock.release()
+            if lock_attempted:
+                return False
+            raise DeploymentError("deployment_exclusion_unavailable") from exc
+        except (ImportError, DeploymentError) as exc:
+            try:
+                if handle is not None:
+                    handle.close()
+            except OSError:
+                pass
+            self._state_lock.release()
+            if isinstance(exc, DeploymentError):
+                raise
+            raise DeploymentError("deployment_exclusion_unavailable") from exc
+        self._handle = handle
+        return True
+
+    def __enter__(self) -> FileDeploymentExclusionGuard:
+        if self._handle is not None:
+            raise DeploymentError("deployment_exclusion_reentrant")
+        while not self.acquire():
+            time.sleep(0.1)
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.release()
+
+    def release(self) -> None:
+        handle, self._handle = self._handle, None
+        if handle is None:
+            return
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            elif os.name == "posix":
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            try:
+                handle.close()
+            finally:
+                self._state_lock.release()
+
+
+def observe_daily_owner_active(runtime_root: str | Path) -> bool | None:
+    """Return a read-only active-run observation; uncertainty remains unknown."""
+
+    from automation.inago.production_runtime import _has_reparse_point
+    from automation.inago.run_lock import observe_process_owner, read_lock_owner
+
+    root = Path(runtime_root).expanduser()
+    owner_path = root / ".daily-run-owner.json"
+    lock_path = root / ".daily-run.lock"
+    try:
+        if (
+            _has_reparse_point(root)
+            or _has_reparse_point(owner_path)
+            or _has_reparse_point(lock_path)
+            or not root.is_dir()
+        ):
+            return None
+        owner_observation = read_lock_owner(owner_path)
+        with os.scandir(root) as entries:
+            pending_owner_markers = tuple(
+                entry.name
+                for entry in entries
+                if entry.name.startswith(f"{owner_path.name}.pending.")
+            )
+        if pending_owner_markers:
+            return None
+        if (
+            owner_observation.status == "present"
+            and owner_observation.owner is not None
+        ):
+            process = observe_process_owner(owner_observation.owner)
+            if process.status == "alive":
+                return True
+            if process.status not in {"dead"}:
+                return None
+        elif owner_observation.status != "missing":
+            return None
+        if not lock_path.exists():
+            return False
+        if _has_reparse_point(lock_path):
+            return None
+        if os.name != "nt":
+            return None
+        try:
+            handle = lock_path.open("r+b")
+        except FileNotFoundError:
+            return False
+        try:
+            handle.seek(0)
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            return False
+        except OSError:
+            return None
+        finally:
+            handle.close()
+    except (OSError, RuntimeError, ValueError, DeploymentError):
+        return None
+
+
+def observe_pending_action_snapshot(runtime_root: str | Path) -> PendingSnapshot | None:
+    """Hash the pending human-action set from one read-only SQLite snapshot."""
+
+    from automation.inago.operations import open_readonly_operations_connection
+
+    database_path = Path(runtime_root).expanduser() / "state.sqlite"
+    try:
+        connection = open_readonly_operations_connection(database_path)
+        try:
+            rows = connection.execute(
+                "SELECT action_id, action, offer_key, receipt_revision "
+                "FROM human_action WHERE apply_status = 'pending' ORDER BY action_id"
+            ).fetchall()
+            payload = [
+                [
+                    str(row["action_id"]),
+                    str(row["action"]),
+                    str(row["offer_key"]),
+                    int(row["receipt_revision"]),
+                ]
+                for row in rows
+            ]
+        finally:
+            connection.close()
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
+        return None
+    except Exception:
+        return None
+    revision = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=True, separators=(",", ":")).encode("ascii")
+    ).hexdigest()
+    return PendingSnapshot(len(payload), revision)
 
 
 class RuntimeSwitcher(Protocol):
@@ -453,6 +639,217 @@ def commit_owned_paths(
     return _commit(repo, _text(_git(repo, "rev-parse", "HEAD")))
 
 
+def prepare_repair_candidate_commit(
+    repository: str | Path,
+    source_worktree: str | Path,
+    *,
+    base_commit: str,
+    product_paths: Sequence[str],
+    product_file_sha256: Mapping[str, str],
+    expected_product_diff_sha256: str,
+    candidate_ref: str,
+    commit_timestamp: datetime,
+) -> str:
+    """Create or reuse a local candidate commit without changing its source tree."""
+
+    repo = _repository_root(repository)
+    source = _repository_root(source_worktree)
+    base = _commit(repo, base_commit)
+    if (
+        _commit(source, _text(_git(source, "rev-parse", "HEAD"))) != base
+        or not isinstance(candidate_ref, str)
+        or re.fullmatch(r"refs/maintenance/candidates/[a-f0-9]{64}", candidate_ref)
+        is None
+        or not isinstance(expected_product_diff_sha256, str)
+        or re.fullmatch(r"[a-f0-9]{64}", expected_product_diff_sha256) is None
+        or not isinstance(commit_timestamp, datetime)
+        or commit_timestamp.tzinfo is None
+    ):
+        raise DeploymentError("repair_candidate_identity_invalid")
+    try:
+        repo_common = Path(
+            _text(_git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+        ).resolve(strict=True)
+        source_common = Path(
+            _text(
+                _git(source, "rev-parse", "--path-format=absolute", "--git-common-dir")
+            )
+        ).resolve(strict=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise DeploymentError("repair_candidate_repository_unavailable") from exc
+    if repo_common != source_common:
+        raise DeploymentError("repair_candidate_repository_mismatch")
+
+    paths: list[str] = []
+    for value in product_paths:
+        if (
+            not isinstance(value, str)
+            or not value
+            or "\\" in value
+            or any(character in value for character in "*?[]:")
+        ):
+            raise DeploymentError("repair_candidate_path_invalid")
+        relative = PurePosixPath(value)
+        if (
+            relative.is_absolute()
+            or not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+            or relative.as_posix() != value
+        ):
+            raise DeploymentError("repair_candidate_path_invalid")
+        current = source
+        for part in relative.parts:
+            current = current / part
+            if _has_reparse_point(current):
+                raise DeploymentError("repair_candidate_path_reparse_point")
+        paths.append(value)
+    if not paths or len(paths) != len(set(paths)):
+        raise DeploymentError("repair_candidate_path_set_invalid")
+    if set(product_file_sha256) - set(paths) or any(
+        not isinstance(path, str)
+        or not isinstance(value, str)
+        or re.fullmatch(r"[a-f0-9]{64}", value) is None
+        for path, value in product_file_sha256.items()
+    ):
+        raise DeploymentError("repair_candidate_file_hash_invalid")
+    pathspecs = [f":(literal){path}" for path in sorted(paths)]
+
+    def checked_diff(commit: str) -> bytes:
+        return _git(repo, "diff", "--binary", base, commit, "--", *pathspecs)
+
+    def verify_candidate(commit: str) -> str:
+        exact = _commit(repo, commit)
+        parent = _text(_git(repo, "rev-parse", f"{exact}^"))
+        changed = _changed_paths(repo, base, exact)
+        diff = checked_diff(exact)
+        observed_hash = hashlib.sha256(
+            diff
+            + json.dumps(
+                dict(sorted(product_file_sha256.items())),
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        if (
+            parent != base
+            or changed != set(paths)
+            or observed_hash != expected_product_diff_sha256
+        ):
+            raise DeploymentError("repair_candidate_commit_conflict")
+        return exact
+
+    source_status = _status(source)
+    source_diff = _git(source, "diff", "--binary", base, "--", *pathspecs)
+    source_diff_hash = hashlib.sha256(
+        source_diff
+        + json.dumps(
+            dict(sorted(product_file_sha256.items())),
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    ).hexdigest()
+    if source_diff_hash != expected_product_diff_sha256:
+        raise DeploymentError("repair_candidate_source_diff_mismatch")
+
+    existing = _git(
+        repo,
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        candidate_ref,
+        allowed_returncodes=(0, 1),
+    )
+    if _text(existing):
+        candidate = verify_candidate(_text(existing))
+        if _status(source) != source_status:
+            raise DeploymentError("repair_candidate_source_changed")
+        return candidate
+
+    timestamp = commit_timestamp.astimezone(timezone.utc)
+    git_date = timestamp.strftime("%a, %d %b %Y %H:%M:%S +0000")
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "GIT_INDEX_FILE": "",
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_AUTHOR_NAME": "Inago Maintenance",
+            "GIT_AUTHOR_EMAIL": "maintenance@localhost",
+            "GIT_COMMITTER_NAME": "Inago Maintenance",
+            "GIT_COMMITTER_EMAIL": "maintenance@localhost",
+            "GIT_AUTHOR_DATE": git_date,
+            "GIT_COMMITTER_DATE": git_date,
+        }
+    )
+    try:
+        with tempfile.TemporaryDirectory(prefix="inago-candidate-") as temporary:
+            environment["GIT_INDEX_FILE"] = str(Path(temporary) / "index")
+
+            def run(arguments: Sequence[str], failure_code: str) -> bytes:
+                try:
+                    result = subprocess.run(
+                        ["git", "-C", str(source), *arguments],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=30,
+                        check=False,
+                        env=environment,
+                    )
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    raise DeploymentError(failure_code) from exc
+                if result.returncode != 0:
+                    raise DeploymentError(failure_code)
+                return result.stdout
+
+            run(["read-tree", base], "repair_candidate_index_failed")
+            run(
+                ["--literal-pathspecs", "add", "--all", "--", *sorted(paths)],
+                "repair_candidate_paths_stage_failed",
+            )
+            tree = _text(run(["write-tree"], "repair_candidate_tree_failed"))
+            if not re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", tree):
+                raise DeploymentError("repair_candidate_tree_invalid")
+            commit_message = (
+                f"maintenance repair candidate {candidate_ref.rsplit('/', 1)[-1][:16]}"
+            )
+            commit = _text(
+                run(
+                    ["commit-tree", tree, "-p", base, "-m", commit_message],
+                    "repair_candidate_commit_failed",
+                )
+            )
+    except DeploymentError:
+        raise
+    except OSError as exc:
+        raise DeploymentError("repair_candidate_temporary_index_failed") from exc
+    if not re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", commit):
+        raise DeploymentError("repair_candidate_commit_invalid")
+
+    zero = "0" * len(commit)
+    try:
+        _git(repo, "update-ref", candidate_ref, commit, zero)
+    except DeploymentError:
+        concurrent = _git(
+            repo,
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            candidate_ref,
+            allowed_returncodes=(0, 1),
+        )
+        if not _text(concurrent):
+            raise
+        commit = _text(concurrent)
+    candidate = verify_candidate(commit)
+    if (
+        _status(source) != source_status
+        or _commit(source, _text(_git(source, "rev-parse", "HEAD"))) != base
+    ):
+        raise DeploymentError("repair_candidate_source_changed")
+    return candidate
+
+
 def push_candidate_commit(
     repository: str | Path,
     *,
@@ -576,6 +973,7 @@ class DeploymentCoordinator:
         active_checkout: str | Path,
         expected_target_commit: str,
         owner_id: str,
+        resume_deployment_id: str | None = None,
     ) -> DeploymentResult:
         """Promote only the stored reviewed release and preserve pending actions."""
 
@@ -606,6 +1004,28 @@ class DeploymentCoordinator:
         if self.exclusion_guard is None:
             raise DeploymentError("deployment_exclusion_unavailable")
 
+        resume_record = None
+        if resume_deployment_id is not None:
+            try:
+                resume_record = self.store.get_deployment(
+                    deployment_id=resume_deployment_id
+                )
+            except MaintenanceStoreError as exc:
+                raise DeploymentError(
+                    getattr(exc, "code", "deployment_resume_unavailable")
+                ) from exc
+            if (
+                resume_record is None
+                or resume_record.status != "pending"
+                or resume_record.release_id != release_id
+                or resume_record.source_commit != tested
+                or resume_record.base_commit != base
+                or resume_record.tested_commit != tested
+                or resume_record.remote_name != remote_name
+                or resume_record.target_branch != target_branch
+            ):
+                raise DeploymentError("deployment_resume_identity_mismatch")
+
         owner_start = current_process_start_time()
         if owner_start is None:
             raise DeploymentError("deployment_owner_identity_unavailable")
@@ -622,6 +1042,41 @@ class DeploymentCoordinator:
             raise DeploymentError(
                 getattr(exc, "code", "deployment_lease_busy")
             ) from exc
+
+        if resume_record is not None:
+            try:
+                current_record = self.store.get_deployment(
+                    deployment_id=resume_record.deployment_id
+                )
+            except MaintenanceStoreError as exc:
+                try:
+                    self.store.release_lease(lease=lease, released_at=self._now())
+                except MaintenanceStoreError:
+                    pass
+                raise DeploymentError(
+                    getattr(exc, "code", "deployment_resume_unavailable")
+                ) from exc
+            if (
+                current_record is None
+                or current_record.release_id != release_id
+                or current_record.source_commit != tested
+                or current_record.base_commit != base
+                or current_record.tested_commit != tested
+                or current_record.remote_name != remote_name
+                or current_record.target_branch != target_branch
+            ):
+                try:
+                    self.store.release_lease(lease=lease, released_at=self._now())
+                except MaintenanceStoreError:
+                    pass
+                raise DeploymentError("deployment_resume_identity_mismatch")
+            if current_record.status != "pending":
+                try:
+                    self.store.release_lease(lease=lease, released_at=self._now())
+                except MaintenanceStoreError:
+                    pass
+                return self._result(current_record)
+            resume_record = current_record
 
         try:
             guard_acquired = self.exclusion_guard.acquire()
@@ -643,14 +1098,18 @@ class DeploymentCoordinator:
         previous_active: str | None = None
         runtime_switch_attempted = False
         try:
-            deployment_id = self.store.begin_deployment(
-                release_id=release_id,
-                source_commit=tested,
-                base_commit=base,
-                tested_commit=tested,
-                remote_name=remote_name,
-                target_branch=target_branch,
-                started_at=self._now(),
+            deployment_id = (
+                resume_record.deployment_id
+                if resume_record is not None
+                else self.store.begin_deployment(
+                    release_id=release_id,
+                    source_commit=tested,
+                    base_commit=base,
+                    tested_commit=tested,
+                    remote_name=remote_name,
+                    target_branch=target_branch,
+                    started_at=self._now(),
+                )
             )
             if not self._daily_idle():
                 return self._blocked(
@@ -752,17 +1211,59 @@ class DeploymentCoordinator:
                         reason="approved_commit_not_fast_forward",
                     )
                 try:
-                    previous_active = self.runtime_switcher.current_commit()
+                    observed_active = self.runtime_switcher.current_commit()
                 except Exception:
-                    previous_active = None
-                if previous_active is None:
+                    observed_active = None
+                if observed_active is None:
                     return self._blocked(
                         deployment_id=deployment_id,
                         pushed=None,
                         active=None,
                         reason="active_commit_unavailable",
                     )
-                previous_active = _commit(self.repository, previous_active)
+                observed_active = _commit(self.repository, observed_active)
+                previous_active = (
+                    resume_record.previous_active_commit
+                    if resume_record is not None
+                    else observed_active
+                )
+                if previous_active is None:
+                    if observed_active != base:
+                        return self._blocked(
+                            deployment_id=deployment_id,
+                            pushed=None,
+                            active=observed_active,
+                            reason="active_commit_base_mismatch",
+                        )
+                    try:
+                        bound = self.store.bind_deployment_previous_active(
+                            deployment_id=deployment_id,
+                            lease=lease,
+                            previous_active_commit=observed_active,
+                            recorded_at=self._now(),
+                        )
+                    except MaintenanceStoreError as exc:
+                        return self._blocked(
+                            deployment_id=deployment_id,
+                            pushed=None,
+                            active=observed_active,
+                            reason=getattr(
+                                exc,
+                                "code",
+                                "deployment_previous_active_unavailable",
+                            ),
+                        )
+                    previous_active = bound.previous_active_commit
+                elif previous_active != base or observed_active not in {
+                    previous_active,
+                    tested,
+                }:
+                    return self._blocked(
+                        deployment_id=deployment_id,
+                        pushed=None,
+                        active=observed_active,
+                        reason="deployment_resume_runtime_mismatch",
+                    )
                 if remote_head == base:
                     self.store.heartbeat_lease(
                         lease=lease, now=self._now(), ttl_seconds=300

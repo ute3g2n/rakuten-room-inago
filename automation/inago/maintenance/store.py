@@ -26,7 +26,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -53,6 +53,10 @@ _MIGRATIONS = {
     8: (
         "008_deployment_verification.sql",
         "next-natural-daily verification of deployed maintenance changes",
+    ),
+    9: (
+        "009_worker_queue_events.sql",
+        "durable worker holds, daily observations and deployment resume identity",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -111,6 +115,8 @@ _SCHEMA_TABLES = {
     "watchdog_queue",
     "watchdog_cursor",
     "worker_queue",
+    "worker_queue_event",
+    "daily_result_observation",
     "deployment_verification",
     "repair_campaign",
     "repair_campaign_case",
@@ -268,6 +274,34 @@ class WorkerQueueRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkerQueueEventRecord:
+    event_id: str
+    queue_id: str
+    event_type: str
+    check_id: str | None
+    reason_code: str
+    owner_id: str
+    generation: int
+    occurred_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class DailyResultObservationRecord:
+    source_launch_id: str
+    target_date: str
+    source_run_id: str | None
+    schema_version: str
+    observation_json: str
+    observation_sha256: str
+    captured_at: str
+
+    @property
+    def observation(self) -> Mapping[str, object]:
+        value = json.loads(self.observation_json)
+        return value if isinstance(value, dict) else {}
+
+
+@dataclass(frozen=True, slots=True)
 class DailyLaunchRecord:
     source_launch_id: str
     target_date: str
@@ -403,6 +437,179 @@ def _worker_queue_from_row(row: sqlite3.Row) -> WorkerQueueRecord:
     )
 
 
+def _worker_queue_event_from_row(row: sqlite3.Row) -> WorkerQueueEventRecord:
+    return WorkerQueueEventRecord(
+        event_id=str(row["event_id"]),
+        queue_id=str(row["queue_id"]),
+        event_type=str(row["event_type"]),
+        check_id=str(row["check_id"]) if row["check_id"] is not None else None,
+        reason_code=str(row["reason_code"]),
+        owner_id=str(row["owner_id"]),
+        generation=int(row["generation"]),
+        occurred_at=str(row["occurred_at"]),
+    )
+
+
+def _daily_result_observation_from_row(
+    row: sqlite3.Row,
+) -> DailyResultObservationRecord:
+    return DailyResultObservationRecord(
+        source_launch_id=str(row["source_launch_id"]),
+        target_date=str(row["target_date"]),
+        source_run_id=(
+            str(row["source_run_id"]) if row["source_run_id"] is not None else None
+        ),
+        schema_version=str(row["schema_version"]),
+        observation_json=str(row["observation_json"]),
+        observation_sha256=str(row["observation_sha256"]),
+        captured_at=str(row["captured_at"]),
+    )
+
+
+def _validated_daily_result_observation(
+    value: Mapping[str, object],
+    *,
+    source_launch_id: str,
+    target_date: str,
+    source_run_id: str | None,
+) -> tuple[dict[str, object], str, str]:
+    """Accept only allowlisted, identity-bound aggregate daily observations."""
+
+    count_fields = (
+        "daily_target",
+        "initial_allocation_count",
+        "supplemental_allocation_count",
+        "committed_count",
+        "shortfall_count",
+        "actual_posted_count",
+        "source_failures",
+        "error_count",
+    )
+    retry_fields = (
+        "attempt_count",
+        "recovered_count",
+        "unresolved_count",
+        "contract_violation_count",
+    )
+    root_keys = {
+        "schema_version",
+        "source_launch_id",
+        "source_run_id",
+        "target_date",
+        "status",
+        "overall_status",
+        "daily_status",
+        "reason",
+        "daily_reason",
+        *count_fields,
+        "retry_summary",
+        "phase_results",
+    }
+    if not isinstance(value, Mapping) or set(value) != root_keys:
+        raise MaintenanceStoreError("daily_result_observation_schema_invalid")
+    document = dict(value)
+    if (
+        document["schema_version"] != "daily-result-observation-v1"
+        or document["source_launch_id"] != source_launch_id
+        or document["target_date"] != target_date
+        or document["source_run_id"] != source_run_id
+    ):
+        raise MaintenanceStoreError("daily_result_observation_identity_invalid")
+    for field in ("status", "overall_status", "daily_status"):
+        document[field] = _safe_code(
+            document[field], "daily_result_observation_value_invalid"
+        )
+    for field in ("reason", "daily_reason"):
+        if document[field] is not None:
+            document[field] = _safe_code(
+                document[field], "daily_result_observation_value_invalid"
+            )
+    for field in count_fields:
+        item = document[field]
+        if item is not None and (
+            isinstance(item, bool)
+            or not isinstance(item, int)
+            or item < 0
+            or item > 2**31 - 1
+        ):
+            raise MaintenanceStoreError("daily_result_observation_count_invalid")
+    retry = document["retry_summary"]
+    if not isinstance(retry, Mapping) or set(retry) != set(retry_fields):
+        raise MaintenanceStoreError("daily_result_observation_retry_invalid")
+    retry_document = dict(retry)
+    for field in retry_fields:
+        item = retry_document[field]
+        if item is not None and (
+            isinstance(item, bool)
+            or not isinstance(item, int)
+            or item < 0
+            or item > 2**31 - 1
+        ):
+            raise MaintenanceStoreError("daily_result_observation_retry_invalid")
+    document["retry_summary"] = retry_document
+    phases = document["phase_results"]
+    phase_keys = {
+        "daily",
+        "metrics",
+        "export",
+        "preservation",
+        "start_backup",
+        "trace",
+    }
+    if not isinstance(phases, Mapping) or set(phases) != phase_keys:
+        raise MaintenanceStoreError("daily_result_observation_phases_invalid")
+    phase_shapes = {
+        "daily": {
+            "status",
+            "committed_count",
+            "shortfall_count",
+            "source_failures",
+            "error_count",
+        },
+        "metrics": {"status"},
+        "export": {"status"},
+        "preservation": {"status", "end_backup_status", "monthly_restore_status"},
+        "start_backup": {"status"},
+        "trace": {"status", "event_count"},
+    }
+    phase_document: dict[str, object] = {}
+    for phase_name, keys in phase_shapes.items():
+        phase = phases[phase_name]
+        if not isinstance(phase, Mapping) or set(phase) != keys:
+            raise MaintenanceStoreError("daily_result_observation_phases_invalid")
+        normalized = dict(phase)
+        normalized["status"] = _safe_code(
+            normalized["status"], "daily_result_observation_phases_invalid"
+        )
+        for status_key in ("end_backup_status", "monthly_restore_status"):
+            if status_key in normalized:
+                normalized[status_key] = _safe_code(
+                    normalized[status_key],
+                    "daily_result_observation_phases_invalid",
+                )
+        for count_key in keys & set(count_fields + ("event_count",)):
+            item = normalized[count_key]
+            if item is not None and (
+                isinstance(item, bool)
+                or not isinstance(item, int)
+                or item < 0
+                or item > 2**31 - 1
+            ):
+                raise MaintenanceStoreError("daily_result_observation_count_invalid")
+        phase_document[phase_name] = normalized
+    document["phase_results"] = phase_document
+    encoded = json.dumps(
+        document,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    if len(encoded.encode("utf-8")) > 256 * 1024:
+        raise MaintenanceStoreError("daily_result_observation_too_large")
+    return document, encoded, hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _watchdog_queue_from_row(row: sqlite3.Row) -> WatchdogQueueRecord:
     return WatchdogQueueRecord(
         queue_id=str(row["queue_id"]),
@@ -442,6 +649,11 @@ def _deployment_from_row(row: sqlite3.Row) -> DeploymentRecord:
         ),
         active_commit=(
             str(row["active_commit"]) if row["active_commit"] is not None else None
+        ),
+        previous_active_commit=(
+            str(row["previous_active_commit"])
+            if row["previous_active_commit"] is not None
+            else None
         ),
         remote_name=(
             str(row["remote_name"]) if row["remote_name"] is not None else None
@@ -514,6 +726,21 @@ class StepAttemptRecord:
     output_sha256: str | None
     started_at: str
     finished_at: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class MaintenanceJobRecord:
+    job_id: str
+    incident_id: str
+    release_id: str
+    source_run_id: str | None
+    result_version: str
+    resume_count: int
+    status: str
+    created_at: str
+    updated_at: str
+    finished_at: str | None
+    terminal_reason_code: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -607,6 +834,7 @@ class DeploymentRecord:
     tested_commit: str | None
     pushed_commit: str | None
     active_commit: str | None
+    previous_active_commit: str | None
     remote_name: str | None
     target_branch: str | None
     reason_code: str | None
@@ -1019,6 +1247,7 @@ class MaintenanceStore:
                 "watchdog_queue",
                 "watchdog_cursor",
                 "worker_queue",
+                "worker_queue_event",
                 "deployment_verification",
             )
             return {
@@ -1225,6 +1454,144 @@ class MaintenanceStore:
                 if dict(expected_identity) != manifest.identity():
                     raise MaintenanceStoreError("job_input_manifest_identity_mismatch")
             return manifest
+        finally:
+            connection.close()
+
+    def list_workflow_jobs_for_launch(
+        self,
+        *,
+        source_launch_id: str,
+        source_run_id: str | None,
+        target_date: str,
+    ) -> tuple[MaintenanceJobRecord, ...]:
+        """Load jobs already bound to one exact daily-launch identity."""
+
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        run_id = (
+            None
+            if source_run_id is None
+            else _safe_id(source_run_id, "source_run_id_invalid")
+        )
+        target = _target_date(target_date)
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT j.*, ir.source_launch_id AS incident_source_launch_id, "
+                "ir.source_run_id AS incident_source_run_id, "
+                "dc.source_launch_id AS check_source_launch_id, "
+                "dc.source_run_id AS check_source_run_id, "
+                "dc.target_date AS check_target_date, "
+                "m.source_launch_id AS manifest_source_launch_id, "
+                "m.source_run_id AS manifest_source_run_id, "
+                "m.target_date AS manifest_target_date "
+                "FROM maintenance_job AS j "
+                "JOIN incident_run AS ir ON ir.incident_id = j.incident_id "
+                "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
+                "LEFT JOIN job_input_manifest AS m ON m.job_id = j.job_id "
+                "WHERE ir.source_launch_id = ? "
+                "ORDER BY j.created_at, j.job_id",
+                (launch_id,),
+            ).fetchall()
+            jobs: list[MaintenanceJobRecord] = []
+            for row in rows:
+                if (
+                    row["incident_source_launch_id"] != launch_id
+                    or row["check_source_launch_id"] != launch_id
+                    or row["incident_source_run_id"] != run_id
+                    or row["check_source_run_id"] != run_id
+                    or row["source_run_id"] != run_id
+                    or row["check_target_date"] != target
+                ):
+                    raise MaintenanceStoreError(
+                        "maintenance_workflow_job_identity_mismatch"
+                    )
+                if row["manifest_source_launch_id"] is not None and (
+                    row["manifest_source_launch_id"] != launch_id
+                    or row["manifest_source_run_id"] != run_id
+                    or row["manifest_target_date"] != target
+                ):
+                    raise MaintenanceStoreError(
+                        "maintenance_workflow_manifest_identity_mismatch"
+                    )
+                jobs.append(
+                    MaintenanceJobRecord(
+                        job_id=str(row["job_id"]),
+                        incident_id=str(row["incident_id"]),
+                        release_id=str(row["release_id"]),
+                        source_run_id=(
+                            str(row["source_run_id"])
+                            if row["source_run_id"] is not None
+                            else None
+                        ),
+                        result_version=str(row["result_version"]),
+                        resume_count=int(row["resume_count"]),
+                        status=str(row["status"]),
+                        created_at=str(row["created_at"]),
+                        updated_at=str(row["updated_at"]),
+                        finished_at=(
+                            str(row["finished_at"])
+                            if row["finished_at"] is not None
+                            else None
+                        ),
+                        terminal_reason_code=(
+                            str(row["terminal_reason_code"])
+                            if row["terminal_reason_code"] is not None
+                            else None
+                        ),
+                    )
+                )
+            return tuple(jobs)
+        finally:
+            connection.close()
+
+    def list_step_attempts(self, *, job_id: str) -> tuple[StepAttemptRecord, ...]:
+        """Return all durable attempts for a job in stage/attempt order."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT * FROM step_attempt WHERE job_id = ? "
+                "ORDER BY sequence, attempt_no",
+                (job,),
+            ).fetchall()
+            return tuple(
+                StepAttemptRecord(
+                    attempt_id=str(row["attempt_id"]),
+                    job_id=str(row["job_id"]),
+                    step_key=str(row["step_key"]),
+                    sequence=int(row["sequence"]),
+                    attempt_no=int(row["attempt_no"]),
+                    source_run_id=(
+                        str(row["source_run_id"])
+                        if row["source_run_id"] is not None
+                        else None
+                    ),
+                    status=str(row["status"]),
+                    result_version=(
+                        str(row["result_version"])
+                        if row["result_version"] is not None
+                        else None
+                    ),
+                    output_path=(
+                        str(row["output_path"])
+                        if row["output_path"] is not None
+                        else None
+                    ),
+                    output_sha256=(
+                        str(row["output_sha256"])
+                        if row["output_sha256"] is not None
+                        else None
+                    ),
+                    started_at=str(row["started_at"]),
+                    finished_at=(
+                        str(row["finished_at"])
+                        if row["finished_at"] is not None
+                        else None
+                    ),
+                )
+                for row in rows
+            )
         finally:
             connection.close()
 
@@ -1640,6 +2007,24 @@ class MaintenanceStore:
             created_at=str(row["created_at"]),
         )
 
+    def get_repair_host_review_execution(
+        self, *, host_receipt_id: str
+    ) -> RepairHostReviewExecutionRecord:
+        """Read and integrity-check one persisted repair reviewer execution."""
+
+        receipt = _safe_id(host_receipt_id, "repair_review_host_receipt_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM repair_host_review_execution WHERE host_receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_host_review_execution_unavailable")
+            return self._repair_host_review_execution_record(row)
+        finally:
+            connection.close()
+
     def record_repair_review_receipt(
         self,
         *,
@@ -1809,6 +2194,25 @@ class MaintenanceStore:
             receipt_sha256=str(document["receipt_sha256"]),
             consumed=row["consumed_at"] is not None,
         )
+
+    def get_repair_review_receipt(
+        self, *, receipt_id: str
+    ) -> RepairReviewReceiptRecord:
+        """Read and integrity-check one persisted repair approval receipt."""
+
+        receipt = _safe_id(receipt_id, "repair_review_receipt_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM repair_review_receipt WHERE receipt_id = ?",
+                (receipt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("repair_review_receipt_unavailable")
+            document = self._repair_review_receipt_document(row)
+            return self._repair_review_receipt_record(row, document)
+        finally:
+            connection.close()
 
     @staticmethod
     def _repair_review_receipt_document(
@@ -2084,6 +2488,36 @@ class MaintenanceStore:
         finally:
             connection.close()
 
+    def get_daily_result_observation(
+        self, source_launch_id: str
+    ) -> DailyResultObservationRecord | None:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT source_launch_id, target_date, source_run_id, schema_version, "
+                "observation_json, observation_sha256, captured_at "
+                "FROM daily_result_observation WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        record = _daily_result_observation_from_row(row)
+        digest = hashlib.sha256(record.observation_json.encode("utf-8")).hexdigest()
+        if digest != record.observation_sha256:
+            raise MaintenanceStoreError("daily_result_observation_hash_mismatch")
+        observation = record.observation
+        if (
+            record.schema_version != "daily-result-observation-v1"
+            or observation.get("source_launch_id") != record.source_launch_id
+            or observation.get("target_date") != record.target_date
+            or observation.get("source_run_id") != record.source_run_id
+        ):
+            raise MaintenanceStoreError("daily_result_observation_identity_invalid")
+        return record
+
     @staticmethod
     def _ensure_worker_queue(
         connection: sqlite3.Connection,
@@ -2134,10 +2568,19 @@ class MaintenanceStore:
             connection.close()
 
     def list_worker_queue(
-        self, *, status: str | None = None, limit: int = 100
+        self,
+        *,
+        status: str | None = None,
+        limit: int = 100,
+        exclude_target_dates: Iterable[str] | None = None,
     ) -> tuple[WorkerQueueRecord, ...]:
         if status is not None and status not in {"queued", "complete", "blocked"}:
             raise MaintenanceStoreError("worker_queue_status_invalid")
+        excluded_dates = (
+            tuple(dict.fromkeys(_target_date(item) for item in exclude_target_dates))
+            if exclude_target_dates is not None
+            else ()
+        )
         if (
             isinstance(limit, bool)
             or not isinstance(limit, int)
@@ -2146,17 +2589,22 @@ class MaintenanceStore:
             raise MaintenanceStoreError("worker_queue_limit_invalid")
         connection = self._connect()
         try:
-            if status is None:
-                rows = connection.execute(
-                    "SELECT * FROM worker_queue ORDER BY created_at, queue_id LIMIT ?",
-                    (limit,),
-                ).fetchall()
-            else:
-                rows = connection.execute(
-                    "SELECT * FROM worker_queue WHERE status = ? "
-                    "ORDER BY created_at, queue_id LIMIT ?",
-                    (status, limit),
-                ).fetchall()
+            filters: list[str] = []
+            parameters: list[object] = []
+            if status is not None:
+                filters.append("status = ?")
+                parameters.append(status)
+            if excluded_dates:
+                placeholders = ", ".join("?" for _ in excluded_dates)
+                filters.append(f"target_date NOT IN ({placeholders})")
+                parameters.extend(excluded_dates)
+            where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
+            parameters.append(limit)
+            rows = connection.execute(
+                "SELECT * FROM worker_queue"
+                f"{where_clause} ORDER BY created_at, queue_id LIMIT ?",
+                parameters,
+            ).fetchall()
             return tuple(_worker_queue_from_row(row) for row in rows)
         finally:
             connection.close()
@@ -2214,6 +2662,150 @@ class MaintenanceStore:
             ).fetchone()
             assert completed is not None
             return _worker_queue_from_row(completed)
+
+    def block_worker_queue(
+        self,
+        *,
+        queue_id: str,
+        check_id: str | None,
+        reason_code: str,
+        lease: LeaseToken,
+        blocked_at: datetime | str,
+    ) -> WorkerQueueRecord:
+        """Persist a fail-closed stop without marking the queue complete."""
+
+        queue = _safe_id(queue_id, "worker_queue_id_invalid")
+        check = None if check_id is None else _safe_id(check_id, "check_id_invalid")
+        reason = _safe_code(reason_code, "worker_queue_reason_invalid")
+        when = _timestamp(blocked_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("worker_queue_not_found")
+            if row["status"] == "blocked":
+                if row["reason_code"] != reason:
+                    raise IdempotencyConflictError("worker_queue_block_conflict")
+                return _worker_queue_from_row(row)
+            if row["status"] != "queued":
+                raise MaintenanceStoreError("worker_queue_not_actionable")
+            if check is not None:
+                check_row = connection.execute(
+                    "SELECT source_launch_id, target_date FROM daily_check "
+                    "WHERE check_id = ?",
+                    (check,),
+                ).fetchone()
+                if (
+                    check_row is None
+                    or check_row["source_launch_id"] != row["source_launch_id"]
+                    or check_row["target_date"] != row["target_date"]
+                ):
+                    raise MaintenanceStoreError("worker_queue_check_mismatch")
+            connection.execute(
+                "UPDATE worker_queue SET status = 'blocked', claim_owner_id = ?, "
+                "claim_generation = ?, claimed_at = ?, reason_code = ?, "
+                "updated_at = ? WHERE queue_id = ? AND status = 'queued'",
+                (lease.owner_id, lease.generation, when, reason, when, queue),
+            )
+            connection.execute(
+                "INSERT INTO worker_queue_event "
+                "(event_id, queue_id, event_type, check_id, reason_code, "
+                "owner_id, generation, occurred_at) "
+                "VALUES (?, ?, 'blocked', ?, ?, ?, ?, ?)",
+                (
+                    uuid.uuid4().hex,
+                    queue,
+                    check,
+                    reason,
+                    lease.owner_id,
+                    lease.generation,
+                    when,
+                ),
+            )
+            updated = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            assert updated is not None
+            return _worker_queue_from_row(updated)
+
+    def resume_blocked_worker_queue(
+        self,
+        *,
+        queue_id: str,
+        expected_reason_code: str,
+        lease: LeaseToken,
+        resumed_at: datetime | str,
+    ) -> WorkerQueueRecord:
+        """Requeue only a blocked item whose observed reason still matches."""
+
+        queue = _safe_id(queue_id, "worker_queue_id_invalid")
+        expected_reason = _safe_code(
+            expected_reason_code, "worker_queue_reason_invalid"
+        )
+        when = _timestamp(resumed_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("worker_queue_not_found")
+            if row["status"] != "blocked":
+                raise MaintenanceStoreError("worker_queue_not_blocked")
+            if row["reason_code"] != expected_reason:
+                raise IdempotencyConflictError("worker_queue_resume_reason_conflict")
+            blocked_event = connection.execute(
+                "SELECT check_id FROM worker_queue_event "
+                "WHERE queue_id = ? AND event_type = 'blocked' "
+                "ORDER BY occurred_at DESC, rowid DESC LIMIT 1",
+                (queue,),
+            ).fetchone()
+            check = blocked_event["check_id"] if blocked_event is not None else None
+            connection.execute(
+                "UPDATE worker_queue SET status = 'queued', check_id = NULL, "
+                "claim_owner_id = NULL, claim_generation = NULL, claimed_at = NULL, "
+                "completed_at = NULL, reason_code = NULL, updated_at = ? "
+                "WHERE queue_id = ? AND status = 'blocked'",
+                (when, queue),
+            )
+            connection.execute(
+                "INSERT INTO worker_queue_event "
+                "(event_id, queue_id, event_type, check_id, reason_code, "
+                "owner_id, generation, occurred_at) "
+                "VALUES (?, ?, 'resumed', ?, ?, ?, ?, ?)",
+                (
+                    uuid.uuid4().hex,
+                    queue,
+                    check,
+                    expected_reason,
+                    lease.owner_id,
+                    lease.generation,
+                    when,
+                ),
+            )
+            updated = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            assert updated is not None
+            return _worker_queue_from_row(updated)
+
+    def list_worker_queue_events(
+        self, queue_id: str
+    ) -> tuple[WorkerQueueEventRecord, ...]:
+        queue = _safe_id(queue_id, "worker_queue_id_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT event_id, queue_id, event_type, check_id, reason_code, "
+                "owner_id, generation, occurred_at FROM worker_queue_event "
+                "WHERE queue_id = ? ORDER BY occurred_at, rowid",
+                (queue,),
+            ).fetchall()
+            return tuple(_worker_queue_event_from_row(row) for row in rows)
+        finally:
+            connection.close()
 
     def list_daily_launches(
         self,
@@ -2555,6 +3147,7 @@ class MaintenanceStore:
         check_status: str,
         reason_code: str | None,
         result_summary: Mapping[str, object],
+        daily_result_observation: Mapping[str, object] | None = None,
     ) -> DailyLaunchRecord:
         launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
         target = _target_date(target_date)
@@ -2666,7 +3259,21 @@ class MaintenanceStore:
         overall_status = summary["overall_status"]
         daily_status = summary["daily_status"]
         if launch_status == "complete":
-            if check_status == "normal":
+            if check_status == "incomplete":
+                consistent = (
+                    overall_status in {"complete", "partial", "shortfall"}
+                    and daily_status in {"complete", "partial", "shortfall"}
+                    and exit_code in {0, 5}
+                    and run_id is not None
+                    and reason_code
+                    in {
+                        "daily_retry_observation_invalid",
+                        "daily_retry_observation_incomplete",
+                        "daily_retry_contract_violation",
+                        "daily_retry_unresolved",
+                    }
+                )
+            elif check_status == "normal":
                 consistent = (
                     overall_status == "complete"
                     and daily_status == "complete"
@@ -2729,6 +3336,20 @@ class MaintenanceStore:
             separators=(",", ":"),
             allow_nan=False,
         )
+        observation_document: dict[str, object] | None = None
+        encoded_observation: str | None = None
+        observation_sha256: str | None = None
+        if daily_result_observation is not None:
+            (
+                observation_document,
+                encoded_observation,
+                observation_sha256,
+            ) = _validated_daily_result_observation(
+                daily_result_observation,
+                source_launch_id=launch_id,
+                target_date=target,
+                source_run_id=run_id,
+            )
 
         with self._transaction() as connection:
             existing = connection.execute(
@@ -2755,6 +3376,16 @@ class MaintenanceStore:
                 (launch_id,),
             ).fetchone()
             if existing["status"] != "running":
+                existing_observation = connection.execute(
+                    "SELECT observation_sha256 FROM daily_result_observation "
+                    "WHERE source_launch_id = ?",
+                    (launch_id,),
+                ).fetchone()
+                if observation_sha256 is not None and (
+                    existing_observation is None
+                    or existing_observation["observation_sha256"] != observation_sha256
+                ):
+                    raise IdempotencyConflictError("daily_launch_observation_conflict")
                 compatible_check = (
                     check is not None
                     and check["source_run_id"] == run_id
@@ -2822,6 +3453,24 @@ class MaintenanceStore:
                         launch_id,
                     ),
                 )
+                if observation_document is not None:
+                    assert encoded_observation is not None
+                    assert observation_sha256 is not None
+                    connection.execute(
+                        "INSERT INTO daily_result_observation "
+                        "(source_launch_id, target_date, source_run_id, schema_version, "
+                        "observation_json, observation_sha256, captured_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            launch_id,
+                            target,
+                            run_id,
+                            observation_document["schema_version"],
+                            encoded_observation,
+                            observation_sha256,
+                            completed,
+                        ),
+                    )
             self._ensure_worker_queue(
                 connection,
                 source_launch_id=launch_id,
@@ -2899,7 +3548,28 @@ class MaintenanceStore:
                         "SELECT status FROM daily_launch WHERE source_launch_id = ?",
                         (launch_id,),
                     ).fetchone()
-                    if launch is None or launch["status"] != "failed":
+                    retry_incomplete_reasons = {
+                        "daily_retry_observation_invalid",
+                        "daily_retry_observation_incomplete",
+                        "daily_retry_contract_violation",
+                        "daily_retry_unresolved",
+                    }
+                    detector_abnormal_reasons = {
+                        "daily_failure_observed",
+                        "preclassification_contract_violation",
+                        "retry_contract_violation",
+                        "count_invariant_violation",
+                        "status_mismatch",
+                    }
+                    retry_based_upgrade = (
+                        launch is not None
+                        and launch["status"] == "complete"
+                        and existing["reason_code"] in retry_incomplete_reasons
+                        and reason_code in detector_abnormal_reasons
+                    )
+                    if launch is None or not (
+                        launch["status"] == "failed" or retry_based_upgrade
+                    ):
                         raise IdempotencyConflictError("launch_identity_conflict")
                     connection.execute(
                         "UPDATE daily_check SET check_status = 'abnormal', reason_code = ?, "
@@ -2996,6 +3666,30 @@ class MaintenanceStore:
                     (incident_id, check_id, launch_id, run_id, created_at),
                 )
             return DailyCheckResult(check_id, created, incident_id)
+
+    def list_releases_for_result_commit(
+        self, result_commit: str
+    ) -> tuple[ReleaseRecord, ...]:
+        commit = _safe_id(result_commit, "result_commit_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT release_id, result_commit, result_version, config_version, state "
+                "FROM release WHERE result_commit = ? ORDER BY created_at, release_id",
+                (commit,),
+            ).fetchall()
+        finally:
+            connection.close()
+        return tuple(
+            ReleaseRecord(
+                release_id=str(row["release_id"]),
+                result_commit=str(row["result_commit"]),
+                result_version=str(row["result_version"]),
+                config_version=str(row["config_version"]),
+                state=str(row["state"]),
+            )
+            for row in rows
+        )
 
     def create_release(
         self,
@@ -3139,6 +3833,160 @@ class MaintenanceStore:
                 ),
             )
         return review_id
+
+    def register_repair_candidate_release(
+        self,
+        *,
+        release_id: str,
+        author_id: str,
+        reviewer_id: str,
+        base_commit: str,
+        result_commit: str,
+        result_version: str,
+        config_version: str,
+        required_case_ids: tuple[str, ...],
+        evidence_ref: str,
+        recorded_at: datetime | str,
+    ) -> ReleaseRecord:
+        """Persist a repair candidate's already verified test/review basis once."""
+
+        release = _safe_id(release_id, "release_id_invalid")
+        author = _safe_id(author_id, "release_author_invalid")
+        reviewer = _safe_id(reviewer_id, "reviewer_id_invalid")
+        base = _safe_id(base_commit, "base_commit_invalid")
+        result = _safe_id(result_commit, "result_commit_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        config = _safe_id(config_version, "config_version_invalid")
+        cases = tuple(
+            _safe_id(case_id, "required_case_id_invalid")
+            for case_id in required_case_ids
+        )
+        evidence = _relative_output_path(evidence_ref)
+        when = _timestamp(recorded_at)
+        if (
+            not cases
+            or len(set(cases)) != len(cases)
+            or author == reviewer
+            or result == base
+        ):
+            raise MaintenanceStoreError("repair_candidate_release_identity_invalid")
+        manifest_hash = hashlib.sha256(
+            json.dumps(cases, ensure_ascii=True, separators=(",", ":")).encode("ascii")
+        ).hexdigest()
+
+        with self._transaction() as connection:
+            release_row = connection.execute(
+                "SELECT author_id, base_commit, result_commit, result_version, "
+                "config_version, case_manifest_sha256, state FROM release "
+                "WHERE release_id = ?",
+                (release,),
+            ).fetchone()
+            if release_row is None:
+                connection.execute(
+                    "INSERT INTO release "
+                    "(release_id, author_id, base_commit, result_commit, result_version, "
+                    "config_version, case_manifest_sha256, state, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, 'frozen', ?)",
+                    (
+                        release,
+                        author,
+                        base,
+                        result,
+                        version,
+                        config,
+                        manifest_hash,
+                        when,
+                    ),
+                )
+                connection.executemany(
+                    "INSERT INTO release_required_test (release_id, case_id, sequence) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        (release, case_id, index)
+                        for index, case_id in enumerate(cases, 1)
+                    ),
+                )
+            elif (
+                release_row["author_id"] != author
+                or release_row["base_commit"] != base
+                or release_row["result_commit"] != result
+                or release_row["result_version"] != version
+                or release_row["config_version"] != config
+                or release_row["case_manifest_sha256"] != manifest_hash
+                or release_row["state"] != "frozen"
+            ):
+                raise MaintenanceStoreError(
+                    "repair_candidate_release_identity_conflict"
+                )
+
+            stored_cases = tuple(
+                str(row["case_id"])
+                for row in connection.execute(
+                    "SELECT case_id FROM release_required_test "
+                    "WHERE release_id = ? ORDER BY sequence",
+                    (release,),
+                ).fetchall()
+            )
+            if stored_cases != cases:
+                raise MaintenanceStoreError(
+                    "repair_candidate_release_case_set_conflict"
+                )
+            for case_id in cases:
+                latest_test = connection.execute(
+                    "SELECT status, result_version, evidence_ref FROM test_ledger "
+                    "WHERE release_id = ? AND case_id = ? "
+                    "ORDER BY attempt DESC, rowid DESC LIMIT 1",
+                    (release, case_id),
+                ).fetchone()
+                if latest_test is None:
+                    connection.execute(
+                        "INSERT INTO test_ledger "
+                        "(test_result_id, release_id, case_id, attempt, result_version, "
+                        "status, evidence_ref, recorded_at) "
+                        "VALUES (?, ?, ?, 1, ?, 'PASS', ?, ?)",
+                        (str(uuid.uuid4()), release, case_id, version, evidence, when),
+                    )
+                elif (
+                    latest_test["status"] != "PASS"
+                    or latest_test["result_version"] != version
+                    or latest_test["evidence_ref"] != evidence
+                ):
+                    raise MaintenanceStoreError(
+                        "repair_candidate_release_test_conflict"
+                    )
+
+            latest_review = connection.execute(
+                "SELECT reviewer_id, reviewed_version, status FROM review_result "
+                "WHERE scope_type = 'release' AND scope_id = ? "
+                "ORDER BY rowid DESC LIMIT 1",
+                (release,),
+            ).fetchone()
+            if latest_review is None:
+                review_count = int(
+                    connection.execute(
+                        "SELECT COUNT(*) FROM review_result "
+                        "WHERE scope_type = 'release' AND scope_id = ?",
+                        (release,),
+                    ).fetchone()[0]
+                )
+                if review_count >= self.review_round_limit:
+                    raise MaintenanceStoreError("review_round_limit_exceeded")
+                connection.execute(
+                    "INSERT INTO review_result "
+                    "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, "
+                    "status, reviewed_at) VALUES (?, 'release', ?, ?, ?, 'approved', ?)",
+                    (str(uuid.uuid4()), release, reviewer, version, when),
+                )
+            elif (
+                latest_review["reviewer_id"] != reviewer
+                or latest_review["reviewed_version"] != version
+                or latest_review["status"] != "approved"
+            ):
+                raise MaintenanceStoreError("repair_candidate_release_review_conflict")
+
+            self._deployment_authorization(connection, release)
+
+        return ReleaseRecord(release, result, version, config, "frozen")
 
     def record_deployment(
         self,
@@ -3464,6 +4312,66 @@ class MaintenanceStore:
             return None if row is None else _deployment_from_row(row)
         finally:
             connection.close()
+
+    def list_deployments_for_release(
+        self, *, release_id: str
+    ) -> tuple[DeploymentRecord, ...]:
+        """Return deployment attempts for one frozen release, oldest first."""
+
+        release = _safe_id(release_id, "release_id_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT * FROM deployment WHERE release_id = ? ORDER BY attempt",
+                (release,),
+            ).fetchall()
+            return tuple(_deployment_from_row(row) for row in rows)
+        finally:
+            connection.close()
+
+    def bind_deployment_previous_active(
+        self,
+        *,
+        deployment_id: str,
+        lease: LeaseToken,
+        previous_active_commit: str,
+        recorded_at: datetime | str,
+    ) -> DeploymentRecord:
+        """Pin the pre-switch commit once so a restarted deployment can roll back."""
+
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        previous = _safe_id(
+            previous_active_commit, "deployment_previous_active_invalid"
+        )
+        if re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", previous) is None:
+            raise MaintenanceStoreError("deployment_previous_active_invalid")
+        when = _timestamp(recorded_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM deployment WHERE deployment_id = ?", (deployment,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("deployment_not_found")
+            if row["status"] != "pending":
+                raise MaintenanceStoreError("deployment_not_pending")
+            if previous != row["base_commit"]:
+                raise MaintenanceStoreError("deployment_previous_active_mismatch")
+            existing = row["previous_active_commit"]
+            if existing is not None and existing != previous:
+                raise MaintenanceStoreError("deployment_previous_active_conflict")
+            if existing is None:
+                connection.execute(
+                    "UPDATE deployment SET previous_active_commit = ? "
+                    "WHERE deployment_id = ? AND status = 'pending' "
+                    "AND previous_active_commit IS NULL",
+                    (previous, deployment),
+                )
+            updated = connection.execute(
+                "SELECT * FROM deployment WHERE deployment_id = ?", (deployment,)
+            ).fetchone()
+            assert updated is not None
+            return _deployment_from_row(updated)
 
     def begin_deployment_verification(
         self,
@@ -4409,6 +5317,63 @@ class MaintenanceStore:
                 (version, output, digest, when, attempt),
             )
 
+    def bind_running_repair_artifact(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        output_path: str,
+        output_sha256: str,
+        recorded_at: datetime | str,
+    ) -> None:
+        """Pin the immutable repair implementation artifact while its attempt runs."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        when = _timestamp(recorded_at)
+        output = _relative_output_path(output_path)
+        if not isinstance(output_sha256, str) or not _SHA256_PATTERN.fullmatch(
+            output_sha256
+        ):
+            raise MaintenanceStoreError("attempt_output_digest_invalid")
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
+                "s.step_key, s.sequence, s.output_path, s.output_sha256, "
+                "j.status AS job_status FROM step_attempt s "
+                "JOIN maintenance_job j ON j.job_id = s.job_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            if row["step_key"] != "maintenance_repair" or int(row["sequence"]) != 3:
+                raise MaintenanceStoreError("repair_attempt_identity_invalid")
+            expected_path = f"{row['job_id']}/{attempt}/implementation-result.json"
+            if output != expected_path:
+                raise MaintenanceStoreError("repair_artifact_path_invalid")
+            if (
+                row["lease_key"] != lease.lease_key
+                or int(row["lease_generation"]) != lease.generation
+            ):
+                raise MaintenanceStoreError("step_attempt_lease_mismatch")
+            if row["output_path"] is not None or row["output_sha256"] is not None:
+                if (
+                    row["output_path"] == output
+                    and row["output_sha256"] == output_sha256
+                ):
+                    return
+                raise MaintenanceStoreError("repair_artifact_binding_conflict")
+            connection.execute(
+                "UPDATE step_attempt SET output_path = ?, output_sha256 = ? "
+                "WHERE attempt_id = ? AND status = 'running'",
+                (output, output_sha256, attempt),
+            )
+
     def validate_step_attempt_lease(
         self,
         *,
@@ -4570,61 +5535,133 @@ class MaintenanceStore:
             if review_count >= self.review_round_limit:
                 raise MaintenanceStoreError("review_round_limit_exceeded")
             if row["step_key"] == "maintenance_repair":
-                if (
-                    repair_review_receipt_id is None
-                    or repair_review_expected is None
-                    or review_status != "approved"
-                ):
+                if repair_review_expected is None:
                     raise MaintenanceStoreError("repair_review_receipt_required")
-                receipt_id = _safe_id(
-                    repair_review_receipt_id, "repair_review_receipt_id_invalid"
-                )
-                receipt_row = connection.execute(
-                    "SELECT * FROM repair_review_receipt WHERE receipt_id = ?",
-                    (receipt_id,),
-                ).fetchone()
-                if receipt_row is None:
-                    raise MaintenanceStoreError("repair_review_receipt_unavailable")
-                receipt = self._repair_review_receipt_document(receipt_row)
-                current_author_role = self._resolve_repair_identity_role(
-                    connection, str(receipt["author_id"])
-                )
-                current_reviewer_role = self._resolve_repair_identity_role(
-                    connection, str(receipt["reviewer_id"])
-                )
-                comparisons = {
-                    "receipt_id": receipt_id,
-                    "attempt_id": attempt,
-                    "job_id": str(row["job_id"]),
-                    "result_version": version,
-                    "author_id": str(row["author_id"]),
-                    "reviewer_id": reviewer,
-                    "author_role": "implementer",
-                    "reviewer_role": "read_only_reviewer",
-                    "reviewed_output_sha256": repair_review_expected.get(
-                        "reviewed_output_sha256"
-                    ),
-                    "code_sha256": repair_review_expected.get("code_sha256"),
-                    "patch_sha256": repair_review_expected.get("patch_sha256"),
-                    "test_ledger_sha256": repair_review_expected.get(
-                        "test_ledger_sha256"
-                    ),
-                    "host_receipt_id": repair_review_expected.get("host_receipt_id"),
-                    "receipt_sha256": repair_review_expected.get("receipt_sha256"),
-                    "consumed": False,
-                }
-                if (
-                    any(receipt.get(key) != value for key, value in comparisons.items())
-                    or receipt["author_id"] == receipt["reviewer_id"]
-                    or current_author_role != "implementer"
-                    or current_reviewer_role != "read_only_reviewer"
-                ):
-                    raise MaintenanceStoreError("repair_review_receipt_mismatch")
-                connection.execute(
-                    "UPDATE repair_review_receipt SET consumed_at = ? "
-                    "WHERE receipt_id = ? AND consumed_at IS NULL",
-                    (reviewed_time, receipt_id),
-                )
+                if review_status == "approved":
+                    if repair_review_receipt_id is None:
+                        raise MaintenanceStoreError("repair_review_receipt_required")
+                    receipt_id = _safe_id(
+                        repair_review_receipt_id, "repair_review_receipt_id_invalid"
+                    )
+                    receipt_row = connection.execute(
+                        "SELECT * FROM repair_review_receipt WHERE receipt_id = ?",
+                        (receipt_id,),
+                    ).fetchone()
+                    if receipt_row is None:
+                        raise MaintenanceStoreError("repair_review_receipt_unavailable")
+                    receipt = self._repair_review_receipt_document(receipt_row)
+                    current_author_role = self._resolve_repair_identity_role(
+                        connection, str(receipt["author_id"])
+                    )
+                    current_reviewer_role = self._resolve_repair_identity_role(
+                        connection, str(receipt["reviewer_id"])
+                    )
+                    comparisons = {
+                        "receipt_id": receipt_id,
+                        "attempt_id": attempt,
+                        "job_id": str(row["job_id"]),
+                        "result_version": version,
+                        "author_id": str(row["author_id"]),
+                        "reviewer_id": reviewer,
+                        "author_role": "implementer",
+                        "reviewer_role": "read_only_reviewer",
+                        "reviewed_output_sha256": repair_review_expected.get(
+                            "reviewed_output_sha256"
+                        ),
+                        "code_sha256": repair_review_expected.get("code_sha256"),
+                        "patch_sha256": repair_review_expected.get("patch_sha256"),
+                        "test_ledger_sha256": repair_review_expected.get(
+                            "test_ledger_sha256"
+                        ),
+                        "host_receipt_id": repair_review_expected.get(
+                            "host_receipt_id"
+                        ),
+                        "receipt_sha256": repair_review_expected.get("receipt_sha256"),
+                        "consumed": False,
+                    }
+                    if (
+                        any(
+                            receipt.get(key) != value
+                            for key, value in comparisons.items()
+                        )
+                        or receipt["author_id"] == receipt["reviewer_id"]
+                        or current_author_role != "implementer"
+                        or current_reviewer_role != "read_only_reviewer"
+                    ):
+                        raise MaintenanceStoreError("repair_review_receipt_mismatch")
+                    connection.execute(
+                        "UPDATE repair_review_receipt SET consumed_at = ? "
+                        "WHERE receipt_id = ? AND consumed_at IS NULL",
+                        (reviewed_time, receipt_id),
+                    )
+                elif review_status == "changes_requested":
+                    if repair_review_receipt_id is not None:
+                        raise MaintenanceStoreError("repair_review_receipt_unexpected")
+                    host_receipt_id = _safe_id(
+                        repair_review_expected.get("host_receipt_id"),
+                        "repair_review_host_receipt_invalid",
+                    )
+                    execution_row = connection.execute(
+                        "SELECT * FROM repair_host_review_execution "
+                        "WHERE host_receipt_id = ?",
+                        (host_receipt_id,),
+                    ).fetchone()
+                    if execution_row is None:
+                        raise MaintenanceStoreError(
+                            "repair_host_review_execution_unavailable"
+                        )
+                    execution = self._repair_host_review_execution_document(
+                        execution_row
+                    )
+                    current_author_role = self._resolve_repair_identity_role(
+                        connection, str(execution["author_id"])
+                    )
+                    current_reviewer_role = self._resolve_repair_identity_role(
+                        connection, str(execution["reviewer_id"])
+                    )
+                    expected_findings = repair_review_expected.get(
+                        "unresolved_critical_findings"
+                    )
+                    comparisons = {
+                        "host_receipt_id": host_receipt_id,
+                        "attempt_id": attempt,
+                        "job_id": str(row["job_id"]),
+                        "result_version": version,
+                        "author_id": str(row["author_id"]),
+                        "reviewer_id": reviewer,
+                        "reviewer_session_key": repair_review_expected.get(
+                            "reviewer_session_key"
+                        ),
+                        "reviewer_turn_id": repair_review_expected.get(
+                            "reviewer_turn_id"
+                        ),
+                        "reviewer_output_sha256": repair_review_expected.get(
+                            "reviewer_output_sha256"
+                        ),
+                        "reviewed_output_sha256": repair_review_expected.get(
+                            "reviewed_output_sha256"
+                        ),
+                        "code_sha256": repair_review_expected.get("code_sha256"),
+                        "patch_sha256": repair_review_expected.get("patch_sha256"),
+                        "test_ledger_sha256": repair_review_expected.get(
+                            "test_ledger_sha256"
+                        ),
+                        "approved": False,
+                        "unresolved_critical_findings": expected_findings,
+                    }
+                    if (
+                        not isinstance(expected_findings, list)
+                        or not expected_findings
+                        or any(
+                            execution.get(key) != value
+                            for key, value in comparisons.items()
+                        )
+                        or current_author_role != "implementer"
+                        or current_reviewer_role != "read_only_reviewer"
+                    ):
+                        raise MaintenanceStoreError("repair_review_execution_mismatch")
+                else:
+                    raise MaintenanceStoreError("repair_review_receipt_required")
             elif (
                 repair_review_receipt_id is not None
                 or repair_review_expected is not None
@@ -5087,8 +6124,9 @@ class MaintenanceStore:
         lease: LeaseToken,
         finalized_at: datetime | str,
         reason_code: str | None = None,
+        incident_status: str | None = None,
     ) -> JobFinalizeResult:
-        """Finish an active job after checking lease and, for success, approvals."""
+        """Finish a job after checking its lease and approved stage results."""
 
         job = _safe_id(job_id, "job_id_invalid")
         if final_status not in _JOB_TERMINAL_STATUSES:
@@ -5099,6 +6137,11 @@ class MaintenanceStore:
             raise MaintenanceStoreError("job_terminal_reason_required")
         if reason_code == "job_resume_limit_exceeded" and final_status != "blocked":
             raise MaintenanceStoreError("job_final_status_invalid")
+        if incident_status is not None and (
+            final_status != "complete"
+            or incident_status not in {"in_progress", "resolved", "blocked"}
+        ):
+            raise MaintenanceStoreError("job_incident_status_invalid")
         when = _timestamp(finalized_at)
         with self._transaction() as connection:
             self._assert_lease(connection, lease, when)
@@ -5113,8 +6156,36 @@ class MaintenanceStore:
                     and row["terminal_reason_code"] == reason_code
                     and row["lease_key"] == lease.lease_key
                     and row["lease_generation"] is not None
-                    and int(row["lease_generation"]) == lease.generation
+                    and int(row["lease_generation"]) <= lease.generation
                 ):
+                    if incident_status is not None:
+                        incident = connection.execute(
+                            "SELECT status FROM incident WHERE incident_id = ?",
+                            (row["incident_id"],),
+                        ).fetchone()
+                        if incident is None:
+                            raise MaintenanceStoreError("incident_not_found")
+                        current_incident_status = str(incident["status"])
+                        if current_incident_status != incident_status:
+                            if current_incident_status not in {
+                                "open",
+                                "in_progress",
+                                "blocked",
+                            }:
+                                raise MaintenanceStoreError(
+                                    "job_incident_terminal_conflict"
+                                )
+                            connection.execute(
+                                "UPDATE incident SET status = ?, updated_at = ? "
+                                "WHERE incident_id = ?",
+                                (incident_status, when, row["incident_id"]),
+                            )
+                    if int(row["lease_generation"]) < lease.generation:
+                        connection.execute(
+                            "UPDATE maintenance_job SET lease_generation = ?, "
+                            "updated_at = ? WHERE job_id = ?",
+                            (lease.generation, when, job),
+                        )
                     return JobFinalizeResult(
                         job,
                         str(row["status"]),
@@ -5185,6 +6256,25 @@ class MaintenanceStore:
                         or review["status"] != "approved"
                     ):
                         raise MaintenanceStoreError("job_steps_not_approved")
+
+            if incident_status is not None:
+                incident = connection.execute(
+                    "SELECT status FROM incident WHERE incident_id = ?",
+                    (row["incident_id"],),
+                ).fetchone()
+                if incident is None:
+                    raise MaintenanceStoreError("incident_not_found")
+                current_incident_status = str(incident["status"])
+                if current_incident_status == incident_status:
+                    pass
+                elif current_incident_status in {"open", "in_progress", "blocked"}:
+                    connection.execute(
+                        "UPDATE incident SET status = ?, updated_at = ? "
+                        "WHERE incident_id = ?",
+                        (incident_status, when, row["incident_id"]),
+                    )
+                else:
+                    raise MaintenanceStoreError("job_incident_terminal_conflict")
 
             if final_status in {"failed", "blocked", "cancelled"}:
                 connection.execute(

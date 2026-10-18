@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.38 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.42 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -14,7 +14,7 @@
 
 ## U05管理DB・状態実装の対応
 
-管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U18時点でmigration後のschema v8）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,release-gate,start-job,finish-job}`。production DB migration/Scheduler登録はU21 gateまで未実施。
+管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U18時点でschema v8、U21追加migration後のコードschema v9）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,resume-worker,release-gate,start-job,finish-job}`。production DB migration/Scheduler登録はU21 gateまで未実施。
 
 U05でC06/C07/C28/C53の専用受入ケースを隔離DBに対して確認した。step順序は最新の独立承認を要求し、`changes_requested`後は新attemptで再開する。handoffは現在job leaseと一致する場合だけ受理し、受理後のreview更新を拒否する。reviewはrelease単位、および同一job内のstep単位（全attempt通算）で最大3巡。上限後は追加reviewと次attempt開始を拒否して保留する。`finish-job complete`はrelease gateと全step承認を再確認し、active job枠を解放する。failed/blocked/cancelledではrunning attemptも閉じる。再開上限到達時は`blocked`終端化できる。CLIのinit/status/blocked gate/DB alias拒否/finish-job完了を確認した。productionのmanagement DBは初期化・変更しておらず、本番日次の再実行、AI/ブラウザー実接続、production deploymentは未実施。各機能の実装範囲と後続条件は実行計画M §9/§14に記録する。
 
@@ -34,7 +34,7 @@ U08は日次taskと`run.ps1 daily`から専用launcherを呼び、maintenance DB
 
 U08 migration `003_daily_launch.sql`でmaintenance schemaをv3へ進め、`daily_launch`に`source_launch_id`、JST `target_date`、owner/child PID、`running/complete/failed/blocked/unknown` status、nullable `source_run_id`、exit code、完了時刻、安全な結果summaryを保存する。起動前停止はrun IDを創作せず、失敗phase/class、failed check、trace欠測を記録する。正常・不足・未実施の要約は対象日一致、正常/不足はrun IDを必須とし、overall/daily statusはnullにしない。daily_checkとterminal launch resultは同一transactionで確定し、terminal recordは変更/削除できない。結果summaryとstderrにはallowlist済みの識別値・状態・code/classのみを記録し、raw stderr、自由文、秘密、path、下書き数は記録しない。
 
-起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、必要なschema v8が事前に導入済みの場合にだけ日次CLIへ進む。U08/U09/U18のtask XML変更は予定差分であり、production DB migration/Scheduler登録と実日次起動はU21の導入ゲート後に行う。
+起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、必要なschema v9が事前に導入済みの場合にだけ日次CLIへ進む。U08/U09/U18のtask XML変更は予定差分であり、production DB migration/Scheduler登録と実日次起動はU21の導入ゲート後に行う。
 
 U09 migration `004_watchdog_confirmation_queue.sql`でmaintenance schemaをv4へ進める。daily launch owner/childのPID開始時刻を追加し、未起動/途中終了の`watchdog_queue`をtask/対象日単位のoccurrenceおよびsource launch単位で一意化する。occurrence keyは予定時刻ではなくtask keyと対象日から作り、schedule時刻変更後も同じqueueへ結び直せるようにする。Scheduler historyが無効でも予定時刻から欠落を検知し、5分猶予後にrunがない場合は`unknown`として確認queueへ置く。遅れて起動したrunは同じqueueへ結び直し、その後通知前に停止した場合も同じqueueの理由を更新する。所有PIDが生存中、観測不明、またはchild PID未記録の行はqueueせず、別processをkillしない。`watchdog_cursor`は照合済みの最新日を単調に保持し、各回は新しい予定日、当日、未解決queue日、running launch日だけを照合する。既存の未解決queue日は現在のScheduler開始境界より古くても照合する。running launch用partial indexと日付単位の一括読取で過去全履歴の再走査と日付ごとのDB lookupを避ける。watchdog/worker task XMLと明示的なrender/registration scriptを追加する。実登録前にCLI worker commandと`worker --help`の`--once` option、および全task名を確認し、登録失敗時は今回追加したtaskだけをrollbackする。U09ではworker command未実装のため登録経路はfail-closedで、Scheduler登録・production migrationはU21まで行わない。
 
@@ -64,7 +64,7 @@ SQLite sourceは単純copyせず、read-only接続からSQLite backup APIで別�
 | `evidence` | U10 manifest schema・日付・起動ID・run IDの検証結果と不足class。正常候補判定に必要なL01/L02/M03/S01/V01/B01/B02がすべて `collected` でなければ正常にしない。 |
 | `routing` | 常に `next_action=check_only`、`auto_dispatch=false`、空の `steps_started`、`incident_write_allowed=false`。調査・修正・報告の[2]～[6]を起動しない。 |
 
-OS exit code 0だけで成功と判定しない。完了通知・日次status・exit code・phase・件数が矛盾すれば `contract_violation`。既知外部stop code `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error` は失敗時に `external_wait` として切り分ける。証拠や完了通知が不足して判定できない場合は `unknown` とする。候補枯渇による不足は日次理由 `candidate_or_theme_exhausted` とstatusが一致するときだけ正常不足にする。
+OS exit code 0だけで成功と判定しない。完了通知・日次status・exit code・phase・件数が矛盾すれば `contract_violation`。ただし、nested phase statusが`unknown`または欠測というだけなら既知statusとの矛盾とは扱わず、観測不足として `unknown` 判定に残す。known phase statusがトップレベルと食い違う場合は引き続き契約違反とし、正常候補には必要なphase/evidenceの完備を求める。既知外部stop code `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error` は失敗時に `external_wait` として切り分ける。証拠や完了通知が不足して判定できない場合は `unknown` とする。候補枯渇による不足は日次理由 `candidate_or_theme_exhausted` とstatusが一致するときだけ正常不足にする。
 
 C20/C21/C22とC55のdetector部分はU11専用fixtureで確認する。C23の同日重複・再発抑止はU09の完了証拠を再利用し、U11では再実行しない。C19のcheck-stage構造と隔離Store記録はU12の合成fixtureで検証し、実Sol/xhigh app-server接続はU18のLC01/LC02で確認する。C55のreport表示受入はU16で検証する。ライブincident・production DB・認証・投稿は変更しない。
 
@@ -186,6 +186,16 @@ repair profileのpytest結果は担当AIの申告だけで合格にしない。h
 C54のhistorical intakeは、許可root下からevidence fileをno-followで読み、実byte列のSHA-256をobservationと照合してからDB recordを作る。launch/dailyの両状態が`blocked`/`unknown`なら`abnormal` checkや修正jobを作らず、明示失敗が一つもない観測は拒否する。intake record用directoryはroot相対のno-reparse操作で作成する。
 
 C56の再発理由照合はdeployment releaseに結び付くmaintenance jobが一件だけある場合に行う。jobがない、または複数なら再発incidentを推測せずblockedとする。`not_observed`は次日13:00 Asia/Tokyoより前に確定せず、対象日のdaily launchが存在する場合も確定しない。
+
+## U21 worker queueの保留・明示再開
+
+U21 migration `009_worker_queue_events.sql`はschema v9にappend-onlyの`worker_queue_event`と`daily_result_observation`を追加する。workflow未接続・stage失敗・外部待ちなど完了を確認できないqueueは`blocked`として永続化し、watchdogが自動再試行を繰り返さない。再開は保守CLI `resume-worker --source-launch-id ... --expected-reason-code ...`から行い、保存済みのsafe reason codeとの一致、worker lease、queue状態を確認した場合だけ再びqueuedにする。blocked/resumed履歴とdaily observationは変更・削除できない。daily observationは許可されたstatus/count/phase/trace件数だけをidentity/hash付きで保存し、raw stdout/stderrや本文を保存しない。完了結果内に再試行契約違反・未解決・欠測が明示されている場合、日次全体がcompleteでもdaily checkを`incomplete`にしてworkerへ渡す。異常か正常かを確定できないqueueは完了扱いにせず保留する。provider未接続は処理完了ではなく保留として扱う。
+
+## U21 approved reportの公開・job/incident終端・再開
+
+report公開は、同一job manifestのidentity、sequence 4のapproved result/review version、reviewed HTML SHA-256、approved inputs、deployment済みcode commitを相互照合した後だけ行う。公開結果は`attempts/<job_id>/<attempt_id>/report-publication.json`にimmutable artifactとして保存し、report path/hash、expected target commit、source code commit、publication commit/base、remote/branch、観測時刻を記録する。credentialやHTML本文はこの公開結果へ含めない。公開は共有排他の下でmanaged detached worktreeを使い、報告書HTML一ファイルだけをfast-forward pushする。primary checkoutや他のファイルを変更しない。
+
+push後・publication artifact保存前に停止した場合、再開はremote historyの対象path、commit scope、base/code ancestry、review hashを再照合し、既存publication commitを再利用する。artifactとremoteのいずれかが不一致、未承認、または対象が不明な場合はblockedにし、別commitへ進めない。report publication artifact保存後にjobを`complete`とし、incident statusをreport statusに応じて`resolved`、`in_progress`、`blocked`へ同じDB transactionで更新する。job complete後・worker queue complete前に停止した場合はreport evidence/publicationを再照合し、以前のstage・AI turn・deploymentを再実行せず、workerへ完了結果を返してqueueを収束させる。production migration、Scheduler登録、worker有効化はU21全gate後だけ行う。
 
 ## U02の確認範囲
 

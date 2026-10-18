@@ -471,6 +471,20 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
             )
             return
 
+        exclusion_guard = getattr(self._api_server, "deployment_exclusion_guard", None)
+        guard_acquired = False
+        if exclusion_guard is not None:
+            try:
+                guard_acquired = exclusion_guard.acquire()
+            except Exception:
+                guard_acquired = False
+            if not guard_acquired:
+                self._send_json(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    {"saved": False, "error": "runtime_busy", "retry": True},
+                )
+                return
+
         connection: sqlite3.Connection | None = None
         try:
             connection = self._api_server.connection_factory()
@@ -513,8 +527,15 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
                 {"saved": False, "error": "internal_error"},
             )
         finally:
-            if connection is not None:
-                connection.close()
+            try:
+                if connection is not None:
+                    connection.close()
+            finally:
+                if guard_acquired:
+                    try:
+                        exclusion_guard.release()
+                    except Exception:
+                        pass
 
 
 def create_server(
@@ -551,4 +572,14 @@ def create_server(
     server.clock = clock or SystemClock()
     server.connection_factory = connection_factory
     server.data_root = Path(data_root) if data_root is not None else None
+    if server.data_root is None:
+        server.deployment_exclusion_guard = None
+    else:
+        from automation.inago.maintenance.deployment import (
+            FileDeploymentExclusionGuard,
+        )
+
+        server.deployment_exclusion_guard = FileDeploymentExclusionGuard(
+            server.data_root / ".maintenance-deployment.lock"
+        )
     return server

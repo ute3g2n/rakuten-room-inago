@@ -907,6 +907,112 @@ def _is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
     return True
 
 
+def _remote_report_head(repo: Path, remote_name: str, target_branch: str) -> str | None:
+    """Fetch and return one stable observation of the remote target branch."""
+
+    rows = _git(
+        repo, "ls-remote", "--heads", remote_name, f"refs/heads/{target_branch}"
+    ).split()
+    if not rows:
+        return None
+    if len(rows) != 2 or rows[1] != f"refs/heads/{target_branch}":
+        raise ReportContractError("report_remote_observation_invalid")
+    observed = _resolve_commit(repo, rows[0])
+    tracking_ref = f"refs/remotes/{remote_name}/{target_branch}"
+    _git(
+        repo,
+        "fetch",
+        "--no-tags",
+        remote_name,
+        f"+refs/heads/{target_branch}:{tracking_ref}",
+    )
+    fetched = _resolve_commit(repo, _git(repo, "rev-parse", "--verify", tracking_ref))
+    if fetched != observed:
+        raise ReportContractError("report_remote_changed_during_publish")
+    return observed
+
+
+def _report_publication_commit(
+    repo: Path,
+    *,
+    commit: str,
+    report_path: str,
+    expected_target_commit: str,
+    source_code_commit: str,
+    reviewed_sha256: str,
+) -> tuple[str, str]:
+    """Validate that a candidate commit contains only the reviewed report."""
+
+    resolved = _resolve_commit(repo, commit)
+    parents = _git(repo, "rev-list", "--parents", "-n", "1", resolved).split()
+    if len(parents) != 2:
+        raise ReportContractError("report_commit_scope_invalid")
+    parent = _resolve_commit(repo, parents[1])
+    expected = _resolve_commit(repo, expected_target_commit)
+    code_commit = _resolve_commit(repo, source_code_commit)
+    if not _is_ancestor(repo, expected, parent) or not _is_ancestor(
+        repo, code_commit, parent
+    ):
+        raise ReportContractError("report_base_or_code_version_not_current")
+    if _git_paths(
+        repo, "diff", "--name-only", "-z", expected, parent, "--", report_path
+    ):
+        raise ReportContractError("report_path_conflict")
+    changed = _git_paths(
+        repo,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-only",
+        "-z",
+        "-r",
+        resolved,
+    )
+    if changed != [report_path]:
+        raise ReportContractError("report_commit_scope_invalid")
+    if _git_content_sha256(repo, f"{resolved}:{report_path}") != reviewed_sha256:
+        raise ReportContractError("report_review_output_mismatch")
+    return resolved, parent
+
+
+def _find_report_publication(
+    repo: Path,
+    *,
+    head: str,
+    report_path: str,
+    commit_message: str,
+    expected_target_commit: str,
+    source_code_commit: str,
+    reviewed_sha256: str,
+) -> tuple[str, str] | None:
+    matches = _git(
+        repo,
+        "log",
+        "--format=%H",
+        "--fixed-strings",
+        f"--grep={commit_message}",
+        head,
+        "--",
+        report_path,
+    ).splitlines()
+    exact = [
+        value
+        for value in matches
+        if _git(repo, "show", "-s", "--format=%s", value) == commit_message
+    ]
+    if len(exact) > 1:
+        raise ReportContractError("report_publication_commit_ambiguous")
+    if not exact:
+        return None
+    return _report_publication_commit(
+        repo,
+        commit=exact[0],
+        report_path=report_path,
+        expected_target_commit=expected_target_commit,
+        source_code_commit=source_code_commit,
+        reviewed_sha256=reviewed_sha256,
+    )
+
+
 def publish_reviewed_report(
     repository: str | Path,
     *,
@@ -920,11 +1026,11 @@ def publish_reviewed_report(
     target_branch: str,
     commit_message: str,
 ) -> ReportPublication:
-    """Commit and push only a reviewed report on the current fast-forward base.
+    """Commit and push a reviewed report, reusing an already published commit.
 
-    The controller must supply a worktree already updated to the current target
-    head. If that head moved, the code release must still be its ancestor and
-    the report path must not have changed since the captured base.
+    Production callers use a dedicated detached managed worktree. A retry can
+    therefore inspect the remote history for the unique report commit and
+    recover after either commit or push completed before its result was saved.
     """
 
     try:
@@ -952,6 +1058,7 @@ def publish_reviewed_report(
         not isinstance(commit_message, str)
         or not commit_message.strip()
         or len(commit_message) > 200
+        or any(ord(char) < 32 for char in commit_message)
     ):
         raise ReportContractError("report_commit_message_invalid")
     try:
@@ -978,7 +1085,7 @@ def publish_reviewed_report(
     current_branch = _git(repo, "branch", "--show-current")
     if (
         not _BRANCH_PATTERN.fullmatch(target_branch)
-        or current_branch != target_branch
+        or current_branch not in {"", target_branch}
         or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", target_branch)
     ):
         raise ReportContractError("report_target_branch_mismatch")
@@ -998,12 +1105,6 @@ def publish_reviewed_report(
     head = _resolve_commit(repo, _git(repo, "rev-parse", "HEAD"))
     expected = _resolve_commit(repo, expected_target_commit)
     code_commit = _resolve_commit(repo, source_code_commit)
-    if not _is_ancestor(repo, expected, head) or not _is_ancestor(
-        repo, code_commit, head
-    ):
-        raise ReportContractError("report_base_or_code_version_not_current")
-    if _git_paths(repo, "diff", "--name-only", "-z", expected, head, "--", report_path):
-        raise ReportContractError("report_path_conflict")
     path = repo.joinpath(*relative.parts)
     try:
         _assert_no_reparse_components(path)
@@ -1020,16 +1121,81 @@ def publish_reviewed_report(
         raise ReportContractError("report_review_output_mismatch")
     if _git_paths(repo, "diff", "--cached", "--name-only", "-z"):
         raise ReportContractError("report_preexisting_staged_changes")
-    remote_head_rows = _git(
-        repo, "ls-remote", "--heads", remote_name, f"refs/heads/{target_branch}"
-    )
-    remote_head = remote_head_rows.split()[0] if remote_head_rows else None
+
+    remote_head = _remote_report_head(repo, remote_name, target_branch)
     if remote_head is not None:
-        remote_commit = _resolve_commit(repo, remote_head)
-        if not _is_ancestor(repo, remote_commit, head):
-            raise ReportContractError("report_remote_ahead")
-    elif not _is_ancestor(repo, head, head):
-        raise ReportContractError("report_remote_unavailable")
+        published = _find_report_publication(
+            repo,
+            head=remote_head,
+            report_path=report_path,
+            commit_message=commit_message,
+            expected_target_commit=expected,
+            source_code_commit=code_commit,
+            reviewed_sha256=reviewed["reviewed_sha256"],
+        )
+        if published is not None:
+            commit, base = published
+            if (
+                not _is_ancestor(repo, commit, remote_head)
+                or _git_content_sha256(repo, f"{remote_head}:{report_path}")
+                != reviewed["reviewed_sha256"]
+            ):
+                raise ReportContractError("report_remote_content_conflict")
+            return ReportPublication(
+                commit=commit,
+                base_commit=base,
+                code_commit=code_commit,
+                remote_name=remote_name,
+                target_branch=target_branch,
+            )
+
+    local_publication = _find_report_publication(
+        repo,
+        head=head,
+        report_path=report_path,
+        commit_message=commit_message,
+        expected_target_commit=expected,
+        source_code_commit=code_commit,
+        reviewed_sha256=reviewed["reviewed_sha256"],
+    )
+    if local_publication is not None:
+        commit, base = local_publication
+        if remote_head is not None and not _is_ancestor(repo, remote_head, commit):
+            raise ReportContractError("report_remote_diverged")
+        _git(repo, "push", remote_name, f"{commit}:refs/heads/{target_branch}")
+        verified_head = _remote_report_head(repo, remote_name, target_branch)
+        if (
+            verified_head is None
+            or not _is_ancestor(repo, commit, verified_head)
+            or _git_content_sha256(repo, f"{verified_head}:{report_path}")
+            != reviewed["reviewed_sha256"]
+        ):
+            raise ReportContractError("report_push_unverified")
+        return ReportPublication(
+            commit=commit,
+            base_commit=base,
+            code_commit=code_commit,
+            remote_name=remote_name,
+            target_branch=target_branch,
+        )
+
+    if remote_head is not None and remote_head != head:
+        raise ReportContractError(
+            "report_remote_ahead"
+            if _is_ancestor(repo, head, remote_head)
+            else "report_remote_diverged"
+        )
+    if not _is_ancestor(repo, expected, head) or not _is_ancestor(
+        repo, code_commit, head
+    ):
+        raise ReportContractError("report_base_or_code_version_not_current")
+    if _git_paths(repo, "diff", "--name-only", "-z", expected, head, "--", report_path):
+        raise ReportContractError("report_path_conflict")
+    existing_report = _git_paths(
+        repo, "ls-tree", "-r", "--name-only", "-z", head, "--", report_path
+    )
+    if existing_report:
+        raise ReportContractError("report_path_conflict")
     spec = f":(literal){report_path}"
     committed = False
     try:
@@ -1062,13 +1228,16 @@ def publish_reviewed_report(
             != reviewed["reviewed_sha256"]
         ):
             raise ReportContractError("report_review_output_mismatch")
-        if remote_head is not None and not _is_ancestor(repo, remote_commit, commit):
+        if remote_head is not None and not _is_ancestor(repo, remote_head, commit):
             raise ReportContractError("report_push_not_fast_forward")
         _git(repo, "push", remote_name, f"{commit}:refs/heads/{target_branch}")
-        verified = _git(
-            repo, "ls-remote", "--heads", remote_name, f"refs/heads/{target_branch}"
-        ).split()
-        if not verified or verified[0] != commit:
+        verified_head = _remote_report_head(repo, remote_name, target_branch)
+        if (
+            verified_head is None
+            or not _is_ancestor(repo, commit, verified_head)
+            or _git_content_sha256(repo, f"{verified_head}:{report_path}")
+            != reviewed["reviewed_sha256"]
+        ):
             raise ReportContractError("report_push_unverified")
     except ReportContractError:
         if not committed:

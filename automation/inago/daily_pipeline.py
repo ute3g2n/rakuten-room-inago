@@ -179,6 +179,177 @@ def _result_mapping(
         return _default_failure_result(error, connection, target_date, phase)
 
 
+def _cursor_mappings(cursor: sqlite3.Cursor) -> list[dict[str, Any]]:
+    columns = [column[0] for column in cursor.description or ()]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def _retry_summary_for_run(
+    connection: sqlite3.Connection, run_id: str | None
+) -> dict[str, int | None]:
+    """Count safe retry outcomes from persisted ROOM and Trends attempts."""
+
+    if not isinstance(run_id, str) or not run_id:
+        return {
+            "attempt_count": 0,
+            "recovered_count": 0,
+            "unresolved_count": 0,
+            "contract_violation_count": 0,
+        }
+
+    try:
+        room_rows = _cursor_mappings(
+            connection.execute(
+                "SELECT attempt_id, run_id, query, parent_refs_json, level, "
+                "source_status, ended_at, retry_of FROM search_attempt WHERE run_id=?",
+                (run_id,),
+            )
+        )
+        acquisitions = _cursor_mappings(
+            connection.execute(
+                "SELECT acquisition_id, status, attempts_used FROM trends_acquisition "
+                "WHERE run_id=?",
+                (run_id,),
+            )
+        )
+        trend_attempts = _cursor_mappings(
+            connection.execute(
+                "SELECT attempt.request_id, attempt.acquisition_id, attempt.attempt_no, "
+                "attempt.retry_of, attempt.ended_at, attempt.status "
+                "FROM trends_acquisition_attempt AS attempt "
+                "JOIN trends_acquisition AS acquisition "
+                "ON acquisition.acquisition_id=attempt.acquisition_id "
+                "WHERE acquisition.run_id=? ORDER BY attempt.acquisition_id, attempt.attempt_no",
+                (run_id,),
+            )
+        )
+    except sqlite3.Error:
+        return {
+            "attempt_count": None,
+            "recovered_count": None,
+            "unresolved_count": None,
+            "contract_violation_count": None,
+        }
+
+    room_by_id = {row["attempt_id"]: row for row in room_rows}
+    room_retries = [row for row in room_rows if row["retry_of"] is not None]
+    room_children: dict[str, list[str]] = {}
+    room_roots: dict[str, list[dict[str, Any]]] = {}
+    room_violations: set[str] = set()
+    for row in room_retries:
+        attempt_id = str(row["attempt_id"])
+        parent = room_by_id.get(row["retry_of"])
+        if (
+            parent is None
+            or parent["run_id"] != row["run_id"]
+            or parent["query"] != row["query"]
+            or parent["parent_refs_json"] != row["parent_refs_json"]
+            or parent["level"] != row["level"]
+            or parent["ended_at"] is None
+            or parent["source_status"] not in {"partial", "unavailable", "invalid"}
+        ):
+            room_violations.add(attempt_id)
+        else:
+            room_children.setdefault(str(parent["attempt_id"]), []).append(attempt_id)
+
+        node = row
+        seen = {attempt_id}
+        while node["retry_of"] is not None:
+            parent_node = room_by_id.get(node["retry_of"])
+            if parent_node is None:
+                break
+            parent_id = str(parent_node["attempt_id"])
+            if parent_id in seen:
+                room_violations.add(attempt_id)
+                break
+            seen.add(parent_id)
+            node = parent_node
+        root_id = str(node["attempt_id"])
+        room_roots.setdefault(root_id, []).append(row)
+
+    for child_ids in room_children.values():
+        if len(child_ids) > 1:
+            room_violations.update(child_ids)
+
+    room_recovered = 0
+    room_unresolved = 0
+    for retries in room_roots.values():
+        if len(retries) > 2:
+            room_violations.update(str(row["attempt_id"]) for row in retries)
+        if any(
+            row["source_status"] == "observed" and row["ended_at"] is not None
+            for row in retries
+        ):
+            room_recovered += 1
+        else:
+            room_unresolved += 1
+
+    trend_by_acquisition: dict[str, list[dict[str, Any]]] = {}
+    for row in trend_attempts:
+        trend_by_acquisition.setdefault(str(row["acquisition_id"]), []).append(row)
+    trend_recovered = 0
+    trend_unresolved = 0
+    trend_attempt_count = 0
+    trend_violations = 0
+    success_statuses = {"observed", "normal_zero"}
+    for acquisition in acquisitions:
+        acquisition_id = str(acquisition["acquisition_id"])
+        attempts = trend_by_acquisition.pop(acquisition_id, [])
+        attempts_used = acquisition["attempts_used"]
+        if not isinstance(attempts_used, int) or isinstance(attempts_used, bool):
+            trend_violations += 1
+            continue
+        if attempts_used != len(attempts):
+            trend_violations += 1
+        retries = [row for row in attempts if row["attempt_no"] > 1]
+        trend_attempt_count += len(retries)
+        previous_id: str | None = None
+        for index, row in enumerate(attempts, start=1):
+            if (
+                row["attempt_no"] != index
+                or row["retry_of"] != previous_id
+                or (row["status"] == "started") != (row["ended_at"] is None)
+            ):
+                trend_violations += 1
+            previous_id = str(row["request_id"])
+        if retries:
+            if acquisition["status"] in success_statuses:
+                trend_recovered += 1
+                if not attempts or attempts[-1]["status"] != "response_ready":
+                    trend_violations += 1
+            else:
+                trend_unresolved += 1
+
+    trend_violations += len(trend_by_acquisition)
+    return {
+        "attempt_count": len(room_retries) + trend_attempt_count,
+        "recovered_count": room_recovered + trend_recovered,
+        "unresolved_count": room_unresolved + trend_unresolved,
+        "contract_violation_count": len(room_violations) + trend_violations,
+    }
+
+
+def _attach_retry_summary(
+    daily_result: dict[str, Any], connection: sqlite3.Connection | None
+) -> None:
+    """Add counts only; never include retry inputs or source response content."""
+
+    if "retry_summary" in daily_result:
+        return
+    if connection is None:
+        daily_result["retry_summary"] = {
+            "attempt_count": None,
+            "recovered_count": None,
+            "unresolved_count": None,
+            "contract_violation_count": None,
+        }
+        return
+    run_id = daily_result.get("run_id")
+    daily_result["retry_summary"] = _retry_summary_for_run(
+        connection, run_id if isinstance(run_id, str) else None
+    )
+
+
 def _result_status(result: Mapping[str, Any]) -> str:
     value = result.get("status")
     return value if isinstance(value, str) else "failed"
@@ -584,6 +755,7 @@ def run_daily_execution_core(
         phase_begin("daily")
         outcome = ports.run_daily(connection, context, refresh_history_after_commit)
         daily_result = _as_result(outcome)
+        _attach_retry_summary(daily_result, connection)
         daily_status = _result_status(daily_result)
         phase_end("daily", daily_status)
     except Exception as exc:
@@ -608,6 +780,7 @@ def run_daily_execution_core(
             target_date,
             phase,
         )
+        _attach_retry_summary(daily_result, connection)
         daily_status = _result_status(daily_result)
         if phase == "preflight":
             preflight_status = "failed"

@@ -14,6 +14,7 @@ import os
 from pathlib import PurePosixPath
 from pathlib import Path
 import re
+import uuid
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -22,6 +23,7 @@ from jsonschema.exceptions import SchemaError, ValidationError
 from automation.inago.maintenance.safe_file import (
     SafeFileError,
     open_file_beneath,
+    publish_file_beneath,
     unlink_file_beneath,
 )
 
@@ -520,7 +522,13 @@ def render_investigation_markdown(
             )
     else:
         lines.append("| 該当なし | 未確認 | 未確認 | 未確認 | 根拠なし |")
-    lines.extend(["", "集計単位・対象範囲: 入力で許可された参照だけ。未指定の件数は補完していません。", ""])
+    lines.extend(
+        [
+            "",
+            "集計単位・対象範囲: 入力で許可された参照だけ。未指定の件数は補完していません。",
+            "",
+        ]
+    )
 
     chapter_facts = [facts[index] if index < len(facts) else None for index in range(3)]
     chapter_titles = (
@@ -550,7 +558,13 @@ def render_investigation_markdown(
             )
     else:
         lines.append("1. 入力証拠に経路を示す事実はありません。未確認として扱います。")
-    lines.extend(["", "runの最終statusとOS/CLIの終了値は、このstageの入力にないため未確認です。", ""])
+    lines.extend(
+        [
+            "",
+            "runの最終statusとOS/CLIの終了値は、このstageの入力にないため未確認です。",
+            "",
+        ]
+    )
 
     lines.extend(["## 7. 障害でなかった工程・監視/記録上の課題", ""])
     lines.extend(
@@ -790,6 +804,7 @@ def save_attempt_artifact(
     filename: str,
     content: str | bytes,
     stage: str = "investigation",
+    atomic: bool = False,
 ) -> tuple[str, str]:
     """Create one immutable stage artifact under its exact job/attempt directory."""
 
@@ -805,13 +820,29 @@ def save_attempt_artifact(
             "review.md",
         },
         "repair": {
+            "repair-setup.json",
+            "implementation-result.json",
             "patch-assessment.json",
             "test-ledger.json",
+            "review-input.json",
             "review-target.json",
+            "review-response.json",
             "review.json",
+            "repair-handoff.json",
             "result.json",
         },
-        "report": {"report.html", "result.json"},
+        "deployment": {"deployment-candidate.json", "deployment-result.json"},
+        "report": {
+            "report-input.json",
+            "report-response.json",
+            "report.html",
+            "review-input.json",
+            "review-response.json",
+            "review.json",
+            "review.md",
+            "result.json",
+            "report-publication.json",
+        },
     }
     if stage not in allowed_names or filename not in allowed_names[stage]:
         raise InvestigationContractError(f"{stage}_artifact_name_invalid")
@@ -846,19 +877,43 @@ def save_attempt_artifact(
 
     relative_path = PurePosixPath(job["job_id"], job["attempt_id"], filename).as_posix()
     created = False
+    temporary_relative_path: str | None = None
     try:
-        try:
-            with open_file_beneath(base, relative_path, "xb") as stream:
-                created = True
+        if atomic:
+            temporary_relative_path = PurePosixPath(
+                job["job_id"],
+                job["attempt_id"],
+                f".{filename}.{uuid.uuid4().hex}.tmp",
+            ).as_posix()
+            with open_file_beneath(base, temporary_relative_path, "xb") as stream:
                 stream.write(encoded)
                 stream.flush()
                 os.fsync(stream.fileno())
-        except FileExistsError:
-            with open_file_beneath(base, relative_path, "rb") as stream:
-                existing_content = stream.read()
-            if existing_content == encoded:
-                return relative_path, hashlib.sha256(encoded).hexdigest()
-            raise InvestigationContractError("investigation_artifact_already_exists")
+            try:
+                publish_file_beneath(base, temporary_relative_path, relative_path)
+            except FileExistsError:
+                with open_file_beneath(base, relative_path, "rb") as stream:
+                    existing_content = stream.read()
+                if existing_content == encoded:
+                    return relative_path, hashlib.sha256(encoded).hexdigest()
+                raise InvestigationContractError(
+                    "investigation_artifact_already_exists"
+                )
+        else:
+            try:
+                with open_file_beneath(base, relative_path, "xb") as stream:
+                    created = True
+                    stream.write(encoded)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            except FileExistsError:
+                with open_file_beneath(base, relative_path, "rb") as stream:
+                    existing_content = stream.read()
+                if existing_content == encoded:
+                    return relative_path, hashlib.sha256(encoded).hexdigest()
+                raise InvestigationContractError(
+                    "investigation_artifact_already_exists"
+                )
     except InvestigationContractError as exc:
         if created:
             try:
@@ -869,6 +924,14 @@ def save_attempt_artifact(
                 exc.add_note(f"created artifact cleanup failed: {cleanup_error!r}")
         raise
     except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError) as exc:
+        if atomic:
+            try:
+                with open_file_beneath(base, relative_path, "rb") as stream:
+                    existing_content = stream.read()
+            except (OSError, RuntimeError, ValueError, UnsafeMaintenancePathError):
+                existing_content = None
+            if existing_content == encoded:
+                return relative_path, hashlib.sha256(encoded).hexdigest()
         if created:
             try:
                 unlink_file_beneath(base, relative_path)
@@ -877,6 +940,14 @@ def save_attempt_artifact(
             except OSError as cleanup_error:
                 exc.add_note(f"created artifact cleanup failed: {cleanup_error!r}")
         raise InvestigationContractError("investigation_artifact_write_failed") from exc
+    finally:
+        if temporary_relative_path is not None:
+            try:
+                unlink_file_beneath(base, temporary_relative_path)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
 
     return relative_path, hashlib.sha256(encoded).hexdigest()
 

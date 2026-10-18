@@ -64,7 +64,11 @@ $start = [DateTimeOffset]::ParseExact(
     "yyyy-MM-dd'T'HH:mm:sszzz",
     [System.Globalization.CultureInfo]::InvariantCulture
 )
-if ($start -le [DateTimeOffset]::Now) { throw 'The daily start boundary must be in the future.' }
+$existingDailyTask = Get-ScheduledTask -TaskName 'RakutenRoomInagoDaily' -TaskPath '\' -ErrorAction SilentlyContinue
+if ($start -le [DateTimeOffset]::Now -and
+    ($null -eq $existingDailyTask -or @('Ready', 'Disabled') -notcontains $existingDailyTask.State.ToString())) {
+    throw 'A past daily start boundary can only be retained while the existing task is idle.'
+}
 
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $userId = $identity.User.Value
@@ -82,7 +86,11 @@ function New-TaskXml([string]$TemplateName, [string]$Mode, [bool]$Daily) {
     $exec = $document.SelectSingleNode('//t:Actions/t:Exec', $manager)
     if ($null -eq $exec) { throw 'Task template is missing its executable action.' }
     $exec.SelectSingleNode('t:Command', $manager).InnerText = $pythonExe
-    $args = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+    if ($Daily) {
+        $args = "-B -m automation.inago.maintenance.daily_launcher --config `"$configPath`" --data-root `"$expectedRoot`""
+    } else {
+        $args = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+    }
     $exec.SelectSingleNode('t:Arguments', $manager).InnerText = $args
     $exec.SelectSingleNode('t:WorkingDirectory', $manager).InnerText = $applicationRoot
     $wakeToRun = $document.SelectSingleNode('//t:Settings/t:WakeToRun', $manager)
@@ -127,10 +135,17 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
     if ($null -ne $existing) {
         if ($existing.Actions.Count -ne 1) { throw "Existing task '$Name' has an unexpected action count." }
         $existingAction = $existing.Actions[0]
-        $expectedArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        if ($Mode -eq 'daily') {
+            $expectedArgs = "-B -m automation.inago.maintenance.daily_launcher --config `"$configPath`" --data-root `"$expectedRoot`""
+        } else {
+            $expectedArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        }
         $matchesRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $existingAction.Arguments -ceq $expectedArgs -and $existingAction.WorkingDirectory -eq $applicationRoot)
-        $previousRepositoryArgs = "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
-        $matchesPreviousRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $existingAction.Arguments -ceq $previousRepositoryArgs -and $existingAction.WorkingDirectory -eq $applicationRoot)
+        $previousRepositoryArgs = @(
+            "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`"",
+            "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+        )
+        $matchesPreviousRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $previousRepositoryArgs -ccontains $existingAction.Arguments -and $existingAction.WorkingDirectory -eq $applicationRoot)
         $oldRoot = Join-Path $userProfile 'InagoRuntime'
         $oldApp = [IO.Path]::GetFullPath([string]$existingAction.WorkingDirectory).TrimEnd('\')
         $oldPython = Join-Path $oldApp '.venv-inago\Scripts\python.exe'
@@ -183,6 +198,19 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
         if ($matchesPrevious -or $matchesPreviousRepository) {
             if (@('Ready', 'Disabled') -notcontains $state) {
                 throw "Previous Inago task '$Name' is not idle; preserve its run before switching execution paths."
+            }
+            if ($Mode -eq 'daily' -and $matchesPreviousRepository) {
+                Set-ScheduledTask -TaskName $Name -TaskPath '\' -Action (
+                    New-ScheduledTaskAction -Execute $pythonExe -Argument $expectedArgs -WorkingDirectory $applicationRoot
+                ) -ErrorAction Stop | Out-Null
+                $updated = Get-ScheduledTask -TaskName $Name -TaskPath '\' -ErrorAction Stop
+                if ($updated.Actions.Count -ne 1 -or
+                    $updated.Actions[0].Arguments -cne $expectedArgs -or
+                    $updated.Actions[0].WorkingDirectory -ne $applicationRoot -or
+                    [IO.Path]::GetFullPath($updated.Actions[0].Execute).ToLowerInvariant() -ne [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant()) {
+                    throw "Daily task '$Name' action did not switch to the daily launcher."
+                }
+                return
             }
             Register-ScheduledTask -TaskName $Name -TaskPath '\' -Xml $Xml -Force -ErrorAction Stop | Out-Null
             return

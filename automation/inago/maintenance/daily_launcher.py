@@ -150,13 +150,146 @@ def _extract_secondary_classes(payload: Mapping[str, object]) -> list[str]:
     return result
 
 
+_OBSERVATION_COUNT_FIELDS = (
+    "daily_target",
+    "initial_allocation_count",
+    "supplemental_allocation_count",
+    "committed_count",
+    "shortfall_count",
+    "actual_posted_count",
+    "source_failures",
+    "error_count",
+)
+_OBSERVATION_RETRY_FIELDS = (
+    "attempt_count",
+    "recovered_count",
+    "unresolved_count",
+    "contract_violation_count",
+)
+
+
+def _observation_count(value: object) -> int | None:
+    if (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and 0 <= value <= 2**31 - 1
+    ):
+        return value
+    return None
+
+
+def _retry_observation_issue(payload: Mapping[str, object] | None) -> str | None:
+    """Route a completed run to review when its retry summary is unsafe or unresolved."""
+
+    if payload is None:
+        return None
+    raw_retry = payload.get("retry_summary")
+    if raw_retry is None:
+        return None
+    if not isinstance(raw_retry, Mapping):
+        return "daily_retry_observation_invalid"
+    values = {
+        name: _observation_count(raw_retry.get(name))
+        for name in _OBSERVATION_RETRY_FIELDS
+    }
+    if any(value is None for value in values.values()):
+        return "daily_retry_observation_incomplete"
+    if values["contract_violation_count"] > 0:
+        return "daily_retry_contract_violation"
+    if values["recovered_count"] + values["unresolved_count"] > values["attempt_count"]:
+        return "daily_retry_contract_violation"
+    if values["unresolved_count"] > 0:
+        return "daily_retry_unresolved"
+    return None
+
+
+def _observation_status(value: object) -> str:
+    return _safe_code(value) or "unknown"
+
+
+def _daily_result_observation(
+    *,
+    launch_id: str,
+    target_date: str,
+    source_run_id: str | None,
+    overall_status: str,
+    daily_status: str,
+    payload: Mapping[str, object] | None,
+) -> dict[str, object]:
+    daily = payload or {}
+    raw_retry = daily.get("retry_summary")
+    retry = raw_retry if isinstance(raw_retry, Mapping) else {}
+    raw_phases = daily.get("phase_results")
+    phases = raw_phases if isinstance(raw_phases, Mapping) else {}
+
+    def phase(name: str) -> Mapping[str, object]:
+        value = phases.get(name)
+        return value if isinstance(value, Mapping) else {}
+
+    daily_phase = phase("daily")
+    preservation_phase = phase("preservation")
+    trace_phase = phase("trace")
+    trace_status = (
+        _observation_status(trace_phase["status"])
+        if "status" in trace_phase
+        else _extract_trace_status(daily)
+    )
+    retry_summary = {
+        name: _observation_count(retry.get(name)) for name in _OBSERVATION_RETRY_FIELDS
+    }
+    phase_results: dict[str, object] = {
+        "daily": {
+            "status": _observation_status(daily_phase.get("status")),
+            "committed_count": _observation_count(daily_phase.get("committed_count")),
+            "shortfall_count": _observation_count(daily_phase.get("shortfall_count")),
+            "source_failures": _observation_count(daily_phase.get("source_failures")),
+            "error_count": _observation_count(daily_phase.get("error_count")),
+        },
+        "metrics": {"status": _observation_status(phase("metrics").get("status"))},
+        "export": {"status": _observation_status(phase("export").get("status"))},
+        "preservation": {
+            "status": _observation_status(preservation_phase.get("status")),
+            "end_backup_status": _observation_status(
+                preservation_phase.get("end_backup_status")
+            ),
+            "monthly_restore_status": _observation_status(
+                preservation_phase.get("monthly_restore_status")
+            ),
+        },
+        "start_backup": {
+            "status": _observation_status(phase("start_backup").get("status"))
+        },
+        "trace": {
+            "status": trace_status,
+            "event_count": _observation_count(trace_phase.get("event_count")),
+        },
+    }
+    return {
+        "schema_version": "daily-result-observation-v1",
+        "source_launch_id": launch_id,
+        "source_run_id": source_run_id,
+        "target_date": target_date,
+        "status": overall_status,
+        "overall_status": overall_status,
+        "daily_status": daily_status,
+        "reason": _safe_code(daily.get("reason")),
+        "daily_reason": _safe_code(daily.get("daily_reason", daily.get("reason"))),
+        **{
+            name: _observation_count(daily.get(name))
+            for name in _OBSERVATION_COUNT_FIELDS
+        },
+        "retry_summary": retry_summary,
+        "phase_results": phase_results,
+    }
+
+
 def _summarize_result(
     *,
     launch_id: str,
     target_date: str,
     process_result: DailyProcessResult,
     completed_at: datetime,
-) -> tuple[dict[str, object], str]:
+) -> tuple[dict[str, object], str, dict[str, object] | None]:
     payload = _parse_result(process_result.stdout, process_result.stderr)
     raw_status = (
         payload.get("overall_status", payload.get("status")) if payload else None
@@ -258,6 +391,15 @@ def _summarize_result(
         if reason_code is None:
             reason_code = "daily_result_failed"
 
+    retry_issue = _retry_observation_issue(payload)
+    if (
+        launch_status == "complete"
+        and overall_status in {"complete", "partial", "shortfall"}
+        and retry_issue is not None
+    ):
+        check_status = "incomplete"
+        reason_code = retry_issue
+
     trace_status = (
         _extract_trace_status(payload) if payload is not None else "not_written"
     )
@@ -277,6 +419,18 @@ def _summarize_result(
         "secondary_error_classes": secondary_error_classes,
         "trace_status": trace_status,
     }
+    observation = (
+        None
+        if identity_invalid
+        else _daily_result_observation(
+            launch_id=launch_id,
+            target_date=target_date,
+            source_run_id=source_run_id,
+            overall_status=overall_status,
+            daily_status=daily_status,
+            payload=payload,
+        )
+    )
     summary["completed_at"] = completed_at.astimezone(JST).isoformat()
     safe_stderr = json.dumps(
         {
@@ -291,7 +445,7 @@ def _summarize_result(
         separators=(",", ":"),
     )
     summary["_check_status"] = check_status
-    return summary, safe_stderr
+    return summary, safe_stderr, observation
 
 
 def _completion_is_consistent(summary: Mapping[str, object], check_status: str) -> bool:
@@ -303,6 +457,19 @@ def _completion_is_consistent(summary: Mapping[str, object], check_status: str) 
     exit_code = summary["exit_code"]
     reason_code = summary["reason_code"]
     if launch_status == "complete":
+        if check_status == "incomplete":
+            return (
+                overall_status in {"complete", "partial", "shortfall"}
+                and daily_status in {"complete", "partial", "shortfall"}
+                and exit_code in {0, EXIT_DAILY_UNMET}
+                and reason_code
+                in {
+                    "daily_retry_observation_invalid",
+                    "daily_retry_observation_incomplete",
+                    "daily_retry_contract_violation",
+                    "daily_retry_unresolved",
+                }
+            )
         if check_status == "normal":
             return (
                 overall_status == "complete"
@@ -494,7 +661,7 @@ def run_daily_launch(
     )
 
     completed_at = datetime.now(JST)
-    summary, safe_stderr = _summarize_result(
+    summary, safe_stderr, daily_result_observation = _summarize_result(
         launch_id=launch_id,
         target_date=target_date,
         process_result=process_result,
@@ -502,7 +669,7 @@ def run_daily_launch(
     )
     if not _completion_is_consistent(summary, str(summary["_check_status"])):
         process_result = _contract_failure_result(completion_child_pid, target_date)
-        summary, safe_stderr = _summarize_result(
+        summary, safe_stderr, daily_result_observation = _summarize_result(
             launch_id=launch_id,
             target_date=target_date,
             process_result=process_result,
@@ -532,6 +699,7 @@ def run_daily_launch(
                 else None
             ),
             result_summary=result_summary,
+            daily_result_observation=daily_result_observation,
         )
     except (MaintenanceStoreError, OSError, sqlite3.Error, ValueError):
         notification_status = "unavailable"

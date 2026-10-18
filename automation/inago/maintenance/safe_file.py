@@ -56,6 +56,30 @@ def unlink_file_beneath(root: str | Path, relative_path: str) -> None:
     _unlink_posix_beneath(Path(root), parts)
 
 
+def publish_file_beneath(
+    root: str | Path, temporary_path: str, target_path: str
+) -> None:
+    """Atomically publish a complete sibling file without replacing a target."""
+
+    temporary_parts = PurePosixPath(temporary_path).parts
+    target_parts = PurePosixPath(target_path).parts
+    if (
+        not temporary_parts
+        or len(temporary_parts) != len(target_parts)
+        or temporary_parts[:-1] != target_parts[:-1]
+        or temporary_parts[-1] == target_parts[-1]
+        or any(
+            part in {"", ".", ".."} or "/" in part or "\\" in part
+            for part in (*temporary_parts, *target_parts)
+        )
+    ):
+        raise SafeFileError("safe_publish_path_invalid")
+    if os.name == "nt":
+        _publish_windows_beneath(Path(root), temporary_parts, target_parts)
+        return
+    _publish_posix_beneath(Path(root), temporary_parts, target_parts)
+
+
 def ensure_directory_beneath(root: str | Path, relative_path: str) -> Path:
     """Create each directory below a pinned root without following aliases."""
 
@@ -181,6 +205,39 @@ def _ensure_posix_beneath(root: Path, parts: tuple[str, ...]) -> None:
             current = next_fd
 
 
+def _publish_posix_beneath(
+    root: Path, temporary_parts: tuple[str, ...], target_parts: tuple[str, ...]
+) -> None:
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+        raise SafeFileError("safe_no_follow_open_unavailable")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    absolute_root = Path(os.path.abspath(root))
+    if not absolute_root.is_absolute() or absolute_root.anchor != "/":
+        raise SafeFileError("safe_root_not_absolute")
+    with ExitStack() as stack:
+        current = os.open("/", directory_flags)
+        stack.callback(os.close, current)
+        for part in absolute_root.parts[1:]:
+            next_fd = os.open(part, directory_flags, dir_fd=current)
+            stack.callback(os.close, next_fd)
+            current = next_fd
+        for part in temporary_parts[:-1]:
+            next_fd = os.open(part, directory_flags, dir_fd=current)
+            stack.callback(os.close, next_fd)
+            current = next_fd
+        # A hard link creates the final name atomically and fails if it exists.
+        # Both names are in the same directory and refer to the fully synced file.
+        os.link(
+            temporary_parts[-1],
+            target_parts[-1],
+            src_dir_fd=current,
+            dst_dir_fd=current,
+            follow_symlinks=False,
+        )
+        os.unlink(temporary_parts[-1], dir_fd=current)
+        os.fsync(current)
+
+
 if os.name == "nt":
     import msvcrt
     import ntpath
@@ -212,6 +269,7 @@ if os.name == "nt":
     _FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020
     _STATUS_OBJECT_NAME_COLLISION = 0xC0000035
     _FILE_DISPOSITION_INFORMATION_CLASS = 13
+    _FILE_RENAME_INFORMATION_CLASS = 10
 
     class _UnicodeString(ctypes.Structure):
         _fields_ = [
@@ -357,6 +415,46 @@ if os.name == "nt":
         if status < 0:
             raise OSError(status & 0xFFFFFFFF, "NtSetInformationFile delete failed")
 
+    def _rename_relative_handle(
+        file_handle: int, parent_handle: int, target_name: str
+    ) -> None:
+        class _FileRenameInformation(ctypes.Structure):
+            _fields_ = [
+                ("ReplaceIfExists", wintypes.BOOLEAN),
+                ("RootDirectory", wintypes.HANDLE),
+                ("FileNameLength", wintypes.DWORD),
+                ("FileName", wintypes.WCHAR * 1),
+            ]
+
+        encoded_name = target_name.encode("utf-16-le")
+        buffer = ctypes.create_string_buffer(
+            _FileRenameInformation.FileName.offset + len(encoded_name)
+        )
+        information = _FileRenameInformation.from_buffer(buffer)
+        information.ReplaceIfExists = False
+        information.RootDirectory = parent_handle
+        information.FileNameLength = len(encoded_name)
+        ctypes.memmove(
+            ctypes.addressof(buffer) + _FileRenameInformation.FileName.offset,
+            encoded_name,
+            len(encoded_name),
+        )
+        io_status = _IoStatusBlock()
+        status = _NtSetInformationFile(
+            file_handle,
+            ctypes.byref(io_status),
+            ctypes.byref(buffer),
+            len(buffer),
+            _FILE_RENAME_INFORMATION_CLASS,
+        )
+        if status < 0:
+            unsigned_status = status & 0xFFFFFFFF
+            if unsigned_status == 0xC0000035:
+                raise FileExistsError(
+                    unsigned_status, "file already exists", target_name
+                )
+            raise OSError(unsigned_status, "NtSetInformationFile rename failed")
+
     def _final_path(handle: int) -> str:
         buffer = ctypes.create_unicode_buffer(32768)
         length = _GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
@@ -404,7 +502,7 @@ if os.name == "nt":
         parent: int,
         name: str,
         *,
-        mode: Literal["directory", "directory_create", "rb", "xb", "delete"],
+        mode: Literal["directory", "directory_create", "rb", "xb", "delete", "rename"],
         created_file_cleanup: Callable[[], None] | None = None,
     ) -> int:
         if mode == "xb" and created_file_cleanup is None:
@@ -440,7 +538,9 @@ if os.name == "nt":
             data_access = (
                 _FILE_READ_DATA
                 if mode == "rb"
-                else _FILE_WRITE_DATA if mode == "xb" else _DELETE
+                else _FILE_WRITE_DATA
+                if mode == "xb"
+                else _DELETE
             )
             desired_access = (
                 data_access
@@ -669,6 +769,51 @@ if os.name == "nt":
             ]
             _run_cleanups(cleanups, primary_error)
 
+    def _publish_windows_beneath(
+        root: Path, temporary_parts: tuple[str, ...], target_parts: tuple[str, ...]
+    ) -> None:
+        absolute_root = Path(os.path.abspath(root))
+        anchor = absolute_root.anchor
+        if not anchor:
+            raise SafeFileError("safe_root_not_absolute")
+        handles: list[int] = []
+        file_handle: int | None = None
+        primary_error: BaseException | None = None
+        try:
+            current = _create_directory_handle(anchor)
+            handles.append(current)
+            current_path = anchor
+            for part in absolute_root.parts[1:]:
+                current = _open_relative_handle(current, part, mode="directory")
+                handles.append(current)
+                current_path = ntpath.join(current_path, part)
+                _verify_handle_path(current, current_path)
+            for part in temporary_parts[:-1]:
+                current = _open_relative_handle(current, part, mode="directory")
+                handles.append(current)
+                current_path = ntpath.join(current_path, part)
+                _verify_handle_path(current, current_path)
+            file_handle = _open_relative_handle(
+                current, temporary_parts[-1], mode="rename"
+            )
+            _verify_handle_path(
+                file_handle, ntpath.join(current_path, temporary_parts[-1])
+            )
+            _rename_relative_handle(file_handle, current, target_parts[-1])
+            _verify_handle_path(
+                file_handle, ntpath.join(current_path, target_parts[-1])
+            )
+        except BaseException as exc:
+            primary_error = exc
+            raise
+        finally:
+            cleanups: list[Callable[[], None]] = []
+            if file_handle is not None:
+                cleanups.append(lambda: _close_handle(file_handle))
+            for handle in reversed(handles):
+                cleanups.append(lambda handle=handle: _close_handle(handle))
+            _run_cleanups(cleanups, primary_error)
+
 else:
 
     @contextmanager
@@ -681,4 +826,9 @@ else:
         raise SafeFileError("windows_open_unavailable")
 
     def _ensure_windows_beneath(root: Path, parts: tuple[str, ...]) -> None:
+        raise SafeFileError("windows_open_unavailable")
+
+    def _publish_windows_beneath(
+        root: Path, temporary_parts: tuple[str, ...], target_parts: tuple[str, ...]
+    ) -> None:
         raise SafeFileError("windows_open_unavailable")

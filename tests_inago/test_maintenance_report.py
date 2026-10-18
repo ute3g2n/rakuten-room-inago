@@ -307,6 +307,37 @@ def test_c46_contract(tmp_path: Path):
         target_branch="main",
         commit_message="docs: publish reviewed report",
     )
+    resumed = publish_reviewed_report(
+        repo,
+        report_path=report_output_path,
+        expected_target_commit=old_base,
+        source_code_commit=code_commit,
+        result_version="report-v1",
+        review_document=review_document,
+        author_id="report-writer",
+        remote_name="origin",
+        target_branch="main",
+        commit_message="docs: publish reviewed report",
+    )
+    assert resumed == published
+    detached_retry = tmp_path / "detached-report-retry"
+    _git(repo, "worktree", "add", "--detach", str(detached_retry), old_base)
+    detached_report = detached_retry.joinpath(*report_output_path.split("/"))
+    detached_report.parent.mkdir(parents=True)
+    detached_report.write_bytes(b"<html>approved</html>\n")
+    detached_resumed = publish_reviewed_report(
+        detached_retry,
+        report_path=report_output_path,
+        expected_target_commit=old_base,
+        source_code_commit=code_commit,
+        result_version="report-v1",
+        review_document=review_document,
+        author_id="report-writer",
+        remote_name="origin",
+        target_branch="main",
+        commit_message="docs: publish reviewed report",
+    )
+    assert detached_resumed == published
     assert published.base_commit == code_commit
     assert published.code_commit == code_commit
     assert published.commit != code_commit

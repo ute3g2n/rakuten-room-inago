@@ -2172,7 +2172,7 @@ def run_daily(
     seed_factory: Callable[[], str] | None = None,
     on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> DailyRunOutcome:
-    """Run or resume today's finite daily flow under the real Windows lock."""
+    """Run or resume today's finite daily flow under its shared runtime lock."""
 
     system_clock = clock or SystemClock()
     now = _now(system_clock)
@@ -2195,6 +2195,10 @@ def run_daily(
         proposed_run_id
     ):
         raise DailyOrchestrationError("daily_run_id_invalid")
+    from automation.inago.maintenance.deployment import (
+        FileDeploymentExclusionGuard,
+    )
+
     try:
         lock = RunLock.acquire(
             root / ".daily-run.lock",
@@ -2214,7 +2218,10 @@ def run_daily(
             "locked", None, target_date, 0, 0, "not_started", reason="daily_lock_busy"
         )
 
-    with lock, ExitStack() as daily_resources:
+    runtime_exclusion = FileDeploymentExclusionGuard(
+        root / ".maintenance-deployment.lock"
+    )
+    with runtime_exclusion, lock, ExitStack() as daily_resources:
         run_trace = TraceSession(
             TraceWriter(root, proposed_run_id, target_date, clock=system_clock),
             component="orchestrator",

@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.38、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8とする。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
+正本：要件定義書HTML 2.42、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8、U21 migration `009_worker_queue_events.sql`でschema v9とし、blocked/resumed履歴と安全化済みdaily result observationを保存する。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
 
 ## 共通イベント
 
@@ -171,7 +171,7 @@ schemaは`automation/inago/schemas/maintenance-diagnostic-event.schema.json`。r
 通常値は90日保持、1ファイル4 MiB、1日20ファイル、1 event 16 KiBまで。追記はstage fileへの書込・flush/fsync後のatomic replaceで確定し、`daily_file_quota`を含む容量/書込/quota失敗では成功を返さず対象stage/releaseを保留する。operation完了後にreceiptだけが失敗した場合は戻り値付きの監査例外で状態照合を要求し、未実行と誤認させない。古いlog stageと中断したevidence stageは所有root内で安全に回収し、元の日次L01/L02や証拠原本を削除しない。証拠コピー期限は原本期限があればその期限、かつ採取から90日を超えない。MN04の保持設定は`automation/inago/schemas/maintenance-settings.schema.json`に固定する。MN05 app-server transport logは独立した既存契約を維持し、このMN04 quotaを適用したとは扱わない。
 ## U08 daily launcher ledger（MN01・schema v3）
 
-日次launcherの起動/完了通知はmaintenance管理SQLite `D/maintenance/state.sqlite`の`daily_launch`と`daily_check`に保存し、日次L01/L02、日次業務DB、MN04 workflow診断JSONLへ混ぜない。`source_launch_id`とJST `target_date`を先にcommitし、起動owner/child PIDとrunning/terminal statusを結ぶ。日次子processがexport、終了保全、共通trace、L01最終記録を含む処理を終えて戻った後でだけ、結果summaryとcheckを同一transactionでterminal化する。terminal launch行はimmutable。checkは通常一度記録し、failed launchの`incomplete`だけは、同じcheck identityを保ったまま後続調査が確定したincidentとreasonで一度だけ`abnormal`へ昇格できる。
+日次launcherの起動/完了通知はmaintenance管理SQLite `D/maintenance/state.sqlite`の`daily_launch`と`daily_check`に保存し、日次L01/L02、日次業務DB、MN04 workflow診断JSONLへ混ぜない。`source_launch_id`とJST `target_date`を先にcommitし、起動owner/child PIDとrunning/terminal statusを結ぶ。日次子processがexport、終了保全、共通trace、L01最終記録を含む処理を終えて戻った後でだけ、結果summaryとcheckを同一transactionでterminal化する。terminal launch行はimmutable。checkは通常一度記録する。failed launchに加え、完了結果が再試行異常を明示して`incomplete`となった場合も、同じcheck identityを保ち、後続check stageがincidentを確定した場合だけ一度`abnormal`へ昇格できる。
 
 結果JSON schema `daily-launch-completion-v1`は`source_launch_id`、`target_date`、`status`、整数`exit_code`、nullable `source_run_id`、必須の`overall_status`/`daily_status`、safe `reason_code`/`failure_phase`、`failed_checks`、primary/secondary error class、`trace_status`を持つ。run未生成時はnullとし、架空IDを作らない。正常・不足・未実施の結果はparsed `target_date`が起動対象日と一致し、正常/不足なら`source_run_id`を持つ。失敗statusに成功overall statusを組み合わせず、not_dueはrun IDなしを許す。非文字列trace statusは`not_written`として安全に処理する。終了コード0なのにparse可能な結果がない場合、およびstatus・daily_check・終了コードが矛盾する子要約は契約エラーexit 4へ正規化し、Schedulerへ成功を返さない。記録/標準出力/標準エラーにはraw stderr/stdout、例外本文、stack、path、下書き数、秘密、個人情報を含めない。有効な日次結果の通知保存失敗時は起動行を`running`で残し、日次CLIの本来のexit codeを維持してU09 watchdogへ委ねる。
 
@@ -215,7 +215,7 @@ redacted bundleはstage directoryへ新規作成し、artifactとmanifestを全�
 
 U11の純粋判定器は完了通知・当日結果・MN06 manifestをtarget_date/source_launch_id/nullable source_run_idで照合し、`maintenance-check-result-v1`を返す。MN06全体を `automation/inago/schemas/maintenance-evidence.schema.json` で検証し、必須field/型/formatが不正なら証拠完備にしない。正本schemaは `automation/inago/schemas/maintenance-check-result.schema.json`。出力はsafe ID、固定status/reason enum、範囲内count、許可phase、必要証拠class状態だけを持つ。欠測数はnull、run未生成はnull、previous dashboard countは入力項目にしない。OS exit code単独を成功条件にしない。
 
-正常候補・候補不足・回復済みretryは[1] checkだけへ渡す。外部停止は待ち、観測済み失敗は調査へ回す分類、identity/count/retry/phase矛盾は契約違反、観測不足はunknownとする。出力routingは常に `check_only`、自動dispatch false、開始済みstep空、incident書込false。AI check呼び出しとMN02への永続化はU12の対象で、U11の判定関数は状態を変更しない。
+正常候補・候補不足・回復済みretryは[1] checkだけへ渡す。外部停止は待ち、観測済み失敗は調査へ回す分類、identity/count/retryと、known status同士のphase矛盾は契約違反とする。nested phase statusのunknown/欠測は矛盾ではなく観測不足としてunknownに残し、正常候補には必要なphase/evidenceの完備を求める。出力routingは常に `check_only`、自動dispatch false、開始済みstep空、incident書込false。AI check呼び出しとMN02への永続化はU12の対象で、U11の判定関数は状態を変更しない。
 
 正常候補判定で必要なU10 classはL01/L02/M03/S01/V01/B01/B02で、各statusがcollectedであることを確認する。外部stop codeは `authentication_required`、`shared_deadline_exhausted`、`source_cancelled`、`source_timeout`、`transport_error`。全reason/status enum、15件目標と補充3の分離、不足数、retry/phase invariantsはAT-MAINT-01 U11および同schemaを参照する。
 
@@ -249,7 +249,7 @@ U16 report stageは`maintenance-report-response-v1`から、承認済み調査�
 
 ## U18 worker dispatch・history intake・翌日観測
 
-保守専用DB migration `007_worker_dispatch_queue.sql`でschema v7を追加し、完了済みdaily launch/checkのsource/dateを保つ`worker_queue`を作る。workerはowner/childのprocess終了とdaily check identityを確認し、leaseでqueue claimを一度だけ確定する。`queue.status=complete`はpost-launch dispatchの消費だけを示す。これはincident jobの作成、調査・修正・deployment・report完了を意味しない。failed launchの`incomplete` checkは後続check stageがincidentを確定する場合だけ同一行を`abnormal`へ一度昇格できる。
+保守専用DB migration `007_worker_dispatch_queue.sql`でschema v7を追加し、完了済みdaily launch/checkのsource/dateを保つ`worker_queue`を作る。workerはowner/childのprocess終了とdaily check identityを確認し、leaseでqueue claimを一度だけ確定する。`queue.status=complete`はpost-launch dispatchの消費だけを示す。これはincident jobの作成、調査・修正・deployment・report完了を意味しない。failed launchまたは完了結果が再試行異常を示す`incomplete` checkは、後続check stageがincidentを確定する場合だけ同一行を`abnormal`へ一度昇格できる。
 
 履歴run-null intakeは既存のfailed observationを検証し、original daily launch ID・対象日から安定IDの`source_launch_id`/incident/jobを作る。`source_run_id=null`を維持し、release gate再評価、daily_check、job input manifest、private intake recordを同じ案件へ関連付ける。同じ入力の再受付は同じIDへ収束し、元の日次結果は変更しない。
 
@@ -257,4 +257,12 @@ U16 report stageは`maintenance-report-response-v1`から、承認済み調査�
 
 `008_deployment_verification.sql`はschema v8に`deployment_verification`を追加する。deployed deploymentに対してだけpending rowを一度作り、次の自然日次に既に保存されたdaily launch/checkとactive commitを照合する。翌日の日次を起動しない。正常/正常不足かつactive commit一致は`verified`、再発は`recurred`、観測不完全/版不一致は`blocked`、翌日以降にdaily launchがなければ`not_observed`となる。identityはimmutableで、pendingから終端状態への遷移は一度だけ。
 
+`009_worker_queue_events.sql`はschema v9にworker queueの`blocked`/`resumed`監査eventと`daily_result_observation`を追加する。失敗・workflow未接続をblockedとして永続化し、watchdogの自動再試行対象から外す。CLIから期待reason codeを照合した明示再開だけがqueuedへ戻し、event履歴はappend-onlyとする。`daily_result_observation`はdaily child結果から許可済みidentity/status/count/phase/trace件数だけを保存してSHA-256で照合する。child結果に再試行未解決・契約違反・観測欠測が明示される場合は、日次全体がcompleteでもcheckを`incomplete`としてqueueへ渡す。workerはこの項目を正常日として完了扱いにしない。
+
 開発テストは通常のpytestと合成fixture/一時DB/toy Git remoteで行い、検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。U18 C50は各controller/stageとlocal pytest red→pass、toy deployment、reviewed report publicationの連携を確認するが、production worker/providerの実行証明には読み替えない。U21のproduction registration gateで実workerの調査から報告までの結線を確認する。test codeの独立レビューは行わない。
+
+## U21 approved report publication・job/incident終端・再開
+
+U21のreport providerは、承認済みresult/reviewの版とhash、incident/job/attempt identity、対象HTML path、expected target commit、source code commitを照合してから公開する。共有の排他制御下でmanaged detached worktreeを使い、公開commitにはreport HTML一ファイルだけを含める。report-publication.jsonにはidentity、attempt/result versionとhash、report path/hash、expected target commit、source code commit、publication commit/base、remote/branch、JST観測時刻を保存し、HTML本文や認証情報は含めない。
+
+push後・artifact保存前に停止した場合はremote上の対象path、scope、base/code/hashを再照合し、同じpublication commitを回収してartifactへ記録する。publication artifactを保存した後にだけjobをcompleteへ進め、同じtransactionでreport status complete/pending/blockedをincident status resolved/in_progress/blockedへ反映する。job完了後、queueが未完了なら再開時にreport/publication照合だけを行い、調査・修正・deploymentやAI turnを再実行しない。ローカル合成Git fixtureはこの回復契約の開発確認に使い、本番DB migration、Scheduler登録、worker/watchdog起動はU21導入gateを通過するまで行わない。

@@ -80,6 +80,7 @@ class RepairReview:
     unresolved_critical_findings: tuple[str, ...] = ()
     tested_code_sha256: str | None = None
     reviewed_code_sha256: str | None = None
+    status: str = "approved"
 
     def __post_init__(self) -> None:
         if not isinstance(self.unresolved_critical_findings, tuple):
@@ -116,6 +117,9 @@ class RepairReviewEvidence:
     test_ledger_sha256: str
     approved: bool
     unresolved_critical_findings: tuple[str, ...]
+    reviewer_session_key: str | None = None
+    reviewer_turn_id: str | None = None
+    reviewer_output_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.unresolved_critical_findings, tuple):
@@ -583,6 +587,7 @@ class RepairController:
             "unresolved_critical_findings": list(review.unresolved_critical_findings),
             "tested_code_sha256": review.tested_code_sha256,
             "reviewed_code_sha256": review.reviewed_code_sha256,
+            "status": review.status,
         }
         try:
             _validate_schema(
@@ -605,7 +610,12 @@ class RepairController:
                 or review.tested_code_sha256 == review.reviewed_code_sha256
                 and _SHA256.fullmatch(review.tested_code_sha256 or "") is not None
             )
-            and not review.unresolved_critical_findings
+            and (
+                review.status == "approved"
+                and not review.unresolved_critical_findings
+                or review.status == "changes_requested"
+                and bool(review.unresolved_critical_findings)
+            )
         )
 
 
