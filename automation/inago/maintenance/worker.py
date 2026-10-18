@@ -28,7 +28,7 @@ from automation.inago.maintenance.store import (
 
 
 ProcessProbe = Callable[[int], ProcessObservation]
-WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-18", "2026-10-19"})
+WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-18"})
 
 
 @dataclass(frozen=True, slots=True)
