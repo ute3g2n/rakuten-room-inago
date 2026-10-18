@@ -650,7 +650,7 @@ class MaintenanceController:
             host_context = RepairHostEvidenceContext(
                 job_id=attempt.job_id,
                 attempt_id=attempt.attempt_id,
-                base_commit=self._store.get_job_base_commit(job_id=attempt.job_id),
+                base_commit=self._store.get_latest_deployed_commit(),
                 approved_plan=plan_result,
                 attempts_root=attempts_root,
             )
@@ -751,8 +751,7 @@ class MaintenanceController:
                     context.get(key) != value
                     for key, value in expected_identity.items()
                 )
-                or context["base_commit"]
-                != self._store.get_job_base_commit(job_id=attempt.job_id)
+                or context["base_commit"] != self._store.get_latest_deployed_commit()
             ):
                 raise RepairContractError("repair_attempt_identity_invalid")
 
@@ -789,7 +788,8 @@ class MaintenanceController:
                 or plan_result.get("identity") != expected_identity
                 or plan_result.get("attempt_id") != plan_attempt.attempt_id
                 or plan_result.get("result_version") != plan_attempt.result_version
-                or plan_result.get("base_commit") != context["base_commit"]
+                or plan_result.get("base_commit")
+                != self._store.get_job_base_commit(job_id=attempt.job_id)
                 or plan_result.get("plan_status") != "ready"
                 or plan_result.get("next_action") != "handoff"
                 or not isinstance(plan_review, dict)

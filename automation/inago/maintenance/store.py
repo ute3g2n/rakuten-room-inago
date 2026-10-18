@@ -26,7 +26,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -57,6 +57,10 @@ _MIGRATIONS = {
     9: (
         "009_worker_queue_events.sql",
         "durable worker holds, daily observations and deployment resume identity",
+    ),
+    10: (
+        "010_historical_job_resume_events.sql",
+        "audited resumption of blocked historical maintenance jobs",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -125,6 +129,7 @@ _SCHEMA_TABLES = {
     "repair_run_receipt",
     "repair_host_review_execution",
     "repair_review_receipt",
+    "maintenance_job_resume_event",
 }
 
 
@@ -755,6 +760,18 @@ class HistoricalJobReference:
     target_date: str
     status: str
     created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class JobResumeRecord:
+    resume_event_id: str
+    job_id: str
+    source_launch_id: str
+    resume_count: int
+    reason_code: str
+    owner_id: str
+    generation: int
+    resumed_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -1564,9 +1581,12 @@ class MaintenanceStore:
         source_launch_id: str | None = None,
         limit: int = 100,
         exclude_target_dates: Iterable[str] | None = None,
+        include_blocked: bool = False,
     ) -> tuple[HistoricalJobReference, ...]:
-        """List active historical jobs without manufacturing a daily launch."""
+        """List historical jobs without manufacturing a daily launch."""
 
+        if not isinstance(include_blocked, bool):
+            raise MaintenanceStoreError("historical_job_include_blocked_invalid")
         if (
             isinstance(limit, bool)
             or not isinstance(limit, int)
@@ -1586,7 +1606,11 @@ class MaintenanceStore:
         filters = [
             "i.component = 'daily_pipeline'",
             "i.event_code = 'historical_daily_failure'",
-            "j.status IN ('queued', 'running')",
+            (
+                "j.status IN ('queued', 'running', 'blocked')"
+                if include_blocked
+                else "j.status IN ('queued', 'running')"
+            ),
             "j.source_run_id IS NULL",
             "ir.source_run_id IS NULL",
             "dc.source_run_id IS NULL",
@@ -1625,6 +1649,233 @@ class MaintenanceStore:
                     target_date=str(row["target_date"]),
                     status=str(row["status"]),
                     created_at=str(row["created_at"]),
+                )
+                for row in rows
+            )
+        finally:
+            connection.close()
+
+    def resume_blocked_historical_job(
+        self,
+        *,
+        job_id: str,
+        source_launch_id: str,
+        expected_reason_code: str,
+        lease: LeaseToken,
+        resumed_at: datetime | str,
+    ) -> JobResumeRecord:
+        """Audit one resume; the next Worker lease advances the job's resume count."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        launch = _safe_id(source_launch_id, "source_launch_id_invalid")
+        reason = _safe_code(expected_reason_code, "maintenance_job_reason_invalid")
+        when = _timestamp(resumed_at)
+        if not launch.startswith("historical-"):
+            raise MaintenanceStoreError("historical_source_launch_id_invalid")
+
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT j.job_id, j.incident_id, j.release_id, j.source_run_id, "
+                "j.status, j.resume_count, j.lease_key, j.lease_generation, "
+                "j.finished_at, j.terminal_reason_code, i.status AS incident_status, "
+                "i.component, i.event_code, ir.source_launch_id AS incident_source_launch_id, "
+                "ir.source_run_id AS incident_source_run_id, dc.source_launch_id AS check_source_launch_id, "
+                "dc.source_run_id AS check_source_run_id, dc.target_date, dc.check_status, "
+                "dc.reason_code AS check_reason_code, m.source_launch_id AS manifest_source_launch_id, "
+                "m.source_run_id AS manifest_source_run_id, m.target_date AS manifest_target_date, "
+                "m.incident_id AS manifest_incident_id "
+                "FROM maintenance_job AS j "
+                "JOIN incident AS i ON i.incident_id = j.incident_id "
+                "JOIN incident_run AS ir ON ir.incident_id = i.incident_id "
+                "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
+                "JOIN job_input_manifest AS m ON m.job_id = j.job_id "
+                "WHERE j.job_id = ? AND ir.source_launch_id = ? "
+                "AND dc.source_launch_id = ?",
+                (job, launch, launch),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("historical_job_not_found")
+
+            if row["status"] == "queued":
+                existing = connection.execute(
+                    "SELECT resume_event_id, job_id, source_launch_id, resume_count, "
+                    "reason_code, owner_id, generation, resumed_at "
+                    "FROM maintenance_job_resume_event WHERE job_id = ? "
+                    "ORDER BY resume_count DESC LIMIT 1",
+                    (job,),
+                ).fetchone()
+                if (
+                    existing is not None
+                    and existing["source_launch_id"] == launch
+                    and existing["reason_code"] == reason
+                    and int(existing["resume_count"]) == int(row["resume_count"]) + 1
+                    and row["source_run_id"] is None
+                    and row["incident_source_run_id"] is None
+                    and row["check_source_run_id"] is None
+                    and row["manifest_source_run_id"] is None
+                    and row["incident_source_launch_id"] == launch
+                    and row["check_source_launch_id"] == launch
+                    and row["manifest_source_launch_id"] == launch
+                    and row["target_date"] == row["manifest_target_date"]
+                    and row["incident_id"] == row["manifest_incident_id"]
+                    and row["component"] == "daily_pipeline"
+                    and row["event_code"] == "historical_daily_failure"
+                    and row["check_status"] == "abnormal"
+                    and row["check_reason_code"] == "historical_daily_failure_observed"
+                    and row["incident_status"] == "in_progress"
+                    and row["finished_at"] is None
+                    and row["terminal_reason_code"] is None
+                    and row["lease_key"] == lease.lease_key
+                    and row["lease_generation"] is not None
+                    and int(existing["generation"]) > int(row["lease_generation"])
+                    and lease.generation > int(row["lease_generation"])
+                ):
+                    return JobResumeRecord(
+                        resume_event_id=str(existing["resume_event_id"]),
+                        job_id=str(existing["job_id"]),
+                        source_launch_id=str(existing["source_launch_id"]),
+                        resume_count=int(existing["resume_count"]),
+                        reason_code=str(existing["reason_code"]),
+                        owner_id=str(existing["owner_id"]),
+                        generation=int(existing["generation"]),
+                        resumed_at=str(existing["resumed_at"]),
+                    )
+                raise MaintenanceStoreError("maintenance_job_not_blocked")
+            if row["status"] != "blocked":
+                raise MaintenanceStoreError("maintenance_job_not_blocked")
+            if row["terminal_reason_code"] != reason:
+                raise IdempotencyConflictError("maintenance_job_resume_reason_conflict")
+            if (
+                row["source_run_id"] is not None
+                or row["incident_source_run_id"] is not None
+                or row["check_source_run_id"] is not None
+                or row["manifest_source_run_id"] is not None
+                or row["incident_source_launch_id"] != launch
+                or row["check_source_launch_id"] != launch
+                or row["manifest_source_launch_id"] != launch
+                or row["target_date"] != row["manifest_target_date"]
+                or row["incident_id"] != row["manifest_incident_id"]
+                or row["component"] != "daily_pipeline"
+                or row["event_code"] != "historical_daily_failure"
+                or row["check_status"] != "abnormal"
+                or row["check_reason_code"] != "historical_daily_failure_observed"
+                or row["incident_status"] not in {"open", "in_progress", "blocked"}
+                or row["finished_at"] is None
+                or row["lease_key"] != lease.lease_key
+                or row["lease_generation"] is None
+                or lease.generation <= int(row["lease_generation"])
+            ):
+                raise MaintenanceStoreError("historical_job_resume_identity_invalid")
+            if int(row["resume_count"]) >= self.job_resume_limit:
+                raise MaintenanceStoreError("job_resume_limit_exceeded")
+
+            active_job = connection.execute(
+                "SELECT job_id FROM maintenance_job "
+                "WHERE status IN ('queued', 'running') AND job_id <> ? LIMIT 1",
+                (job,),
+            ).fetchone()
+            if active_job is not None:
+                raise MaintenanceStoreError("maintenance_job_busy")
+
+            gate = self._evaluate_release_gate(connection, str(row["release_id"]), when)
+            if gate.status != "ready":
+                raise MaintenanceStoreError("job_release_gate_not_ready")
+
+            latest_attempt = connection.execute(
+                "SELECT s.attempt_id, s.step_key, s.sequence, s.status, "
+                "s.result_version, r.reviewed_version, r.status AS review_status "
+                "FROM step_attempt AS s LEFT JOIN review_result AS r "
+                "ON r.scope_type = 'step_attempt' AND r.scope_id = s.attempt_id "
+                "WHERE s.job_id = ? AND s.sequence = 1 "
+                "ORDER BY s.attempt_no DESC, r.rowid DESC LIMIT 1",
+                (job,),
+            ).fetchone()
+            review_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM review_result AS r "
+                    "JOIN step_attempt AS s ON s.attempt_id = r.scope_id "
+                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
+                    "AND s.step_key = 'maintenance_investigation' AND s.sequence = 1",
+                    (job,),
+                ).fetchone()[0]
+            )
+            if (
+                latest_attempt is None
+                or latest_attempt["step_key"] != "maintenance_investigation"
+                or latest_attempt["status"] not in _STEP_TERMINAL_STATUSES
+                or latest_attempt["result_version"] is None
+                or latest_attempt["reviewed_version"]
+                != latest_attempt["result_version"]
+                or latest_attempt["review_status"] != "changes_requested"
+                or review_count >= self.review_round_limit
+            ):
+                raise MaintenanceStoreError("maintenance_job_resume_not_actionable")
+
+            resume_count = int(row["resume_count"]) + 1
+            event_id = uuid.uuid4().hex
+            connection.execute(
+                "INSERT INTO maintenance_job_resume_event "
+                "(resume_event_id, job_id, source_launch_id, resume_count, reason_code, "
+                "owner_id, generation, resumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    event_id,
+                    job,
+                    launch,
+                    resume_count,
+                    reason,
+                    lease.owner_id,
+                    lease.generation,
+                    when,
+                ),
+            )
+            connection.execute(
+                "UPDATE maintenance_job SET status = 'queued', finished_at = NULL, "
+                "terminal_reason_code = NULL, updated_at = ? "
+                "WHERE job_id = ? AND status = 'blocked'",
+                (
+                    when,
+                    job,
+                ),
+            )
+            if row["incident_status"] != "in_progress":
+                connection.execute(
+                    "UPDATE incident SET status = 'in_progress', updated_at = ? "
+                    "WHERE incident_id = ?",
+                    (when, row["incident_id"]),
+                )
+            return JobResumeRecord(
+                resume_event_id=event_id,
+                job_id=job,
+                source_launch_id=launch,
+                resume_count=resume_count,
+                reason_code=reason,
+                owner_id=lease.owner_id,
+                generation=lease.generation,
+                resumed_at=when,
+            )
+
+    def list_job_resume_events(self, *, job_id: str) -> tuple[JobResumeRecord, ...]:
+        job = _safe_id(job_id, "job_id_invalid")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT resume_event_id, job_id, source_launch_id, resume_count, "
+                "reason_code, owner_id, generation, resumed_at "
+                "FROM maintenance_job_resume_event WHERE job_id = ? "
+                "ORDER BY resume_count",
+                (job,),
+            ).fetchall()
+            return tuple(
+                JobResumeRecord(
+                    resume_event_id=str(row["resume_event_id"]),
+                    job_id=str(row["job_id"]),
+                    source_launch_id=str(row["source_launch_id"]),
+                    resume_count=int(row["resume_count"]),
+                    reason_code=str(row["reason_code"]),
+                    owner_id=str(row["owner_id"]),
+                    generation=int(row["generation"]),
+                    resumed_at=str(row["resumed_at"]),
                 )
                 for row in rows
             )
@@ -8467,6 +8718,28 @@ class MaintenanceStore:
             if row is None:
                 raise MaintenanceStoreError("job_not_found")
             return str(row["base_commit"])
+        finally:
+            connection.close()
+
+    def get_latest_deployed_commit(self) -> str:
+        """Return the latest exact commit confirmed active by deployment."""
+
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT d.result_commit, d.active_commit, r.result_commit AS release_commit "
+                "FROM deployment AS d JOIN release AS r ON r.release_id = d.release_id "
+                "WHERE d.status = 'deployed' "
+                "ORDER BY d.deployed_at DESC, d.deployment_id DESC LIMIT 1"
+            ).fetchone()
+            if (
+                row is None
+                or row["active_commit"] is None
+                or row["active_commit"] != row["result_commit"]
+                or row["result_commit"] != row["release_commit"]
+            ):
+                raise MaintenanceStoreError("active_deployed_commit_unavailable")
+            return str(row["active_commit"])
         finally:
             connection.close()
 

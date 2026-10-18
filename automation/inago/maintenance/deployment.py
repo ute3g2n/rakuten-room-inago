@@ -1477,7 +1477,7 @@ class DeploymentCoordinator:
                             active=previous_active if restored else None,
                             reason=(exc.code if restored else "runtime_restore_failed"),
                         )
-                elif resume_record is None or active_head != tested:
+                elif active_head != tested:
                     if production_checkout_advanced:
                         runtime_switch_attempted = False
                         raise DeploymentError("deployment_finalize_pending")

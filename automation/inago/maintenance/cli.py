@@ -80,6 +80,7 @@ def _parser() -> argparse.ArgumentParser:
         "resume-worker", help="requeue a blocked worker item after operator review"
     )
     resume_worker.add_argument("--source-launch-id", required=True)
+    resume_worker.add_argument("--job-id")
     resume_worker.add_argument("--expected-reason-code", required=True)
 
     probe = commands.add_parser(
@@ -399,8 +400,16 @@ def _run(
             return 3
         now = datetime.now(timezone.utc)
         queue = store.get_worker_queue(args.source_launch_id)
-        if queue is None:
+        if queue is None and args.job_id is None:
             _emit({"status": "blocked", "reason_code": "worker_queue_not_found"})
+            return 3
+        if queue is not None and args.job_id is not None:
+            _emit(
+                {
+                    "status": "blocked",
+                    "reason_code": "historical_job_resume_conflicts_with_worker_queue",
+                }
+            )
             return 3
         lease = None
         try:
@@ -412,26 +421,70 @@ def _run(
                 now=now,
                 ttl_seconds=90,
             )
-            resumed = store.resume_blocked_worker_queue(
-                queue_id=queue.queue_id,
-                expected_reason_code=args.expected_reason_code,
-                lease=lease,
-                resumed_at=now,
-            )
+            if args.job_id is not None:
+                from automation.inago.maintenance.historical import (
+                    HistoricalIntakeError,
+                    load_historical_work_item,
+                )
+
+                try:
+                    historical_item = load_historical_work_item(
+                        store,
+                        data_root=store.database_path.parent.parent,
+                        source_launch_id=args.source_launch_id,
+                        allow_blocked=True,
+                    )
+                except HistoricalIntakeError as exc:
+                    _emit({"status": "blocked", "reason_code": exc.code})
+                    return 3
+                if historical_item.job.job_id != args.job_id:
+                    _emit(
+                        {
+                            "status": "blocked",
+                            "reason_code": "historical_job_resume_identity_invalid",
+                        }
+                    )
+                    return 3
+                resumed = store.resume_blocked_historical_job(
+                    job_id=args.job_id,
+                    source_launch_id=args.source_launch_id,
+                    expected_reason_code=args.expected_reason_code,
+                    lease=lease,
+                    resumed_at=now,
+                )
+            else:
+                assert queue is not None
+                resumed = store.resume_blocked_worker_queue(
+                    queue_id=queue.queue_id,
+                    expected_reason_code=args.expected_reason_code,
+                    lease=lease,
+                    resumed_at=now,
+                )
         except MaintenanceStoreError as exc:
             _emit({"status": "blocked", "reason_code": exc.code})
             return 3
         finally:
             if lease is not None:
                 store.release_lease(lease=lease, released_at=now)
-        _emit(
-            {
-                "status": "queued",
-                "queue_id": resumed.queue_id,
-                "source_launch_id": resumed.source_launch_id,
-                "target_date": resumed.target_date,
-            }
-        )
+        if args.job_id is not None:
+            _emit(
+                {
+                    "status": "queued",
+                    "job_id": resumed.job_id,
+                    "resume_event_id": resumed.resume_event_id,
+                    "resume_count": resumed.resume_count,
+                    "source_launch_id": resumed.source_launch_id,
+                }
+            )
+        else:
+            _emit(
+                {
+                    "status": "queued",
+                    "queue_id": resumed.queue_id,
+                    "source_launch_id": resumed.source_launch_id,
+                    "target_date": resumed.target_date,
+                }
+            )
         return 0
     if args.command == "watchdog":
         now = datetime.now(timezone.utc)

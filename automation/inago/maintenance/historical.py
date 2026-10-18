@@ -47,6 +47,17 @@ _CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _MAX_OBSERVATION_BYTES = 64 * 1024
 _MAX_EVIDENCE_BYTES = 8 * 1024 * 1024
+_MAX_HISTORICAL_SOURCE_FILES = 8
+_MAX_HISTORICAL_SOURCE_FILE_BYTES = 16 * 1024
+_MAX_HISTORICAL_SOURCE_TOTAL_BYTES = 64 * 1024
+_HISTORICAL_SOURCE_FILE_NAMES = frozenset(
+    {
+        "e0-manifest.json",
+        "production-cli.filtered.json",
+        "scheduler.filtered.json",
+        "read-aggregate.json",
+    }
+)
 _INTAKE_RECORD_KEYS = {
     "schema_version",
     "original_source_launch_id",
@@ -70,6 +81,15 @@ _INTAKE_RECORD_KEYS = {
 
 
 @dataclass(frozen=True, slots=True)
+class HistoricalSourceDocument:
+    """One allowlisted, hash-bound JSON source copied into historical intake."""
+
+    relative_ref: str
+    sha256: str
+    document: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class HistoricalWorkItem:
     """Verified file and store bindings for one run-null maintenance job."""
 
@@ -87,6 +107,7 @@ class HistoricalWorkItem:
     evidence_bytes: bytes
     evidence_document: Mapping[str, Any]
     intake_ref: str
+    source_documents: tuple[HistoricalSourceDocument, ...] = ()
 
 
 class HistoricalIntakeError(ValueError):
@@ -388,14 +409,91 @@ def _read_historical_json(
     return value, encoded
 
 
+def _read_historical_source_documents(
+    data_root: Path,
+    *,
+    target_date: str,
+    evidence_document: Mapping[str, Any],
+) -> tuple[HistoricalSourceDocument, ...]:
+    descriptors = evidence_document.get("copied_source_files", [])
+    if (
+        not isinstance(descriptors, list)
+        or len(descriptors) > _MAX_HISTORICAL_SOURCE_FILES
+    ):
+        raise HistoricalIntakeError("historical_source_file_manifest_invalid")
+
+    documents: list[HistoricalSourceDocument] = []
+    seen_refs: set[str] = set()
+    total_bytes = 0
+    for descriptor in descriptors:
+        if not isinstance(descriptor, Mapping) or set(descriptor) != {
+            "bytes",
+            "relative_ref",
+            "sha256",
+        }:
+            raise HistoricalIntakeError("historical_source_file_manifest_invalid")
+        relative_ref = _safe_relative_path(descriptor["relative_ref"])
+        parts = PurePosixPath(relative_ref).parts
+        if (
+            len(parts) != 3
+            or parts[:2] != ("historical-input", target_date)
+            or parts[2] not in _HISTORICAL_SOURCE_FILE_NAMES
+            or relative_ref in seen_refs
+        ):
+            raise HistoricalIntakeError("historical_source_file_ref_invalid")
+        expected_bytes = descriptor["bytes"]
+        expected_sha256 = descriptor["sha256"]
+        if (
+            isinstance(expected_bytes, bool)
+            or not isinstance(expected_bytes, int)
+            or not 0 <= expected_bytes <= _MAX_HISTORICAL_SOURCE_FILE_BYTES
+            or not isinstance(expected_sha256, str)
+            or not _SHA256.fullmatch(expected_sha256)
+        ):
+            raise HistoricalIntakeError("historical_source_file_manifest_invalid")
+        total_bytes += expected_bytes
+        if total_bytes > _MAX_HISTORICAL_SOURCE_TOTAL_BYTES:
+            raise HistoricalIntakeError("historical_source_files_too_large")
+        try:
+            with open_file_beneath(data_root, relative_ref, "rb") as stream:
+                encoded = stream.read(_MAX_HISTORICAL_SOURCE_FILE_BYTES + 1)
+        except (OSError, SafeFileError) as exc:
+            raise HistoricalIntakeError("historical_source_file_unavailable") from exc
+        if len(encoded) > _MAX_HISTORICAL_SOURCE_FILE_BYTES:
+            raise HistoricalIntakeError("historical_source_file_too_large")
+        if (
+            len(encoded) != expected_bytes
+            or hashlib.sha256(encoded).hexdigest() != expected_sha256
+        ):
+            raise HistoricalIntakeError("historical_source_file_hash_mismatch")
+        try:
+            document = json.loads(encoded.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise HistoricalIntakeError("historical_source_file_invalid") from exc
+        if not isinstance(document, dict):
+            raise HistoricalIntakeError("historical_source_file_invalid")
+        documents.append(
+            HistoricalSourceDocument(
+                relative_ref=relative_ref,
+                sha256=expected_sha256,
+                document=document,
+            )
+        )
+        seen_refs.add(relative_ref)
+    return tuple(documents)
+
+
 def load_historical_work_item(
     store: MaintenanceStore,
     *,
     data_root: str | Path,
     source_launch_id: str,
+    allow_blocked: bool = False,
 ) -> HistoricalWorkItem:
-    """Verify the existing run-null job and its immutable input files for dispatch."""
+    """Verify a run-null job and its immutable inputs for dispatch or resume."""
 
+    if not isinstance(allow_blocked, bool):
+        raise HistoricalIntakeError("historical_allow_blocked_invalid")
     if not isinstance(source_launch_id, str) or not _ID.fullmatch(source_launch_id):
         raise HistoricalIntakeError("historical_source_launch_id_invalid")
     if not source_launch_id.startswith("historical-"):
@@ -407,6 +505,7 @@ def load_historical_work_item(
         references = store.list_historical_job_references(
             source_launch_id=source_launch_id,
             limit=10,
+            include_blocked=allow_blocked,
         )
         check = store.get_daily_check_by_launch(source_launch_id)
         if check is None:
@@ -438,7 +537,10 @@ def load_historical_work_item(
         or job.release_id != reference.release_id
         or job.status != reference.status
         or job.source_run_id is not None
-        or job.status not in {"queued", "running"}
+        or job.status
+        not in (
+            {"queued", "running", "blocked"} if allow_blocked else {"queued", "running"}
+        )
         or store.get_daily_launch(source_launch_id) is not None
         or store.get_worker_queue(source_launch_id) is not None
     ):
@@ -507,6 +609,11 @@ def load_historical_work_item(
         or evidence_document.get("target_date") != check.target_date
     ):
         raise HistoricalIntakeError("historical_evidence_invalid")
+    source_documents = _read_historical_source_documents(
+        root,
+        target_date=check.target_date,
+        evidence_document=evidence_document,
+    )
 
     observation_sha256 = hashlib.sha256(observation_bytes).hexdigest()
     evidence_sha256 = hashlib.sha256(evidence_bytes).hexdigest()
@@ -548,4 +655,5 @@ def load_historical_work_item(
         evidence_bytes=evidence_bytes,
         evidence_document=evidence_document,
         intake_ref=intake_ref,
+        source_documents=source_documents,
     )

@@ -2559,8 +2559,7 @@ class RepositoryRepairEvidenceResolver:
                 or plan_review_record is None
                 or plan_review_record["status"] != "approved"
                 or plan_review_record["reviewed_version"] != pin["result_version"]
-                or context.base_commit
-                != self._store.get_job_base_commit(job_id=context.job_id)
+                or context.base_commit != self._store.get_latest_deployed_commit()
                 or not isinstance(approved_plan, dict)
                 or approved_plan != supplied_plan
                 or approved_plan.get("schema_version")
@@ -2568,7 +2567,8 @@ class RepositoryRepairEvidenceResolver:
                 or approved_plan.get("identity") != expected_identity
                 or approved_plan.get("attempt_id") != plan_attempt.attempt_id
                 or pin["result_version"] != approved_plan.get("result_version")
-                or approved_plan.get("base_commit") != context.base_commit
+                or approved_plan.get("base_commit")
+                != self._store.get_job_base_commit(job_id=context.job_id)
                 or approved_plan.get("plan_status") != "ready"
                 or approved_plan.get("next_action") != "handoff"
             ):

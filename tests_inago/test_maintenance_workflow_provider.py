@@ -988,7 +988,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         *context.state["repair_setup_path"].split("/")
     )
     saved_setup = json.loads(setup_path.read_text(encoding="utf-8"))
-    assert saved_setup["base_commit"] == planning_context["base_commit"]
+    assert saved_setup["base_commit"] == store.get_latest_deployed_commit()
     assert saved_setup["plan_attempt_id"] == planning_outcome.attempt_id
     assert (
         saved_setup["owned_paths"]
