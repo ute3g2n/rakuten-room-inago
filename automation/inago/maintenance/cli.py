@@ -54,6 +54,10 @@ def _parser() -> argparse.ArgumentParser:
         "--daily-database",
         help="daily DB path used only for isolation checks (default: DATA_ROOT/state.sqlite)",
     )
+    parser.add_argument(
+        "--maintenance-id",
+        help="reuse an existing maintenance trace identity for a resumed operation",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
 
     commands.add_parser("init", help="create the management DB and initial settings")
@@ -650,7 +654,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         except MaintenanceProbeError as exc:
             _emit({"status": "failed", "reason_code": exc.code})
             return 3
-    trace = MaintenanceDiagnosticTrace(args.data_root)
+    trace = MaintenanceDiagnosticTrace(
+        args.data_root, maintenance_id=args.maintenance_id
+    )
     started = False
     try:
         trace.require_written(
