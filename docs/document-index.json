@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-18T18:20:14+09:00",
+  "generated_at": "2026-10-18T18:56:50+09:00",
   "index_path": "docs/document-index.json",
   "manifest_path": "worklogs/projects/maintenance/移行manifest.csv",
   "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
@@ -46500,7 +46500,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 360,
+      "line": 361,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46512,7 +46512,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 394,
+      "line": 395,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
@@ -46524,7 +46524,7 @@
     },
     {
       "source_id": "SRC-TESTS-TESTS-INAGO-TEST-STEP13-PY",
-      "line": 1217,
+      "line": 1218,
       "kind": "program_path",
       "status": "external_dependency",
       "reason_code": "module_or_package_specifier",
