@@ -33,10 +33,10 @@ def _period_refresh_delayed_fixture() -> str:
     )
     html = browser_fixtures.trends_with_period_picker(html)
     return html.replace(
-        "document.querySelector('#period-menu').style.display='none';}",
+        "document.querySelector('#period-menu').style.display='none';",
         "document.querySelector('#period-menu').style.display='none';"
         "setTimeout(()=>{window.__periodDataReady=true;"
-        "document.querySelector('#words').textContent='期間データ更新'},650)}",
+        "document.querySelector('#words').textContent='期間データ更新'},650)",
     )
 
 

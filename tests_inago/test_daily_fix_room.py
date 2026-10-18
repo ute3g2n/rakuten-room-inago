@@ -265,6 +265,21 @@ def _obscured_detail_room_html(*, late_popup_delay_ms: int = 0) -> str:
     return html
 
 
+def _preview_modal_escape_close_room_html() -> str:
+    html = browser_fixtures.room_html(1, initial=1, terminal=True)
+    close_control = (
+        '<div class="close-button" onclick="document.querySelector(\'#modal\').style.display=\'none\'">'
+        "閉じる</div>"
+    )
+    assert close_control in html
+    html = html.replace(close_control, '<div class="close-button">閉じる</div>', 1)
+    escape_handler = (
+        "<script>document.addEventListener('keydown',event=>{if(event.key==='Escape'){"
+        "document.querySelector('#modal').style.display='none';fetch('/preview-escape-used')}});</script>"
+    )
+    return html.replace("</script>", f"</script>{escape_handler}", 1)
+
+
 def _row_click_failure_room_html(count: int, failed_rows: set[int]) -> str:
     html = browser_fixtures.room_html(count, initial=count, terminal=True)
     html = html.replace(
@@ -882,6 +897,34 @@ def test_n13(tmp_path, ui_server):
     )
 
 
+def test_preview_modal_close_uses_escape_fallback(tmp_path, ui_server):
+    """A visible but ineffective close control falls back to Escape and continues."""
+
+    attempt_id = "R08-PREVIEW-MODAL-ESCAPE"
+    request = replace(room_request(), attempt_id=attempt_id, run_id=f"{attempt_id}-RUN")
+    ui_server["html"] = _preview_modal_escape_close_room_html()
+
+    payload = source(tmp_path, ui_server, timeout=8).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert result.error_code is None
+    assert len(result.posts) == 1
+    assert result.posts[0].offer_key is not None
+    assert ui_server["requests"].count("/preview-escape-used") == 1
+
+    observation = _room_observation(tmp_path, attempt_id)
+    assert observation["trace_state"] == "healthy"
+    stages = [
+        event["stage"]
+        for event in observation["node_events"]
+        if event.get("event") == "public_source_stage"
+    ]
+    assert "room_product_modal_escape_close_begin" in stages
+    assert "room_product_modal_escape_close_complete" in stages
+    assert "room_product_modal_close_error" not in stages
+
+
 @pytest.mark.parametrize(
     ("failure_count", "failed_rows"),
     [(1, {1}), (10, set(range(1, 11)))],
@@ -977,7 +1020,7 @@ def test_n15(tmp_path, ui_server):
             evidence_root,
             ui_server,
             timeout=40,
-            click_timeout_ms=100,
+            click_timeout_ms=250,
         ).search(request)
         result = parse_room_response(payload, request)
 

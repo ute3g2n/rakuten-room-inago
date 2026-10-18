@@ -139,6 +139,45 @@ def session(connection, clock, port, *, deadline_at=None):
     )
 
 
+@pytest.mark.parametrize("leading_symbol", ["_", "-"])
+def test_urlsafe_run_seed_accepts_base64url_leading_symbols(
+    retry_case, leading_symbol
+):
+    connection, clock = retry_case
+    value = trends.DurableGroupKeywordSession(
+        connection,
+        SequencePort([]),
+        clock,
+        run_id=RUN_ID,
+        settings_version=SETTINGS_VERSION,
+        event_kind="initial",
+        ordinal=1,
+        theme_id=THEME_ID,
+        seed=f"{leading_symbol}{'A' * 31}",
+        acquisition_id=ACQUISITION_ID,
+    )
+
+    assert value.seed.startswith(leading_symbol)
+
+
+def test_run_seed_rejects_characters_outside_persisted_seed_contract(retry_case):
+    connection, clock = retry_case
+
+    with pytest.raises(trends.TrendsContractError, match="safe persisted seed"):
+        trends.DurableGroupKeywordSession(
+            connection,
+            SequencePort([]),
+            clock,
+            run_id=RUN_ID,
+            settings_version=SETTINGS_VERSION,
+            event_kind="initial",
+            ordinal=1,
+            theme_id=THEME_ID,
+            seed="invalid/seed",
+            acquisition_id=ACQUISITION_ID,
+        )
+
+
 def attempts(connection):
     return connection.execute(
         "SELECT request_id,attempt_no,status,error_code,retry_of,next_retry_at,response_json "

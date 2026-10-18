@@ -40,6 +40,7 @@ _BROWSER_SOURCE = "google_trends_public_ui"
 _SNAPSHOT_SAVEPOINT = "inago_keyword_snapshot"
 _WHITESPACE = re.compile(r"\s+")
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
+_SAFE_SEED = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
 _SCOPED_QUERY = {
     "language": "ja",
     "geo": "JP",
@@ -247,6 +248,11 @@ def _required_text(value: object, field: str) -> str:
 def _require_safe_ref(value: str, field: str) -> None:
     if not _SAFE_REF.fullmatch(value):
         raise TrendsContractError(f"{field} is not a safe persisted reference")
+
+
+def _require_safe_seed(value: str) -> None:
+    if not _SAFE_SEED.fullmatch(value):
+        raise TrendsContractError("seed is not a safe persisted seed")
 
 
 def _aware_timestamp(value: object) -> str | None:
@@ -1920,10 +1926,10 @@ class DurableGroupKeywordSession:
             (self.run_id, "run_id"),
             (self.settings_version, "settings_version"),
             (self.theme_id, "theme_id"),
-            (self.seed, "seed"),
             (self.acquisition_id, "acquisition_id"),
         ):
             _require_safe_ref(value, field)
+        _require_safe_seed(self.seed)
         if event_kind not in {"initial", "additional"}:
             raise TrendsContractError("event_kind must be initial or additional")
         if isinstance(ordinal, bool) or not isinstance(ordinal, int) or ordinal < 1:
