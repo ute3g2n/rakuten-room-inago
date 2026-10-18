@@ -28,6 +28,7 @@ from automation.inago.maintenance.controller import (
     PlanningAttemptRequest,
 )
 from automation.inago.maintenance.detector import preclassify_daily_outcome
+from automation.inago.maintenance.diagnostic_trace import MaintenanceDiagnosticTrace
 from automation.inago.maintenance.deployment import (
     DeploymentError,
     DeploymentCoordinator,
@@ -452,6 +453,7 @@ def run_daily_repair_test_stage(
                 store,
                 repair_host_evidence_resolver=resolver,
                 repair_checkout_root=worktree_root,
+                diagnostic_trace=controller.diagnostic_trace,
             )
         evidence = repair_controller.prepare_repair_campaign(
             attempt_id=attempt.attempt_id,
@@ -698,6 +700,7 @@ def run_daily_repair_review_input_stage(
                     store,
                     repair_host_evidence_resolver=resolver,
                     repair_checkout_root=worktree_root,
+                    diagnostic_trace=controller.diagnostic_trace,
                 )
             evidence = evidence_controller.prepare_repair_campaign(
                 attempt_id=attempt.attempt_id,
@@ -1627,6 +1630,7 @@ def run_daily_repair_completion_stage(
                 repair_host_evidence_resolver=host_resolver,
                 repair_checkout_root=workflow.state["repair_worktree_root"],
                 repair_review_receipt_resolver=resolve_review_evidence,
+                diagnostic_trace=controller.diagnostic_trace,
             )
             request_context = {
                 **workflow.state["precheck_identity"],
@@ -10219,10 +10223,11 @@ def build_production_workflow_provider(
     *,
     runtime_switcher: RuntimeSwitcher | None = None,
     deployment_coordinator: DeploymentCoordinator | None = None,
+    diagnostic_trace: MaintenanceDiagnosticTrace | None = None,
 ) -> MaintenanceWorkflowProvider:
     """Build ordered production stages with deployment failing closed by default."""
 
-    controller = MaintenanceController(store)
+    controller = MaintenanceController(store, diagnostic_trace=diagnostic_trace)
     runtime_root = store.database_path.parent.parent
     exclusion_guard = FileDeploymentExclusionGuard(
         runtime_root / ".maintenance-deployment.lock"
@@ -10262,6 +10267,7 @@ def build_production_workflow_provider(
                 pending_probe=lambda: observe_pending_action_snapshot(runtime_root),
                 runtime_switcher=runtime_switcher,
                 exclusion_guard=exclusion_guard,
+                diagnostic_trace=diagnostic_trace,
             )
     except DeploymentError:
         remote_name = None

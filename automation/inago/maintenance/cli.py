@@ -386,7 +386,9 @@ def _run(
             owner_pid=os.getpid(),
             owner_start_time=current_process_start_time(),
             source_launch_id=args.source_launch_id,
-            workflow_runner=build_production_workflow_provider(store),
+            workflow_runner=build_production_workflow_provider(
+                store, diagnostic_trace=diagnostic_trace
+            ),
         )
         _emit(result.to_dict())
         return (

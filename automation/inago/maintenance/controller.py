@@ -461,6 +461,12 @@ class MaintenanceController:
         )
         self._repair_review_receipt_resolver = repair_review_receipt_resolver
 
+    @property
+    def diagnostic_trace(self) -> MaintenanceDiagnosticTrace:
+        """Return the trace shared by every stage in the current CLI operation."""
+
+        return self._diagnostic_trace
+
     @audit_maintenance_stage("daily_check")
     def record_daily_check(
         self,
