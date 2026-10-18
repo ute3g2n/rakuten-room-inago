@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 import threading
-from typing import Callable
+from typing import Callable, Protocol
 import uuid
 
 from automation.inago.maintenance.process_identity import (
@@ -19,6 +19,7 @@ from automation.inago.maintenance.process_identity import (
 from automation.inago.maintenance.store import (
     DailyCheckRecord,
     DailyLaunchRecord,
+    HistoricalJobReference,
     LeaseBusyError,
     LeaseToken,
     MaintenanceStore,
@@ -29,6 +30,17 @@ from automation.inago.maintenance.store import (
 
 ProcessProbe = Callable[[int], ProcessObservation]
 WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-18"})
+
+
+class WorkflowLaunch(Protocol):
+    source_launch_id: str
+    target_date: str
+    source_run_id: str | None
+    status: str
+
+    @property
+    def result_summary(self) -> object | None:
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +88,7 @@ class WorkerWorkflowOutcome:
 
 WorkflowRunner = Callable[
     [
-        DailyLaunchRecord,
+        WorkflowLaunch,
         DailyCheckRecord,
         WorkerQueueRecord,
         LeaseToken,
@@ -84,6 +96,37 @@ WorkflowRunner = Callable[
     ],
     WorkerWorkflowOutcome,
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class HistoricalLaunchContext:
+    """In-memory workflow identity for a historical run-null intake."""
+
+    source_launch_id: str
+    target_date: str
+    launch_status: str
+    daily_status: str
+    exit_code: int
+    reason_code: str
+    observed_at: str
+    historical_input: object
+    source_run_id: None = None
+    status: str = "failed"
+
+    @property
+    def result_summary(self) -> dict[str, object]:
+        return {
+            "schema_version": "historical-daily-completion-v1",
+            "source_launch_id": self.source_launch_id,
+            "source_run_id": None,
+            "target_date": self.target_date,
+            "status": "failed",
+            "overall_status": "failed",
+            "daily_status": self.daily_status,
+            "launch_status": self.launch_status,
+            "exit_code": self.exit_code,
+            "reason_code": self.reason_code,
+        }
 
 
 def _same_process_is_gone(
@@ -159,6 +202,7 @@ def _blocked_result(
     now: datetime,
     lease: LeaseToken | None = None,
     resolution_status: str = "blocked",
+    historical_job_id: str | None = None,
 ) -> WorkerRunResult:
     """Persist a hold and return only after its reason has been recorded."""
 
@@ -187,6 +231,36 @@ def _blocked_result(
                 reason_code="worker_lease_busy",
             )
     try:
+        if historical_job_id is not None:
+            if resolution_status == "waiting":
+                return WorkerRunResult(
+                    status="waiting",
+                    worker_job_id=historical_job_id,
+                    source_launch_id=queue.source_launch_id,
+                    check_id=check_id,
+                    reason_code=reason_code,
+                    maintenance_resolution_status="waiting",
+                )
+            try:
+                store.finalize_job(
+                    job_id=historical_job_id,
+                    final_status="blocked",
+                    lease=lease,
+                    finalized_at=(
+                        datetime.now(timezone.utc) if not owns_lease else now
+                    ),
+                    reason_code=reason_code,
+                )
+            except Exception:
+                reason_code = "historical_job_block_persist_failed"
+            return WorkerRunResult(
+                status="blocked",
+                worker_job_id=historical_job_id,
+                source_launch_id=queue.source_launch_id,
+                check_id=check_id,
+                reason_code=reason_code,
+                maintenance_resolution_status=resolution_status,
+            )
         blocked = store.block_worker_queue(
             queue_id=queue.queue_id,
             check_id=check_id,
@@ -211,6 +285,54 @@ def _blocked_result(
             )
 
 
+def _historical_queue_context(
+    reference: HistoricalJobReference,
+) -> WorkerQueueRecord:
+    """Build a transient runner input; this identity is never persisted as a queue."""
+
+    import hashlib
+
+    dispatch_id = hashlib.sha256(reference.job_id.encode("utf-8")).hexdigest()[:24]
+    return WorkerQueueRecord(
+        queue_id=f"historical-dispatch-{dispatch_id}",
+        source_launch_id=reference.source_launch_id,
+        worker_job_id=reference.job_id,
+        target_date=reference.target_date,
+        status="queued",
+        check_id=None,
+        claim_owner_id=None,
+        claim_generation=None,
+        claimed_at=None,
+        completed_at=None,
+        reason_code=None,
+        created_at=reference.created_at,
+        updated_at=reference.created_at,
+    )
+
+
+def _historical_input_failure(
+    store: MaintenanceStore,
+    reference: HistoricalJobReference,
+    *,
+    reason_code: str,
+    owner_id: str,
+    owner_pid: int,
+    owner_start_time: str,
+    now: datetime,
+) -> WorkerRunResult:
+    return _blocked_result(
+        store,
+        _historical_queue_context(reference),
+        check_id=None,
+        reason_code=reason_code,
+        owner_id=owner_id,
+        owner_pid=owner_pid,
+        owner_start_time=owner_start_time,
+        now=now,
+        historical_job_id=reference.job_id,
+    )
+
+
 def run_worker_once(
     store: MaintenanceStore,
     *,
@@ -232,26 +354,104 @@ def run_worker_once(
     if process_start is None:
         raise MaintenanceStoreError("process_start_time_unavailable")
 
+    automatic_selection = source_launch_id is None
     queue = (
         store.get_worker_queue(source_launch_id)
-        if source_launch_id is not None
+        if not automatic_selection
         else _next_queued_worker_queue(store)
     )
+    historical_item = None
+    historical_reference = None
+    if automatic_selection and (
+        queue is None or queue.target_date in WORKER_DISPATCH_EXCLUDED_DATES
+    ):
+        references = store.list_historical_job_references(
+            limit=1,
+            exclude_target_dates=WORKER_DISPATCH_EXCLUDED_DATES,
+        )
+        if references:
+            historical_reference = references[0]
+        elif queue is None:
+            historical_references = store.list_historical_job_references(limit=1)
+            if historical_references:
+                historical_reference = historical_references[0]
+    elif queue is None:
+        historical_references = store.list_historical_job_references(
+            source_launch_id=source_launch_id,
+            limit=1,
+        )
+        if historical_references:
+            historical_reference = historical_references[0]
+
+    if historical_reference is not None:
+        if historical_reference.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
+            return _historical_input_failure(
+                store,
+                historical_reference,
+                reason_code="target_date_worker_dispatch_disabled",
+                owner_id=owner,
+                owner_pid=pid,
+                owner_start_time=process_start,
+                now=now,
+            )
+        try:
+            from automation.inago.maintenance.historical import (
+                load_historical_work_item,
+            )
+
+            historical_item = load_historical_work_item(
+                store,
+                data_root=store.database_path.parent.parent,
+                source_launch_id=historical_reference.source_launch_id,
+            )
+        except Exception as exc:
+            reason_code = getattr(exc, "code", None)
+            if (
+                not isinstance(reason_code, str)
+                or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", reason_code) is None
+            ):
+                reason_code = "historical_job_input_invalid"
+            return _historical_input_failure(
+                store,
+                historical_reference,
+                reason_code=reason_code,
+                owner_id=owner,
+                owner_pid=pid,
+                owner_start_time=process_start,
+                now=now,
+            )
+        queue = _historical_queue_context(historical_reference)
+
     if queue is None:
         if source_launch_id is not None:
             launch = store.get_daily_launch(source_launch_id)
-            if launch is not None and launch.status == "running":
+            if (
+                historical_item is None
+                and launch is not None
+                and launch.status == "running"
+            ):
                 return WorkerRunResult(
                     status="waiting",
                     source_launch_id=launch.source_launch_id,
                     reason_code="daily_launch_running",
                 )
-        return WorkerRunResult(status="idle")
+        if queue is None:
+            return WorkerRunResult(status="idle")
     if queue.status == "complete":
         return _result(queue, duplicate=True)
     if queue.status != "queued":
         return _result(queue, duplicate=False)
     if queue.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
+        if historical_reference is not None:
+            return _historical_input_failure(
+                store,
+                historical_reference,
+                reason_code="target_date_worker_dispatch_disabled",
+                owner_id=owner,
+                owner_pid=pid,
+                owner_start_time=process_start,
+                now=now,
+            )
         return WorkerRunResult(
             status="blocked",
             worker_job_id=queue.worker_job_id,
@@ -260,35 +460,51 @@ def run_worker_once(
             reason_code="target_date_worker_dispatch_disabled",
         )
 
-    launch = store.get_daily_launch(queue.source_launch_id)
-    if launch is None or launch.target_date != queue.target_date:
-        return _blocked_result(
-            store,
-            queue,
-            check_id=None,
-            reason_code="worker_launch_identity_invalid",
-            owner_id=owner,
-            owner_pid=pid,
-            owner_start_time=process_start,
-            now=now,
+    historical_job_id = (
+        historical_item.job.job_id if historical_item is not None else None
+    )
+    if historical_item is None:
+        launch = store.get_daily_launch(queue.source_launch_id)
+        if launch is None or launch.target_date != queue.target_date:
+            return _blocked_result(
+                store,
+                queue,
+                check_id=None,
+                reason_code="worker_launch_identity_invalid",
+                owner_id=owner,
+                owner_pid=pid,
+                owner_start_time=process_start,
+                now=now,
+            )
+        if launch.status == "running":
+            return WorkerRunResult(
+                status="waiting",
+                worker_job_id=queue.worker_job_id,
+                queue_id=queue.queue_id,
+                source_launch_id=queue.source_launch_id,
+                reason_code="daily_launch_running",
+            )
+        if not _launch_processes_stopped(launch, process_probe):
+            return WorkerRunResult(
+                status="waiting",
+                worker_job_id=queue.worker_job_id,
+                queue_id=queue.queue_id,
+                source_launch_id=queue.source_launch_id,
+                reason_code="daily_launch_process_state_unconfirmed",
+            )
+        check = store.get_daily_check_by_launch(queue.source_launch_id)
+    else:
+        launch = HistoricalLaunchContext(
+            source_launch_id=historical_item.source_launch_id,
+            target_date=historical_item.target_date,
+            launch_status=str(historical_item.observation["launch_status"]),
+            daily_status=str(historical_item.observation["daily_status"]),
+            exit_code=int(historical_item.observation["exit_code"]),
+            reason_code=str(historical_item.observation["reason_code"]),
+            observed_at=str(historical_item.observation["observed_at"]),
+            historical_input=historical_item,
         )
-    if launch.status == "running":
-        return WorkerRunResult(
-            status="waiting",
-            worker_job_id=queue.worker_job_id,
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
-            reason_code="daily_launch_running",
-        )
-    if not _launch_processes_stopped(launch, process_probe):
-        return WorkerRunResult(
-            status="waiting",
-            worker_job_id=queue.worker_job_id,
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
-            reason_code="daily_launch_process_state_unconfirmed",
-        )
-    check = store.get_daily_check_by_launch(queue.source_launch_id)
+        check = historical_item.check
     if check is None or check.target_date != queue.target_date:
         return _blocked_result(
             store,
@@ -299,6 +515,7 @@ def run_worker_once(
             owner_pid=pid,
             owner_start_time=process_start,
             now=now,
+            historical_job_id=historical_job_id,
         )
     non_actionable_unknown = (
         check.check_status == "unknown"
@@ -330,6 +547,7 @@ def run_worker_once(
             owner_pid=pid,
             owner_start_time=process_start,
             now=now,
+            historical_job_id=historical_job_id,
         )
 
     requires_workflow = check.check_status in {"abnormal", "incomplete"}
@@ -343,6 +561,7 @@ def run_worker_once(
             owner_pid=pid,
             owner_start_time=process_start,
             now=now,
+            historical_job_id=historical_job_id,
         )
 
     try:
@@ -358,7 +577,7 @@ def run_worker_once(
         return WorkerRunResult(
             status="busy",
             worker_job_id=queue.worker_job_id,
-            queue_id=queue.queue_id,
+            queue_id=None if historical_job_id is not None else queue.queue_id,
             source_launch_id=queue.source_launch_id,
             reason_code="worker_lease_busy",
         )
@@ -415,6 +634,7 @@ def run_worker_once(
                     owner_start_time=process_start,
                     now=now,
                     lease=lease,
+                    historical_job_id=historical_job_id,
                 )
             if heartbeat_errors:
                 return _blocked_result(
@@ -427,6 +647,7 @@ def run_worker_once(
                     owner_start_time=process_start,
                     now=now,
                     lease=lease,
+                    historical_job_id=historical_job_id,
                 )
             if not isinstance(outcome, WorkerWorkflowOutcome):
                 return _blocked_result(
@@ -439,6 +660,7 @@ def run_worker_once(
                     owner_start_time=process_start,
                     now=now,
                     lease=lease,
+                    historical_job_id=historical_job_id,
                 )
             if outcome.status != "complete":
                 resolution_status = (
@@ -456,6 +678,7 @@ def run_worker_once(
                     now=now,
                     lease=lease,
                     resolution_status=resolution_status,
+                    historical_job_id=historical_job_id,
                 )
                 return (
                     WorkerRunResult(
@@ -481,10 +704,41 @@ def run_worker_once(
                     owner_start_time=process_start,
                     now=now,
                     lease=lease,
+                    historical_job_id=historical_job_id,
                 )
             resolution_status = "complete"
 
         completed_at = datetime.now(timezone.utc) if requires_workflow else now
+        if historical_item is not None:
+            completed_jobs = store.list_workflow_jobs_for_launch(
+                source_launch_id=historical_item.source_launch_id,
+                source_run_id=None,
+                target_date=historical_item.target_date,
+            )
+            if (
+                len(completed_jobs) != 1
+                or completed_jobs[0].job_id != historical_item.job.job_id
+                or completed_jobs[0].status != "complete"
+            ):
+                return _blocked_result(
+                    store,
+                    queue,
+                    check_id=check.check_id,
+                    reason_code="historical_job_completion_unconfirmed",
+                    owner_id=owner,
+                    owner_pid=pid,
+                    owner_start_time=process_start,
+                    now=now,
+                    lease=lease,
+                    historical_job_id=historical_item.job.job_id,
+                )
+            return WorkerRunResult(
+                status="maintenance_complete",
+                worker_job_id=historical_item.job.job_id,
+                source_launch_id=historical_item.source_launch_id,
+                check_id=check.check_id,
+                maintenance_resolution_status="complete",
+            )
         completed = store.complete_worker_queue(
             queue_id=queue.queue_id,
             check_id=check.check_id,
@@ -518,33 +772,60 @@ def dispatch_ready_worker(
     process_probe: ProcessProbe = observe_process,
     task_runner: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
 ) -> WorkerDispatchResult:
-    """Start the on-demand worker for one completed launch whose owners stopped."""
+    """Start the worker for a stopped daily launch or a queued historical job."""
 
     queue = _next_queued_worker_queue(store)
-    if queue is None:
-        return WorkerDispatchResult(status="idle")
-    if queue.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
+    historical_reference = None
+    if queue is None or queue.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
+        references = store.list_historical_job_references(
+            limit=1,
+            exclude_target_dates=WORKER_DISPATCH_EXCLUDED_DATES,
+        )
+        if references:
+            historical_reference = references[0]
+            queue = None
+        elif queue is None:
+            excluded_references = store.list_historical_job_references(limit=1)
+            if not excluded_references:
+                return WorkerDispatchResult(status="idle")
+            excluded_reference = excluded_references[0]
+            return WorkerDispatchResult(
+                status="blocked",
+                source_launch_id=excluded_reference.source_launch_id,
+                reason_code="target_date_worker_dispatch_disabled",
+            )
+    if historical_reference is not None:
+        source_launch_id = historical_reference.source_launch_id
+        target_date = historical_reference.target_date
+    else:
+        if queue is None:
+            return WorkerDispatchResult(status="idle")
+        source_launch_id = queue.source_launch_id
+        target_date = queue.target_date
+    queue_id = queue.queue_id if queue is not None else None
+    if target_date in WORKER_DISPATCH_EXCLUDED_DATES:
         return WorkerDispatchResult(
             status="blocked",
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
+            queue_id=queue_id,
+            source_launch_id=source_launch_id,
             reason_code="target_date_worker_dispatch_disabled",
         )
-    launch = store.get_daily_launch(queue.source_launch_id)
-    if launch is None or launch.status == "running":
-        return WorkerDispatchResult(
-            status="waiting",
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
-            reason_code="daily_launch_running",
-        )
-    if not _launch_processes_stopped(launch, process_probe):
-        return WorkerDispatchResult(
-            status="waiting",
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
-            reason_code="daily_launch_process_state_unconfirmed",
-        )
+    if historical_reference is None:
+        launch = store.get_daily_launch(source_launch_id)
+        if launch is None or launch.status == "running":
+            return WorkerDispatchResult(
+                status="waiting",
+                queue_id=queue_id,
+                source_launch_id=source_launch_id,
+                reason_code="daily_launch_running",
+            )
+        if not _launch_processes_stopped(launch, process_probe):
+            return WorkerDispatchResult(
+                status="waiting",
+                queue_id=queue_id,
+                source_launch_id=source_launch_id,
+                reason_code="daily_launch_process_state_unconfirmed",
+            )
     try:
         completed = task_runner(
             ["schtasks.exe", "/Run", "/TN", "RakutenRoomInagoWorker"],
@@ -558,19 +839,19 @@ def dispatch_ready_worker(
     except (OSError, subprocess.TimeoutExpired):
         return WorkerDispatchResult(
             status="unavailable",
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
+            queue_id=queue_id,
+            source_launch_id=source_launch_id,
             reason_code="worker_task_start_unavailable",
         )
     if completed.returncode != 0:
         return WorkerDispatchResult(
             status="unavailable",
-            queue_id=queue.queue_id,
-            source_launch_id=queue.source_launch_id,
+            queue_id=queue_id,
+            source_launch_id=source_launch_id,
             reason_code="worker_task_not_registered",
         )
     return WorkerDispatchResult(
         status="dispatched",
-        queue_id=queue.queue_id,
-        source_launch_id=queue.source_launch_id,
+        queue_id=queue_id,
+        source_launch_id=source_launch_id,
     )

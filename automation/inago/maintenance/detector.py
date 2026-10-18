@@ -400,7 +400,10 @@ def preclassify_daily_outcome(
     phase_results, trace_event_count, trace_count_valid = _phase_results(daily_result)
     violations: list[str] = []
     if completion is not None:
-        if completion.get("schema_version") != "daily-launch-completion-v1":
+        if completion.get("schema_version") not in {
+            "daily-launch-completion-v1",
+            "historical-daily-completion-v1",
+        }:
             violations.append("status_mismatch")
         if completion.get("source_launch_id") != expected_launch_id:
             violations.append("identity_mismatch")
@@ -415,7 +418,11 @@ def preclassify_daily_outcome(
         if daily_schema_version is not None and (
             not isinstance(daily_schema_version, str)
             or daily_schema_version
-            not in {"daily-result-observation-v1", "daily-run-result-v1"}
+            not in {
+                "daily-result-observation-v1",
+                "daily-run-result-v1",
+                "historical-daily-intake-v1",
+            }
         ):
             violations.append("status_mismatch")
         raw_overall = daily_result.get("overall_status", daily_result.get("status"))

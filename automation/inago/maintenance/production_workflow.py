@@ -153,6 +153,23 @@ def _repository_head() -> str:
 def _precheck_identity(context: MaintenanceWorkflowContext) -> dict[str, Any]:
     launch_id = context.launch.source_launch_id
     suffix = hashlib.sha256(launch_id.encode("utf-8")).hexdigest()[:24]
+    historical = context.historical_input
+    if historical is not None:
+        return {
+            "incident_id": historical.job.incident_id,
+            "source_launch_id": launch_id,
+            "source_run_id": None,
+            "target_date": context.launch.target_date,
+            "job_id": historical.job.job_id,
+            "attempt_id": f"attempt-precheck-{suffix}",
+            "base_commit": _repository_head(),
+            "input_refs": [
+                historical.intake_ref,
+                historical.observation_ref,
+                historical.evidence_ref,
+            ],
+            "evidence_refs": [],
+        }
     return {
         "incident_id": f"incident-precheck-{suffix}",
         "source_launch_id": launch_id,
@@ -166,6 +183,73 @@ def _precheck_identity(context: MaintenanceWorkflowContext) -> dict[str, Any]:
             f"daily-result-observation/{launch_id}",
         ],
         "evidence_refs": [],
+    }
+
+
+def _workflow_input_refs(
+    workflow: MaintenanceWorkflowContext,
+    identity: dict[str, Any],
+) -> list[str]:
+    """Return the launch or verified historical inputs bound to this workflow."""
+
+    launch = workflow.launch
+    historical = workflow.historical_input
+    if historical is None:
+        expected = [
+            f"daily-launch/{launch.source_launch_id}",
+            f"daily-result-observation/{launch.source_launch_id}",
+        ]
+    else:
+        expected = [
+            historical.intake_ref,
+            historical.observation_ref,
+            historical.evidence_ref,
+        ]
+        if (
+            historical.source_launch_id != launch.source_launch_id
+            or historical.target_date != launch.target_date
+            or historical.check != workflow.check
+            or historical.job.job_id != identity.get("job_id")
+            or historical.job.incident_id != identity.get("incident_id")
+            or launch.source_run_id is not None
+            or identity.get("source_run_id") is not None
+        ):
+            raise MaintenanceStoreError("historical_input_identity_mismatch")
+        if historical.manifest.identity() != {
+            key: identity.get(key) for key in historical.manifest.identity()
+        }:
+            raise MaintenanceStoreError("historical_manifest_identity_mismatch")
+
+    if (
+        identity.get("source_launch_id") != launch.source_launch_id
+        or identity.get("target_date") != launch.target_date
+        or identity.get("source_run_id") != launch.source_run_id
+        or ("input_refs" in identity and identity.get("input_refs") != expected)
+    ):
+        raise MaintenanceStoreError("workflow_input_identity_mismatch")
+    return expected
+
+
+def _historical_preclassification_input(
+    workflow: MaintenanceWorkflowContext,
+) -> dict[str, Any]:
+    """Build an in-memory classifier input from the verified historical receipt."""
+
+    historical = workflow.historical_input
+    if historical is None:
+        raise MaintenanceStoreError("historical_workflow_input_missing")
+    observation = historical.observation
+    return {
+        "schema_version": "historical-daily-intake-v1",
+        "source_launch_id": workflow.launch.source_launch_id,
+        "source_run_id": None,
+        "target_date": workflow.launch.target_date,
+        "overall_status": "failed",
+        "status": "failed",
+        "daily_status": observation["daily_status"],
+        "launch_status": observation["launch_status"],
+        "exit_code": observation["exit_code"],
+        "reason_code": observation["reason_code"],
     }
 
 
@@ -202,21 +286,37 @@ def run_daily_check_incident_stage(
             status="blocked",
             reason_code="daily_launch_summary_unavailable",
         )
-    observation = store.get_daily_result_observation(launch.source_launch_id)
-    if observation is None:
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="daily_result_observation_missing",
-        )
-    if (
-        observation.target_date != launch.target_date
-        or observation.source_run_id != launch.source_run_id
-        or check.source_run_id != launch.source_run_id
-    ):
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="daily_result_observation_identity_mismatch",
-        )
+    historical = workflow.historical_input
+    if historical is None:
+        observation = store.get_daily_result_observation(launch.source_launch_id)
+        if observation is None:
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="daily_result_observation_missing",
+            )
+        if (
+            observation.target_date != launch.target_date
+            or observation.source_run_id != launch.source_run_id
+            or check.source_run_id != launch.source_run_id
+        ):
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="daily_result_observation_identity_mismatch",
+            )
+        daily_result = observation.observation
+    else:
+        if (
+            historical.source_launch_id != launch.source_launch_id
+            or historical.target_date != launch.target_date
+            or historical.check != check
+            or launch.source_run_id is not None
+            or check.source_run_id is not None
+        ):
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="historical_job_identity_mismatch",
+            )
+        daily_result = _historical_preclassification_input(workflow)
 
     checked_at = datetime.now(timezone.utc)
     try:
@@ -224,7 +324,7 @@ def run_daily_check_incident_stage(
             expected_target_date=launch.target_date,
             expected_source_launch_id=launch.source_launch_id,
             completion=launch.result_summary,
-            daily_result=observation.observation,
+            daily_result=daily_result,
             evidence_manifest=None,
             checked_at=checked_at,
         )
@@ -252,6 +352,14 @@ def run_daily_check_incident_stage(
         stage_context = _precheck_identity(workflow)
     except MaintenanceStoreError as exc:
         return WorkflowStageResult(status="blocked", reason_code=exc.code)
+    if historical is not None:
+        stage_context["incident_id"] = historical.job.incident_id
+        stage_context["check_id"] = check.check_id
+        stage_context["job_id"] = historical.job.job_id
+        workflow.state["incident_id"] = historical.job.incident_id
+        workflow.state["check_id"] = check.check_id
+        workflow.state["precheck_identity"] = stage_context
+        return WorkflowStageResult(status="complete")
     reason_digest = hashlib.sha256(
         f"{launch.source_launch_id}\0daily_failure_observed".encode("utf-8")
     ).hexdigest()[:24]
@@ -1346,6 +1454,7 @@ def run_daily_repair_completion_stage(
                 )
                 handoff, handoff_path, handoff_sha256 = _ensure_daily_repair_handoff(
                     store=store,
+                    workflow=workflow,
                     attempt=latest,
                     identity=manifest_identity,
                     result_document=result_document,
@@ -1579,6 +1688,7 @@ def run_daily_repair_completion_stage(
                 )
                 handoff, handoff_path, handoff_sha256 = _ensure_daily_repair_handoff(
                     store=store,
+                    workflow=workflow,
                     attempt=completed_attempt,
                     identity=manifest_identity,
                     result_document=result_document,
@@ -1673,67 +1783,110 @@ def run_daily_evidence_stage(
             reason_code="daily_evidence_incident_identity_missing",
         )
 
-    try:
-        observation = store.get_daily_result_observation(launch.source_launch_id)
-    except Exception as exc:
-        code = getattr(exc, "code", None)
-        if not isinstance(code, str):
-            code = "daily_result_observation_unavailable"
-        return WorkflowStageResult(status="blocked", reason_code=code)
-    if observation is None:
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="daily_result_observation_missing",
+    shard = hashlib.sha256(launch.source_launch_id.encode("utf-8")).hexdigest()[:24]
+    historical = workflow.historical_input
+    sources: list[EvidenceSource] = []
+    source_payloads: dict[str, bytes] = {}
+    if historical is not None:
+        if (
+            historical.source_launch_id != launch.source_launch_id
+            or historical.target_date != launch.target_date
+            or launch.source_run_id is not None
+        ):
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="historical_job_identity_mismatch",
+            )
+        observation_document = dict(historical.observation)
+        captured_at = str(historical.observation["observed_at"])
+        observation_path = "historical-intake-observation.jsonl"
+        sources.append(
+            EvidenceSource(
+                class_id="L02",
+                source_ref=f"historical-intake-observation-{shard}",
+                relative_path=observation_path,
+                format="jsonl",
+                source_timezone="Asia/Tokyo",
+                retention_status="unknown",
+                present_at_discovery=True,
+            )
         )
-    if (
-        observation.target_date != launch.target_date
-        or observation.source_run_id != launch.source_run_id
-        or observation.source_launch_id != launch.source_launch_id
-    ):
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="daily_result_observation_identity_mismatch",
+        source_payloads["historical-source-evidence.json"] = historical.evidence_bytes
+        sources.append(
+            EvidenceSource(
+                class_id="L03",
+                source_ref=f"historical-source-evidence-{shard}",
+                relative_path="historical-source-evidence.json",
+                format="json",
+                source_timezone="Asia/Tokyo",
+                retention_status="unknown",
+                present_at_discovery=True,
+            )
         )
+    else:
+        observation_path = "daily-result-observation.jsonl"
+        sources.append(
+            EvidenceSource(
+                class_id="L02",
+                source_ref=f"daily-observation-{shard}",
+                relative_path=observation_path,
+                format="jsonl",
+                source_timezone="UTC",
+                retention_status="unknown",
+                present_at_discovery=True,
+            )
+        )
+        try:
+            observation = store.get_daily_result_observation(launch.source_launch_id)
+        except Exception as exc:
+            code = getattr(exc, "code", None)
+            if not isinstance(code, str):
+                code = "daily_result_observation_unavailable"
+            return WorkflowStageResult(status="blocked", reason_code=code)
+        if observation is None:
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="daily_result_observation_missing",
+            )
+        if (
+            observation.target_date != launch.target_date
+            or observation.source_run_id != launch.source_run_id
+            or observation.source_launch_id != launch.source_launch_id
+        ):
+            return WorkflowStageResult(
+                status="blocked",
+                reason_code="daily_result_observation_identity_mismatch",
+            )
+        observation_document = dict(observation.observation)
+        captured_at = observation.captured_at
+    source_payloads[observation_path] = (
+        json.dumps(
+            observation_document,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+        )
+        + "\n"
+    ).encode("utf-8")
 
     output_root = store.database_path.parent / "evidence"
-    shard = hashlib.sha256(launch.source_launch_id.encode("utf-8")).hexdigest()[:24]
     output_parent = output_root / launch.target_date
     output_path = output_parent / shard
     try:
         output_parent.mkdir(parents=True, exist_ok=True)
-        source_document = (
-            json.dumps(
-                dict(observation.observation),
-                ensure_ascii=False,
-                allow_nan=False,
-                sort_keys=True,
-            )
-            + "\n"
-        ).encode("utf-8")
         with tempfile.TemporaryDirectory(
             prefix=".daily-observation-", dir=output_parent
         ) as source_root:
-            with open_file_beneath(
-                source_root, "daily-result-observation.jsonl", "xb"
-            ) as stream:
-                stream.write(source_document)
-                stream.flush()
-                os.fsync(stream.fileno())
+            for relative_path, content in source_payloads.items():
+                with open_file_beneath(source_root, relative_path, "xb") as stream:
+                    stream.write(content)
+                    stream.flush()
+                    os.fsync(stream.fileno())
             collection = collect_evidence(
                 source_root=source_root,
-                sources=(
-                    EvidenceSource(
-                        class_id="L02",
-                        source_ref=f"daily-observation-{shard}",
-                        relative_path="daily-result-observation.jsonl",
-                        format="jsonl",
-                        source_timezone="UTC",
-                        retention_status="unknown",
-                        present_at_discovery=True,
-                    ),
-                ),
+                sources=tuple(sources),
                 target_date=launch.target_date,
-                captured_at=observation.captured_at,
+                captured_at=captured_at,
                 correlation={
                     "source_launch_id": launch.source_launch_id,
                     "source_run_id": launch.source_run_id,
@@ -2195,10 +2348,10 @@ def _investigation_context(
     if not isinstance(identity, dict) or not isinstance(evidence_ref, str):
         raise MaintenanceAIBlockedError("investigation_context_missing")
 
-    expected_inputs = [
-        f"daily-launch/{workflow.launch.source_launch_id}",
-        f"daily-result-observation/{workflow.launch.source_launch_id}",
-    ]
+    try:
+        expected_inputs = _workflow_input_refs(workflow, identity)
+    except MaintenanceStoreError as exc:
+        raise MaintenanceAIBlockedError(exc.code) from exc
     if identity.get("input_refs") != expected_inputs:
         raise MaintenanceAIBlockedError("investigation_input_refs_mismatch")
     if identity.get("evidence_refs") != [evidence_ref]:
@@ -4328,6 +4481,7 @@ def _daily_repair_artifact_ref(
 def _ensure_daily_repair_handoff(
     *,
     store: MaintenanceStore,
+    workflow: MaintenanceWorkflowContext,
     attempt,
     identity: dict[str, Any],
     result_document: dict[str, Any],
@@ -5321,10 +5475,7 @@ def _ensure_daily_repair_handoff(
         **identity,
         "attempt_id": attempt_id,
         "base_commit": setup["base_commit"],
-        "input_refs": [
-            f"daily-launch/{launch_id}",
-            f"daily-result-observation/{launch_id}",
-        ],
+        "input_refs": _workflow_input_refs(workflow, identity),
         "evidence_refs": [
             f"evidence/{identity['target_date']}/{evidence_shard}/manifest.json"
         ],
@@ -5411,6 +5562,7 @@ def prepare_daily_deployment_candidate_stage(
         )
         handoff, handoff_path, handoff_sha256 = _ensure_daily_repair_handoff(
             store=store,
+            workflow=workflow,
             attempt=attempt,
             identity=identity,
             result_document=result_document,
@@ -5595,10 +5747,7 @@ def prepare_daily_deployment_candidate_stage(
             **identity,
             "attempt_id": attempt.attempt_id,
             "base_commit": base_commit,
-            "input_refs": [
-                f"daily-launch/{launch_id}",
-                f"daily-result-observation/{launch_id}",
-            ],
+            "input_refs": _workflow_input_refs(workflow, identity),
             "evidence_refs": [
                 f"evidence/{identity['target_date']}/{shard}/manifest.json"
             ],
@@ -5819,10 +5968,7 @@ def run_daily_deployment_execution_stage(
             **identity,
             "attempt_id": attempt_id,
             "base_commit": base_commit,
-            "input_refs": [
-                f"daily-launch/{workflow.launch.source_launch_id}",
-                f"daily-result-observation/{workflow.launch.source_launch_id}",
-            ],
+            "input_refs": _workflow_input_refs(workflow, identity),
             "evidence_refs": [
                 f"evidence/{workflow.launch.target_date}/{evidence_shard}/manifest.json"
             ],
@@ -6192,6 +6338,7 @@ def prepare_daily_report_inputs_stage(
         )
         handoff, handoff_path, handoff_sha256 = _ensure_daily_repair_handoff(
             store=store,
+            workflow=workflow,
             attempt=repair,
             identity=identity,
             result_document=repair_result,
@@ -6412,10 +6559,7 @@ def prepare_daily_report_inputs_stage(
                 else None
             ),
         }
-        input_refs = {
-            f"daily-launch/{identity['source_launch_id']}",
-            f"daily-result-observation/{identity['source_launch_id']}",
-        }
+        input_refs = set(_workflow_input_refs(workflow, identity))
         evidence_refs = {evidence_ref}
         for ref in artifacts.values():
             if ref is not None:

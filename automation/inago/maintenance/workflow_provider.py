@@ -6,10 +6,10 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 import re
 import threading
+from typing import TYPE_CHECKING
 
 from automation.inago.maintenance.store import (
     DailyCheckRecord,
-    DailyLaunchRecord,
     LeaseToken,
     MaintenanceJobRecord,
     MaintenanceStore,
@@ -18,8 +18,12 @@ from automation.inago.maintenance.store import (
 )
 from automation.inago.maintenance.worker import (
     WORKER_DISPATCH_EXCLUDED_DATES,
+    WorkflowLaunch,
     WorkerWorkflowOutcome,
 )
+
+if TYPE_CHECKING:
+    from automation.inago.maintenance.historical import HistoricalWorkItem
 
 
 WORKFLOW_STAGE_ORDER = (
@@ -66,13 +70,14 @@ class WorkflowResumeState:
 class MaintenanceWorkflowContext:
     """Identity-bound inputs shared by the ordered stage handlers."""
 
-    launch: DailyLaunchRecord
+    launch: WorkflowLaunch
     check: DailyCheckRecord
     queue: WorkerQueueRecord
     lease: LeaseToken
     cancel_event: threading.Event
     resume_state: WorkflowResumeState
     state: dict[str, object] = field(default_factory=dict)
+    historical_input: HistoricalWorkItem | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,12 +109,13 @@ class MaintenanceWorkflowProvider:
 
     def __call__(
         self,
-        launch: DailyLaunchRecord,
+        launch: WorkflowLaunch,
         check: DailyCheckRecord,
         queue: WorkerQueueRecord,
         lease: LeaseToken,
         cancel_event: threading.Event,
     ) -> WorkerWorkflowOutcome:
+        historical_input = getattr(launch, "historical_input", None)
         if self._configuration_error is not None:
             return WorkerWorkflowOutcome(
                 status="blocked",
@@ -124,6 +130,19 @@ class MaintenanceWorkflowProvider:
             or check.source_run_id != launch.source_run_id
             or queue.check_id not in {None, check.check_id}
             or queue.status != "queued"
+            or (
+                historical_input is not None
+                and (
+                    getattr(historical_input, "source_launch_id", None)
+                    != launch.source_launch_id
+                    or getattr(historical_input, "target_date", None)
+                    != launch.target_date
+                    or getattr(historical_input, "check", None) != check
+                    or getattr(getattr(historical_input, "job", None), "job_id", None)
+                    != queue.worker_job_id
+                    or launch.source_run_id is not None
+                )
+            )
         ):
             return WorkerWorkflowOutcome(
                 status="blocked",
@@ -156,6 +175,16 @@ class MaintenanceWorkflowProvider:
                     reason_code="maintenance_workflow_job_ambiguous",
                 )
             job = jobs[0] if jobs else None
+            if historical_input is not None and (
+                job is None
+                or job.job_id != queue.worker_job_id
+                or job.status not in {"queued", "running"}
+            ):
+                return WorkerWorkflowOutcome(
+                    status="blocked",
+                    check_id=check.check_id,
+                    reason_code="maintenance_workflow_job_identity_mismatch",
+                )
             attempts = (
                 self._store.list_step_attempts(job_id=job.job_id)
                 if job is not None
@@ -191,6 +220,7 @@ class MaintenanceWorkflowProvider:
             lease=lease,
             cancel_event=cancel_event,
             resume_state=WorkflowResumeState(job=job, attempts=attempts),
+            historical_input=historical_input,
         )
         if job is not None and job.status == "complete":
             if cancel_event.is_set():

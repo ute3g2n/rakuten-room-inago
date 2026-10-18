@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -17,7 +18,15 @@ from automation.inago.maintenance.safe_file import (
     open_file_beneath,
     unlink_file_beneath,
 )
-from automation.inago.maintenance.store import IdempotencyConflictError
+from automation.inago.maintenance.store import (
+    DailyCheckRecord,
+    HistoricalJobReference,
+    IdempotencyConflictError,
+    JobInputManifest,
+    MaintenanceJobRecord,
+    MaintenanceStore,
+    MaintenanceStoreError,
+)
 
 
 _OBSERVATION_KEYS = {
@@ -38,6 +47,46 @@ _CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _MAX_OBSERVATION_BYTES = 64 * 1024
 _MAX_EVIDENCE_BYTES = 8 * 1024 * 1024
+_INTAKE_RECORD_KEYS = {
+    "schema_version",
+    "original_source_launch_id",
+    "maintenance_source_launch_id",
+    "source_run_id",
+    "target_date",
+    "launch_status",
+    "daily_status",
+    "exit_code",
+    "reason_code",
+    "evidence_ref",
+    "evidence_sha256",
+    "observation_sha256",
+    "release_id",
+    "check_id",
+    "incident_id",
+    "job_id",
+    "manifest_sha256",
+    "enqueued_at",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class HistoricalWorkItem:
+    """Verified file and store bindings for one run-null maintenance job."""
+
+    source_launch_id: str
+    target_date: str
+    check: DailyCheckRecord
+    job: MaintenanceJobRecord
+    manifest: JobInputManifest
+    intake_record: Mapping[str, Any]
+    intake_record_bytes: bytes
+    observation: Mapping[str, Any]
+    observation_ref: str
+    observation_bytes: bytes
+    evidence_ref: str
+    evidence_bytes: bytes
+    evidence_document: Mapping[str, Any]
+    intake_ref: str
 
 
 class HistoricalIntakeError(ValueError):
@@ -311,3 +360,192 @@ def enqueue_historical_observation(
         "evidence_created": record_created,
         "duplicate": not check.created or not job.started,
     }
+
+
+def _read_historical_json(
+    data_root: Path,
+    relative_path: str,
+    *,
+    max_bytes: int,
+    unavailable_code: str,
+    size_code: str,
+    invalid_code: str,
+) -> tuple[dict[str, Any], bytes]:
+    relative = _safe_relative_path(relative_path)
+    try:
+        with open_file_beneath(data_root, relative, "rb") as stream:
+            encoded = stream.read(max_bytes + 1)
+    except (OSError, SafeFileError) as exc:
+        raise HistoricalIntakeError(unavailable_code) from exc
+    if len(encoded) > max_bytes:
+        raise HistoricalIntakeError(size_code)
+    try:
+        value = json.loads(encoded.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HistoricalIntakeError(invalid_code) from exc
+    if not isinstance(value, dict):
+        raise HistoricalIntakeError(invalid_code)
+    return value, encoded
+
+
+def load_historical_work_item(
+    store: MaintenanceStore,
+    *,
+    data_root: str | Path,
+    source_launch_id: str,
+) -> HistoricalWorkItem:
+    """Verify the existing run-null job and its immutable input files for dispatch."""
+
+    if not isinstance(source_launch_id, str) or not _ID.fullmatch(source_launch_id):
+        raise HistoricalIntakeError("historical_source_launch_id_invalid")
+    if not source_launch_id.startswith("historical-"):
+        raise HistoricalIntakeError("historical_source_launch_id_invalid")
+    root = Path(data_root).expanduser().resolve(strict=True)
+    _assert_no_reparse_components(root)
+
+    try:
+        references = store.list_historical_job_references(
+            source_launch_id=source_launch_id,
+            limit=10,
+        )
+        check = store.get_daily_check_by_launch(source_launch_id)
+        if check is None:
+            raise HistoricalIntakeError("historical_check_missing")
+        jobs = store.list_workflow_jobs_for_launch(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=check.target_date,
+        )
+    except HistoricalIntakeError:
+        raise
+    except Exception as exc:
+        raise HistoricalIntakeError("historical_job_identity_unavailable") from exc
+
+    if len(references) != 1 or len(jobs) != 1:
+        raise HistoricalIntakeError("historical_job_identity_ambiguous")
+    reference: HistoricalJobReference = references[0]
+    job = jobs[0]
+    if (
+        reference.source_launch_id != source_launch_id
+        or reference.source_run_id is not None
+        or check.source_launch_id != source_launch_id
+        or check.source_run_id is not None
+        or check.target_date != reference.target_date
+        or check.check_status != "abnormal"
+        or check.reason_code != "historical_daily_failure_observed"
+        or job.job_id != reference.job_id
+        or job.incident_id != reference.incident_id
+        or job.release_id != reference.release_id
+        or job.status != reference.status
+        or job.source_run_id is not None
+        or job.status not in {"queued", "running"}
+        or store.get_daily_launch(source_launch_id) is not None
+        or store.get_worker_queue(source_launch_id) is not None
+    ):
+        raise HistoricalIntakeError("historical_job_identity_mismatch")
+
+    expected_identity = {
+        "incident_id": job.incident_id,
+        "source_launch_id": source_launch_id,
+        "source_run_id": None,
+        "target_date": check.target_date,
+        "job_id": job.job_id,
+    }
+    try:
+        manifest = store.get_job_input_manifest(
+            job_id=job.job_id,
+            expected_identity=expected_identity,
+        )
+    except (MaintenanceStoreError, OSError, ValueError) as exc:
+        raise HistoricalIntakeError("historical_manifest_invalid") from exc
+
+    intake_ref = f"historical-intake/{check.target_date}/{source_launch_id}.json"
+    intake_record, intake_record_bytes = _read_historical_json(
+        root,
+        intake_ref,
+        max_bytes=_MAX_OBSERVATION_BYTES,
+        unavailable_code="historical_intake_record_unavailable",
+        size_code="historical_intake_record_too_large",
+        invalid_code="historical_intake_record_invalid",
+    )
+    if set(intake_record) != _INTAKE_RECORD_KEYS:
+        raise HistoricalIntakeError("historical_intake_record_invalid")
+
+    observation_ref = f"historical-input/{check.target_date}/observation.json"
+    observation_value, observation_bytes = _read_historical_json(
+        root,
+        observation_ref,
+        max_bytes=_MAX_OBSERVATION_BYTES,
+        unavailable_code="historical_observation_unavailable",
+        size_code="historical_observation_too_large",
+        invalid_code="historical_observation_json_invalid",
+    )
+    try:
+        observation = validate_historical_observation(observation_value)
+    except HistoricalIntakeError:
+        raise
+    if not any(
+        observation[key] == "failed" for key in ("launch_status", "daily_status")
+    ):
+        raise HistoricalIntakeError("historical_failure_not_confirmed")
+
+    evidence_ref = _safe_relative_path(observation["evidence_ref"])
+    try:
+        with open_file_beneath(root, evidence_ref, "rb") as stream:
+            evidence_bytes = stream.read(_MAX_EVIDENCE_BYTES + 1)
+    except (OSError, SafeFileError) as exc:
+        raise HistoricalIntakeError("historical_evidence_unavailable") from exc
+    if len(evidence_bytes) > _MAX_EVIDENCE_BYTES:
+        raise HistoricalIntakeError("historical_evidence_too_large")
+    try:
+        evidence_document = json.loads(evidence_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HistoricalIntakeError("historical_evidence_invalid") from exc
+    if (
+        not isinstance(evidence_document, dict)
+        or evidence_document.get("schema_version") != "historical-source-evidence-v1"
+        or evidence_document.get("target_date") != check.target_date
+    ):
+        raise HistoricalIntakeError("historical_evidence_invalid")
+
+    observation_sha256 = hashlib.sha256(observation_bytes).hexdigest()
+    evidence_sha256 = hashlib.sha256(evidence_bytes).hexdigest()
+    if (
+        intake_record.get("schema_version") != "historical-intake-record-v1"
+        or intake_record.get("maintenance_source_launch_id") != source_launch_id
+        or intake_record.get("source_run_id") is not None
+        or intake_record.get("target_date") != check.target_date
+        or intake_record.get("original_source_launch_id")
+        != observation.get("original_source_launch_id")
+        or intake_record.get("launch_status") != observation.get("launch_status")
+        or intake_record.get("daily_status") != observation.get("daily_status")
+        or intake_record.get("exit_code") != observation.get("exit_code")
+        or intake_record.get("reason_code") != observation.get("reason_code")
+        or intake_record.get("evidence_ref") != evidence_ref
+        or intake_record.get("evidence_sha256") != evidence_sha256
+        or observation.get("evidence_sha256") != evidence_sha256
+        or intake_record.get("observation_sha256") != observation_sha256
+        or intake_record.get("release_id") != job.release_id
+        or intake_record.get("check_id") != check.check_id
+        or intake_record.get("incident_id") != job.incident_id
+        or intake_record.get("job_id") != job.job_id
+        or intake_record.get("manifest_sha256") != manifest.manifest_sha256
+    ):
+        raise HistoricalIntakeError("historical_intake_binding_mismatch")
+
+    return HistoricalWorkItem(
+        source_launch_id=source_launch_id,
+        target_date=check.target_date,
+        check=check,
+        job=job,
+        manifest=manifest,
+        intake_record=intake_record,
+        intake_record_bytes=intake_record_bytes,
+        observation=observation,
+        observation_ref=observation_ref,
+        observation_bytes=observation_bytes,
+        evidence_ref=evidence_ref,
+        evidence_bytes=evidence_bytes,
+        evidence_document=evidence_document,
+        intake_ref=intake_ref,
+    )

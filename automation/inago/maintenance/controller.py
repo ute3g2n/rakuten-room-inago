@@ -1744,8 +1744,62 @@ class MaintenanceController:
     ) -> tuple[dict[str, Any], str]:
         daily_launch = self._store.get_daily_launch(manifest.source_launch_id)
         if (
-            daily_launch is None
-            or daily_launch.result_json is None
+            manifest.source_launch_id.startswith("historical-")
+            and daily_launch is not None
+        ):
+            raise PlanningContractError("planning_historical_daily_launch_present")
+        if daily_launch is None:
+            if (
+                not manifest.source_launch_id.startswith("historical-")
+                or manifest.source_run_id is not None
+            ):
+                raise PlanningContractError("planning_daily_completion_unavailable")
+            try:
+                from automation.inago.maintenance.historical import (
+                    load_historical_work_item,
+                )
+
+                historical = load_historical_work_item(
+                    self._store,
+                    data_root=self._store.database_path.parent.parent,
+                    source_launch_id=manifest.source_launch_id,
+                )
+            except Exception as exc:
+                reason_code = getattr(exc, "code", None)
+                if not isinstance(reason_code, str) or not _SAFE_DAILY_CODE.fullmatch(
+                    reason_code
+                ):
+                    reason_code = "planning_historical_completion_invalid"
+                raise PlanningContractError(reason_code) from exc
+            if (
+                historical.manifest.identity() != manifest.identity()
+                or historical.manifest.manifest_sha256 != manifest.manifest_sha256
+            ):
+                raise PlanningContractError("planning_historical_manifest_mismatch")
+            observation = historical.observation
+            summary = {
+                "schema_version": "historical-daily-completion-v1",
+                "source_launch_id": historical.source_launch_id,
+                "source_run_id": None,
+                "target_date": historical.target_date,
+                "status": "failed",
+                "overall_status": "failed",
+                "daily_status": observation["daily_status"],
+                "launch_status": observation["launch_status"],
+                "exit_code": observation["exit_code"],
+                "reason_code": observation["reason_code"],
+                "intake_ref": historical.intake_ref,
+                "observation_ref": historical.observation_ref,
+                "evidence_ref": historical.evidence_ref,
+                "evidence_sha256": observation["evidence_sha256"],
+                "observed_at": observation["observed_at"],
+            }
+            return (
+                summary,
+                hashlib.sha256(historical.intake_record_bytes).hexdigest(),
+            )
+        if (
+            daily_launch.result_json is None
             or daily_launch.target_date != manifest.target_date
             or daily_launch.source_run_id != manifest.source_run_id
         ):

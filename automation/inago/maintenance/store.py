@@ -744,6 +744,20 @@ class MaintenanceJobRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class HistoricalJobReference:
+    """A run-null historical job candidate joined to its exact check identity."""
+
+    job_id: str
+    incident_id: str
+    release_id: str
+    source_launch_id: str
+    source_run_id: None
+    target_date: str
+    status: str
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
 class RepairRunReceiptRecord:
     receipt_id: str
     campaign_id: str
@@ -1541,6 +1555,79 @@ class MaintenanceStore:
                     )
                 )
             return tuple(jobs)
+        finally:
+            connection.close()
+
+    def list_historical_job_references(
+        self,
+        *,
+        source_launch_id: str | None = None,
+        limit: int = 100,
+        exclude_target_dates: Iterable[str] | None = None,
+    ) -> tuple[HistoricalJobReference, ...]:
+        """List active historical jobs without manufacturing a daily launch."""
+
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 1000
+        ):
+            raise MaintenanceStoreError("historical_job_limit_invalid")
+        excluded_dates = (
+            tuple(dict.fromkeys(_target_date(item) for item in exclude_target_dates))
+            if exclude_target_dates is not None
+            else ()
+        )
+        launch_id = None
+        if source_launch_id is not None:
+            launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+            if not launch_id.startswith("historical-"):
+                return ()
+        filters = [
+            "i.component = 'daily_pipeline'",
+            "i.event_code = 'historical_daily_failure'",
+            "j.status IN ('queued', 'running')",
+            "j.source_run_id IS NULL",
+            "ir.source_run_id IS NULL",
+            "dc.source_run_id IS NULL",
+            "dc.check_status = 'abnormal'",
+            "ir.source_launch_id LIKE 'historical-%'",
+        ]
+        parameters: list[object] = []
+        if launch_id is not None:
+            filters.append("ir.source_launch_id = ?")
+            parameters.append(launch_id)
+        if excluded_dates:
+            placeholders = ", ".join("?" for _ in excluded_dates)
+            filters.append(f"dc.target_date NOT IN ({placeholders})")
+            parameters.extend(excluded_dates)
+        parameters.append(limit)
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT DISTINCT j.job_id, j.incident_id, j.release_id, j.status, "
+                "j.created_at, ir.source_launch_id, dc.target_date "
+                "FROM maintenance_job AS j "
+                "JOIN incident AS i ON i.incident_id = j.incident_id "
+                "JOIN incident_run AS ir ON ir.incident_id = i.incident_id "
+                "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
+                f"WHERE {' AND '.join(filters)} "
+                "ORDER BY j.created_at, j.job_id LIMIT ?",
+                parameters,
+            ).fetchall()
+            return tuple(
+                HistoricalJobReference(
+                    job_id=str(row["job_id"]),
+                    incident_id=str(row["incident_id"]),
+                    release_id=str(row["release_id"]),
+                    source_launch_id=str(row["source_launch_id"]),
+                    source_run_id=None,
+                    target_date=str(row["target_date"]),
+                    status=str(row["status"]),
+                    created_at=str(row["created_at"]),
+                )
+                for row in rows
+            )
         finally:
             connection.close()
 
