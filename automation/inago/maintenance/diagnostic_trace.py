@@ -90,6 +90,8 @@ _STATUSES = {
     "unverified",
     "approved",
     "changes_requested",
+    "rejected",
+    "unavailable",
     "passed",
     "not_run",
     "ready",
@@ -108,7 +110,15 @@ _MODELS = {
 }
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}
 _SERVICE_TIERS = {"normal", "default", "fast", "priority"}
-_REVIEW_STATUSES = {"not_run", "approved", "changes_requested", "blocked", "unknown"}
+_REVIEW_STATUSES = {
+    "not_run",
+    "approved",
+    "changes_requested",
+    "rejected",
+    "unavailable",
+    "blocked",
+    "unknown",
+}
 _TEST_STATUSES = {"not_run", "passed", "failed", "blocked", "unknown"}
 _IDENTITY_FIELDS = {
     "source_launch_id",
@@ -700,6 +710,8 @@ def _result_status(value: object) -> str:
         "resumed": "resumed",
         "approved": "approved",
         "changes_requested": "changes_requested",
+        "rejected": "rejected",
+        "unavailable": "unavailable",
         "passed": "passed",
         "ready": "ready",
         "deployed": "ready",

@@ -1105,6 +1105,14 @@ def test_n21_result_exit_precedence_and_windows_child_exit_propagation(tmp_path)
         "raise SystemExit(int(Path('child-exit').read_text(encoding='utf-8')))\n",
         encoding="utf-8",
     )
+    launcher_dir = project / "automation" / "inago" / "maintenance"
+    launcher_dir.mkdir()
+    (launcher_dir / "__init__.py").write_text("", encoding="utf-8")
+    (launcher_dir / "daily_launcher.py").write_text(
+        "from pathlib import Path\n"
+        "raise SystemExit(int(Path('child-exit').read_text(encoding='utf-8')))\n",
+        encoding="utf-8",
+    )
     wrapper = Path(__file__).resolve().parents[1] / "automation" / "inago" / "run.ps1"
     shutil.copy2(wrapper, project / "automation" / "inago" / "run.ps1")
     venv.EnvBuilder(with_pip=False, clear=True).create(project / ".venv-inago")

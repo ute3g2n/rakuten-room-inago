@@ -31,7 +31,7 @@ from automation.inago.metrics import (
     maybe_explain_metrics,
 )
 from automation.inago.orchestrator import _collect_metrics, _daily_state
-from automation.inago.paths import resolve_runtime_paths
+from automation.inago.paths import SAFE_FIXTURE_BASE, resolve_runtime_paths
 from automation.inago.repository import open_database
 from automation.inago.settings import register_external_settings
 from automation.inago.statistics import summarize_metrics
@@ -49,7 +49,7 @@ DETAIL_RULES_PATH = (
     / "candidates"
     / "文型詳細ルール.json"
 )
-PRIVATE_TEST_ROOT = ROOT / "非公開作業データ" / "イナゴ実装試験" / "step-14"
+PRIVATE_TEST_ROOT = SAFE_FIXTURE_BASE / "step-14"
 JST = ZoneInfo("Asia/Tokyo")
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 RUN_ID = "STEP14-RUN"

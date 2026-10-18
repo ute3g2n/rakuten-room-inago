@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from pathlib import Path
+from urllib.parse import unquote
 from typing import Any
 
 import pytest
@@ -139,7 +140,7 @@ def test_registers_adopted_basic_settings_without_enabling_detailed_candidate(
     assert result.registered_version == SETTINGS_VERSION
     assert result.active_basic_version == SETTINGS_VERSION
     assert result.confirmed_at is None
-    assert result.confirmation_ref == "本人確認記録.md"
+    assert result.confirmation_ref == basic["confirmation_ref"]
     assert result.detailed_rules_enabled is False
     assert result.detailed_rules_version is None
     assert result.detailed_rules_candidate.available is True
@@ -174,8 +175,8 @@ def test_registers_adopted_basic_settings_without_enabling_detailed_candidate(
     assert import_record["format"] == "inago-settings-import-v1"
     assert import_record["source"] == {
         "settings_path": "docs/specifications/preparation/初期設定引渡し.json",
-        "result_index_ref": "結果セット索引.json",
-        "confirmation_ref": "本人確認記録.md",
+        "result_index_ref": basic["result_index_ref"]["path"],
+        "confirmation_ref": basic["confirmation_ref"],
     }
     assert basic == before_basic
     assert detailed == before_detailed
@@ -606,18 +607,20 @@ def test_adoption_creates_new_version_and_keeps_running_run_and_reservation(
     assert new_row["confirmed_at"] is None
     change_record = json.loads(new_row["change_reason"])
     assert change_record["format"] == "inago-settings-change-v1"
-    assert change_record["source"]["confirmation_ref"] == "本人確認記録.md"
+    assert change_record["source"]["confirmation_ref"] == basic["confirmation_ref"]
     assert change_record["detailed_rules_adoption"] == {
         "adopted": True,
         "version": DETAILS_VERSION,
-        "reference": "文型詳細ルール.json",
+        "reference": basic["detailed_rules_ref"],
         "confirmation_ref": owner_answer["confirmation_ref"],
         "confirmed_at": None,
     }
     assert change_record["diff"] == {
         "from_version": SETTINGS_VERSION,
         "to_version": "fixture-settings-S2",
-        "pattern_refs_added": [f"文型詳細ルール.json@{DETAILS_VERSION}"],
+        "pattern_refs_added": [
+            f"{basic['detailed_rules_ref']}@{DETAILS_VERSION}"
+        ],
         "detailed_rules_enabled": {"before": False, "after": True},
     }
     assert json.loads(new_row["pattern_refs_json"])[:5] == basic["pattern_refs"]
@@ -848,7 +851,7 @@ def test_candidate_markdown_references_resolve_to_all_85_pattern_rules(
     _basic, detailed = settings_inputs
 
     for pattern in detailed["patterns"]:
-        markdown_path = DETAIL_PATH.parent / pattern["source_markdown"]
+        markdown_path = DETAIL_PATH.parent / unquote(pattern["source_markdown"])
         markdown = markdown_path.read_text(encoding="utf-8")
         rules = pattern["rules"]
         assert len(rules) == 17

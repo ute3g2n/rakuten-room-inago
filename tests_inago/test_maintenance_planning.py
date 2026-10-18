@@ -183,6 +183,9 @@ def _make_plan_response(context, *, status: str = "ready"):
                 "basis": "Cause confidence is unknown.",
             }
         ],
+        "repair_scope": {
+            "owned_paths": ["automation/inago/maintenance/planning.py"]
+        },
         "logging_contract": {
             "source_run_id": None,
             "overall_status": "failed",
@@ -451,6 +454,7 @@ def test_c31_contract(tmp_path):
     assert set(outcome.artifacts) == {
         "plan.md",
         "requirement-step-case-map.json",
+        "repair-scope.json",
         "result.json",
         "review.json",
         "review.md",
@@ -774,7 +778,7 @@ def test_c31_waiting_external_is_reviewed_but_cannot_release_next_step(tmp_path)
     assert outcome.gate_status == "changes_requested"
     assert outcome.next_action == "wait_external"
     assert (output_root / "plan.md").exists()
-    with pytest.raises(MaintenanceStoreError, match="step_predecessor_not_approved"):
+    with pytest.raises(MaintenanceStoreError, match="repair_predecessor_pin_required"):
         store.begin_step_attempt(
             job_id=context["job_id"],
             step_key="maintenance_repair",

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import tempfile
 from types import SimpleNamespace
 from typing import Any, Callable
 
@@ -25,11 +26,11 @@ from automation.inago.daily_pipeline import (
     DailyExecutionPorts,
     ensure_daily_start_backup,
 )
+from automation.inago.paths import PROJECT_ROOT, SAFE_FIXTURE_BASE
 from automation.inago.trigger import run_scheduled_daily
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PROBE_TEST_ROOT = PROJECT_ROOT / "非公開作業データ" / "イナゴ実装試験"
+PROBE_TEST_ROOT = SAFE_FIXTURE_BASE
 PROBE_SCHEMA_PATH = Path(__file__).parent / "schemas" / "daily-probe.schema.json"
 PRODUCTION_RUNTIME_ROOT = PROJECT_ROOT / "rakuten-room-inago" / "runtime"
 PRODUCTION_BACKUP_ROOT = PROJECT_ROOT / "rakuten-room-inago" / "backups"
@@ -180,7 +181,12 @@ def _assert_probe_test_root() -> Path:
         raise DailyProbeConfigError("private test area cannot be resolved") from exc
     if not _same_path(private_root, resolved_private_root):
         raise DailyProbeConfigError("private test area cannot be redirected")
-    _assert_no_reparse_points(private_root, project_root)
+    trusted_floor = (
+        Path(tempfile.gettempdir()).resolve(strict=False)
+        if os.environ.get("INAGO_SAFE_FIXTURE_BASE")
+        else project_root
+    )
+    _assert_no_reparse_points(private_root, trusted_floor)
     return resolved_private_root
 
 

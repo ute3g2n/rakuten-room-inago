@@ -91,7 +91,7 @@ def _source_snapshot() -> dict[str, object]:
             "evidence_href": "evidence/U16/deployment.json",
         },
         "next_day": {
-            "status": "not_observed",
+            "status": "pending",
             "observed_at": None,
             "evidence_href": None,
         },

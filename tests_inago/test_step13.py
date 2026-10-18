@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from automation.inago.ai_runner import compute_input_hash
 from automation.inago.clock import FakeClock
 from automation.inago.cli import DailyCLIContext, main as run_cli
 from automation.inago.contracts import (
@@ -28,7 +29,7 @@ from automation.inago.contracts import (
     CopyTarget,
 )
 from automation.inago.copy_service import CopyGenerationSpec
-from automation.inago.paths import resolve_runtime_paths
+from automation.inago.paths import SAFE_FIXTURE_BASE, resolve_runtime_paths
 from automation.inago.repository import open_database
 from automation.inago.room_adapter import RoomSearchRequest
 from automation.inago.run_lock import RunLock, RunLockBusy, process_start_time
@@ -57,14 +58,7 @@ RUN_ID = "STEP13-RUN"
 
 @pytest.fixture
 def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
-    private_data_root = (
-        ROOT
-        / "非公開作業データ"
-        / "イナゴ実装試験"
-        / "step-13"
-        / tmp_path.name
-        / "state"
-    )
+    private_data_root = SAFE_FIXTURE_BASE / "step-13" / tmp_path.name / "state"
     paths = resolve_runtime_paths(
         data_root=private_data_root,
         config_path=fixture_config_path,
@@ -88,7 +82,7 @@ def runtime_case(tmp_path: Path, fixture_config_path: Path) -> "RuntimeCase":
     finally:
         connection.close()
         resolved_root = private_data_root.resolve()
-        allowed_root = (ROOT / "非公開作業データ" / "イナゴ実装試験").resolve()
+        allowed_root = SAFE_FIXTURE_BASE.resolve()
         if allowed_root in resolved_root.parents:
             shutil.rmtree(resolved_root.parent, ignore_errors=True)
 
@@ -392,7 +386,7 @@ class FakeCopyRunner:
             settings_version=request.settings_version,
             input_refs=request.input_refs,
             evidence_refs=request.evidence_refs,
-            input_hash="fixture-root-input",
+            input_hash=compute_input_hash(request.input_payload),
             deadline_at=request.deadline_at,
             result_status="success",
             adoption_status="pending",

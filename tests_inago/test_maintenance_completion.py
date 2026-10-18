@@ -19,7 +19,11 @@ from automation.inago.maintenance.daily_launcher import (
     run_daily_process,
     run_daily_launch,
 )
-from automation.inago.maintenance.store import MaintenanceStoreError
+from automation.inago.maintenance.store import (
+    APPLICATION_ID,
+    SCHEMA_VERSION,
+    MaintenanceStoreError,
+)
 from tests_inago.maintenance_support import make_store
 
 
@@ -509,7 +513,41 @@ def test_store_rejects_blocked_launch_with_success_exit_code(tmp_path):
         )
 
 
+def _create_fixture_schema_v2(store):
+    if store.database_path.exists():
+        store.database_path.unlink()
+    connection = sqlite3.connect(store.database_path)
+    sql_root = PROJECT_ROOT / "automation/inago/maintenance/sql"
+    try:
+        connection.executescript(
+            (sql_root / "001_initial.sql").read_text(encoding="utf-8")
+        )
+        connection.execute(
+            "INSERT INTO schema_migration (version, applied_at, description) "
+            "VALUES (1, ?, ?)",
+            (START.isoformat(), "initial isolated maintenance state"),
+        )
+        connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+        connection.execute("PRAGMA user_version = 1")
+        connection.commit()
+        connection.executescript(
+            (sql_root / "002_job_manifest_ai_sessions.sql").read_text(
+                encoding="utf-8"
+            )
+        )
+        connection.execute(
+            "INSERT INTO schema_migration (version, applied_at, description) "
+            "VALUES (2, ?, ?)",
+            (START.isoformat(), "immutable job manifest and AI session ledger"),
+        )
+        connection.execute("PRAGMA user_version = 2")
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def _downgrade_fixture_to_v2(store):
+    _create_fixture_schema_v2(store)
     connection = sqlite3.connect(store.database_path)
     try:
         connection.execute(
@@ -528,39 +566,45 @@ def _downgrade_fixture_to_v2(store):
                 "2026-10-17T13:00:00+09:00",
             ),
         )
-        connection.execute("DROP TABLE watchdog_queue")
-        connection.execute("DROP TABLE daily_launch")
-        connection.execute("DROP TABLE watchdog_cursor")
-        connection.execute("DELETE FROM schema_migration WHERE version > 2")
-        connection.execute("PRAGMA user_version = 2")
         connection.commit()
     finally:
         connection.close()
 
 
-def test_populated_v2_database_upgrades_to_v4_without_losing_checks(tmp_path):
+def _create_fixture_schema_v3(store):
+    _create_fixture_schema_v2(store)
+    connection = sqlite3.connect(store.database_path)
+    try:
+        migration = PROJECT_ROOT / "automation/inago/maintenance/sql/003_daily_launch.sql"
+        connection.executescript(migration.read_text(encoding="utf-8"))
+        connection.execute(
+            "INSERT INTO schema_migration (version, applied_at, description) "
+            "VALUES (3, ?, ?)",
+            (START.isoformat(), "daily launcher start and completion ledger"),
+        )
+        connection.execute("PRAGMA user_version = 3")
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def test_populated_v2_database_upgrades_to_current_without_losing_checks(tmp_path):
     store = make_store(tmp_path)
     _downgrade_fixture_to_v2(store)
 
-    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 4
+    assert store.initialize(applied_at=START + timedelta(minutes=1)) == SCHEMA_VERSION
     assert store.counts()["daily_check"] == 1
     assert store.counts()["daily_launch"] == 0
-    assert store.initialize(applied_at=START + timedelta(minutes=2)) == 4
+    assert store.initialize(applied_at=START + timedelta(minutes=2)) == SCHEMA_VERSION
 
 
 def test_v3_daily_launch_migration_preserves_launch_and_marks_old_identity_unknown(
     tmp_path,
 ):
     store = make_store(tmp_path)
+    _create_fixture_schema_v3(store)
     connection = sqlite3.connect(store.database_path)
     try:
-        connection.execute("DROP TABLE watchdog_queue")
-        connection.execute("DROP TABLE daily_launch")
-        connection.execute("DROP TABLE watchdog_cursor")
-        migration = Path(__file__).resolve().parents[1] / (
-            "automation/inago/maintenance/sql/003_daily_launch.sql"
-        )
-        connection.executescript(migration.read_text(encoding="utf-8"))
         connection.execute(
             "INSERT INTO daily_launch "
             "(source_launch_id, target_date, owner_pid, started_at, status, child_pid) "
@@ -573,13 +617,11 @@ def test_v3_daily_launch_migration_preserves_launch_and_marks_old_identity_unkno
                 8302,
             ),
         )
-        connection.execute("DELETE FROM schema_migration WHERE version = 4")
-        connection.execute("PRAGMA user_version = 3")
         connection.commit()
     finally:
         connection.close()
 
-    assert store.initialize(applied_at=START + timedelta(minutes=1)) == 4
+    assert store.initialize(applied_at=START + timedelta(minutes=1)) == SCHEMA_VERSION
     launch = store.get_daily_launch("launch-v3-preserved")
     assert launch is not None
     assert launch.status == "running"
@@ -589,15 +631,9 @@ def test_v3_daily_launch_migration_preserves_launch_and_marks_old_identity_unkno
 
 def test_v4_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
     store = make_store(tmp_path)
+    _create_fixture_schema_v3(store)
     connection = sqlite3.connect(store.database_path)
     try:
-        connection.execute("DROP TABLE watchdog_queue")
-        connection.execute("DROP TABLE daily_launch")
-        connection.execute("DROP TABLE watchdog_cursor")
-        migration = Path(__file__).resolve().parents[1] / (
-            "automation/inago/maintenance/sql/003_daily_launch.sql"
-        )
-        connection.executescript(migration.read_text(encoding="utf-8"))
         connection.execute(
             "INSERT INTO daily_launch "
             "(source_launch_id, target_date, owner_pid, started_at, status) "
@@ -609,8 +645,6 @@ def test_v4_migration_rolls_back_partial_ddl(tmp_path, monkeypatch):
                 "2026-10-17T04:00:00Z",
             ),
         )
-        connection.execute("DELETE FROM schema_migration WHERE version = 4")
-        connection.execute("PRAGMA user_version = 3")
         connection.commit()
     finally:
         connection.close()

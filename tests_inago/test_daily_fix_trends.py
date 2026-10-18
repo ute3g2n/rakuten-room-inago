@@ -33,7 +33,7 @@ def _period_refresh_delayed_fixture() -> str:
     )
     html = browser_fixtures.trends_with_period_picker(html)
     return html.replace(
-        "document.querySelector('#period-menu').style.display='none'}",
+        "document.querySelector('#period-menu').style.display='none';}",
         "document.querySelector('#period-menu').style.display='none';"
         "setTimeout(()=>{window.__periodDataReady=true;"
         "document.querySelector('#words').textContent='期間データ更新'},650)}",
@@ -620,6 +620,7 @@ def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_s
     )
     title_page = _n08_period_page(
         title_alias,
+        inject_period_script=True,
         on_period_selected=(
             "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
             ".find(item=>item.querySelector('.fe-related-queries-title'));"
@@ -647,6 +648,7 @@ def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_s
     )
     unknown_page = _n08_period_page(
         unknown_title,
+        inject_period_script=True,
         on_period_selected=(
             "setTimeout(()=>{const widget=Array.from(document.querySelectorAll('.fe-related-queries'))"
             ".find(item=>item.querySelector('.fe-related-queries-title'));"

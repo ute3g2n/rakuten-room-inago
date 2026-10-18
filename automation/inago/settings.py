@@ -7,8 +7,9 @@ import sqlite3
 from dataclasses import dataclass, replace
 from datetime import datetime
 from functools import lru_cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
+from urllib.parse import unquote
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError, ValidationError
@@ -132,9 +133,7 @@ def _validate_document(name: str, document: Mapping[str, Any]) -> dict[str, Any]
     try:
         Draft202012Validator(
             root_schema, format_checker=rfc3339_format_checker()
-        ).validate(
-            dict(document)
-        )
+        ).validate(dict(document))
     except ValidationError as exc:
         raise SettingsInputError(_validation_message(exc, name)) from exc
     return dict(document)
@@ -232,6 +231,25 @@ def _validate_basic_settings(source: Mapping[str, Any]) -> dict[str, Any]:
     return settings
 
 
+def _confirmation_reference_target(value: object) -> str | None:
+    """Normalize the legacy basename and relocated links to one known report."""
+
+    if not isinstance(value, str):
+        return None
+    target = PurePosixPath("reports/projects/preparation/本人確認記録.md")
+    if value == target.name:
+        return target.as_posix()
+    parts = PurePosixPath(unquote(value).replace("\\", "/")).parts
+    target_parts = target.parts
+    if (
+        len(parts) > len(target_parts)
+        and parts[-len(target_parts) :] == target_parts
+        and all(part == ".." for part in parts[: -len(target_parts)])
+    ):
+        return target.as_posix()
+    return None
+
+
 def _unavailable_candidate(
     settings: Mapping[str, Any], reason: str
 ) -> DetailedRulesCandidate:
@@ -295,7 +313,14 @@ def load_detailed_rules_candidate(
         raise SettingsInputError(
             "detailedRulesCandidate.base_confirmed_version does not match the adopted base"
         )
-    if candidate["base_confirmation_ref"] != settings["confirmation_ref"]:
+    base_reference_target = _confirmation_reference_target(settings["confirmation_ref"])
+    candidate_reference_target = _confirmation_reference_target(
+        candidate["base_confirmation_ref"]
+    )
+    if (
+        base_reference_target is None
+        or candidate_reference_target != base_reference_target
+    ):
         raise SettingsInputError(
             "detailedRulesCandidate.base_confirmation_ref does not match the base reference"
         )
@@ -333,7 +358,7 @@ def load_detailed_rules_candidate(
             )
         detail_pattern = detail_by_id[pattern_id]
         markdown_ref = f"../詳細書き方/{pattern_id}.md"
-        if detail_pattern["source_markdown"] != markdown_ref:
+        if unquote(detail_pattern["source_markdown"]) != markdown_ref:
             raise SettingsInputError(
                 f"detailedRulesCandidate.patterns[{pattern_id}].source_markdown is inconsistent"
             )

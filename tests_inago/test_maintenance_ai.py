@@ -1091,7 +1091,11 @@ def test_u07_job_input_manifest_and_session_bindings_are_immutable(tmp_path):
 
 
 def test_u07_management_schema_v1_upgrades_without_fabricating_manifest(tmp_path):
-    from automation.inago.maintenance.store import APPLICATION_ID, MaintenanceStore
+    from automation.inago.maintenance.store import (
+        APPLICATION_ID,
+        SCHEMA_VERSION,
+        MaintenanceStore,
+    )
 
     data_root = tmp_path / "legacy-data"
     daily_database = tmp_path / "legacy-daily" / "state.sqlite"
@@ -1115,7 +1119,7 @@ def test_u07_management_schema_v1_upgrades_without_fabricating_manifest(tmp_path
         connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
         connection.execute("PRAGMA user_version = 1")
 
-    assert store.initialize(applied_at=BASE_TIME) == 3
+    assert store.initialize(applied_at=BASE_TIME) == SCHEMA_VERSION
     assert store.counts()["job_input_manifest"] == 0
     with pytest.raises(MaintenanceStoreError, match="job_input_manifest_missing"):
         store.get_job_input_manifest(job_id="legacy-job")

@@ -99,7 +99,12 @@
         "status": {"const": "confirmed"},
         "adopted": {"const": true},
         "confirmed_at": {"$ref": "#/$defs/nullableTimestamp"},
-        "confirmation_ref": {"const": "本人確認記録.md"},
+        "confirmation_ref": {
+          "anyOf": [
+            {"const": "本人確認記録.md"},
+            {"const": "../../../reports/projects/preparation/%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md"}
+          ]
+        },
         "analysis_basis": {"$ref": "#/$defs/analysisBasis"},
         "genres": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/sourceGenre"}},
         "themes": {"type": "array", "minItems": 30, "maxItems": 30, "items": {"$ref": "#/$defs/sourceTheme"}},
@@ -113,7 +118,12 @@
           "type": "object",
           "required": ["path", "version", "status"],
           "properties": {
-            "path": {"const": "結果セット索引.json"},
+            "path": {
+              "anyOf": [
+                {"const": "結果セット索引.json"},
+                {"const": "../../../reports/projects/preparation/%E7%B5%90%E6%9E%9C%E3%82%BB%E3%83%83%E3%83%88%E7%B4%A2%E5%BC%95.json"}
+              ]
+            },
             "version": {"const": "confirmed-0.3-step46-all132"},
             "status": {"const": "created_in_step46"}
           },
@@ -144,7 +154,12 @@
           },
           "additionalProperties": true
         },
-        "detailed_rules_ref": {"const": "文型詳細ルール.json"},
+        "detailed_rules_ref": {
+          "anyOf": [
+            {"const": "文型詳細ルール.json"},
+            {"const": "../../../worklogs/projects/preparation/candidates/%E6%96%87%E5%9E%8B%E8%A9%B3%E7%B4%B0%E3%83%AB%E3%83%BC%E3%83%AB.json"}
+          ]
+        },
         "detailed_rules_version": {"const": "detailed-writing-rules-candidate-0.1-step68"},
         "detailed_rules_status": {"const": "reviewed_candidate_not_new_owner_confirmation"}
       },
@@ -208,7 +223,12 @@
         "status": {"const": "reviewed_candidate_not_new_owner_confirmation"},
         "adopted": {"const": false},
         "base_confirmed_version": {"const": "confirmed-0.3-step46-all132"},
-        "base_confirmation_ref": {"const": "本人確認記録.md"},
+        "base_confirmation_ref": {
+          "anyOf": [
+            {"const": "本人確認記録.md"},
+            {"const": "../../../../reports/projects/preparation/%E6%9C%AC%E4%BA%BA%E7%A2%BA%E8%AA%8D%E8%A8%98%E9%8C%B2.md"}
+          ]
+        },
         "analysis_basis": {
           "type": "object",
           "required": ["base_full_body_records", "reaction_condition_match", "reaction_condition_unknown", "reaction_condition_exclusions", "reaction_conditions_used_as_filter_or_weight", "p05_rule_derivation_source_body_ids", "p05_rule_derivation_uses_other_127_or_full_132_aggregate"],

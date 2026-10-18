@@ -1227,7 +1227,9 @@ def test_task_templates_bind_daily_and_human_api_to_safe_modes() -> None:
     assert human_logon is not None
     assert daily_wake_to_run == "true"
     assert human_wake_to_run == "false"
-    assert "daily --environment production" in (daily_args or "")
+    assert "-m automation.inago.maintenance.daily_launcher" in (daily_args or "")
+    assert '--config "{{CONFIG_PATH}}"' in (daily_args or "")
+    assert '--data-root "{{RUNTIME_ROOT}}"' in (daily_args or "")
     assert "serve --environment production" in (human_args or "")
     assert "ROOM" not in (daily_args or "")
     assert "ROOM" not in (human_args or "")

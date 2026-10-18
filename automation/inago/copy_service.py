@@ -17,6 +17,7 @@ from typing import Any, Callable, Literal, Mapping, Protocol
 from urllib.parse import quote
 
 from automation.inago.artifact_io import write_temp_response
+from automation.inago.ai_runner import compute_input_hash
 from automation.inago.clock import Clock, SystemClock
 from automation.inago.contracts import (
     AIJobRequest,
@@ -498,6 +499,7 @@ def _root_matches(request: AIJobRequest, result: AIJobResult) -> bool:
         and result.skill_name == "rakuten-room-inago"
         and result.target_date == request.target_date
         and result.settings_version == request.settings_version
+        and result.input_hash == compute_input_hash(request.input_payload)
         and result.input_refs == request.input_refs
         and result.evidence_refs == request.evidence_refs
         and result.deadline_at == request.deadline_at

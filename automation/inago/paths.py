@@ -2,12 +2,36 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
+import tempfile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SAFE_FIXTURE_BASE = PROJECT_ROOT / "非公開作業データ" / "イナゴ実装試験"
+# Fixture runs may choose an ASCII-only temporary root on Windows; the fixture
+# boundary remains enforced against this configured root. An override must be
+# an absolute child of the OS temporary directory so it cannot widen to the repo.
+_fixture_base_override = os.environ.get("INAGO_SAFE_FIXTURE_BASE")
+if _fixture_base_override:
+    _fixture_base_candidate = Path(_fixture_base_override).expanduser()
+    if not _fixture_base_candidate.is_absolute():
+        raise ValueError("INAGO_SAFE_FIXTURE_BASE must be an absolute path")
+    try:
+        _fixture_base_candidate = _fixture_base_candidate.resolve(strict=False)
+        _fixture_temp_root = Path(tempfile.gettempdir()).resolve(strict=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ValueError("INAGO_SAFE_FIXTURE_BASE cannot be resolved") from exc
+    if (
+        _fixture_base_candidate == _fixture_temp_root
+        or not _fixture_base_candidate.is_relative_to(_fixture_temp_root)
+    ):
+        raise ValueError(
+            "INAGO_SAFE_FIXTURE_BASE must stay below the OS temp directory"
+        )
+    SAFE_FIXTURE_BASE = _fixture_base_candidate
+else:
+    SAFE_FIXTURE_BASE = PROJECT_ROOT / "非公開作業データ" / "イナゴ実装試験"
 FIXTURE_CONFIG_BASE = PROJECT_ROOT / "tests_inago" / "config"
 
 

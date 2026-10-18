@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence
 from zoneinfo import ZoneInfo
 
+from automation.inago.ai_runner import compute_input_hash
 from automation.inago.clock import Clock, SystemClock
 from automation.inago.copy_service import (
     CopyGenerationSpec,
@@ -256,7 +257,7 @@ class _DeadlineCopyRunner:
             settings_version=request.settings_version,
             input_refs=request.input_refs,
             evidence_refs=request.evidence_refs,
-            input_hash="deadline-discarded",
+            input_hash=compute_input_hash(request.input_payload),
             deadline_at=request.deadline_at,
             result_status="timed_out",
             adoption_status="pending",

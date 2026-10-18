@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from automation.inago.ai_runner import compute_input_hash
 from automation.inago.clock import FakeClock
 from automation.inago.contracts import (
     AIJobRequest,
@@ -260,7 +261,7 @@ class FakeCopyRunner:
             settings_version=request.settings_version,
             input_refs=request.input_refs,
             evidence_refs=request.evidence_refs,
-            input_hash="root-input-contract",
+            input_hash=compute_input_hash(request.input_payload),
             deadline_at=request.deadline_at,
             result_status=root_status,  # type: ignore[arg-type]
             adoption_status="pending",

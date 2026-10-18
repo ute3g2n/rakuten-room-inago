@@ -16,6 +16,7 @@ from automation.inago.daily_probe import (
     open_probe_database,
     run_daily_probe,
 )
+from automation.inago.paths import SAFE_FIXTURE_BASE
 from automation.inago.settings import register_external_settings
 from tests_inago.test_step23_12_daily_e2e import (
     DETAILS_PATH,
@@ -764,9 +765,7 @@ def test_n25_partial_metrics_and_full_retention_preserve_only_supported_evidence
     config, database_path, clock, _source, _ai_root, metrics = _make_daily_fixture(
         monkeypatch, tmp_path
     )
-    assert tmp_path.resolve().is_relative_to(
-        Path("非公開作業データ/イナゴ実装試験").resolve()
-    )
+    assert tmp_path.resolve().is_relative_to(SAFE_FIXTURE_BASE.resolve())
     observed_at = clock.now_jst().isoformat()
 
     connection = _database_connection(database_path)
