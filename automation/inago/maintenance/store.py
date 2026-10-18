@@ -25,7 +25,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -40,6 +40,10 @@ _MIGRATIONS = {
     5: (
         "005_repair_campaigns.sql",
         "pinned repair predecessors and durable repair campaigns",
+    ),
+    6: (
+        "006_deployment_observations.sql",
+        "exact tested, pushed, and active deployment commit observations",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -349,6 +353,42 @@ def _watchdog_queue_from_row(row: sqlite3.Row) -> WatchdogQueueRecord:
     )
 
 
+def _deployment_from_row(row: sqlite3.Row) -> DeploymentRecord:
+    return DeploymentRecord(
+        deployment_id=str(row["deployment_id"]),
+        release_id=str(row["release_id"]),
+        attempt=int(row["attempt"]),
+        result_commit=str(row["result_commit"]),
+        config_version=str(row["config_version"]),
+        status=str(row["status"]),
+        source_commit=(
+            str(row["source_commit"]) if row["source_commit"] is not None else None
+        ),
+        base_commit=(
+            str(row["base_commit"]) if row["base_commit"] is not None else None
+        ),
+        tested_commit=(
+            str(row["tested_commit"]) if row["tested_commit"] is not None else None
+        ),
+        pushed_commit=(
+            str(row["pushed_commit"]) if row["pushed_commit"] is not None else None
+        ),
+        active_commit=(
+            str(row["active_commit"]) if row["active_commit"] is not None else None
+        ),
+        remote_name=(
+            str(row["remote_name"]) if row["remote_name"] is not None else None
+        ),
+        target_branch=(
+            str(row["target_branch"]) if row["target_branch"] is not None else None
+        ),
+        reason_code=(
+            str(row["reason_code"]) if row["reason_code"] is not None else None
+        ),
+        deployed_at=str(row["deployed_at"]),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class StepAttemptResult:
     attempt_id: str
@@ -449,6 +489,25 @@ class GateResult:
     reason_codes: tuple[str, ...]
     evaluated_at: str
     result_commit: str
+
+
+@dataclass(frozen=True, slots=True)
+class DeploymentRecord:
+    deployment_id: str
+    release_id: str
+    attempt: int
+    result_commit: str
+    config_version: str
+    status: str
+    source_commit: str | None
+    base_commit: str | None
+    tested_commit: str | None
+    pushed_commit: str | None
+    active_commit: str | None
+    remote_name: str | None
+    target_branch: str | None
+    reason_code: str | None
+    deployed_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -618,10 +677,11 @@ class MaintenanceStore:
             data_root,
             daily_database_path=daily_database_path,
         )
-        # Object capability passed only to the built-in host runner. Public
-        # evidence objects cannot use Store receipt-writing APIs without it.
+        # Store-only capabilities gate host evidence and successful deployment
+        # transitions; caller-supplied evidence cannot authorize those writes.
         self._repair_runner_capability = object()
         self._repair_review_capability = object()
+        self._deployment_capability = object()
 
     def initialize(self, *, applied_at: datetime | str | None = None) -> int:
         """Create the maintenance database or verify its known schema version."""
@@ -749,6 +809,7 @@ class MaintenanceStore:
         connection.execute("PRAGMA busy_timeout = 5000")
         connection.create_function("maintenance_repair_runner_authorized", 0, lambda: 0)
         connection.create_function("maintenance_repair_review_authorized", 0, lambda: 0)
+        connection.create_function("maintenance_deployment_authorized", 0, lambda: 0)
         self._assert_schema(connection)
         return connection
 
@@ -786,6 +847,7 @@ class MaintenanceStore:
         *,
         repair_runner_capability: object | None = None,
         repair_review_capability: object | None = None,
+        deployment_capability: object | None = None,
     ) -> Iterator[sqlite3.Connection]:
         connection = self._connect()
         try:
@@ -800,6 +862,12 @@ class MaintenanceStore:
                     raise MaintenanceStoreError("repair_review_capability_invalid")
                 connection.create_function(
                     "maintenance_repair_review_authorized", 0, lambda: 1
+                )
+            if deployment_capability is not None:
+                if deployment_capability is not self._deployment_capability:
+                    raise MaintenanceStoreError("deployment_capability_invalid")
+                connection.create_function(
+                    "maintenance_deployment_authorized", 0, lambda: 1
                 )
             connection.execute("BEGIN IMMEDIATE")
             yield connection
@@ -2747,12 +2815,72 @@ class MaintenanceStore:
         config_version: str,
         status: str,
         deployed_at: datetime | str,
+        source_commit: str | None = None,
+        base_commit: str | None = None,
+        tested_commit: str | None = None,
+        pushed_commit: str | None = None,
+        active_commit: str | None = None,
+        remote_name: str | None = None,
+        target_branch: str | None = None,
+        reason_code: str | None = None,
     ) -> str:
         release = _safe_id(release_id, "release_id_invalid")
         commit = _safe_id(result_commit, "result_commit_invalid")
         config = _safe_id(config_version, "config_version_invalid")
         if status not in _DEPLOYMENT_STATUSES:
             raise MaintenanceStoreError("deployment_status_invalid")
+        if status == "deployed":
+            raise MaintenanceStoreError("deployment_success_requires_pending_flow")
+        source = (
+            None
+            if source_commit is None
+            else _safe_id(source_commit, "source_commit_invalid")
+        )
+        base = (
+            None
+            if base_commit is None
+            else _safe_id(base_commit, "base_commit_invalid")
+        )
+        tested = (
+            None
+            if tested_commit is None
+            else _safe_id(tested_commit, "tested_commit_invalid")
+        )
+        pushed = (
+            None
+            if pushed_commit is None
+            else _safe_id(pushed_commit, "pushed_commit_invalid")
+        )
+        active = (
+            None
+            if active_commit is None
+            else _safe_id(active_commit, "active_commit_invalid")
+        )
+        remote = (
+            None
+            if remote_name is None
+            else _safe_id(remote_name, "remote_name_invalid")
+        )
+        branch = (
+            None
+            if target_branch is None
+            else _safe_id(target_branch, "target_branch_invalid")
+        )
+        reason = (
+            None
+            if reason_code is None
+            else _safe_code(reason_code, "deployment_reason_invalid")
+        )
+        if status == "deployed" and (
+            source != commit
+            or tested != commit
+            or pushed != commit
+            or active != commit
+            or base is None
+            or remote is None
+            or branch is None
+        ):
+            raise MaintenanceStoreError("deployment_success_identity_invalid")
         deployment_id = str(uuid.uuid4())
         with self._transaction() as connection:
             if (
@@ -2770,8 +2898,10 @@ class MaintenanceStore:
             )
             connection.execute(
                 "INSERT INTO deployment "
-                "(deployment_id, release_id, attempt, result_commit, config_version, status, deployed_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "(deployment_id, release_id, attempt, result_commit, config_version, status, deployed_at, "
+                "source_commit, base_commit, tested_commit, pushed_commit, active_commit, "
+                "remote_name, target_branch, reason_code) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     deployment_id,
                     release,
@@ -2780,9 +2910,227 @@ class MaintenanceStore:
                     config,
                     status,
                     _timestamp(deployed_at),
+                    source,
+                    base,
+                    tested,
+                    pushed,
+                    active,
+                    remote,
+                    branch,
+                    reason,
                 ),
             )
         return deployment_id
+
+    @staticmethod
+    def _deployment_authorization(
+        connection: sqlite3.Connection, release_id: str
+    ) -> Mapping[str, str]:
+        release = connection.execute(
+            "SELECT release_id, author_id, base_commit, result_commit, result_version, "
+            "config_version, case_manifest_sha256, state FROM release WHERE release_id = ?",
+            (release_id,),
+        ).fetchone()
+        if release is None:
+            raise MaintenanceStoreError("release_not_found")
+        if release["state"] != "frozen":
+            raise MaintenanceStoreError("deployment_release_not_frozen")
+        cases = connection.execute(
+            "SELECT case_id FROM release_required_test WHERE release_id = ? ORDER BY sequence",
+            (release_id,),
+        ).fetchall()
+        case_ids = tuple(str(row["case_id"]) for row in cases)
+        expected_manifest = hashlib.sha256(
+            json.dumps(case_ids, ensure_ascii=True, separators=(",", ":")).encode(
+                "ascii"
+            )
+        ).hexdigest()
+        if not case_ids or expected_manifest != release["case_manifest_sha256"]:
+            raise MaintenanceStoreError("deployment_case_manifest_invalid")
+        for case_id in case_ids:
+            latest = connection.execute(
+                "SELECT status, result_version FROM test_ledger "
+                "WHERE release_id = ? AND case_id = ? ORDER BY attempt DESC LIMIT 1",
+                (release_id, case_id),
+            ).fetchone()
+            if latest is None or latest["status"] != "PASS":
+                raise MaintenanceStoreError("deployment_test_not_passed")
+            if latest["result_version"] != release["result_version"]:
+                raise MaintenanceStoreError("deployment_test_version_mismatch")
+        review = connection.execute(
+            "SELECT reviewer_id, reviewed_version, status FROM review_result "
+            "WHERE scope_type = 'release' AND scope_id = ? ORDER BY rowid DESC LIMIT 1",
+            (release_id,),
+        ).fetchone()
+        if review is None or review["status"] != "approved":
+            raise MaintenanceStoreError("deployment_review_not_approved")
+        if review["reviewed_version"] != release["result_version"]:
+            raise MaintenanceStoreError("deployment_review_version_mismatch")
+        if review["reviewer_id"] == release["author_id"]:
+            raise MaintenanceStoreError("deployment_review_not_independent")
+        return MappingProxyType(
+            {
+                "release_id": str(release["release_id"]),
+                "author_id": str(release["author_id"]),
+                "base_commit": str(release["base_commit"]),
+                "result_commit": str(release["result_commit"]),
+                "result_version": str(release["result_version"]),
+                "config_version": str(release["config_version"]),
+            }
+        )
+
+    def get_release_deployment_basis(self, *, release_id: str) -> Mapping[str, str]:
+        """Return only a frozen, reviewed release whose required tests all pass."""
+
+        release = _safe_id(release_id, "release_id_invalid")
+        connection = self._connect()
+        try:
+            return self._deployment_authorization(connection, release)
+        finally:
+            connection.close()
+
+    def begin_deployment(
+        self,
+        *,
+        release_id: str,
+        source_commit: str,
+        base_commit: str,
+        tested_commit: str,
+        remote_name: str,
+        target_branch: str,
+        started_at: datetime | str,
+    ) -> str:
+        """Create a pending attempt pinned to the exact authorized release."""
+
+        release = _safe_id(release_id, "release_id_invalid")
+        source = _safe_id(source_commit, "source_commit_invalid")
+        base = _safe_id(base_commit, "base_commit_invalid")
+        tested = _safe_id(tested_commit, "tested_commit_invalid")
+        remote = _safe_id(remote_name, "remote_name_invalid")
+        branch = _safe_id(target_branch, "target_branch_invalid")
+        when = _timestamp(started_at)
+        deployment_id = str(uuid.uuid4())
+        with self._transaction() as connection:
+            basis = self._deployment_authorization(connection, release)
+            if (
+                source != basis["result_commit"]
+                or tested != basis["result_commit"]
+                or base != basis["base_commit"]
+            ):
+                raise MaintenanceStoreError("deployment_release_identity_mismatch")
+            attempt = int(
+                connection.execute(
+                    "SELECT COALESCE(MAX(attempt), 0) + 1 FROM deployment WHERE release_id = ?",
+                    (release,),
+                ).fetchone()[0]
+            )
+            connection.execute(
+                "INSERT INTO deployment (deployment_id, release_id, attempt, result_commit, "
+                "config_version, status, deployed_at, source_commit, base_commit, tested_commit, "
+                "remote_name, target_branch) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)",
+                (
+                    deployment_id,
+                    release,
+                    attempt,
+                    basis["result_commit"],
+                    basis["config_version"],
+                    when,
+                    source,
+                    base,
+                    tested,
+                    remote,
+                    branch,
+                ),
+            )
+        return deployment_id
+
+    def finish_deployment(
+        self,
+        *,
+        deployment_id: str,
+        status: str,
+        pushed_commit: str | None,
+        active_commit: str | None,
+        reason_code: str | None,
+        finished_at: datetime | str,
+        capability: object | None = None,
+    ) -> DeploymentRecord:
+        """Close a pending attempt without changing its pinned identity."""
+
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        if status not in {"deployed", "failed", "blocked", "rolled_back"}:
+            raise MaintenanceStoreError("deployment_final_status_invalid")
+        pushed = (
+            None
+            if pushed_commit is None
+            else _safe_id(pushed_commit, "pushed_commit_invalid")
+        )
+        active = (
+            None
+            if active_commit is None
+            else _safe_id(active_commit, "active_commit_invalid")
+        )
+        reason = (
+            None
+            if reason_code is None
+            else _safe_code(reason_code, "deployment_reason_invalid")
+        )
+        if status == "deployed":
+            if capability is not self._deployment_capability:
+                raise MaintenanceStoreError("deployment_capability_invalid")
+        elif capability is not None:
+            raise MaintenanceStoreError("deployment_capability_unexpected")
+        when = _timestamp(finished_at)
+        transaction_options = (
+            {"deployment_capability": capability} if status == "deployed" else {}
+        )
+        with self._transaction(**transaction_options) as connection:
+            row = connection.execute(
+                "SELECT * FROM deployment WHERE deployment_id = ?", (deployment,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("deployment_not_found")
+            if row["status"] != "pending":
+                raise MaintenanceStoreError("deployment_already_final")
+            if status == "deployed" and (
+                pushed != row["result_commit"] or active != row["result_commit"]
+            ):
+                raise MaintenanceStoreError("deployment_success_identity_invalid")
+            if status == "deployed":
+                basis = self._deployment_authorization(
+                    connection, str(row["release_id"])
+                )
+                if (
+                    row["result_commit"] != basis["result_commit"]
+                    or row["config_version"] != basis["config_version"]
+                    or row["source_commit"] != basis["result_commit"]
+                    or row["tested_commit"] != basis["result_commit"]
+                    or row["base_commit"] != basis["base_commit"]
+                    or row["remote_name"] is None
+                    or row["target_branch"] is None
+                ):
+                    raise MaintenanceStoreError("deployment_release_identity_mismatch")
+            connection.execute(
+                "UPDATE deployment SET status = ?, pushed_commit = ?, active_commit = ?, "
+                "reason_code = ?, deployed_at = ? WHERE deployment_id = ? AND status = 'pending'",
+                (status, pushed, active, reason, when, deployment),
+            )
+            final = connection.execute(
+                "SELECT * FROM deployment WHERE deployment_id = ?", (deployment,)
+            ).fetchone()
+            assert final is not None
+            return _deployment_from_row(final)
+
+    def get_deployment(self, *, deployment_id: str) -> DeploymentRecord | None:
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM deployment WHERE deployment_id = ?", (deployment,)
+            ).fetchone()
+            return None if row is None else _deployment_from_row(row)
+        finally:
+            connection.close()
 
     @staticmethod
     def _evaluate_release_gate(

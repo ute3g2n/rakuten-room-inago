@@ -19,6 +19,32 @@ def make_store(tmp_path) -> MaintenanceStore:
     return store
 
 
+def record_successful_deployment_fixture(
+    store: MaintenanceStore, *, release_id: str, deployed_at: str
+):
+    """Create a synthetic successful deployment through the guarded lifecycle."""
+
+    basis = store.get_release_deployment_basis(release_id=release_id)
+    deployment_id = store.begin_deployment(
+        release_id=release_id,
+        source_commit=basis["result_commit"],
+        base_commit=basis["base_commit"],
+        tested_commit=basis["result_commit"],
+        remote_name="origin",
+        target_branch="main",
+        started_at=deployed_at,
+    )
+    return store.finish_deployment(
+        deployment_id=deployment_id,
+        status="deployed",
+        pushed_commit=basis["result_commit"],
+        active_commit=basis["result_commit"],
+        reason_code=None,
+        finished_at=deployed_at,
+        capability=store._deployment_capability,
+    )
+
+
 def create_incident(store: MaintenanceStore, *, launch_id: str = "launch-1") -> str:
     result = store.record_daily_check(
         source_launch_id=launch_id,
@@ -72,11 +98,9 @@ def create_ready_release(
         status="approved",
         reviewed_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
     )
-    store.record_deployment(
+    record_successful_deployment_fixture(
+        store,
         release_id=release_id,
-        result_commit=result_commit,
-        config_version=config_version,
-        status="deployed",
         deployed_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
     )
     gate = store.evaluate_release_gate(

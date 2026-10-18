@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.local/schemas/maintenance-deployment-result.schema.json",
+  "title": "Maintenance deployment result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "deployment_id",
+    "release_id",
+    "status",
+    "reason_code",
+    "source_commit",
+    "base_commit",
+    "tested_commit",
+    "pushed_commit",
+    "active_commit",
+    "remote_name",
+    "target_branch"
+  ],
+  "properties": {
+    "schema_version": { "const": "maintenance-deployment-result-v1" },
+    "deployment_id": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "release_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "status": { "enum": ["deployed", "blocked", "failed", "rolled_back"] },
+    "reason_code": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_.-]{0,63}$" },
+    "source_commit": { "$ref": "#/$defs/commit" },
+    "base_commit": { "$ref": "#/$defs/commit" },
+    "tested_commit": { "$ref": "#/$defs/commit" },
+    "pushed_commit": { "anyOf": [{ "$ref": "#/$defs/commit" }, { "type": "null" }] },
+    "active_commit": { "anyOf": [{ "$ref": "#/$defs/commit" }, { "type": "null" }] },
+    "remote_name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+    "target_branch": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$" }
+  },
+  "$defs": {
+    "commit": { "type": "string", "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$" }
+  }
+}

@@ -18,6 +18,7 @@ from tests_inago.maintenance_support import (
     create_incident,
     create_ready_release,
     make_store,
+    record_successful_deployment_fixture,
 )
 
 
@@ -528,13 +529,24 @@ def test_c53_contract(tmp_path):
         status="approved",
         reviewed_at=(BASE_TIME + timedelta(seconds=8)).isoformat(),
     )
-    store.record_deployment(
-        release_id=release.release_id,
-        result_commit="other-commit",
-        config_version="settings-v1",
-        status="deployed",
-        deployed_at=(BASE_TIME + timedelta(seconds=9)).isoformat(),
-    )
+    with pytest.raises(
+        MaintenanceStoreError,
+        match="deployment_success_requires_pending_flow",
+    ):
+        store.record_deployment(
+            release_id=release.release_id,
+            result_commit="other-commit",
+            config_version="settings-v1",
+            status="deployed",
+            deployed_at=(BASE_TIME + timedelta(seconds=9)).isoformat(),
+            source_commit="other-commit",
+            base_commit="base-1",
+            tested_commit="other-commit",
+            pushed_commit="other-commit",
+            active_commit="other-commit",
+            remote_name="origin",
+            target_branch="main",
+        )
     assert (
         store.evaluate_release_gate(
             release_id=release.release_id,
@@ -550,13 +562,24 @@ def test_c53_contract(tmp_path):
         status="approved",
         reviewed_at=(BASE_TIME + timedelta(seconds=11)).isoformat(),
     )
-    store.record_deployment(
-        release_id=release.release_id,
-        result_commit="commit-1",
-        config_version="wrong-settings",
-        status="deployed",
-        deployed_at=(BASE_TIME + timedelta(seconds=12)).isoformat(),
-    )
+    with pytest.raises(
+        MaintenanceStoreError,
+        match="deployment_success_requires_pending_flow",
+    ):
+        store.record_deployment(
+            release_id=release.release_id,
+            result_commit="commit-1",
+            config_version="wrong-settings",
+            status="deployed",
+            deployed_at=(BASE_TIME + timedelta(seconds=12)).isoformat(),
+            source_commit="commit-1",
+            base_commit="base-1",
+            tested_commit="commit-1",
+            pushed_commit="commit-1",
+            active_commit="commit-1",
+            remote_name="origin",
+            target_branch="main",
+        )
     assert (
         store.evaluate_release_gate(
             release_id=release.release_id,
@@ -565,11 +588,9 @@ def test_c53_contract(tmp_path):
         == "blocked"
     )
 
-    store.record_deployment(
+    record_successful_deployment_fixture(
+        store,
         release_id=release.release_id,
-        result_commit="commit-1",
-        config_version="settings-v1",
-        status="deployed",
         deployed_at=(BASE_TIME + timedelta(seconds=14)).isoformat(),
     )
     gate = store.evaluate_release_gate(
@@ -681,11 +702,9 @@ def test_c53_review_round_limit_contract(tmp_path):
         status="approved",
         reviewed_at=(BASE_TIME + timedelta(seconds=19)).isoformat(),
     )
-    store.record_deployment(
+    record_successful_deployment_fixture(
+        store,
         release_id=second_release.release_id,
-        result_commit="commit-2",
-        config_version="settings-v1",
-        status="deployed",
         deployed_at=(BASE_TIME + timedelta(seconds=20)).isoformat(),
     )
     assert (

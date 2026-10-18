@@ -13,7 +13,7 @@
 
 ## U05管理DB・状態実装の対応
 
-管理DBは`D/maintenance/state.sqlite`（SQLite schema v1）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)の「U05 management DB schema v1」を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,release-gate,start-job,finish-job}`。
+管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U15時点でmigration後のschema v6）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,release-gate,start-job,finish-job}`。
 
 U05でC06/C07/C28/C53の専用受入ケースを隔離DBに対して確認した。step順序は最新の独立承認を要求し、`changes_requested`後は新attemptで再開する。handoffは現在job leaseと一致する場合だけ受理し、受理後のreview更新を拒否する。reviewはrelease単位、および同一job内のstep単位（全attempt通算）で最大3巡。上限後は追加reviewと次attempt開始を拒否して保留する。`finish-job complete`はrelease gateと全step承認を再確認し、active job枠を解放する。failed/blocked/cancelledではrunning attemptも閉じる。再開上限到達時は`blocked`終端化できる。CLIのinit/status/blocked gate/DB alias拒否/finish-job完了を確認した。productionのmanagement DBは初期化・変更しておらず、本番日次の再実行、AI/ブラウザー実接続、production deploymentは未実施。各機能の実装範囲と後続条件は実行計画M §9/§14に記録する。
 
@@ -95,6 +95,18 @@ U14 sequence 3開始時に、Store transactionで承認済み・readyなU13 pred
 
 repair artifactはattempt専用rootに`patch-assessment.json`、`test-ledger.json`、`review.json`、`result.json`として新規保存する。各resultはidentity、attempt/result version、tested code SHA、reviewer、path/SHAを結ぶ。独立reviewはStoreに記録されたhost-observed read-only reviewer session/turnとapproved/findingsを含むsource rowを参照し、reviewer identityとattempt/result version/code SHA/patch-test artifact SHA/review output SHAを照合した一回消費receiptで承認する。検証できないtested/reviewed commit claimは保存しない。review resolver返却直後とStore完了直前に実checkoutを再hashし、review中のcode driftを拒否する。callerが渡すreviewer ID/status/receipt IDだけでは承認しない。同一payloadの発行は冪等、異なるpayloadの競合は拒否。実review receipt provider未構成なら完了を保留する。raw patch、console、AI応答、秘密、個人情報をtraceへ複写しない。過去のC34外側pytest PASSは修復runnerのRED/PASS実測receiptへ読み替えず、承認済みU13 case mapに対象caseがない場合は完了を保留する。C33～C37/C61～C67の合否と専用証拠はM §10/§14、private Tへ記録する。C62～C67はapproved scope、predecessor pin、Store restart、default resolver、receipt消費、runner境界を個別に確認する。production DB、Scheduler、実AI、投稿状態は変更しない。
 
+## U15 Git統合・反映・切替
+
+releaseはStore上のfrozen状態、必須caseすべての最新PASS、同じ`result_version`への独立approved reviewを照合する。入力されたtested/reviewed versionが保存releaseと違う場合は止める。managed worktreeはrelease ID、source repository、exact commitと外部owner registryを結び、同一ownerのcleanなものだけを再利用する。既存checkoutの未コミット差分はworktreeへコピーしない。
+
+candidate branchへの通常pushはGit履歴を保存するだけであり、本番反映を意味しない。反映ではactive-main tracking targetのremote HEADを読み、保存base commitと一致する場合だけ通常pushを行う。競合、認証/接続失敗、fast-forward不能、対象差分との未コミットpath交差はblockedとし、force push、reset、履歴書換えを行わない。非交差差分はactive checkoutのstatusを前後で照合して維持する。
+
+deployment leaseと`DeploymentExclusionGuard` providerを必須とし、日次owner停止を確認する。pending actionの件数/revisionを照合し、queueを書き換えない。guard/観測が利用できない場合は切替しない。runtime switcherはexact tested commitをactiveにし、active commit照合とhealth確認が揃った場合だけ`deployed`とする。切替後に日次/API状態またはactive checkoutが変わった場合も旧版へ戻し、復旧失敗なら`active_commit=null`でblockedとする。DB/投稿/予約/pending actionを過去backupへ戻さない。U15 local fixtureはcoordinatorのfail-closed/provider contractを確認するもので、実日次/API providerの結線確認はU21に残す。
+
+U15 migration `006_deployment_observations.sql`で管理DBをschema v5からv6へ進め、`deployment`へ`source_commit`、`base_commit`、`tested_commit`、`pushed_commit`、`active_commit`、`remote_name`、`target_branch`、`reason_code`を追加する。`deployed`はsource/tested/pushed/active commitがすべてrelease result commitと一致する場合だけ受理する。旧deployment行の追加欄はnullを保つ。result envelopeは`maintenance-deployment-result-v1`で、schemaは`automation/inago/schemas/maintenance-deployment-result.schema.json`。
+
+U15のC38～C43/C57は一時DB、専用Git fixture/local bare remoteと通常pytestで検証する。検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測は要求しない。外部remote、本番DB、実runtime switch、実日次/APIへの接続は行わない。実runtime providerが未配線の場合はfail-closedとし、local test resultをproduction wiring evidenceと混同しない。実本番の統合・切替はU21で行う。テストコードの独立レビューは行わない。
+
 ## 受入条件
 
 ### U14ローカル検証の受入条件（2026-10-18 本人決定）
@@ -122,7 +134,7 @@ U14開発段階の合否は、合成fixtureと一時DBを使う通常のロー�
 | MA-016 | 修正計画が0～14節、STEPごとの14項目、ケースごとの12項目、各STEPの独立promptを備え、STEP・ケース・受入・出力が相互追跡できる。 |
 | MA-017 | 実装・テスト・レビューの所有を分け、修正前の意味あるREDまたは根拠付きの「再現不可/文書契約違反」を記録する。U14のC34は通常pytestの直接実行記録で判定し、host-runner receiptを要求しない。独立reviewはU14では通常の別担当レビュー記録でよく、host-observed receiptを要求しない。実運用attemptでは上記runtime契約のreceipt要件を適用する。managed worktree外と所有外ファイルを変更しない。 |
 | MA-018 | 実運用runnerはOS sandbox内だけで修復対象Pythonを実行し、sandbox未構成ならchild process前に保留する。U14の開発テストでは通常pytestを直接実行してcampaign/runner境界の合成fixtureを検証でき、sandbox内positive executionやrepair HostPytestRunner receiptを要求しない。U19/U20の運用回帰・全件完了判定には既定のcampaign/receipt規則を適用し、code hash変更時の旧PASS無効化、全case再実行、不成立時のrelease停止を維持する。 |
-| MA-019 | 差分対象を限定し、作業commitを追跡先へ通常pushし、レビュー済みの正確な版だけを通常fast-forwardで反映する。非交差の既存ユーザー変更を保持して差分不変を確認し、交差またはff不能時は保留する。force push、reset、履歴書換えを行わない。 |
+| MA-019 | 差分対象を限定し、作業commitを追跡先へ通常pushし、レビュー済みの正確な版だけを通常fast-forwardで反映する。非交差の既存ユーザー変更を保持して差分不変を確認し、交差またはff不能時は保留する。force push、reset、履歴書換えを行わない。deploymentにはsource/base/tested/pushed/active commitを別記し、すべての一致とhealth確認後だけdeployedとする。candidate branch pushは本番反映扱いしない。U15のC38～C43/C57は通常pytest/local fixtureで確認し、OS sandbox/host review receipt/C34 host-runner実測は開発テストに要求しない。 |
 | MA-020 | 対応HTMLが事象、原因確度、修正、試験、レビュー、反映、未完了を平易に説明し、独立した報告レビューを通る。要求された表示確認方法で対象版を確認し、未確認を表示する。 |
 | MA-021 | maintenanceの全stage・担当・指定/観測model/effort/tier・入力/証拠/成果参照・base/result版・レビュー・試験・停止/再開・deployment結果が追跡される。 |
 | MA-022 | 日次全体とmaintenance全体に固定終了期限を設けない。個別job/request、取消確認、再試行、レビュー巡、再開には有限上限を適用し、次の日次開始時は日次を優先して本番反映を待つ。 |
