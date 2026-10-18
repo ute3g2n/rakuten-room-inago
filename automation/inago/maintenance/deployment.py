@@ -19,6 +19,10 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Callable, Protocol, Sequence
 
+from automation.inago.maintenance.diagnostic_trace import (
+    MaintenanceDiagnosticTrace,
+    audit_maintenance_stage,
+)
 from automation.inago.maintenance.paths import _has_reparse_point
 from automation.inago.maintenance.process_identity import current_process_start_time
 from automation.inago.maintenance.store import (
@@ -493,6 +497,7 @@ class DeploymentCoordinator:
         runtime_switcher: RuntimeSwitcher | None,
         exclusion_guard: DeploymentExclusionGuard | None,
         clock: Callable[[], datetime] | None = None,
+        diagnostic_trace: MaintenanceDiagnosticTrace | None = None,
     ) -> None:
         self.store = store
         self.repository = _repository_root(repository)
@@ -502,6 +507,9 @@ class DeploymentCoordinator:
         self.runtime_switcher = runtime_switcher
         self.exclusion_guard = exclusion_guard
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self._diagnostic_trace = diagnostic_trace or MaintenanceDiagnosticTrace(
+            store.database_path.parent.parent
+        )
 
     def _now(self) -> str:
         value = self.clock()
@@ -556,6 +564,7 @@ class DeploymentCoordinator:
             target_branch=record.target_branch or "",
         )
 
+    @audit_maintenance_stage("deployment", finish_event="deployment_result")
     def deploy(
         self,
         *,

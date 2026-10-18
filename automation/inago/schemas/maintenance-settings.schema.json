@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-settings-v1.schema.json",
+  "title": "Maintenance-only settings",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "settings_version",
+    "timezone",
+    "code_fix_concurrency",
+    "lease_heartbeat_seconds",
+    "watchdog_interval_seconds",
+    "ai_job_timeout_seconds",
+    "cancellation_confirmation_timeout_seconds",
+    "request_retry_limit",
+    "review_round_limit",
+    "job_resume_limit",
+    "diagnostic_log_retention_days",
+    "diagnostic_log_max_file_bytes",
+    "diagnostic_log_max_files_per_day"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "settings_version": { "const": "1.0" },
+    "timezone": { "const": "Asia/Tokyo" },
+    "code_fix_concurrency": { "const": 1 },
+    "lease_heartbeat_seconds": { "const": 30 },
+    "watchdog_interval_seconds": { "const": 60 },
+    "ai_job_timeout_seconds": { "const": 1200 },
+    "cancellation_confirmation_timeout_seconds": { "const": 60 },
+    "request_retry_limit": { "const": 2 },
+    "review_round_limit": { "const": 3 },
+    "job_resume_limit": { "const": 3 },
+    "diagnostic_log_retention_days": { "const": 90 },
+    "diagnostic_log_max_file_bytes": { "const": 4194304 },
+    "diagnostic_log_max_files_per_day": { "const": 20 }
+  },
+  "additionalProperties": false
+}

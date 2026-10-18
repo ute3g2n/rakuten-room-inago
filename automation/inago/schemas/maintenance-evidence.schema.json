@@ -667,6 +667,13 @@
           ],
           "format": "date-time"
         },
+        "copy_expires_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
         "status": {
           "$ref": "#/$defs/artifactStatus"
         },

@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.35、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6とする。日次業務DB/L02と保守出力は分離する。MN04 full maintenance JSONLのschema/path/quotaは後続STEPで確定する。
+正本：要件定義書HTML 2.37、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6とする。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
 
 ## 共通イベント
 
@@ -160,8 +160,15 @@ MN05の共通fieldはevent名とUnix epoch秒の`at`。許可する追加field�
 
 root_readyは指定値を含むが、観測状態をconfigured_unverifiedとする。実際のturn eventから受け取ったmodel/effort/tierだけをruntime_observedに記録し、欠けた値は未確認のままとする。開始前にbasic sandbox mode/model/tier/Fast capabilityを確認し、unsupportedはsession_start_blockedとしてsafe codeと要求設定を記録する。per-folder rootsの有無はcapability条件に含めない。requested値をobserved値として扱わない。prompt、developer instructions本文、AI応答本文、任意例外本文、認証情報、URL/query/DOMは出力しない。
 
-MN05はcommon traceのschema_version/UUID span/JST/quota envelopeを実装したものとは扱わない。90日/4 MiB/日20件の保持・quota、atomic workflow events、stage相関はMN04の実装条件であり、MN05を本番運用可能とする前に別途確定する。U07での実モデル接続は行わず、LC01/LC02をU18で確認する。per-folder roots項目のないCLIでもreadOnly/workspaceWriteのbasic modeを使える場合はsessionを起動できる。
+MN05はcommon traceのschema_version/UUID span/JST/quota envelopeを実装したものとは扱わない。MN05独自の保持・quota条件は別途管理し、MN04のquotaを適用したとは扱わない。U07での実モデル接続は行わず、LC01/LC02をU18で確認する。per-folder roots項目のないCLIでもreadOnly/workspaceWriteのbasic modeを使える場合はsessionを起動できる。
 
+## U17 保守workflow診断JSONL（MN04 schema v1）
+
+MN04は保守CLI/各stageの開始・完了・失敗・待機・取消・再開、指定/観測model、review/test、deployment、retention結果を記録する保守専用JSONLである。pathは`D/maintenance/logs/<target_date>/<maintenance_id>.jsonl`、同日rotate先は`.part-NNNN.jsonl`。CLI引数不正や管理DBを開く前などmaintenance IDがまだない場合も、IDを創作せずnullableなsource IDと固定code/classで記録する。
+
+schemaは`automation/inago/schemas/maintenance-diagnostic-event.schema.json`。required fieldはschema version、UUID event ID、maintenance ID、JST target date、UTC offset付き時刻、期限、event/stage/status、nullable `source_run_id`。追加できるのはallowlist済みlaunch/incident/job/attempt/step/release/session/role/artifact ID、reason code、error class、指定model/effort/tier/Fast、review/test status、base commit/result version、duration/countだけ。additional fieldを拒否し、prompt/応答本文、商品・投稿本文、URL/query/DOM、認証情報、任意例外本文、秘密、個人情報、絶対path、commandを記録しない。
+
+通常値は90日保持、1ファイル4 MiB、1日20ファイル、1 event 16 KiBまで。追記はstage fileへの書込・flush/fsync後のatomic replaceで確定し、`daily_file_quota`を含む容量/書込/quota失敗では成功を返さず対象stage/releaseを保留する。operation完了後にreceiptだけが失敗した場合は戻り値付きの監査例外で状態照合を要求し、未実行と誤認させない。古いlog stageと中断したevidence stageは所有root内で安全に回収し、元の日次L01/L02や証拠原本を削除しない。証拠コピー期限は原本期限があればその期限、かつ採取から90日を超えない。MN04の保持設定は`automation/inago/schemas/maintenance-settings.schema.json`に固定する。MN05 app-server transport logは独立した既存契約を維持し、このMN04 quotaを適用したとは扱わない。
 ## U08 daily launcher ledger（MN01・schema v3）
 
 日次launcherの起動/完了通知はmaintenance管理SQLite `D/maintenance/state.sqlite`の`daily_launch`と`daily_check`に保存し、日次L01/L02、日次業務DB、MN04 workflow診断JSONLへ混ぜない。`source_launch_id`とJST `target_date`を先にcommitし、起動owner/child PIDとrunning/terminal statusを結ぶ。日次子processがexport、終了保全、共通trace、L01最終記録を含む処理を終えて戻った後でだけ、結果summaryとcheckを同一transactionでterminal化する。terminal launch行はimmutableとする。

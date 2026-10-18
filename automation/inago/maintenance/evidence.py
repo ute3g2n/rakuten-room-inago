@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
+from functools import lru_cache
 import hashlib
 import json
 import math
@@ -19,17 +20,27 @@ import re
 import shutil
 import sqlite3
 import stat
-import tempfile
 from typing import Any, Mapping, Sequence
+import uuid
 from zoneinfo import ZoneInfo
 
+from jsonschema import Draft202012Validator, FormatChecker
+
 from automation.inago.trace import redact_sensitive_text
+from automation.inago.maintenance.safe_file import (
+    SafeFileError,
+    open_file_beneath,
+    unlink_file_beneath,
+)
+from automation.inago.maintenance.paths import _has_reparse_point
+from automation.inago.retention import RetentionError, validate_data_root
 
 
 JST = ZoneInfo("Asia/Tokyo")
 EVIDENCE_SCHEMA_VERSION = 1
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_PRIOR_MANIFEST_BYTES = 1024 * 1024
+MAINTENANCE_COPY_RETENTION_DAYS = 90
 
 EVIDENCE_CLASS_IDS = (
     "L01",
@@ -107,6 +118,7 @@ _ARTIFACT_STATUSES = {
 _CLASS_STATUSES = _ARTIFACT_STATUSES | {"not_listed", "partial"}
 _MISSING_STATUSES = {"not_saved", "expired", "unavailable", "suppressed"}
 _SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
+_DATE_DIR = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 _GITHUB_TOKEN = re.compile(
     r"(?i)(?<![A-Za-z0-9])(?:gh[pousr]_[A-Za-z0-9]{20,}|"
     r"github_pat_[A-Za-z0-9_]{20,})(?![A-Za-z0-9_])"
@@ -1186,6 +1198,12 @@ def collect_evidence(
 
     target = _validate_date(target_date, "target_date")
     captured = _captured_at(captured_at)
+    captured_utc = _parse_timestamp(captured, None).utc
+    if captured_utc is None:
+        raise EvidenceCollectionError("captured_at_invalid")
+    default_copy_expiry = _utc_text(
+        captured_utc + timedelta(days=MAINTENANCE_COPY_RETENTION_DAYS)
+    )
     if not isinstance(correlation, Mapping) or set(correlation) - set(_IDENTITY_FIELDS):
         raise EvidenceCollectionError("correlation_schema_invalid")
     safe_correlation: dict[str, str] = {}
@@ -1260,6 +1278,7 @@ def collect_evidence(
             "retention_status": source.retention_status,
             "source_expires_at_raw": expiry_raw,
             "source_expires_at_utc": expiry_utc,
+            "copy_expires_at_utc": None,
             "status": "unavailable",
             "reason_code": "source_unavailable",
             "record_count": None,
@@ -1382,6 +1401,14 @@ def collect_evidence(
         artifact["artifact_ref"] = artifact_path
         artifact["redacted_bytes"] = len(encoded)
         artifact["redacted_sha256"] = hashlib.sha256(encoded).hexdigest()
+        copy_expiry = default_copy_expiry
+        if expiry_utc is not None:
+            source_expiry_time = _parse_timestamp(expiry_utc, None).utc
+            if source_expiry_time is None:
+                raise EvidenceCollectionError("source_expiry_invalid")
+            if source_expiry_time < _parse_timestamp(default_copy_expiry, None).utc:
+                copy_expiry = expiry_utc
+        artifact["copy_expires_at_utc"] = copy_expiry
         grouped[source.class_id].append(artifact)
         output_artifacts[artifact_path] = encoded
 
@@ -1466,8 +1493,9 @@ def write_evidence_bundle(
 
     temp_name: str | None = None
     try:
-        temp_name = tempfile.mkdtemp(prefix=f".{target.name}.", dir=parent)
-        stage = Path(temp_name)
+        stage = parent / f".maintenance-evidence-stage-{uuid.uuid4().hex}"
+        stage.mkdir()
+        temp_name = str(stage)
         for relative_path, content in collection.artifacts.items():
             relative = _safe_output_relative(relative_path)
             artifact_path = stage.joinpath(*relative.parts)
@@ -1496,6 +1524,250 @@ def write_evidence_bundle(
     finally:
         if temp_name is not None:
             shutil.rmtree(temp_name, ignore_errors=True)
+
+
+@lru_cache(maxsize=1)
+def _evidence_manifest_validator() -> Draft202012Validator:
+    schema_path = (
+        Path(__file__).resolve().parents[1]
+        / "schemas"
+        / "maintenance-evidence.schema.json"
+    )
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise EvidenceCollectionError("manifest_schema_unavailable") from exc
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema, format_checker=FormatChecker())
+
+
+def _atomic_replace_manifest(manifest_path: Path, document: Mapping[str, Any]) -> None:
+    _reject_reparse_components(manifest_path.parent)
+    _reject_reparse_components(manifest_path)
+    encoded = (
+        json.dumps(
+            document, ensure_ascii=False, allow_nan=False, indent=2, sort_keys=True
+        )
+        + "\n"
+    ).encode("utf-8")
+    if len(encoded) > MAX_PRIOR_MANIFEST_BYTES:
+        raise EvidenceCollectionError("manifest_size_limit")
+    temporary = (
+        manifest_path.parent / f".maintenance-manifest-stage-{uuid.uuid4().hex}.tmp"
+    )
+    try:
+        with temporary.open("xb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, manifest_path)
+        if os.name != "nt":
+            directory_fd = os.open(manifest_path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    except OSError as exc:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError as cleanup_error:
+            exc.add_note("temporary manifest cleanup failed")
+            exc.add_note(type(cleanup_error).__name__)
+        raise EvidenceCollectionError("manifest_replace_failed") from exc
+
+
+def expire_evidence_copies(
+    data_root: str | Path,
+    *,
+    now: str | datetime,
+) -> tuple[int, int]:
+    """Expire redacted MN06 copies without changing any source or daily log.
+
+    Returns ``(deleted_artifact_files, failures)``. The manifest is atomically
+    marked expired before its referenced copy is removed, so a deletion failure
+    remains visible and can be retried on the next maintenance pass.
+    """
+
+    current_utc = (
+        now.astimezone(timezone.utc)
+        if isinstance(now, datetime)
+        and now.tzinfo is not None
+        and now.utcoffset() is not None
+        else _parse_timestamp(now, None).utc
+    )
+    if current_utc is None:
+        raise EvidenceCollectionError("retention_time_invalid")
+    root = validate_data_root(data_root)
+    evidence_root = root / "maintenance" / "evidence"
+    if not evidence_root.exists():
+        return 0, 0
+    _reject_reparse_components(evidence_root)
+    deleted = failures = 0
+    try:
+        with os.scandir(evidence_root) as date_entries:
+            dates = [entry for entry in date_entries if _DATE_DIR.fullmatch(entry.name)]
+        for date_entry in dates:
+            date_dir = Path(date_entry.path)
+            try:
+                if _has_reparse_point(date_dir) or not date_entry.is_dir(
+                    follow_symlinks=False
+                ):
+                    failures += 1
+                    continue
+                with os.scandir(date_dir) as job_entries:
+                    jobs = [
+                        entry for entry in job_entries if _SAFE_ID.fullmatch(entry.name)
+                    ]
+                for job_entry in jobs:
+                    job_dir = Path(job_entry.path)
+                    if _has_reparse_point(job_dir) or not job_entry.is_dir(
+                        follow_symlinks=False
+                    ):
+                        failures += 1
+                        continue
+                    with os.scandir(job_dir) as attempt_entries:
+                        attempts = [
+                            entry
+                            for entry in attempt_entries
+                            if _SAFE_ID.fullmatch(entry.name)
+                        ]
+                    for attempt_entry in attempts:
+                        attempt_dir = Path(attempt_entry.path)
+                        manifest_path = attempt_dir / "manifest.json"
+                        if _has_reparse_point(attempt_dir) or not attempt_entry.is_dir(
+                            follow_symlinks=False
+                        ):
+                            failures += 1
+                            continue
+                        if not manifest_path.exists():
+                            continue
+                        try:
+                            relative_manifest = manifest_path.relative_to(
+                                root
+                            ).as_posix()
+                            with open_file_beneath(
+                                root, relative_manifest, "rb"
+                            ) as stream:
+                                manifest_bytes = stream.read(
+                                    MAX_PRIOR_MANIFEST_BYTES + 1
+                                )
+                            if len(manifest_bytes) > MAX_PRIOR_MANIFEST_BYTES:
+                                raise EvidenceCollectionError("manifest_size_limit")
+                            manifest = json.loads(manifest_bytes.decode("utf-8"))
+                            _evidence_manifest_validator().validate(manifest)
+                            if not isinstance(manifest, dict):
+                                raise EvidenceCollectionError("manifest_invalid")
+                            expired: list[tuple[dict[str, Any], str]] = []
+                            newly_expired: set[tuple[str, str]] = set()
+                            for artifact in manifest["artifacts"]:
+                                expiry = artifact.get("copy_expires_at_utc")
+                                reference = artifact.get("artifact_ref")
+                                if not isinstance(reference, str):
+                                    continue
+                                if artifact.get("status") not in {
+                                    "collected",
+                                    "expired",
+                                }:
+                                    continue
+                                captured = _parse_timestamp(
+                                    manifest.get("captured_at"), None
+                                ).utc
+                                if captured is None:
+                                    continue
+                                copy_expiry_cap = captured + timedelta(
+                                    days=MAINTENANCE_COPY_RETENTION_DAYS
+                                )
+                                expiry_time = copy_expiry_cap
+                                source_expiry = artifact.get("source_expires_at_utc")
+                                if isinstance(source_expiry, str):
+                                    source_expiry_time = _parse_timestamp(
+                                        source_expiry, None
+                                    ).utc
+                                    if source_expiry_time is not None:
+                                        expiry_time = min(
+                                            expiry_time, source_expiry_time
+                                        )
+                                recorded_expiry = artifact.get("copy_expires_at_utc")
+                                if isinstance(recorded_expiry, str):
+                                    recorded_expiry_time = _parse_timestamp(
+                                        recorded_expiry, None
+                                    ).utc
+                                    if recorded_expiry_time is not None:
+                                        expiry_time = min(
+                                            expiry_time, recorded_expiry_time
+                                        )
+                                if expiry_time > current_utc:
+                                    continue
+                                _safe_output_relative(reference)
+                                expired.append((artifact, reference))
+                                if artifact.get("status") == "collected":
+                                    newly_expired.add(
+                                        (artifact["class_id"], artifact["source_ref"])
+                                    )
+                            if not expired:
+                                continue
+                            if newly_expired:
+                                updated = json.loads(json.dumps(manifest))
+                                for artifact in updated["artifacts"]:
+                                    key = (artifact["class_id"], artifact["source_ref"])
+                                    if key in newly_expired:
+                                        artifact["status"] = "expired"
+                                        artifact[
+                                            "reason_code"
+                                        ] = "copy_retention_expired"
+                                        artifact["record_count"] = None
+                                        artifact["redacted_bytes"] = None
+                                        artifact["redacted_sha256"] = None
+                                updated["events"] = [
+                                    event
+                                    for event in updated["events"]
+                                    if (event["class_id"], event["source_ref"])
+                                    not in newly_expired
+                                ]
+                                for summary in updated["classes"]:
+                                    grouped = [
+                                        item
+                                        for item in updated["artifacts"]
+                                        if item["class_id"] == summary["class_id"]
+                                    ]
+                                    (
+                                        summary["status"],
+                                        summary["record_count"],
+                                    ) = _class_status(grouped)
+                                    summary["artifact_count"] = len(grouped)
+                                _evidence_manifest_validator().validate(updated)
+                                _atomic_replace_manifest(manifest_path, updated)
+                            for _artifact, reference in expired:
+                                artifact_path = attempt_dir.joinpath(
+                                    *_safe_output_relative(reference).parts
+                                )
+                                try:
+                                    try:
+                                        artifact_path.lstat()
+                                    except FileNotFoundError:
+                                        continue
+                                    relative_artifact = artifact_path.relative_to(
+                                        root
+                                    ).as_posix()
+                                    unlink_file_beneath(root, relative_artifact)
+                                    deleted += 1
+                                except (OSError, SafeFileError):
+                                    failures += 1
+                        except (
+                            OSError,
+                            UnicodeDecodeError,
+                            json.JSONDecodeError,
+                            EvidenceCollectionError,
+                            RetentionError,
+                            SafeFileError,
+                            ValueError,
+                        ):
+                            failures += 1
+            except (OSError, SafeFileError, RetentionError, ValueError):
+                failures += 1
+        return deleted, failures
+    except (OSError, RetentionError) as exc:
+        raise EvidenceCollectionError("evidence_retention_failed") from exc
 
 
 def snapshot_sqlite(

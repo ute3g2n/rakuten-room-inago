@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.36 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.37 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -10,6 +10,7 @@
 - 業務状態の正本はmaintenance管理DBとその検証済み成果物である。診断JSONLは証拠参照であり、日次の元結果や管理DBの状態を上書きしない。
 - 安全なID・列挙値・範囲内数値・参照だけを診断ログへ出す。prompt、応答本文、商品/投稿本文、URL、query、DOM、認証情報、秘密、個人情報は出力しない。
 - 本人の採用済み基本設定を維持する。新しい商品再分析、自動ROOM投稿、過去日分の下書き追生成を追加しない。
+- テストコードの独立レビューは行わない。デバッグ中にテストの不具合が判明した場合だけ、該当箇所を最小修正する。レビュー対象は製品コードと仕様である。
 
 ## U05管理DB・状態実装の対応
 
@@ -152,6 +153,14 @@ U14以降U20までの開発段階の合否は、合成fixture、一時DB、ロ�
 | MA-026 | 本日調査MD・修正計画MD・対応HTML、各独立レビュー、試験/反映/公開の証拠が同じ案件IDと版で結び、レビュー済み対応HTMLだけを一ファイルのGit commitとして通常fast-forward公開する。 |
 | MA-027 | 10/17のfailed/IntegrityError、当日確定0、既存表示12、他の件数とユーザー報告を保持する。再実行・追生成・過去結果のsuccess化で元の記録を置換しない。 |
 | MA-028 | 次の自然日次で修正対象の再発、正常日の不要工程省略、結果と報告の一致を観測する。未観測は検証待ち、再発は同一案件へ関連付けて再開し、追加の日次を試験起動しない。 |
+
+## U17 MN04 trace・retention・運用確認
+
+U17は通常のローカルpytestと合成fixtureを使い、MN04 `D/maintenance/logs/<target_date>/<maintenance_id>.jsonl`を含むC18/C47/C48/C58/C60を確認する。検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測証拠は要求しない。これらの開発テスト結果をproduction provider実証へ読み替えない。テストコードの独立レビューは行わず、debugで見つかった不具合だけ最小修正する。
+
+C18はsource expiry/90日期限、4 MiB rotate、日次file quota、90日超過log/evidence copy、既知orphan stage回収を確認する。L02のsource bytes/期限は維持する。C47は保留・review・repair・deploymentを含むworkflow event相関を確認する。C48は日次優先と全体終了期限なしを維持する。C58はwrite/fsync失敗時に既存logを壊さず成功eventを返さないこと、処理結果返却後のreceipt欠測でoperation resultを露出し、状態照合が必要と通知することを確認する。C60はQ/仕様/辞書/追跡/出力一覧/skills/roles/caseの対応を静的に監査する。
+
+今日の運用境界：2026-10-18 12:19 JSTのhost観測では通常の`RakutenRoomInagoDaily`はReadyで13:00に日次CLIを起動する一方、maintenance worker/watchdog taskは未登録で、maintenance CLIにworker commandがない。task登録scriptはCLI未対応時にfail-closedとなる。従って通常日次は維持しつつ、今日の自動不具合解析・修復workerを起動しない。U21のproduction導入gateを満たすまでは明日以降も有効化しない。
 
 ## U02の確認範囲
 

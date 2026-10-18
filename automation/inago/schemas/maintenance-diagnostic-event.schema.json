@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/maintenance-diagnostic-event-v1.schema.json",
+  "title": "Maintenance workflow diagnostic event",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "maintenance_id",
+    "target_date",
+    "at",
+    "retention_expires_at",
+    "event",
+    "stage",
+    "status",
+    "source_run_id"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "event_id": { "type": "string", "format": "uuid" },
+    "maintenance_id": { "allOf": [{ "$ref": "#/$defs/safeId" }, { "not": { "pattern": "\\.part-[0-9]{4}$" } }] },
+    "target_date": { "type": "string", "format": "date" },
+    "at": { "type": "string", "format": "date-time" },
+    "retention_expires_at": { "type": "string", "format": "date-time" },
+    "event": {
+      "enum": [
+        "maintenance_started",
+        "maintenance_finished",
+        "stage_started",
+        "stage_completed",
+        "stage_failed",
+        "stage_waiting",
+        "stage_cancelled",
+        "stage_resumed",
+        "model_requested",
+        "model_observed",
+        "review_completed",
+        "test_completed",
+        "deployment_result",
+        "retention_completed",
+        "retention_failed"
+      ]
+    },
+    "stage": {
+      "enum": [
+        "cli",
+        "database",
+        "daily_check",
+        "incident",
+        "investigation",
+        "planning",
+        "repair",
+        "test",
+        "review",
+        "report",
+        "deployment",
+        "watchdog",
+        "model",
+        "retention",
+        "evidence"
+      ]
+    },
+    "status": {
+      "enum": [
+        "started",
+        "complete",
+        "failed",
+        "blocked",
+        "waiting",
+        "cancelled",
+        "resumed",
+        "unverified",
+        "approved",
+        "changes_requested",
+        "passed",
+        "not_run",
+        "ready",
+        "not_ready",
+        "busy",
+        "unknown"
+      ]
+    },
+    "source_launch_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "source_run_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "incident_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "job_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "attempt_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "step_key": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "release_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "session_key": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "parent_key": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "role_name": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "artifact_ref": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "reason_code": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+    "error_class": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$" },
+    "model": {
+      "enum": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
+    },
+    "effort": { "enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"] },
+    "service_tier": { "enum": ["normal", "fast", "priority"] },
+    "fast_mode": { "type": "boolean" },
+    "review_status": { "enum": ["not_run", "approved", "changes_requested", "blocked", "unknown"] },
+    "test_status": { "enum": ["not_run", "passed", "failed", "blocked", "unknown"] },
+    "base_commit": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" },
+    "result_version": { "$ref": "#/$defs/safeId" },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "count": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "safeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    }
+  }
+}

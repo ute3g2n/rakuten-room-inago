@@ -19,6 +19,7 @@ from jsonschema.exceptions import SchemaError, ValidationError
 
 from automation.inago.app_server import AppServerSession, AppServerTurn
 from automation.inago.maintenance.controller import MaintenanceController
+from automation.inago.maintenance.diagnostic_trace import audit_maintenance_stage
 from automation.inago.maintenance.paths import _has_reparse_point
 from automation.inago.maintenance.store import (
     AIParentSessionRecord,
@@ -188,6 +189,7 @@ class MaintenanceAIAdapter:
         ):
             raise ValueError("base_command must be a nonempty argument array")
         self.controller = controller
+        self._diagnostic_trace = controller._diagnostic_trace
         self.base_command = tuple(base_command)
         self.project_root = _absolute_path(project_root)
         self.attempts_root = _absolute_path(attempts_root)
@@ -316,6 +318,7 @@ class MaintenanceAIAdapter:
             return {"type": "workspaceWrite", "networkAccess": False}
         return {"type": "readOnly", "networkAccess": False}
 
+    @audit_maintenance_stage("model")
     def plan_session(
         self,
         *,
@@ -463,6 +466,7 @@ class MaintenanceAIAdapter:
             and dict(stored.sandbox) == dict(sandbox)
         )
 
+    @audit_maintenance_stage("model")
     def create_session(self, plan: MaintenanceAISessionPlan) -> "MaintenanceAISession":
         log_path = self._prepare_log_path(plan.log_path)
 
@@ -551,9 +555,11 @@ class MaintenanceAISession:
         app_server: AppServerSession,
     ) -> None:
         self.controller = controller
+        self._diagnostic_trace = controller._diagnostic_trace
         self.plan = plan
         self.app_server = app_server
 
+    @audit_maintenance_stage("model")
     def run_turn(
         self,
         prompt: str,
@@ -600,7 +606,9 @@ class MaintenanceAISession:
         status = (
             "blocked"
             if mismatch
-            else "verified" if complete else "configured_unverified"
+            else "verified"
+            if complete
+            else "configured_unverified"
         )
         reason = (
             "runtime_setting_mismatch"

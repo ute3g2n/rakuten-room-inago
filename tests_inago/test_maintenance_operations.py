@@ -3,12 +3,30 @@
 from __future__ import annotations
 
 import importlib
+import json
+import os
 import sqlite3
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from automation.inago.maintenance.store import IdempotencyConflictError
+from automation.inago.maintenance import diagnostic_trace
+from automation.inago.maintenance.diagnostic_trace import (
+    MaintenanceAuditReceiptError,
+    MaintenanceDiagnosticPolicy,
+    MaintenanceDiagnosticTrace,
+    read_diagnostic_events,
+    run_maintenance_retention,
+)
+from automation.inago.maintenance.evidence import (
+    EvidenceSource,
+    collect_evidence,
+    write_evidence_bundle,
+)
 from tests_inago.maintenance_support import (
     BASE_TIME,
     create_incident,
@@ -76,6 +94,272 @@ def test_c47_contract(tmp_path):
     assert store.counts()["maintenance_job"] == 1
     assert store.counts()["daily_check"] == 1
     assert store.counts()["watchdog_queue"] == 0
+
+
+def test_c18_contract(tmp_path):
+    now = datetime(2026, 10, 18, 12, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
+    data_root = tmp_path / "runtime"
+    data_root.mkdir()
+    source = data_root / "daily" / "L02.jsonl"
+    source.parent.mkdir()
+    source_bytes = (
+        json.dumps(
+            {
+                "event": "daily_complete",
+                "run_id": "run-c18",
+                "timestamp": "2026-10-18T10:30:00+09:00",
+                "status": "complete",
+            },
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+    source.write_bytes(source_bytes)
+
+    known_expiry = "2027-10-18T12:00:00+09:00"
+    collected = collect_evidence(
+        source_root=data_root,
+        sources=(
+            EvidenceSource(
+                "L02",
+                "daily-trace-c18",
+                "daily/L02.jsonl",
+                "jsonl",
+                retention_status="known",
+                expires_at=known_expiry,
+                present_at_discovery=True,
+            ),
+        ),
+        target_date="2026-10-18",
+        captured_at="2026-10-18T11:00:00+09:00",
+        correlation={"run_id": "run-c18"},
+    )
+    artifact = collected.manifest["artifacts"][0]
+    assert artifact["source_expires_at_utc"] == "2027-10-18T03:00:00Z"
+    assert artifact["copy_expires_at_utc"] == "2027-01-16T02:00:00Z"
+
+    no_expiry = collect_evidence(
+        source_root=data_root,
+        sources=(
+            EvidenceSource(
+                "L02", "daily-trace-90d", "daily/L02.jsonl", "jsonl"
+            ),
+        ),
+        target_date="2026-10-18",
+        captured_at="2026-10-18T11:00:00+09:00",
+        correlation={"run_id": "run-c18"},
+    )
+    no_expiry_copy = no_expiry.manifest["artifacts"][0]["copy_expires_at_utc"]
+    assert no_expiry_copy == "2027-01-16T02:00:00Z"
+
+    legacy_root = tmp_path / "legacy-runtime"
+    legacy_source = legacy_root / "daily" / "L02.jsonl"
+    legacy_source.parent.mkdir(parents=True)
+    legacy_source.write_bytes(source_bytes)
+    legacy = collect_evidence(
+        source_root=legacy_root,
+        sources=(
+            EvidenceSource(
+                "L02",
+                "legacy-daily-trace-c18",
+                "daily/L02.jsonl",
+                "jsonl",
+                retention_status="known",
+                expires_at=known_expiry,
+                present_at_discovery=True,
+            ),
+        ),
+        target_date="2026-10-18",
+        captured_at="2026-10-18T11:00:00+09:00",
+        correlation={"run_id": "run-c18"},
+    )
+    legacy.manifest["artifacts"][0].pop("copy_expires_at_utc")
+    legacy_bundle = (
+        legacy_root
+        / "maintenance"
+        / "evidence"
+        / "2026-10-18"
+        / "job-legacy-c18"
+        / "attempt-legacy-c18"
+    )
+    legacy_bundle.parent.mkdir(parents=True)
+    write_evidence_bundle(legacy_bundle, legacy)
+    legacy_copy = legacy_bundle / legacy.manifest["artifacts"][0]["artifact_ref"]
+    legacy_retention = run_maintenance_retention(
+        legacy_root,
+        now=datetime(2027, 1, 17, 12, 0, tzinfo=ZoneInfo("Asia/Tokyo")),
+    )
+    assert legacy_retention.expired_evidence_files == 1
+    assert not legacy_copy.exists()
+    assert legacy_source.read_bytes() == source_bytes
+
+    with pytest.raises(diagnostic_trace.MaintenanceDiagnosticError):
+        MaintenanceDiagnosticTrace(data_root, maintenance_id="run.part-0001")
+    bundle = data_root / "maintenance" / "evidence" / "2026-10-18" / "job-c18" / "attempt-c18"
+    bundle.parent.mkdir(parents=True)
+    write_evidence_bundle(bundle, collected)
+    artifact_path = bundle / artifact["artifact_ref"]
+    assert artifact_path.is_file()
+
+    expired_at = now - timedelta(days=90)
+    expired_log = MaintenanceDiagnosticTrace(
+        data_root, maintenance_id="expired-log-c18"
+    ).write(
+        event="stage_completed",
+        stage="cli",
+        status="complete",
+        at=expired_at,
+    )
+    assert expired_log.status == "written"
+    quota_policy = MaintenanceDiagnosticPolicy(
+        max_file_bytes=1024,
+        max_files_per_day=2,
+        max_event_bytes=1024,
+    )
+    quota_writer = MaintenanceDiagnosticTrace(
+        data_root, maintenance_id="quota-log-c18", policy=quota_policy
+    )
+    quota_results = [
+        quota_writer.write(
+            event="stage_started",
+            stage="cli",
+            status="started",
+            at=now,
+            count=index,
+        )
+        for index in range(20)
+    ]
+    assert any(
+        result.status == "unavailable" and result.reason_code == "daily_file_quota"
+        for result in quota_results
+    )
+    quota_files = list(
+        (data_root / "maintenance" / "logs" / now.date().isoformat()).glob(
+            "quota-log-c18*.jsonl"
+        )
+    )
+    assert len(quota_files) == 2
+    assert all(read_diagnostic_events(path, policy=quota_policy) for path in quota_files)
+
+    old_log_stage = (
+        data_root
+        / "maintenance"
+        / "logs"
+        / now.date().isoformat()
+        / f".maintenance-log-stage-{uuid4().hex}.tmp"
+    )
+    old_log_stage.write_bytes(b"incomplete")
+    old_time = (now - timedelta(days=2)).timestamp()
+    os.utime(old_log_stage, (old_time, old_time))
+
+    orphan = (
+        data_root
+        / "maintenance"
+        / "evidence"
+        / "2026-10-17"
+        / "job-orphan-c18"
+        / "attempt-orphan-c18"
+        / f".maintenance-evidence-stage-{uuid4().hex}"
+    )
+    orphan.mkdir(parents=True)
+    (orphan / "partial.jsonl").write_text("partial", encoding="utf-8")
+    os.utime(orphan, (old_time, old_time))
+    unrelated = orphan.parent / ".unknown-stage-c18"
+    unrelated.mkdir()
+
+    outcome = run_maintenance_retention(data_root, now=now)
+    assert outcome.status == "complete", outcome
+    assert outcome.expired_log_files >= 2
+    assert outcome.expired_evidence_files == 0
+    assert outcome.recovered_orphan_stages == 1
+    assert artifact_path.exists()
+    assert not orphan.exists()
+    assert unrelated.is_dir()
+    assert source.read_bytes() == source_bytes
+    updated_manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    assert updated_manifest["artifacts"][0]["status"] == "collected"
+
+
+def test_c58_contract(tmp_path, monkeypatch):
+    now = datetime(2026, 10, 18, 12, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
+    trace = MaintenanceDiagnosticTrace(tmp_path / "runtime", maintenance_id="partial-c58")
+    first = trace.write(
+        event="stage_completed", stage="cli", status="complete", at=now
+    )
+    assert first.status == "written"
+    assert first.path is not None
+    original_bytes = first.path.read_bytes()
+
+    original_write = diagnostic_trace.os.write
+    calls = 0
+
+    def partial_then_fail(descriptor, content):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return original_write(descriptor, content[: max(1, len(content) // 2)])
+        raise OSError("injected partial write")
+
+    monkeypatch.setattr(diagnostic_trace.os, "write", partial_then_fail)
+    partial = trace.write(
+        event="stage_started", stage="repair", status="started", at=now
+    )
+    assert partial.status == "unavailable"
+    assert first.path.read_bytes() == original_bytes
+    assert len(read_diagnostic_events(first.path)) == 1
+    assert not list(first.path.parent.glob(".maintenance-log-stage-*.tmp"))
+
+    monkeypatch.setattr(diagnostic_trace.os, "write", original_write)
+    fsync_trace = MaintenanceDiagnosticTrace(
+        tmp_path / "runtime", maintenance_id="fsync-c58"
+    )
+    baseline = fsync_trace.write(
+        event="stage_completed", stage="cli", status="complete", at=now
+    )
+    assert baseline.status == "written"
+    assert baseline.path is not None
+    fsync_baseline = baseline.path.read_bytes()
+
+    def fail_fsync(_descriptor):
+        raise OSError("injected fsync failure")
+
+    monkeypatch.setattr(diagnostic_trace.os, "fsync", fail_fsync)
+    failed = fsync_trace.write(
+        event="maintenance_finished", stage="cli", status="complete", at=now
+    )
+    assert failed.status == "unavailable"
+    assert baseline.path.read_bytes() == fsync_baseline
+    assert len(read_diagnostic_events(baseline.path)) == 1
+    assert not list(baseline.path.parent.glob(".maintenance-log-stage-*.tmp"))
+
+
+    class ReceiptTrace:
+        def __init__(self):
+            self.calls = 0
+
+        def require_written(self, **_event):
+            self.calls += 1
+            if self.calls == 2:
+                raise diagnostic_trace.MaintenanceDiagnosticError(
+                    "diagnostic_log_unavailable"
+                )
+            return baseline.path
+
+    class MutatingProbe:
+        _diagnostic_trace = ReceiptTrace()
+
+        @diagnostic_trace.audit_maintenance_stage("incident")
+        def operation(self):
+            return {"status": "complete", "job_id": "job-c58"}
+
+    with pytest.raises(MaintenanceAuditReceiptError) as receipt_error:
+        MutatingProbe().operation()
+    assert receipt_error.value.operation_returned is True
+    assert receipt_error.value.operation_result == {
+        "status": "complete",
+        "job_id": "job-c58",
+    }
+    assert receipt_error.value.state_reconciliation_required is True
 
 
 def test_watchdog_lease_with_unknown_owner_blocks_without_queueing(tmp_path):

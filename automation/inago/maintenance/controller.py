@@ -11,6 +11,10 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 from typing import Any
 
+from automation.inago.maintenance.diagnostic_trace import (
+    MaintenanceDiagnosticTrace,
+    audit_maintenance_stage,
+)
 from automation.inago.maintenance.investigation import (
     InvestigationContractError,
     MaintenanceCheckStageResult,
@@ -433,8 +437,12 @@ class MaintenanceController:
             Callable[[RepairReviewContext], RepairReviewEvidence] | None
         ) = None,
         repair_checkout_root: str | Path | None = None,
+        diagnostic_trace: MaintenanceDiagnosticTrace | None = None,
     ) -> None:
         self._store = store
+        self._diagnostic_trace = diagnostic_trace or MaintenanceDiagnosticTrace(
+            store.database_path.parent.parent
+        )
         trusted_identity_resolver = (
             identity_resolver or store.resolve_repair_identity_role
         )
@@ -450,6 +458,7 @@ class MaintenanceController:
         )
         self._repair_review_receipt_resolver = repair_review_receipt_resolver
 
+    @audit_maintenance_stage("daily_check")
     def record_daily_check(
         self,
         *,
@@ -471,6 +480,7 @@ class MaintenanceController:
             incident=incident,
         )
 
+    @audit_maintenance_stage("deployment")
     def evaluate_release_gate(
         self, *, release_id: str, evaluated_at: datetime | str
     ) -> GateResult:
@@ -512,6 +522,7 @@ class MaintenanceController:
     def get_step_attempt(self, *, attempt_id: str) -> StepAttemptRecord:
         return self._store.get_step_attempt(attempt_id)
 
+    @audit_maintenance_stage("investigation")
     def begin_step_attempt(
         self,
         *,
@@ -529,6 +540,7 @@ class MaintenanceController:
             started_at=started_at,
         )
 
+    @audit_maintenance_stage("repair")
     def begin_repair_attempt(
         self,
         *,
@@ -605,6 +617,7 @@ class MaintenanceController:
             repair_predecessor_output_sha256=plan_attempt.output_sha256,
         )
 
+    @audit_maintenance_stage("test")
     def prepare_repair_campaign(
         self,
         *,
@@ -649,6 +662,7 @@ class MaintenanceController:
             raise RepairContractError("repair_host_evidence_invalid")
         return host_evidence
 
+    @audit_maintenance_stage("test", finish_event="stage_completed", include_test=True)
     def run_repair_case(
         self, ledger: RepairTestLedger, semantic_case_id: str
     ) -> object:
@@ -659,6 +673,7 @@ class MaintenanceController:
             raise RepairContractError("host_pytest_runner_unavailable")
         return runner.run_case(ledger, semantic_case_id)
 
+    @audit_maintenance_stage("test", finish_event="stage_completed", include_test=True)
     def run_repair_full_regression(self, ledger: RepairTestLedger) -> object:
         """Run the campaign's persisted exact node set and return its receipt."""
 
@@ -667,6 +682,7 @@ class MaintenanceController:
             raise RepairContractError("host_pytest_runner_unavailable")
         return runner.run_full_regression(ledger)
 
+    @audit_maintenance_stage("repair", include_review=True)
     def complete_repair_attempt(
         self, request: RepairAttemptRequest
     ) -> RepairAttemptOutcome:
@@ -1163,6 +1179,7 @@ class MaintenanceController:
             artifacts=artifacts,
         )
 
+    @audit_maintenance_stage("daily_check")
     def run_daily_check_stage(
         self,
         *,
@@ -1207,6 +1224,7 @@ class MaintenanceController:
         )
         return MaintenanceDailyCheckOutcome(stage=stage, record=record)
 
+    @audit_maintenance_stage("investigation", include_review=True)
     def complete_investigation_attempt(
         self, request: InvestigationAttemptRequest
     ) -> InvestigationAttemptOutcome:
@@ -2144,6 +2162,7 @@ class MaintenanceController:
             review_reason_code=review_outcome["reason_code"],
         )
 
+    @audit_maintenance_stage("planning", include_review=True)
     def complete_planning_attempt(
         self, request: PlanningAttemptRequest
     ) -> PlanningAttemptOutcome:
@@ -2186,6 +2205,7 @@ class MaintenanceController:
             output_hash,
         )
 
+    @audit_maintenance_stage("investigation", start_event="stage_resumed")
     def resume_investigation_handoff(
         self,
         *,
@@ -2255,6 +2275,9 @@ class MaintenanceController:
                 "investigation_handoff_resume_invalid"
             ) from exc
 
+    @audit_maintenance_stage(
+        "model", start_event="model_requested", finish_event="model_requested"
+    )
     def bind_ai_parent_session(
         self,
         *,
@@ -2296,6 +2319,9 @@ class MaintenanceController:
             session_key=session_key,
         )
 
+    @audit_maintenance_stage(
+        "model", start_event="model_observed", finish_event="model_observed"
+    )
     def record_ai_session_observation(
         self,
         *,
@@ -2321,6 +2347,7 @@ class MaintenanceController:
             reason_code=reason_code,
         )
 
+    @audit_maintenance_stage("incident")
     def start_fix_job(
         self,
         *,
@@ -2339,6 +2366,7 @@ class MaintenanceController:
             source_run_id=source_run_id,
         )
 
+    @audit_maintenance_stage("incident")
     def finalize_job(
         self,
         *,
