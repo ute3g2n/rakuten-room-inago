@@ -47,6 +47,7 @@ from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID
 JST = ZoneInfo("Asia/Tokyo")
 ROOT = Path(__file__).resolve().parents[1]
 BASIC_SETTINGS_PATH = ROOT / "docs" / "specifications" / "preparation" / "初期設定引渡し.json"
+PREPARATION_ROOT = BASIC_SETTINGS_PATH.parent
 DETAIL_RULES_PATH = ROOT / "worklogs" / "projects" / "preparation" / "candidates" / "文型詳細ルール.json"
 SETTINGS_VERSION = "confirmed-0.3-step46-all132"
 DETAILS_VERSION = "detailed-writing-rules-candidate-0.1-step68"
