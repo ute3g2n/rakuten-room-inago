@@ -27,6 +27,11 @@ from automation.inago.maintenance.evidence import (
     collect_evidence,
     write_evidence_bundle,
 )
+from automation.inago.maintenance.scheduler_contract import (
+    SchedulerContractError,
+    compare_task_definitions,
+    parse_task_definition,
+)
 from tests_inago.maintenance_support import (
     BASE_TIME,
     create_incident,
@@ -94,6 +99,52 @@ def test_c47_contract(tmp_path):
     assert store.counts()["maintenance_job"] == 1
     assert store.counts()["daily_check"] == 1
     assert store.counts()["watchdog_queue"] == 0
+
+
+def test_c52_contract():
+    task_root = Path(__file__).parents[1] / "automation" / "inago" / "task-xml"
+    templates = {
+        name: (task_root / name).read_text(encoding="utf-8")
+        for name in (
+            "RakutenRoomInagoDaily.xml",
+            "RakutenRoomInagoWorker.xml",
+            "RakutenRoomInagoWatchdog.xml",
+        )
+    }
+    for xml_text in templates.values():
+        contract = parse_task_definition(xml_text)
+        assert contract.action == "{{PYTHON_EXE}}"
+        assert contract.working_directory == "{{PROJECT_ROOT}}"
+        assert contract.user_id == "{{USER_ID}}"
+        assert contract.logon_type == "InteractiveToken"
+        assert contract.run_level == "LeastPrivilege"
+        assert contract.execution_time_limit == "PT0S"
+        assert contract.multiple_instances == "IgnoreNew"
+        assert contract.hidden is True
+
+    expected = templates["RakutenRoomInagoWorker.xml"]
+    observed = expected.replace(
+        "{{PYTHON_EXE}}", r"C:\\inago\\python.exe"
+    ).replace("{{PROJECT_ROOT}}", r"C:\\inago")
+    observed = observed.replace("{{USER_ID}}", "S-1-5-21-1000")
+    rendered_expected = expected.replace(
+        "{{PYTHON_EXE}}", r"C:\\inago\\python.exe"
+    ).replace("{{PROJECT_ROOT}}", r"C:\\inago")
+    rendered_expected = rendered_expected.replace("{{USER_ID}}", "S-1-5-21-1000")
+    assert compare_task_definitions(rendered_expected, observed).arguments.endswith(
+        "worker --once"
+    )
+
+    drifted = observed.replace("worker --once", "watchdog", 1)
+    with pytest.raises(SchedulerContractError) as error:
+        compare_task_definitions(rendered_expected, drifted)
+    assert error.value.code == "scheduler_definition_drift"
+    assert "arguments" in error.value.fields
+
+    drifted = observed.replace("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>", "<ExecutionTimeLimit>PT1H</ExecutionTimeLimit>")
+    with pytest.raises(SchedulerContractError) as error:
+        compare_task_definitions(rendered_expected, drifted)
+    assert "execution_time_limit" in error.value.fields
 
 
 def test_c18_contract(tmp_path):

@@ -191,6 +191,26 @@ def test_c55_contract():
     assert report.report_status == "pending"
 
 
+def test_c56_report_marks_recurrent_observation_blocked():
+    sources = _source_snapshot()
+    sources["next_day"] = {
+        "status": "recurred",
+        "observed_at": "2026-10-18T13:10:00+09:00",
+        "evidence_href": _EVIDENCE,
+    }
+    report = prepare_incident_report(
+        _job_context(),
+        sources,
+        _report_response(),
+        template_path=(
+            Path(__file__).resolve().parents[1]
+            / "docs/templates/incidents/日次不具合対応レポート_ひな形.html"
+        ),
+    )
+    assert report.report_status == "blocked"
+    assert "recurred" in report.result_json
+
+
 def test_c44_contract():
     report = _prepared_report()
     assert report.report_status == "pending"

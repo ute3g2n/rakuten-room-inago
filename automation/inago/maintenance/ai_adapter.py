@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
+import shlex
 import tempfile
 import tomllib
 from dataclasses import dataclass
@@ -118,6 +119,62 @@ def _path_within(path: Path, parent: Path, *, allow_equal: bool = True) -> bool:
 
 def _absolute_path(path: str | Path) -> Path:
     return Path(os.path.abspath(Path(path).expanduser()))
+
+
+def _appserver_environment(plan: MaintenanceAISessionPlan) -> dict[str, str] | None:
+    """Trust only the assigned worktree for Git commands in repair sessions."""
+    if plan.parent_key != "B" or not _path_within(plan.cwd, plan.worktree_root):
+        return None
+
+    environment = dict(os.environ)
+    config_parameters = environment.get("GIT_CONFIG_PARAMETERS")
+    if config_parameters:
+        try:
+            parameter_items = shlex.split(config_parameters, posix=True)
+        except ValueError as exc:
+            raise MaintenanceAIBlockedError("git_config_environment_invalid") from exc
+        if any(
+            item.partition("=")[0].casefold() == "safe.directory"
+            for item in parameter_items
+        ):
+            raise MaintenanceAIBlockedError("git_config_environment_invalid")
+
+    try:
+        config_count = int(environment.get("GIT_CONFIG_COUNT", "0") or "0")
+    except ValueError as exc:
+        raise MaintenanceAIBlockedError("git_config_environment_invalid") from exc
+    if not 0 <= config_count <= 128:
+        raise MaintenanceAIBlockedError("git_config_environment_invalid")
+
+    inherited_config: list[tuple[str, str]] = []
+    for index in range(config_count):
+        key_name = f"GIT_CONFIG_KEY_{index}"
+        value_name = f"GIT_CONFIG_VALUE_{index}"
+        key = environment.get(key_name)
+        value = environment.get(value_name)
+        if key is None or value is None:
+            raise MaintenanceAIBlockedError("git_config_environment_invalid")
+        if key.casefold() != "safe.directory":
+            inherited_config.append((key, value))
+
+    if len(inherited_config) + 2 > 128:
+        raise MaintenanceAIBlockedError("git_config_environment_invalid")
+    for index in range(128):
+        environment.pop(f"GIT_CONFIG_KEY_{index}", None)
+        environment.pop(f"GIT_CONFIG_VALUE_{index}", None)
+    for index, (key, value) in enumerate(inherited_config):
+        environment[f"GIT_CONFIG_KEY_{index}"] = key
+        environment[f"GIT_CONFIG_VALUE_{index}"] = value
+
+    reset_index = len(inherited_config)
+    environment["GIT_CONFIG_COUNT"] = str(reset_index + 2)
+    environment[f"GIT_CONFIG_KEY_{reset_index}"] = "safe.directory"
+    environment[f"GIT_CONFIG_VALUE_{reset_index}"] = ""
+    environment[f"GIT_CONFIG_KEY_{reset_index + 1}"] = "safe.directory"
+    environment[f"GIT_CONFIG_VALUE_{reset_index + 1}"] = str(
+        _absolute_path(plan.worktree_root)
+    )
+    return environment
 
 
 def _assert_no_reparse_components(path: Path, code: str) -> None:
@@ -501,6 +558,7 @@ class MaintenanceAIAdapter:
         app_server = AppServerSession(
             command=plan.command,
             cwd=plan.cwd,
+            environment=_appserver_environment(plan),
             log_path=log_path,
             log_root=self.logs_root,
             resume_thread_id=plan.resume_thread_id,
@@ -566,11 +624,16 @@ class MaintenanceAISession:
         output_schema: Mapping[str, Any],
         *,
         allowed_outputs: Sequence[str],
+        server_output_schema: Mapping[str, Any] | None = None,
         cwd: str | Path | None = None,
         deadline: float,
         cancel_event=None,
     ) -> MaintenanceAITurn:
         validator = self._prepare_output_schema(output_schema)
+        server_schema = output_schema
+        if server_output_schema is not None:
+            self._prepare_output_schema(server_output_schema)
+            server_schema = server_output_schema
         allowed = self._validate_allowed_outputs(allowed_outputs)
         self._revalidate_write_roots()
         try:
@@ -583,7 +646,7 @@ class MaintenanceAISession:
         turn_cwd = self._validate_turn_cwd(cwd)
         turn = self.app_server.run_turn(
             prompt,
-            output_schema,
+            server_schema,
             cwd=turn_cwd,
             deadline=deadline,
             cancel_event=cancel_event,
@@ -606,9 +669,7 @@ class MaintenanceAISession:
         status = (
             "blocked"
             if mismatch
-            else "verified"
-            if complete
-            else "configured_unverified"
+            else "verified" if complete else "configured_unverified"
         )
         reason = (
             "runtime_setting_mismatch"

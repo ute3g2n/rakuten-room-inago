@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.37 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.38 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -14,7 +14,7 @@
 
 ## U05管理DB・状態実装の対応
 
-管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U15時点でmigration後のschema v6）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,release-gate,start-job,finish-job}`。
+管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U18時点でmigration後のschema v8）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とのpath/file aliasを拒否する。table、field、enum、release gate、lease再開契約は[要件データ辞書](要件データ辞書.md)を正本とする。CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,release-gate,start-job,finish-job}`。production DB migration/Scheduler登録はU21 gateまで未実施。
 
 U05でC06/C07/C28/C53の専用受入ケースを隔離DBに対して確認した。step順序は最新の独立承認を要求し、`changes_requested`後は新attemptで再開する。handoffは現在job leaseと一致する場合だけ受理し、受理後のreview更新を拒否する。reviewはrelease単位、および同一job内のstep単位（全attempt通算）で最大3巡。上限後は追加reviewと次attempt開始を拒否して保留する。`finish-job complete`はrelease gateと全step承認を再確認し、active job枠を解放する。failed/blocked/cancelledではrunning attemptも閉じる。再開上限到達時は`blocked`終端化できる。CLIのinit/status/blocked gate/DB alias拒否/finish-job完了を確認した。productionのmanagement DBは初期化・変更しておらず、本番日次の再実行、AI/ブラウザー実接続、production deploymentは未実施。各機能の実装範囲と後続条件は実行計画M §9/§14に記録する。
 
@@ -24,7 +24,9 @@ U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest
 
 親Aのroleはgpt-6.1-sol/xhigh/default/Fast disabled、親Bのroleはgpt-6-luna/max/Fastを指定する。role TOMLのdeveloper instructions、設定digest、model/effort/tier、基本sandbox modeをsessionへ結び、requestedとobservedを分ける。Fastはservice_tier="fast"とfeatures.fast_mode=trueで要求し、protocol上のtier priorityとしてcapabilityを確認する。モデル/effort/tier/FastまたはreadOnly/workspaceWrite modeが未対応ならfallbackせず拒否する。per-folder access/readOnlyAccess/readableRoots/writableRootsがないことは拒否理由にしない。観測イベントに設定値がない場合はconfigured_unverifiedとし、設定した事実だけでverifiedにしない。
 
-調査/review roleはreadOnly mode、親Bの実装/試験roleは専用managed worktree cwdでworkspaceWrite modeを使う。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。各turnはDraft 2020-12 JSON Schemaで返却JSONを検証し、manifestの5項目identityが完全一致することを確認する。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
+調査/review roleはreadOnly mode、親Bの実装/試験roleは専用managed worktree cwdでworkspaceWrite modeを使う。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。app-serverへ渡すStructured Outputs schemaは対応subsetへ整形する。固定値はenum等で制約し、objectは全propertyをrequiredにして`additionalProperties:false`を指定する。各turnの返却JSONはhostが元のDraft 2020-12 JSON Schemaで完全検証し、manifestの5項目identityが完全一致することを確認する。server側の構造化出力だけでは完全一致を確定しない。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。親BのGit commandでは継承された`safe.directory`設定をprocess環境内でリセットし、対象jobの検証済みworktreeだけを追加する。他のGit環境設定は維持し、global/system Git設定ファイルやOS ACLは変更しない。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
+
+Windowsのhost-created managed worktreeでは、app-serverのcommand runnerが親プロセスのGit環境変数を子commandへ引き継がない場合がある。Gitが所有者SIDの不一致を報告したときだけ、controller-bound attemptの正確なworktree rootを`git -c safe.directory=<worktree root>`で該当commandに指定する。これはそのGit invocationだけの設定であり、`--global`、wildcard、Git設定ファイル、OS ACLは変更しない。
 
 ## U08 daily launcher・最終完了通知
 
@@ -32,7 +34,7 @@ U08は日次taskと`run.ps1 daily`から専用launcherを呼び、maintenance DB
 
 U08 migration `003_daily_launch.sql`でmaintenance schemaをv3へ進め、`daily_launch`に`source_launch_id`、JST `target_date`、owner/child PID、`running/complete/failed/blocked/unknown` status、nullable `source_run_id`、exit code、完了時刻、安全な結果summaryを保存する。起動前停止はrun IDを創作せず、失敗phase/class、failed check、trace欠測を記録する。正常・不足・未実施の要約は対象日一致、正常/不足はrun IDを必須とし、overall/daily statusはnullにしない。daily_checkとterminal launch resultは同一transactionで確定し、terminal recordは変更/削除できない。結果summaryとstderrにはallowlist済みの識別値・状態・code/classのみを記録し、raw stderr、自由文、秘密、path、下書き数は記録しない。
 
-起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、schema v4が事前に導入済みの場合にだけ日次CLIへ進む。U08/U09のtask XML変更は予定差分であり、Scheduler登録と実日次起動はU21の導入ゲート後に行う。
+起動記録を保存できないときは子processを起動しない。有効な結果の完了記録を保存できないときは起動行を`running`のまま残し、通知欠測を出力しながら元の日次exit codeを維持する。launcherは既存production DBを自動migrationしないため、必要なschema v8が事前に導入済みの場合にだけ日次CLIへ進む。U08/U09/U18のtask XML変更は予定差分であり、production DB migration/Scheduler登録と実日次起動はU21の導入ゲート後に行う。
 
 U09 migration `004_watchdog_confirmation_queue.sql`でmaintenance schemaをv4へ進める。daily launch owner/childのPID開始時刻を追加し、未起動/途中終了の`watchdog_queue`をtask/対象日単位のoccurrenceおよびsource launch単位で一意化する。occurrence keyは予定時刻ではなくtask keyと対象日から作り、schedule時刻変更後も同じqueueへ結び直せるようにする。Scheduler historyが無効でも予定時刻から欠落を検知し、5分猶予後にrunがない場合は`unknown`として確認queueへ置く。遅れて起動したrunは同じqueueへ結び直し、その後通知前に停止した場合も同じqueueの理由を更新する。所有PIDが生存中、観測不明、またはchild PID未記録の行はqueueせず、別processをkillしない。`watchdog_cursor`は照合済みの最新日を単調に保持し、各回は新しい予定日、当日、未解決queue日、running launch日だけを照合する。既存の未解決queue日は現在のScheduler開始境界より古くても照合する。running launch用partial indexと日付単位の一括読取で過去全履歴の再走査と日付ごとのDB lookupを避ける。watchdog/worker task XMLと明示的なrender/registration scriptを追加する。実登録前にCLI worker commandと`worker --help`の`--once` option、および全task名を確認し、登録失敗時は今回追加したtaskだけをrollbackする。U09ではworker command未実装のため登録経路はfail-closedで、Scheduler登録・production migrationはU21まで行わない。
 
@@ -160,7 +162,30 @@ U17は通常のローカルpytestと合成fixtureを使い、MN04 `D/maintenance
 
 C18はsource expiry/90日期限、4 MiB rotate、日次file quota、90日超過log/evidence copy、既知orphan stage回収を確認する。L02のsource bytes/期限は維持する。C47は保留・review・repair・deploymentを含むworkflow event相関を確認する。C48は日次優先と全体終了期限なしを維持する。C58はwrite/fsync失敗時に既存logを壊さず成功eventを返さないこと、処理結果返却後のreceipt欠測でoperation resultを露出し、状態照合が必要と通知することを確認する。C60はQ/仕様/辞書/追跡/出力一覧/skills/roles/caseの対応を静的に監査する。
 
-今日の運用境界：2026-10-18 12:19 JSTのhost観測では通常の`RakutenRoomInagoDaily`はReadyで13:00に日次CLIを起動する一方、maintenance worker/watchdog taskは未登録で、maintenance CLIにworker commandがない。task登録scriptはCLI未対応時にfail-closedとなる。従って通常日次は維持しつつ、今日の自動不具合解析・修復workerを起動しない。U21のproduction導入gateを満たすまでは明日以降も有効化しない。
+今日の運用境界：2026-10-18 12:19/12:47 JSTのhost読取では既存`RakutenRoomInagoDaily`はReadyで13:00に日次CLIを起動し、maintenance worker/watchdog taskは未登録だった。U18でworker CLI commandは作業ブランチへ追加したが、production task登録/DB移行は行わず、今日の自動不具合解析・修復workerを起動しない。通常日次は既存設定のまま維持し、U21のproduction導入gateを満たすまでworkerを有効化しない。
+
+## U18 dispatch・履歴受付・翌日観測の受入
+
+U18は通常のローカルpytest、合成fixture、一時DB、toy Git repository/local bare remoteで検証する。検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測は開発テストの開始条件/合格条件にしない。テストコードの独立レビューは行わず、debugで判明したfixture/API不具合だけを最小修正する。
+
+| Case | 受入対象 |
+|---|---|
+| C49 / C51 | 正常checkのみで不要incident/jobを作らず、外部待ち・unknownは原因を創作せず保留する。 |
+| C50 | investigation/planning controller、別担当review、toy repoでの通常pytest red→pass、修正評価、toy deployment、reviewed HTML publicationを同じ合成案件で結ぶ。これはproduction runtime providerやHostPytestRunner receiptの証明ではない。 |
+| C52 | daily/worker/watchdog task XMLのaction・arguments・working directory・principal・run policy・instance policy・hidden値を比較し、driftを拒否する。 |
+| C54 | 過去の失敗記録をrun-nullのまま一度受付け、同じsource/dateから同一incident/job/manifestへ冪等に収束する。元の日次結果を変更しない。 |
+| C56 | deployed versionに対し、既存の翌日自然launch/checkだけを照合し、verified/recurred/blocked/not_observedを保存する。追加の日次起動はしない。 |
+| C59 | daily launcher終了後、owner/child停止を確認してからworkerを一度dispatchし、重複通知を同じqueueへ収束させる。queue completeは障害修正の完了を意味しない。 |
+
+U18のworker queue、historical intake、C50 controller chainはproduction task登録とは分離する。queueだけを消費した結果は`status=dispatch_complete`、`scope=dispatch_only`、`maintenance_resolution_status=not_started`として返し、障害の調査・修正完了と表現しない。調査から報告までの自動実行とproduction provider wiringはU21の合格・導入条件として確認する。C50の通常pytest結果をそれらの証明へ読み替えない。
+
+U18 `probe-ai`は全turnの完了、要求modelと一致するthread設定、model rerouteなしを確認する。per-turn effort/service tierがprotocolから得られない場合は`unreported`として記録し、要求値を送っただけで適用確認済み・`verified`とは扱わない。一方、値が未報告であることだけではprobeを失敗にせず、観測された不一致・reroute・turn失敗・必要成果物欠落は失敗とする。調査/計画Markdownの番号見出しは必要な連番が重複・欠落・逆順なく現れることをhostが確認する。各reviewerの返却schemaは`approved`と`rejected`の両方を受け付け、拒否またはcommon reviewerのfindingがある場合はprobeを失敗として記録する。
+
+repair profileのpytest結果は担当AIの申告だけで合格にしない。hostがApp Serverの`item/completed` `commandExecution` eventから、指定pytest commandの引数、`status=completed`、`exitCode=0`を確認する。実装担当後に取得したproduct diffのSHA-256はtester後にも照合し、差分が変わった場合は失敗にする。job/leaseを作る前にfilesystem-backed input/evidence参照を準備し、setup時の読取失敗でrunning jobやleaseを残さない。
+
+C54のhistorical intakeは、許可root下からevidence fileをno-followで読み、実byte列のSHA-256をobservationと照合してからDB recordを作る。launch/dailyの両状態が`blocked`/`unknown`なら`abnormal` checkや修正jobを作らず、明示失敗が一つもない観測は拒否する。intake record用directoryはroot相対のno-reparse操作で作成する。
+
+C56の再発理由照合はdeployment releaseに結び付くmaintenance jobが一件だけある場合に行う。jobがない、または複数なら再発incidentを推測せずblockedとする。`not_observed`は次日13:00 Asia/Tokyoより前に確定せず、対象日のdaily launchが存在する場合も確定しない。
 
 ## U02の確認範囲
 

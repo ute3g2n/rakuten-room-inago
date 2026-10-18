@@ -32,6 +32,8 @@ class AppServerTurn:
     observed_model: str | None = None
     observed_effort: str | None = None
     observed_service_tier: str | None = None
+    thread_configured_model: str | None = None
+    thread_configured_effort: str | None = None
 
 
 class AppServerSession:
@@ -80,6 +82,11 @@ class AppServerSession:
         self.sandbox_policy = dict(sandbox_policy or {"type": "readOnly"})
         self.on_thread_ready = on_thread_ready
         self.observed_settings = {
+            "model": None,
+            "effort": None,
+            "service_tier": None,
+        }
+        self.thread_settings = {
             "model": None,
             "effort": None,
             "service_tier": None,
@@ -410,13 +417,23 @@ class AppServerSession:
                 params["threadId"] = self.resume_thread_id
                 method = "thread/resume"
             result = self._call(method, params, deadline=deadline)
-            thread = result.get("thread", {}).get("id")
+            thread_record = result.get("thread", {})
+            thread = (
+                thread_record.get("id") if isinstance(thread_record, dict) else None
+            )
             if (
                 not isinstance(thread, str)
                 or not thread
                 or (self.resume_thread_id and thread != self.resume_thread_id)
             ):
                 raise AppServerError("root_thread_identity_invalid")
+            if isinstance(thread_record, dict):
+                configured_model = thread_record.get("model")
+                configured_effort = thread_record.get("reasoningEffort")
+                if isinstance(configured_model, str) and configured_model:
+                    self.thread_settings["model"] = configured_model
+                if isinstance(configured_effort, str) and configured_effort:
+                    self.thread_settings["effort"] = configured_effort
             self.thread_id = thread
             if self.on_thread_ready is not None:
                 self.on_thread_ready(thread)
@@ -691,6 +708,8 @@ class AppServerSession:
                         observed["model"],
                         observed["effort"],
                         observed["service_tier"],
+                        self.thread_settings["model"],
+                        self.thread_settings["effort"],
                     )
         except AppServerError as exc:
             try:

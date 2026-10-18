@@ -271,7 +271,7 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
         "blocked",
     }:
         raise ReportContractError("report_next_day_status_invalid")
-    if next_day["status"] == "verified":
+    if next_day["status"] in {"verified", "recurred"}:
         observed_at = next_day["observed_at"]
         if not isinstance(observed_at, str) or not _ISO_JST_PATTERN.fullmatch(
             observed_at
@@ -290,6 +290,42 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
         if observed.date() != expected_day:
             raise ReportContractError("report_next_day_observation_date_mismatch")
         href_fields.append("next_day.evidence_href")
+    elif next_day["status"] == "not_observed":
+        observed_at = next_day["observed_at"]
+        if (
+            not isinstance(observed_at, str)
+            or not _ISO_JST_PATTERN.fullmatch(observed_at)
+            or next_day["evidence_href"] is not None
+        ):
+            raise ReportContractError("report_next_day_observation_unverified")
+        try:
+            observed = datetime.fromisoformat(observed_at)
+            expected_day = date.fromisoformat(job["target_date"]) + timedelta(days=1)
+        except (TypeError, ValueError) as exc:
+            raise ReportContractError("report_next_day_observation_invalid") from exc
+        if observed.date() < expected_day:
+            raise ReportContractError("report_next_day_observation_date_mismatch")
+    elif next_day["status"] == "blocked":
+        if (next_day["observed_at"] is None) != (next_day["evidence_href"] is None):
+            raise ReportContractError("report_next_day_observation_unverified")
+        if next_day["observed_at"] is not None:
+            observed_at = next_day["observed_at"]
+            if not isinstance(observed_at, str) or not _ISO_JST_PATTERN.fullmatch(
+                observed_at
+            ):
+                raise ReportContractError("report_next_day_observation_invalid")
+            try:
+                observed = datetime.fromisoformat(observed_at)
+                expected_day = date.fromisoformat(job["target_date"]) + timedelta(
+                    days=1
+                )
+            except (TypeError, ValueError) as exc:
+                raise ReportContractError(
+                    "report_next_day_observation_invalid"
+                ) from exc
+            if observed.date() != expected_day:
+                raise ReportContractError("report_next_day_observation_date_mismatch")
+            href_fields.append("next_day.evidence_href")
     elif next_day["observed_at"] is not None or next_day["evidence_href"] is not None:
         raise ReportContractError("report_next_day_observation_unverified")
     data["evidence_index_href"] = _safe_href(data["evidence_index_href"])

@@ -56,6 +56,22 @@ def unlink_file_beneath(root: str | Path, relative_path: str) -> None:
     _unlink_posix_beneath(Path(root), parts)
 
 
+def ensure_directory_beneath(root: str | Path, relative_path: str) -> Path:
+    """Create each directory below a pinned root without following aliases."""
+
+    parts = PurePosixPath(relative_path).parts
+    if not parts or any(
+        part in {"", ".", ".."} or "/" in part or "\\" in part for part in parts
+    ):
+        raise SafeFileError("safe_relative_path_invalid")
+    root_path = Path(root)
+    if os.name == "nt":
+        _ensure_windows_beneath(root_path, parts)
+    else:
+        _ensure_posix_beneath(root_path, parts)
+    return root_path.joinpath(*parts)
+
+
 @contextmanager
 def _open_posix_beneath(
     root: Path, parts: tuple[str, ...], mode: Literal["rb", "xb"]
@@ -136,6 +152,33 @@ def _unlink_posix_beneath(root: Path, parts: tuple[str, ...]) -> None:
             os.unlink(parts[-1], dir_fd=current)
         except FileNotFoundError:
             return
+
+
+def _ensure_posix_beneath(root: Path, parts: tuple[str, ...]) -> None:
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+        raise SafeFileError("safe_no_follow_open_unavailable")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    absolute_root = Path(os.path.abspath(root))
+    if not absolute_root.is_absolute() or absolute_root.anchor != "/":
+        raise SafeFileError("safe_root_not_absolute")
+    with ExitStack() as stack:
+        current = os.open("/", directory_flags)
+        stack.callback(os.close, current)
+        for part in absolute_root.parts[1:]:
+            next_fd = os.open(part, directory_flags, dir_fd=current)
+            stack.callback(os.close, next_fd)
+            current = next_fd
+        for part in parts:
+            try:
+                next_fd = os.open(part, directory_flags, dir_fd=current)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, mode=0o700, dir_fd=current)
+                except FileExistsError:
+                    pass
+                next_fd = os.open(part, directory_flags, dir_fd=current)
+            stack.callback(os.close, next_fd)
+            current = next_fd
 
 
 if os.name == "nt":
@@ -361,7 +404,7 @@ if os.name == "nt":
         parent: int,
         name: str,
         *,
-        mode: Literal["directory", "rb", "xb", "delete"],
+        mode: Literal["directory", "directory_create", "rb", "xb", "delete"],
         created_file_cleanup: Callable[[], None] | None = None,
     ) -> int:
         if mode == "xb" and created_file_cleanup is None:
@@ -383,10 +426,10 @@ if os.name == "nt":
         )
         io_status = _IoStatusBlock()
         handle = wintypes.HANDLE()
-        if mode == "directory":
+        if mode in {"directory", "directory_create"}:
             desired_access = _FILE_LIST_DIRECTORY | _FILE_READ_ATTRIBUTES | _SYNCHRONIZE
             share_access = _FILE_SHARE_READ | _FILE_SHARE_WRITE
-            disposition = _FILE_OPEN
+            disposition = _FILE_CREATE if mode == "directory_create" else _FILE_OPEN
             create_options = (
                 _FILE_DIRECTORY_FILE
                 | _FILE_OPEN_REPARSE_POINT
@@ -397,9 +440,7 @@ if os.name == "nt":
             data_access = (
                 _FILE_READ_DATA
                 if mode == "rb"
-                else _FILE_WRITE_DATA
-                if mode == "xb"
-                else _DELETE
+                else _FILE_WRITE_DATA if mode == "xb" else _DELETE
             )
             desired_access = (
                 data_access
@@ -438,7 +479,10 @@ if os.name == "nt":
             file_attributes = _attributes(value)
             if file_attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
                 raise SafeFileError("safe_reparse_point_rejected")
-            if mode == "directory" and not file_attributes & _FILE_ATTRIBUTE_DIRECTORY:
+            if (
+                mode in {"directory", "directory_create"}
+                and not file_attributes & _FILE_ATTRIBUTE_DIRECTORY
+            ):
                 raise SafeFileError("safe_component_not_directory")
         except BaseException as exc:
             needs_path_cleanup = False
@@ -502,9 +546,9 @@ if os.name == "nt":
                 parts[-1],
                 mode=mode,
                 created_file_cleanup=(
-                    lambda: _unlink_windows_beneath(root, parts)
-                    if mode == "xb"
-                    else None
+                    lambda: (
+                        _unlink_windows_beneath(root, parts) if mode == "xb" else None
+                    )
                 ),
             )
             created_file = mode == "xb"
@@ -588,6 +632,43 @@ if os.name == "nt":
                 cleanups.append(lambda handle=handle: _close_handle(handle))
             _run_cleanups(cleanups, primary_error)
 
+    def _ensure_windows_beneath(root: Path, parts: tuple[str, ...]) -> None:
+        absolute_root = Path(os.path.abspath(root))
+        anchor = absolute_root.anchor
+        if not anchor:
+            raise SafeFileError("safe_root_not_absolute")
+        handles: list[int] = []
+        primary_error: BaseException | None = None
+        try:
+            current = _create_directory_handle(anchor)
+            handles.append(current)
+            current_path = anchor
+            for part in absolute_root.parts[1:]:
+                current = _open_relative_handle(current, part, mode="directory")
+                handles.append(current)
+                current_path = ntpath.join(current_path, part)
+                _verify_handle_path(current, current_path)
+            for part in parts:
+                try:
+                    next_handle = _open_relative_handle(
+                        current, part, mode="directory_create"
+                    )
+                except FileExistsError:
+                    next_handle = _open_relative_handle(current, part, mode="directory")
+                handles.append(next_handle)
+                current = next_handle
+                current_path = ntpath.join(current_path, part)
+                _verify_handle_path(current, current_path)
+        except BaseException as exc:
+            primary_error = exc
+            raise
+        finally:
+            cleanups = [
+                lambda handle=handle: _close_handle(handle)
+                for handle in reversed(handles)
+            ]
+            _run_cleanups(cleanups, primary_error)
+
 else:
 
     @contextmanager
@@ -597,4 +678,7 @@ else:
         raise SafeFileError("windows_open_unavailable")
 
     def _unlink_windows_beneath(root: Path, parts: tuple[str, ...]) -> None:
+        raise SafeFileError("windows_open_unavailable")
+
+    def _ensure_windows_beneath(root: Path, parts: tuple[str, ...]) -> None:
         raise SafeFileError("windows_open_unavailable")

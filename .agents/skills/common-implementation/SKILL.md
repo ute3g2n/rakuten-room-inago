@@ -14,6 +14,7 @@ management stage=implementationで、親Bが承認済み計画版、base_commit�
 - 計画と割当を照合し、allowed_outputsに列挙された実装対象だけ変更する。
 - 各変更を計画上のSTEP/fact/要件に結び、差分要約と実行した確認だけを返す。
 - 必須入力、Git基準版、worktree、テスト担当への引継ぎがない場合は編集を始めない。
+- Gitがmanaged worktreeの所有者を拒否する場合、controller-bound attemptで指定されたworktree rootを使い、該当Git commandだけ`git -c safe.directory=<exact worktree root>`で実行する。`--global`、`*`、Git設定ファイルの変更はしない。
 
 ## 禁止と停止
 

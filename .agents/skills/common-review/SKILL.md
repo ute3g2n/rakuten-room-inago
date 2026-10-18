@@ -13,6 +13,7 @@ management stage=reviewで、別の実装担当と試験担当が提出したres
 
 - 計画の許可範囲とプロダクトコードの差分、設計、危険な副作用、エラー境界、未確認事項を読む。テストコード自体は独立レビューしない。
 - 計画に記録されたcaseの期待と実測結果、証拠、版、完全nodeを照合する。skip/error/未実施を成功に扱わない。テストコードのバグが実行やデバッグ中に判明した場合は、担当者へ修正と対象caseの再実行を求める。
+- Gitがhost-created managed worktreeの所有者を拒否する場合、controller-bound attemptで指定されたworktree rootを使い、該当Git commandだけ`git -c safe.directory=<exact worktree root>`で実行する。`--global`、`*`、Git設定ファイルの変更はしない。
 - 具体的なfile/行、根拠、対応するplan item、severityを含むreview resultを作る。
 - 審査対象に修正が必要ならchanges_requested、重大な契約違反ならrejected、情報不足はunavailable/blockedを返す。
 

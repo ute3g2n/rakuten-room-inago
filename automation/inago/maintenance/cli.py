@@ -32,6 +32,7 @@ from automation.inago.maintenance.settings import (
     load_settings,
 )
 from automation.inago.maintenance.store import (
+    IdempotencyConflictError,
     LeaseToken,
     MaintenanceStore,
     MaintenanceStoreError,
@@ -59,11 +60,36 @@ def _parser() -> argparse.ArgumentParser:
         "watchdog", help="reconcile stale daily launch and scheduler records"
     )
 
+    worker = commands.add_parser(
+        "worker", help="claim a completed daily launch after its processes stop"
+    )
+    worker.add_argument("--once", action="store_true", required=True)
+    worker.add_argument("--source-launch-id")
+
+    probe = commands.add_parser(
+        "probe-ai", help="probe the configured model with synthetic isolated data"
+    )
+    probe.add_argument("--environment", required=True, choices=("isolated",))
+    probe.add_argument("--profile", required=True, choices=("investigation", "repair"))
+    probe.add_argument("--timeout-seconds", type=int, default=300)
+
     gate = commands.add_parser(
         "release-gate", help="recompute a release readiness gate"
     )
     gate.add_argument("--release-id", required=True)
     gate.add_argument("--evaluated-at", required=True)
+
+    historical = commands.add_parser(
+        "enqueue-historical",
+        help="enqueue a verified run-null historical daily failure once",
+    )
+    historical.add_argument("--release-id", required=True)
+    historical.add_argument(
+        "--observation",
+        required=True,
+        help="JSON observation path relative to DATA_ROOT",
+    )
+    historical.add_argument("--enqueued-at", required=True)
 
     start = commands.add_parser(
         "start-job", help="start a fix job only when its gate is ready"
@@ -147,9 +173,11 @@ def _safe_operation_result_summary(result: object) -> dict[str, object]:
 
     result_type = type(result).__name__
     summary: dict[str, object] = {
-        "kind": result_type
-        if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", result_type)
-        else "returned"
+        "kind": (
+            result_type
+            if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", result_type)
+            else "returned"
+        )
     }
     status_values = {
         "started",
@@ -209,7 +237,66 @@ def _run(
         store = _store_for(args, initialize=True)
         _emit({"status": "initialized", "schema_version": SCHEMA_VERSION})
         return 0
+    if args.command == "probe-ai":
+        from automation.inago.maintenance.probe import (
+            MaintenanceProbeError,
+            run_ai_probe,
+        )
+
+        try:
+            result, exit_code = run_ai_probe(
+                data_root=args.data_root,
+                profile=args.profile,
+                environment=args.environment,
+                timeout_seconds=args.timeout_seconds,
+                validated_data_root=getattr(args, "validated_probe_root", None),
+            )
+        except MaintenanceProbeError as exc:
+            _emit({"status": "failed", "reason_code": exc.code})
+            return 3
+        _emit(result)
+        return exit_code
     store = _store_for(args)
+    if args.command == "enqueue-historical":
+        from automation.inago.maintenance.historical import (
+            HistoricalIntakeError,
+            enqueue_historical_observation,
+        )
+
+        try:
+            result = enqueue_historical_observation(
+                MaintenanceController(store, diagnostic_trace=diagnostic_trace),
+                data_root=args.data_root,
+                release_id=args.release_id,
+                observation_ref=args.observation,
+                enqueued_at=args.enqueued_at,
+            )
+        except HistoricalIntakeError as exc:
+            _emit({"status": "failed", "reason_code": exc.code})
+            return 3
+        except IdempotencyConflictError as exc:
+            _emit({"status": "failed", "reason_code": exc.code})
+            return 3
+        _emit(result)
+        return 0 if result.get("status") == "queued" else 3
+    if args.command == "worker":
+        from automation.inago.maintenance.worker import run_worker_once
+
+        result = run_worker_once(
+            store,
+            now=datetime.now(timezone.utc),
+            owner_id=f"worker-{uuid.uuid4().hex}",
+            owner_pid=os.getpid(),
+            owner_start_time=current_process_start_time(),
+            source_launch_id=args.source_launch_id,
+        )
+        _emit(result.to_dict())
+        return (
+            0
+            if result.status
+            in {"dispatch_complete", "idle", "waiting", "busy"}
+            else 3
+        )
     if args.command == "watchdog":
         now = datetime.now(timezone.utc)
         owner_start_time = current_process_start_time()
@@ -230,12 +317,24 @@ def _run(
             owner_pid=os.getpid(),
             owner_start_time=owner_start_time,
         )
+        if result.lease_acquired:
+            from automation.inago.maintenance.worker import dispatch_ready_worker
+
+            worker_dispatch = dispatch_ready_worker(store)
+        else:
+            worker_dispatch = None
         _emit(
             {
                 "status": "ok" if result.lease_acquired else "busy",
                 "queued_source_launch_ids": list(result.queued_source_launch_ids),
                 "queued_queue_ids": list(result.queued_queue_ids),
                 "reconciled_queue_ids": list(result.reconciled_queue_ids),
+                "worker_dispatch_status": (
+                    worker_dispatch.status if worker_dispatch is not None else "skipped"
+                ),
+                "worker_queue_id": (
+                    worker_dispatch.queue_id if worker_dispatch is not None else None
+                ),
             }
         )
         return 0
@@ -310,6 +409,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _parser().parse_args(raw_args)
     except SystemExit as exc:
         if exc.code:
+            if "probe-ai" in raw_args:
+                return int(exc.code or 0)
             data_root = _data_root_argument(raw_args)
             if data_root is not None:
                 trace = MaintenanceDiagnosticTrace(data_root)
@@ -326,6 +427,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 except MaintenanceDiagnosticError:
                     pass
         return int(exc.code or 0)
+    if args.command == "probe-ai":
+        from automation.inago.maintenance.probe import (
+            MaintenanceProbeError,
+            validate_ai_probe_target,
+        )
+
+        try:
+            args.validated_probe_root = validate_ai_probe_target(
+                args.data_root, profile=args.profile
+            )
+        except MaintenanceProbeError as exc:
+            _emit({"status": "failed", "reason_code": exc.code})
+            return 3
     trace = MaintenanceDiagnosticTrace(args.data_root)
     started = False
     try:

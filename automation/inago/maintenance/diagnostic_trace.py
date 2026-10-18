@@ -57,6 +57,7 @@ _STAGES = {
     "report",
     "deployment",
     "watchdog",
+    "worker",
     "model",
     "retention",
     "evidence",
@@ -106,7 +107,7 @@ _MODELS = {
     "gpt-5.6-luna",
 }
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}
-_SERVICE_TIERS = {"normal", "fast", "priority"}
+_SERVICE_TIERS = {"normal", "default", "fast", "priority"}
 _REVIEW_STATUSES = {"not_run", "approved", "changes_requested", "blocked", "unknown"}
 _TEST_STATUSES = {"not_run", "passed", "failed", "blocked", "unknown"}
 _IDENTITY_FIELDS = {

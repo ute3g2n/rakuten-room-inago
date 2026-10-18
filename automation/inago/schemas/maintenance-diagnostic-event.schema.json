@@ -55,6 +55,7 @@
         "report",
         "deployment",
         "watchdog",
+        "worker",
         "model",
         "retention",
         "evidence"
@@ -97,7 +98,7 @@
       "enum": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
     },
     "effort": { "enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"] },
-    "service_tier": { "enum": ["normal", "fast", "priority"] },
+    "service_tier": { "enum": ["normal", "default", "fast", "priority"] },
     "fast_mode": { "type": "boolean" },
     "review_status": { "enum": ["not_run", "approved", "changes_requested", "blocked", "unknown"] },
     "test_status": { "enum": ["not_run", "passed", "failed", "blocked", "unknown"] },

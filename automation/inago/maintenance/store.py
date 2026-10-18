@@ -12,10 +12,11 @@ import sys
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Iterable, Iterator, Mapping
+from zoneinfo import ZoneInfo
 
 from automation.inago.maintenance.safe_file import open_file_beneath
 from automation.inago.maintenance.paths import (
@@ -25,7 +26,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 8
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -44,6 +45,14 @@ _MIGRATIONS = {
     6: (
         "006_deployment_observations.sql",
         "exact tested, pushed, and active deployment commit observations",
+    ),
+    7: (
+        "007_worker_dispatch_queue.sql",
+        "idempotent post-launch worker dispatch queue",
+    ),
+    8: (
+        "008_deployment_verification.sql",
+        "next-natural-daily verification of deployed maintenance changes",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -101,6 +110,8 @@ _SCHEMA_TABLES = {
     "daily_launch",
     "watchdog_queue",
     "watchdog_cursor",
+    "worker_queue",
+    "deployment_verification",
     "repair_campaign",
     "repair_campaign_case",
     "repair_campaign_result",
@@ -229,6 +240,34 @@ class DailyCheckResult:
 
 
 @dataclass(frozen=True, slots=True)
+class DailyCheckRecord:
+    check_id: str
+    source_launch_id: str
+    source_run_id: str | None
+    target_date: str
+    check_status: str
+    reason_code: str | None
+    observed_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerQueueRecord:
+    queue_id: str
+    source_launch_id: str
+    worker_job_id: str
+    target_date: str
+    status: str
+    check_id: str | None
+    claim_owner_id: str | None
+    claim_generation: int | None
+    claimed_at: str | None
+    completed_at: str | None
+    reason_code: str | None
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True, slots=True)
 class DailyLaunchRecord:
     source_launch_id: str
     target_date: str
@@ -336,6 +375,34 @@ def _daily_launch_from_row(row: sqlite3.Row) -> DailyLaunchRecord:
     )
 
 
+def _worker_queue_from_row(row: sqlite3.Row) -> WorkerQueueRecord:
+    return WorkerQueueRecord(
+        queue_id=str(row["queue_id"]),
+        source_launch_id=str(row["source_launch_id"]),
+        worker_job_id=str(row["worker_job_id"]),
+        target_date=str(row["target_date"]),
+        status=str(row["status"]),
+        check_id=str(row["check_id"]) if row["check_id"] is not None else None,
+        claim_owner_id=(
+            str(row["claim_owner_id"]) if row["claim_owner_id"] is not None else None
+        ),
+        claim_generation=(
+            int(row["claim_generation"])
+            if row["claim_generation"] is not None
+            else None
+        ),
+        claimed_at=str(row["claimed_at"]) if row["claimed_at"] is not None else None,
+        completed_at=(
+            str(row["completed_at"]) if row["completed_at"] is not None else None
+        ),
+        reason_code=(
+            str(row["reason_code"]) if row["reason_code"] is not None else None
+        ),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
 def _watchdog_queue_from_row(row: sqlite3.Row) -> WatchdogQueueRecord:
     return WatchdogQueueRecord(
         queue_id=str(row["queue_id"]),
@@ -386,6 +453,42 @@ def _deployment_from_row(row: sqlite3.Row) -> DeploymentRecord:
             str(row["reason_code"]) if row["reason_code"] is not None else None
         ),
         deployed_at=str(row["deployed_at"]),
+    )
+
+
+def _deployment_verification_from_row(
+    row: sqlite3.Row,
+) -> DeploymentVerificationRecord:
+    return DeploymentVerificationRecord(
+        verification_id=str(row["verification_id"]),
+        deployment_id=str(row["deployment_id"]),
+        target_date=str(row["target_date"]),
+        status=str(row["status"]),
+        source_launch_id=(
+            str(row["source_launch_id"])
+            if row["source_launch_id"] is not None
+            else None
+        ),
+        check_id=str(row["check_id"]) if row["check_id"] is not None else None,
+        observed_commit=(
+            str(row["observed_commit"]) if row["observed_commit"] is not None else None
+        ),
+        evidence_ref=(
+            str(row["evidence_ref"]) if row["evidence_ref"] is not None else None
+        ),
+        recurrence_incident_id=(
+            str(row["recurrence_incident_id"])
+            if row["recurrence_incident_id"] is not None
+            else None
+        ),
+        reason_code=(
+            str(row["reason_code"]) if row["reason_code"] is not None else None
+        ),
+        observed_at=(
+            str(row["observed_at"]) if row["observed_at"] is not None else None
+        ),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
     )
 
 
@@ -508,6 +611,23 @@ class DeploymentRecord:
     target_branch: str | None
     reason_code: str | None
     deployed_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class DeploymentVerificationRecord:
+    verification_id: str
+    deployment_id: str
+    target_date: str
+    status: str
+    source_launch_id: str | None
+    check_id: str | None
+    observed_commit: str | None
+    evidence_ref: str | None
+    recurrence_incident_id: str | None
+    reason_code: str | None
+    observed_at: str | None
+    created_at: str
+    updated_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -898,6 +1018,8 @@ class MaintenanceStore:
                 "daily_launch",
                 "watchdog_queue",
                 "watchdog_cursor",
+                "worker_queue",
+                "deployment_verification",
             )
             return {
                 name: int(
@@ -1930,6 +2052,169 @@ class MaintenanceStore:
         finally:
             connection.close()
 
+    def get_daily_check_by_launch(
+        self, source_launch_id: str
+    ) -> DailyCheckRecord | None:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT check_id, source_launch_id, source_run_id, target_date, "
+                "check_status, reason_code, observed_at FROM daily_check "
+                "WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return DailyCheckRecord(
+                check_id=str(row["check_id"]),
+                source_launch_id=str(row["source_launch_id"]),
+                source_run_id=(
+                    str(row["source_run_id"])
+                    if row["source_run_id"] is not None
+                    else None
+                ),
+                target_date=str(row["target_date"]),
+                check_status=str(row["check_status"]),
+                reason_code=(
+                    str(row["reason_code"]) if row["reason_code"] is not None else None
+                ),
+                observed_at=str(row["observed_at"]),
+            )
+        finally:
+            connection.close()
+
+    @staticmethod
+    def _ensure_worker_queue(
+        connection: sqlite3.Connection,
+        *,
+        source_launch_id: str,
+        target_date: str,
+        created_at: str,
+    ) -> WorkerQueueRecord:
+        existing = connection.execute(
+            "SELECT * FROM worker_queue WHERE source_launch_id = ?",
+            (source_launch_id,),
+        ).fetchone()
+        if existing is not None:
+            if existing["target_date"] != target_date:
+                raise IdempotencyConflictError("worker_queue_identity_conflict")
+            return _worker_queue_from_row(existing)
+        connection.execute(
+            "INSERT INTO worker_queue "
+            "(queue_id, source_launch_id, worker_job_id, target_date, status, "
+            "created_at, updated_at) VALUES (?, ?, ?, ?, 'queued', ?, ?)",
+            (
+                uuid.uuid4().hex,
+                source_launch_id,
+                f"worker-{uuid.uuid4().hex}",
+                target_date,
+                created_at,
+                created_at,
+            ),
+        )
+        row = connection.execute(
+            "SELECT * FROM worker_queue WHERE source_launch_id = ?",
+            (source_launch_id,),
+        ).fetchone()
+        if row is None:
+            raise MaintenanceStoreError("worker_queue_unavailable")
+        return _worker_queue_from_row(row)
+
+    def get_worker_queue(self, source_launch_id: str) -> WorkerQueueRecord | None:
+        launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM worker_queue WHERE source_launch_id = ?",
+                (launch_id,),
+            ).fetchone()
+            return _worker_queue_from_row(row) if row is not None else None
+        finally:
+            connection.close()
+
+    def list_worker_queue(
+        self, *, status: str | None = None, limit: int = 100
+    ) -> tuple[WorkerQueueRecord, ...]:
+        if status is not None and status not in {"queued", "complete", "blocked"}:
+            raise MaintenanceStoreError("worker_queue_status_invalid")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 1000
+        ):
+            raise MaintenanceStoreError("worker_queue_limit_invalid")
+        connection = self._connect()
+        try:
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM worker_queue ORDER BY created_at, queue_id LIMIT ?",
+                    (limit,),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM worker_queue WHERE status = ? "
+                    "ORDER BY created_at, queue_id LIMIT ?",
+                    (status, limit),
+                ).fetchall()
+            return tuple(_worker_queue_from_row(row) for row in rows)
+        finally:
+            connection.close()
+
+    def complete_worker_queue(
+        self,
+        *,
+        queue_id: str,
+        check_id: str,
+        lease: LeaseToken,
+        completed_at: datetime | str,
+    ) -> WorkerQueueRecord:
+        queue = _safe_id(queue_id, "worker_queue_id_invalid")
+        check = _safe_id(check_id, "check_id_invalid")
+        when = _timestamp(completed_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("worker_queue_not_found")
+            if row["status"] == "complete":
+                if row["check_id"] != check:
+                    raise IdempotencyConflictError("worker_queue_result_conflict")
+                return _worker_queue_from_row(row)
+            if row["status"] != "queued":
+                raise MaintenanceStoreError("worker_queue_not_actionable")
+            check_row = connection.execute(
+                "SELECT source_launch_id, target_date FROM daily_check WHERE check_id = ?",
+                (check,),
+            ).fetchone()
+            if (
+                check_row is None
+                or check_row["source_launch_id"] != row["source_launch_id"]
+                or check_row["target_date"] != row["target_date"]
+            ):
+                raise MaintenanceStoreError("worker_queue_check_mismatch")
+            connection.execute(
+                "UPDATE worker_queue SET status = 'complete', check_id = ?, "
+                "claim_owner_id = ?, claim_generation = ?, claimed_at = ?, "
+                "completed_at = ?, updated_at = ? WHERE queue_id = ? AND status = 'queued'",
+                (
+                    check,
+                    lease.owner_id,
+                    lease.generation,
+                    when,
+                    when,
+                    when,
+                    queue,
+                ),
+            )
+            completed = connection.execute(
+                "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
+            ).fetchone()
+            assert completed is not None
+            return _worker_queue_from_row(completed)
+
     def list_daily_launches(
         self,
         *,
@@ -2470,18 +2755,30 @@ class MaintenanceStore:
                 (launch_id,),
             ).fetchone()
             if existing["status"] != "running":
+                compatible_check = (
+                    check is not None
+                    and check["source_run_id"] == run_id
+                    and check["target_date"] == target
+                    and (
+                        (
+                            check["check_status"] == check_status
+                            and check["reason_code"] == reason_code
+                            and check["observed_at"] == completed
+                        )
+                        or (
+                            existing["status"] == "failed"
+                            and check_status == "incomplete"
+                            and check["check_status"] == "abnormal"
+                        )
+                    )
+                )
                 if (
                     existing["status"] != launch_status
                     or existing["source_run_id"] != run_id
                     or existing["exit_code"] != exit_code
                     or existing["completed_at"] != completed
                     or existing["result_json"] != encoded_summary
-                    or check is None
-                    or check["source_run_id"] != run_id
-                    or check["target_date"] != target
-                    or check["check_status"] != check_status
-                    or check["reason_code"] != reason_code
-                    or check["observed_at"] != completed
+                    or not compatible_check
                 ):
                     raise IdempotencyConflictError("daily_launch_completion_conflict")
             else:
@@ -2525,6 +2822,12 @@ class MaintenanceStore:
                         launch_id,
                     ),
                 )
+            self._ensure_worker_queue(
+                connection,
+                source_launch_id=launch_id,
+                target_date=target,
+                created_at=completed,
+            )
         record = self.get_daily_launch(launch_id)
         if record is None:
             raise MaintenanceStoreError("daily_launch_completion_unavailable")
@@ -2580,10 +2883,30 @@ class MaintenanceStore:
                 if (
                     existing["source_run_id"] != run_id
                     or existing["target_date"] != target
-                    or existing["check_status"] != check_status
-                    or existing["reason_code"] != reason_code
-                    or existing["observed_at"] != observed
                 ):
+                    raise IdempotencyConflictError("launch_identity_conflict")
+                same_check = (
+                    existing["check_status"] == check_status
+                    and existing["reason_code"] == reason_code
+                    and existing["observed_at"] == observed
+                )
+                upgrade_to_abnormal = (
+                    existing["check_status"] == "incomplete"
+                    and check_status == "abnormal"
+                )
+                if upgrade_to_abnormal and not same_check:
+                    launch = connection.execute(
+                        "SELECT status FROM daily_launch WHERE source_launch_id = ?",
+                        (launch_id,),
+                    ).fetchone()
+                    if launch is None or launch["status"] != "failed":
+                        raise IdempotencyConflictError("launch_identity_conflict")
+                    connection.execute(
+                        "UPDATE daily_check SET check_status = 'abnormal', reason_code = ?, "
+                        "observed_at = ? WHERE check_id = ? AND check_status = 'incomplete'",
+                        (reason_code, observed, existing["check_id"]),
+                    )
+                elif not same_check:
                     raise IdempotencyConflictError("launch_identity_conflict")
                 incident_id = None
                 associated = connection.execute(
@@ -2605,27 +2928,37 @@ class MaintenanceStore:
                     ):
                         raise IdempotencyConflictError("launch_incident_conflict")
                     incident_id = str(associated["incident_id"])
-                elif incident_values is not None:
+                elif incident_values is None:
+                    return DailyCheckResult(str(existing["check_id"]), False, None)
+                elif not upgrade_to_abnormal:
                     raise IdempotencyConflictError("launch_incident_conflict")
-                return DailyCheckResult(str(existing["check_id"]), False, incident_id)
+                if associated is not None:
+                    return DailyCheckResult(
+                        str(existing["check_id"]), False, incident_id
+                    )
+                check_id = str(existing["check_id"])
+                created = False
+                created_at = _timestamp(datetime.now(timezone.utc))
 
-            check_id = str(uuid.uuid4())
-            created_at = _timestamp(datetime.now(timezone.utc))
-            connection.execute(
-                "INSERT INTO daily_check "
-                "(check_id, source_launch_id, source_run_id, target_date, check_status, "
-                "reason_code, observed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    check_id,
-                    launch_id,
-                    run_id,
-                    target,
-                    check_status,
-                    reason_code,
-                    observed,
-                    created_at,
-                ),
-            )
+            if existing is None:
+                check_id = str(uuid.uuid4())
+                created_at = _timestamp(datetime.now(timezone.utc))
+                connection.execute(
+                    "INSERT INTO daily_check "
+                    "(check_id, source_launch_id, source_run_id, target_date, check_status, "
+                    "reason_code, observed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        check_id,
+                        launch_id,
+                        run_id,
+                        target,
+                        check_status,
+                        reason_code,
+                        observed,
+                        created_at,
+                    ),
+                )
+                created = True
             incident_id: str | None = None
             if incident_values is not None:
                 dedupe_key, component, event_code = incident_values
@@ -2662,7 +2995,7 @@ class MaintenanceStore:
                     "VALUES (?, ?, ?, ?, ?)",
                     (incident_id, check_id, launch_id, run_id, created_at),
                 )
-            return DailyCheckResult(check_id, True, incident_id)
+            return DailyCheckResult(check_id, created, incident_id)
 
     def create_release(
         self,
@@ -3131,6 +3464,263 @@ class MaintenanceStore:
             return None if row is None else _deployment_from_row(row)
         finally:
             connection.close()
+
+    def begin_deployment_verification(
+        self,
+        *,
+        deployment_id: str,
+        target_date: str,
+        created_at: datetime | str,
+    ) -> DeploymentVerificationRecord:
+        """Create the pending slot without launching another daily run."""
+
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        target = _target_date(target_date)
+        when = _timestamp(created_at)
+        with self._transaction() as connection:
+            deployed = connection.execute(
+                "SELECT status FROM deployment WHERE deployment_id = ?",
+                (deployment,),
+            ).fetchone()
+            if deployed is None:
+                raise MaintenanceStoreError("deployment_not_found")
+            if deployed["status"] != "deployed":
+                raise MaintenanceStoreError("verification_deployment_not_deployed")
+            existing = connection.execute(
+                "SELECT * FROM deployment_verification WHERE deployment_id = ?",
+                (deployment,),
+            ).fetchone()
+            if existing is not None:
+                if existing["target_date"] != target:
+                    raise IdempotencyConflictError("verification_target_date_conflict")
+                return _deployment_verification_from_row(existing)
+            verification_id = str(uuid.uuid4())
+            connection.execute(
+                "INSERT INTO deployment_verification "
+                "(verification_id, deployment_id, target_date, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, 'pending', ?, ?)",
+                (verification_id, deployment, target, when, when),
+            )
+            row = connection.execute(
+                "SELECT * FROM deployment_verification WHERE verification_id = ?",
+                (verification_id,),
+            ).fetchone()
+            assert row is not None
+            return _deployment_verification_from_row(row)
+
+    def get_deployment_verification(
+        self, *, deployment_id: str
+    ) -> DeploymentVerificationRecord | None:
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM deployment_verification WHERE deployment_id = ?",
+                (deployment,),
+            ).fetchone()
+            return None if row is None else _deployment_verification_from_row(row)
+        finally:
+            connection.close()
+
+    def record_deployment_verification_observation(
+        self,
+        *,
+        deployment_id: str,
+        source_launch_id: str,
+        check_id: str,
+        active_commit: str | None,
+        evidence_ref: str,
+        observed_at: datetime | str,
+    ) -> DeploymentVerificationRecord:
+        """Classify one existing completed daily observation for a deployment."""
+
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        source = _safe_id(source_launch_id, "source_launch_id_invalid")
+        check = _safe_id(check_id, "check_id_invalid")
+        active = (
+            None
+            if active_commit is None
+            else _safe_id(active_commit, "verification_active_commit_invalid")
+        )
+        evidence = _relative_output_path(evidence_ref)
+        when = _timestamp(observed_at)
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT v.*, d.active_commit AS deployed_commit, "
+                "d.release_id, dl.target_date AS observed_target_date, "
+                "dl.status AS launch_status, "
+                "dc.check_status, dc.reason_code AS observed_reason_code, "
+                "ir.incident_id AS observed_incident_id "
+                "FROM deployment_verification v "
+                "JOIN deployment d ON d.deployment_id = v.deployment_id "
+                "JOIN daily_launch dl ON dl.source_launch_id = ? "
+                "JOIN daily_check dc ON dc.check_id = ? "
+                "LEFT JOIN incident_run ir ON ir.check_id = dc.check_id "
+                "WHERE v.deployment_id = ? AND dl.source_launch_id = dc.source_launch_id",
+                (source, check, deployment),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("verification_observation_unavailable")
+            if row["status"] != "pending":
+                if (
+                    row["source_launch_id"] == source
+                    and row["check_id"] == check
+                    and row["observed_commit"] == active
+                    and row["evidence_ref"] == evidence
+                    and row["observed_at"] == when
+                ):
+                    return _deployment_verification_from_row(row)
+                raise IdempotencyConflictError("verification_observation_conflict")
+            next_date = (
+                date.fromisoformat(str(row["target_date"])) + timedelta(days=1)
+            ).isoformat()
+            if row["observed_target_date"] != next_date:
+                raise MaintenanceStoreError("verification_target_date_mismatch")
+            if row["launch_status"] == "running":
+                raise MaintenanceStoreError("verification_daily_launch_incomplete")
+            recurrence_incident = None
+            reason_code = None
+            original_incident_id = None
+            original_reason_code = None
+            original_job_count = 0
+            if row["check_status"] == "incomplete" and row["launch_status"] == "failed":
+                original_jobs = connection.execute(
+                    "SELECT incident_id FROM maintenance_job WHERE release_id = ? "
+                    "ORDER BY created_at, job_id",
+                    (row["release_id"],),
+                ).fetchall()
+                original_job_count = len(original_jobs)
+                if original_job_count == 1:
+                    original_incident_id = str(original_jobs[0]["incident_id"])
+                    prior_check = connection.execute(
+                        "SELECT dc.reason_code FROM incident_run ir "
+                        "JOIN daily_check dc ON dc.check_id = ir.check_id "
+                        "WHERE ir.incident_id = ? "
+                        "ORDER BY dc.observed_at DESC, dc.created_at DESC, dc.check_id DESC "
+                        "LIMIT 1",
+                        (original_incident_id,),
+                    ).fetchone()
+                    if prior_check is not None:
+                        original_reason_code = prior_check["reason_code"]
+            if row["check_status"] == "abnormal":
+                status = "recurred"
+                recurrence_incident = row["observed_incident_id"]
+                if recurrence_incident is None:
+                    raise MaintenanceStoreError(
+                        "verification_recurrence_incident_missing"
+                    )
+                reason_code = "next_daily_incident_recurred"
+            elif (
+                row["check_status"] == "incomplete"
+                and row["launch_status"] == "failed"
+                and row["observed_reason_code"] is not None
+                and row["observed_reason_code"] == original_reason_code
+                and original_incident_id is not None
+            ):
+                status = "recurred"
+                recurrence_incident = original_incident_id
+                reason_code = "next_daily_reason_recurred"
+            elif (
+                row["check_status"] == "incomplete"
+                and row["launch_status"] == "failed"
+                and original_job_count != 1
+            ):
+                status = "blocked"
+                reason_code = (
+                    "deployment_original_incident_ambiguous"
+                    if original_job_count > 1
+                    else "deployment_original_incident_missing"
+                )
+            elif row["check_status"] in {"normal", "normal_shortfall"}:
+                if active is not None and active == row["deployed_commit"]:
+                    status = "verified"
+                else:
+                    status = "blocked"
+                    reason_code = "active_commit_unverified"
+            else:
+                status = "blocked"
+                reason_code = (
+                    "next_daily_observation_unknown"
+                    if row["check_status"] == "unknown"
+                    else "next_daily_observation_incomplete"
+                )
+            connection.execute(
+                "UPDATE deployment_verification SET status = ?, source_launch_id = ?, "
+                "check_id = ?, observed_commit = ?, evidence_ref = ?, "
+                "recurrence_incident_id = ?, reason_code = ?, observed_at = ?, updated_at = ? "
+                "WHERE verification_id = ? AND status = 'pending'",
+                (
+                    status,
+                    source,
+                    check,
+                    active,
+                    evidence,
+                    recurrence_incident,
+                    reason_code,
+                    when,
+                    when,
+                    row["verification_id"],
+                ),
+            )
+            final = connection.execute(
+                "SELECT * FROM deployment_verification WHERE verification_id = ?",
+                (row["verification_id"],),
+            ).fetchone()
+            assert final is not None
+            return _deployment_verification_from_row(final)
+
+    def mark_deployment_verification_not_observed(
+        self,
+        *,
+        deployment_id: str,
+        observed_at: datetime | str,
+        reason_code: str = "next_daily_not_observed",
+    ) -> DeploymentVerificationRecord:
+        """Record that the next natural daily run was absent; never start one."""
+
+        deployment = _safe_id(deployment_id, "deployment_id_invalid")
+        when = _timestamp(observed_at)
+        reason = _safe_code(reason_code, "verification_reason_invalid")
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM deployment_verification WHERE deployment_id = ?",
+                (deployment,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("verification_not_found")
+            if row["status"] != "pending":
+                if row["status"] == "not_observed" and row["observed_at"] == when:
+                    return _deployment_verification_from_row(row)
+                raise IdempotencyConflictError("verification_observation_conflict")
+            next_date = date.fromisoformat(str(row["target_date"])) + timedelta(days=1)
+            next_daily_start = datetime.combine(
+                next_date,
+                time(hour=13),
+                tzinfo=ZoneInfo("Asia/Tokyo"),
+            )
+            if (
+                _parse_timestamp(when).astimezone(ZoneInfo("Asia/Tokyo"))
+                < next_daily_start
+            ):
+                raise MaintenanceStoreError("verification_observation_not_due")
+            daily_exists = connection.execute(
+                "SELECT 1 FROM daily_launch WHERE target_date = ? LIMIT 1",
+                (next_date.isoformat(),),
+            ).fetchone()
+            if daily_exists is not None:
+                raise MaintenanceStoreError("verification_daily_run_exists")
+            connection.execute(
+                "UPDATE deployment_verification SET status = 'not_observed', "
+                "reason_code = ?, observed_at = ?, updated_at = ? "
+                "WHERE verification_id = ? AND status = 'pending'",
+                (reason, when, when, row["verification_id"]),
+            )
+            final = connection.execute(
+                "SELECT * FROM deployment_verification WHERE verification_id = ?",
+                (row["verification_id"],),
+            ).fetchone()
+            assert final is not None
+            return _deployment_verification_from_row(final)
 
     @staticmethod
     def _evaluate_release_gate(
