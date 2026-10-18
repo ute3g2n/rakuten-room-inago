@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-18T10:46:52+09:00",
+  "generated_at": "2026-10-18T10:47:18+09:00",
   "index_path": "docs/document-index.json",
   "manifest_path": "worklogs/projects/maintenance/移行manifest.csv",
   "reference_ledger_path": "worklogs/projects/maintenance/移行・参照台帳.md",
