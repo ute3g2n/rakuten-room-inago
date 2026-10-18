@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-result.schema.json",
+  "title": "Maintenance incident report stage result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "identity", "attempt_id", "result_version", "created_at_jst", "report_status", "stage_status", "review", "output", "source_versions", "next_action"],
+  "properties": {
+    "schema_version": { "const": "maintenance-report-result-v1" },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incident_id", "source_launch_id", "source_run_id", "target_date", "job_id"],
+      "properties": {
+        "incident_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "source_launch_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "source_run_id": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "target_date": { "type": "string", "format": "date" },
+        "job_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" }
+      }
+    },
+    "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "result_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "created_at_jst": { "type": "string", "format": "date-time" },
+    "report_status": { "enum": ["complete", "pending", "blocked"] },
+    "stage_status": { "enum": ["ready_for_review", "reviewed", "blocked"] },
+    "review": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema_version", "reviewer_id", "reviewed_version", "reviewed_sha256", "status", "reviewed_at", "findings"],
+          "properties": {
+            "schema_version": { "const": "maintenance-report-review-v1" },
+            "reviewer_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+            "reviewed_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+            "reviewed_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "status": { "enum": ["approved", "changes_requested", "rejected", "unavailable"] },
+            "reviewed_at": { "type": "string", "format": "date-time" },
+            "findings": { "type": "array", "maxItems": 100 }
+          }
+        }
+      ]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/report\\.html$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "source_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["investigation", "plan", "implementation", "tests", "deployment_status", "next_day_status"],
+      "properties": {
+        "investigation": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "plan": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "implementation": { "type": "string", "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$" },
+        "tests": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "deployment_status": { "enum": ["deployed", "pending", "blocked", "failed", "rolled_back", "not_attempted"] },
+        "next_day_status": { "enum": ["verified", "pending", "not_observed", "recurred", "blocked"] }
+      }
+    },
+    "next_action": { "enum": ["report_review", "publish", "hold"] }
+  }
+}

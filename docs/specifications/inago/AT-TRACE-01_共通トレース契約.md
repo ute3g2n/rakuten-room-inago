@@ -233,3 +233,9 @@ U14のpath containment/reparse/owner/hash検証はhost/controller側のintegrity
 U15は保守管理DB schema v6の`deployment`へsource/base/tested/pushed/active commit、remote、branch、safe reasonを記録する。`deployed`はfrozen release、全必須caseの最新PASS、独立approved review、commit identityをStoreで再照合したpending deploymentだけが確定できる。直接success insert/transitionはStore capabilityとSQLite triggerの両方で拒否する。runtime復旧不能なら`active_commit=null`のblocked結果を記録し、旧版へ復旧したとは扱わない。
 
 開発検証は通常pytestと一時DB/local bare remote fixtureで行い、OS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。`DeploymentExclusionGuard`と`RuntimeSwitcher`の実運用providerがない場合はdeploymentを開始せずfail-closedにする。fixtureでの成功は実日次/API排他や実runtime切替の証明ではなく、provider wiringと本番導入はU21で確認する。JSONLへ生コンソール、credential、patch、個人情報を出さず、safe status/reasonとhash/IDだけを扱う。
+
+## U16 incident report stage
+
+U16 report stageは`maintenance-report-response-v1`から、承認済み調査・計画・実装・試験・反映・次回観測の版と許可済みevidence refsを照合して`report.html`と`result.json`をattempt専用rootへ保存する。resultはidentity、attempt/result version、report/stage status、review、output path/SHA-256、source versions、next actionを結ぶ。次回日次がverifiedの場合は対象日の翌日JSTの観測時刻と許可された観測evidence refを必須にする。レビューは作成者と別担当で、同一HTML hash・versionを対象とする。公開はレビュー済みHTML一ファイルだけをcommit/pushし、stage blobとcommit blobがレビュー済みSHA-256に一致することを確認する。
+
+未承認入力、未確認を示す値の矛盾、未解決template field、許可されないリンク、hash不一致は成功report/publicationにしない。U16のC44～C46/C55開発検証は通常pytestと合成fixture/local Git fixtureで行い、OS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。ローカル検証結果は実運用のreceipt/provider証明ではなく、report stageは日次L02や他のJSONL traceへ状態を書き戻さない。

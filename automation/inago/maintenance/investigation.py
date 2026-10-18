@@ -811,6 +811,7 @@ def save_attempt_artifact(
             "review.json",
             "result.json",
         },
+        "report": {"report.html", "result.json"},
     }
     if stage not in allowed_names or filename not in allowed_names[stage]:
         raise InvestigationContractError(f"{stage}_artifact_name_invalid")

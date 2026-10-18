@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-review.schema.json",
+  "title": "Maintenance incident report review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "reviewer_id", "reviewed_version", "reviewed_sha256", "status", "reviewed_at", "findings"],
+  "properties": {
+    "schema_version": { "const": "maintenance-report-review-v1" },
+    "reviewer_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "reviewed_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "reviewed_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "status": { "enum": ["approved", "changes_requested", "rejected", "unavailable"] },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "findings": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "location", "finding"],
+        "properties": {
+          "severity": { "enum": ["low", "medium", "high"] },
+          "location": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "finding": { "type": "string", "minLength": 1, "maxLength": 2000 }
+        }
+      }
+    }
+  }
+}

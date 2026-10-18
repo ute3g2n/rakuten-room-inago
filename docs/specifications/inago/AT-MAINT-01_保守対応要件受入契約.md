@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.35 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.36 §27.17。対象：MR-001～028 / MA-001～028。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -107,12 +107,20 @@ U15 migration `006_deployment_observations.sql`で管理DBをschema v5からv6�
 
 U15のC38～C43/C57は一時DB、専用Git fixture/local bare remoteと通常pytestで検証する。検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測は要求しない。外部remote、本番DB、実runtime switch、実日次/APIへの接続は行わない。実runtime providerが未配線の場合はfail-closedとし、local test resultをproduction wiring evidenceと混同しない。実本番の統合・切替はU21で行う。テストコードの独立レビューは行わない。
 
+## U16 incident report生成・レビュー・公開
+
+report stageのresponseは`maintenance-report-response-v1`、最終結果は`maintenance-report-result-v1`、独立レビューは`maintenance-report-review-v1`とする。入力のincident/source launch/source run/target date/job identity、承認済み調査・計画の版、実装commit、試験・反映・次回観測状態、許可済みevidence refsを相互照合する。不一致・未承認・許可外根拠・不正リンクはHTMLを成功成果として扱わずblockedにする。
+
+HTMLは固定テンプレートへ文字列をescapeして描画し、操作・期待・実結果・影響・回復・原因確度・変更後動作・確認範囲、工程tree、試験一覧、未確認・停止条件、根拠リンクを保持する。`complete`は必要な試験・反映・次回観測が全て確認済みの場合だけ使い、それ以外はpending/blockedを示す。report reviewerは作成者と別担当とし、同じresult versionとHTML SHA-256を承認対象に結ぶ。reportだけを別commitで公開し、対象branchの現在HEAD、元コードcommitの祖先関係、report pathの競合、staged/commit対象を確認して通常fast-forward pushする。公開前のコード版変更・review不一致・remote競合は保留する。
+
+U16のC44～C46/C55は合成fixture・一時Git repo/local bare remoteを使う通常のローカルpytestで検証する。検証済みOS sandbox、host-observed review receipt、C34 production HostPytestRunner実測証拠を開発テストの前提・合格条件にしない。テストコードの独立レビューは行わず、デバッグで不具合が判明した場合だけ最小修正する。これらのローカル結果を実運用providerの実証として扱わない。実表示LC04が利用可能なブラウザー経路から確認できない場合は、完成HTMLを用意し未確認として本人の確認へ引き渡す。
+
 ## 受入条件
 
-### U14ローカル検証の受入条件（2026-10-18 本人決定）
-U14開発段階の合否は、合成fixtureと一時DBを使う通常のローカルpytestで判定する。検証済みOS sandbox、repair HostPytestRunner receipt、C34のrepair runner実測、host-observed review receiptはU14のテスト前提・完了条件にしない。C34は通常pytestのcase実行記録で確認し、独立reviewは対象コードhashと結果を記した通常のレビュー記録で確認する。証拠はcommand、JST時刻、case/node、コード/test hash、期待/実結果、exit code、console/JUnitとする。テストはsynthetic fixture・一時DBに限定し、production DB、Scheduler、実AI、投稿状態を変更しない。
+### U14～U20 開発テストの受入条件（2026-10-18 本人決定）
+U14以降U20までの開発段階の合否は、合成fixture、一時DB、ローカルGit fixtureを使う通常のローカルpytestで判定する。検証済みOS sandbox、repair HostPytestRunner receipt、C34のrepair runner実測、host-observed review receiptはテスト前提・完了条件にしない。C34相当のRED/PASSやrunner/review境界は通常pytestから合成条件で確認し、独立production code reviewは通常の別担当レビュー記録で確認する。証拠はcommand、JST時刻、case/node、コード/test hash、期待/実結果、exit code、console/JUnitとする。テストコードの独立レビューは行わず、デバッグで不具合が判明した場合だけ最小修正して影響ケースを再実行する。テストはsynthetic fixture・一時DB・local Gitに限定し、production DB、Scheduler、実AI、投稿状態を変更しない。
 
-この緩和はU14の開発テストの証拠要件だけに適用する。実運用の修復attempt完了では、上記runtime契約に記すsandbox、runner receipt、review receiptの照合を引き続き要求し、provider欠落時は安全停止する。通常pytestの結果やreview記録を実運用receiptの代替として扱わない。
+この緩和はU14～U20の開発テスト証拠要件に適用する。実運用の修復attempt完了では、上記runtime契約に記すsandbox、runner receipt、review receiptの照合を引き続き要求し、provider欠落時は安全停止する。通常pytestの結果やreview記録を実運用receiptの代替として扱わない。本番接続・切替の確認はU21の運用ゲートで別に判断する。
 
 | ID | 合格条件 |
 |---|---|
@@ -132,16 +140,16 @@ U14開発段階の合否は、合成fixtureと一時DBを使う通常のロー�
 | MA-014 | 元の日次結果と主例外を維持し、maintenanceログ・証拠コピーの期限、容量、回収、抑止/書込不能を明示する。元データの期限を延長・短縮せず、保持失敗を成功扱いしない。 |
 | MA-015 | 調査レポートが計画で定める9章を備え、事実/推定/未確認と根拠を追跡でき、別担当のレビューを通る。原因をerror名だけで断定しない。 |
 | MA-016 | 修正計画が0～14節、STEPごとの14項目、ケースごとの12項目、各STEPの独立promptを備え、STEP・ケース・受入・出力が相互追跡できる。 |
-| MA-017 | 実装・テスト・レビューの所有を分け、修正前の意味あるREDまたは根拠付きの「再現不可/文書契約違反」を記録する。U14のC34は通常pytestの直接実行記録で判定し、host-runner receiptを要求しない。独立reviewはU14では通常の別担当レビュー記録でよく、host-observed receiptを要求しない。実運用attemptでは上記runtime契約のreceipt要件を適用する。managed worktree外と所有外ファイルを変更しない。 |
-| MA-018 | 実運用runnerはOS sandbox内だけで修復対象Pythonを実行し、sandbox未構成ならchild process前に保留する。U14の開発テストでは通常pytestを直接実行してcampaign/runner境界の合成fixtureを検証でき、sandbox内positive executionやrepair HostPytestRunner receiptを要求しない。U19/U20の運用回帰・全件完了判定には既定のcampaign/receipt規則を適用し、code hash変更時の旧PASS無効化、全case再実行、不成立時のrelease停止を維持する。 |
+| MA-017 | 実装・テスト・レビューの所有を分け、修正前の意味あるREDまたは根拠付きの「再現不可/文書契約違反」を記録する。U14以降U20までの開発テストは通常pytestの直接実行記録で判定し、OS sandbox、host-runner receipt、C34 runner実測、host-observed review receiptを要求しない。独立production code reviewは通常の別担当レビュー記録で確認する。実運用attemptでは上記runtime契約のreceipt要件を適用する。managed worktree外と所有外ファイルを変更しない。 |
+| MA-018 | 実運用runnerはOS sandbox内だけで修復対象Pythonを実行し、sandbox未構成ならchild process前に保留する。U14以降U20までの開発テストでは通常pytestを直接実行してcampaign/runner境界の合成fixtureを検証でき、sandbox内positive executionやrepair HostPytestRunner receiptを要求しない。全回帰の対象node/結果/hashを通常pytestの実行記録で確認する。実運用attemptのreceipt規則とcode hash変更後のrelease停止条件は維持する。 |
 | MA-019 | 差分対象を限定し、作業commitを追跡先へ通常pushし、レビュー済みの正確な版だけを通常fast-forwardで反映する。非交差の既存ユーザー変更を保持して差分不変を確認し、交差またはff不能時は保留する。force push、reset、履歴書換えを行わない。deploymentにはsource/base/tested/pushed/active commitを別記し、すべての一致とhealth確認後だけdeployedとする。candidate branch pushは本番反映扱いしない。U15のC38～C43/C57は通常pytest/local fixtureで確認し、OS sandbox/host review receipt/C34 host-runner実測は開発テストに要求しない。 |
-| MA-020 | 対応HTMLが事象、原因確度、修正、試験、レビュー、反映、未完了を平易に説明し、独立した報告レビューを通る。要求された表示確認方法で対象版を確認し、未確認を表示する。 |
+| MA-020 | 対応HTMLが承認済み入力の版・根拠を照合し、事象、原因確度、修正、試験、レビュー、反映、未完了を平易に説明する。独立した報告レビューは同じversion/hashを確認し、要求された表示確認方法で対象版を確認し、未確認を表示する。 |
 | MA-021 | maintenanceの全stage・担当・指定/観測model/effort/tier・入力/証拠/成果参照・base/result版・レビュー・試験・停止/再開・deployment結果が追跡される。 |
 | MA-022 | 日次全体とmaintenance全体に固定終了期限を設けない。個別job/request、取消確認、再試行、レビュー巡、再開には有限上限を適用し、次の日次開始時は日次を優先して本番反映を待つ。 |
 | MA-023 | 全変更・必須テスト・必要な実接続確認・独立レビュー・追跡先commit・起動設定の一致が機械照合されるまでreleaseをreadyにせず、基盤ready前の遡及受付を拒否する。 |
 | MA-024 | 2026-10-17の元記録、件数、欠測、採取日時、元期限、対象日を保全し、観測されていないrun・trace・metricsを創作しない。稼働DBを過去snapshotで置き換えない。 |
 | MA-025 | U21 ready後、元のfailed結果を保ったまま新フローが本日案件のcheck・調査・計画・実装・テスト・レビュー・反映・報告を行う。外側の手作業を新フロー実績として扱わない。 |
-| MA-026 | 本日調査MD・修正計画MD・対応HTML、各独立レビュー、試験/反映/公開の証拠が同じ案件IDと版で結び、所有対象だけをGit公開する。 |
+| MA-026 | 本日調査MD・修正計画MD・対応HTML、各独立レビュー、試験/反映/公開の証拠が同じ案件IDと版で結び、レビュー済み対応HTMLだけを一ファイルのGit commitとして通常fast-forward公開する。 |
 | MA-027 | 10/17のfailed/IntegrityError、当日確定0、既存表示12、他の件数とユーザー報告を保持する。再実行・追生成・過去結果のsuccess化で元の記録を置換しない。 |
 | MA-028 | 次の自然日次で修正対象の再発、正常日の不要工程省略、結果と報告の一致を観測する。未観測は検証待ち、再発は同一案件へ関連付けて再開し、追加の日次を試験起動しない。 |
 

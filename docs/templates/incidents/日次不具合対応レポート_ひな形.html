@@ -19,7 +19,7 @@
     .summary { padding: 1rem 1.2rem; background: var(--soft); border-left: 4px solid var(--accent); }
     .status { display: inline-block; padding: .15rem .55rem; border-radius: 999px; background: #edf1f3; color: var(--ink); font-size: .9rem; font-weight: 700; }
     .status.pending { background: #fff0d2; color: var(--warn); }
-    .status.failed { background: #f9e4e5; color: var(--bad); }
+    .status.blocked, .status.failed { background: #f9e4e5; color: var(--bad); }
     .status.passed { background: #e0f1e8; color: var(--good); }
     .facts, .issue-list { display: grid; gap: .75rem; }
     .facts { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
@@ -29,9 +29,9 @@
     .issue.actual { border-left-color: var(--bad); }
     .issue.investigation { border-left-color: var(--warn); }
     .issue.test { border-left-color: var(--accent); }
-    .tree { white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; padding: 1rem; background: #f5f7f8; border: 1px solid var(--line); border-radius: .4rem; }
-    code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .tree { white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 2; padding: 1rem; background: #f5f7f8; border: 1px solid var(--line); border-radius: .4rem; }
+    code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    pre { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
     th, td { padding: .6rem .7rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
     th { background: var(--soft); }
@@ -41,7 +41,7 @@
       main { width: 100%; margin: 0; padding: 0; box-shadow: none; }
       a { color: inherit; text-decoration: none; }
       h2, h3, .issue, .fact, tr { break-inside: avoid; }
-      .tree, pre { white-space: pre-wrap; }
+      pre, code { white-space: pre-wrap; }
     }
     @media (max-width: 520px) {
       body { font-size: 15px; }
@@ -54,13 +54,13 @@
 <main>
   <header>
     <p class="eyebrow">日次不具合対応レポート · {{target_date}}</p>
-    <h1>{{読者向けの短いタイトル}}</h1>
-    <p class="summary">{{確認できた結論を平易に記載。未確認事項や保留を含め、反映状態を先に明示する。}}</p>
+    <h1>{{report_title}}</h1>
+    <p class="summary">{{report_summary}}</p>
     <div class="facts">
       <div class="fact"><strong>案件・対象日</strong>{{incident_id}} · {{target_date}}（JST）</div>
       <div class="fact"><strong>作成・対象版</strong>{{created_at_jst}} · {{result_version}}</div>
       <div class="fact"><strong>元起動・run</strong>{{source_launch_id}} · {{source_run_id_or_null}}</div>
-      <div class="fact"><strong>全体状態</strong><span class="status pending">{{pending / complete / blocked}}</span></div>
+      <div class="fact"><strong>全体状態</strong><span class="status {{status_class}}">{{status_label}}</span></div>
     </div>
   </header>
 
@@ -79,13 +79,10 @@
 
   <section id="overview">
     <h2>概要と確認範囲</h2>
-    <p>{{どの工程で何をしようとし、どのような結果となったか。確認した範囲、確認できていない範囲を分けて記す。}}</p>
+    <p>対象runで試みたことと実際の結果をまとめ、確認できた範囲と未確認の範囲を分けて記載します。</p>
     <ul>
-      <li>発生区分: {{当日発生 / 調査で判明 / 試験で確認}}</li>
-      <li>日次最終状態: {{状態・数値・単位・根拠}}</li>
-      <li>作業場所での検証: {{結果}}</li>
-      <li>本番反映: {{反映済み / 未反映 / 保留 / 未確認}}</li>
-      <li>次回の日次確認: {{確認済み / 未実施 / 未確認}}</li>
+      <li>発生区分: 事象ごとの詳細に記載</li>
+      <li>日次最終状態・作業場所での検証・本番反映・次回の日次確認: 下の表に別々に記載</li>
     </ul>
   </section>
 
@@ -94,37 +91,20 @@
     <table>
       <thead><tr><th>事象</th><th>区分</th><th>期待</th><th>実結果・影響</th><th>回復・状態</th><th>根拠</th></tr></thead>
       <tbody>
-        <tr><td><a href="#issue-1">{{利用者に伝わる工程名}}</a></td><td>{{区分}}</td><td>{{期待}}</td><td>{{実結果・影響}}</td><td>{{回復・未確認}}</td><td><a href="{{evidence_href}}">{{evidence_label}}</a></td></tr>
+        {{issue_rows}}
       </tbody>
     </table>
   </section>
 
   <section id="details">
     <h2>事象ごとの詳細と修正</h2>
-    <article class="issue actual" id="issue-1">
-      <h3>{{利用者に伝わる工程名}}</h3>
-      <p><span class="status pending">{{当日発生 / 調査で判明 / 試験で確認}}</span></p>
-      <h4>操作・期待・実結果</h4>
-      <p>{{どの工程で何を試み、何を期待し、実際に何が起きたかを根拠に沿って記載する。}}</p>
-      <h4>影響と回復</h4>
-      <p>{{件数・後続への影響と、再試行で回復したかを記す。未確認事項は理由を添える。}}</p>
-      <h4>原因と分かっている範囲</h4>
-      <p>{{確認できた事実、限定できる範囲、未確定の原因を分ける。}}</p>
-      <h4>変更後の動作</h4>
-      <p>{{実際に変更した後の動作と確認方法を説明する。修正していない場合はその旨を記す。}}</p>
-      <h4>確認範囲と根拠</h4>
-      <ul><li>試験: {{case_id / status / version}}</li><li>レビュー: {{reviewer_id / reviewed_version / status}}</li><li>根拠: <a href="{{evidence_href}}">{{evidence_label}}</a></li></ul>
-    </article>
+    {{issue_details}}
   </section>
 
   <section id="flow">
     <h2>処理の流れ</h2>
     <p>以下の枝・字下げを保ち、確認できない遷移を補わないでください。</p>
-    <pre class="tree">{{開始
-├─ 工程 {{step_id}}: {{操作・期待・実結果}}
-│  ├─ 回復: {{条件・実測}}
-│  └─ 未確認: {{理由}}
-└─ 最終状態: {{status・影響・根拠}}}}</pre>
+    <pre class="tree">{{flow_tree}}</pre>
   </section>
 
   <section id="checks">
@@ -132,19 +112,19 @@
     <table>
       <thead><tr><th>段階</th><th>対象版</th><th>期待</th><th>実結果</th><th>状態</th><th>根拠</th></tr></thead>
       <tbody>
-        <tr><td>{{test / review / gate / deploy}}</td><td>{{version}}</td><td>{{期待}}</td><td>{{実結果}}</td><td><span class="status pending">{{status}}</span></td><td><a href="{{evidence_href}}">{{参照}}</a></td></tr>
+        {{check_rows}}
       </tbody>
     </table>
-    <p>{{fixture試験、本番相当確認、本番反映を区別する。skip/未実施/未確認は成功としない。}}</p>
+    <p>fixture試験、本番反映、次回の日次確認を別々に記載します。未実施や未確認を成功として扱いません。</p>
   </section>
 
   <section id="recovery">
     <h2>未確認・停止・再開</h2>
     <ul class="checklist">
-      <li>未確認事項: {{内容・根拠不足・必要な確認}}</li>
-      <li>停止理由と状態: {{blocked / failed / unavailable / なし}}</li>
-      <li>再開条件: {{同一job・incident・sequence・許可attemptを維持した条件}}</li>
-      <li>日次再起動・投稿・DB変更: {{実施有無と根拠}}</li>
+      <li>未確認事項: {{unknowns}}</li>
+      <li>停止理由と状態: {{stop_reason}}</li>
+      <li>再開条件: {{resume_condition}}</li>
+      <li>日次再起動・投稿・DB変更: {{side_effects}}</li>
     </ul>
   </section>
 
@@ -155,8 +135,8 @@
       <li>計画: {{plan_version}} · <a href="{{plan_href}}">修正計画</a></li>
       <li>コード: {{base_commit}} → {{result_commit_or_null}}</li>
       <li>証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
-      <li>作成: {{reporter_id}} · {{created_at_jst}}</li>
-      <li>レビュー: {{reviewer_id}} · {{reviewed_version}} · {{review_status}}</li>
+      <li>作成: {{reporter_id}} · {{created_at_jst}} · {{result_version}}</li>
+      <li>コードレビュー: {{review_status}} · {{reviewed_version}}</li>
     </ul>
     <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めない。非公開証拠はアクセス制御された参照で示す。</p>
   </section>
