@@ -547,6 +547,37 @@
       "recovery": "Enumerate tracked automation/inago Python paths ending worker.py and inspect the actual module for the exact exclusion constant.",
       "correlation_id": "fc10-worker-exclusion-path-correction",
       "recorded_at_utc": "2026-10-19T19:34:05Z"
+    },
+    {
+      "operation": "move_profile_bearing_raw_logs_to_ignored_runtime_storage",
+      "attempted_reference": "the ten raw pytest files identified by the ownership audit",
+      "failure_class": "PowerShell CommandNotFoundException while creating a per-file result row",
+      "reason": "The script used bare lowercase true as a PowerShell value. The first file had already moved and its immediate before/after hash check passed; the exception stopped the loop before processing the remaining files.",
+      "capture_location": "controller PowerShell inside the foreach output object initializer",
+      "side_effect": "one raw file moved byte-for-byte to the ignored runtime evidence directory; nine profile-bearing raw files remain at their original worklog paths",
+      "recovery": "The remaining nine files were moved individually after confirming each destination was absent. A separate readback checked all ten SHA-256 values against original_sha256 entries where redaction_replacements > 0; all ten matched. Two zero-replacement report-prompt inputs remain at their committed worklog paths.",
+      "correlation_id": "fc10-private-raw-evidence-preservation-partial",
+      "recorded_at_utc": "2026-10-19T19:37:00Z",
+      "resolved_at_utc": "2026-10-19T19:37:00Z",
+      "recovery_artifact_refs": [
+        "FC10/private-raw-evidence-location-map.json",
+        "FC10/redacted-execution-evidence.json"
+      ]
+    },
+    {
+      "operation": "verify_raw_evidence_against_all_redaction_manifest_items",
+      "attempted_reference": "all 12 original_path entries in redacted-execution-evidence.json",
+      "failure_class": "verification scope mismatch",
+      "reason": "The manifest includes two report-prompt files with zero redaction replacements; those safe files are committed at their original paths and were never part of the ten profile-bearing set.",
+      "capture_location": "controller Python SHA comparison",
+      "side_effect": "none; read-only verification stopped before any operation-log append or further move",
+      "recovery": "Filtered the manifest to the ten nonzero-redaction entries. All ten moved raw files match their recorded original hashes; the two zero-replacement report-prompt files remain present under their committed original paths.",
+      "correlation_id": "fc10-private-raw-evidence-preservation-partial",
+      "recorded_at_utc": "2026-10-19T19:37:00Z",
+      "resolved_at_utc": "2026-10-19T19:37:00Z",
+      "recovery_artifact_refs": [
+        "FC10/private-raw-evidence-location-map.json"
+      ]
     }
   ]
 }

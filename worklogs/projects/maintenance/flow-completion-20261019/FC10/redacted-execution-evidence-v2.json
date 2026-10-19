@@ -20,7 +20,9 @@
       "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
       "replacement_count": 2,
       "source_preserved": true,
-      "xml_parse": "valid"
+      "xml_parse": "valid",
+      "original_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round5-focused-green.junit.xml",
+      "original_storage_sha256": "0233622891876937214c558a1fc47e102afa9567a323e4bfc7d5925a79094e80"
     },
     {
       "original_path": "FC10/fc10-round6-focused-green.junit.xml",
@@ -34,7 +36,9 @@
       "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
       "replacement_count": 2,
       "source_preserved": true,
-      "xml_parse": "valid"
+      "xml_parse": "valid",
+      "original_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round6-focused-green.junit.xml",
+      "original_storage_sha256": "9de51553afdd904c81cea412319a36290cfde0709a2c147094ce404114368e63"
     },
     {
       "original_path": "FC10/fc10-round7-focused-green.junit.xml",
@@ -48,7 +52,9 @@
       "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
       "replacement_count": 2,
       "source_preserved": true,
-      "xml_parse": "valid"
+      "xml_parse": "valid",
+      "original_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round7-focused-green.junit.xml",
+      "original_storage_sha256": "3c765b6cd90b23e436376ef0ac744a47352485f6e485adb629ec5977506b2b01"
     },
     {
       "original_path": "FC10/handoff-accepted-terminal-red.junit.xml",
@@ -62,7 +68,9 @@
       "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
       "replacement_count": 2,
       "source_preserved": true,
-      "xml_parse": "valid"
+      "xml_parse": "valid",
+      "original_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-accepted-terminal-red.junit.xml",
+      "original_storage_sha256": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f"
     },
     {
       "original_path": "FC10/handoff-waiver-red.junit.xml",
@@ -76,7 +84,10 @@
       "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
       "replacement_count": 2,
       "source_preserved": true,
-      "xml_parse": "valid"
+      "xml_parse": "valid",
+      "original_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-waiver-red.junit.xml",
+      "original_storage_sha256": "b2f160b5ba3615a4c6a962bbc23fcc93800472e4ef5343d50f76e076a3cffebb"
     }
-  ]
+  ],
+  "preservation_note": "The original inputs are in ignored runtime-local storage; the five XML-safe v2 copies are the commit-safe parseable artifacts. Earlier v1 copies remain unchanged as malformed-redaction history."
 }

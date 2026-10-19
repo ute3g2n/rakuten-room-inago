@@ -1,0 +1,85 @@
+{
+  "schema_version": "fc10-private-raw-evidence-location-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "storage_scope": "git-ignored local runtime folder inside the fixed workspace",
+  "destination": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw",
+  "reason": "Preserve original bytes without committing local profile data and allow the official runtime switcher to verify a clean fixed-root checkout.",
+  "files": [
+    {
+      "original_path": "FC10/fc10-round5-focused-green.console.txt",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round5-focused-green.console.txt",
+      "sha256": "cbde3cc66fe1ac166bf255596c678b246fea6153888f30235d6eae10a03f4d7f",
+      "size_bytes": 6660,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/fc10-round5-focused-green.junit.xml",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round5-focused-green.junit.xml",
+      "sha256": "0233622891876937214c558a1fc47e102afa9567a323e4bfc7d5925a79094e80",
+      "size_bytes": 7395,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/fc10-round6-focused-green.console.txt",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round6-focused-green.console.txt",
+      "sha256": "7bbb95152a61a90a76efec99cc73e48b75c2098644b800da7e060227117839d1",
+      "size_bytes": 6775,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/fc10-round6-focused-green.junit.xml",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round6-focused-green.junit.xml",
+      "sha256": "9de51553afdd904c81cea412319a36290cfde0709a2c147094ce404114368e63",
+      "size_bytes": 7491,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/fc10-round7-focused-green.console.txt",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round7-focused-green.console.txt",
+      "sha256": "a00b20f52ed49d159cbe6c58ee575bbcafe45084829c5808c81a21827fb15efc",
+      "size_bytes": 7742,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/fc10-round7-focused-green.junit.xml",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round7-focused-green.junit.xml",
+      "sha256": "3c765b6cd90b23e436376ef0ac744a47352485f6e485adb629ec5977506b2b01",
+      "size_bytes": 8406,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/handoff-accepted-terminal-red.console.txt",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-accepted-terminal-red.console.txt",
+      "sha256": "4a82eb653560fd2d2637a15c30ecfb2319b0e7aee261e18bc14852d2301d1ed3",
+      "size_bytes": 3447,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/handoff-accepted-terminal-red.junit.xml",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-accepted-terminal-red.junit.xml",
+      "sha256": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f",
+      "size_bytes": 3370,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/handoff-waiver-red.console.txt",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-waiver-red.console.txt",
+      "sha256": "514d332099e6ae277483c1d744b9281c52cfb21a4ee0e736eb472f8ff69b17fe",
+      "size_bytes": 3823,
+      "preserved": true
+    },
+    {
+      "original_path": "FC10/handoff-waiver-red.junit.xml",
+      "storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-waiver-red.junit.xml",
+      "sha256": "b2f160b5ba3615a4c6a962bbc23fcc93800472e4ef5343d50f76e076a3cffebb",
+      "size_bytes": 3851,
+      "preserved": true
+    }
+  ],
+  "verification": "All ten current SHA-256 values match the original_sha256 values recorded in the prior redaction map; each destination is under the existing Git-ignored runtime root."
+}

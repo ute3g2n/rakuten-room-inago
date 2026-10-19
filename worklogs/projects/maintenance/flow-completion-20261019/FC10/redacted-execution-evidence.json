@@ -14,7 +14,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round5-focused-green.console.txt",
       "redacted_sha256": "ff322964ff3fb73f390dd3d854f000a9e6aad2f7347c8fe7613fb480aa1899f7",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round5-focused-green.console.txt",
+      "preserved_storage_sha256": "cbde3cc66fe1ac166bf255596c678b246fea6153888f30235d6eae10a03f4d7f",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/fc10-round5-focused-green.junit.xml",
@@ -22,7 +25,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round5-focused-green.junit.xml",
       "redacted_sha256": "f7b3d78189a1bd296748df7c1873a40a1bca4533f51524a54d1cbb7d62a24c8d",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round5-focused-green.junit.xml",
+      "preserved_storage_sha256": "0233622891876937214c558a1fc47e102afa9567a323e4bfc7d5925a79094e80",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/fc10-round6-focused-green.console.txt",
@@ -30,7 +36,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round6-focused-green.console.txt",
       "redacted_sha256": "7c88c2d9b80bea1bcf7e41e4a5f9e304cb1a6c8b17a8231e18cdefb45e0d96c6",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round6-focused-green.console.txt",
+      "preserved_storage_sha256": "7bbb95152a61a90a76efec99cc73e48b75c2098644b800da7e060227117839d1",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/fc10-round6-focused-green.junit.xml",
@@ -38,7 +47,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round6-focused-green.junit.xml",
       "redacted_sha256": "409a5a00b8d31d130dedcbad04f011ecd6e3d57d6984b2a781ff009111040a9d",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round6-focused-green.junit.xml",
+      "preserved_storage_sha256": "9de51553afdd904c81cea412319a36290cfde0709a2c147094ce404114368e63",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/fc10-round7-focused-green.console.txt",
@@ -46,7 +58,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round7-focused-green.console.txt",
       "redacted_sha256": "fb3c74cf6e67c3f1bcc450d624d1cdf6385ba2d5b995fcef974a84c1547b5925",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round7-focused-green.console.txt",
+      "preserved_storage_sha256": "a00b20f52ed49d159cbe6c58ee575bbcafe45084829c5808c81a21827fb15efc",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/fc10-round7-focused-green.junit.xml",
@@ -54,7 +69,10 @@
       "redacted_path": "FC10/redacted-public/fc10-round7-focused-green.junit.xml",
       "redacted_sha256": "bfa3c7ca211f6017034ee63b5877a2444942adc7d8b2bcd1c949e5173a8d57c1",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/fc10-round7-focused-green.junit.xml",
+      "preserved_storage_sha256": "3c765b6cd90b23e436376ef0ac744a47352485f6e485adb629ec5977506b2b01",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/handoff-accepted-terminal-red.console.txt",
@@ -62,7 +80,10 @@
       "redacted_path": "FC10/redacted-public/handoff-accepted-terminal-red.console.txt",
       "redacted_sha256": "bf0b2a0bb5a0837161c7bfe7103c1cbc921a2ec0d7c51acfab758e1a23e16688",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-accepted-terminal-red.console.txt",
+      "preserved_storage_sha256": "4a82eb653560fd2d2637a15c30ecfb2319b0e7aee261e18bc14852d2301d1ed3",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/handoff-accepted-terminal-red.junit.xml",
@@ -70,7 +91,10 @@
       "redacted_path": "FC10/redacted-public/handoff-accepted-terminal-red.junit.xml",
       "redacted_sha256": "0c761d1125f68cdccaa72271fab385d57e5ed29a5f4bf8b653be7f9358a3428d",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-accepted-terminal-red.junit.xml",
+      "preserved_storage_sha256": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/handoff-waiver-red.console.txt",
@@ -78,7 +102,10 @@
       "redacted_path": "FC10/redacted-public/handoff-waiver-red.console.txt",
       "redacted_sha256": "dd31f82a89d40bf525f1d71fd4172b7a8aabe1f5378cad8a5e5fe5b6036529ed",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-waiver-red.console.txt",
+      "preserved_storage_sha256": "514d332099e6ae277483c1d744b9281c52cfb21a4ee0e736eb472f8ff69b17fe",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/handoff-waiver-red.junit.xml",
@@ -86,7 +113,10 @@
       "redacted_path": "FC10/redacted-public/handoff-waiver-red.junit.xml",
       "redacted_sha256": "21f1edbac2b26f21cc57350459b4a36ed309a064b52aead3ae67e33735d84527",
       "redaction_replacements": 2,
-      "original_preserved": true
+      "original_preserved": true,
+      "preserved_storage_path": "rakuten-room-inago/runtime/maintenance/local-evidence-preserved/fc10-raw/handoff-waiver-red.junit.xml",
+      "preserved_storage_sha256": "b2f160b5ba3615a4c6a962bbc23fcc93800472e4ef5343d50f76e076a3cffebb",
+      "preserved_storage_scope": "git-ignored-local-runtime"
     },
     {
       "original_path": "FC10/report-prompt-path-red.console.txt",
@@ -105,5 +135,6 @@
       "original_preserved": true
     }
   ],
-  "created_at_utc": "2026-10-19T19:25:09.5811103Z"
+  "created_at_utc": "2026-10-19T19:25:09.5811103Z",
+  "preservation_note": "The ten profile-bearing raw files were moved byte-for-byte into a Git-ignored runtime-local evidence folder so the fixed-root runtime switcher can validate a clean checkout. Their original paths identify where the captured output was first written; preserved_storage_path identifies the current local copy."
 }
