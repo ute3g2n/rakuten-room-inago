@@ -437,6 +437,8 @@ def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
     assert "The renderer supplies a readable link label" in prompt
     assert "Do not put a Markdown link" in prompt
     assert "Do not use internal controller terms" in prompt
+    assert "including when joined directly to Japanese" in prompt
+    assert "say 日次の実行記録との紐づけはありません" in prompt
     assert "error written in a record" in prompt
 
 

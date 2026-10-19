@@ -1,0 +1,18 @@
+{
+  "schema_version": "fc10-renderer-independent-product-review-v1",
+  "reviewer": "fc10_renderer_review",
+  "verdict": "APPROVE",
+  "findings": [],
+  "targets": {
+    "automation/inago/maintenance/reporting.py": "BE37F17D4437926F94932B189802A6F6F8FCAAE59FE26140B914B7FE56429058",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "A36B5284B7B0C123B4D204168A7FC5A855974DB80E623EBD6A9122683207EAAA"
+  },
+  "checks": [
+    "Conditional source_run_id=null rewrite follows the validated job identity.",
+    "Negated or qualified null wording is not rewritten as an affirmative statement and falls back to reader guidance.",
+    "The appendix preserves exact source_run_id field name and value.",
+    "Japanese-adjacent internal snake_case is detected at public text call sites.",
+    "Print tree rules wrap content and remove horizontal overflow."
+  ],
+  "test_execution": "not performed by reviewer"
+}

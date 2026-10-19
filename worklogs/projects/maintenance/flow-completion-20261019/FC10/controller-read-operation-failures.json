@@ -727,6 +727,52 @@
       "capture_location": "controller exec command parser / git rev-list invocation",
       "side_effect": "none; no repository state changed",
       "recovery": "Queried git rev-list --left-right --count HEAD...origin/main explicitly; it returned 1 ahead / 0 behind. Pushed commit 61f2b3420134d9b92cd1451773152e3da0ff8c92 to origin/main successfully, then read back matching local/remote-tracking SHA and clean status."
+    },
+    {
+      "operation": "read_same_job_state_with_inline_sqlite_wrapper",
+      "recorded_at_utc": "2026-10-19T21:35:00Z",
+      "attempted_reference": "maintenance state.sqlite read-only quick_check and identity query",
+      "failure_class": "Python SyntaxError from PowerShell quoting",
+      "reason": "Embedded SQL quotes were escaped through the PowerShell command string, leaving an unterminated Python expression before SQLite opened.",
+      "capture_location": "controller exec_command Python -c invocation",
+      "side_effect": "none; database connection was not opened by the failed invocation",
+      "recovery": "Reran a read-only here-string piped to the Python interpreter. quick_check returned ok, and the exact job row confirmed resume_count 19/running, source_run_id null, source_launch_id and 2026-10-17 target date unchanged."
+    },
+    {
+      "operation": "interrupt_same_job_report_worker_after_resume19_live_review",
+      "recorded_at_utc": "2026-10-19T21:30:48Z",
+      "failure_class": "ProcessInterrupted",
+      "reason": "Live reviewer r9/r10 found repeated common renderer defects after the resume-19 report was generated. The worker was interrupted so the shared rendering defects could be fixed before continuing the same job. The interruption returned exit code 1 with no stdout; the durable job remained running and the report operation had no terminal result.",
+      "capture_location": "controller write_stdin(ETX), followed by read-only SQLite job/manifest/stage-observation query",
+      "side_effect": "only the in-progress report attempt was interrupted; no new job, source run, daily launch, 10/19 queue handling, or report publication was performed",
+      "recovery": "Repair and independently review the shared renderer, then use official same-job resume-worker for resume 20 and an explicit Worker invocation limited to the original source_launch_id. Continue report/review/publication/terminal reconciliation in that job."
+    },
+    {
+      "operation": "red_test_for_source_run_id_null_linkage_and_appendix_contract",
+      "recorded_at_utc": "2026-10-19T21:34:00Z",
+      "failure_class": "ExpectedAssertionFailure and fixture identity mismatch",
+      "reason": "TDD RED confirmed that the appendix did not preserve the exact source_run_id field/value. The second initial test also changed the job and source identity without updating the report response identity, so validation rejected the deliberately inconsistent fixture before reaching the behavior under test.",
+      "capture_location": "pytest test_public_report_rephrases_null_source_run_id_for_readers and test_public_report_does_not_claim_null_linkage_for_non_null_job",
+      "side_effect": "none; fixture-only test execution",
+      "recovery": "Changed the template to render source_run_id: null or its actual value, and aligned the non-null fixture identity in the response. Then added a separate negative-form regression test and confirmed all four focused cases passed."
+    },
+    {
+      "operation": "validate_controller_operation_failure_journal_after_append",
+      "recorded_at_utc": "2026-10-19T21:39:00Z",
+      "failure_class": "JSONDecodeError",
+      "reason": "A patch context retained an extra closing brace after the new journal entries, so the post-edit parse check rejected the worklog before any consumer could use it.",
+      "capture_location": "read-only Python json.loads validation of controller-read-operation-failures.json",
+      "side_effect": "none; the invalid file was not used to drive workflow state",
+      "recovery": "Removed the extra brace, reran json.loads over the failure journal and both review evidence JSON files, and confirmed all three parse before staging."
+    },
+    {
+      "operation": "read_report_review_thread_with_excessive_turn_limit",
+      "recorded_at_utc": "2026-10-19T21:40:00Z",
+      "failure_class": "Tool argument validation error",
+      "reason": "The thread read API accepts at most 10 turns, but the first request asked for 20. It returned an argument error without reading review results.",
+      "capture_location": "Codex app read_thread tool response",
+      "side_effect": "none; no thread or repository state changed",
+      "recovery": "Repeated the read with turnLimit 10 and extracted the exact r9 and r10 structured reviewer outputs and findings."
     }
   ]
 }

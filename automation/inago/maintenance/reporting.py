@@ -64,7 +64,7 @@ _SENSITIVE_PATTERNS = (
     re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
 )
 _PUBLIC_INTERNAL_PATTERNS = (
-    re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b", re.I),
+    re.compile(r"(?<![A-Za-z0-9_])[a-z][a-z0-9]*(?:_[a-z0-9]+)+(?![A-Za-z0-9_])", re.I),
     re.compile(r"\b(?:job|launch|run|incident|attempt)-[A-Za-z0-9][A-Za-z0-9._:-]{7,}\b", re.I),
     re.compile(r"\b[A-F0-9]{40,64}\b", re.I),
     re.compile(r"\b(?:status|reason(?:_code)?|sha(?:256)?|commit)\s*[:=]", re.I),
@@ -81,6 +81,10 @@ _REFERENCE_SEPARATOR_ONLY = re.compile(r"^[\s,，、。;；:：|・]+$")
 _REFERENCE_NOTE_WORDS = re.compile(r"(?:記録|資料|証拠|確認|取得|参照|source|evidence|記載)", re.I)
 _SOURCE_SNAPSHOT_TERM = re.compile(
     r"(?<![A-Za-z0-9_])source\s+snapshot(?![A-Za-z0-9_])", re.I
+)
+_SOURCE_RUN_ID_NULL_TERM = re.compile(
+    r"(?<![A-Za-z0-9_])source_run_id\s*(?:[:=]\s*|は\s*)null(?:です)?(?=$|[\s。！？!?、，,])",
+    re.I,
 )
 
 
@@ -646,15 +650,27 @@ def _e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _public_text(value: object, fallback: str = "詳しい工程情報は参考資料に記録しています。") -> str:
+def _public_text(
+    value: object,
+    fallback: str = "詳しい工程情報は参考資料に記録しています。",
+    *,
+    source_run_id_is_null: bool = False,
+) -> str:
     text = _SOURCE_SNAPSHOT_TERM.sub("確認に使った記録", str(value))
+    if source_run_id_is_null:
+        text = _SOURCE_RUN_ID_NULL_TERM.sub(
+            "日次の実行記録との紐づけはありません。", text
+        )
     if any(pattern.search(text) for pattern in _PUBLIC_INTERNAL_PATTERNS):
         return fallback
     return text
 
 
 def _report_evidence_index(
-    response: Mapping[str, Any], sources: Mapping[str, Any]
+    response: Mapping[str, Any],
+    sources: Mapping[str, Any],
+    *,
+    source_run_id_is_null: bool,
 ) -> dict[str, dict[str, str]]:
     references: dict[str, dict[str, str]] = {}
 
@@ -709,7 +725,11 @@ def _report_evidence_index(
 
     add(
         index_href,
-        _public_text(sources["evidence_index_label"], "当日の証拠索引"),
+        _public_text(
+            sources["evidence_index_label"],
+            "当日の証拠索引",
+            source_run_id_is_null=source_run_id_is_null,
+        ),
     )
 
     for key in ("issues", "checks"):
@@ -770,23 +790,27 @@ def _render_evidence_reference_details(
     )
 
 
-def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
+def _render_issue_rows(
+    issues: Sequence[Mapping[str, Any]], *, source_run_id_is_null: bool
+) -> str:
     rows = []
     for index, item in enumerate(issues, start=1):
         rows.append(
             "<tr>"
-            f'<td><a href="#issue-{index}">{_e(_public_text(item["phase"], "関連する工程"))}</a></td>'
+            f'<td><a href="#issue-{index}">{_e(_public_text(item["phase"], "関連する工程", source_run_id_is_null=source_run_id_is_null))}</a></td>'
             f'<td>{_e(_EVENT_LABELS[item["event_class"]])}</td>'
-            f'<td>{_e(_public_text(item["expected"], "期待した内容は参考資料に記録しています。"))}</td>'
-            f'<td>{_e(_public_text(item["actual"], "実際の結果は参考資料に記録しています。"))}<br><strong>影響:</strong> {_e(_public_text(item["impact"], "影響は確認できていません。"))}</td>'
-            f'<td>{_e(_public_text(item["recovery"], "回復したかは確認できていません。"))}</td>'
+            f'<td>{_e(_public_text(item["expected"], "期待した内容は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null))}</td>'
+            f'<td>{_e(_public_text(item["actual"], "実際の結果は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null))}<br><strong>影響:</strong> {_e(_public_text(item["impact"], "影響は確認できていません。", source_run_id_is_null=source_run_id_is_null))}</td>'
+            f'<td>{_e(_public_text(item["recovery"], "回復したかは確認できていません。", source_run_id_is_null=source_run_id_is_null))}</td>'
             f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
         )
     return "\n".join(rows)
 
 
-def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
+def _render_issue_details(
+    issues: Sequence[Mapping[str, Any]], *, source_run_id_is_null: bool
+) -> str:
     rows = []
     for index, item in enumerate(issues, start=1):
         issue_class = {
@@ -796,18 +820,18 @@ def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
         }[item["event_class"]]
         rows.append(
             f'<article class="issue {issue_class}" id="issue-{index}">'
-            f"<h3>{_e(_public_text(item['title'], '処理結果を確認できませんでした'))}</h3>"
+            f"<h3>{_e(_public_text(item['title'], '処理結果を確認できませんでした', source_run_id_is_null=source_run_id_is_null))}</h3>"
             f'<p><span class="status pending">{_e(_EVENT_LABELS[item["event_class"]])}</span></p>'
             "<h4>操作・期待・実結果</h4>"
-            f"<p>{_e(_public_text(item['operation'], '操作内容は参考資料に記録しています。'))}<br><strong>期待:</strong> {_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。'))}<br><strong>実結果:</strong> {_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。'))}</p>"
+            f"<p>{_e(_public_text(item['operation'], '操作内容は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}<br><strong>期待:</strong> {_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}<br><strong>実結果:</strong> {_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}</p>"
             "<h4>影響と回復</h4>"
-            f"<p>{_e(_public_text(item['impact'], '影響は確認できていません。'))}<br><strong>回復:</strong> {_e(_public_text(item['recovery'], '回復したかは確認できていません。'))}</p>"
+            f"<p>{_e(_public_text(item['impact'], '影響は確認できていません。', source_run_id_is_null=source_run_id_is_null))}<br><strong>回復:</strong> {_e(_public_text(item['recovery'], '回復したかは確認できていません。', source_run_id_is_null=source_run_id_is_null))}</p>"
             "<h4>原因と分かっている範囲</h4>"
-            f"<p><strong>{_e(_CONFIDENCE_LABELS[item['cause_confidence']])}:</strong> {_e(_public_text(item['cause_statement'], '原因は確認できていません。'))}</p>"
+            f"<p><strong>{_e(_CONFIDENCE_LABELS[item['cause_confidence']])}:</strong> {_e(_public_text(item['cause_statement'], '原因は確認できていません。', source_run_id_is_null=source_run_id_is_null))}</p>"
             "<h4>変更後の動作</h4>"
-            f"<p>{_e(_public_text(item['changed_behavior'], '変更後の動作は参考資料に記録しています。'))}</p>"
+            f"<p>{_e(_public_text(item['changed_behavior'], '変更後の動作は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}</p>"
             "<h4>確認範囲と根拠</h4>"
-            f'<p>{_e(_public_text(item["confirmation_scope"], "確認範囲は参考資料に記録しています。"))} · {_render_evidence_links(item)}</p>'
+            f'<p>{_e(_public_text(item["confirmation_scope"], "確認範囲は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null))} · {_render_evidence_links(item)}</p>'
             "</article>"
         )
     return "\n".join(rows)
@@ -817,6 +841,8 @@ def _render_check_rows(
     checks: Sequence[Mapping[str, Any]],
     sources: Mapping[str, Any],
     evidence_references: Mapping[str, Mapping[str, str]],
+    *,
+    source_run_id_is_null: bool,
 ) -> str:
     status_names = {
         "passed": ("passed", "確認済み"),
@@ -843,9 +869,9 @@ def _render_check_rows(
         css, label = status_names[item["status"]]
         rows.append(
             "<tr>"
-            f"<td>{_e(_public_text(item['stage'], '関連する工程'))}</td><td>版は参考付録を参照</td>"
-            f"<td>{_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。'))}</td>"
-            f"<td>{_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。'))}</td>"
+            f"<td>{_e(_public_text(item['stage'], '関連する工程', source_run_id_is_null=source_run_id_is_null))}</td><td>版は参考付録を参照</td>"
+            f"<td>{_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}</td>"
+            f"<td>{_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null))}</td>"
             f'<td><span class="status {css}">{label}</span></td>'
             f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
@@ -1007,28 +1033,38 @@ def _render_html(
     status: str,
 ) -> str:
     recovery = response["recovery"]
-    evidence_references = _report_evidence_index(response, sources)
+    source_run_id_is_null = job["source_run_id"] is None
+    evidence_references = _report_evidence_index(
+        response, sources, source_run_id_is_null=source_run_id_is_null
+    )
     unknowns = "\n".join(
-        f"・{_public_text(item, '詳しい未確認事項は参考資料に記録しています。')}"
+        f"・{_public_text(item, '詳しい未確認事項は参考資料に記録しています。', source_run_id_is_null=source_run_id_is_null)}"
         for item in recovery["unknowns"]
     ) or "未確認事項の記録がありません。"
     replacements = {
         "{{incident_id}}": _e(job["incident_id"]),
         "{{target_date}}": _e(job["target_date"]),
-        "{{report_title}}": _e(_public_text(response["title"], "日次処理の確認結果")),
+        "{{report_title}}": _e(_public_text(response["title"], "日次処理の確認結果", source_run_id_is_null=source_run_id_is_null)),
         "{{report_summary}}": _e(
-            _public_text(response["summary"], "詳しい工程の状況は参考資料に記録しています。")
+            _public_text(response["summary"], "詳しい工程の状況は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null)
         ),
         "{{created_at_jst}}": _e(response["created_at_jst"]),
         "{{result_version}}": _e(response["result_version"]),
         "{{source_launch_id}}": _e(job["source_launch_id"]),
-        "{{source_run_id_or_null}}": _e(job["source_run_id"] or "未取得（null）"),
+        "{{source_run_id_or_null}}": _e(job["source_run_id"] if job["source_run_id"] is not None else "null"),
         "{{status_class}}": _status_css(status),
         "{{status_label}}": _STATUS_LABELS[status],
-        "{{issue_rows}}": _render_issue_rows(response["issues"]),
-        "{{issue_details}}": _render_issue_details(response["issues"]),
+        "{{issue_rows}}": _render_issue_rows(
+            response["issues"], source_run_id_is_null=source_run_id_is_null
+        ),
+        "{{issue_details}}": _render_issue_details(
+            response["issues"], source_run_id_is_null=source_run_id_is_null
+        ),
         "{{check_rows}}": _render_check_rows(
-            response["checks"], sources, evidence_references
+            response["checks"],
+            sources,
+            evidence_references,
+            source_run_id_is_null=source_run_id_is_null,
         ),
         "{{check_versions}}": _render_check_versions(response["checks"]),
         "{{flow_tree}}": _e(response["flow_tree"]),
@@ -1037,13 +1073,14 @@ def _render_html(
             _public_text(
                 recovery["stop_reason"] or "記録がありません（未確認）",
                 "停止理由は確認できていません。",
+                source_run_id_is_null=source_run_id_is_null,
             )
         ),
         "{{resume_condition}}": _e(
-            _public_text(recovery["resume_condition"], "次に必要な確認は参考資料に記録しています。")
+            _public_text(recovery["resume_condition"], "次に必要な確認は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null)
         ),
         "{{side_effects}}": _e(
-            _public_text(recovery["side_effects"], "実行していない操作は参考資料に記録しています。")
+            _public_text(recovery["side_effects"], "実行していない操作は参考資料に記録しています。", source_run_id_is_null=source_run_id_is_null)
         ),
         "{{investigation_version}}": _e(sources["investigation"]["result_version"]),
         "{{investigation_reference}}": _render_source_reference(
@@ -1088,7 +1125,7 @@ def _render_html(
             "#" + evidence_references[sources["evidence_index_href"]]["anchor_id"]
         ),
         "{{evidence_index_label}}": _e(
-            _public_text(sources["evidence_index_label"], "当日の証拠索引")
+            _public_text(sources["evidence_index_label"], "当日の証拠索引", source_run_id_is_null=source_run_id_is_null)
         ),
         "{{evidence_reference_rows}}": _render_evidence_reference_rows(
             evidence_references

@@ -61,3 +61,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ### FC10 rendererとsource statusの表示
 
 入力記録の調査・計画・コードreview状態は別々に日本語表示し、根拠のない承認を追加しない。記録上のエラーだけなら実運用で起きたと断定せず、「当日の記録にあるエラー」などとする。本文に`source snapshot`などの内部用語を出さず、日常語に直す。資料名はsourceから渡された資料の種類が分かる表示を使い、`not_created`の資料へリンクしない。停止理由のnull/欠測は「記録がなく未確認」とする。試験未実施、本番未反映、翌日未確認は日常語で説明し、`blocked`を新しいreport statusとして出さない。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。
+
+
+### FC10 本文フィールド名と印刷ツリー
+公開本文に`source_run_id`などの内部フィールド名・null値を出さない。Unicode文字に隣接したsnake_caseも内部名として扱う。`source_run_id=null`は日常語で説明し、正確値は付録へ置く。印刷時の`.tree`は`white-space: pre-wrap`と折返しを使い、横あふれを除去する。

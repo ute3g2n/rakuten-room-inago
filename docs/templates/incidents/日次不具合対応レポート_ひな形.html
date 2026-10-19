@@ -47,6 +47,7 @@
       thead { display: table-header-group; }
       tbody { display: table-row-group; }
       th, td { overflow-wrap: anywhere; }
+      .tree { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }
       pre, code { white-space: pre-wrap; }
     }
     @media (max-width: 520px) {
@@ -150,7 +151,7 @@
     <summary>参考付録：確認用の内部記録</summary>
     <ul>
       <li>案件: {{incident_id}}</li>
-      <li>起動元: {{source_launch_id}} · run: {{source_run_id_or_null}}</li>
+      <li>source_launch_id: {{source_launch_id}} · source_run_id: {{source_run_id_or_null}}</li>
       <li>報告版: {{result_version}}</li>
       <li>調査版・計画版: {{investigation_version}} · {{plan_version}}</li>
       <li>報告担当が確認したチェック版: <pre>{{check_versions}}</pre></li>

@@ -1,0 +1,59 @@
+{
+  "schema_version": "fc10-live-report-review-replay-v1",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "captured_from_thread_id": "01a15611-ba23-7672-b0db-d70b43f345d8",
+  "reports": [
+    {
+      "reviewed_version": "report-69b06174df8c6a7a457cc70c-r9",
+      "reviewed_sha256": "6b88b53c163844519613bf2ca53aa0d1f902e7b1d2505dcfd47b72bf78bcd453",
+      "reviewed_at": "2026-10-20T06:29:47+09:00",
+      "status": "changes_requested",
+      "findings": [
+        {
+          "severity": "high",
+          "location": "「事象一覧」3行目、および「事象ごとの詳細と修正」#issue-3",
+          "finding": "区分が「試験で確認」となっていますが、本文と工程表は試験未実施・結果未作成としています。試験で確認された事象ではないため、区分を未実施の後続確認に合わせてください。"
+        },
+        {
+          "severity": "medium",
+          "location": "「試験・レビュー・反映」の対象版列、および参考付録の「報告担当が確認したチェック版」",
+          "finding": "対象版列は参考付録を参照していますが、付録の一覧に「計画レビュー」「プロダクトコードレビュー」「修正後テスト」の各チェック工程と対応版がありません。また、表の「次回の日次確認」と付録の「翌日観測」で工程名が一致しません。各チェックの工程名と版を対応付けるか、版を確認できないことを明示してください。"
+        },
+        {
+          "severity": "medium",
+          "location": "「試験・レビュー・反映」1行目「調査結果」",
+          "finding": "工程状態の「complete」を「確認済み」と表示しています。一方、同じ結果には調査レビューの修正依頼があります。「確認済み」は調査内容が承認・検証済みと誤解される可能性があるため、「調査結果を作成済み」など、作成完了とレビュー結果を区別する表示にしてください。"
+        },
+        {
+          "severity": "low",
+          "location": "印刷用CSSの「.tree」",
+          "finding": "画面幅対応のツリーはwhite-space:preとoverflow-x:autoを設定していますが、印刷時にこの要素の横あふれを解除したり折り返したりする規則がありません。長い行が印刷で切れる可能性があるため、印刷時のツリー表示も確認してください。"
+        }
+      ]
+    },
+    {
+      "reviewed_version": "report-69b06174df8c6a7a457cc70c-r10",
+      "reviewed_sha256": "3b35b88d96b90329e067c2f72f7009ca76acc385c862844eba096b43cdb83efd",
+      "reviewed_at": "2026-10-20T06:30:42+09:00",
+      "status": "changes_requested",
+      "findings": [
+        {
+          "severity": "medium",
+          "location": "本文概要、事象一覧の「当日の日次処理」、#issue-1",
+          "finding": "本文に内部フィールド名「source_run_id」と値nullが表示されています。値は正しく保持されていますが、内部識別子は技術付録に置き、本文では保存済み実行記録が0件であることを日常語で説明してください。"
+        },
+        {
+          "severity": "low",
+          "location": "参考付録の工程tree、および@media printのCSS",
+          "finding": "印刷CSSはpre/codeだけを折り返し対象としていますが、工程treeはdiv.treeです。treeのwhite-space:preとoverflow-x:autoが印刷時にも残るため、長い行が横にはみ出る状態は解消されていません。印刷時に折り返すか、横あふれをなくしてください。"
+        }
+      ]
+    }
+  ],
+  "persisted_in_job_database_at_interruption": false,
+  "note": "These are the live independent reviewer outputs read from the reviewer thread after the report worker interruption. The job had not yet persisted these results when interrupted; this file preserves the exact identities, hashes, statuses, timestamps, and findings without treating either report as approved."
+}

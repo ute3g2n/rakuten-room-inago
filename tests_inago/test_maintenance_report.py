@@ -370,6 +370,7 @@ def test_c45_contract():
     assert ".tree, pre, code { white-space: pre-wrap; }" not in report.html
     assert "@media print" in report.html
     assert "table { display: table; overflow: visible; table-layout: fixed; }" in report.html
+    assert ".tree { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }" in report.html
     assert "当日の記録にあるエラー" in report.html
     assert "当日の日次証拠索引（利用可能な記録）" in report.html
     assert "確認に使った資料一覧" not in report.html
@@ -400,6 +401,55 @@ def test_public_report_rephrases_internal_source_snapshot_term():
     assert "確認に使った記録では当日のエラーを確認しました。" in report.html
     assert "確認に使った記録を確認中です。" in report.html
     assert "確認に使った記録の資料" in report.html
+
+
+def test_public_report_rephrases_null_source_run_id_for_readers():
+    response = _report_response()
+    response["summary"] = "当日の保存済み実行記録は0件です。source_run_idはnullです。"
+
+    report = _prepared_report(response)
+    body = report.html.split('<details class="muted">', maxsplit=1)[0]
+
+    assert "source_run_id" not in body
+    assert "当日の保存済み実行記録は0件です。" in body
+    assert "日次の実行記録との紐づけはありません。" in body
+    assert "source_run_id: null" in report.html
+    assert "未取得（null）" not in report.html
+
+
+def test_public_report_does_not_claim_null_linkage_for_non_null_job():
+    job = _job_context()
+    job["source_run_id"] = "run-20261017-001"
+    sources = _source_snapshot()
+    sources["identity"]["source_run_id"] = "run-20261017-001"
+    response = _report_response()
+    response["identity"]["source_run_id"] = "run-20261017-001"
+    response["summary"] = "source_run_idはnullです。"
+
+    root = Path(__file__).resolve().parents[1]
+    report = prepare_incident_report(
+        job,
+        sources,
+        response,
+        template_path=root / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+    body = report.html.split('<details class="muted">', maxsplit=1)[0]
+
+    assert "source_run_id" not in body
+    assert "日次の実行記録との紐づけはありません。" not in body
+    assert "source_run_id: run-20261017-001" in report.html
+
+
+def test_public_report_does_not_rewrite_negated_null_source_run_id():
+    response = _report_response()
+    response["summary"] = "source_run_idはnullではありません。"
+
+    report = _prepared_report(response)
+    body = report.html.split('<details class="muted">', maxsplit=1)[0]
+
+    assert "source_run_id" not in body
+    assert "日次の実行記録との紐づけはありません。ではありません" not in body
+    assert "詳しい工程の状況は参考資料に記録しています。" in body
 
 
 def _git(cwd: Path, *args: str) -> str:
