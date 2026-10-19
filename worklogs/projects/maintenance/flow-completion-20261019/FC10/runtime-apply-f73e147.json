@@ -1,0 +1,70 @@
+{
+  "operation": "official TaskSchedulerRuntimeSwitcher.activate then confirm_active",
+  "repository": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "target_commit": "f73e147149a0caa1ee3a183bf078f56553481a63",
+  "before_commit": "f73e147149a0caa1ee3a183bf078f56553481a63",
+  "after_commit": "f73e147149a0caa1ee3a183bf078f56553481a63",
+  "healthy": true,
+  "state": {
+    "active": {
+      "commit": "f73e147149a0caa1ee3a183bf078f56553481a63",
+      "root": "C:\\project\\rakuten-room-inago"
+    },
+    "pending": null,
+    "schema_version": "maintenance-runtime-switch-v1",
+    "status": "active"
+  },
+  "tasks": [
+    {
+      "name": "RakutenRoomInagoDaily",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoWorker",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoWatchdog",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoHumanApi",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    }
+  ],
+  "status": "complete",
+  "initialization_failure": {
+    "attempted_runtime_root": "C:\\project\\rakuten-room-inago\\runtime",
+    "capture_point": "TaskSchedulerRuntimeSwitcher.__init__; Path(runtime_root).resolve(strict=True)",
+    "exception_chain": [
+      {
+        "class": "FileNotFoundError",
+        "message": "[WinError 2] specified path does not exist: C:\\project\\rakuten-room-inago\\runtime"
+      }
+    ],
+    "effect": "constructor failed before any task snapshot, switch-state write, scheduler change, or database access; no mutation observed"
+  },
+  "read_only_task_configuration": {
+    "operation": "task_runtime_working_directory.ps1 -Mode Read",
+    "status": "ok",
+    "task_names": [
+      "RakutenRoomInagoDaily",
+      "RakutenRoomInagoWorker",
+      "RakutenRoomInagoWatchdog",
+      "RakutenRoomInagoHumanApi"
+    ],
+    "all_ready_enabled": true,
+    "working_directory": "C:\\project\\rakuten-room-inago",
+    "observed_data_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "worker_source_launch_scope": "exact historical-9e7f0c175cc4c874c955a5dab29c4427 is passed explicitly; no 2026-10-19 queue dispatch"
+  }
+}
