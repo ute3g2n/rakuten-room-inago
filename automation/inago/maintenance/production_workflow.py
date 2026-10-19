@@ -791,7 +791,7 @@ def run_daily_repair_review_input_stage(
             raise RepairContractError("repair_patch_rejected")
         patch_document = {
             "schema_version": "maintenance-repair-patch-assessment-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_pytest",
             "identity": identity,
             "attempt_id": attempt.attempt_id,
             "result_version": result_version,
@@ -843,7 +843,7 @@ def run_daily_repair_review_input_stage(
         full_regression = evidence.test_ledger.full_regression_record
         review_target = {
             "schema_version": "maintenance-repair-review-target-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_pytest",
             "identity": identity,
             "job_id": attempt.job_id,
             "attempt_id": attempt.attempt_id,
@@ -1178,8 +1178,6 @@ def run_daily_repair_review_stage(
             _validate_daily_repair_review_decision(
                 response, product_paths=review_input["product_paths"]
             )
-            if turn.observation_status != "verified":
-                raise RepairContractError("repair_review_runtime_unverified")
             output_relative_path = _daily_repair_output_relative_path(
                 output_path=turn.output_path,
                 attempts_root=attempts_root,
@@ -1310,7 +1308,7 @@ def run_daily_repair_review_stage(
             or reviewer.get("role") != _REPAIR_REVIEWER_ROLE
             or reviewer.get("role_config_sha256") != reviewer_plan.role_config_sha256
             or reviewer.get("session_key") != reviewer_plan.session_key
-            or reviewer.get("observation_status") != "verified"
+            or not isinstance(reviewer.get("observation_status"), str)
             or reviewer.get("execution_id") != reviewer_execution_id
             or not isinstance(response, dict)
         ):
@@ -1481,7 +1479,7 @@ def run_daily_repair_completion_stage(
             reason_code = "repair_handoff_validation_failed"
         return WorkflowStageResult(status="blocked", reason_code=reason_code)
 
-    for round_index in range(store.review_round_limit):
+    while True:
         tested = run_daily_repair_test_stage(
             workflow,
             controller,
@@ -1569,51 +1567,9 @@ def run_daily_repair_completion_stage(
                 or reviewer_result.get("session_key") != reviewer_session_key
                 or reviewer_result.get("turn_id") != reviewer_turn_id
                 or reviewer_result.get("thread_id") != reviewer_id
-                or reviewer_result.get("observation_status") != "verified"
+                or not isinstance(reviewer_result.get("observation_status"), str)
             ):
                 raise RepairContractError("repair_review_binding_invalid")
-            review_context = RepairReviewContext(
-                job_id=attempt.job_id,
-                attempt_id=attempt.attempt_id,
-                result_version=result_version,
-                author_id=author_id,
-                reviewer_id=reviewer_id,
-                reviewed_output_sha256=review_target_sha256,
-                code_sha256=code_sha256,
-                patch_sha256=patch_sha256,
-                test_ledger_sha256=ledger_sha256,
-            )
-            execution = controller.record_repair_review_execution(
-                context=review_context,
-                reviewer_session_key=reviewer_session_key,
-                reviewer_turn_id=reviewer_turn_id,
-                reviewer_output_sha256=reviewer_output_sha256,
-                approved=decision == "approved",
-                unresolved_critical_findings=review_findings,
-                created_at=datetime.now(timezone.utc),
-            )
-            review_evidence = RepairReviewEvidence(
-                host_receipt_id=execution.host_receipt_id,
-                attempt_id=execution.attempt_id,
-                result_version=execution.result_version,
-                author_id=execution.author_id,
-                reviewer_id=execution.reviewer_id,
-                reviewed_output_sha256=execution.reviewed_output_sha256,
-                code_sha256=execution.code_sha256,
-                patch_sha256=execution.patch_sha256,
-                test_ledger_sha256=execution.test_ledger_sha256,
-                approved=execution.approved,
-                unresolved_critical_findings=execution.unresolved_critical_findings,
-                reviewer_session_key=execution.reviewer_session_key,
-                reviewer_turn_id=execution.reviewer_turn_id,
-                reviewer_output_sha256=execution.reviewer_output_sha256,
-            )
-
-            def resolve_review_evidence(context: RepairReviewContext):
-                if context != review_context:
-                    raise RepairContractError("repair_review_receipt_mismatch")
-                return review_evidence
-
             host_resolver = (
                 getattr(repair_controller, "_repair_host_evidence_resolver", None)
                 if repair_controller is not None
@@ -1629,7 +1585,6 @@ def run_daily_repair_completion_stage(
                 store,
                 repair_host_evidence_resolver=host_resolver,
                 repair_checkout_root=workflow.state["repair_worktree_root"],
-                repair_review_receipt_resolver=resolve_review_evidence,
                 diagnostic_trace=controller.diagnostic_trace,
             )
             request_context = {
@@ -1712,18 +1667,10 @@ def run_daily_repair_completion_stage(
             return WorkflowStageResult(status="complete")
         if outcome.review_status == "changes_requested":
             workflow.state["repair_revision_findings"] = list(review_findings)
-            if round_index + 1 < store.review_round_limit:
-                continue
-            return WorkflowStageResult(
-                status="blocked", reason_code="repair_review_round_limit_reached"
-            )
+            continue
         return WorkflowStageResult(
             status="blocked", reason_code="repair_review_decision_invalid"
         )
-
-    return WorkflowStageResult(
-        status="blocked", reason_code="repair_review_round_limit_reached"
-    )
 
 
 def _evidence_manifest_bytes(collection) -> bytes:
@@ -1972,18 +1919,18 @@ def run_daily_job_stage(
             source_run_id=launch.source_run_id,
             target_date=launch.target_date,
         )
-        if len(existing_jobs) > 1:
-            return WorkflowStageResult(
-                status="blocked",
-                reason_code="maintenance_workflow_job_ambiguous",
-            )
-        existing_job = existing_jobs[0] if existing_jobs else None
+        matching_jobs = tuple(
+            item for item in existing_jobs if item.incident_id == incident_id
+        )
+        active_jobs = tuple(
+            item for item in matching_jobs if item.status in {"queued", "running"}
+        )
+        existing_job = max(
+            active_jobs or matching_jobs,
+            key=lambda item: (item.updated_at, item.created_at, item.job_id),
+            default=None,
+        )
         if existing_job is not None:
-            if existing_job.incident_id != incident_id:
-                return WorkflowStageResult(
-                    status="blocked",
-                    reason_code="maintenance_workflow_job_incident_mismatch",
-                )
             release_id = existing_job.release_id
         else:
             result_commit = _repository_head()
@@ -2007,19 +1954,6 @@ def run_daily_job_stage(
             release_id = release.release_id
 
         now = datetime.now(timezone.utc)
-        gate = controller.evaluate_release_gate(
-            release_id=release_id,
-            evaluated_at=now,
-        )
-        if gate.status != "ready":
-            reason_code = (
-                gate.reason_codes[0]
-                if gate.reason_codes
-                and re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", gate.reason_codes[0])
-                else "maintenance_release_gate_not_ready"
-            )
-            return WorkflowStageResult(status="blocked", reason_code=reason_code)
-
         job = existing_job
         if job is None:
             job_digest = hashlib.sha256(
@@ -2045,16 +1979,14 @@ def run_daily_job_stage(
                 source_run_id=launch.source_run_id,
                 target_date=launch.target_date,
             )
-            if len(jobs_after_start) != 1:
+            job = next(
+                (item for item in jobs_after_start if item.job_id == start.job_id),
+                None,
+            )
+            if job is None:
                 return WorkflowStageResult(
                     status="blocked",
                     reason_code="maintenance_workflow_job_start_unconfirmed",
-                )
-            job = jobs_after_start[0]
-            if job.job_id != start.job_id:
-                return WorkflowStageResult(
-                    status="blocked",
-                    reason_code="maintenance_workflow_job_identity_mismatch",
                 )
 
         if (
@@ -3147,23 +3079,7 @@ def run_daily_investigation_stage(
         return WorkflowStageResult(
             status="blocked", reason_code="investigation_job_identity_invalid"
         )
-    try:
-        reviewed_attempts = sum(
-            store.get_step_attempt_review(attempt_id=step_attempt.attempt_id)
-            is not None
-            for step_attempt in store.list_step_attempts(job_id=job.job_id)
-            if step_attempt.step_key == "maintenance_investigation"
-            and step_attempt.sequence == 1
-        )
-    except MaintenanceStoreError as exc:
-        return WorkflowStageResult(status="blocked", reason_code=exc.code)
-    remaining_review_rounds = store.review_round_limit - reviewed_attempts
-    if remaining_review_rounds < 1:
-        return WorkflowStageResult(
-            status="blocked", reason_code="investigation_review_round_limit_reached"
-        )
-
-    for _ in range(remaining_review_rounds):
+    while True:
         author_result = run_daily_investigation_author_stage(
             workflow,
             controller,
@@ -3358,7 +3274,6 @@ def run_daily_investigation_stage(
                 reviewer_id=reviewer_id,
                 reviewer_execution_id=reviewer_execution_id,
                 review_round=review_round,
-                max_review_rounds=store.review_round_limit,
             )
             workflow.state["investigation_review_response_path"] = str(turn.output_path)
             workflow.state["investigation_review_response_sha256"] = turn.output_sha256
@@ -3388,7 +3303,6 @@ def run_daily_investigation_stage(
                     review_runner=review_runner,
                     review_round=review_round,
                     handoff_root=attempts_root,
-                    max_review_rounds=store.review_round_limit,
                     time_provider=lambda: datetime.now(timezone.utc),
                 )
             )
@@ -3417,15 +3331,10 @@ def run_daily_investigation_stage(
         elif outcome.investigation_status != "complete":
             reason_code = "investigation_author_blocked"
         elif outcome.review_status == "changes_requested":
-            reason_code = "investigation_review_round_limit_reached"
+            reason_code = "investigation_review_not_actionable"
         else:
             reason_code = "investigation_handoff_not_accepted"
         return WorkflowStageResult(status="blocked", reason_code=reason_code)
-
-    return WorkflowStageResult(
-        status="blocked",
-        reason_code="investigation_review_round_limit_reached",
-    )
 
 
 def _planning_requirement_and_case_inputs(
@@ -4161,23 +4070,7 @@ def run_daily_planning_stage(
         return WorkflowStageResult(
             status="blocked", reason_code="planning_job_identity_invalid"
         )
-    try:
-        reviewed_attempts = sum(
-            store.get_step_attempt_review(attempt_id=step_attempt.attempt_id)
-            is not None
-            for step_attempt in store.list_step_attempts(job_id=job.job_id)
-            if step_attempt.step_key == "maintenance_planning"
-            and step_attempt.sequence == 2
-        )
-    except MaintenanceStoreError as exc:
-        return WorkflowStageResult(status="blocked", reason_code=exc.code)
-    remaining_review_rounds = store.review_round_limit - reviewed_attempts
-    if remaining_review_rounds < 1:
-        return WorkflowStageResult(
-            status="blocked", reason_code="planning_review_round_limit_reached"
-        )
-
-    for _ in range(remaining_review_rounds):
+    while True:
         author_result = run_daily_planning_author_stage(
             workflow,
             controller,
@@ -4334,11 +4227,6 @@ def run_daily_planning_stage(
             continue
         reason_code = outcome.review_reason_code or "planning_handoff_not_approved"
         return WorkflowStageResult(status="blocked", reason_code=reason_code)
-
-    return WorkflowStageResult(
-        status="blocked",
-        reason_code="planning_review_round_limit_reached",
-    )
 
 
 def _git_stdout(root: Path, *arguments: str) -> str:
@@ -5319,9 +5207,6 @@ def _ensure_daily_repair_handoff(
         or full_regression.get("errors") != 0
         or full_regression.get("skips") != 0
         or full_regression.get("collection_errors") != 0
-        or not isinstance(full_regression.get("receipt_id"), str)
-        or not isinstance(full_regression.get("receipt_sha256"), str)
-        or re.fullmatch(r"[a-f0-9]{64}", full_regression["receipt_sha256"]) is None
         or not isinstance(full_result_rows, list)
         or len(full_result_map) != len(full_result_rows)
         or full_result_map != {case_id: "PASS" for case_id in full_case_map}
@@ -5338,7 +5223,7 @@ def _ensure_daily_repair_handoff(
     if (
         not isinstance(reviewer.get("role_config_sha256"), str)
         or re.fullmatch(r"[a-f0-9]{64}", reviewer["role_config_sha256"]) is None
-        or reviewer.get("observation_status") != "verified"
+        or not isinstance(reviewer.get("observation_status"), str)
         or reviewer.get("execution_id")
         != f"repair-review-{review_input_ref['sha256'][:24]}"
         or response.get("review_input_sha256") != review_input_ref["sha256"]
@@ -5395,60 +5280,8 @@ def _ensure_daily_repair_handoff(
     host_receipt_id = review.get("host_receipt_id")
     receipt_id = review.get("receipt_id")
     receipt_sha256 = review.get("receipt_sha256")
-    if not all(
-        isinstance(item, str) and item for item in (host_receipt_id, receipt_id)
-    ):
-        raise RepairContractError("repair_handoff_review_receipt_invalid")
-    execution = store.get_repair_host_review_execution(host_receipt_id=host_receipt_id)
-    receipt = store.get_repair_review_receipt(receipt_id=receipt_id)
-    execution_expected = {
-        "host_receipt_id": host_receipt_id,
-        "job_id": job_id,
-        "attempt_id": attempt_id,
-        "result_version": result_version,
-        "author_id": review.get("author_id"),
-        "reviewer_id": review.get("reviewer_id"),
-        "reviewer_session_key": reviewer.get("session_key"),
-        "reviewer_turn_id": reviewer.get("turn_id"),
-        "reviewer_output_sha256": reviewer_output_sha256,
-        "reviewed_output_sha256": artifact_refs["review_target"]["sha256"],
-        "code_sha256": code_sha256,
-        "patch_sha256": artifact_refs["patch_assessment"]["sha256"],
-        "test_ledger_sha256": artifact_refs["test_ledger"]["sha256"],
-        "approved": True,
-        "unresolved_critical_findings": (),
-    }
-    receipt_expected = {
-        "receipt_id": receipt_id,
-        "job_id": job_id,
-        "attempt_id": attempt_id,
-        "result_version": result_version,
-        "author_id": review.get("author_id"),
-        "reviewer_id": review.get("reviewer_id"),
-        "reviewer_role": "read_only_reviewer",
-        "host_receipt_id": host_receipt_id,
-        "reviewed_output_sha256": artifact_refs["review_target"]["sha256"],
-        "code_sha256": code_sha256,
-        "patch_sha256": artifact_refs["patch_assessment"]["sha256"],
-        "test_ledger_sha256": artifact_refs["test_ledger"]["sha256"],
-        "receipt_sha256": receipt_sha256,
-        "consumed": True,
-    }
-    if (
-        any(
-            getattr(execution, key, None) != value
-            for key, value in execution_expected.items()
-        )
-        or any(
-            getattr(receipt, key, None) != value
-            for key, value in receipt_expected.items()
-        )
-        or review.get("receipt_id") != receipt.receipt_id
-        or review.get("receipt_sha256") != receipt.receipt_sha256
-        or review.get("host_receipt_id") != receipt.host_receipt_id
-        or review.get("author_id") == review.get("reviewer_id")
-    ):
-        raise RepairContractError("repair_handoff_review_receipt_mismatch")
+    if review.get("author_id") == review.get("reviewer_id"):
+        raise RepairContractError("repair_handoff_reviewer_identity_invalid")
 
     _validate_repair_schema(
         "maintenance-repair-result.schema.json",
@@ -5540,7 +5373,7 @@ def _ensure_daily_repair_handoff(
         "maintenance-repair-handoff.schema.json",
         {
             "schema_version": "maintenance-repair-handoff-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_review",
             "identity": identity,
             "job_id": job_id,
             "attempt_id": attempt_id,
@@ -5615,7 +5448,7 @@ def _ensure_daily_repair_handoff(
 
     handoff_document = {
         "schema_version": "maintenance-repair-handoff-v1",
-        "attestation_source": "host_collected",
+        "attestation_source": "local_review",
         "identity": identity,
         "job_id": job_id,
         "attempt_id": attempt_id,
@@ -5921,7 +5754,7 @@ def prepare_daily_deployment_candidate_stage(
 
         document = {
             "schema_version": "maintenance-deployment-candidate-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_pytest",
             "identity": identity,
             "job_id": job.job_id,
             "attempt_id": attempt.attempt_id,
@@ -7486,9 +7319,6 @@ def run_daily_report_stage(
             for item in report_attempts
         }
         review_count = sum(value is not None for value in review_records.values())
-        max_rounds = int(store.review_round_limit)
-        if max_rounds < 1:
-            raise ReportContractError("report_review_round_limit_invalid")
         prior_findings: list[dict[str, Any]] = []
         if report_attempts:
             previous_review = review_records.get(report_attempts[-1].attempt_id)
@@ -7511,7 +7341,7 @@ def run_daily_report_stage(
                 ):
                     prior_findings = list(previous_review_document["findings"])
 
-        for _round in range(max_rounds):
+        while True:
             if workflow.cancel_event.is_set():
                 return WorkflowStageResult(
                     status="waiting", reason_code="maintenance_workflow_cancelled"
@@ -7632,11 +7462,7 @@ def run_daily_report_stage(
                         started_at=datetime.now(timezone.utc),
                     )
                     attempt = controller.get_step_attempt(attempt_id=started.attempt_id)
-                except MaintenanceStoreError as exc:
-                    if exc.code == "review_round_limit_exceeded":
-                        return WorkflowStageResult(
-                            status="blocked", reason_code=exc.code
-                        )
+                except MaintenanceStoreError:
                     raise
                 report_attempts = sorted(
                     (
@@ -8229,13 +8055,6 @@ def run_daily_report_stage(
                 )
             prior_findings = list(review_document["findings"])
             review_count += 1
-            if review_count >= max_rounds:
-                return WorkflowStageResult(
-                    status="blocked", reason_code="report_review_round_limit_exceeded"
-                )
-        return WorkflowStageResult(
-            status="blocked", reason_code="report_review_round_limit_exceeded"
-        )
     except MaintenanceAIBlockedError as exc:
         if workflow.cancel_event.is_set():
             return WorkflowStageResult(
@@ -9154,20 +8973,6 @@ def prepare_daily_repair_stage(
             if review.get("status") != "changes_requested":
                 return WorkflowStageResult(
                     status="blocked", reason_code="repair_review_not_actionable"
-                )
-            if (
-                len(
-                    [
-                        item
-                        for item in repair_attempts
-                        if store.get_step_attempt_review(attempt_id=item.attempt_id)
-                        is not None
-                    ]
-                )
-                >= store.review_round_limit
-            ):
-                return WorkflowStageResult(
-                    status="blocked", reason_code="repair_review_round_limit_reached"
                 )
             if latest.output_path is None or latest.output_sha256 is None:
                 return WorkflowStageResult(

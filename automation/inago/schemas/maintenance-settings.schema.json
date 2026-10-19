@@ -7,74 +7,67 @@
     "schema_version",
     "settings_version",
     "timezone",
-    "code_fix_concurrency",
     "lease_heartbeat_seconds",
     "watchdog_interval_seconds",
     "ai_job_timeout_seconds",
     "cancellation_confirmation_timeout_seconds",
     "request_retry_limit",
-    "review_round_limit",
     "diagnostic_log_retention_days",
     "diagnostic_log_max_file_bytes"
   ],
   "properties": {
     "schema_version": { "const": 1 },
-    "settings_version": { "enum": ["1.0", "1.1", "1.2", "1.3"] },
+    "settings_version": { "enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5"] },
     "timezone": { "const": "Asia/Tokyo" },
-    "code_fix_concurrency": { "const": 1 },
+    "code_fix_concurrency": {
+      "type": "integer",
+      "deprecated": true,
+      "description": "Legacy compatibility input for settings 1.0-1.4; any integer is ignored and never limits job starts."
+    },
     "lease_heartbeat_seconds": { "const": 30 },
     "watchdog_interval_seconds": { "const": 60 },
     "ai_job_timeout_seconds": { "const": 1200 },
     "cancellation_confirmation_timeout_seconds": { "const": 60 },
     "request_retry_limit": { "const": 2 },
-    "review_round_limit": { "enum": [3, 5] },
+    "review_round_limit": {
+      "type": "integer",
+      "deprecated": true,
+      "description": "Legacy compatibility input only; ignored and never limits review cycles."
+    },
     "job_resume_limit": {
-      "enum": [3, 4, 5],
+      "type": "integer",
       "deprecated": true,
       "description": "Legacy compatibility input only; ignored and never limits job resumption."
     },
     "diagnostic_log_retention_days": { "const": 90 },
     "diagnostic_log_max_file_bytes": { "const": 4194304 },
     "diagnostic_log_max_files_per_day": {
-      "const": 20,
+      "type": "integer",
       "deprecated": true,
       "description": "Legacy input accepted for compatibility; ignored by maintenance logging."
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "settings_version": { "const": "1.0" } } },
-      "then": {
-        "properties": {
-          "review_round_limit": { "const": 3 },
-          "job_resume_limit": { "const": 3 }
-        }
-      }
+      "if": {
+        "properties": { "settings_version": { "enum": ["1.0", "1.1", "1.2", "1.3", "1.4"] } },
+        "required": ["settings_version"]
+      },
+      "then": { "required": ["code_fix_concurrency"] }
     },
     {
-      "if": { "properties": { "settings_version": { "const": "1.1" } } },
+      "if": {
+        "properties": { "settings_version": { "const": "1.5" } },
+        "required": ["settings_version"]
+      },
       "then": {
-        "properties": {
-          "review_round_limit": { "const": 5 },
-          "job_resume_limit": { "const": 4 }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "settings_version": { "const": "1.2" } } },
-      "then": {
-        "properties": {
-          "review_round_limit": { "const": 5 },
-          "job_resume_limit": { "const": 5 }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "settings_version": { "const": "1.3" } } },
-      "then": {
-        "not": { "required": ["job_resume_limit"] },
-        "properties": {
-          "review_round_limit": { "const": 5 }
+        "not": {
+          "anyOf": [
+            { "required": ["code_fix_concurrency"] },
+            { "required": ["review_round_limit"] },
+            { "required": ["job_resume_limit"] },
+            { "required": ["diagnostic_log_max_files_per_day"] }
+          ]
         }
       }
     }

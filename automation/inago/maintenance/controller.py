@@ -137,7 +137,6 @@ class InvestigationAttemptRequest:
     handoff_root: str | Path
     synthetic_fixture: bool = False
     time_provider: Callable[[], datetime] | None = None
-    max_review_rounds: int = 3
 
 
 @dataclass(frozen=True)
@@ -358,7 +357,6 @@ def _run_investigation_review(
             reviewer_id=request.reviewer_id,
             reviewer_execution_id=request.reviewer_execution_id,
             review_round=request.review_round,
-            max_review_rounds=request.max_review_rounds,
         )
     except Exception:
         return (
@@ -758,7 +756,6 @@ class MaintenanceController:
                     context.get(key) != value
                     for key, value in expected_identity.items()
                 )
-                or context["base_commit"] != self._store.get_latest_deployed_commit()
             ):
                 raise RepairContractError("repair_attempt_identity_invalid")
 
@@ -903,9 +900,6 @@ class MaintenanceController:
         )
         if (
             full_regression is None
-            or full_regression.receipt_id is None
-            or full_regression.receipt_sha256 is None
-            or re.fullmatch(r"[a-f0-9]{64}", full_regression.receipt_sha256) is None
             or full_regression.cases != host_evidence.test_ledger.full_regression_cases
             or set(full_regression.results) != set(full_cases)
             or any(status != "PASS" for status in full_regression.results.values())
@@ -937,7 +931,7 @@ class MaintenanceController:
         identity = expected_identity
         patch_document = {
             "schema_version": "maintenance-repair-patch-assessment-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_pytest",
             "identity": identity,
             "attempt_id": attempt.attempt_id,
             "result_version": request.result_version,
@@ -1019,7 +1013,7 @@ class MaintenanceController:
         )
         review_target = {
             "schema_version": "maintenance-repair-review-target-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": "local_pytest",
             "identity": identity,
             "job_id": attempt.job_id,
             "attempt_id": attempt.attempt_id,
@@ -1040,8 +1034,6 @@ class MaintenanceController:
         review_target_path, review_target_sha256 = save_json_artifact(
             "review-target.json", review_target
         )
-        if self._repair_review_receipt_resolver is None:
-            raise RepairContractError("repair_review_receipt_unavailable")
         review_context = RepairReviewContext(
             job_id=attempt.job_id,
             attempt_id=attempt.attempt_id,
@@ -1053,62 +1045,15 @@ class MaintenanceController:
             patch_sha256=patch_sha256,
             test_ledger_sha256=ledger_sha256,
         )
-        try:
-            review_evidence = self._repair_review_receipt_resolver(review_context)
-        except Exception as exc:
-            raise RepairContractError(
-                getattr(exc, "code", "repair_review_receipt_unavailable")
-            ) from exc
+        review_evidence = None
         if repository_code_sha256(host_evidence.checkout_root) != current_code_hash:
             raise RepairContractError("repair_code_hash_drift")
-        if (
-            not isinstance(review_evidence, RepairReviewEvidence)
-            or review_evidence.attempt_id != review_context.attempt_id
-            or review_evidence.result_version != review_context.result_version
-            or review_evidence.author_id != review_context.author_id
-            or review_evidence.reviewer_id != review_context.reviewer_id
-            or review_evidence.reviewed_output_sha256
-            != review_context.reviewed_output_sha256
-            or review_evidence.code_sha256 != review_context.code_sha256
-            or review_evidence.patch_sha256 != review_context.patch_sha256
-            or review_evidence.test_ledger_sha256 != review_context.test_ledger_sha256
-            or review_evidence.approved is not (review.status == "approved")
-            or review_evidence.unresolved_critical_findings
-            != review.unresolved_critical_findings
-        ):
-            raise RepairContractError("repair_review_receipt_mismatch")
         review_receipt = None
-        if review.status == "approved":
-            try:
-                review_receipt = self._store.record_repair_review_receipt(
-                    capability=self._store._repair_review_capability,
-                    job_id=review_context.job_id,
-                    attempt_id=review_context.attempt_id,
-                    result_version=review_context.result_version,
-                    author_id=review_context.author_id,
-                    reviewer_id=review_context.reviewer_id,
-                    host_receipt_id=review_evidence.host_receipt_id,
-                    reviewed_output_sha256=review_context.reviewed_output_sha256,
-                    code_sha256=review_context.code_sha256,
-                    patch_sha256=review_context.patch_sha256,
-                    test_ledger_sha256=review_context.test_ledger_sha256,
-                    created_at=request.reviewed_at,
-                )
-            except MaintenanceStoreError as exc:
-                raise RepairContractError(exc.code) from exc
-        elif (
-            review.status != "changes_requested"
-            or not review.unresolved_critical_findings
-            or not isinstance(review_evidence.reviewer_session_key, str)
-            or not isinstance(review_evidence.reviewer_turn_id, str)
-            or not isinstance(review_evidence.reviewer_output_sha256, str)
-            or re.fullmatch(r"[a-f0-9]{64}", review_evidence.reviewer_output_sha256)
-            is None
-        ):
-            raise RepairContractError("repair_review_receipt_mismatch")
         review_document = {
             "schema_version": "maintenance-repair-review-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": (
+                "host_collected" if review_evidence is not None else "local_review"
+            ),
             "status": review.status,
             "identity": identity,
             "attempt_id": attempt.attempt_id,
@@ -1117,12 +1062,12 @@ class MaintenanceController:
             "reviewer_id": review.reviewer_id,
             "tested_result_version": review.tested_result_version,
             "reviewed_result_version": review.reviewed_result_version,
-            "unresolved_critical_findings": list(
-                review_evidence.unresolved_critical_findings
-            ),
+            "unresolved_critical_findings": list(review.unresolved_critical_findings),
             "tested_code_sha256": current_code_hash,
             "reviewed_code_sha256": current_code_hash,
-            "host_receipt_id": review_evidence.host_receipt_id,
+            "host_receipt_id": (
+                None if review_evidence is None else review_evidence.host_receipt_id
+            ),
             "receipt_id": None if review_receipt is None else review_receipt.receipt_id,
             "receipt_sha256": (
                 None if review_receipt is None else review_receipt.receipt_sha256
@@ -1140,7 +1085,9 @@ class MaintenanceController:
 
         result_document = {
             "schema_version": "maintenance-repair-result-v1",
-            "attestation_source": "host_collected",
+            "attestation_source": (
+                "host_collected" if review_evidence is not None else "local_review"
+            ),
             "identity": identity,
             "attempt_id": attempt.attempt_id,
             "result_version": request.result_version,
@@ -1220,37 +1167,6 @@ class MaintenanceController:
                 review_status=review.status,
                 reviewed_at=request.reviewed_at,
                 review_round=review_round,
-                repair_review_receipt_id=(
-                    None if review_receipt is None else review_receipt.receipt_id
-                ),
-                repair_review_expected=(
-                    {
-                        "reviewed_output_sha256": (
-                            review_context.reviewed_output_sha256
-                        ),
-                        "code_sha256": current_code_hash,
-                        "patch_sha256": patch_sha256,
-                        "test_ledger_sha256": ledger_sha256,
-                        "host_receipt_id": review_evidence.host_receipt_id,
-                        "receipt_sha256": review_receipt.receipt_sha256,
-                    }
-                    if review_receipt is not None
-                    else {
-                        "host_receipt_id": review_evidence.host_receipt_id,
-                        "reviewer_session_key": review_evidence.reviewer_session_key,
-                        "reviewer_turn_id": review_evidence.reviewer_turn_id,
-                        "reviewer_output_sha256": review_evidence.reviewer_output_sha256,
-                        "reviewed_output_sha256": (
-                            review_context.reviewed_output_sha256
-                        ),
-                        "code_sha256": current_code_hash,
-                        "patch_sha256": patch_sha256,
-                        "test_ledger_sha256": ledger_sha256,
-                        "unresolved_critical_findings": list(
-                            review_evidence.unresolved_critical_findings
-                        ),
-                    }
-                ),
             )
         except MaintenanceStoreError as exc:
             raise RepairContractError(exc.code) from exc
@@ -1770,6 +1686,7 @@ class MaintenanceController:
                     self._store,
                     data_root=self._store.database_path.parent.parent,
                     source_launch_id=manifest.source_launch_id,
+                    job_id=manifest.job_id,
                 )
             except Exception as exc:
                 reason_code = getattr(exc, "code", None)

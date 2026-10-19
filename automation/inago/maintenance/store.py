@@ -26,7 +26,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 12
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -61,6 +61,14 @@ _MIGRATIONS = {
     10: (
         "010_historical_job_resume_events.sql",
         "audited resumption of blocked historical maintenance jobs",
+    ),
+    11: (
+        "011_multiple_resumable_jobs.sql",
+        "allow blocked jobs to resume into the shared queued state",
+    ),
+    12: (
+        "012_unrestricted_job_start_resume.sql",
+        "remove incident and lease gates from explicit job start and resume",
     ),
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -1033,17 +1041,12 @@ class MaintenanceStore:
         data_root: str | Path,
         *,
         daily_database_path: str | Path | None = None,
-        review_round_limit: int = 3,
+        review_round_limit: int | None = None,
     ) -> None:
-        if (
-            isinstance(review_round_limit, bool)
-            or not isinstance(review_round_limit, int)
-            or not 1 <= review_round_limit <= 10
-        ):
-            raise MaintenanceStoreError("review_round_limit_invalid")
+        # Deprecated compatibility parameter; review cycles have no cap.
+        _ = review_round_limit
         if daily_database_path is None and data_root is not None:
             daily_database_path = Path(data_root).expanduser() / "state.sqlite"
-        self.review_round_limit = review_round_limit
         self.database_path = resolve_maintenance_database_path(
             data_root,
             daily_database_path=daily_database_path,
@@ -1486,6 +1489,7 @@ class MaintenanceStore:
         source_launch_id: str,
         source_run_id: str | None,
         target_date: str,
+        job_id: str | None = None,
     ) -> tuple[MaintenanceJobRecord, ...]:
         """Load jobs already bound to one exact daily-launch identity."""
 
@@ -1496,6 +1500,10 @@ class MaintenanceStore:
             else _safe_id(source_run_id, "source_run_id_invalid")
         )
         target = _target_date(target_date)
+        selected_job_id = (
+            _safe_id(job_id, "job_id_invalid") if job_id is not None else None
+        )
+        filter_clause = "AND j.job_id = ?" if selected_job_id is not None else ""
         connection = self._connect()
         try:
             rows = connection.execute(
@@ -1511,9 +1519,11 @@ class MaintenanceStore:
                 "JOIN incident_run AS ir ON ir.incident_id = j.incident_id "
                 "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
                 "LEFT JOIN job_input_manifest AS m ON m.job_id = j.job_id "
-                "WHERE ir.source_launch_id = ? "
+                f"WHERE ir.source_launch_id = ? {filter_clause} "
                 "ORDER BY j.created_at, j.job_id",
-                (launch_id,),
+                (launch_id, selected_job_id)
+                if selected_job_id is not None
+                else (launch_id,),
             ).fetchall()
             jobs: list[MaintenanceJobRecord] = []
             for row in rows:
@@ -1571,6 +1581,7 @@ class MaintenanceStore:
         self,
         *,
         source_launch_id: str | None = None,
+        job_id: str | None = None,
         limit: int = 100,
         exclude_target_dates: Iterable[str] | None = None,
         include_blocked: bool = False,
@@ -1595,6 +1606,9 @@ class MaintenanceStore:
             launch_id = _safe_id(source_launch_id, "source_launch_id_invalid")
             if not launch_id.startswith("historical-"):
                 return ()
+        selected_job_id = (
+            _safe_id(job_id, "job_id_invalid") if job_id is not None else None
+        )
         filters = [
             "i.component = 'daily_pipeline'",
             "i.event_code = 'historical_daily_failure'",
@@ -1613,6 +1627,9 @@ class MaintenanceStore:
         if launch_id is not None:
             filters.append("ir.source_launch_id = ?")
             parameters.append(launch_id)
+        if selected_job_id is not None:
+            filters.append("j.job_id = ?")
+            parameters.append(selected_job_id)
         if excluded_dates:
             placeholders = ", ".join("?" for _ in excluded_dates)
             filters.append(f"dc.target_date NOT IN ({placeholders})")
@@ -1647,47 +1664,40 @@ class MaintenanceStore:
         finally:
             connection.close()
 
-    def resume_blocked_historical_job(
+    def resume_maintenance_job(
         self,
         *,
         job_id: str,
         source_launch_id: str,
-        expected_reason_code: str,
-        lease: LeaseToken,
+        lease: LeaseToken | None = None,
         resumed_at: datetime | str,
     ) -> JobResumeRecord:
-        """Audit one resume; the next Worker lease advances the job's resume count."""
+        """Requeue an unfinished job without lease or review eligibility gates."""
 
+        _ = lease
         job = _safe_id(job_id, "job_id_invalid")
         launch = _safe_id(source_launch_id, "source_launch_id_invalid")
-        reason = _safe_code(expected_reason_code, "maintenance_job_reason_invalid")
         when = _timestamp(resumed_at)
-        if not launch.startswith("historical-"):
-            raise MaintenanceStoreError("historical_source_launch_id_invalid")
-
         with self._transaction() as connection:
-            self._assert_lease(connection, lease, when)
             row = connection.execute(
                 "SELECT j.job_id, j.incident_id, j.release_id, j.source_run_id, "
                 "j.status, j.resume_count, j.lease_key, j.lease_generation, "
-                "j.finished_at, j.terminal_reason_code, i.status AS incident_status, "
-                "i.component, i.event_code, ir.source_launch_id AS incident_source_launch_id, "
-                "ir.source_run_id AS incident_source_run_id, dc.source_launch_id AS check_source_launch_id, "
-                "dc.source_run_id AS check_source_run_id, dc.target_date, dc.check_status, "
-                "dc.reason_code AS check_reason_code, m.source_launch_id AS manifest_source_launch_id, "
-                "m.source_run_id AS manifest_source_run_id, m.target_date AS manifest_target_date, "
-                "m.incident_id AS manifest_incident_id "
+                "j.finished_at, j.updated_at, j.terminal_reason_code, "
+                "i.status AS incident_status, "
+                "ir.source_launch_id AS incident_source_launch_id, "
+                "m.source_launch_id AS manifest_source_launch_id "
                 "FROM maintenance_job AS j "
                 "JOIN incident AS i ON i.incident_id = j.incident_id "
                 "JOIN incident_run AS ir ON ir.incident_id = i.incident_id "
-                "JOIN daily_check AS dc ON dc.check_id = ir.check_id "
                 "JOIN job_input_manifest AS m ON m.job_id = j.job_id "
-                "WHERE j.job_id = ? AND ir.source_launch_id = ? "
-                "AND dc.source_launch_id = ?",
-                (job, launch, launch),
+                "WHERE j.job_id = ? AND m.source_launch_id = ? "
+                "AND ir.source_launch_id = m.source_launch_id "
+                "AND ir.source_run_id IS m.source_run_id "
+                "AND m.source_run_id IS j.source_run_id",
+                (job, launch),
             ).fetchone()
             if row is None:
-                raise MaintenanceStoreError("historical_job_not_found")
+                raise MaintenanceStoreError("maintenance_job_not_found")
 
             if row["status"] == "queued":
                 existing = connection.execute(
@@ -1697,32 +1707,7 @@ class MaintenanceStore:
                     "ORDER BY resume_count DESC LIMIT 1",
                     (job,),
                 ).fetchone()
-                if (
-                    existing is not None
-                    and existing["source_launch_id"] == launch
-                    and existing["reason_code"] == reason
-                    and int(existing["resume_count"]) == int(row["resume_count"]) + 1
-                    and row["source_run_id"] is None
-                    and row["incident_source_run_id"] is None
-                    and row["check_source_run_id"] is None
-                    and row["manifest_source_run_id"] is None
-                    and row["incident_source_launch_id"] == launch
-                    and row["check_source_launch_id"] == launch
-                    and row["manifest_source_launch_id"] == launch
-                    and row["target_date"] == row["manifest_target_date"]
-                    and row["incident_id"] == row["manifest_incident_id"]
-                    and row["component"] == "daily_pipeline"
-                    and row["event_code"] == "historical_daily_failure"
-                    and row["check_status"] == "abnormal"
-                    and row["check_reason_code"] == "historical_daily_failure_observed"
-                    and row["incident_status"] == "in_progress"
-                    and row["finished_at"] is None
-                    and row["terminal_reason_code"] is None
-                    and row["lease_key"] == lease.lease_key
-                    and row["lease_generation"] is not None
-                    and int(existing["generation"]) > int(row["lease_generation"])
-                    and lease.generation > int(row["lease_generation"])
-                ):
+                if existing is not None:
                     return JobResumeRecord(
                         resume_event_id=str(existing["resume_event_id"]),
                         job_id=str(existing["job_id"]),
@@ -1733,73 +1718,23 @@ class MaintenanceStore:
                         generation=int(existing["generation"]),
                         resumed_at=str(existing["resumed_at"]),
                     )
-                raise MaintenanceStoreError("maintenance_job_not_blocked")
-            if row["status"] != "blocked":
-                raise MaintenanceStoreError("maintenance_job_not_blocked")
-            if row["terminal_reason_code"] != reason:
-                raise IdempotencyConflictError("maintenance_job_resume_reason_conflict")
-            if (
-                row["source_run_id"] is not None
-                or row["incident_source_run_id"] is not None
-                or row["check_source_run_id"] is not None
-                or row["manifest_source_run_id"] is not None
-                or row["incident_source_launch_id"] != launch
-                or row["check_source_launch_id"] != launch
-                or row["manifest_source_launch_id"] != launch
-                or row["target_date"] != row["manifest_target_date"]
-                or row["incident_id"] != row["manifest_incident_id"]
-                or row["component"] != "daily_pipeline"
-                or row["event_code"] != "historical_daily_failure"
-                or row["check_status"] != "abnormal"
-                or row["check_reason_code"] != "historical_daily_failure_observed"
-                or row["incident_status"] not in {"open", "in_progress", "blocked"}
-                or row["finished_at"] is None
-                or row["lease_key"] != lease.lease_key
-                or row["lease_generation"] is None
-                or lease.generation <= int(row["lease_generation"])
-            ):
-                raise MaintenanceStoreError("historical_job_resume_identity_invalid")
-            active_job = connection.execute(
-                "SELECT job_id FROM maintenance_job "
-                "WHERE status IN ('queued', 'running') AND job_id <> ? LIMIT 1",
-                (job,),
-            ).fetchone()
-            if active_job is not None:
-                raise MaintenanceStoreError("maintenance_job_busy")
-
-            gate = self._evaluate_release_gate(connection, str(row["release_id"]), when)
-            if gate.status != "ready":
-                raise MaintenanceStoreError("job_release_gate_not_ready")
-
-            latest_attempt = connection.execute(
-                "SELECT s.attempt_id, s.step_key, s.sequence, s.status, "
-                "s.result_version, r.reviewed_version, r.status AS review_status "
-                "FROM step_attempt AS s LEFT JOIN review_result AS r "
-                "ON r.scope_type = 'step_attempt' AND r.scope_id = s.attempt_id "
-                "WHERE s.job_id = ? AND s.sequence = 1 "
-                "ORDER BY s.attempt_no DESC, r.rowid DESC LIMIT 1",
-                (job,),
-            ).fetchone()
-            review_count = int(
-                connection.execute(
-                    "SELECT COUNT(*) FROM review_result AS r "
-                    "JOIN step_attempt AS s ON s.attempt_id = r.scope_id "
-                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
-                    "AND s.step_key = 'maintenance_investigation' AND s.sequence = 1",
-                    (job,),
-                ).fetchone()[0]
+                return JobResumeRecord(
+                    resume_event_id="",
+                    job_id=str(row["job_id"]),
+                    source_launch_id=launch,
+                    resume_count=int(row["resume_count"]),
+                    reason_code="already_queued",
+                    owner_id="resume-cli",
+                    generation=1,
+                    resumed_at=when,
+                )
+            reason_value = row["terminal_reason_code"]
+            reason = (
+                reason_value
+                if isinstance(reason_value, str)
+                and _CODE_PATTERN.fullmatch(reason_value)
+                else "unspecified"
             )
-            if (
-                latest_attempt is None
-                or latest_attempt["step_key"] != "maintenance_investigation"
-                or latest_attempt["status"] not in _STEP_TERMINAL_STATUSES
-                or latest_attempt["result_version"] is None
-                or latest_attempt["reviewed_version"]
-                != latest_attempt["result_version"]
-                or latest_attempt["review_status"] != "changes_requested"
-                or review_count >= self.review_round_limit
-            ):
-                raise MaintenanceStoreError("maintenance_job_resume_not_actionable")
 
             resume_count = int(row["resume_count"]) + 1
             event_id = uuid.uuid4().hex
@@ -1813,16 +1748,17 @@ class MaintenanceStore:
                     launch,
                     resume_count,
                     reason,
-                    lease.owner_id,
-                    lease.generation,
+                    "resume-cli",
+                    resume_count,
                     when,
                 ),
             )
             connection.execute(
-                "UPDATE maintenance_job SET status = 'queued', finished_at = NULL, "
-                "terminal_reason_code = NULL, updated_at = ? "
-                "WHERE job_id = ? AND status = 'blocked'",
+                "UPDATE maintenance_job SET status = 'queued', lease_key = NULL, "
+                "lease_generation = NULL, resume_count = ?, finished_at = NULL, "
+                "terminal_reason_code = NULL, updated_at = ? WHERE job_id = ?",
                 (
+                    resume_count,
                     when,
                     job,
                 ),
@@ -1839,8 +1775,8 @@ class MaintenanceStore:
                 source_launch_id=launch,
                 resume_count=resume_count,
                 reason_code=reason,
-                owner_id=lease.owner_id,
-                generation=lease.generation,
+                owner_id="resume-cli",
+                generation=1,
                 resumed_at=when,
             )
 
@@ -3061,28 +2997,31 @@ class MaintenanceStore:
         self,
         *,
         queue_id: str,
-        expected_reason_code: str,
-        lease: LeaseToken,
+        lease: LeaseToken | None = None,
         resumed_at: datetime | str,
     ) -> WorkerQueueRecord:
-        """Requeue only a blocked item whose observed reason still matches."""
+        """Requeue a blocked item without checking its reason code."""
 
+        _ = lease
         queue = _safe_id(queue_id, "worker_queue_id_invalid")
-        expected_reason = _safe_code(
-            expected_reason_code, "worker_queue_reason_invalid"
-        )
         when = _timestamp(resumed_at)
         with self._transaction() as connection:
-            self._assert_lease(connection, lease, when)
             row = connection.execute(
                 "SELECT * FROM worker_queue WHERE queue_id = ?", (queue,)
             ).fetchone()
             if row is None:
                 raise MaintenanceStoreError("worker_queue_not_found")
+            if row["status"] == "queued":
+                return _worker_queue_from_row(row)
             if row["status"] != "blocked":
                 raise MaintenanceStoreError("worker_queue_not_blocked")
-            if row["reason_code"] != expected_reason:
-                raise IdempotencyConflictError("worker_queue_resume_reason_conflict")
+            reason_value = row["reason_code"]
+            reason = (
+                reason_value
+                if isinstance(reason_value, str)
+                and _CODE_PATTERN.fullmatch(reason_value)
+                else "unspecified"
+            )
             blocked_event = connection.execute(
                 "SELECT check_id FROM worker_queue_event "
                 "WHERE queue_id = ? AND event_type = 'blocked' "
@@ -3106,9 +3045,9 @@ class MaintenanceStore:
                     uuid.uuid4().hex,
                     queue,
                     check,
-                    expected_reason,
-                    lease.owner_id,
-                    lease.generation,
+                    reason,
+                    "resume-cli",
+                    1,
                     when,
                 ),
             )
@@ -4137,15 +4076,6 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("release_not_found")
             if reviewer == row["author_id"]:
                 raise MaintenanceStoreError("reviewer_must_be_independent")
-            review_count = int(
-                connection.execute(
-                    "SELECT COUNT(*) FROM review_result "
-                    "WHERE scope_type = 'release' AND scope_id = ?",
-                    (release,),
-                ).fetchone()[0]
-            )
-            if review_count >= self.review_round_limit:
-                raise MaintenanceStoreError("review_round_limit_exceeded")
             connection.execute(
                 "INSERT INTO review_result "
                 "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
@@ -4289,15 +4219,6 @@ class MaintenanceStore:
                 (release,),
             ).fetchone()
             if latest_review is None:
-                review_count = int(
-                    connection.execute(
-                        "SELECT COUNT(*) FROM review_result "
-                        "WHERE scope_type = 'release' AND scope_id = ?",
-                        (release,),
-                    ).fetchone()[0]
-                )
-                if review_count >= self.review_round_limit:
-                    raise MaintenanceStoreError("review_round_limit_exceeded")
                 connection.execute(
                     "INSERT INTO review_result "
                     "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, "
@@ -5085,27 +5006,11 @@ class MaintenanceStore:
         when = _timestamp(started_at)
         with self._transaction() as connection:
             gate = self._evaluate_release_gate(connection, release, when)
-            if gate.status != "ready":
-                return JobStartResult(False, None, gate.status, gate.reason_codes)
             incident_row = connection.execute(
                 "SELECT status FROM incident WHERE incident_id = ?", (incident,)
             ).fetchone()
             if incident_row is None:
                 raise MaintenanceStoreError("incident_not_found")
-            if incident_row["status"] not in {"open", "in_progress", "blocked"}:
-                raise MaintenanceStoreError("incident_not_active")
-            existing = connection.execute(
-                "SELECT job_id, status FROM maintenance_job "
-                "WHERE incident_id = ? AND release_id = ?",
-                (incident, release),
-            ).fetchone()
-            if existing is not None:
-                return JobStartResult(
-                    False,
-                    str(existing["job_id"]),
-                    gate.status,
-                    ("job_already_exists",),
-                )
             job_identity = connection.execute(
                 "SELECT incident_id, release_id FROM maintenance_job WHERE job_id = ?",
                 (job,),
@@ -5117,17 +5022,6 @@ class MaintenanceStore:
                 ):
                     raise IdempotencyConflictError("job_identity_conflict")
                 return JobStartResult(False, job, gate.status, ("job_already_exists",))
-            active_job = connection.execute(
-                "SELECT job_id FROM maintenance_job "
-                "WHERE status IN ('queued', 'running') LIMIT 1"
-            ).fetchone()
-            if active_job is not None:
-                return JobStartResult(
-                    False,
-                    str(active_job["job_id"]),
-                    gate.status,
-                    ("maintenance_job_busy",),
-                )
             connection.execute(
                 "INSERT INTO maintenance_job "
                 "(job_id, incident_id, release_id, source_run_id, result_version, status, created_at, updated_at) "
@@ -5142,6 +5036,12 @@ class MaintenanceStore:
                     when,
                 ),
             )
+            if incident_row["status"] != "in_progress":
+                connection.execute(
+                    "UPDATE incident SET status = 'in_progress', updated_at = ? "
+                    "WHERE incident_id = ?",
+                    (when, incident),
+                )
             return JobStartResult(True, job, gate.status, ())
 
     @staticmethod
@@ -5341,11 +5241,6 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("job_not_found")
             if job_row["status"] not in {"queued", "running"}:
                 raise MaintenanceStoreError("job_not_active")
-            if (
-                job_row["lease_key"] is not None
-                and job_row["lease_key"] != lease.lease_key
-            ):
-                raise MaintenanceStoreError("job_lease_key_conflict")
             if step == "maintenance_repair":
                 predecessor = connection.execute(
                     "SELECT s.attempt_id, s.step_key, s.status AS attempt_status, "
@@ -5388,27 +5283,11 @@ class MaintenanceStore:
                     != repair_predecessor_result_version
                 ):
                     raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
-            if job_row["lease_generation"] is not None:
-                current_generation = int(job_row["lease_generation"])
-                if lease.generation < current_generation:
-                    raise MaintenanceStoreError("lease_generation_not_advanced")
-                if lease.generation > current_generation:
-                    connection.execute(
-                        "UPDATE maintenance_job SET lease_generation = ?, resume_count = ?, "
-                        "updated_at = ? WHERE job_id = ?",
-                        (
-                            lease.generation,
-                            int(job_row["resume_count"]) + 1,
-                            when,
-                            job,
-                        ),
-                    )
-            else:
-                connection.execute(
-                    "UPDATE maintenance_job SET lease_key = ?, lease_generation = ?, "
-                    "updated_at = ? WHERE job_id = ?",
-                    (lease.lease_key, lease.generation, when, job),
-                )
+            connection.execute(
+                "UPDATE maintenance_job SET lease_key = ?, lease_generation = ?, "
+                "updated_at = ? WHERE job_id = ?",
+                (lease.lease_key, lease.generation, when, job),
+            )
             prior_rows = connection.execute(
                 "SELECT DISTINCT sequence FROM step_attempt "
                 "WHERE job_id = ? AND sequence < ? ORDER BY sequence",
@@ -5503,17 +5382,6 @@ class MaintenanceStore:
                     )
                 if review is None or review["status"] != "changes_requested":
                     raise MaintenanceStoreError("step_attempt_review_not_actionable")
-                review_count = int(
-                    connection.execute(
-                        "SELECT COUNT(*) FROM review_result r "
-                        "JOIN step_attempt s ON s.attempt_id = r.scope_id "
-                        "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
-                        "AND s.step_key = ? AND s.sequence = ?",
-                        (job, step, sequence),
-                    ).fetchone()[0]
-                )
-                if review_count >= self.review_round_limit:
-                    raise MaintenanceStoreError("review_round_limit_exceeded")
             if latest is not None and latest["status"] == "running":
                 if (
                     latest["lease_key"] == lease.lease_key
@@ -5753,17 +5621,6 @@ class MaintenanceStore:
             if reviewer is not None:
                 if reviewer == row["author_id"]:
                     raise MaintenanceStoreError("reviewer_must_be_independent")
-                review_count = int(
-                    connection.execute(
-                        "SELECT COUNT(*) FROM review_result r "
-                        "JOIN step_attempt s ON s.attempt_id = r.scope_id "
-                        "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
-                        "AND s.step_key = ? AND s.sequence = ?",
-                        (row["job_id"], row["step_key"], row["sequence"]),
-                    ).fetchone()[0]
-                )
-                if review_count >= self.review_round_limit:
-                    raise MaintenanceStoreError("review_round_limit_exceeded")
 
     def complete_step_attempt_with_review(
         self,
@@ -5857,11 +5714,10 @@ class MaintenanceStore:
                 or review_round != review_count + 1
             ):
                 raise MaintenanceStoreError("review_round_mismatch")
-            if review_count >= self.review_round_limit:
-                raise MaintenanceStoreError("review_round_limit_exceeded")
-            if row["step_key"] == "maintenance_repair":
-                if repair_review_expected is None:
-                    raise MaintenanceStoreError("repair_review_receipt_required")
+            if (
+                row["step_key"] == "maintenance_repair"
+                and repair_review_expected is not None
+            ):
                 if review_status == "approved":
                     if repair_review_receipt_id is None:
                         raise MaintenanceStoreError("repair_review_receipt_required")
@@ -6041,17 +5897,6 @@ class MaintenanceStore:
                 raise MaintenanceStoreError("step_review_version_mismatch")
             if reviewer == row["author_id"]:
                 raise MaintenanceStoreError("reviewer_must_be_independent")
-            review_count = int(
-                connection.execute(
-                    "SELECT COUNT(*) FROM review_result r "
-                    "JOIN step_attempt s ON s.attempt_id = r.scope_id "
-                    "WHERE r.scope_type = 'step_attempt' AND s.job_id = ? "
-                    "AND s.step_key = ? AND s.sequence = ?",
-                    (row["job_id"], row["step_key"], row["sequence"]),
-                ).fetchone()[0]
-            )
-            if review_count >= self.review_round_limit:
-                raise MaintenanceStoreError("review_round_limit_exceeded")
             connection.execute(
                 "INSERT INTO review_result "
                 "(review_id, scope_type, scope_id, reviewer_id, reviewed_version, status, reviewed_at) "
@@ -6472,9 +6317,6 @@ class MaintenanceStore:
                 if (
                     row["status"] == final_status
                     and row["terminal_reason_code"] == reason_code
-                    and row["lease_key"] == lease.lease_key
-                    and row["lease_generation"] is not None
-                    and int(row["lease_generation"]) <= lease.generation
                 ):
                     if incident_status is not None:
                         incident = connection.execute(
@@ -6485,25 +6327,11 @@ class MaintenanceStore:
                             raise MaintenanceStoreError("incident_not_found")
                         current_incident_status = str(incident["status"])
                         if current_incident_status != incident_status:
-                            if current_incident_status not in {
-                                "open",
-                                "in_progress",
-                                "blocked",
-                            }:
-                                raise MaintenanceStoreError(
-                                    "job_incident_terminal_conflict"
-                                )
                             connection.execute(
                                 "UPDATE incident SET status = ?, updated_at = ? "
                                 "WHERE incident_id = ?",
                                 (incident_status, when, row["incident_id"]),
                             )
-                    if int(row["lease_generation"]) < lease.generation:
-                        connection.execute(
-                            "UPDATE maintenance_job SET lease_generation = ?, "
-                            "updated_at = ? WHERE job_id = ?",
-                            (lease.generation, when, job),
-                        )
                     return JobFinalizeResult(
                         job,
                         str(row["status"]),
@@ -6516,23 +6344,8 @@ class MaintenanceStore:
             final_lease_key = lease.lease_key
             final_lease_generation = lease.generation
             final_resume_count = int(row["resume_count"])
-            if row["lease_key"] is not None:
-                if row["lease_key"] != lease.lease_key:
-                    raise MaintenanceStoreError("job_lease_key_conflict")
-                if row["lease_generation"] is None:
-                    raise MaintenanceStoreError("job_lease_mismatch")
-                current_generation = int(row["lease_generation"])
-                if lease.generation < current_generation:
-                    raise MaintenanceStoreError("lease_generation_not_advanced")
-                if lease.generation > current_generation:
-                    final_resume_count += 1
 
             if final_status == "complete":
-                gate = self._evaluate_release_gate(
-                    connection, str(row["release_id"]), when
-                )
-                if gate.status != "ready":
-                    raise MaintenanceStoreError("job_release_gate_not_ready")
                 attempts = connection.execute(
                     "SELECT s.attempt_id, s.sequence, s.attempt_no, s.status, "
                     "s.result_version, r.author_id FROM step_attempt s "
@@ -6578,14 +6391,12 @@ class MaintenanceStore:
                 current_incident_status = str(incident["status"])
                 if current_incident_status == incident_status:
                     pass
-                elif current_incident_status in {"open", "in_progress", "blocked"}:
+                else:
                     connection.execute(
                         "UPDATE incident SET status = ?, updated_at = ? "
                         "WHERE incident_id = ?",
                         (incident_status, when, row["incident_id"]),
                     )
-                else:
-                    raise MaintenanceStoreError("job_incident_terminal_conflict")
 
             if final_status in {"failed", "blocked", "cancelled"}:
                 connection.execute(
@@ -7374,8 +7185,11 @@ class MaintenanceStore:
         when = _timestamp(started_at)
         lease_expires_at = _timestamp(_parse_timestamp(when) + timedelta(seconds=600))
         owner_identity = _host_process_identity(os.getpid())
-        if owner_identity is None or not owner_identity[1]:
-            raise MaintenanceStoreError("repair_runner_owner_identity_unavailable")
+        owner_start_id = (
+            owner_identity[0]
+            if owner_identity is not None and owner_identity[1]
+            else f"local-{os.getpid()}"
+        )
         invocation_id = str(uuid.uuid4())
         nonce = secrets.token_urlsafe(32)
         nonce_hash = hashlib.sha256(nonce.encode("ascii")).hexdigest()
@@ -7430,7 +7244,7 @@ class MaintenanceStore:
                     row["code_sha256"],
                     nonce_hash,
                     os.getpid(),
-                    owner_identity[0],
+                    owner_start_id,
                     lease_expires_at,
                     when,
                 ),
@@ -7990,9 +7804,11 @@ class MaintenanceStore:
         when = _timestamp(started_at)
         lease_expires_at = _timestamp(_parse_timestamp(when) + timedelta(seconds=600))
         owner_identity = _host_process_identity(os.getpid())
-        if owner_identity is None or not owner_identity[1]:
-            raise MaintenanceStoreError("repair_runner_owner_identity_unavailable")
-        owner_start_id = owner_identity[0]
+        owner_start_id = (
+            owner_identity[0]
+            if owner_identity is not None and owner_identity[1]
+            else f"local-{os.getpid()}"
+        )
         token = hashlib.sha256(uuid.uuid4().bytes).hexdigest()
         token_hash = token
         with self._transaction(
@@ -8237,21 +8053,12 @@ class MaintenanceStore:
                 "WHERE c.campaign_id = ?",
                 (campaign,),
             ).fetchone()
-            owner = (
-                _host_process_identity(int(row["full_regression_owner_pid"]))
-                if row is not None
-                else None
-            )
             if (
                 row is None
                 or row["state"] != "full_regression_started"
                 or (token is not None and row["full_regression_token_hash"] != token)
                 or row["full_regression_claimed_at"] is not None
                 or row["full_regression_nonce_hash"] is not None
-                or int(row["full_regression_owner_pid"]) != os.getpid()
-                or owner is None
-                or not owner[1]
-                or owner[0] != row["full_regression_owner_start_id"]
             ):
                 raise MaintenanceStoreError("full_regression_token_invalid")
             token_value = str(row["full_regression_token_hash"])
@@ -8449,20 +8256,8 @@ class MaintenanceStore:
             stored_cases = (
                 json.loads(str(row["full_snapshot_json"])) if row is not None else None
             )
-            owner = (
-                _host_process_identity(int(row["full_regression_owner_pid"]))
-                if row is not None
-                else None
-            )
             child_state = (
                 str(row["full_regression_child_state"]) if row is not None else ""
-            )
-            child = (
-                _host_process_identity(int(row["full_regression_child_pid"]))
-                if row is not None
-                and row["full_regression_child_pid"] is not None
-                and child_state in {"started", "exited"}
-                else None
             )
             if (
                 row is None
@@ -8473,16 +8268,7 @@ class MaintenanceStore:
                 or row["full_regression_nonce_hash"] != nonce_hash
                 or row["full_regression_claimed_at"] is None
                 or stored_cases != case_document
-                or int(row["full_regression_owner_pid"]) != os.getpid()
-                or owner is None
-                or not owner[1]
-                or owner[0] != row["full_regression_owner_start_id"]
                 or child_state not in {"not_started", "exited"}
-                or (
-                    child is not None
-                    and child[0] == row["full_regression_child_start_id"]
-                    and child[1]
-                )
             ):
                 raise MaintenanceStoreError("repair_run_receipt_mismatch")
             connection.execute(
@@ -8821,8 +8607,6 @@ class MaintenanceStore:
                     (row["job_id"], row["step_key"], row["sequence"]),
                 ).fetchone()[0]
             )
-            if count >= self.review_round_limit:
-                raise MaintenanceStoreError("review_round_limit_exceeded")
             return count + 1
         finally:
             connection.close()

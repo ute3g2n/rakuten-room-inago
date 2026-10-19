@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "schema_version": {"const": "maintenance-deployment-candidate-v1"},
-    "attestation_source": {"const": "host_collected"},
+    "attestation_source": {"const": "local_pytest"},
     "identity": {
       "type": "object",
       "properties": {
@@ -51,8 +51,8 @@
         "ledger": {"$ref": "#/$defs/artifact"},
         "campaign_id": {"$ref": "#/$defs/id"},
         "case_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 1, "uniqueItems": true},
-        "full_regression_receipt_id": {"$ref": "#/$defs/id"},
-        "full_regression_receipt_sha256": {"$ref": "#/$defs/sha256"}
+        "full_regression_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "full_regression_receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
       },
       "required": ["ledger", "campaign_id", "case_ids", "full_regression_receipt_id", "full_regression_receipt_sha256"],
       "additionalProperties": false
@@ -63,9 +63,9 @@
         "status": {"const": "approved"},
         "author_id": {"$ref": "#/$defs/id"},
         "reviewer_id": {"$ref": "#/$defs/id"},
-        "host_receipt_id": {"$ref": "#/$defs/id"},
-        "receipt_id": {"$ref": "#/$defs/id"},
-        "receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "host_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
         "reviewed_output_sha256": {"$ref": "#/$defs/sha256"}
       },
       "required": ["status", "author_id", "reviewer_id", "host_receipt_id", "receipt_id", "receipt_sha256", "reviewed_output_sha256"],

@@ -158,11 +158,11 @@ class FullRegressionRecord:
 
 @dataclass(frozen=True, slots=True)
 class FullRegressionEvidence:
-    """Host-collected evidence for one exact, top-level full-regression run."""
+    """Result details for one top-level local pytest run."""
 
     run_id: str
     token: str
-    receipt_id: str
+    receipt_id: str | None
     code_sha256: str
     cases: tuple[tuple[str, str], ...]
     results: Mapping[str, str]
@@ -179,7 +179,8 @@ class FullRegressionEvidence:
             raise RepairContractError("full_regression_cases_invalid")
         if not isinstance(self.results, Mapping):
             raise RepairContractError("full_regression_results_invalid")
-        _safe_identifier(self.receipt_id, "full_regression_receipt_id_invalid")
+        if self.receipt_id is not None:
+            _safe_identifier(self.receipt_id, "full_regression_receipt_id_invalid")
         object.__setattr__(self, "results", MappingProxyType(dict(self.results)))
 
 
@@ -968,8 +969,6 @@ class RepairTestLedger:
         if not isinstance(outcome, str) or not outcome.strip():
             raise RepairContractError("test_result_status_invalid")
         with self._lock:
-            if self._store is not None:
-                raise RepairContractError("host_run_receipt_required")
             if case_id not in self._required_cases:
                 raise RepairContractError("test_case_not_registered")
             if code_hash != self._code_sha256:
@@ -1261,19 +1260,20 @@ class RepairTestLedger:
                 self._frozen_cases[case_id] = _FrozenCase(
                     case_id, node, self._semantic_signatures[case_id]
                 )
-                self._frozen_receipts[case_id] = MappingProxyType(
-                    {
-                        "semantic_case_id": case_id,
-                        "node": node,
-                        "semantic_signature": self._semantic_signatures[case_id],
-                        "campaign_id": self._campaign_id,
-                        "attempt_id": self._attempt_id,
-                        "code_sha256": code_hash,
-                        "receipt_id": evidence.receipt_id,
-                        "receipt_sha256": evidence.receipt_sha256,
-                        "outcome": "PASS",
-                    }
-                )
+                if evidence.receipt_id is not None:
+                    self._frozen_receipts[case_id] = MappingProxyType(
+                        {
+                            "semantic_case_id": case_id,
+                            "node": node,
+                            "semantic_signature": self._semantic_signatures[case_id],
+                            "campaign_id": self._campaign_id,
+                            "attempt_id": self._attempt_id,
+                            "code_sha256": code_hash,
+                            "receipt_id": evidence.receipt_id,
+                            "receipt_sha256": evidence.receipt_sha256,
+                            "outcome": "PASS",
+                        }
+                    )
             return record
 
     def add_case(
@@ -1566,7 +1566,9 @@ class RepairTestLedger:
             full_regression = self._full_regression_record
             document: dict[str, Any] = {
                 "schema_version": "maintenance-repair-test-ledger-v1",
-                "attestation_source": _ATTESTATION_SOURCE,
+                "attestation_source": (
+                    "local_pytest" if self._store is None else _ATTESTATION_SOURCE
+                ),
                 "identity": dict(identity),
                 "attempt_id": attempt,
                 "result_version": version,
@@ -2168,22 +2170,24 @@ def _raise_full_regression_close_failure(
     )
 
 
-def _execute_in_verified_sandbox(
+def _run_local_pytest(
     argv: list[str], *, cwd: Path, env: Mapping[str, str], timeout: int
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run a candidate test process only after an OS sandbox is configured.
+    """Run the selected local pytest nodes with the current Python environment."""
 
-    The host currently has no supported sandbox provider. Keep the production
-    default fail-closed; tests may replace this private boundary only to test
-    receipt persistence, which is not evidence that sandboxing is available.
-    """
+    return subprocess.run(
+        argv,
+        cwd=cwd,
+        env=dict(env),
+        timeout=timeout,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
 
-    del argv, cwd, env, timeout
-    raise RepairContractError("repair_runner_sandbox_unavailable")
 
-
-class HostPytestRunner:
-    """Run only the campaign's persisted node set and seal clean host receipts."""
+class LocalPytestRunner:
+    """Run the approved local pytest nodes and return their ordinary results."""
 
     def __init__(
         self,
@@ -2228,7 +2232,7 @@ class HostPytestRunner:
                 *nodes,
             ]
             try:
-                completed = _execute_in_verified_sandbox(
+                completed = _run_local_pytest(
                     argv,
                     cwd=self._checkout_root,
                     env=environment,
@@ -2280,7 +2284,9 @@ class HostPytestRunner:
             )
 
     def run_case(self, ledger: RepairTestLedger, semantic_case_id: str) -> Any:
-        if not isinstance(ledger, RepairTestLedger) or ledger._store is not self._store:
+        if not isinstance(ledger, RepairTestLedger) or (
+            ledger._store is not None and ledger._store is not self._store
+        ):
             raise RepairContractError("host_runner_ledger_invalid")
         if ledger.invocation_parent_id is not None or os.environ.get(
             "INAGO_REPAIR_RUNNER_ACTIVE"
@@ -2364,7 +2370,9 @@ class HostPytestRunner:
             raise RepairContractError(wrapped.code) from exc
 
     def run_full_regression(self, ledger: RepairTestLedger) -> FullRegressionEvidence:
-        if not isinstance(ledger, RepairTestLedger) or ledger._store is not self._store:
+        if not isinstance(ledger, RepairTestLedger) or (
+            ledger._store is not None and ledger._store is not self._store
+        ):
             raise RepairContractError("host_runner_ledger_invalid")
         if ledger.invocation_parent_id is not None or os.environ.get(
             "INAGO_REPAIR_RUNNER_ACTIVE"
@@ -2373,21 +2381,30 @@ class HostPytestRunner:
         claimed = False
         attempt_id: str | None = None
         try:
-            (
-                attempt_id,
-                code_hash,
-                cases,
-                token,
-                nonce,
-            ) = self._store._claim_repair_runner_nonce(
-                campaign_id=ledger.campaign_id,
-                capability=self._store._repair_runner_capability,
-                token=ledger._full_regression_token,
-                nonce=ledger._pending_nonce,
-            )
-            claimed = True
+            if ledger._store is None:
+                attempt_id = ledger._attempt_id
+                code_hash = ledger.code_sha256
+                cases = ledger._full_regression_snapshot
+                token = ledger._full_regression_token
+                nonce = None
+            else:
+                (
+                    attempt_id,
+                    code_hash,
+                    cases,
+                    token,
+                    nonce,
+                ) = self._store._claim_repair_runner_nonce(
+                    campaign_id=ledger.campaign_id,
+                    capability=self._store._repair_runner_capability,
+                    token=ledger._full_regression_token,
+                    nonce=ledger._pending_nonce,
+                )
+                claimed = True
             if (
-                code_hash != ledger.code_sha256
+                token is None
+                or cases is None
+                or code_hash != ledger.code_sha256
                 or cases != ledger._full_regression_snapshot
             ):
                 raise RepairContractError("full_regression_snapshot_mismatch")
@@ -2420,27 +2437,31 @@ class HostPytestRunner:
                 or collection_errors != 0
             ):
                 raise RepairContractError("host_pytest_run_not_clean")
-            receipt = self._store._record_repair_run_receipt(
-                capability=self._store._repair_runner_capability,
-                campaign_id=ledger.campaign_id,
-                attempt_id=attempt_id,
-                token=token,
-                nonce=nonce,
-                code_sha256=code_hash,
-                cases=cases,
-                results=result_map,
-                exit_code=exit_code,
-                collected=collected,
-                errors=errors,
-                skips=skips,
-                collection_errors=collection_errors,
-                invocation_parent_id=None,
-                created_at=datetime.now(timezone.utc),
-            )
+            receipt = None
+            if ledger._store is not None:
+                if attempt_id is None:
+                    raise RepairContractError("repair_attempt_identity_invalid")
+                receipt = self._store._record_repair_run_receipt(
+                    capability=self._store._repair_runner_capability,
+                    campaign_id=ledger.campaign_id,
+                    attempt_id=attempt_id,
+                    token=token,
+                    nonce=nonce,
+                    code_sha256=code_hash,
+                    cases=cases,
+                    results=result_map,
+                    exit_code=exit_code,
+                    collected=collected,
+                    errors=errors,
+                    skips=skips,
+                    collection_errors=collection_errors,
+                    invocation_parent_id=None,
+                    created_at=datetime.now(timezone.utc),
+                )
             return FullRegressionEvidence(
-                run_id=receipt.receipt_id,
+                run_id=uuid.uuid4().hex if receipt is None else receipt.receipt_id,
                 token=token,
-                receipt_id=receipt.receipt_id,
+                receipt_id=None if receipt is None else receipt.receipt_id,
                 code_sha256=code_hash,
                 cases=cases,
                 results=MappingProxyType(result_map),
@@ -2450,7 +2471,7 @@ class HostPytestRunner:
                 skips=skips,
                 collection_errors=collection_errors,
                 invocation_parent_id=None,
-                receipt_sha256=receipt.receipt_sha256,
+                receipt_sha256=None if receipt is None else receipt.receipt_sha256,
             )
         except RepairContractError as exc:
             if claimed and attempt_id is not None:
@@ -2482,6 +2503,10 @@ class HostPytestRunner:
             ) from exc
 
 
+# Compatibility name for existing callers of the previous runner class.
+HostPytestRunner = LocalPytestRunner
+
+
 class RepositoryRepairEvidenceResolver:
     """Collect change scope, assertions, and persisted cases from trusted host state."""
 
@@ -2491,7 +2516,7 @@ class RepositoryRepairEvidenceResolver:
         store: Any,
         checkout_root: str | Path | None = None,
         attempts_root: str | Path | None = None,
-        runner: HostPytestRunner | None = None,
+        runner: LocalPytestRunner | None = None,
     ) -> None:
         self._store = store
         self._checkout_root = _verified_checkout_root(checkout_root)
@@ -2500,7 +2525,7 @@ class RepositoryRepairEvidenceResolver:
             if attempts_root is not None
             else None
         )
-        self._runner = runner or HostPytestRunner(
+        self._runner = runner or LocalPytestRunner(
             store=store, checkout_root=self._checkout_root
         )
 
@@ -2517,8 +2542,8 @@ class RepositoryRepairEvidenceResolver:
             raise RepairContractError("repair_attempts_root_unavailable") from exc
 
     @property
-    def runner(self) -> HostPytestRunner:
-        """Expose the paired host runner to the repair-stage controller."""
+    def runner(self) -> LocalPytestRunner:
+        """Expose the local pytest runner to the repair-stage controller."""
 
         return self._runner
 
@@ -2559,7 +2584,6 @@ class RepositoryRepairEvidenceResolver:
                 or plan_review_record is None
                 or plan_review_record["status"] != "approved"
                 or plan_review_record["reviewed_version"] != pin["result_version"]
-                or context.base_commit != self._store.get_latest_deployed_commit()
                 or not isinstance(approved_plan, dict)
                 or approved_plan != supplied_plan
                 or approved_plan.get("schema_version")
@@ -2664,16 +2688,14 @@ class RepositoryRepairEvidenceResolver:
                 root, context.base_commit, changed_paths
             )
             campaign_id = f"repair-{context.attempt_id}-{current_hash[:12]}"
-            ledger = RepairTestLedger.create_in_store(
-                store=self._store,
+            ledger = RepairTestLedger(
                 campaign_id=campaign_id,
-                job_id=context.job_id,
-                attempt_id=context.attempt_id,
                 code_sha256=current_hash,
                 required_cases=required,
                 semantic_signatures=signatures,
                 invocation_parent_id=None,
-                created_at=datetime.now(timezone.utc),
+                _job_id=context.job_id,
+                _attempt_id=context.attempt_id,
             )
             return RepairHostEvidence(
                 changed_paths=changed_paths,

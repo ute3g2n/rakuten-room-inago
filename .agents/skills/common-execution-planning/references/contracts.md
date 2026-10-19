@@ -70,6 +70,8 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 ## 出力・レビュー・失敗
 
+計画担当は本人専用ローカルシステム方針を第0節の必須項目へ記し、該当するすべてのSTEP promptと計画/実装/試験/レビューsubagentへの全文指示へ伝播する。自作の仕様・コード・設定・agent契約が明示された開始/再開を止める場合は、例外や迂回を加えるのでなく根本制限を削除する作業と、その確認を計画する。上限・receipt・sandbox・review/release gate等は例示であり、同じ目的で新しい開始条件を足さない。必要な対象識別入力と実際の外部権限/環境要件だけを区別して残す。
+
 計画担当の許可出力はplan.md、requirement-step-case-map.json、result.json。各出力はallowed_outputsのattempt専用領域へ返す。独立reviewerは別ID・別実行IDで全文と対応表を読み、全fact/evidence、所有、ケース/node、prompt、risk、停止条件、版を確認し、review.json/review.mdを返す。reviewerは計画を修正しない。hostはU12と同じjob/attempt root containment、no-reparse、schema/identity/owner/hash検証を行う。CLIへfolder-level ACL設定は要求せず、hostのroot path integrityを維持する。
 
 C32の計画結果はnullable `source_run_id`、`overall_status`、`daily_status`、`reason_code`、`failure_phase`、`trace_status`を保持し、L02/完了通知を作れなかった場合はplanning schema欄`missing_reason`で説明する。run IDを推測しない。`missing_reason`をdaily-launch-completion-v1、L02または日次DBへ追加しない。raw stdout/stderr、SQL値、資格情報、例外本文、秘密、個人情報を出力しない。

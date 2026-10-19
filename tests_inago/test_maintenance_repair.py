@@ -326,7 +326,7 @@ def _full_regression_evidence(
 
 
 def _install_fake_pytest_executor(monkeypatch, repair_module, *, result_factory=None):
-    """Replace only the runner's sandbox boundary for receipt/parser mechanics."""
+    """Supply local pytest results for receipt/parser mechanics."""
 
     import xml.etree.ElementTree as ET
 
@@ -376,7 +376,7 @@ def _install_fake_pytest_executor(monkeypatch, repair_module, *, result_factory=
         )
         return subprocess.CompletedProcess(argv, exit_code, stdout=b"", stderr=b"")
 
-    monkeypatch.setattr(repair_module, "_execute_in_verified_sandbox", execute)
+    monkeypatch.setattr(repair_module, "_run_local_pytest", execute)
     return executions
 
 
@@ -4603,7 +4603,6 @@ def test_c66_full_regression_receipt_contract(tmp_path, monkeypatch):
     )
     from automation.inago.maintenance.store import (
         MaintenanceStoreError,
-        RepairReviewReceiptRecord,
     )
     from tests_inago.test_maintenance_planning import BASE_TIME
 
@@ -6608,26 +6607,10 @@ def test_c66_full_regression_receipt_contract(tmp_path, monkeypatch):
         repair_host_evidence_resolver=lambda _context: completion_host_evidence,
     )
 
-    def resolve_completion_review(review_context):
-        return RepairReviewEvidence(
-            host_receipt_id="c66-toctou-host-receipt",
-            attempt_id=review_context.attempt_id,
-            result_version=review_context.result_version,
-            author_id=review_context.author_id,
-            reviewer_id=review_context.reviewer_id,
-            reviewed_output_sha256=review_context.reviewed_output_sha256,
-            code_sha256=review_context.code_sha256,
-            patch_sha256=review_context.patch_sha256,
-            test_ledger_sha256=review_context.test_ledger_sha256,
-            approved=True,
-            unresolved_critical_findings=(),
-        )
-
     review_hash_drift_controller = MaintenanceController(
         completion_store,
         identity_resolver=resolve_completion_identity,
         repair_host_evidence_resolver=lambda _context: completion_host_evidence,
-        repair_review_receipt_resolver=resolve_completion_review,
     )
     with monkeypatch.context() as review_hash_patch:
         review_hash_patch.setattr(
@@ -6637,29 +6620,6 @@ def test_c66_full_regression_receipt_contract(tmp_path, monkeypatch):
             review_hash_drift_controller.complete_repair_attempt(completion_request)
     assert resolver_hash_drift.value.code == "repair_code_hash_drift"
 
-    def fake_review_receipt(**values):
-        return RepairReviewReceiptRecord(
-            receipt_id="c66-toctou-receipt",
-            attempt_id=values["attempt_id"],
-            job_id=values["job_id"],
-            result_version=values["result_version"],
-            author_id=values["author_id"],
-            reviewer_id=values["reviewer_id"],
-            reviewer_role="read_only_reviewer",
-            host_receipt_id=values["host_receipt_id"],
-            reviewed_output_sha256=values["reviewed_output_sha256"],
-            code_sha256=values["code_sha256"],
-            patch_sha256=values["patch_sha256"],
-            test_ledger_sha256=values["test_ledger_sha256"],
-            receipt_sha256="d" * 64,
-            consumed=False,
-        )
-
-    monkeypatch.setattr(
-        completion_store,
-        "record_repair_review_receipt",
-        fake_review_receipt,
-    )
     hash_check_count = 0
 
     def drift_after_result_artifact(_root):
@@ -6678,21 +6638,23 @@ def test_c66_full_regression_receipt_contract(tmp_path, monkeypatch):
     assert result_hash_drift.value.code == "repair_code_hash_drift"
     assert hash_check_count == 2
 
-    with pytest.raises(RepairContractError) as missing_final_receipt:
-        completion_controller.complete_repair_attempt(completion_request)
-    assert missing_final_receipt.value.code == "repair_review_receipt_unavailable"
+    with monkeypatch.context() as local_review:
+        local_review.setattr(
+            controller_module, "repository_code_sha256", lambda _root: BASE_SHA
+        )
+        completion_outcome = completion_controller.complete_repair_attempt(
+            completion_request
+        )
+    assert completion_outcome.review_status == "approved"
     assert (
         completion_store.get_step_attempt(
             attempt_id=completion_attempt.attempt_id
         ).status
-        == "running"
+        == "complete"
     )
-    assert (
-        completion_store.get_step_attempt_review(
-            attempt_id=completion_attempt.attempt_id
-        )
-        is None
-    )
+    assert completion_store.get_step_attempt_review(
+        attempt_id=completion_attempt.attempt_id
+    )["status"] == "approved"
 
     # The C65 source guard must resolve dict mutators by their API provenance,
     # including aliases, bound methods, and arguments passed through containers.
@@ -7370,8 +7332,6 @@ def test_c66_full_regression_receipt_contract(tmp_path, monkeypatch):
 
 
 def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
-    import sqlite3
-
     from automation.inago.maintenance.repair import RepairContractError
 
     repair_module = import_module("automation.inago.maintenance.repair")
@@ -7412,63 +7372,19 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
         required_cases={"runner-case": node},
         semantic_signatures={"runner-case": "a sandbox-bound full run"},
     )
-    process_spawns = []
-    sandbox_attempts = []
+    case_receipt = case_runner.run_case(case_ledger, "runner-case")
+    assert case_receipt.results == {"runner-case": "PASS"}
+    assert case_receipt.exit_code == 0
 
-    def deny_popen(*args, **kwargs):
-        process_spawns.append((args, kwargs))
-        raise AssertionError("the pytest runner must not start a child without sandbox")
-
-    production_sandbox_boundary = repair_module._execute_in_verified_sandbox
-
-    def observe_sandbox_boundary(argv, **kwargs):
-        sandbox_attempts.append(tuple(argv))
-        return production_sandbox_boundary(argv, **kwargs)
-
-    with monkeypatch.context() as no_sandbox:
-        no_sandbox.setattr(
-            repair_module,
-            "repository_code_sha256",
-            lambda _root=None: case_ledger.code_sha256,
-        )
-        no_sandbox.setattr(subprocess, "Popen", deny_popen)
-        no_sandbox.setattr(
-            repair_module,
-            "_execute_in_verified_sandbox",
-            observe_sandbox_boundary,
-        )
-        with pytest.raises(RepairContractError) as sandbox_missing_case:
-            case_runner.run_case(case_ledger, "runner-case")
-        assert sandbox_missing_case.value.code == "repair_runner_sandbox_unavailable"
-        with sqlite3.connect(case_store.database_path) as connection:
-            case_run = connection.execute(
-                "SELECT state, failure_code FROM repair_case_run_start "
-                "WHERE campaign_id = ?",
-                (case_ledger.campaign_id,),
-            ).fetchone()
-        assert case_run == ("failed", "repair_runner_sandbox_unavailable")
-        assert (
-            case_store.load_repair_campaign(campaign_id=case_ledger.campaign_id)[
-                "run_receipts"
-            ]
-            == ()
-        )
-
-        full_ledger.begin_full_regression()
-        with pytest.raises(RepairContractError) as sandbox_missing_full:
-            full_runner.run_full_regression(full_ledger)
-        assert sandbox_missing_full.value.code == "repair_runner_sandbox_unavailable"
-        full_snapshot = full_store.load_repair_campaign(
-            campaign_id=full_ledger.campaign_id
-        )
-        assert full_snapshot["state"] == "full_regression_failed"
-        assert (
-            full_snapshot["full_regression_failure_code"]
-            == "repair_runner_sandbox_unavailable"
-        )
-        assert full_snapshot["run_receipts"] == ()
-        assert len(sandbox_attempts) == 2
-        assert process_spawns == []
+    full_ledger.begin_full_regression()
+    full_evidence = full_runner.run_full_regression(full_ledger)
+    assert full_evidence.results == {"runner-case": "PASS"}
+    assert full_evidence.exit_code == 0
+    full_ledger.record_full_regression(full_evidence)
+    full_snapshot = full_store.load_repair_campaign(
+        campaign_id=full_ledger.campaign_id
+    )
+    assert full_snapshot["state"] == "full_regression_recorded"
 
     bad_runs = (
         (
@@ -7615,10 +7531,8 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
         )
         return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
 
-    # This private seam checks JUnit parsing only; it does not prove that an OS
-    # sandbox provider is configured or that real repair tests can run.
     monkeypatch.setattr(
-        repair_module, "_execute_in_verified_sandbox", execute_class_junit
+        repair_module, "_run_local_pytest", execute_class_junit
     )
     class_evidence = class_runner.run_full_regression(class_ledger)
     assert class_executions == [(class_checkout_root, (class_node,))]

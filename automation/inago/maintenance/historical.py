@@ -270,18 +270,6 @@ def enqueue_historical_observation(
         raise HistoricalIntakeError("historical_evidence_too_large")
     if hashlib.sha256(evidence_bytes).hexdigest() != observation["evidence_sha256"]:
         raise HistoricalIntakeError("historical_evidence_hash_mismatch")
-    gate = controller.evaluate_release_gate(
-        release_id=release_id,
-        evaluated_at=enqueued_at,
-    )
-    if gate.status != "ready":
-        return {
-            "status": "blocked",
-            "reason_code": "release_not_ready",
-            "release_id": release_id,
-            "gate_status": gate.status,
-        }
-
     original_id = str(observation["original_source_launch_id"])
     target_date = str(observation["target_date"])
     source_digest = hashlib.sha256(
@@ -372,7 +360,7 @@ def enqueue_historical_observation(
         "source_run_id": None,
         "target_date": target_date,
         "release_id": release_id,
-        "gate_status": gate.status,
+        "gate_status": job.gate_status,
         "check_id": check.check_id,
         "incident_id": check.incident_id,
         "job_id": job_id,
@@ -488,6 +476,7 @@ def load_historical_work_item(
     *,
     data_root: str | Path,
     source_launch_id: str,
+    job_id: str,
     allow_blocked: bool = False,
 ) -> HistoricalWorkItem:
     """Verify a run-null job and its immutable inputs for dispatch or resume."""
@@ -498,13 +487,16 @@ def load_historical_work_item(
         raise HistoricalIntakeError("historical_source_launch_id_invalid")
     if not source_launch_id.startswith("historical-"):
         raise HistoricalIntakeError("historical_source_launch_id_invalid")
+    if not isinstance(job_id, str) or not _ID.fullmatch(job_id):
+        raise HistoricalIntakeError("historical_job_id_invalid")
     root = Path(data_root).expanduser().resolve(strict=True)
     _assert_no_reparse_components(root)
 
     try:
         references = store.list_historical_job_references(
             source_launch_id=source_launch_id,
-            limit=10,
+            job_id=job_id,
+            limit=1,
             include_blocked=allow_blocked,
         )
         check = store.get_daily_check_by_launch(source_launch_id)
@@ -514,14 +506,15 @@ def load_historical_work_item(
             source_launch_id=source_launch_id,
             source_run_id=None,
             target_date=check.target_date,
+            job_id=job_id,
         )
     except HistoricalIntakeError:
         raise
     except Exception as exc:
         raise HistoricalIntakeError("historical_job_identity_unavailable") from exc
 
-    if len(references) != 1 or len(jobs) != 1:
-        raise HistoricalIntakeError("historical_job_identity_ambiguous")
+    if not references or not jobs:
+        raise HistoricalIntakeError("historical_job_identity_missing")
     reference: HistoricalJobReference = references[0]
     job = jobs[0]
     if (
@@ -532,7 +525,8 @@ def load_historical_work_item(
         or check.target_date != reference.target_date
         or check.check_status != "abnormal"
         or check.reason_code != "historical_daily_failure_observed"
-        or job.job_id != reference.job_id
+        or reference.job_id != job_id
+        or job.job_id != job_id
         or job.incident_id != reference.incident_id
         or job.release_id != reference.release_id
         or job.status != reference.status

@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "schema_version": {"const": "maintenance-repair-handoff-v1"},
-    "attestation_source": {"const": "host_collected"},
+    "attestation_source": {"enum": ["host_collected", "local_review"]},
     "identity": {"$ref": "#/$defs/identity"},
     "job_id": {"$ref": "#/$defs/id"},
     "attempt_id": {"$ref": "#/$defs/id"},
@@ -44,9 +44,9 @@
         "status": {"const": "approved"},
         "author_id": {"$ref": "#/$defs/id"},
         "reviewer_id": {"$ref": "#/$defs/id"},
-        "host_receipt_id": {"$ref": "#/$defs/id"},
-        "receipt_id": {"$ref": "#/$defs/id"},
-        "receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "host_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
         "reviewed_output_sha256": {"$ref": "#/$defs/sha256"}
       },
       "required": ["status", "author_id", "reviewer_id", "host_receipt_id", "receipt_id", "receipt_sha256", "reviewed_output_sha256"],
@@ -57,8 +57,8 @@
       "properties": {
         "campaign_id": {"$ref": "#/$defs/id"},
         "case_count": {"type": "integer", "minimum": 1},
-        "full_regression_receipt_id": {"$ref": "#/$defs/id"},
-        "full_regression_receipt_sha256": {"$ref": "#/$defs/sha256"}
+        "full_regression_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "full_regression_receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
       },
       "required": ["campaign_id", "case_count", "full_regression_receipt_id", "full_regression_receipt_sha256"],
       "additionalProperties": false

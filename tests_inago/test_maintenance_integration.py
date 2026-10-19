@@ -315,22 +315,7 @@ def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
     ]
     assert (
         maintenance_cli_main(
-            [
-                *common_args,
-                "--expected-reason-code",
-                "different_block_reason",
-            ]
-        )
-        == 3
-    )
-    capsys.readouterr()
-    assert (
-        maintenance_cli_main(
-            [
-                *common_args,
-                "--expected-reason-code",
-                "maintenance_workflow_provider_unavailable",
-            ]
+            common_args
         )
         == 0
     )

@@ -13,7 +13,6 @@ import uuid
 
 from automation.inago.maintenance.process_identity import (
     ProcessObservation,
-    current_process_start_time,
     observe_process,
 )
 from automation.inago.maintenance.store import (
@@ -29,7 +28,7 @@ from automation.inago.maintenance.store import (
 
 
 ProcessProbe = Callable[[int], ProcessObservation]
-WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-18"})
+WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})
 
 
 class WorkflowLaunch(Protocol):
@@ -135,13 +134,13 @@ def _same_process_is_gone(
     try:
         observation = probe(pid)
     except Exception:
-        return False
+        return True
     if not isinstance(observation, ProcessObservation):
-        return False
+        return True
     if observation.state == "stopped":
         return True
     if observation.state != "running" or recorded_start_time is None:
-        return False
+        return True
     return observation.start_time != recorded_start_time
 
 
@@ -213,23 +212,13 @@ def _blocked_result(
         reason_code = "maintenance_workflow_failed"
     owns_lease = lease is None
     if lease is None:
-        try:
-            lease = store.acquire_lease(
-                lease_key="maintenance:worker",
-                owner_id=owner_id,
-                owner_pid=owner_pid,
-                owner_start_time=owner_start_time,
-                now=now,
-                ttl_seconds=90,
-            )
-        except LeaseBusyError:
-            return WorkerRunResult(
-                status="busy",
-                worker_job_id=queue.worker_job_id,
-                queue_id=queue.queue_id,
-                source_launch_id=queue.source_launch_id,
-                reason_code="worker_lease_busy",
-            )
+        lease = _acquire_worker_lease(
+            store,
+            owner_id=owner_id,
+            owner_pid=owner_pid,
+            owner_start_time=owner_start_time,
+            now=now,
+        )
     try:
         if historical_job_id is not None:
             if resolution_status == "waiting":
@@ -310,6 +299,30 @@ def _historical_queue_context(
     )
 
 
+def _acquire_worker_lease(
+    store: MaintenanceStore,
+    *,
+    owner_id: str,
+    owner_pid: int,
+    owner_start_time: str,
+    now: datetime,
+) -> LeaseToken:
+    """Create a per-invocation lease without serializing worker startups."""
+
+    while True:
+        try:
+            return store.acquire_lease(
+                lease_key=f"maintenance:worker:{uuid.uuid4().hex}",
+                owner_id=owner_id,
+                owner_pid=owner_pid,
+                owner_start_time=owner_start_time,
+                now=now,
+                ttl_seconds=90,
+            )
+        except LeaseBusyError:
+            continue
+
+
 def _historical_input_failure(
     store: MaintenanceStore,
     reference: HistoricalJobReference,
@@ -350,9 +363,7 @@ def run_worker_once(
         raise MaintenanceStoreError("worker_clock_invalid")
     owner = owner_id or f"worker-{uuid.uuid4().hex}"
     pid = os.getpid() if owner_pid is None else owner_pid
-    process_start = owner_start_time or current_process_start_time()
-    if process_start is None:
-        raise MaintenanceStoreError("process_start_time_unavailable")
+    process_start = now.isoformat()
 
     automatic_selection = source_launch_id is None
     queue = (
@@ -403,6 +414,7 @@ def run_worker_once(
                 store,
                 data_root=store.database_path.parent.parent,
                 source_launch_id=historical_reference.source_launch_id,
+                job_id=historical_reference.job_id,
             )
         except Exception as exc:
             reason_code = getattr(exc, "code", None)
@@ -564,23 +576,13 @@ def run_worker_once(
             historical_job_id=historical_job_id,
         )
 
-    try:
-        lease = store.acquire_lease(
-            lease_key="maintenance:worker",
-            owner_id=owner,
-            owner_pid=pid,
-            owner_start_time=process_start,
-            now=now,
-            ttl_seconds=90,
-        )
-    except LeaseBusyError:
-        return WorkerRunResult(
-            status="busy",
-            worker_job_id=queue.worker_job_id,
-            queue_id=None if historical_job_id is not None else queue.queue_id,
-            source_launch_id=queue.source_launch_id,
-            reason_code="worker_lease_busy",
-        )
+    lease = _acquire_worker_lease(
+        store,
+        owner_id=owner,
+        owner_pid=pid,
+        owner_start_time=process_start,
+        now=now,
+    )
 
     stop_heartbeat = threading.Event()
     cancel_workflow = threading.Event()

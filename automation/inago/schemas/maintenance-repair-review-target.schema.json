@@ -5,14 +5,14 @@
   "type": "object",
   "properties": {
     "schema_version": {"const": "maintenance-repair-review-target-v1"},
-    "attestation_source": {"const": "host_collected"},
+    "attestation_source": {"const": "local_pytest"},
     "identity": {"$ref": "#/$defs/identity"},
     "job_id": {"$ref": "#/$defs/id"},
     "attempt_id": {"$ref": "#/$defs/id"},
     "result_version": {"$ref": "#/$defs/id"},
     "code_sha256": {"$ref": "#/$defs/sha256"},
-    "full_regression_receipt_id": {"$ref": "#/$defs/id"},
-    "full_regression_receipt_sha256": {"$ref": "#/$defs/sha256"},
+    "full_regression_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "full_regression_receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
     "output": {
       "type": "object",
       "properties": {

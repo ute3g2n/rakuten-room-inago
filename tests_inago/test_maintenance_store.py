@@ -524,8 +524,8 @@ def test_c53_contract(tmp_path):
         job_id="blocked-job",
         started_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
     )
-    assert not denied.started
-    assert store.counts()["maintenance_job"] == 0
+    assert denied.started
+    assert store.counts()["maintenance_job"] == 1
 
     store.record_test_result(
         release_id=release.release_id,
@@ -666,10 +666,12 @@ def test_c53_contract(tmp_path):
         started_at=(BASE_TIME + timedelta(seconds=16)).isoformat(),
     )
     assert started.started
-    assert store.counts()["maintenance_job"] == 1
+    assert started.job_id == "ready-job"
+    assert started.reason_codes == ()
+    assert store.counts()["maintenance_job"] == 2
 
 
-def test_c53_review_round_limit_contract(tmp_path):
+def test_c53_review_rounds_are_unbounded(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     store.create_release(
@@ -690,8 +692,7 @@ def test_c53_review_round_limit_contract(tmp_path):
             status="changes_requested",
             reviewed_at=BASE_TIME + timedelta(seconds=round_no),
         )
-    with pytest.raises(MaintenanceStoreError, match="review_round_limit_exceeded"):
-        store.record_release_review(
+    store.record_release_review(
             release_id="release-review-limit",
             reviewer_id="independent-reviewer",
             reviewed_version="version-review-limit",
@@ -729,8 +730,7 @@ def test_c53_review_round_limit_contract(tmp_path):
             status="changes_requested",
             reviewed_at=BASE_TIME + timedelta(seconds=12 + round_no),
         )
-    with pytest.raises(MaintenanceStoreError, match="review_round_limit_exceeded"):
-        store.record_step_review(
+    store.record_step_review(
             attempt_id=attempt.attempt_id,
             reviewer_id="independent-reviewer",
             reviewed_version="result-v1",
@@ -781,8 +781,8 @@ def test_c53_review_round_limit_contract(tmp_path):
         job_id="busy-job",
         started_at=(BASE_TIME + timedelta(seconds=22)).isoformat(),
     )
-    assert not busy.started
-    assert busy.reason_codes == ("maintenance_job_busy",)
+    assert busy.started
+    assert busy.reason_codes == ()
 
     fake = store.create_release(
         release_id="release-fake-ready",
@@ -811,11 +811,12 @@ def test_c53_review_round_limit_contract(tmp_path):
         job_id="fake-ready-job",
         started_at=(BASE_TIME + timedelta(seconds=25)).isoformat(),
     )
-    assert not fake_denied.started
-    assert store.counts()["maintenance_job"] == 1
+    assert fake_denied.started
+    assert fake_denied.gate_status == "blocked"
+    assert store.counts()["maintenance_job"] == 3
 
 
-def test_c53_step_review_limit_spans_retries_contract(tmp_path):
+def test_c53_step_review_rounds_continue_across_retries(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(
@@ -855,8 +856,7 @@ def test_c53_step_review_limit_spans_retries_contract(tmp_path):
             reviewed_at=BASE_TIME + timedelta(seconds=12 + round_no * 4),
         )
 
-    with pytest.raises(MaintenanceStoreError, match="review_round_limit_exceeded"):
-        store.begin_step_attempt(
+    fourth_attempt = store.begin_step_attempt(
             job_id=job.job_id,
             step_key="investigation",
             sequence=1,
@@ -864,7 +864,8 @@ def test_c53_step_review_limit_spans_retries_contract(tmp_path):
             started_at=BASE_TIME + timedelta(seconds=25),
         )
 
-    assert store.counts()["step_attempt"] == 3
+    assert fourth_attempt.status == "running"
+    assert store.counts()["step_attempt"] == 4
 
 
 def test_c23_contract(tmp_path):
@@ -950,3 +951,118 @@ def test_c23_contract(tmp_path):
     assert counts["daily_check"] == 4
     assert counts["incident_run"] == 4
     assert counts["incident"] == 3
+def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
+    store = make_store(tmp_path)
+    source_launch_id = "historical-resume-without-gates"
+    check = store.record_daily_check(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date="2026-10-17",
+        check_status="abnormal",
+        observed_at=BASE_TIME.isoformat(),
+        reason_code="historical_daily_failure_observed",
+        incident={
+            "dedupe_key": source_launch_id,
+            "component": "daily_pipeline",
+            "event_code": "historical_daily_failure",
+        },
+    )
+    assert check.incident_id is not None
+    release_id = "release-resume-without-gates"
+    job = create_ready_release(
+        store,
+        incident_id=check.incident_id,
+        release_id=release_id,
+    )
+    store.bind_job_input_manifest(
+        incident_id=check.incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date="2026-10-17",
+        job_id=job.job_id,
+        created_at=BASE_TIME + timedelta(seconds=1),
+    )
+    store.record_test_result(
+        release_id=release_id,
+        case_id="contract-case-1",
+        attempt=2,
+        result_version="result-v1",
+        status="FAIL",
+        recorded_at=BASE_TIME + timedelta(seconds=2),
+    )
+    assert (
+        store.evaluate_release_gate(
+            release_id=release_id,
+            evaluated_at=BASE_TIME + timedelta(seconds=3),
+        ).status
+        == "blocked"
+    )
+
+    worker_lease = store.acquire_lease(
+        lease_key="maintenance:worker",
+        owner_id="worker-before-resume",
+        owner_pid=4401,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME + timedelta(seconds=4),
+        ttl_seconds=60,
+    )
+    attempt = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="investigation",
+        sequence=1,
+        lease=worker_lease,
+        started_at=BASE_TIME + timedelta(seconds=5),
+    )
+    store.finalize_job(
+        job_id=job.job_id,
+        final_status="blocked",
+        lease=worker_lease,
+        finalized_at=BASE_TIME + timedelta(seconds=6),
+        reason_code="session_config_mismatch",
+    )
+    store.release_lease(
+        lease=worker_lease,
+        released_at=BASE_TIME + timedelta(seconds=7),
+    )
+
+    other_incident = create_incident(store, launch_id="other-queued-job")
+    other_job = create_ready_release(
+        store,
+        incident_id=other_incident,
+        release_id="release-other-queued-job",
+    )
+    assert other_job.started
+    resumed_at = BASE_TIME + timedelta(seconds=8)
+    active_worker_lease = store.acquire_lease(
+        lease_key="maintenance:worker",
+        owner_id="worker-for-other-job",
+        owner_pid=4402,
+        owner_start_time=resumed_at.isoformat(),
+        now=resumed_at,
+        ttl_seconds=60,
+    )
+
+    resumed = store.resume_maintenance_job(
+        job_id=job.job_id,
+        source_launch_id=source_launch_id,
+        resumed_at=resumed_at,
+    )
+    assert resumed.job_id == job.job_id
+    assert resumed.resume_count == 1
+    assert store.get_step_attempt(attempt.attempt_id).status == "blocked"
+    assert store.get_lease("maintenance:worker").state == "held"
+    assert store.list_historical_job_references(
+        source_launch_id=source_launch_id,
+        limit=10,
+        include_blocked=True,
+    )[0].status == "queued"
+
+    repeated = store.resume_maintenance_job(
+        job_id=job.job_id,
+        source_launch_id=source_launch_id,
+        resumed_at=resumed_at + timedelta(seconds=1),
+    )
+    assert repeated.resume_event_id == resumed.resume_event_id
+    assert repeated.resume_count == 1
+    assert len(store.list_job_resume_events(job_id=job.job_id)) == 1
+    assert active_worker_lease.owner_id == "worker-for-other-job"

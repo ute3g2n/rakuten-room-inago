@@ -81,11 +81,14 @@ def _parser() -> argparse.ArgumentParser:
     worker.add_argument("--source-launch-id")
 
     resume_worker = commands.add_parser(
-        "resume-worker", help="requeue a blocked worker item after operator review"
+        "resume-worker", help="requeue a blocked worker item"
     )
     resume_worker.add_argument("--source-launch-id", required=True)
     resume_worker.add_argument("--job-id")
-    resume_worker.add_argument("--expected-reason-code", required=True)
+    resume_worker.add_argument(
+        "--expected-reason-code",
+        help="deprecated compatibility option; resume no longer checks reason codes",
+    )
 
     probe = commands.add_parser(
         "probe-ai", help="probe the configured model with synthetic isolated data"
@@ -172,7 +175,6 @@ def _store_for(
             if args.daily_database
             else data_root / "state.sqlite"
         ),
-        review_round_limit=settings.review_round_limit,
     )
     if initialize:
         store.initialize()
@@ -397,80 +399,31 @@ def _run(
             else 3
         )
     if args.command == "resume-worker":
-        owner_start = current_process_start_time()
-        if owner_start is None:
-            _emit(
-                {"status": "blocked", "reason_code": "process_start_time_unavailable"}
-            )
-            return 3
         now = datetime.now(timezone.utc)
-        queue = store.get_worker_queue(args.source_launch_id)
-        if queue is None and args.job_id is None:
+        queue = (
+            None
+            if args.job_id is not None
+            else store.get_worker_queue(args.source_launch_id)
+        )
+        if args.job_id is None and queue is None:
             _emit({"status": "blocked", "reason_code": "worker_queue_not_found"})
             return 3
-        if queue is not None and args.job_id is not None:
-            _emit(
-                {
-                    "status": "blocked",
-                    "reason_code": "historical_job_resume_conflicts_with_worker_queue",
-                }
-            )
-            return 3
-        lease = None
         try:
-            lease = store.acquire_lease(
-                lease_key="maintenance:worker",
-                owner_id=f"resume-{uuid.uuid4().hex}",
-                owner_pid=os.getpid(),
-                owner_start_time=owner_start,
-                now=now,
-                ttl_seconds=90,
-            )
             if args.job_id is not None:
-                from automation.inago.maintenance.historical import (
-                    HistoricalIntakeError,
-                    load_historical_work_item,
-                )
-
-                try:
-                    historical_item = load_historical_work_item(
-                        store,
-                        data_root=store.database_path.parent.parent,
-                        source_launch_id=args.source_launch_id,
-                        allow_blocked=True,
-                    )
-                except HistoricalIntakeError as exc:
-                    _emit({"status": "blocked", "reason_code": exc.code})
-                    return 3
-                if historical_item.job.job_id != args.job_id:
-                    _emit(
-                        {
-                            "status": "blocked",
-                            "reason_code": "historical_job_resume_identity_invalid",
-                        }
-                    )
-                    return 3
-                resumed = store.resume_blocked_historical_job(
+                resumed = store.resume_maintenance_job(
                     job_id=args.job_id,
                     source_launch_id=args.source_launch_id,
-                    expected_reason_code=args.expected_reason_code,
-                    lease=lease,
                     resumed_at=now,
                 )
             else:
                 assert queue is not None
                 resumed = store.resume_blocked_worker_queue(
                     queue_id=queue.queue_id,
-                    expected_reason_code=args.expected_reason_code,
-                    lease=lease,
                     resumed_at=now,
                 )
         except MaintenanceStoreError as exc:
             _emit({"status": "blocked", "reason_code": exc.code})
             return 3
-        finally:
-            if lease is not None:
-                store.release_lease(lease=lease, released_at=now)
         if args.job_id is not None:
             _emit(
                 {
@@ -493,9 +446,7 @@ def _run(
         return 0
     if args.command == "watchdog":
         now = datetime.now(timezone.utc)
-        owner_start_time = current_process_start_time()
-        if owner_start_time is None:
-            raise MaintenanceStoreError("process_start_time_unavailable")
+        owner_start_time = current_process_start_time() or now.isoformat()
         cursor = store.get_watchdog_cursor()
         pending_queues = store.list_watchdog_queue(reconciliation_only=True)
         occurrences = read_daily_scheduler_occurrences(

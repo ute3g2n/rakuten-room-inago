@@ -26,7 +26,6 @@ from automation.inago.maintenance.ai_adapter import (
 )
 from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.paths import _has_reparse_point
-from automation.inago.maintenance.process_identity import current_process_start_time
 from automation.inago.maintenance.settings import ensure_settings_file
 from automation.inago.maintenance.store import (
     LeaseToken,
@@ -469,17 +468,11 @@ def _seed_probe_job(
         finished_at=now,
         capability=store._deployment_capability,
     )
-    gate = controller.evaluate_release_gate(release_id=release_id, evaluated_at=now)
-    if gate.status != "ready":
-        raise MaintenanceProbeError("probe_release_gate_not_ready")
-    owner_start = current_process_start_time()
-    if owner_start is None:
-        raise MaintenanceProbeError("probe_process_identity_unavailable")
     lease = store.acquire_lease(
         lease_key=f"probe-lease-{probe_id}",
         owner_id=f"probe-owner-{probe_id}",
         owner_pid=os.getpid(),
-        owner_start_time=owner_start,
+        owner_start_time=now.isoformat(),
         now=now,
         ttl_seconds=300,
     )
@@ -576,7 +569,9 @@ def _server_output_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
                         else (
                             "integer"
                             if isinstance(value, int)
-                            else "number" if isinstance(value, float) else "string"
+                            else "number"
+                            if isinstance(value, float)
+                            else "string"
                         )
                     )
                 )

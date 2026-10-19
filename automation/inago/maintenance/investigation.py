@@ -681,7 +681,6 @@ def validate_investigation_review(
     reviewer_id: str,
     reviewer_execution_id: str,
     review_round: int,
-    max_review_rounds: int = 3,
 ) -> dict[str, Any]:
     """Validate an independent review against the exact investigation version."""
 
@@ -697,12 +696,9 @@ def validate_investigation_review(
     if author_execution_id == reviewer_execution_id:
         raise InvestigationContractError("review_execution_must_be_fresh")
     if (
-        isinstance(max_review_rounds, bool)
-        or not isinstance(max_review_rounds, int)
-        or not 1 <= max_review_rounds <= 10
-        or isinstance(review_round, bool)
+        isinstance(review_round, bool)
         or not isinstance(review_round, int)
-        or not 1 <= review_round <= max_review_rounds
+        or not 1 <= review_round
     ):
         raise InvestigationContractError("review_round_invalid")
 
@@ -722,7 +718,7 @@ def validate_investigation_review(
     if data["status"] == "approved":
         next_action = "handoff"
         handoff_allowed = True
-    elif data["status"] == "changes_requested" and review_round < max_review_rounds:
+    elif data["status"] == "changes_requested":
         next_action = "revise"
         handoff_allowed = False
     else:

@@ -188,7 +188,7 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
     ledger_path = f"{job_id}/{attempt_id}/test-ledger.json"
     patch = {
         "schema_version": "maintenance-repair-patch-assessment-v1",
-        "attestation_source": "host_collected",
+        "attestation_source": "local_pytest",
         "identity": identity,
         "attempt_id": attempt_id,
         "result_version": result_version,
@@ -254,7 +254,7 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
     review_target_path = f"{job_id}/{attempt_id}/review-target.json"
     review_target = {
         "schema_version": "maintenance-repair-review-target-v1",
-        "attestation_source": "host_collected",
+        "attestation_source": "local_pytest",
         "identity": identity,
         "job_id": job_id,
         "attempt_id": attempt_id,

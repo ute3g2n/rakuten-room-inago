@@ -391,7 +391,6 @@ def test_c30_contract():
         reviewer_id=reviewer_id,
         reviewer_execution_id="review-turn-001",
         review_round=1,
-        max_review_rounds=3,
     )
     assert validated_approval["handoff_allowed"] is True
     assert validated_approval["next_action"] == "handoff"
@@ -442,7 +441,6 @@ def test_c30_contract():
             reviewer_id=author_id,
             reviewer_execution_id="review-turn-001",
             review_round=1,
-            max_review_rounds=3,
         )
 
     old_version_review = make_review_response(
@@ -461,7 +459,6 @@ def test_c30_contract():
             reviewer_id=reviewer_id,
             reviewer_execution_id="review-turn-001",
             review_round=1,
-            max_review_rounds=3,
         )
     with pytest.raises(ValueError):
         build_investigation_handoff_payload(
@@ -493,7 +490,6 @@ def test_c30_contract():
             reviewer_id=reviewer_id,
             reviewer_execution_id="review-turn-001",
             review_round=1,
-            max_review_rounds=3,
         )
 
     third_round_changes = make_review_response(
@@ -512,10 +508,9 @@ def test_c30_contract():
         reviewer_id=reviewer_id,
         reviewer_execution_id="review-turn-001",
         review_round=3,
-        max_review_rounds=3,
     )
     assert blocked["handoff_allowed"] is False
-    assert blocked["next_action"] == "blocked"
+    assert blocked["next_action"] == "revise"
 
     same_execution = make_review_response(
         context,

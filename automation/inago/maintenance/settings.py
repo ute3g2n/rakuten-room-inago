@@ -23,29 +23,25 @@ class MaintenanceSettings:
     """Approved settings for maintenance jobs; these do not configure daily runs."""
 
     schema_version: int = 1
-    settings_version: str = "1.3"
+    settings_version: str = "1.5"
     timezone: str = "Asia/Tokyo"
-    code_fix_concurrency: int = 1
     lease_heartbeat_seconds: int = 30
     watchdog_interval_seconds: int = 60
     ai_job_timeout_seconds: int = 1200
     cancellation_confirmation_timeout_seconds: int = 60
     request_retry_limit: int = 2
-    review_round_limit: int = 5
     diagnostic_log_retention_days: int = 90
     diagnostic_log_max_file_bytes: int = 4 * 1024 * 1024
 
 
 _DEFAULT_SETTINGS = MaintenanceSettings()
 _SETTING_KEYS = frozenset(asdict(_DEFAULT_SETTINGS))
-_PREVIOUS_SETTINGS = tuple(
-    asdict(MaintenanceSettings(settings_version=version, review_round_limit=rounds))
-    for version, rounds in (("1.0", 3), ("1.1", 5), ("1.2", 5))
-)
+_LEGACY_CODE_FIX_CONCURRENCY_KEY = "code_fix_concurrency"
 _LEGACY_LOG_FILE_COUNT_KEY = "diagnostic_log_max_files_per_day"
-_LEGACY_LOG_FILE_COUNT_VALUE = 20
 _LEGACY_JOB_RESUME_LIMIT_KEY = "job_resume_limit"
-_LEGACY_JOB_RESUME_LIMITS = {"1.0": 3, "1.1": 4, "1.2": 5}
+_LEGACY_REVIEW_ROUND_LIMIT_KEY = "review_round_limit"
+_LEGACY_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3", "1.4"}
+_LEGACY_LIMIT_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3"}
 _MAX_SETTINGS_BYTES = 16 * 1024
 
 
@@ -56,36 +52,42 @@ def default_settings_document() -> dict[str, Any]:
 
 
 def validate_settings_document(value: object) -> MaintenanceSettings:
-    """Validate current settings and ignore approved legacy limit fields."""
+    """Validate current settings and ignore retired legacy limit fields."""
 
     if not isinstance(value, dict):
         raise MaintenanceSettingsError("settings_schema_invalid")
     normalized = dict(value)
-    if _LEGACY_LOG_FILE_COUNT_KEY in normalized:
-        legacy_limit = normalized.pop(_LEGACY_LOG_FILE_COUNT_KEY)
-        if (
-            type(legacy_limit) is not int
-            or legacy_limit != _LEGACY_LOG_FILE_COUNT_VALUE
-        ):
-            raise MaintenanceSettingsError("settings_value_unapproved")
-    if _LEGACY_JOB_RESUME_LIMIT_KEY in normalized:
-        legacy_resume_limit = normalized.pop(_LEGACY_JOB_RESUME_LIMIT_KEY)
-        settings_version = normalized.get("settings_version")
-        if not isinstance(settings_version, str):
+    settings_version = normalized.get("settings_version")
+    is_legacy_version = (
+        isinstance(settings_version, str)
+        and settings_version in _LEGACY_SETTINGS_VERSIONS
+    )
+    if is_legacy_version and _LEGACY_CODE_FIX_CONCURRENCY_KEY not in normalized:
+        raise MaintenanceSettingsError("settings_schema_invalid")
+    for legacy_key in (
+        _LEGACY_CODE_FIX_CONCURRENCY_KEY,
+        _LEGACY_LOG_FILE_COUNT_KEY,
+        _LEGACY_JOB_RESUME_LIMIT_KEY,
+        _LEGACY_REVIEW_ROUND_LIMIT_KEY,
+    ):
+        if legacy_key not in normalized:
+            continue
+        legacy_value = normalized.pop(legacy_key)
+        accepted_legacy_version = (
+            is_legacy_version
+            if legacy_key == _LEGACY_CODE_FIX_CONCURRENCY_KEY
+            else isinstance(settings_version, str)
+            and settings_version in _LEGACY_LIMIT_SETTINGS_VERSIONS
+        )
+        if not accepted_legacy_version or type(legacy_value) is not int:
             raise MaintenanceSettingsError("settings_schema_invalid")
-        expected_limit = _LEGACY_JOB_RESUME_LIMITS.get(settings_version)
-        if (
-            type(legacy_resume_limit) is not int
-            or legacy_resume_limit != expected_limit
-        ):
-            raise MaintenanceSettingsError("settings_value_unapproved")
+    if is_legacy_version:
+        normalized["settings_version"] = _DEFAULT_SETTINGS.settings_version
     if set(normalized) != _SETTING_KEYS:
         raise MaintenanceSettingsError("settings_schema_invalid")
     expected = default_settings_document()
     if any(type(normalized[key]) is not type(expected[key]) for key in _SETTING_KEYS):
         raise MaintenanceSettingsError("settings_value_type_invalid")
-    if normalized in _PREVIOUS_SETTINGS:
-        return _DEFAULT_SETTINGS
     if normalized != expected:
         raise MaintenanceSettingsError("settings_value_unapproved")
     return MaintenanceSettings(**normalized)

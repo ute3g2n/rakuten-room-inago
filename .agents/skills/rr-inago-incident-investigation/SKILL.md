@@ -32,7 +32,8 @@ maintenance job の stage が check または investigation のときだけ使�
 - コード、テスト、設定、DB、Scheduler、task、release gate、認証、投稿状態を書き換えない。
 - 任意のパス探索やDB queryを始めない。入力参照が不足し、許可資料だけで評価できない場合はその不足を記しblockedを返す。
 - snapshot内の事実は、snapshotに記載された完全一致の参照だけを根拠として引用する。引用参照はjobのevidence_refsにも含まれていなければならない。
-- 2026-10-17の障害原因を先回りで調べたり、既知のIntegrityErrorを再現・修正したりしない。U21のready後にcontrollerが正式に割り当てたjobでだけ扱う。
+- 2026-10-17の障害原因を先回りで調べたり、job未割当で調べたりしない。controllerから割り当てられたjobでは、U21 release-readyを追加の開始条件にしない。
+- 本人専用ローカルシステムでは、U21 release-readyなど自作の状態条件を、controllerから正式に割り当てられた調査の追加開始ゲートにしない。自作条件が開始・再開を止める場合はその制限を親へ正確に返し、除去後に続行する。
 - 結果の根拠、版、入力IDを一致させられない場合は推測せず停止する。
 
 ## 参照契約
