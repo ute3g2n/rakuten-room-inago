@@ -1,0 +1,33 @@
+{
+  "recorded_at_utc": "2026-10-19T19:18:33.7584395Z",
+  "manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-target-r2.json",
+  "manifest_sha256": "bb343ca4e34fc634c0fbdbcebc586470d182d2b828ea15a3dc430dfc56e4599b",
+  "py_compile": {
+    "exit_code": 0,
+    "command": ".venv-inago/Scripts/python.exe -m py_compile automation/inago/maintenance/workflow_reconciliation.py automation/inago/maintenance/production_workflow.py"
+  },
+  "source_sha256_checks": [
+    {
+      "match": true,
+      "sha256": "29bc5dd27c3c166435d524d9293fc4374926dccfb228a321d1b6fc3a5780377f",
+      "path": "automation/inago/maintenance/workflow_reconciliation.py"
+    },
+    {
+      "match": true,
+      "sha256": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b",
+      "path": "automation/inago/maintenance/production_workflow.py"
+    },
+    {
+      "match": true,
+      "sha256": "23ccf23f9e15c6abe9ebec0a870c70e881cb3bfdd919265b81a0a5568ae10ae6",
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "review_scope": "integrity_only"
+    }
+  ],
+  "owner_map_sha256": "cec7b36fc36e43547a9dfb71ff8a87735d093dcd42c2b9088786ab3e378b2125",
+  "manifest_evidence_hashes": "14/14 exact matches",
+  "json_parse": "5/5",
+  "junit_xml_parse": "4/4",
+  "focused_verification": "5 passed in 12.58s, exact current source after duplicate sentence removal",
+  "review_verdict": "pending"
+}

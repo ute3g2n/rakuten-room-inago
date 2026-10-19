@@ -1,0 +1,5 @@
+$ C:\project\rakuten-room-inago\.venv-inago\Scripts\python.exe -B -m pytest tests_inago/test_maintenance_report_publication_stage.py::test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes tests_inago/test_maintenance_report_publication_stage.py::test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_required -q --junitxml=C:\project\rakuten-room-inago\worklogs\projects\maintenance\flow-completion-20261019\FC10\handoff-accepted-terminal-green-focused.junit.xml
+...                                                                      [100%]
+3 passed in 11.32s
+
+[exit=0]

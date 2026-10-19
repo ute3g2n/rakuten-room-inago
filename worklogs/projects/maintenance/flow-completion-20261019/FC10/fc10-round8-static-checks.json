@@ -1,0 +1,20 @@
+{
+  "recorded_at_utc": "2026-10-19T19:23:23.0002536Z",
+  "review_target": "FC10/terminal-handoff-and-report-evidence-path-review-target-r3.json",
+  "review_manifest_sha256": "210adf60357834b8c4e12503b00c1578833d9331b3dd3ed4d3c7c32174149963",
+  "product_source_hashes": {
+    "workflow_reconciliation_py": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556",
+    "production_workflow_py": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b"
+  },
+  "test_integrity_hash": "efbd483fe73002ac442c8465aaec7632438c789b24177f3a2e66e3a7b67a1716",
+  "owner_map_sha256": "78d067d2b4e5f824ba2cfc3c155c092d593697c87e09bc82cf5cc1a8ff3869e8",
+  "evidence_hash_matches": "1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1/1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1",
+  "py_compile_exit": 0,
+  "scoped_diff_check_exit": 0,
+  "json_parse": "7/7",
+  "junit_parse": "5/5",
+  "secret_pattern_matches": 0,
+  "focused_test": "5 passed in 15.18s",
+  "product_review": "approved, 0 findings in permitted source scope",
+  "review_scope_limitation": "reporting.py allowlist and renderer internals not included"
+}

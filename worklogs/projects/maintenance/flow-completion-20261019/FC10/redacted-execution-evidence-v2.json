@@ -1,0 +1,82 @@
+{
+  "schema_version": "fc10-redacted-execution-evidence-v2",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "reason": "Preserve original pytest outputs while providing valid, XML-safe redacted copies. Prior v1 copies remain unchanged as evidence of the redaction defect.",
+  "items": [
+    {
+      "original_path": "FC10/fc10-round5-focused-green.junit.xml",
+      "original_sha256": "0233622891876937214c558a1fc47e102afa9567a323e4bfc7d5925a79094e80",
+      "v1_redacted_path": "FC10/redacted-public/fc10-round5-focused-green.junit.xml",
+      "v1_redacted_sha256": "f7b3d78189a1bd296748df7c1873a40a1bca4533f51524a54d1cbb7d62a24c8d",
+      "v1_xml_valid": false,
+      "v1_issue": "The earlier string redaction inserted tag-like placeholder text and made XML mismatched.",
+      "redacted_v2_path": "FC10/redacted-public/xml-safe-v2/fc10-round5-focused-green.junit.xml",
+      "redacted_v2_sha256": "bcf8d6fc9ae3155d169a505bff6f92d9903a5f909e219e3765aca63593aa1706",
+      "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
+      "replacement_count": 2,
+      "source_preserved": true,
+      "xml_parse": "valid"
+    },
+    {
+      "original_path": "FC10/fc10-round6-focused-green.junit.xml",
+      "original_sha256": "9de51553afdd904c81cea412319a36290cfde0709a2c147094ce404114368e63",
+      "v1_redacted_path": "FC10/redacted-public/fc10-round6-focused-green.junit.xml",
+      "v1_redacted_sha256": "409a5a00b8d31d130dedcbad04f011ecd6e3d57d6984b2a781ff009111040a9d",
+      "v1_xml_valid": false,
+      "v1_issue": "The earlier string redaction inserted tag-like placeholder text and made XML mismatched.",
+      "redacted_v2_path": "FC10/redacted-public/xml-safe-v2/fc10-round6-focused-green.junit.xml",
+      "redacted_v2_sha256": "b99911b7594bcb0dbd6ed0c258b91f81bf66537159ab30063818ab3d4ac83123",
+      "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
+      "replacement_count": 2,
+      "source_preserved": true,
+      "xml_parse": "valid"
+    },
+    {
+      "original_path": "FC10/fc10-round7-focused-green.junit.xml",
+      "original_sha256": "3c765b6cd90b23e436376ef0ac744a47352485f6e485adb629ec5977506b2b01",
+      "v1_redacted_path": "FC10/redacted-public/fc10-round7-focused-green.junit.xml",
+      "v1_redacted_sha256": "bfa3c7ca211f6017034ee63b5877a2444942adc7d8b2bcd1c949e5173a8d57c1",
+      "v1_xml_valid": false,
+      "v1_issue": "The earlier string redaction inserted tag-like placeholder text and made XML mismatched.",
+      "redacted_v2_path": "FC10/redacted-public/xml-safe-v2/fc10-round7-focused-green.junit.xml",
+      "redacted_v2_sha256": "1cfea4c75c1c7565414c37e4990c316db303cb1d56c4114ccdecc90c3ec6fd5a",
+      "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
+      "replacement_count": 2,
+      "source_preserved": true,
+      "xml_parse": "valid"
+    },
+    {
+      "original_path": "FC10/handoff-accepted-terminal-red.junit.xml",
+      "original_sha256": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f",
+      "v1_redacted_path": "FC10/redacted-public/handoff-accepted-terminal-red.junit.xml",
+      "v1_redacted_sha256": "0c761d1125f68cdccaa72271fab385d57e5ed29a5f4bf8b653be7f9358a3428d",
+      "v1_xml_valid": false,
+      "v1_issue": "The earlier string redaction inserted tag-like placeholder text and made XML mismatched.",
+      "redacted_v2_path": "FC10/redacted-public/xml-safe-v2/handoff-accepted-terminal-red.junit.xml",
+      "redacted_v2_sha256": "f5ff1da8851f6fbd9b37d1f6f8bfc88bf4ec4fb3e4e5129f51c9b612041e0275",
+      "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
+      "replacement_count": 2,
+      "source_preserved": true,
+      "xml_parse": "valid"
+    },
+    {
+      "original_path": "FC10/handoff-waiver-red.junit.xml",
+      "original_sha256": "b2f160b5ba3615a4c6a962bbc23fcc93800472e4ef5343d50f76e076a3cffebb",
+      "v1_redacted_path": "FC10/redacted-public/handoff-waiver-red.junit.xml",
+      "v1_redacted_sha256": "21f1edbac2b26f21cc57350459b4a36ed309a064b52aead3ae67e33735d84527",
+      "v1_xml_valid": false,
+      "v1_issue": "The earlier string redaction inserted tag-like placeholder text and made XML mismatched.",
+      "redacted_v2_path": "FC10/redacted-public/xml-safe-v2/handoff-waiver-red.junit.xml",
+      "redacted_v2_sha256": "d7986b6d0c05f609eb31607feb75820d5f56d354b7d710b2096548e8158276ff",
+      "redaction_method": "Replace each local profile name marker with plain text REDACTED_PROFILE, preserving the original XML structure.",
+      "replacement_count": 2,
+      "source_preserved": true,
+      "xml_parse": "valid"
+    }
+  ]
+}

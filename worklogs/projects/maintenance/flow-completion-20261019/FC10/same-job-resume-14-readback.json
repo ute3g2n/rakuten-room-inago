@@ -1,0 +1,208 @@
+{
+  "schema_version": "fc10-same-job-resume-readback-v1",
+  "read_at_utc": "2026-10-19T19:15:49.306927+00:00",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "runtime": {
+    "active_commit": "85b38ce89871c9152d15106b3ea6c0da049112c4",
+    "healthy": true,
+    "tasks_ready_enabled": true,
+    "database_user_version": 15,
+    "database_quick_check": [
+      [
+        "ok"
+      ]
+    ]
+  },
+  "resume": {
+    "resume_count": 14,
+    "resume_event_id": "6dcf42d7f2c945baa187b4189db1ad75",
+    "status": "queued",
+    "worker_invocation_id": "workflow-aceaf64b64d94f8d91d8a5d752897503",
+    "worker_status": "maintenance_incomplete",
+    "worker_reason": "historical_job_completion_unrecorded"
+  },
+  "job": {
+    "status": "failed",
+    "resume_count": 14,
+    "source_run_id": null,
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "stages": [
+    {
+      "stage": "check_incident",
+      "status": "complete",
+      "reason_code": null
+    },
+    {
+      "stage": "evidence",
+      "status": "complete",
+      "reason_code": null
+    },
+    {
+      "stage": "job",
+      "status": "complete",
+      "reason_code": null
+    },
+    {
+      "stage": "investigation",
+      "status": "complete",
+      "reason_code": null
+    },
+    {
+      "stage": "planning",
+      "status": "unknown",
+      "reason_code": "ai_transport_failed"
+    },
+    {
+      "stage": "repair",
+      "status": "unknown",
+      "reason_code": "repair_attempt_not_actionable"
+    },
+    {
+      "stage": "deployment",
+      "status": "unknown",
+      "reason_code": "deployment_candidate_unavailable"
+    },
+    {
+      "stage": "report",
+      "status": "complete",
+      "reason_code": null
+    }
+  ],
+  "latest_attempts_by_sequence": {
+    "1": {
+      "attempt_id": "feb4fb86-679c-44a0-85dd-93a64e88b87f",
+      "step_key": "maintenance_investigation",
+      "attempt_no": 9,
+      "status": "handoff_accepted",
+      "result_version": "investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1",
+      "output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json",
+      "output_sha256": "17b007c9e67f428f753d52657440c6ba55385420f52085d429a87bd538d47fa6",
+      "source_run_id": null
+    },
+    "2": {
+      "attempt_id": "a0e0b3a2-feb4-4ec9-9ebc-9b45106eeb20",
+      "step_key": "maintenance_planning",
+      "attempt_no": 7,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "source_run_id": null
+    },
+    "3": {
+      "attempt_id": "d582e2ef-24fd-42a9-9773-c3b1391e3b76",
+      "step_key": "maintenance_repair",
+      "attempt_no": 1,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "source_run_id": null
+    },
+    "4": {
+      "attempt_id": "739f3463-3ca6-47cb-b0aa-affdd21132f9",
+      "step_key": "maintenance_report",
+      "attempt_no": 8,
+      "status": "complete",
+      "result_version": "fallback-421c1d5bf69cb5371b9f",
+      "output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/739f3463-3ca6-47cb-b0aa-affdd21132f9/result.json",
+      "output_sha256": "6f196858f5a7f350fbc8699f78e17f41b7a77d04c10aff96df25335c889497bc",
+      "source_run_id": null
+    }
+  },
+  "terminal": {
+    "artifact_path": "workflow-terminal/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-aceaf64b64d94f8d91d8a5d752897503.json",
+    "artifact_sha256": "c325b3a372c4cca5706e0641885d0dcdf5f1c021cc90a8eadfbae8f11cf6829c",
+    "workflow_completion": "incomplete",
+    "job_terminal_status": "failed",
+    "reason_code": "workflow_terminal_observations_incomplete",
+    "verification": {
+      "all_content_handoffs_read_back": true,
+      "all_stage_observations_present": true,
+      "deployment_result_or_failure_handoff_read_back": true,
+      "report_complete_observation": true,
+      "report_result_html_publication_sidecar_and_remote_readback": true,
+      "stage_attempt_or_failure_handoffs_read_back": false,
+      "stage_observation_identity_matches": true
+    },
+    "missing_attempt_outputs": [
+      "maintenance_investigation:failure_handoff_missing_or_invalid"
+    ],
+    "missing_stage_handoffs": [],
+    "report_publication_readback": {
+      "attempt_id": "739f3463-3ca6-47cb-b0aa-affdd21132f9",
+      "html_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/739f3463-3ca6-47cb-b0aa-affdd21132f9/report-fallback-421c1d5bf69cb5371b9f.html",
+      "html_sha256": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf",
+      "public_html_sha256": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf",
+      "publication_commit": "e499088bd065ee5a0fb16b5a3a269cc22ba6dae0",
+      "publication_path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/739f3463-3ca6-47cb-b0aa-affdd21132f9/report-publication.json",
+      "publication_sha256": "da9a4ad4d978dfe30d70aa9851b44f5ed69c25b1b0f6385708a717ed1e5e462e",
+      "remote_head_readback": "e499088bd065ee5a0fb16b5a3a269cc22ba6dae0",
+      "remote_name": "origin",
+      "result_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/739f3463-3ca6-47cb-b0aa-affdd21132f9/result.json",
+      "result_sha256": "6f196858f5a7f350fbc8699f78e17f41b7a77d04c10aff96df25335c889497bc",
+      "target_branch": "main"
+    }
+  },
+  "report_attempt": {
+    "attempt_id": "739f3463-3ca6-47cb-b0aa-affdd21132f9",
+    "attempt_no": 8,
+    "attempt_status": "complete",
+    "result_version": "fallback-421c1d5bf69cb5371b9f",
+    "result_sha256": "6f196858f5a7f350fbc8699f78e17f41b7a77d04c10aff96df25335c889497bc",
+    "html_sha256": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf",
+    "report_origin": "controller_fallback",
+    "stage_status": "review_unavailable",
+    "review_status": "unavailable",
+    "review_failure": "report_revision_author_failed",
+    "publication_commit": "e499088bd065ee5a0fb16b5a3a269cc22ba6dae0",
+    "publication_sha256": "da9a4ad4d978dfe30d70aa9851b44f5ed69c25b1b0f6385708a717ed1e5e462e",
+    "remote_head_readback": "e499088bd065ee5a0fb16b5a3a269cc22ba6dae0",
+    "published_html_sha256": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf",
+    "reporter_response": {
+      "role": "rr-inago-incident-reporter",
+      "observation_status": "configured_unverified",
+      "sha256": "0afebb8eb84deff4e2d0a947cdac457d0863c9632761737f7825786ca919709d"
+    },
+    "reviewer_response": {
+      "role": "rr-inago-incident-report-reviewer",
+      "observation_status": "configured_unverified",
+      "status": "changes_requested",
+      "finding_count": 7,
+      "sha256": "f24ba6277fa77091717874f4308e923cf9ef9095c06fda32bb9af0bbbdc3e23d"
+    },
+    "failed_revision_event": {
+      "event_id": "fe1c2278be864ef3b8242c1e1b8b9f56",
+      "operation": "workflow.report.fallback_author_revision",
+      "reason": "report_evidence_ref_not_allowed",
+      "exception_chain": [
+        "ReportContractError"
+      ],
+      "capture_location": "_persist_minimal_daily_report.author_revision",
+      "source_revision": "maintenance-source-v1-c4ae6daaf4403aba4ef3a0cac284489007eb6f1627ed8a3f84f538a32f1f30bb"
+    },
+    "accepted_as_final_report": false
+  },
+  "side_effect_guards": {
+    "oct19_worker_queue": {
+      "queue_id": "82e35e362a064e3292355d27ed0f4289",
+      "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+      "target_date": "2026-10-19",
+      "status": "queued",
+      "created_at": "2026-10-19T04:00:03.226334Z",
+      "updated_at": "2026-10-19T04:00:03.226334Z"
+    },
+    "oct19_queue_event_count": 0,
+    "incident_run_nonnull_source_run_rows": 0,
+    "daily_launch_rows_for_source_launch": 0
+  },
+  "next_action": "Fix exact-path report author prompt and terminal acceptance of hash-verified handoff_accepted outputs, then commit/push/apply and resume this same job with the exact source_launch_id. Keep Oct 19 queue/history and Daily untouched; generate and independently review the final report before publication."
+}

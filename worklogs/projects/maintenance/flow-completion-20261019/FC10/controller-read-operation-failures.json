@@ -4,7 +4,7 @@
   "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
   "source_run_id": null,
   "target_date": "2026-10-17",
-  "recorded_at_utc": "2026-10-19T17:51:38Z",
+  "recorded_at_utc": "2026-10-19T19:24:20.9423500Z",
   "operations": [
     {
       "operation": "read_same_job_report_attempt_artifacts",
@@ -262,6 +262,291 @@
       "side_effect": "none; read-only check",
       "recovery": "Kept the raw output bytes unchanged. Re-ran git diff --cached --check with explicit Git exclude pathspecs for **/*.console.txt and **/*.junit.xml; the scoped product, plan, JSON, and narrative check exited 0. Review target evidence hashes still match.",
       "recorded_at_utc": "2026-10-19T19:05:55Z"
+    },
+    {
+      "operation": "read_tracking_branch_with_malformed_upstream_revision",
+      "attempted_reference": "git rev-parse --abbrev-ref --symbolic-full-name '@{u'",
+      "failure_class": "git revision parse failure",
+      "reason": "The PowerShell command string omitted the closing brace, so Git resolved a literal malformed revision and returned non-zero.",
+      "capture_location": "controller status read",
+      "side_effect": "none; read-only Git query",
+      "recovery": "Queried git rev-parse --abbrev-ref --symbolic-full-name 'main@{upstream}' and confirmed origin/main.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "read_activation_record_from_runtime_root_instead_of_maintenance_subfolder",
+      "attempted_reference": "rakuten-room-inago/runtime/activation-record-ec06d07.json",
+      "failure_class": "FileNotFoundError",
+      "reason": "The record is stored under runtime/maintenance, alongside runtime-switch-state.json.",
+      "capture_location": "controller PowerShell Get-Content",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Read activation-record-85b38ce.json and runtime-switch-state.json from rakuten-room-inago/runtime/maintenance; health and task readback were verified.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "resume_same_job_without_required_source_launch_argument",
+      "attempted_reference": "resume-worker --job-id job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "failure_class": "CLI argument error; exit 2",
+      "reason": "The CLI requires --source-launch-id in addition to --job-id; argparse stopped before opening the job operation.",
+      "capture_location": "same-job-resume-14 resume command",
+      "side_effect": "none; resume event was not created",
+      "recovery": "Re-ran with source_launch_id historical-9e7f0c175cc4c874c955a5dab29c4427 and the same job ID; resume_count advanced once to 14.",
+      "artifact_refs": [
+        "rakuten-room-inago/runtime/maintenance/same-job-resume-14-resume_same_job.console.txt",
+        "rakuten-room-inago/runtime/maintenance/same-job-resume-14-resume_same_job-retry2.console.txt"
+      ],
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "run_exact_launch_worker_before_resuming_historical_job",
+      "attempted_reference": "worker --once --source-launch-id historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "failure_class": "successful idle response; operation not applicable before resume",
+      "reason": "There was no ready historical workflow item before resume-worker; dispatch returned idle with source_launch_id null and did not start a workflow.",
+      "capture_location": "same-job-resume-14 worker initial command",
+      "side_effect": "read-only/dispatch-only idle; no queue row or Daily run was created",
+      "recovery": "Used exact resume-worker first, then reran the same source-launch-only Worker and verified it selected the historical job.",
+      "artifact_refs": [
+        "rakuten-room-inago/runtime/maintenance/same-job-resume-14-worker_exact_source_launch.console.txt",
+        "rakuten-room-inago/runtime/maintenance/same-job-resume-14-worker_exact_source_launch-retry3.console.txt"
+      ],
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "read_sqlite_incident_target_date_from_wrong_table",
+      "attempted_reference": "incident.target_date",
+      "failure_class": "sqlite3.OperationalError: no such column: i.target_date",
+      "reason": "The target date is stored on daily_check, not incident.",
+      "capture_location": "controller read-only SQLite job readback",
+      "side_effect": "none; connection used mode=ro",
+      "recovery": "Queried incident_run then joined daily_check by check_id; confirmed target_date 2026-10-17 and source_run_id null.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "read_workflow_handoffs_from_maintenance_subfolder",
+      "attempted_reference": "runtime/maintenance/workflow-handoffs/<job>/<invocation>",
+      "failure_class": "empty path result",
+      "reason": "Workflow handoffs are rooted at runtime/workflow-handoffs, while attempts and DB are under runtime/maintenance.",
+      "capture_location": "controller read-only handoff artifact listing",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Resolved refs against runtime root and verified all eight invocation handoffs by path and SHA-256.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "inspect_runtime_job_readback_with_invalid_here_string_terminator",
+      "attempted_reference": "PowerShell inline Python here-string terminated with unmatched PY marker",
+      "failure_class": "PowerShell command parse failure; no query output",
+      "reason": "The closing here-string marker did not match the opening marker, so the intended read-only query was not executed.",
+      "capture_location": "controller exec command parser",
+      "side_effect": "none; script did not execute",
+      "recovery": "Reissued the query with the matching PowerShell here-string terminator and obtained the schema/table inventory.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "official_runtime_apply_initial_output_capture",
+      "attempted_reference": "TaskSchedulerRuntimeSwitcher.activate/confirm_active nested exec call",
+      "failure_class": "controller did not capture nested session metadata within the initial 30 second wait",
+      "reason": "The command exceeded the wrapper wait; no output was surfaced in that tool result, although the switch operation continued and wrote its runtime state.",
+      "capture_location": "controller functions.exec output wrapper",
+      "side_effect": "runtime transition was in progress; no duplicate switch was issued",
+      "recovery": "Read runtime-switch-state.json and official scheduled task snapshot; observed pending=null, active=85b38ce, all four tasks Ready/enabled, then verified healthy=true and DB schema15/quick_check ok in the completed activation record.",
+      "artifact_refs": [
+        "rakuten-room-inago/runtime/maintenance/activation-record-85b38ce.json"
+      ],
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "search_repository_paths_including_missing_scripts_folder",
+      "attempted_reference": "rg ... automation scripts tests_inago ...",
+      "failure_class": "rg path-not-found warning",
+      "reason": "The repository has no scripts directory; valid paths in the same read included automation and tests_inago.",
+      "capture_location": "controller read-only rg search",
+      "side_effect": "none; read-only search",
+      "recovery": "Repeated targeted searches against existing automation/inago/maintenance and tests_inago paths.",
+      "recorded_at_utc": "2026-10-20T04:12:22.374096+09:00"
+    },
+    {
+      "operation": "search_report_workflow_test_files_with_invalid_windows_wildcard",
+      "attempted_reference": "rg ... tests_inago/test_maintenance_report*",
+      "failure_class": "rg Windows path parse error: OS error 123",
+      "reason": "The wildcard was passed as a literal PowerShell path segment and the directory parser rejected it.",
+      "capture_location": "controller read-only rg search",
+      "side_effect": "none; read-only search",
+      "recovery": "Searched the explicit test file path tests_inago/test_maintenance_report_publication_stage.py and found the integration prompt hooks and terminal cases.",
+      "recorded_at_utc": "2026-10-20T04:14:35.172102+09:00"
+    },
+    {
+      "operation": "build_fc10_product_review_target_r2",
+      "attempted_reference": "FC10 evidence path resolved against FC10 directory rather than the worklog root",
+      "failure_class": "controller evidence indexing path error",
+      "reason": "A manifest-generation script joined an evidence ref beginning FC10/ to the FC10 subdirectory, producing FC10/FC10/... and stopped at the first missing file.",
+      "capture_location": "controller PowerShell review-target manifest builder",
+      "side_effect": "none; target file was not written and no repository/product/runtime/job state changed",
+      "recovery": "Re-run the builder with evidence paths rooted at worklogs/projects/maintenance/flow-completion-20261019 for FC10 refs and repository root for the incident HTML; verify every path and SHA before writing r2.",
+      "correlation_id": "fc10-review-target-r2-path-recovery",
+      "input_refs": [
+        "FC10/same-job-resume-14-readback.json",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json"
+      ],
+      "recorded_at_utc": "2026-10-19T19:18:11.1372162Z"
+    },
+    {
+      "operation": "scoped_git_diff_check_after_plan_section_append",
+      "attempted_reference": "git diff --check for task-owned source, test, owner-map and plan files",
+      "failure_class": "whitespace validation failure",
+      "reason": "The appended plan continuation left an extra blank line at end of file; git diff --check reported a new blank line at EOF at plan line 906.",
+      "capture_location": "controller git diff --check",
+      "side_effect": "none; validation only",
+      "recovery": "Removed only the extra trailing blank line, preserving the recorded text, and reran scoped diff check.",
+      "correlation_id": "fc10-plan-eof-whitespace-correction",
+      "input_refs": [
+        "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json"
+      ],
+      "recorded_at_utc": "2026-10-19T19:23:09.8547888Z"
+    },
+    {
+      "operation": "fast_forward_origin_main_before_task_commit",
+      "attempted_reference": "git merge --ff-only origin/main",
+      "failure_class": "Git fast-forward blocked by untracked path collision",
+      "reason": "origin/main contains the same-job attempt14 fallback HTML at reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html, while an identical untracked local copy existed at that path. Git refused to overwrite the untracked file.",
+      "capture_location": "controller git merge",
+      "side_effect": "none; merge aborted and main remained at its original commit",
+      "recovery": "Verified local git blob hash equals origin/main tree blob hash 4ccbf1ac60959c1a99cab4ccbd9232530479cdee. Preserve the untracked bytes by moving them under FC10 evidence, then fast-forward so the exact public file is restored at its tracked path.",
+      "correlation_id": "fc10-origin-main-fast-forward-html-collision",
+      "input_refs": [
+        "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+        "origin/main:reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"
+      ],
+      "recorded_at_utc": "2026-10-19T19:24:20.9423500Z"
+    },
+    {
+      "operation": "read_git_status_and_upstream_with_unquoted_powershell_at_expression",
+      "attempted_reference": "git status --short; git branch --show-current; git rev-parse HEAD; git rev-parse --abbrev-ref --symbolic-full-name @{u}",
+      "failure_class": "PowerShell ParserError",
+      "reason": "The unquoted @{u} token was parsed as a PowerShell hashtable expression before the command block ran.",
+      "capture_location": "controller functions.exec PowerShell parser",
+      "side_effect": "none; the command block did not execute",
+      "recovery": "Quoted the upstream expression as @'{u}' and reran the status and branch read successfully.",
+      "correlation_id": "fc10-precommit-status-read-parser-retry",
+      "recorded_at_utc": "2026-10-19T19:28:28Z"
+    },
+    {
+      "operation": "append_r4_narrative_restore_failure_to_operation_log",
+      "attempted_reference": "PowerShell command that appended a record after the R4 narrative snapshot restore attempt",
+      "failure_class": "PowerShell ParserError",
+      "reason": "An apostrophe in the single-quoted explanation string terminated the string before the log update, so neither the explanation append nor another file mutation ran.",
+      "capture_location": "controller functions.exec PowerShell parser",
+      "side_effect": "none; the JSON operation log and narrative files were unchanged by that command",
+      "recovery": "Will append a parser-safe factual record with Python and independently compare the R4 evidence manifest against current file hashes.",
+      "correlation_id": "fc10-r4-narrative-restore-log-parser-retry",
+      "recorded_at_utc": "2026-10-19T19:28:28Z"
+    },
+    {
+      "operation": "resolve_r4_manifest_fc10_evidence_paths",
+      "attempted_reference": "precommit-review-evidence-r4.json generator",
+      "failure_class": "controller evidence path normalization bug",
+      "reason": "The generator removed four characters from the FC10/ prefix and left a leading slash; pathlib treated the evidence path as rooted, so existing files were incorrectly marked missing in the first audit output.",
+      "capture_location": "controller Python evidence audit",
+      "side_effect": "only the provisional audit JSON and Markdown were written with incorrect missing-file observations; no product, runtime, database, or job state changed",
+      "recovery": "Corrected prefix removal to five characters and reran all local evidence hash comparisons before treating the audit as authoritative.",
+      "correlation_id": "fc10-r4-local-evidence-path-normalization",
+      "recorded_at_utc": "2026-10-19T19:29:10Z"
+    },
+    {
+      "operation": "print_plan_section_14_tail_to_controller_console",
+      "attempted_reference": "plan lines at end of section 14",
+      "failure_class": "UnicodeEncodeError in controller output",
+      "reason": "The Python stdout encoding cp932 could not encode a typographic dash in the plan text; file read succeeded, but rendering the result to the command output failed.",
+      "capture_location": "controller Python print to PowerShell pipe",
+      "side_effect": "none; read-only operation",
+      "recovery": "Reconfigured only the short-lived Python stdout stream to UTF-8 with replacement handling and repeated the same read.",
+      "correlation_id": "fc10-plan-tail-console-encoding",
+      "recorded_at_utc": "2026-10-19T19:30:05Z"
+    },
+    {
+      "operation": "scan_untracked_evidence_for_local_profile_paths_and_secrets",
+      "attempted_reference": "git cached/uncached/untracked inventory plus untracked-file scan",
+      "failure_class": "UnicodeDecodeError in subprocess output reader",
+      "reason": "The first Python scanner used the Windows cp932 default for Git status output and the non-ASCII Git path could not be decoded by the reader thread.",
+      "capture_location": "controller Python subprocess output decoding",
+      "side_effect": "none; scanner was read-only and no file content changed",
+      "recovery": "Repeated Git subprocess reads with explicit UTF-8 replacement handling. The scan found local profile markers only in ten raw pytest files; credential, email and private-key pattern checks returned no hits in the untracked set.",
+      "correlation_id": "fc10-precommit-inventory-utf8-retry",
+      "recorded_at_utc": "2026-10-19T19:30:05Z"
+    },
+    {
+      "operation": "build_precommit_ownership_manifest_with_sensitive_scan",
+      "attempted_reference": "task-owned tracked and untracked staging candidate set",
+      "failure_class": "conservative email-pattern scan flagged test source",
+      "reason": "The email pattern matched a test-source literal. The audit stopped before writing its manifest or running git add so the match could be checked against the base revision and diff ownership.",
+      "capture_location": "controller Python pre-commit ownership scanner",
+      "side_effect": "none; no audit file was written and no file was staged",
+      "recovery": "Compare the matched token locations without emitting their values, establish whether they are pre-existing synthetic fixture data or task-added personal data, then rerun the exact inventory.",
+      "correlation_id": "fc10-precommit-email-pattern-triage",
+      "recorded_at_utc": "2026-10-19T19:31:20Z"
+    },
+    {
+      "operation": "triage_test_source_email_pattern_matches",
+      "attempted_reference": "tests_inago/test_maintenance_report_publication_stage.py email-shaped literals",
+      "failure_class": "conservative scanner false positive resolved",
+      "reason": "Three email-shaped literals were found. Each was already present in HEAD and used a reserved example domain; none was added by this task.",
+      "capture_location": "controller current-versus-HEAD source comparison",
+      "side_effect": "none; read-only source comparison",
+      "recovery": "The staging audit now scans changed additions for tracked files and complete bytes for untracked files, and separately records the three unchanged synthetic fixtures.",
+      "correlation_id": "fc10-precommit-email-pattern-triage",
+      "recorded_at_utc": "2026-10-19T19:31:20Z"
+    },
+    {
+      "operation": "classify_profile_bearing_raw_pytest_evidence",
+      "attempted_reference": "untracked pytest console/JUnit privacy scan",
+      "failure_class": "profile detector regex mismatch",
+      "reason": "The scanner used a Windows path regular expression with incorrect escaping and therefore did not match the known local-profile text marker. The expected-count guard stopped before writing the ownership manifest or staging files.",
+      "capture_location": "controller Python staging-candidate scanner",
+      "side_effect": "the prior email-triage record was appended to the operation log; no audit file was written and no Git index entry changed",
+      "recovery": "Use the literal local profile marker detector that matched during the previous successful scan, then verify all ten raw files are excluded and sanitized copies remain selected.",
+      "correlation_id": "fc10-profile-detector-regex-correction",
+      "recorded_at_utc": "2026-10-19T19:32:10Z"
+    },
+    {
+      "operation": "parse_staged_junit_execution_evidence",
+      "attempted_reference": "12 staged JUnit XML evidence files",
+      "failure_class": "XML ParseError: mismatched tag",
+      "reason": "Five redacted JUnit copies did not parse at their rewritten line numbers; the remaining staged JUnit files were not the source of the first aggregate exception.",
+      "capture_location": "controller ElementTree parse of staged worktree evidence",
+      "side_effect": "none; read-only validation",
+      "recovery": "Compare each affected redacted copy to its preserved raw original. If the source XML parses, regenerate a privacy-safe XML copy using XML-aware escaping, update the redaction hash map and review evidence target, and rerun all parsers.",
+      "correlation_id": "fc10-redacted-junit-xml-validation",
+      "recorded_at_utc": "2026-10-19T19:33:00Z"
+    },
+    {
+      "operation": "create_xml_safe_redacted_junit_v2",
+      "attempted_reference": "five raw JUnit files with local profile marker and their v1 redacted copies",
+      "failure_class": "v1 redaction implementation defect repaired",
+      "reason": "Raw JUnit XML parsed successfully, while five v1 redacted copies failed with mismatched tags because tag-like placeholder text was inserted into XML text nodes.",
+      "capture_location": "controller per-file ElementTree comparison",
+      "side_effect": "read-only raw files retained; five v1 redacted artifacts retained unchanged; five new v2 copies and their hash mapping were written",
+      "recovery": "Generated v2 by replacing only the profile name marker with plain text REDACTED_PROFILE in the original XML bytes. All five v2 copies parse, marker scan is clear, and original hashes remain in the mapping.",
+      "correlation_id": "fc10-redacted-junit-xml-safe-v2",
+      "recorded_at_utc": "2026-10-19T19:33:00Z",
+      "artifact_refs": [
+        "FC10/redacted-execution-evidence-v2.json",
+        "FC10/redacted-public/xml-safe-v2/fc10-round5-focused-green.junit.xml",
+        "FC10/redacted-public/xml-safe-v2/fc10-round6-focused-green.junit.xml",
+        "FC10/redacted-public/xml-safe-v2/fc10-round7-focused-green.junit.xml",
+        "FC10/redacted-public/xml-safe-v2/handoff-accepted-terminal-red.junit.xml",
+        "FC10/redacted-public/xml-safe-v2/handoff-waiver-red.junit.xml"
+      ]
+    },
+    {
+      "operation": "verify_worker_2026_10_19_dispatch_exclusion_at_assumed_path",
+      "attempted_reference": "automation/inago/worker.py",
+      "failure_class": "FileNotFoundError",
+      "reason": "The Worker module is not at that assumed repository path; no file was read or modified.",
+      "capture_location": "controller Python read-only path lookup",
+      "side_effect": "none; read-only lookup",
+      "recovery": "Enumerate tracked automation/inago Python paths ending worker.py and inspect the actual module for the exact exclusion constant.",
+      "correlation_id": "fc10-worker-exclusion-path-correction",
+      "recorded_at_utc": "2026-10-19T19:34:05Z"
     }
   ]
 }

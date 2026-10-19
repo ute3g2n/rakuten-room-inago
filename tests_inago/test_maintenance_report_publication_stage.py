@@ -425,6 +425,18 @@ def _fc08_seed_terminal_fixture(tmp_path: Path, monkeypatch):
     }
 
 
+def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
+    prompt = production_workflow._daily_report_prompt(
+        identity={"job_id": "fc10-report-prompt"},
+        report_input={"evidence_refs": ["evidence/2026-10-17/source.json"]},
+        prior_findings=[],
+    )
+
+    assert "exact path string copied from `report_input.evidence_refs`" in prompt
+    assert "The renderer supplies a readable link label" in prompt
+    assert "Do not put a Markdown link" in prompt
+
+
 def _fc08_crash_after_publish(fixture: dict[str, object], exit_code: int = 47):
     child = multiprocessing.get_context("spawn").Process(
         target=_fc08_publish_then_crash,
@@ -572,6 +584,173 @@ def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
     assert incident_row["status"] == "in_progress"
 
 
+def test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output(
+    tmp_path: Path, monkeypatch
+):
+    fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+    _fc08_crash_after_publish(fixture)
+    store = fixture["store"]
+    investigation_attempt = next(
+        attempt
+        for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+        if attempt.sequence == 1
+    )
+    connection = store._connect()
+    try:
+        connection.execute(
+            "UPDATE step_attempt SET status = 'handoff_accepted' WHERE attempt_id = ?",
+            (investigation_attempt.attempt_id,),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    reopened = MaintenanceStore(
+        store.database_path.parent.parent,
+        daily_database_path=fixture["daily_database_path"],
+    )
+    reopened.initialize()
+    resumed_lease = reopened.acquire_lease(
+        lease_key=f"maintenance:{fixture['identity']['job_id']}",
+        owner_id="fc10-handoff-accepted-terminal-reconciler",
+        owner_pid=os.getpid(),
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        workflow_reconciliation_module,
+        "__file__",
+        str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+    )
+    terminal = reconcile_workflow_terminal(
+        reopened,
+        job_id=fixture["identity"]["job_id"],
+        lease=resumed_lease,
+        expected_identity=fixture["identity"],
+    )
+
+    assert terminal["workflow_completion"] == "complete", json.dumps(
+        {
+            "reason_code": terminal["reason_code"],
+            "missing_attempt_outputs": terminal["missing_attempt_outputs"],
+        },
+        sort_keys=True,
+    )
+    investigation_ref = next(
+        item
+        for item in terminal["attempt_output_refs"]
+        if item["step_key"] == "maintenance_investigation"
+    )
+    assert investigation_ref["evidence_kind"] == "completed_attempt_output"
+    assert investigation_ref["status"] == "handoff_accepted"
+    assert investigation_ref["output_path"] == investigation_attempt.output_path
+
+
+def test_fc10_invalid_handoff_accepted_output_cannot_be_waived_by_failure_handoff(
+    tmp_path: Path, monkeypatch
+):
+    fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+    _fc08_crash_after_publish(fixture)
+    store = fixture["store"]
+    investigation_attempt = next(
+        attempt
+        for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+        if attempt.sequence == 1
+    )
+    attempt_output = (
+        store.database_path.parent
+        / "attempts"
+        / investigation_attempt.job_id
+        / investigation_attempt.attempt_id
+        / "result.json"
+    )
+    attempt_output.write_text('{"tampered":true}\n', encoding="utf-8")
+    connection = store._connect()
+    try:
+        connection.execute(
+            "UPDATE step_attempt SET status = 'handoff_accepted' WHERE attempt_id = ?",
+            (investigation_attempt.attempt_id,),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    handoff_root = (
+        store.database_path.parent.parent
+        / "workflow-handoffs"
+        / fixture["identity"]["job_id"]
+        / fixture["invocation_id"]
+    )
+    handoff_path = handoff_root / "investigation.json"
+    handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+    handoff["operation_result"] = "failed"
+    handoff["reason_code"] = "investigation_failed_after_output_corruption"
+    handoff["content_result"] = {
+        "summary": "The investigation handoff exists, but its successful attempt output failed hash verification.",
+        "next_actions": ["Keep the terminal incomplete and continue recovery."],
+    }
+    handoff_path.write_text(
+        json.dumps(handoff, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    reopened = MaintenanceStore(
+        store.database_path.parent.parent,
+        daily_database_path=fixture["daily_database_path"],
+    )
+    reopened.initialize()
+    resumed_lease = reopened.acquire_lease(
+        lease_key=f"maintenance:{fixture['identity']['job_id']}",
+        owner_id="fc10-invalid-success-output-reconciler",
+        owner_pid=os.getpid(),
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        workflow_reconciliation_module,
+        "__file__",
+        str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+    )
+    terminal = reconcile_workflow_terminal(
+        reopened,
+        job_id=fixture["identity"]["job_id"],
+        lease=resumed_lease,
+        expected_identity=fixture["identity"],
+    )
+
+    assert terminal["workflow_completion"] != "complete"
+    assert "maintenance_investigation:completed_output_readback_failed" in terminal[
+        "missing_attempt_outputs"
+    ]
+    assert not any(
+        item["step_key"] == "maintenance_investigation"
+        and item["evidence_kind"] == "stage_failure_handoff"
+        for item in terminal["attempt_output_refs"]
+    )
+    failure_events = [
+        json.loads(line)
+        for line in (
+            reopened.database_path.parent / "failure-journal" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    formal_readback_event = next(
+        event
+        for event in failure_events
+        if event.get("operation") == "workflow.terminal.formal_attempt_output_readback"
+    )
+    assert formal_readback_event["invocation_id"] == fixture["invocation_id"]
+    assert formal_readback_event["capture_location"] == (
+        "workflow_reconciliation._attempt_and_deployment_outputs"
+    )
+    assert formal_readback_event["reason_code"] == (
+        "terminal_attempt_output_readback_failed"
+    )
+    assert formal_readback_event["artifact_refs"] == [
+        f"{investigation_attempt.job_id}/{investigation_attempt.attempt_id}/result.json"
+    ]
+
+
 def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_required(
     tmp_path: Path, monkeypatch
 ):
@@ -584,7 +763,7 @@ def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_requir
         for attempt in store.list_step_attempts(
             job_id=fixture["identity"]["job_id"]
         ):
-            if attempt.sequence not in {2, 3}:
+            if attempt.sequence not in {1, 2, 3}:
                 continue
             connection.execute(
                 "UPDATE step_attempt SET status = 'failed', result_version = NULL, "
@@ -698,10 +877,8 @@ def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_requir
     ]
     attempt_refs = {item["step_key"]: item for item in terminal["attempt_output_refs"]}
     assert attempt_refs["maintenance_investigation"]["evidence_kind"] == "stage_failure_handoff"
-    assert attempt_refs["maintenance_investigation"]["status"] == "complete"
-    assert attempt_refs["maintenance_investigation"]["formal_output_observation"] == (
-        "completed_output_readback_failed"
-    )
+    assert attempt_refs["maintenance_investigation"]["status"] == "failed"
+    assert attempt_refs["maintenance_investigation"]["formal_output_observation"] is None
     for step_key in ("maintenance_planning", "maintenance_repair"):
         assert attempt_refs[step_key]["evidence_kind"] == "stage_failure_handoff"
         assert attempt_refs[step_key]["status"] == "failed"
@@ -716,25 +893,6 @@ def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_requir
             reopened.database_path.parent / "failure-journal" / "events.jsonl"
         ).read_text(encoding="utf-8").splitlines()
         if line
-    ]
-    formal_readback_event = next(
-        event
-        for event in failure_events
-        if event.get("operation") == "workflow.terminal.formal_attempt_output_readback"
-    )
-    assert formal_readback_event["invocation_id"] == fixture["invocation_id"]
-    assert formal_readback_event["capture_location"] == (
-        "workflow_reconciliation._attempt_and_deployment_outputs"
-    )
-    assert formal_readback_event["exception_chain"][:2] == [
-        "HandoffContractError",
-        "OSError",
-    ]
-    assert formal_readback_event["reason_code"] == (
-        "terminal_attempt_output_readback_failed"
-    )
-    assert formal_readback_event["artifact_refs"] == [
-        f"{investigation_attempt.job_id}/{investigation_attempt.attempt_id}/result.json"
     ]
     deployment_validation_event = next(
         event

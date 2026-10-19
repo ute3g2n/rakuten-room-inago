@@ -1,0 +1,52 @@
+{
+  "schema_version": "fc10-terminal-handoff-and-report-evidence-path-review-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "85b38ce89871c9152d15106b3ea6c0da049112c4",
+  "product_sources": {
+    "automation/inago/maintenance/workflow_reconciliation.py": "29bc5dd27c3c166435d524d9293fc4374926dccfb228a321d1b6fc3a5780377f",
+    "automation/inago/maintenance/production_workflow.py": "3f9560de84be040f80d19c91a223e216871d54d8c97aa2bc4c2cf24366c42a4c"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "23ccf23f9e15c6abe9ebec0a870c70e881cb3bfdd919265b81a0a5568ae10ae6"
+  },
+  "owner_map_sha256": "cec7b36fc36e43547a9dfb71ff8a87735d093dcd42c2b9088786ab3e378b2125",
+  "local_evidence": {
+    "FC10/same-job-resume-14-readback.json": "08e5c963338819c0c07ae1545f9d879659471fe7fab65b41da3a1c0c4cb02d75",
+    "FC10/same-job-resume-14-terminal.json": "c325b3a372c4cca5706e0641885d0dcdf5f1c021cc90a8eadfbae8f11cf6829c",
+    "FC10/same-job-resume-14-resume.console.txt": "74062b4a11ecd2375c4d0d180ebcf54c9daa15e29d09aaaae9f0b13146b7b631",
+    "FC10/same-job-resume-14-worker.console.txt": "f2a229f7922f7ec63c0252cec08e3d85de1166ada5a8828ca6cd4af1d1508150",
+    "FC10/runtime-apply-85b38ce.json": "57107d182511589a4fb88af34e80285f8bc8f79e537a1b97d561cd25c9ab95e3",
+    "FC10/handoff-accepted-terminal-red.console.txt": "4a82eb653560fd2d2637a15c30ecfb2319b0e7aee261e18bc14852d2301d1ed3",
+    "FC10/handoff-accepted-terminal-red.junit.xml": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f",
+    "FC10/handoff-accepted-terminal-green-focused.console.txt": "99b35867a991bd4fce4dc26daa0ad227614a123abde79bc1252b1b28bee2cbfa",
+    "FC10/handoff-accepted-terminal-green-focused.junit.xml": "93a9a1f63dc15863e4ef6602f1497b5892307fa9e3bef901798eaec28729c2e9",
+    "FC10/report-prompt-path-red.console.txt": "78fb630ec388b96513b0daebe78051fa0d65fa35e47a4977fbb89af31186b297",
+    "FC10/report-prompt-path-red.junit.xml": "d959e82b353c7e5cc54d0530cf229bd83517f476a2a118cf2e5fe3cef62322c3",
+    "FC10/fc10-round3-focused-green.console.txt": "86bd51ef41ffe7c94a4f9d00adb660290dfddc2b69af87e4e907ea6934e5f55e",
+    "FC10/fc10-round3-focused-green.junit.xml": "5b5dfc17037b0206a7f6f702114e79b366b715d8ceb8fe18c51b648705ab0252"
+  },
+  "measured_findings": [
+    "Same-job resume14 generated/published a controller fallback report after the integrated reporter and independent reviewer actually ran. The reviewer returned seven changes; the reporter revision then failed with ReportContractError/report_evidence_ref_not_allowed because each evidence_ref contained Markdown display labels and multiple links rather than one exact allowed path. It is not acceptable as the final report.",
+    "The terminal reconciler marked the current investigation output missing because the valid, hash-bound step_attempt status was handoff_accepted, while its successful-output branch accepted only complete. The run’s result.json was persisted with matching output_sha256.",
+    "The unmodified failure handoff validation still accepts only failed/not_performed/unknown outcomes. The requested change must preserve that strict path and exact identity/hash checks."
+  ],
+  "review_scope": [
+    "Verify terminal reconciliation reads and hash-verifies a persisted result for complete and handoff_accepted step attempt statuses, checks exact job and source_run identity, and reports completed_attempt_output only after readback succeeds.",
+    "Verify a handoff_accepted result with absent or bad output remains incomplete with a cause-bearing trace; verify failure/unknown handoff validation remains unchanged and is not used to waive an invalid successful output.",
+    "Verify normal and reviewer-driven report author prompts require one exact raw allowed evidence path per evidence_ref; HTML labels remain renderer-owned and prompt change does not permit arbitrary or combined refs.",
+    "Verify report evidence-reference identity/allowlist validation and reviewer finding revision logic remain strict."
+  ],
+  "review_constraints": {
+    "read_tests": false,
+    "run_tests": false,
+    "edit_files": false,
+    "production_operations": false,
+    "independent_product_code_only": true
+  },
+  "created_at_utc": "2026-10-19T19:16:10.892712+00:00"
+}

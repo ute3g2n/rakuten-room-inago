@@ -1,0 +1,35 @@
+{
+  "schema_version": "fc10-independent-product-review-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "target_manifest": "FC10/terminal-handoff-and-report-evidence-path-review-target-r4.json",
+  "target_manifest_sha256": "1476d687f26f60af85cb4a8103ff09a5206a72674e08d1a04e1280e7af660a5f",
+  "reviewer": "/root/fc08_product_review",
+  "review_scope": "Read-only independent product review of the exact production sources in the redaction-aware r4 target manifest.",
+  "reviewed_source_sha256": {
+    "automation/inago/maintenance/workflow_reconciliation.py": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556",
+    "automation/inago/maintenance/production_workflow.py": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b"
+  },
+  "verdict": "approved",
+  "findings": [],
+  "verified": [
+    "complete/handoff_accepted output requires exact identity and expected-SHA readback before completed_attempt_output is emitted.",
+    "Missing/unreadable successful output records a cause-bearing gap and cannot fall through to failure_handoff.",
+    "Non-success handoffs retain strict invocation, identity, stage, content, and allowed outcome checks.",
+    "The normal author and reviewer-driven revision share the single exact raw allowed path prompt."
+  ],
+  "scope_limitations": [
+    "reporting.py renderer and evidence allowlist internals were outside scope and were not reviewed."
+  ],
+  "reviewer_actions": {
+    "read_tests": false,
+    "ran_tests": false,
+    "edited_files": false,
+    "production_operations": false
+  },
+  "reviewed_at_utc": "2026-10-19T19:26:05.4599942Z"
+}

@@ -580,7 +580,11 @@ def _attempt_and_deployment_outputs(
             and candidate.source_run_id == identity.get("source_run_id")
         )
         formal_output_observation: str | None = None
-        if candidate is not None and candidate.status == "complete" and identity_matches:
+        if (
+            candidate is not None
+            and candidate.status in {"complete", "handoff_accepted"}
+            and identity_matches
+        ):
             if not isinstance(candidate.output_path, str) or not isinstance(
                 candidate.output_sha256, str
             ):
@@ -643,6 +647,10 @@ def _attempt_and_deployment_outputs(
                         }
                     )
                     continue
+
+        if formal_output_observation is not None:
+            gaps.append(f"{step_key}:{formal_output_observation}")
+            continue
 
         # A failed, interrupted, absent, or mismatched historical attempt cannot
         # stand in for a success. The same invocation must instead leave a

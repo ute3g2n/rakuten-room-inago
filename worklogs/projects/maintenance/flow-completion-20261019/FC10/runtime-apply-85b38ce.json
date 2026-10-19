@@ -1,0 +1,46 @@
+{
+  "operation": "official_runtime_apply_and_readback",
+  "branch": "main",
+  "tracking": "origin/main",
+  "commit": "85b38ce89871c9152d15106b3ea6c0da049112c4",
+  "runtime_root": "<fixed repository runtime root>",
+  "healthy": true,
+  "runtime_switch_status": "active",
+  "runtime_switch_pending": null,
+  "database_user_version": 15,
+  "database_quick_check": [
+    [
+      "ok"
+    ]
+  ],
+  "tasks": [
+    {
+      "TaskName": "RakutenRoomInagoDaily",
+      "WorkingDirectory": "<fixed repository root>",
+      "Enabled": true,
+      "State": "Ready",
+      "action_before_after_unchanged": true
+    },
+    {
+      "TaskName": "RakutenRoomInagoWorker",
+      "WorkingDirectory": "<fixed repository root>",
+      "Enabled": true,
+      "State": "Ready",
+      "action_before_after_unchanged": true
+    },
+    {
+      "TaskName": "RakutenRoomInagoWatchdog",
+      "WorkingDirectory": "<fixed repository root>",
+      "Enabled": true,
+      "State": "Ready",
+      "action_before_after_unchanged": true
+    },
+    {
+      "TaskName": "RakutenRoomInagoHumanApi",
+      "WorkingDirectory": "<fixed repository root>",
+      "Enabled": true,
+      "State": "Ready",
+      "action_before_after_unchanged": true
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.000" timestamp="2026-10-20T04:12:40.435899+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output" time="3.583"><failure message="AssertionError: {&quot;missing_attempt_outputs&quot;: [&quot;maintenance_investigation:failure_handoff_missing_or_invalid&quot;], &quot;reason_code&quot;: &quot;workflow_terminal_observations_incomplete&quot;}&#10;assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('<REDACTED_PROFILE>/AppData/Local/Temp/pytest-of-<REDACTED_USER>/pytest-1605/test_fc10_terminal_reads_hando0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000013FE81CF1D0&gt;
+
+    def test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output(
+        tmp_path: Path, monkeypatch
+    ):
+        fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+        _fc08_crash_after_publish(fixture)
+        store = fixture["store"]
+        investigation_attempt = next(
+            attempt
+            for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+            if attempt.sequence == 1
+        )
+        connection = store._connect()
+        try:
+            connection.execute(
+                "UPDATE step_attempt SET status = 'handoff_accepted' WHERE attempt_id = ?",
+                (investigation_attempt.attempt_id,),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+    
+        reopened = MaintenanceStore(
+            store.database_path.parent.parent,
+            daily_database_path=fixture["daily_database_path"],
+        )
+        reopened.initialize()
+        resumed_lease = reopened.acquire_lease(
+            lease_key=f"maintenance:{fixture['identity']['job_id']}",
+            owner_id="fc10-handoff-accepted-terminal-reconciler",
+            owner_pid=os.getpid(),
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        monkeypatch.setattr(
+            workflow_reconciliation_module,
+            "__file__",
+            str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+        )
+        terminal = reconcile_workflow_terminal(
+            reopened,
+            job_id=fixture["identity"]["job_id"],
+            lease=resumed_lease,
+            expected_identity=fixture["identity"],
+        )
+    
+&gt;       assert terminal["workflow_completion"] == "complete", json.dumps(
+            {
+                "reason_code": terminal["reason_code"],
+                "missing_attempt_outputs": terminal["missing_attempt_outputs"],
+            },
+            sort_keys=True,
+        )
+E       AssertionError: {"missing_attempt_outputs": ["maintenance_investigation:failure_handoff_missing_or_invalid"], "reason_code": "workflow_terminal_observations_incomplete"}
+E       assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_report_publication_stage.py:620: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,345 @@
+{
+  "schema_version": "fc10-precommit-ownership-review-v2",
+  "branch": "main",
+  "head_before_commit": "e499088bd065ee5a0fb16b5a3a269cc22ba6dae0",
+  "upstream": "origin/main",
+  "staged_count_before_audit": 62,
+  "uncached_tracked_count": 0,
+  "selected_stage_set": [
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "index_blob": "5dd1f56d167574f92758492931a0dbd28785595d",
+      "worktree_sha256": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_reconciliation.py",
+      "index_blob": "1e01a836ac16fe19f79999dc0e5d8a471817c190",
+      "worktree_sha256": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "index_blob": "6cd957b5f04f0285786da82eba3cd26bf2abbed9",
+      "worktree_sha256": "6ad156ff50031b36bc92d267b9d31ad9041b04a8d54187167f0599f5649c8ebb"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "index_blob": "bdc6dbc7928b4b3bfcda7a765b5bf51f99cab36d",
+      "worktree_sha256": "efbd483fe73002ac442c8465aaec7632438c789b24177f3a2e66e3a7b67a1716"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+      "index_blob": "a51a6501270e662271276b4c0c93ddb3fd67e522",
+      "worktree_sha256": "78d067d2b4e5f824ba2cfc3c155c092d593697c87e09bc82cf5cc1a8ff3869e8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json",
+      "index_blob": "9947d4988b847b73db372bda8469e11ac89855d2",
+      "worktree_sha256": "84667f24b17219ce650da48ebe12a799a55ec7ec69573cb9b622e568ac3c6b96"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round3-focused-green.console.txt",
+      "index_blob": "8fdbf8c07fb4019ff56a2090044558ef0e61e5a2",
+      "worktree_sha256": "86bd51ef41ffe7c94a4f9d00adb660290dfddc2b69af87e4e907ea6934e5f55e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round3-focused-green.junit.xml",
+      "index_blob": "af645023e86e1d99265bb3923fb19e5bcde95886",
+      "worktree_sha256": "5b5dfc17037b0206a7f6f702114e79b366b715d8ceb8fe18c51b648705ab0252"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round4-focused-green.console.txt",
+      "index_blob": "455358ad30378ba66ca614bdddf60a594b7a0444",
+      "worktree_sha256": "764a31e6515340e06f5a9893cf27f1dd4f4f496f6511e4073d47e7d2810a4557"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round4-focused-green.junit.xml",
+      "index_blob": "317c674a99e61e8a835e871434a5533fd49a713d",
+      "worktree_sha256": "f9b6b4a6924f122acc3e3f94633e0d67b6ec05b25d9e808c57c59170088cd741"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round4-static-checks.json",
+      "index_blob": "3403850c7aff89f437d17fcd94b28ac88712853c",
+      "worktree_sha256": "9c07683656b6f6da2c2fdd33ec214ac3b88c285b459365562c6089b4f7962608"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round8-focused-green.console.txt",
+      "index_blob": "20d1b67585559c5bc0d41a51a7df824dda15b7e7",
+      "worktree_sha256": "622ce544f3c1cff5413aacd70159582313ce0d48009c9e839c6762382b80a726"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round8-focused-green.junit.xml",
+      "index_blob": "b85620264e9eb5aff7ec9c45b3af60973c41aa0c",
+      "worktree_sha256": "ae7317e9aec495e271c815d24a5acc3e0e133fd29bdeebfeda10e8bc2de3fb5d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round8-static-checks.json",
+      "index_blob": "4d627cbeb0aca6a9e2df5acbda260cecb758691b",
+      "worktree_sha256": "1d649406c9a185210da938bed9f3cd4e92e9be39ed1d9e451e1c1c0731860b39"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round9-focused-green.console.txt",
+      "index_blob": "08e16f4d65012747a512ab4a93a4b5595b6f85d5",
+      "worktree_sha256": "4598e1f03d8fb33f47a9278a6a3382f9bbd89c33397fae77747377f13bd3bb4e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round9-focused-green.junit.xml",
+      "index_blob": "0f8d69403367e0070a2df1fc619fd9485a9622cf",
+      "worktree_sha256": "09f9c4d9b105ef158117a99905fc1e1a3ad4ccd944bb66f44450c3cc2614cbb6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-accepted-terminal-green-focused.console.txt",
+      "index_blob": "b38377a595656fad1e54bdbd9a7367dcee9b6d8f",
+      "worktree_sha256": "99b35867a991bd4fce4dc26daa0ad227614a123abde79bc1252b1b28bee2cbfa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-accepted-terminal-green-focused.junit.xml",
+      "index_blob": "f6d0accd40dc5a19a905c4753726476e01982402",
+      "worktree_sha256": "93a9a1f63dc15863e4ef6602f1497b5892307fa9e3bef901798eaec28729c2e9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r4.json",
+      "index_blob": "a2e1c32c8123f533dde8850d54c9a36d3cd5cd3c",
+      "worktree_sha256": "2e58c707c1c5567aa27f115fa6524423d921744bc5e09a3087ba89592c0db386"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r4.md",
+      "index_blob": "e25158312a0771de2756458a849aed25ebe91f9d",
+      "worktree_sha256": "8c7f072fd01d18a5b8c6f7ec2a992e212280d509ee7473cbaafe697e905a95aa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-review-evidence-r4.json",
+      "index_blob": "17cb57983ccdc20660d17a3df44b29f60758284e",
+      "worktree_sha256": "160e2ce8c55be3c96aa8888e410c285c9854d4381fe222be877dcc2dfe609424"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-review-evidence-r4.md",
+      "index_blob": "9cfd0cc7c18cc0a1237274a95298c024345c8c98",
+      "worktree_sha256": "d0248dcff3cfcd5e994b596a4300182dc707b304feed4e2cdb1fee8efd71ddf2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-execution-evidence-v2.json",
+      "index_blob": "4a3b61e90983c53a00a7925e95b176817b2b6543",
+      "worktree_sha256": "88218f4de1d6bade98ff60ab9cb14438eacdcf87b938539c59560596383372e7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-execution-evidence.json",
+      "index_blob": "432cb29aedbdaa6147634c04118ab7e8d8741009",
+      "worktree_sha256": "dfc831886b402edab3bcb5adc82be522a30fac78add37266df094650232433c4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round5-focused-green.console.txt",
+      "index_blob": "c43251be6625016de30ccf2e16d7be6c72076347",
+      "worktree_sha256": "ff322964ff3fb73f390dd3d854f000a9e6aad2f7347c8fe7613fb480aa1899f7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round5-focused-green.junit.xml",
+      "index_blob": "a041ebe92f67ff45b06fcc310b6e48f5b7d3b538",
+      "worktree_sha256": "f7b3d78189a1bd296748df7c1873a40a1bca4533f51524a54d1cbb7d62a24c8d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round6-focused-green.console.txt",
+      "index_blob": "98e42904f4c92e7b9a2749352800d0d0a4f5a67a",
+      "worktree_sha256": "7c88c2d9b80bea1bcf7e41e4a5f9e304cb1a6c8b17a8231e18cdefb45e0d96c6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round6-focused-green.junit.xml",
+      "index_blob": "adc05faaf0906b30299b013bb38174410d2788ee",
+      "worktree_sha256": "409a5a00b8d31d130dedcbad04f011ecd6e3d57d6984b2a781ff009111040a9d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round7-focused-green.console.txt",
+      "index_blob": "a2663e15e2f5171e1814a18561764153843faa94",
+      "worktree_sha256": "fb3c74cf6e67c3f1bcc450d624d1cdf6385ba2d5b995fcef974a84c1547b5925"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/fc10-round7-focused-green.junit.xml",
+      "index_blob": "7b5420b5d0a1091ed9b5648782076c0a99b7ec5d",
+      "worktree_sha256": "bfa3c7ca211f6017034ee63b5877a2444942adc7d8b2bcd1c949e5173a8d57c1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/handoff-accepted-terminal-red.console.txt",
+      "index_blob": "0fc1178fb99537cbd8dcf9ddde6e0303ad287822",
+      "worktree_sha256": "bf0b2a0bb5a0837161c7bfe7103c1cbc921a2ec0d7c51acfab758e1a23e16688"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/handoff-accepted-terminal-red.junit.xml",
+      "index_blob": "bc3da743fc26bea5f68862defb7a630528f2924b",
+      "worktree_sha256": "0c761d1125f68cdccaa72271fab385d57e5ed29a5f4bf8b653be7f9358a3428d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/handoff-waiver-red.console.txt",
+      "index_blob": "0f8561b482477b705caeb29992b1bdb3a19a2cec",
+      "worktree_sha256": "dd31f82a89d40bf525f1d71fd4172b7a8aabe1f5378cad8a5e5fe5b6036529ed"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/handoff-waiver-red.junit.xml",
+      "index_blob": "55231e1f5c44b588452ebf101a5d8a47a85f1638",
+      "worktree_sha256": "21f1edbac2b26f21cc57350459b4a36ed309a064b52aead3ae67e33735d84527"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/report-prompt-path-red.console.txt",
+      "index_blob": "027156da1246d9ae4105d17e194c45bec0efbd78",
+      "worktree_sha256": "78fb630ec388b96513b0daebe78051fa0d65fa35e47a4977fbb89af31186b297"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/report-prompt-path-red.junit.xml",
+      "index_blob": "6a54f8ac87b9907919724ee35c04f5a0e3bc92a8",
+      "worktree_sha256": "d959e82b353c7e5cc54d0530cf229bd83517f476a2a118cf2e5fe3cef62322c3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/xml-safe-v2/fc10-round5-focused-green.junit.xml",
+      "index_blob": "cfa0256f7753a8fffbfe1572f5a1f3e6d46e3d88",
+      "worktree_sha256": "bcf8d6fc9ae3155d169a505bff6f92d9903a5f909e219e3765aca63593aa1706"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/xml-safe-v2/fc10-round6-focused-green.junit.xml",
+      "index_blob": "ce527ac1a834590a845c461457fad8f575b803f3",
+      "worktree_sha256": "b99911b7594bcb0dbd6ed0c258b91f81bf66537159ab30063818ab3d4ac83123"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/xml-safe-v2/fc10-round7-focused-green.junit.xml",
+      "index_blob": "20d6fd6ff7ff98345ce265ce7c622e60974362a3",
+      "worktree_sha256": "1cfea4c75c1c7565414c37e4990c316db303cb1d56c4114ccdecc90c3ec6fd5a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/xml-safe-v2/handoff-accepted-terminal-red.junit.xml",
+      "index_blob": "cae55c8d93501cfb1b4ee32aa25101aee4ee32e8",
+      "worktree_sha256": "f5ff1da8851f6fbd9b37d1f6f8bfc88bf4ec4fb3e4e5129f51c9b612041e0275"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/redacted-public/xml-safe-v2/handoff-waiver-red.junit.xml",
+      "index_blob": "cce149ab791101ae15e16baf4b867e3b761e340a",
+      "worktree_sha256": "d7986b6d0c05f609eb31607feb75820d5f56d354b7d710b2096548e8158276ff"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-prompt-path-red.console.txt",
+      "index_blob": "027156da1246d9ae4105d17e194c45bec0efbd78",
+      "worktree_sha256": "78fb630ec388b96513b0daebe78051fa0d65fa35e47a4977fbb89af31186b297"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-prompt-path-red.junit.xml",
+      "index_blob": "6a54f8ac87b9907919724ee35c04f5a0e3bc92a8",
+      "worktree_sha256": "d959e82b353c7e5cc54d0530cf229bd83517f476a2a118cf2e5fe3cef62322c3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/resume14-unaccepted-controller-fallback.html",
+      "index_blob": "4ccbf1ac60959c1a99cab4ccbd9232530479cdee",
+      "worktree_sha256": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/runtime-apply-85b38ce.json",
+      "index_blob": "27b1e01ee81a599a0e76a4b1853b2216f8b023df",
+      "worktree_sha256": "57107d182511589a4fb88af34e80285f8bc8f79e537a1b97d561cd25c9ab95e3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-resume-14-attempt-runner.json",
+      "index_blob": "8545520b8aa5d3f0e89022b67b38950d2a834edb",
+      "worktree_sha256": "55a1fb4f9d7777bd7a1e2e341519f6905ef30b55beaade22c3148fb030ff55a7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-resume-14-readback.json",
+      "index_blob": "2669594a28df7e6f1922cc3087e0a0e0fe9d1894",
+      "worktree_sha256": "08e5c963338819c0c07ae1545f9d879659471fe7fab65b41da3a1c0c4cb02d75"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-resume-14-resume.console.txt",
+      "index_blob": "b60119817e818eaab0fd25f05c54a1fd8fc11132",
+      "worktree_sha256": "74062b4a11ecd2375c4d0d180ebcf54c9daa15e29d09aaaae9f0b13146b7b631"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-resume-14-terminal.json",
+      "index_blob": "97bb4b19890278db63e4260031e2c881b1935adf",
+      "worktree_sha256": "c325b3a372c4cca5706e0641885d0dcdf5f1c021cc90a8eadfbae8f11cf6829c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-resume-14-worker.console.txt",
+      "index_blob": "024ea4f27bc6b3d9455471babc03ab7708cdbe91",
+      "worktree_sha256": "f2a229f7922f7ec63c0252cec08e3d85de1166ada5a8828ca6cd4af1d1508150"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-fix-review-r4-addendum.md",
+      "index_blob": "03d629980b12b48e0d67c613660a964d079d08b7",
+      "worktree_sha256": "9865e3054fa3a23f81b6fd1c059fd29714bf83c72105eba1672f74dc6fbe11a9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-fix.md",
+      "index_blob": "c9701677a83a274525114d536654d8c0b66fc7ec",
+      "worktree_sha256": "c9b06efef7cfb10cfa31c9ce71a3509c89d8812fbc7b646bf43a5d062df33d81"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r2.json",
+      "index_blob": "a1961d9c6cf7dcd07c85689d7478da1c916b8f35",
+      "worktree_sha256": "26934bb4da466dbb85a68548415413cc7e786eb00a1141c6fffbbf04776ca210"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r2.md",
+      "index_blob": "354e14193b9b9cea07db218b3957e6ccb5f4a5d1",
+      "worktree_sha256": "4763a53629d1d29094611d6ec0cf156efb861af2adc51142727577c188f40aa4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r3.json",
+      "index_blob": "6e25c4827a0d5ce8acda77d91dc6bc3bcfe3ba4d",
+      "worktree_sha256": "ec1e7f1a5af26059ced2f06d292ba31bde6056d24021b3ca62052a8aead583c5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r3.md",
+      "index_blob": "ccce620d2b9e2444ded5eeeb37552a8e6772d1ec",
+      "worktree_sha256": "46aff6b9967aa145961430f3fad8b31b3dc702f74edd79da0df5d3d4478668af"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r4.json",
+      "index_blob": "a891be5cc099e43c750de42effc33fd33679c3c1",
+      "worktree_sha256": "c6f499d09edab1af109d2d05abc4fedb2876c48b1b02f315e644572e17ab6ab4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-r4.md",
+      "index_blob": "fe3f3f4794ddee7d38300c1ad06a66e752c2af9c",
+      "worktree_sha256": "a5d1907a8ad4411d2ca7d906867d7d76c3e255f427456fa347e79542cb901559"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-target-r1.json",
+      "index_blob": "125a2159293b98d686f95a53bbca98e61c22c5b5",
+      "worktree_sha256": "f011c6492473aabb3a9ed8e6323e870705eede28320b052a73d3aa2e054d0ba1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-target-r2.json",
+      "index_blob": "a63b60bdceb52947a06270307366037decebb5bb",
+      "worktree_sha256": "bb343ca4e34fc634c0fbdbcebc586470d182d2b828ea15a3dc430dfc56e4599b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-target-r3.json",
+      "index_blob": "f826146e41ff34b5e835200c34a0ccc49fc32b48",
+      "worktree_sha256": "210adf60357834b8c4e12503b00c1578833d9331b3dd3ed4d3c7c32174149963"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/terminal-handoff-and-report-evidence-path-review-target-r4.json",
+      "index_blob": "0f0a14773a90e9af011acf07e27b340987969284",
+      "worktree_sha256": "1476d687f26f60af85cb4a8103ff09a5206a72674e08d1a04e1280e7af660a5f"
+    }
+  ],
+  "excluded_untracked_raw_profile_logs": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round5-focused-green.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round5-focused-green.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round6-focused-green.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round6-focused-green.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round7-focused-green.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round7-focused-green.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-accepted-terminal-red.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-accepted-terminal-red.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-waiver-red.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/handoff-waiver-red.junit.xml"
+  ],
+  "redacted_evidence": "Ten raw pytest logs with local profile paths remain unchanged and unstaged. Redacted v1 copies are retained as R4 review evidence; five redacted v1 JUnit copies are malformed XML due a tag-like redaction placeholder. The raw originals parse; XML-safe v2 copies replace the profile marker with plain text and all five parse.",
+  "verification": {
+    "focused_pytest": "5 passed, 35 deselected, 14.70s (round9); both changed Python files compile.",
+    "scoped_diff_check": "exit 0 when immutable console/JUnit outputs are excluded.",
+    "full_diff_check": "exit 2, 122 findings, trailing whitespace in immutable pytest/JUnit output bytes; no source/document/JSON finding.",
+    "json": "19 staged JSON files parsed successfully before this audit pair.",
+    "junit": "17 staged JUnit files: 12 parse, five redacted v1 copies fail with mismatched tags; all five XML-safe v2 copies parse. Five profile-bearing raw originals parse and remain unstaged.",
+    "independent_product_review": "R4 approved with zero findings; exact current product source hashes match target. reporting.py renderer/allowlist remains out of scope.",
+    "r4_manifest": "One supplemental narrative local-evidence hash differs: FC10/terminal-handoff-and-report-evidence-path-fix.md. R4 source scope hashes match; addendum preserves R4 approval. See precommit-review-evidence-r4.json.",
+    "sensitive_scan": "No sensitive pattern in added staged lines. Three reserved-example email fixtures are unchanged from HEAD. No private-key or credential-assignment pattern in task additions.",
+    "worker_exclusion": "automation/inago/maintenance/worker.py still defines WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"})."
+  },
+  "audit_self_hash_note": "This JSON and paired Markdown are added after the 62-file selection listed above; their own resulting index objects are verified after staging."
+}

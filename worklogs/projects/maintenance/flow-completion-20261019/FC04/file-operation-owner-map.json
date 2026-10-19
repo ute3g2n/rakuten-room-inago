@@ -3750,6 +3750,73 @@
         "relevant skill/role",
         "F12 where changed"
       ]
+    },
+    {
+      "file": "automation/inago/maintenance/workflow_reconciliation.py",
+      "existence": "existing",
+      "owner": "FC10",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def _attempt_and_deployment_outputs; candidate success-output status check for complete/handoff_accepted and formal_output_observation gap/continue before failure_handoff fallback",
+        "baseline_line": 560,
+        "base_commit": "85b38ce89871c9152d15106b3ea6c0da049112c4"
+      },
+      "operation": "Read and hash-bind persisted output for both successful step-attempt terminal states complete and handoff_accepted. If a matching successful attempt has a missing/unreadable/hash-invalid output, retain a cause-bearing gap and do not substitute a failure handoff; keep failed/unknown outcomes on the validated content handoff path.",
+      "execution_order": 10,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC10/; same-job resume14 terminal readback",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC10 resume14 terminal artifact workflow-terminal/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-aceaf64b64d94f8d91d8a5d752897503.json",
+        "FC10 same-job-resume-14-attempt-runner.json",
+        "FC10 r2 independent review finding: invalid formal success output could be waived by a same-invocation failure handoff"
+      ],
+      "cases": [
+        "FCT10",
+        "FC-A10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/production_workflow.py",
+      "existence": "existing",
+      "owner": "FC10",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def _daily_report_prompt; evidence_ref field constraints for normal and review-driven author turns",
+        "baseline_line": 8258,
+        "base_commit": "85b38ce89871c9152d15106b3ea6c0da049112c4"
+      },
+      "operation": "Tell the integrated report author to place a single exact raw allowed path in each evidence_ref JSON field. The HTML renderer supplies the visible anchor label; do not combine labels, Markdown, or multiple refs in the path field. Apply to initial and reviewer-driven revision prompts.",
+      "execution_order": 10,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC10/; same-job report attempt and final publication",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC10 resume14 attempt 739f3463-3ca6-47cb-b0aa-affdd21132f9 reporter/reviewer output",
+        "FC10 failure-journal event fe1c2278be864ef3b8242c1e1b8b9f56 report_evidence_ref_not_allowed"
+      ],
+      "cases": [
+        "FCT09",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
     }
   ],
   "scope_extensions": [

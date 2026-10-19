@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.424" timestamp="2026-10-20T04:14:42.285417+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths" time="0.001"><failure message="assert 'exact path string copied from `report_input.evidence_refs`' in 'Create one clear Japanese incident report response for this exact daily maintenance job. Return the structured JSON w...-report-prompt&quot;}, &quot;prior_review_findings&quot;: [], &quot;report_input&quot;: {&quot;evidence_refs&quot;: [&quot;evidence/2026-10-17/source.json&quot;]}}'">def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
+        prompt = production_workflow._daily_report_prompt(
+            identity={"job_id": "fc10-report-prompt"},
+            report_input={"evidence_refs": ["evidence/2026-10-17/source.json"]},
+            prior_findings=[],
+        )
+    
+&gt;       assert "exact path string copied from `report_input.evidence_refs`" in prompt
+E       assert 'exact path string copied from `report_input.evidence_refs`' in 'Create one clear Japanese incident report response for this exact daily maintenance job. Return the structured JSON w...-report-prompt"}, "prior_review_findings": [], "report_input": {"evidence_refs": ["evidence/2026-10-17/source.json"]}}'
+
+tests_inago\test_maintenance_report_publication_stage.py:435: AssertionError</failure></testcase></testsuite></testsuites>

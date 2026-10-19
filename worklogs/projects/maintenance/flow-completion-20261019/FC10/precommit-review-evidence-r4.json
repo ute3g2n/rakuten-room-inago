@@ -1,0 +1,49 @@
+{
+  "schema_version": "fc10-precommit-review-evidence-audit-v1",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "review_target": {
+    "reference": "FC10/terminal-handoff-and-report-evidence-path-review-target-r4.json",
+    "expected_sha256": "1476d687f26f60af85cb4a8103ff09a5206a72674e08d1a04e1280e7af660a5f",
+    "actual_sha256": "1476d687f26f60af85cb4a8103ff09a5206a72674e08d1a04e1280e7af660a5f"
+  },
+  "review_result": {
+    "reference": "FC10/terminal-handoff-and-report-evidence-path-review-r4.json",
+    "sha256": "c6f499d09edab1af109d2d05abc4fedb2876c48b1b02f315e644572e17ab6ab4"
+  },
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": {
+      "expected": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b",
+      "actual": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b",
+      "match": true
+    },
+    "automation/inago/maintenance/workflow_reconciliation.py": {
+      "expected": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556",
+      "actual": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556",
+      "match": true
+    }
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": {
+      "expected": "efbd483fe73002ac442c8465aaec7632438c789b24177f3a2e66e3a7b67a1716",
+      "actual": "efbd483fe73002ac442c8465aaec7632438c789b24177f3a2e66e3a7b67a1716",
+      "match": true
+    }
+  },
+  "owner_map": {
+    "expected_sha256": "78d067d2b4e5f824ba2cfc3c155c092d593697c87e09bc82cf5cc1a8ff3869e8",
+    "actual_sha256": "78d067d2b4e5f824ba2cfc3c155c092d593697c87e09bc82cf5cc1a8ff3869e8",
+    "match": true
+  },
+  "local_evidence_mismatches": [
+    {
+      "reference": "FC10/terminal-handoff-and-report-evidence-path-fix.md",
+      "expected_sha256": "5ebb14de746d0a7630703f101263f66a5ae21ca52deb09c37b0f00894892acbe",
+      "actual_sha256": "c9b06efef7cfb10cfa31c9ce71a3509c89d8812fbc7b646bf43a5d062df33d81",
+      "exists": true
+    }
+  ],
+  "interpretation": "The independent R4 product review approved zero findings and its recorded product source hashes match the current code. The R4 target local-evidence manifest has a supplemental narrative hash drift for terminal-handoff-and-report-evidence-path-fix.md because a review-result note was added after target creation and the earlier text was then restored with one line ending rather than the exact snapshot bytes. The R4 addendum retains the review-result note. This is not a product-source change or a review-scope source mismatch; the full local-evidence manifest is not claimed to match."
+}

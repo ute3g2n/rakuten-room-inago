@@ -1,0 +1,5 @@
+$ C:\project\rakuten-room-inago\.venv-inago\Scripts\python.exe -B -m pytest tests_inago/test_maintenance_report_publication_stage.py::test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths tests_inago/test_maintenance_report_publication_stage.py::test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes tests_inago/test_maintenance_report_publication_stage.py::test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_required tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_review_changes_requested_then_approved] -q --junitxml=C:\project\rakuten-room-inago\worklogs\projects\maintenance\flow-completion-20261019\FC10\fc10-round4-focused-green.junit.xml
+.....                                                                    [100%]
+5 passed in 12.58s
+
+[exit=0]

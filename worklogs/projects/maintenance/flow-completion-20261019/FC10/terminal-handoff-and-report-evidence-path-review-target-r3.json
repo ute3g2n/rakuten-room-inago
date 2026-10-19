@@ -1,0 +1,67 @@
+{
+  "schema_version": "fc10-terminal-handoff-and-report-evidence-path-review-target-v3",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "85b38ce89871c9152d15106b3ea6c0da049112c4",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "e997bf52a2ec7b476bbf932897ece73fe7a71511e24374963e0d15a21353f30b",
+    "automation/inago/maintenance/workflow_reconciliation.py": "47159e8eaa55fb41fa43f63f7bb3443a75efb0c37ccf16cc721ab21913d32556"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "efbd483fe73002ac442c8465aaec7632438c789b24177f3a2e66e3a7b67a1716"
+  },
+  "owner_map_sha256": "78d067d2b4e5f824ba2cfc3c155c092d593697c87e09bc82cf5cc1a8ff3869e8",
+  "local_evidence": {
+    "FC10/handoff-accepted-terminal-green-focused.junit.xml": "93a9a1f63dc15863e4ef6602f1497b5892307fa9e3bef901798eaec28729c2e9",
+    "FC10/same-job-resume-14-resume.console.txt": "74062b4a11ecd2375c4d0d180ebcf54c9daa15e29d09aaaae9f0b13146b7b631",
+    "FC10/fc10-round8-focused-green.junit.xml": "ae7317e9aec495e271c815d24a5acc3e0e133fd29bdeebfeda10e8bc2de3fb5d",
+    "FC10/fc10-round5-focused-green.junit.xml": "0233622891876937214c558a1fc47e102afa9567a323e4bfc7d5925a79094e80",
+    "FC10/fc10-round5-focused-green.console.txt": "cbde3cc66fe1ac166bf255596c678b246fea6153888f30235d6eae10a03f4d7f",
+    "FC10/fc10-round7-focused-green.junit.xml": "3c765b6cd90b23e436376ef0ac744a47352485f6e485adb629ec5977506b2b01",
+    "FC10/handoff-waiver-red.console.txt": "514d332099e6ae277483c1d744b9281c52cfb21a4ee0e736eb472f8ff69b17fe",
+    "FC10/terminal-handoff-and-report-evidence-path-review-r2.json": "26934bb4da466dbb85a68548415413cc7e786eb00a1141c6fffbbf04776ca210",
+    "FC10/handoff-accepted-terminal-red.junit.xml": "d6e26f188d1fd3247694278649cc44d9a186da22c3101ac9ff3ed8c7d2a4fc1f",
+    "FC10/handoff-accepted-terminal-red.console.txt": "4a82eb653560fd2d2637a15c30ecfb2319b0e7aee261e18bc14852d2301d1ed3",
+    "FC10/report-prompt-path-red.junit.xml": "d959e82b353c7e5cc54d0530cf229bd83517f476a2a118cf2e5fe3cef62322c3",
+    "FC10/fc10-round8-focused-green.console.txt": "622ce544f3c1cff5413aacd70159582313ce0d48009c9e839c6762382b80a726",
+    "FC10/fc10-round6-focused-green.junit.xml": "9de51553afdd904c81cea412319a36290cfde0709a2c147094ce404114368e63",
+    "FC10/runtime-apply-85b38ce.json": "57107d182511589a4fb88af34e80285f8bc8f79e537a1b97d561cd25c9ab95e3",
+    "FC10/handoff-accepted-terminal-green-focused.console.txt": "99b35867a991bd4fce4dc26daa0ad227614a123abde79bc1252b1b28bee2cbfa",
+    "FC10/same-job-resume-14-worker.console.txt": "f2a229f7922f7ec63c0252cec08e3d85de1166ada5a8828ca6cd4af1d1508150",
+    "FC10/handoff-waiver-red.junit.xml": "b2f160b5ba3615a4c6a962bbc23fcc93800472e4ef5343d50f76e076a3cffebb",
+    "FC10/same-job-resume-14-terminal.json": "c325b3a372c4cca5706e0641885d0dcdf5f1c021cc90a8eadfbae8f11cf6829c",
+    "FC10/report-prompt-path-red.console.txt": "78fb630ec388b96513b0daebe78051fa0d65fa35e47a4977fbb89af31186b297",
+    "FC10/fc10-round6-focused-green.console.txt": "7bbb95152a61a90a76efec99cc73e48b75c2098644b800da7e060227117839d1",
+    "FC10/fc10-round7-focused-green.console.txt": "a00b20f52ed49d159cbe6c58ee575bbcafe45084829c5808c81a21827fb15efc",
+    "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html": "421c1d5bf69cb5371b9fa2984abf66a17eec8650e1762cf8371193d5b8098dcf",
+    "FC10/terminal-handoff-and-report-evidence-path-review-r2.md": "4763a53629d1d29094611d6ec0cf156efb861af2adc51142727577c188f40aa4",
+    "FC10/same-job-resume-14-readback.json": "08e5c963338819c0c07ae1545f9d879659471fe7fab65b41da3a1c0c4cb02d75"
+  },
+  "measured_findings": [
+    "Same-job resume14 ran the integrated reporter and independent reviewer. Seven review findings were returned, then reporter revision failed with report_evidence_ref_not_allowed because evidence_ref included Markdown labels and multiple links. The published local HTML is the unaccepted controller fallback, not the final report.",
+    "The original terminal gap was caused by a valid persisted investigation result whose step_attempt status was handoff_accepted; the terminal reader had accepted only complete.",
+    "Fresh independent review r2 found that an identity-matching successful attempt with an invalid output could fall through to a valid failure handoff and still satisfy terminal output. The correction now preserves a cause-bearing gap and skips that handoff path.",
+    "Focused regression coverage includes success output readback, tampered handoff_accepted output plus valid failure handoff, strict failed-stage handoffs, crash/publication reconciliation, and the report author path prompt."
+  ],
+  "review_scope": [
+    "Verify terminal reconciliation reads and hash-verifies persisted output for complete and handoff_accepted, exact job/source_run identity, and emits completed_attempt_output only after successful readback.",
+    "Verify a matching successful attempt with a missing/unreadable/hash-invalid output remains incomplete with a cause-bearing gap and cannot be replaced by any failure handoff.",
+    "Verify non-success failed/unknown attempts still require strict same-invocation identity-bound content-bearing failure handoffs.",
+    "Verify normal and reviewer-driven author turns share the exact raw allowed path prompt and do not loosen report evidence-validation wiring in the changed production source."
+  ],
+  "scope_limitations": [
+    "The actual report evidence allowlist validator and HTML renderer are in reporting.py, outside this review target; do not claim their internals were reviewed. Prior review finding and this limit are preserved in FC10/terminal-handoff-and-report-evidence-path-review-r2.json."
+  ],
+  "review_constraints": {
+    "read_tests": false,
+    "run_tests": false,
+    "edit_files": false,
+    "production_operations": false,
+    "independent_product_code_only": true
+  },
+  "created_at_utc": "2026-10-19T19:21:35.8650543Z"
+}

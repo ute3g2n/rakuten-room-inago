@@ -1,0 +1,89 @@
+{
+  "recorded_at_utc": "2026-10-19T19:09:56.160127+00:00",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "target_date": "2026-10-17",
+  "source_run_id": null,
+  "operations": [
+    {
+      "operation": "resume_same_job",
+      "command": [
+        "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "automation.inago.maintenance.cli",
+        "--data-root",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+        "resume-worker",
+        "--job-id",
+        "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+      ],
+      "started_at_utc": "2026-10-19T19:08:34.600911+00:00",
+      "ended_at_utc": "2026-10-19T19:08:35.018078+00:00",
+      "returncode": 2,
+      "stdout": "",
+      "stderr": "usage: inago-maintenance resume-worker [-h] --source-launch-id\n                                       SOURCE_LAUNCH_ID [--job-id JOB_ID]\n                                       [--expected-reason-code EXPECTED_REASON_CODE]\ninago-maintenance resume-worker: error: the following arguments are required: --source-launch-id\n"
+    },
+    {
+      "operation": "worker_exact_source_launch",
+      "command": [
+        "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "automation.inago.maintenance.cli",
+        "--data-root",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+        "worker",
+        "--once",
+        "--source-launch-id",
+        "historical-9e7f0c175cc4c874c955a5dab29c4427"
+      ],
+      "started_at_utc": "2026-10-19T19:08:35.019079+00:00",
+      "ended_at_utc": "2026-10-19T19:08:36.112380+00:00",
+      "returncode": 0,
+      "stdout": "{\"check_id\": null, \"duplicate\": false, \"maintenance_resolution_status\": \"not_started\", \"queue_id\": null, \"reason_code\": null, \"schema_version\": \"maintenance-worker-result-v2\", \"scope\": \"dispatch_only\", \"source_launch_id\": null, \"status\": \"idle\", \"worker_job_id\": null}\n",
+      "stderr": ""
+    },
+    {
+      "operation": "resume_same_job_retry2",
+      "command": [
+        "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "automation.inago.maintenance.cli",
+        "--data-root",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+        "resume-worker",
+        "--source-launch-id",
+        "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "--job-id",
+        "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+      ],
+      "started_at_utc": "2026-10-19T19:08:49.536989+00:00",
+      "ended_at_utc": "2026-10-19T19:08:50.368428+00:00",
+      "returncode": 0,
+      "stdout": "{\"job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\", \"resume_count\": 14, \"resume_event_id\": \"6dcf42d7f2c945baa187b4189db1ad75\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"queued\"}\n",
+      "stderr": ""
+    },
+    {
+      "operation": "worker_exact_source_launch_retry3",
+      "command": [
+        "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "automation.inago.maintenance.cli",
+        "--data-root",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+        "worker",
+        "--once",
+        "--source-launch-id",
+        "historical-9e7f0c175cc4c874c955a5dab29c4427"
+      ],
+      "started_at_utc": "2026-10-19T19:08:50.375429+00:00",
+      "ended_at_utc": "2026-10-19T19:09:56.150940+00:00",
+      "returncode": 0,
+      "stdout": "{\"check_id\": \"d8178c1e-61fb-4a53-a4e5-0216722fda1b\", \"duplicate\": false, \"maintenance_resolution_status\": \"incomplete\", \"queue_id\": null, \"reason_code\": \"historical_job_completion_unrecorded\", \"schema_version\": \"maintenance-worker-result-v3\", \"scope\": \"maintenance_workflow\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"maintenance_incomplete\", \"worker_job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\"}\n",
+      "stderr": ""
+    }
+  ]
+}

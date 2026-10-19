@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.183" timestamp="2026-10-20T04:19:31.210567+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc10_invalid_handoff_accepted_output_cannot_be_waived_by_failure_handoff" time="3.753"><failure message="AssertionError: assert 'complete' != 'complete'">tmp_path = WindowsPath('C:/Users/REDACTED_PROFILE/AppData/Local/Temp/pytest-of-REDACTED_PROFILE/pytest-1609/test_fc10_invalid_handoff_acce0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000197575CE3F0&gt;
+
+    def test_fc10_invalid_handoff_accepted_output_cannot_be_waived_by_failure_handoff(
+        tmp_path: Path, monkeypatch
+    ):
+        fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+        _fc08_crash_after_publish(fixture)
+        store = fixture["store"]
+        investigation_attempt = next(
+            attempt
+            for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+            if attempt.sequence == 1
+        )
+        attempt_output = (
+            store.database_path.parent
+            / "attempts"
+            / investigation_attempt.job_id
+            / investigation_attempt.attempt_id
+            / "result.json"
+        )
+        attempt_output.write_text('{"tampered":true}\n', encoding="utf-8")
+        connection = store._connect()
+        try:
+            connection.execute(
+                "UPDATE step_attempt SET status = 'handoff_accepted' WHERE attempt_id = ?",
+                (investigation_attempt.attempt_id,),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+    
+        handoff_root = (
+            store.database_path.parent.parent
+            / "workflow-handoffs"
+            / fixture["identity"]["job_id"]
+            / fixture["invocation_id"]
+        )
+        handoff_path = handoff_root / "investigation.json"
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["operation_result"] = "failed"
+        handoff["reason_code"] = "investigation_failed_after_output_corruption"
+        handoff["content_result"] = {
+            "summary": "The investigation handoff exists, but its successful attempt output failed hash verification.",
+            "next_actions": ["Keep the terminal incomplete and continue recovery."],
+        }
+        handoff_path.write_text(
+            json.dumps(handoff, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    
+        reopened = MaintenanceStore(
+            store.database_path.parent.parent,
+            daily_database_path=fixture["daily_database_path"],
+        )
+        reopened.initialize()
+        resumed_lease = reopened.acquire_lease(
+            lease_key=f"maintenance:{fixture['identity']['job_id']}",
+            owner_id="fc10-invalid-success-output-reconciler",
+            owner_pid=os.getpid(),
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        monkeypatch.setattr(
+            workflow_reconciliation_module,
+            "__file__",
+            str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+        )
+        terminal = reconcile_workflow_terminal(
+            reopened,
+            job_id=fixture["identity"]["job_id"],
+            lease=resumed_lease,
+            expected_identity=fixture["identity"],
+        )
+    
+&gt;       assert terminal["workflow_completion"] != "complete"
+E       AssertionError: assert 'complete' != 'complete'
+
+tests_inago\test_maintenance_report_publication_stage.py:721: AssertionError</failure></testcase></testsuite></testsuites>
