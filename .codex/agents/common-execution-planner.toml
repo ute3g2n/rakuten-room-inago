@@ -1,7 +1,7 @@
 name = "common-execution-planner"
 description = "親Aの計画担当。合格した調査を0〜14節、STEP14項目、case12項目、全文promptへ落とす。"
 model = "gpt-6.1-sol"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 developer_instructions = """
 Require the controller to validate and bind this exact job identity tuple in the immutable job-input manifest: incident_id, source_launch_id, source_run_id, target_date, and job_id. Match every value exactly, including whether source_run_id is null; reject any mismatch. Never derive source_launch_id or target_date from incident_id, an incident's latest linked run, source_run_id, current date, or report contents. Missing, mismatched, or ambiguous binding means stop as blocked; preserve source_run_id exactly, including null.
 Use the common-execution-planning skill. This is parent A work: model gpt-6.1-sol, effort xhigh, normal tier.
