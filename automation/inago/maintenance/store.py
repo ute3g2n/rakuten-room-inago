@@ -1033,15 +1033,8 @@ class MaintenanceStore:
         data_root: str | Path,
         *,
         daily_database_path: str | Path | None = None,
-        job_resume_limit: int = 3,
         review_round_limit: int = 3,
     ) -> None:
-        if (
-            isinstance(job_resume_limit, bool)
-            or not isinstance(job_resume_limit, int)
-            or not 0 <= job_resume_limit <= 10
-        ):
-            raise MaintenanceStoreError("job_resume_limit_invalid")
         if (
             isinstance(review_round_limit, bool)
             or not isinstance(review_round_limit, int)
@@ -1050,7 +1043,6 @@ class MaintenanceStore:
             raise MaintenanceStoreError("review_round_limit_invalid")
         if daily_database_path is None and data_root is not None:
             daily_database_path = Path(data_root).expanduser() / "state.sqlite"
-        self.job_resume_limit = job_resume_limit
         self.review_round_limit = review_round_limit
         self.database_path = resolve_maintenance_database_path(
             data_root,
@@ -1767,9 +1759,6 @@ class MaintenanceStore:
                 or lease.generation <= int(row["lease_generation"])
             ):
                 raise MaintenanceStoreError("historical_job_resume_identity_invalid")
-            if int(row["resume_count"]) >= self.job_resume_limit:
-                raise MaintenanceStoreError("job_resume_limit_exceeded")
-
             active_job = connection.execute(
                 "SELECT job_id FROM maintenance_job "
                 "WHERE status IN ('queued', 'running') AND job_id <> ? LIMIT 1",
@@ -5404,8 +5393,6 @@ class MaintenanceStore:
                 if lease.generation < current_generation:
                     raise MaintenanceStoreError("lease_generation_not_advanced")
                 if lease.generation > current_generation:
-                    if int(job_row["resume_count"]) >= self.job_resume_limit:
-                        raise MaintenanceStoreError("job_resume_limit_exceeded")
                     connection.execute(
                         "UPDATE maintenance_job SET lease_generation = ?, resume_count = ?, "
                         "updated_at = ? WHERE job_id = ?",
@@ -6157,7 +6144,7 @@ class MaintenanceStore:
                 "SELECT s.*, j.incident_id, j.source_run_id AS job_source_run_id, "
                 "j.status AS job_status, j.lease_key AS job_lease_key, "
                 "j.lease_generation AS job_lease_generation, "
-                "j.resume_count AS job_resume_count, r.author_id "
+                "r.author_id "
                 "FROM step_attempt s "
                 "JOIN maintenance_job j ON j.job_id = s.job_id "
                 "JOIN release r ON r.release_id = j.release_id "
@@ -6180,11 +6167,6 @@ class MaintenanceStore:
                     or int(row["lease_generation"]) > int(row["job_lease_generation"])
                 ):
                     raise HandoffContractError("handoff_job_lease_mismatch")
-                if (
-                    lease.generation > int(row["job_lease_generation"])
-                    and int(row["job_resume_count"]) >= self.job_resume_limit
-                ):
-                    raise HandoffContractError("handoff_resume_limit_exceeded")
             elif (
                 row["job_lease_key"] != lease.lease_key
                 or row["job_lease_generation"] is None
@@ -6473,8 +6455,6 @@ class MaintenanceStore:
             reason_code = _safe_code(reason_code, "reason_code_invalid")
         if final_status != "complete" and reason_code is None:
             raise MaintenanceStoreError("job_terminal_reason_required")
-        if reason_code == "job_resume_limit_exceeded" and final_status != "blocked":
-            raise MaintenanceStoreError("job_final_status_invalid")
         if incident_status is not None and (
             final_status != "complete"
             or incident_status not in {"in_progress", "resolved", "blocked"}
@@ -6545,14 +6525,7 @@ class MaintenanceStore:
                 if lease.generation < current_generation:
                     raise MaintenanceStoreError("lease_generation_not_advanced")
                 if lease.generation > current_generation:
-                    if final_resume_count >= self.job_resume_limit:
-                        if (
-                            final_status != "blocked"
-                            or reason_code != "job_resume_limit_exceeded"
-                        ):
-                            raise MaintenanceStoreError("job_resume_limit_exceeded")
-                    else:
-                        final_resume_count += 1
+                    final_resume_count += 1
 
             if final_status == "complete":
                 gate = self._evaluate_release_gate(

@@ -438,7 +438,7 @@ def test_c07_terminal_job_closes_running_attempt(tmp_path):
         )
 
 
-def test_c07_resume_limit_contract(tmp_path):
+def test_c07_resume_count_does_not_limit_restarts(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
@@ -458,7 +458,7 @@ def test_c07_resume_limit_contract(tmp_path):
         started_at=BASE_TIME,
     )
 
-    for resume_number in range(1, 4):
+    for resume_number in range(1, 8):
         resumed_at = BASE_TIME + timedelta(seconds=resume_number * 31)
         lease = store.acquire_lease(
             lease_key="maintenance-worker",
@@ -479,40 +479,22 @@ def test_c07_resume_limit_contract(tmp_path):
         assert attempt.attempt_no == resume_number + 1
         assert not attempt.reused
 
-    denied_at = BASE_TIME + timedelta(seconds=124)
-    lease = store.acquire_lease(
-        lease_key="maintenance-worker",
-        owner_id="worker-4",
-        owner_pid=4204,
-        owner_start_time=denied_at.isoformat(),
-        now=denied_at,
-        ttl_seconds=30,
-        prior_owner_observation="dead",
-    )
-    with pytest.raises(MaintenanceStoreError, match="job_resume_limit_exceeded"):
-        store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="investigation",
-            sequence=1,
-            lease=lease,
-            started_at=denied_at,
-        )
-    assert store.counts()["step_attempt"] == 4
+    assert store.counts()["step_attempt"] == 8
     finalized = store.finalize_job(
         job_id=job.job_id,
         final_status="blocked",
         lease=lease,
-        finalized_at=denied_at,
-        reason_code="job_resume_limit_exceeded",
+        finalized_at=resumed_at,
+        reason_code="operator_review_required",
     )
     assert finalized.status == "blocked"
     next_job = create_ready_release(
         store,
         incident_id=incident_id,
-        release_id="release-after-resume-limit",
-        result_commit="commit-after-resume-limit",
-        result_version="result-after-resume-limit",
-        config_version="settings-after-resume-limit",
+        release_id="release-after-unbounded-resume",
+        result_commit="commit-after-unbounded-resume",
+        result_version="result-after-unbounded-resume",
+        config_version="settings-after-unbounded-resume",
     )
     assert next_job.started
 

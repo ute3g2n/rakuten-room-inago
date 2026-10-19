@@ -172,7 +172,6 @@ def _store_for(
             if args.daily_database
             else data_root / "state.sqlite"
         ),
-        job_resume_limit=settings.job_resume_limit,
         review_round_limit=settings.review_round_limit,
     )
     if initialize:

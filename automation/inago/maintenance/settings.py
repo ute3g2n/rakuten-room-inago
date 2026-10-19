@@ -23,7 +23,7 @@ class MaintenanceSettings:
     """Approved settings for maintenance jobs; these do not configure daily runs."""
 
     schema_version: int = 1
-    settings_version: str = "1.1"
+    settings_version: str = "1.3"
     timezone: str = "Asia/Tokyo"
     code_fix_concurrency: int = 1
     lease_heartbeat_seconds: int = 30
@@ -32,23 +32,20 @@ class MaintenanceSettings:
     cancellation_confirmation_timeout_seconds: int = 60
     request_retry_limit: int = 2
     review_round_limit: int = 5
-    job_resume_limit: int = 4
     diagnostic_log_retention_days: int = 90
     diagnostic_log_max_file_bytes: int = 4 * 1024 * 1024
 
 
 _DEFAULT_SETTINGS = MaintenanceSettings()
 _SETTING_KEYS = frozenset(asdict(_DEFAULT_SETTINGS))
-_PREVIOUS_SETTINGS = asdict(
-    MaintenanceSettings(
-        settings_version="1.0",
-        review_round_limit=3,
-        job_resume_limit=3,
-    )
+_PREVIOUS_SETTINGS = tuple(
+    asdict(MaintenanceSettings(settings_version=version, review_round_limit=rounds))
+    for version, rounds in (("1.0", 3), ("1.1", 5), ("1.2", 5))
 )
 _LEGACY_LOG_FILE_COUNT_KEY = "diagnostic_log_max_files_per_day"
 _LEGACY_LOG_FILE_COUNT_VALUE = 20
-_LEGACY_SETTING_KEYS = _SETTING_KEYS | {_LEGACY_LOG_FILE_COUNT_KEY}
+_LEGACY_JOB_RESUME_LIMIT_KEY = "job_resume_limit"
+_LEGACY_JOB_RESUME_LIMITS = {"1.0": 3, "1.1": 4, "1.2": 5}
 _MAX_SETTINGS_BYTES = 16 * 1024
 
 
@@ -59,24 +56,35 @@ def default_settings_document() -> dict[str, Any]:
 
 
 def validate_settings_document(value: object) -> MaintenanceSettings:
-    """Accept the current settings and normalize the approved previous version."""
+    """Validate current settings and ignore approved legacy limit fields."""
 
     if not isinstance(value, dict):
         raise MaintenanceSettingsError("settings_schema_invalid")
     normalized = dict(value)
-    if set(normalized) == _LEGACY_SETTING_KEYS:
+    if _LEGACY_LOG_FILE_COUNT_KEY in normalized:
         legacy_limit = normalized.pop(_LEGACY_LOG_FILE_COUNT_KEY)
         if (
             type(legacy_limit) is not int
             or legacy_limit != _LEGACY_LOG_FILE_COUNT_VALUE
         ):
             raise MaintenanceSettingsError("settings_value_unapproved")
-    elif set(normalized) != _SETTING_KEYS:
+    if _LEGACY_JOB_RESUME_LIMIT_KEY in normalized:
+        legacy_resume_limit = normalized.pop(_LEGACY_JOB_RESUME_LIMIT_KEY)
+        settings_version = normalized.get("settings_version")
+        if not isinstance(settings_version, str):
+            raise MaintenanceSettingsError("settings_schema_invalid")
+        expected_limit = _LEGACY_JOB_RESUME_LIMITS.get(settings_version)
+        if (
+            type(legacy_resume_limit) is not int
+            or legacy_resume_limit != expected_limit
+        ):
+            raise MaintenanceSettingsError("settings_value_unapproved")
+    if set(normalized) != _SETTING_KEYS:
         raise MaintenanceSettingsError("settings_schema_invalid")
     expected = default_settings_document()
     if any(type(normalized[key]) is not type(expected[key]) for key in _SETTING_KEYS):
         raise MaintenanceSettingsError("settings_value_type_invalid")
-    if normalized == _PREVIOUS_SETTINGS:
+    if normalized in _PREVIOUS_SETTINGS:
         return _DEFAULT_SETTINGS
     if normalized != expected:
         raise MaintenanceSettingsError("settings_value_unapproved")

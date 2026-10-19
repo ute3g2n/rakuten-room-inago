@@ -441,7 +441,42 @@ class MaintenanceAIAdapter:
             raise MaintenanceAIBlockedError("cwd_out_of_scope")
 
         policy = self._sandbox_policy(parent_key=parent_key, role_name=role_name)
-        session_key = f"{parent_key}:{role_name}"
+        session_config_sha256 = hashlib.sha256(
+            json.dumps(
+                {
+                    "effort": effort,
+                    "fast_mode": fast_mode,
+                    "manifest_sha256": manifest.manifest_sha256,
+                    "model": model,
+                    "parent_key": parent_key,
+                    "role_config_sha256": role_config_sha256,
+                    "role_name": role_name,
+                    "sandbox": policy,
+                    "service_tier": tier,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+
+        def matches_session_config(
+            session: AIParentSessionRecord | None,
+        ) -> bool:
+            return session is None or self._stored_session_matches(
+                session,
+                parent_key=parent_key,
+                role_name=role_name,
+                manifest=manifest,
+                model=model,
+                effort=effort,
+                tier=tier,
+                fast_mode=fast_mode,
+                role_config_sha256=role_config_sha256,
+                sandbox=policy,
+            )
+
+        base_session_key = f"{parent_key}:{role_name}"
+        session_key = base_session_key
         try:
             stored = self.controller.get_ai_parent_session(
                 job_id=job_id,
@@ -449,25 +484,30 @@ class MaintenanceAIAdapter:
             )
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
-        if stored is not None and not self._stored_session_matches(
-            stored,
-            parent_key=parent_key,
-            role_name=role_name,
-            manifest=manifest,
-            model=model,
-            effort=effort,
-            tier=tier,
-            fast_mode=fast_mode,
-            role_config_sha256=role_config_sha256,
-            sandbox=policy,
-        ):
-            raise MaintenanceAIBlockedError("session_config_mismatch")
-        log_path = (
-            self.logs_root
-            / manifest.target_date
-            / manifest.job_id
-            / f"{parent_key}--{role_name}.jsonl"
-        )
+        if not matches_session_config(stored):
+            if stored is not None and (
+                stored.parent_key != parent_key
+                or stored.role_name != role_name
+                or stored.manifest_sha256 != manifest.manifest_sha256
+            ):
+                raise MaintenanceAIBlockedError("session_config_mismatch")
+            # Session rows are immutable. Keep the old conversation for audit,
+            # and use a separate key when role instructions or session settings
+            # have changed instead of trying to resume it under new settings.
+            session_key = f"{base_session_key}:cfg-{session_config_sha256}"
+            try:
+                stored = self.controller.get_ai_parent_session(
+                    job_id=job_id,
+                    session_key=session_key,
+                )
+            except MaintenanceStoreError as exc:
+                raise MaintenanceAIBlockedError(exc.code) from exc
+            if not matches_session_config(stored):
+                raise MaintenanceAIBlockedError("session_config_mismatch")
+        log_name = f"{parent_key}--{role_name}.jsonl"
+        if session_key != base_session_key:
+            log_name = f"{parent_key}--{role_name}--{session_config_sha256}.jsonl"
+        log_path = self.logs_root / manifest.target_date / manifest.job_id / log_name
         return MaintenanceAISessionPlan(
             manifest=manifest,
             attempt_id=attempt.attempt_id,
@@ -669,7 +709,9 @@ class MaintenanceAISession:
         status = (
             "blocked"
             if mismatch
-            else "verified" if complete else "configured_unverified"
+            else "verified"
+            if complete
+            else "configured_unverified"
         )
         reason = (
             "runtime_setting_mismatch"

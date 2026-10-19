@@ -525,6 +525,9 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
             assert job_id == identity["job_id"]
             return base_commit
 
+        def get_latest_deployed_commit(self):
+            return base_commit
+
         def get_repair_host_review_execution(self, *, host_receipt_id):
             assert host_receipt_id == host_execution.host_receipt_id
             return host_execution
@@ -567,8 +570,17 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
         lambda _root, _base: (product_path, test_path),
     )
 
+    workflow_context = SimpleNamespace(
+        launch=SimpleNamespace(
+            source_launch_id=identity["source_launch_id"],
+            target_date=identity["target_date"],
+            source_run_id=identity["source_run_id"],
+        ),
+        historical_input=None,
+    )
     handoff, handoff_path, handoff_sha256 = workflow._ensure_daily_repair_handoff(
         store=fake_store,
+        workflow=workflow_context,
         attempt=attempt,
         identity=identity,
         result_document=result,
@@ -586,6 +598,7 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
         resumed_sha256,
     ) = workflow._ensure_daily_repair_handoff(
         store=fake_store,
+        workflow=workflow_context,
         attempt=attempt,
         identity=identity,
         result_document=result,
@@ -599,6 +612,7 @@ def test_repair_handoff_is_hash_bound_and_resumable(tmp_path, monkeypatch):
     with pytest.raises(workflow.RepairContractError):
         workflow._ensure_daily_repair_handoff(
             store=fake_store,
+            workflow=workflow_context,
             attempt=attempt,
             identity=identity,
             result_document=result,
