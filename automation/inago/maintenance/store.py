@@ -71,6 +71,11 @@ _MIGRATIONS = {
         "remove incident and lease gates from explicit job start and resume",
     ),
 }
+# Migration 12 rebuilds maintenance_job, a parent table referenced by several
+# existing tables. SQLite keeps deferred-FK counters from DROP TABLE even after
+# the replacement table is restored, so this migration checks the final schema
+# with foreign_key_check while enforcement is temporarily disabled.
+_MIGRATIONS_REQUIRING_FOREIGN_KEY_CHECK = frozenset({12})
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 _ERROR_CLASS_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
@@ -1132,26 +1137,51 @@ class MaintenanceStore:
                 if not migration_path.is_file():
                     raise UnknownMaintenanceSchemaError("migration_missing")
                 migration_text = migration_path.read_text(encoding="utf-8")
-                connection.execute("BEGIN IMMEDIATE")
-                statement = ""
-                for line in migration_text.splitlines(keepends=True):
-                    statement += line
-                    if sqlite3.complete_statement(statement):
-                        connection.execute(statement)
-                        statement = ""
-                if statement.strip():
-                    raise UnknownMaintenanceSchemaError("migration_incomplete")
-                connection.execute(
-                    "INSERT INTO schema_migration (version, applied_at, description) "
-                    "VALUES (?, ?, ?)",
-                    (
-                        migration_version,
-                        _timestamp(applied_at or datetime.now(timezone.utc)),
-                        migration_description,
-                    ),
+                check_foreign_keys = (
+                    migration_version in _MIGRATIONS_REQUIRING_FOREIGN_KEY_CHECK
                 )
-                connection.execute(f"PRAGMA user_version = {migration_version}")
-                connection.commit()
+                if check_foreign_keys:
+                    connection.execute("PRAGMA foreign_keys = OFF")
+                try:
+                    connection.execute("BEGIN IMMEDIATE")
+                    statement = ""
+                    for line in migration_text.splitlines(keepends=True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            connection.execute(statement)
+                            statement = ""
+                    if statement.strip():
+                        raise UnknownMaintenanceSchemaError("migration_incomplete")
+                    if check_foreign_keys:
+                        integrity = connection.execute("PRAGMA quick_check").fetchone()[
+                            0
+                        ]
+                        if integrity != "ok":
+                            raise UnknownMaintenanceSchemaError(
+                                "database_integrity_failed"
+                            )
+                        if connection.execute("PRAGMA foreign_key_check").fetchone():
+                            raise UnknownMaintenanceSchemaError(
+                                "migration_foreign_key_check_failed"
+                            )
+                    connection.execute(
+                        "INSERT INTO schema_migration (version, applied_at, description) "
+                        "VALUES (?, ?, ?)",
+                        (
+                            migration_version,
+                            _timestamp(applied_at or datetime.now(timezone.utc)),
+                            migration_description,
+                        ),
+                    )
+                    connection.execute(f"PRAGMA user_version = {migration_version}")
+                    connection.commit()
+                except Exception:
+                    if connection.in_transaction:
+                        connection.rollback()
+                    raise
+                finally:
+                    if check_foreign_keys:
+                        connection.execute("PRAGMA foreign_keys = ON")
                 version = migration_version
             self._assert_schema(connection)
             integrity = connection.execute("PRAGMA quick_check").fetchone()[0]
