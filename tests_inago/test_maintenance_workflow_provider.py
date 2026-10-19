@@ -53,6 +53,7 @@ from automation.inago.maintenance.workflow_provider import (
     WorkflowResumeState,
     WorkflowStageResult,
 )
+from automation.inago.maintenance.stage_handoff import make_stage_handoff
 from tests_inago.maintenance_support import (
     BASE_TIME,
     create_incident,
@@ -117,18 +118,55 @@ def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path)
         lease=lease,
         started_at=BASE_TIME,
     )
+    store.begin_step_attempt(
+        job_id="job-release-u21-0301",
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
 
     stage_calls = []
+    contexts = []
 
     def runner(stage_name):
         def run(context):
             stage_calls.append(stage_name)
+            contexts.append(context)
             if stage_name == "investigation":
                 assert context.resume_state.job is not None
                 assert context.resume_state.job.job_id == "job-release-u21-0301"
                 attempt = context.resume_state.latest_attempts_by_sequence[1]
                 assert attempt.step_key == "maintenance_investigation"
                 assert attempt.status == "running"
+            if stage_name == "planning":
+                attempt = context.resume_state.latest_attempts_by_sequence[2]
+                context.state["planning_stage_handoff"] = make_stage_handoff(
+                    stage="planning",
+                    invocation_id=context.state["invocation_id"],
+                    identity={
+                        "job_id": "job-release-u21-0301",
+                        "incident_id": incident_id,
+                        "source_launch_id": launch_id,
+                        "source_run_id": None,
+                        "target_date": "2026-10-17",
+                        "attempt_id": attempt.attempt_id,
+                    },
+                    operation="planning.author.run_turn_or_validate",
+                    operation_result="failed",
+                    summary="計画担当から回答が得られませんでした。",
+                    facts=["原因は回答失敗からは特定できません。"],
+                    limitations=["計画内容は未確認です。"],
+                    next_actions=["利用可能な記録から計画を続けます。"],
+                    input_refs=["input/plan-context.json"],
+                    output_refs=["attempts/author-failure.json"],
+                    error=RuntimeError("synthetic planner failure"),
+                    reason_code="ai_transport_failed",
+                    correlation_id="planner-correlation-1",
+                )
+                return WorkflowStageResult(
+                    status="unknown", reason_code="ai_transport_failed"
+                )
             if stage_name == "report":
                 return WorkflowStageResult(
                     status="blocked", reason_code="report_inputs_unavailable"
@@ -147,6 +185,30 @@ def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path)
     assert outcome.check_id == check.check_id
     assert outcome.reason_code == "report_inputs_unavailable"
     assert stage_calls == list(WORKFLOW_STAGE_ORDER)
+    context = contexts[-1]
+    planning_ref = (
+        store.database_path.parent.parent
+        / "workflow-handoffs"
+        / "job-release-u21-0301"
+        / context.state["invocation_id"]
+        / "planning.json"
+    )
+    planning_handoff = json.loads(planning_ref.read_text(encoding="utf-8"))
+    planning_attempt = next(
+        item
+        for item in store.list_step_attempts(job_id="job-release-u21-0301")
+        if item.step_key == "maintenance_planning"
+    )
+    assert planning_handoff["attempt_id"] == planning_attempt.attempt_id
+    assert "attempt_id" not in planning_handoff["identity"]
+    assert planning_handoff["reason_code"] == "ai_transport_failed"
+    assert planning_handoff["correlation_id"] == "planner-correlation-1"
+    assert any(
+        ref == "attempts/author-failure.json"
+        for ref in planning_handoff["output_refs"]
+    )
+    assert any(ref.endswith("/planning.json") for ref in planning_handoff["output_refs"])
+    assert planning_handoff["errors"][0]["exception_chain"] == ["RuntimeError"]
 
 
 def test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report(
@@ -376,7 +438,7 @@ def test_completed_job_resume_runs_only_report_stage(tmp_path):
     assert stage_calls == ["report"]
 
 
-def test_repair_worktree_is_pinned_and_resumable(tmp_path):
+def test_repair_execution_stays_in_fixed_root_and_preserves_existing_edits(tmp_path):
     project_root = tmp_path / "project"
     project_root.mkdir()
     subprocess.run(["git", "init", str(project_root)], check=True, capture_output=True)
@@ -415,24 +477,30 @@ def test_repair_worktree_is_pinned_and_resumable(tmp_path):
         text=True,
         encoding="utf-8",
     ).stdout.strip()
-    worktree_root = tmp_path / "runtime" / "worktrees" / "job-synthetic"
-    worktree_root.mkdir(parents=True)
-
+    fixed_root = project_root
     first_commit = production_workflow._ensure_repair_worktree(
         project_root=project_root,
-        worktree_root=worktree_root,
+        worktree_root=fixed_root,
         base_commit=base_commit,
     )
-    (worktree_root / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
+    (fixed_root / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
     resumed_commit = production_workflow._ensure_repair_worktree(
         project_root=project_root,
-        worktree_root=worktree_root,
+        worktree_root=fixed_root,
         base_commit=base_commit,
     )
 
     assert first_commit == base_commit
     assert resumed_commit == base_commit
-    assert (worktree_root / "module.py").read_text(encoding="utf-8") == "VALUE = 2\n"
+    assert (fixed_root / "module.py").read_text(encoding="utf-8") == "VALUE = 2\n"
+    status = subprocess.run(
+        ["git", "-C", str(fixed_root), "status", "--short"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout
+    assert status.strip() == "M module.py"
 
 
 def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
@@ -584,7 +652,9 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     assert store.get_job_input_manifest(job_id=jobs[0].job_id) == manifest
 
     monkeypatch.setattr(
-        production_workflow.shutil, "which", lambda _name: "C:/synthetic/codex.exe"
+        production_workflow,
+        "resolve_codex_executable",
+        lambda: "C:/synthetic/codex.exe",
     )
     investigation_result = prepare_daily_investigation_stage(
         context, MaintenanceController(store), store
@@ -781,7 +851,11 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     )
     assert author_result.status == "complete", (author_result.reason_code, fake_errors)
     assert len(created_sessions) == 1
-    assert context.state["investigation_response"] == response | {"status": "complete"}
+    assert context.state["investigation_response"] == response | {
+        "status": "complete",
+        "operation_result": "succeeded",
+        "artifact_origin": "agent",
+    }
     assert context.state["investigation_response_sha256"] == "c" * 64
     assert context.state["investigation_result_version"] == (
         f"investigation:{attempt.attempt_id}:v1"
@@ -795,14 +869,20 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         MaintenanceController(store),
         store,
     )
-    assert tampered_result.status == "blocked"
+    assert tampered_result.status == "unknown"
     assert (
         tampered_result.reason_code == "investigation_evidence_manifest_hash_mismatch"
     )
     assert len(created_sessions) == 1
-    assert "investigation_response" not in context.state
+    assert context.state["investigation_response"]["artifact_origin"] == "controller_fallback"
+    assert context.state["investigation_response"]["operation_result"] == "failed"
     manifest_path.write_bytes(manifest_bytes)
 
+    monkeypatch.setattr(
+        production_workflow,
+        "run_daily_investigation_author_stage",
+        lambda *_args, **_kwargs: tampered_result,
+    )
     complete_result = run_daily_investigation_stage(
         context,
         controller,
@@ -812,12 +892,19 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         complete_result.reason_code,
         fake_errors,
     )
-    assert len(created_sessions) == 3
+    assert len(created_sessions) == 2
+    assert created_sessions[-1].role_name == (
+        "rr-inago-incident-investigation-reviewer"
+    )
     outcome = context.state["investigation_outcome"]
     assert outcome.investigation_status == "complete"
     assert outcome.review_status == "changes_requested"
     assert outcome.next_action == "handoff"
     assert outcome.handoff is not None
+    assert context.state["investigation_stage_handoff"]["operation_result"] == "failed"
+    assert context.state["investigation_stage_handoff"]["reason_code"] == (
+        "investigation_evidence_manifest_hash_mismatch"
+    )
     completed_attempt = store.get_step_attempt(attempt_id=outcome.attempt_id)
     assert completed_attempt.status == "handoff_accepted"
     assert completed_attempt.output_path == (
@@ -836,7 +923,8 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         "MR-009",
         "MR-011",
         "MR-016",
-        "FACTREQ-" + hashlib.sha256(b"daily-failure-1").hexdigest()[:24],
+        "FACTREQ-"
+        + hashlib.sha256(b"investigation-fallback").hexdigest()[:24],
     ]
     assert planning_context["case_manifest"][1] == {
         "case_id": "C32",
@@ -1164,8 +1252,8 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         production_workflow, "repository_code_sha256", lambda _root: "c" * 64
     )
     product_file = context.state["repair_worktree_root"] / changed_product_path
-    product_file.parent.mkdir(parents=True, exist_ok=True)
-    product_file.write_bytes(b"synthetic candidate product code\n")
+    product_file_bytes = product_file.read_bytes()
+    product_file_sha256 = hashlib.sha256(product_file_bytes).hexdigest()
 
     class FakeRepairSession:
         def __init__(self, plan):
@@ -1257,10 +1345,9 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         changed_product_path
     ]
     assert saved_implementation_result["product_file_sha256"] == {
-        changed_product_path: hashlib.sha256(
-            b"synthetic candidate product code\n"
-        ).hexdigest()
+        changed_product_path: product_file_sha256
     }
+    assert product_file.read_bytes() == product_file_bytes
     for key in (
         "repair_author_response",
         "repair_author_output_path",
@@ -1299,7 +1386,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     implementation_bytes = implementation_result_path.read_bytes()
     implementation_result_path.write_bytes(implementation_bytes + b"tamper")
     tampered_author_result = run_daily_repair_author_stage(context, controller, store)
-    assert tampered_author_result.status == "blocked"
+    assert tampered_author_result.status == "unknown"
     assert (
         tampered_author_result.reason_code == "repair_implementation_artifact_invalid"
     )
@@ -1312,7 +1399,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         ),
     )
     unapproved_test_result = run_daily_repair_author_stage(context, controller, store)
-    assert unapproved_test_result.status == "blocked"
+    assert unapproved_test_result.status == "unknown"
     assert unapproved_test_result.reason_code == "repair_implementation_scope_mismatch"
 
     monkeypatch.setattr(
@@ -1447,10 +1534,33 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         store,
         repair_controller=FakeRepairCampaignController(),
     )
-    assert tampered_review_input_result.status == "blocked"
+    assert tampered_review_input_result.status == "unknown"
     assert (
         tampered_review_input_result.reason_code
         == "investigation_artifact_already_exists"
+    )
+    review_input_failure = context.state["repair_review_input_failure"]
+    assert review_input_failure["status"] == "unknown"
+    assert review_input_failure["artifact_save_failed"] is False
+    failure_ref = review_input_failure["artifact_ref"]
+    assert isinstance(failure_ref, dict)
+    failure_document = json.loads(
+        (
+            store.database_path.parent
+            / "attempts"
+            / failure_ref["path"]
+        ).read_text(encoding="utf-8")
+    )
+    assert failure_document["reason_code"] == tampered_review_input_result.reason_code
+    assert failure_document["cause"]["exception_chain"]
+    assert failure_document["capture_location"] == (
+        "run_daily_repair_review_input_stage"
+    )
+    repair_handoff = context.state["repair_stage_handoff"]
+    assert repair_handoff["operation_result"] == "failed"
+    assert failure_ref["path"] in repair_handoff["output_refs"]
+    assert repair_handoff["next_actions"] if "next_actions" in repair_handoff else (
+        repair_handoff["content_result"]["next_actions"]
     )
     review_input_path.write_bytes(review_input_bytes)
     saved_test_ledger = (

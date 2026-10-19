@@ -434,15 +434,35 @@ def controller_fallback_investigation_response(
     job = _validate_context(context)
     available = set(job["evidence_refs"])
     used_refs = [ref for ref in (checked_evidence_refs or []) if ref in available]
+    fallback_refs = used_refs or list(job["evidence_refs"][:1])
     response = {
         **{key: job[key] for key in _CONTEXT_FIELDS},
+        **{key: job[key] for key in _OPTIONAL_CONTEXT_FIELDS if key in job},
         "schema_version": INVESTIGATION_RESPONSE_SCHEMA_VERSION,
         "stage": "investigation",
         "summary": (
             "調査役の通常回答を取得できなかったため、確認範囲と不明点を"
             "管理側が記録しました。根本原因は未確認です。"
         ),
-        "facts": [],
+        "facts": [
+            {
+                "fact_id": "investigation-fallback",
+                "classification": "investigation",
+                "phase": "investigation",
+                "target_date": job["target_date"],
+                "operation": "調査担当の回答と利用可能な証拠を確認する",
+                "expected": "根本原因を判断できる事実を記録する",
+                "actual": (
+                    "調査担当の通常回答を取得または検証できず、"
+                    "この記録では根本原因を確認できません。"
+                ),
+                "impact": "修正が必要か、業務が回復したかは未確認です。",
+                "recovery": "未確認",
+                "cause_confidence": "unknown",
+                "cause_statement": None,
+                "evidence_refs": fallback_refs,
+            }
+        ],
         "investigation_limits": [
             "調査役の正常な構造化応答を取得できませんでした。",
             f"通常回答の失敗分類: {failure_reason}。例外の詳細は相関ログを参照してください。",
@@ -453,11 +473,11 @@ def controller_fallback_investigation_response(
             "原因が確認できない場合は、操作境界の記録を追加する具体案を計画してください。",
         ],
         "missing_evidence": [
-            "調査役の通常回答が得られなかったため、内容のある事実一覧は作成できませんでした。"
+            "調査役の通常回答が得られなかったため、根本原因を判断できる事実は確認できませんでした。"
         ],
         "review_required": True,
         "report_markdown": report_markdown,
-        "evidence_refs": used_refs,
+        "evidence_refs": fallback_refs,
         "artifact_origin": "controller_fallback",
         "operation_result": "failed",
         "fallback_reason_code": failure_reason,
@@ -670,7 +690,11 @@ def save_attempt_artifact(
             "repair-handoff.json",
             "result.json",
         },
-        "deployment": {"deployment-candidate.json", "deployment-result.json"},
+        "deployment": {
+            "deployment-candidate.json",
+            "deployment-not-performed.json",
+            "deployment-result.json",
+        },
         "report": {
             "report-input.json",
             "report-response.json",
@@ -692,8 +716,35 @@ def save_attempt_artifact(
         )
         is not None
     )
+    versioned_deployment_name = (
+        stage == "deployment"
+        and re.fullmatch(r"deployment-not-performed-[a-f0-9]{20}\.json", filename)
+        is not None
+    )
+    versioned_repair_failure_name = (
+        stage == "repair"
+        and re.fullmatch(r"repair-test-not-run-[a-f0-9]{20}\.json", filename)
+        is not None
+    )
+    versioned_repair_handoff_name = (
+        stage == "repair"
+        and re.fullmatch(r"repair-test-handoff-[a-f0-9]{20}\.json", filename)
+        is not None
+    )
+    versioned_repair_review_input_failure_name = (
+        stage == "repair"
+        and re.fullmatch(
+            r"repair-review-input-failed-[a-f0-9]{20}\.json", filename
+        )
+        is not None
+    )
     if stage not in allowed_names or (
-        filename not in allowed_names[stage] and not versioned_report_name
+        filename not in allowed_names[stage]
+        and not versioned_report_name
+        and not versioned_deployment_name
+        and not versioned_repair_failure_name
+        and not versioned_repair_handoff_name
+        and not versioned_repair_review_input_failure_name
     ):
         raise InvestigationContractError(f"{stage}_artifact_name_invalid")
     if isinstance(content, str):

@@ -5440,6 +5440,66 @@ class MaintenanceStore:
                 (version, output, digest, when, attempt),
             )
 
+    def fail_step_attempt(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        result_version: str,
+        failed_at: datetime | str,
+        output_path: str | None = None,
+        output_sha256: str | None = None,
+    ) -> None:
+        """Close a running attempt as failed while retaining its safe result ref."""
+
+        attempt = _safe_id(attempt_id, "attempt_id_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        when = _timestamp(failed_at)
+        if (output_path is None) != (output_sha256 is None):
+            raise MaintenanceStoreError("attempt_output_incomplete")
+        output = None if output_path is None else _relative_output_path(output_path)
+        digest = output_sha256
+        if digest is not None and (
+            not isinstance(digest, str) or not _SHA256_PATTERN.fullmatch(digest)
+        ):
+            raise MaintenanceStoreError("attempt_output_digest_invalid")
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT s.status, s.lease_key, s.lease_generation, s.job_id, "
+                "s.output_path, s.output_sha256, j.status AS job_status "
+                "FROM step_attempt s JOIN maintenance_job j ON j.job_id = s.job_id "
+                "WHERE s.attempt_id = ?",
+                (attempt,),
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("step_attempt_not_found")
+            if row["job_status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if row["status"] != "running":
+                raise MaintenanceStoreError("step_attempt_not_running")
+            if (
+                row["lease_key"] != lease.lease_key
+                or int(row["lease_generation"]) != lease.generation
+            ):
+                raise MaintenanceStoreError("step_attempt_lease_mismatch")
+            existing_output = row["output_path"]
+            existing_digest = row["output_sha256"]
+            if (existing_output is None) != (existing_digest is None):
+                raise MaintenanceStoreError("attempt_output_incomplete")
+            if existing_output is not None and output is not None and (
+                existing_output != output or existing_digest != digest
+            ):
+                raise MaintenanceStoreError("attempt_output_binding_conflict")
+            final_output = output if existing_output is None else existing_output
+            final_digest = digest if existing_output is None else existing_digest
+            connection.execute(
+                "UPDATE step_attempt SET status = 'failed', result_version = ?, "
+                "output_path = ?, output_sha256 = ?, finished_at = ? "
+                "WHERE attempt_id = ? AND status = 'running'",
+                (version, final_output, final_digest, when, attempt),
+            )
+
     def bind_running_repair_artifact(
         self,
         *,

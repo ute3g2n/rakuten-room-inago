@@ -866,6 +866,61 @@
       "capture_location": "read-only ownership audit Python hash assertion",
       "side_effect": "none; no file, index, runtime, or database was changed by the failed audit assertion",
       "recovery": "Verified the immutable creation-time copy at worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md; its SHA-256 is exactly e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381. Treat the current plan as an execution log that has intentionally accrued additions."
+    },
+    {
+      "operation": "read_git_upstream_with_unquoted_powershell_revision_token",
+      "failure_class": "PowerShellParserError",
+      "reason": "PowerShell parsed the unquoted Git @{u} revision expression as a hashtable before Git could read the tracking ref.",
+      "capture_location": "read-only exec_command parser before git rev-parse",
+      "side_effect": "none; no Git index, worktree, remote, runtime, or DB changed",
+      "recovery": "Repeated git rev-parse --symbolic-full-name with the revision in single quotes; it returned refs/remotes/origin/main.",
+      "recorded_at_utc": "2026-10-19T22:22:16Z"
+    },
+    {
+      "operation": "read_runtime_task_root_from_single_task_snapshot_row",
+      "failure_class": "DeploymentError",
+      "reason": "A read-only inspection passed one scheduled-task row to TaskSchedulerRuntimeSwitcher._working_directory, which correctly rejected the incomplete snapshot as runtime_task_roots_disagree.",
+      "capture_location": "read-only TaskSchedulerRuntimeSwitcher snapshot helper",
+      "side_effect": "none; Task Scheduler state was only read",
+      "recovery": "Passed the complete four-task snapshot to _active_identity; it returned the fixed root and active commit.",
+      "recorded_at_utc": "2026-10-19T22:22:16Z"
+    },
+    {
+      "operation": "count_same_launch_jobs_using_nonexistent_job_column",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The read-only audit queried source_launch_id from maintenance_job, but that table has no such column. The affected query returned no count.",
+      "capture_location": "read-only SQLite query wrapper over maintenance/state.sqlite",
+      "side_effect": "none; SQLite was opened in mode=ro and query_only was not changed",
+      "recovery": "Queried the exact maintenance_job.job_id row, job_input_manifest by its source_launch_id, incident_run by incident identity, and daily_launch/daily_result_observation by exact source_launch_id.",
+      "recorded_at_utc": "2026-10-19T22:22:16Z"
+    },
+    {
+      "operation": "capture_runtime_apply_command_completion",
+      "failure_class": "ExecSessionHandleNotForwarded",
+      "reason": "TaskSchedulerRuntimeSwitcher.activate(commit) followed by confirm_active(commit) ran longer than the exec wrapper’s 30-second wait, but the wrapper printed only output and exit_code and omitted the returned session_id. The command’s final stdout was therefore not captured.",
+      "capture_location": "functions.exec wrapper around exec_command",
+      "side_effect": "the official switcher operation did run; no job was resumed during it",
+      "recovery": "Read active task root/commit and persisted switch state separately, confirmed all four tasks were Ready/Enabled, then ran TaskSchedulerRuntimeSwitcher.healthy(commit) separately and got True. The fixed root and commit match the pushed code.",
+      "recorded_at_utc": "2026-10-19T22:22:16Z"
+    },
+    {
+      "operation": "read_report_attempt_listing_wrapper",
+      "failure_class": "JavaScriptSyntaxError",
+      "reason": "A functions.exec wrapper had a missing closing parenthesis while constructing a read-only PowerShell inventory command. No nested command started.",
+      "capture_location": "functions.exec isolate parser",
+      "side_effect": "none; no filesystem command or mutation ran",
+      "recovery": "Corrected the wrapper and read the exact attempt directory and reporter/reviewer response artifacts successfully.",
+      "recorded_at_utc": "2026-10-19T22:22:16Z"
+    },
+    {
+      "operation": "read_same_job_identity_and_attempts",
+      "attempted_reference": "maintenance_job.source_launch_id",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The current maintenance_job table has no source_launch_id column; identity is held in job_input_manifest.",
+      "capture_location": "controller read-only SQLite query",
+      "observed_at_utc": "2026-10-19T22:54:06Z",
+      "side_effect": "none; connection used mode=ro and PRAGMA query_only=ON",
+      "recovery": "Inspected current table columns, selected job fields that exist, and listed same-job attempts. A separate queue lookup by worker_job_id returned no rows."
     }
   ]
 }

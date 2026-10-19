@@ -69,6 +69,7 @@ def make_stage_handoff(
     correlation_id: str | None = None,
     artifact_origin: str = "controller_fallback",
     captured_at: str | None = None,
+    error_capture_location: str = "maintenance.stage_handoff.make_stage_handoff",
 ) -> dict[str, Any]:
     """Build a substantive handoff with operation outcome separate from progress."""
 
@@ -109,7 +110,7 @@ def make_stage_handoff(
             {
                 "operation": operation,
                 "reason_code": reason_code,
-                "capture_location": "maintenance.stage_handoff.make_stage_handoff",
+                "capture_location": error_capture_location,
                 **exception_details(error),
             }
         )
@@ -126,6 +127,7 @@ def record_stage_failure(
     reason_code: str,
     correlation_id: str | None = None,
     input_refs: tuple[str, ...] = (),
+    capture_location: str = "production_workflow.stage_boundary",
 ) -> Mapping[str, object]:
     """Write a safe correlated failure event; return an observation on loss."""
 
@@ -145,7 +147,7 @@ def record_stage_failure(
             attempt_id=_text(identity.get("attempt_id")),
             reason_code=reason_code,
             error=error,
-            capture_location="production_workflow.stage_boundary",
+            capture_location=capture_location,
             input_refs=input_refs,
         )
     except Exception as journal_error:  # the fallback sink must never mask work

@@ -542,6 +542,26 @@ class MaintenanceController:
             started_at=started_at,
         )
 
+    @audit_maintenance_stage("planning")
+    def fail_step_attempt(
+        self,
+        *,
+        attempt_id: str,
+        lease: LeaseToken,
+        result_version: str,
+        failed_at: datetime | str,
+        output_path: str | None = None,
+        output_sha256: str | None = None,
+    ) -> None:
+        self._store.fail_step_attempt(
+            attempt_id=attempt_id,
+            lease=lease,
+            result_version=result_version,
+            failed_at=failed_at,
+            output_path=output_path,
+            output_sha256=output_sha256,
+        )
+
     @audit_maintenance_stage("repair")
     def begin_repair_attempt(
         self,

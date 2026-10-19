@@ -18,15 +18,15 @@ job identity、target_date、利用可能なinvestigation version、plan version
 
 - 案件・対象日・作成時刻・実行版を区別する。
 - 報告本文の作成時刻はJSTで検証する。独立レビューの `reviewed_at` はISO-8601のtimezone-aware値を受け付けてJSTへ正規化し、timezoneがない値は受け付けない。
-- 事象一覧と詳細で区分（当日発生 / 調査で判明 / 試験で確認）、工程、操作、期待、実結果、影響、回復、原因の確度、変更後動作、試験範囲、根拠リンクを維持する。
-- 調査、作業場所での検証、release gate、反映、次回日次観測は個別の状態として表す。未実施は未実施、skip/errorはPASSでない。
-- HTMLは意味的見出し、症状の一覧と詳細、索引、相対リンク、狭幅/印刷向けCSS、pre/codeの改行・字下げ保持、未確認状態の視認性を含む。狭幅用に表を横scrollさせる場合も、印刷時は通常表表示へ戻して横overflowを解除する。
+- HTML本文では、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログと記録内容を分かる文章で示す。これらの事実に必要な背景だけを加える。
+- 試験・review・反映等の正確な機械状態はcontroller記録で保持する。本文に発生区分・試験分類ラベルや管理stage一覧を必須にしない。任意に書いたPASS/反映結果は事実と一致させる。
+- HTML本文は4点を平易な文章で読める形にする。管理用一覧や索引を本文に網羅する必要はない。
 - 内部fragment link（`href="#..."`）は最終HTML内の一致する`id`へ解決し、リンク先は一意でなければならない。
-- 工程表の対象版を参考付録へ案内する場合、source snapshot由来の各工程版とreport responseの個別check工程名・版を付録へすべて列挙する。参照先が実在しない版を「付録を参照」と表示しない。
+- 工程・版の対応表は内部のreport result/source snapshotに保持し、HTML本文のレビュー要件にしない。
 
 ## 出力・レビュー・再開
 
-reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerが内容、数値、版、リンク、秘密、HTML構造を読取確認する。reviewerの指摘は改善情報として返し、reporterは自分のresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。同じformal attempt内のresponse読取は、検証済みの全候補を返す。今回起動したauthor/reviewer turnはthread_idとturn_idの両方が一致する候補だけを一意に選ぶ。再開時の保存済みresponseはreport result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補だけを一意に選ぶ。一致なし・重複一致の場合は担当を起動し直し、以前のresponseやファイル名順を根拠に修正版を拒否しない。
+reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerは、発生した不具合、原因（不明を含む）、実施した修正、追加したトレース・ログと記録内容の4点を読取確認する。秘密・個人情報と、4点を隠すHTML表示上の問題も確認する。指摘はこの範囲の欠落・事実誤認・根拠のない断定・理解困難な表現に限り、reporterはresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。同じformal attempt内のresponse読取は、検証済みの全候補を返す。今回起動したauthor/reviewer turnはthread_idとturn_idの両方が一致する候補だけを一意に選ぶ。再開時の保存済みresponseはreport result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補だけを一意に選ぶ。一致なし・重複一致の場合は担当を起動し直し、以前のresponseやファイル名順を根拠に修正版を拒否しない。
 
 入力/リンク/版が欠けても、解決できる範囲でHTMLを作成し、欠測と未完了を明記する。review statusや不足を後続stageのgateにしない。公開操作が実行できなくてもHTML作成とreport保存を続け、公開不能の理由をreportへ記録する。
 
@@ -50,20 +50,25 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 
 ## FC06 continuation, review and publication
 
-通常HTMLを作れない時も平易な短いHTMLをcontrollerが作り、同じ正式job/attempt identity、入力参照、HTML hash、review対象版、result sidecarへ保存する。HTML本文は日常語の5項目で書き、内部ID/status/reason/hash/版は参考付録だけに置く。独立reviewerを実起動し、指摘はreporterが直して新しい版をレビューへ渡す。review不能時はstatus=unavailableと理由を保存し、approvedを捏造しない。その状態でも公開処理を試みる。target/identity不一致、push、sidecar保存などの公開操作失敗は具体的reason、例外連鎖、捕捉位置、相関ID、入力/成果物参照をfailure journalとhandoffへ保存し、元のreason付きunknown/failedで終端照合を続ける。公開後の保存が中断した場合は、同じjobを再開した時にremoteのreport pathとhashを読み直してpublication sidecarを復元する。report公開成功はincident解決の根拠ではない。元のcause/recoveryがunknownならincidentは未解決のままにする。公開commitは一時Git indexでHTML一ファイルだけから構成し、作業treeや既存indexを変更しない。別worktree/checkoutは作らない。
+通常HTMLを作れない時も平易な短いHTMLをcontrollerが作り、同じ正式job/attempt identity、入力参照、HTML hash、review対象版、result sidecarへ保存する。本文に必要な内容は不具合、原因、実施した修正、追加したトレース・ログと記録内容の4点とし、内部ID/status/reason/hash/版は参考付録だけに置く。独立reviewerを実起動し、範囲内の指摘はreporterが直して新しい版をレビューへ渡す。review不能時はstatus=unavailableと理由を保存し、approvedを捏造しない。その状態でも公開処理を試みる。target/identity不一致、push、sidecar保存などの公開操作失敗は具体的reason、例外連鎖、捕捉位置、相関ID、入力/成果物参照をfailure journalとhandoffへ保存し、元のreason付きunknown/failedで終端照合を続ける。公開後の保存が中断した場合は、同じjobを再開した時にremoteのreport pathとhashを読み直してpublication sidecarを復元する。report公開成功はincident解決の根拠ではない。元のcause/recoveryがunknownならincidentは未解決のままにする。公開commitは一時Git indexでHTML一ファイルだけから構成し、作業treeや既存indexを変更しない。別worktree/checkoutは作らない。
 
-各事象の本文は、区分・期待・実際・影響・回復・変更・試験分類/範囲・根拠参照をそろえる。確認済み事実と不明を、実際に確認した資料の範囲に沿って分ける。「不明はない」「review指摘なし」は、根拠がある場合だけ記載する。review/publicationはHTML作成時点と後続の記録を区別し、workflow完了とincident解決も別々に記載する。合成例は最初の本文より前に見える位置で合成例と明記し、例のreview/publication状態を実行結果と混同させない。本文には、確認に使った資料の読める種類名と固有のリンク先一覧を表示し、根拠本文を折りたたみ内へ隠さない。リンク後に根拠本文が読める状態にする。
+本文のレビューで必須なのは、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログと記録内容の4点である。確認済み事実と不明を混同せず、根拠のない原因・修正を断定しない。reviewerは発生区分ラベル、合成例ラベル、管理用資料の表示名や個別リンク、工程版対応表、工程statusの言い換え、report review/publication/terminalの管理記録間の結合を、4点の理解に必要でない限り要求しない。「試験で確認」等の分類ラベルは要求せず、試験PASSは前提として扱う。レビュー不能や不実施を承認済みと偽らない。
 
 ### FC10 host-owned invocationと公開証拠
 
-`invocation_id`はcontrollerが採番し、handoff payloadに同じ値を設定する。reporter/reviewerはこの値を生成せず、入力された正式identityと報告対象の版を維持する。bodyは平易な日本語で何が起き、何を確認し、何を変え、何が不明で、次に何をするかを説明する。内部IDやstatus等は付録に置く。reviewerは実際の公開HTML本文だけでも説明が成り立つか読み、用語で平易さを代用させない。公開版のhash/read-backとDB終端登録は別操作の成果であり、reportの存在だけを完遂根拠にしない。
+`invocation_id`はcontrollerが採番し、handoff payloadに同じ値を設定する。reporter/reviewerはこの値を生成せず、入力された正式identityと報告対象の版を維持する。bodyは平易な日本語で不具合、原因、実施した修正、追加したトレース・ログと記録内容を説明する。内部IDやstatus等は付録に置く。公開版のhash/read-backとDB終端登録は別操作の成果であり、reportの存在だけを完遂根拠にしない。
 
 ### FC10 rendererとsource statusの表示
 
-入力記録の調査・計画・コードreview状態は別々に日本語表示し、根拠のない承認を追加しない。記録上のエラーだけなら実運用で起きたと断定せず、「当日の記録にあるエラー」などとする。本文に`source snapshot`などの内部用語を出さず、日常語に直す。資料名はsourceから渡された資料の種類が分かる表示を使い、`not_created`の資料へリンクしない。停止理由のnull/欠測は「記録がなく未確認」とする。試験未実施、本番未反映、翌日未確認は日常語で説明し、`blocked`を新しいreport statusとして出さない。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。
+調査・計画・review・試験・反映状態は機械記録へ個別に保存する。本文への表示や資料名・リンクの網羅は必須にせず、4点の理解に必要な場合だけ簡潔に補う。記録上のエラーだけなら実運用で起きたと断定せず、「当日の記録にあるエラー」などとする。本文に`source snapshot`などの内部用語を出さず、日常語に直す。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。
 
 `report_status`は元資料が示す調査・試験・反映の完了状態であり、`stage_status`と`review.status`はHTML文章レビューの状態である。各値を独立に保存・照合する。たとえば元資料がpendingでも文章レビューがapprovedなら、そのままpending/approvedの組合せを許し、レビュー承認で元資料の完了状態を昇格させない。レビュー不能の結果は、既存契約どおりcontroller fallback、pending、公開予定、専用reviewer IDと一致させる。
 
 
-### FC10 本文フィールド名と印刷ツリー
-公開本文に`source_run_id`などの内部フィールド名・null値を出さない。Unicode文字に隣接したsnake_caseも内部名として扱う。`source_run_id=null`は日常語で説明し、正確値は付録へ置く。印刷時の`.tree`は`white-space: pre-wrap`と折返しを使い、横あふれを除去する。
+### HTML独立レビュー範囲の限定（2026-10-20 本人指示）
+
+HTML独立reviewerが本文で評価する4点は、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログとその記録内容である。内容上の指摘は、この4点の欠落、事実誤認、根拠のない断定、または通常のHTML表示で理解を妨げる表現に限る。秘密・個人情報の露出も確認する。それ以外のHTML要素はレビュー対象にしない。
+
+本文の発生区分ラベル、合成例ラベル、資料一覧の名称・管理資料リンク、工程・版対応表、工程statusの表示、調査review・報告review・公開・終端の管理記録間の結合は、4点の理解に必要でない限り要求しない。特に「試験で確認」等の分類ラベルを本文に要求しない。試験PASSは前提とし、任意に記載された試験結果が虚偽でないことだけを確認する。
+
+この限定はHTML文章reviewにだけ適用する。report publication・DB終端・同一job identity等の機械的な実行時検証は、既存のcontroller契約に従い別工程で行う。`docs/templates/incidents/日次不具合対応レポート_ひな形.html`は変更しない。

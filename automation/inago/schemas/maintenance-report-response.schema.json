@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-response.schema.json",
   "title": "Maintenance incident report response",
-  "description": "本文は平易な日本語で、事象区分、期待/実結果、影響/回復、変更、試験範囲、根拠参照、確認済み事実と不明点を説明する。review/publication、workflow完了、incident解決を分け、内部識別子やhashは参考付録だけに置く。",
+  "description": "本文は平易な日本語で、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログと記録内容を伝える。既存の機械互換フィールドは維持してよいが、管理分類やstage情報を本文の中心にしない。内部識別子やhashは参考付録だけに置く。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,7 +52,7 @@
       }
     },
     "issue": {
-      "description": "各事象を区分・期待・実結果・影響・回復・原因確度・実際の変更・確認範囲・具体的な根拠参照で説明し、未確認の断定をしない。",
+      "description": "機械互換フィールドを保持しつつ、本文では不具合、原因、実施した修正、追加したトレース・ログと記録内容を平易に説明する。事実と不明を混同しない。",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -60,7 +60,7 @@
         "cause_confidence", "cause_statement", "changed_behavior", "confirmation_scope", "evidence_ref"
       ],
       "properties": {
-        "event_class": { "enum": ["observed", "investigation", "test"] },
+        "event_class": { "description": "既存構造との互換用分類。HTML reviewerは表示や分類ラベルの有無を要求しない。", "enum": ["observed", "investigation", "test"] },
         "phase": { "type": "string", "minLength": 1, "maxLength": 160 },
         "title": { "type": "string", "minLength": 1, "maxLength": 300 },
         "operation": { "type": "string", "minLength": 1, "maxLength": 4000 },

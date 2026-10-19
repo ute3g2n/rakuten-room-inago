@@ -65,7 +65,7 @@ export const flows = [
   }
 ];
 flows.forEach(flow => { flow.title = flowNames[flow.id]; flow.desc = flowRoles[flow.id] + '各担当が何のために、何をどうするかを全文で説明します。'; });
-flows.find(flow => flow.id === 'F12').desc += '工程の完遂、操作の成否、公開、元障害の解消を別々に記録し、原因不明でも成果を渡して次担当を実起動します。各操作は開始・終了・失敗を相関IDと実行版で記録し、通常ログや管理DBへ書けない場合は独立した追記ログへ退避して、次回起動時に照合します。調査と計画の失敗時は、確認範囲・不明・次の行動を含むcontroller作成の成果を担当AIの成功と区別して保存します。修正担当は既存変更を保ち、固定されたプロジェクトroot内だけで作業します。各stageの引継ぎファイル、repair/report attemptと出力hash、最終HTML、公開先の現在内容を照合してから工程完遂を登録します。試験未実施・review unavailable・反映未実施もそのまま記録し、成功や障害解消には読み替えません。reportのtarget/identity不一致、remote push、publication sidecar保存の失敗は具体的reason・例外連鎖・捕捉位置・相関ID・入力/成果物参照を残し、unknown/failedで終端照合を続けます。';
+flows.find(flow => flow.id === 'F12').desc += '工程の完遂、操作の成否、公開、元障害の解消を別々に記録し、原因不明でも成果を渡して次担当を実起動します。各操作は開始・終了・失敗を相関IDと実行版で記録し、通常ログや管理DBへ書けない場合は独立した追記ログへ退避して、次回起動時に照合します。調査と計画の失敗時は、確認範囲・不明・次の行動を含むcontroller作成の成果を担当AIの成功と区別して保存します。調査fallbackに確認事実がない場合も「確認できた事実なし」というunknown factと利用可能な入力参照を計画担当へ渡し、原因を推測せず次回診断に役立つ記録追加を計画できるようにします。修正担当は既存変更を保ち、固定されたプロジェクトroot内だけで作業します。各stageの引継ぎファイル、repair/report attemptと出力hash、最終HTML、公開先の現在内容を照合してから工程完遂を登録します。試験未実施・review unavailable・反映未実施もそのまま記録し、成功や障害解消には読み替えません。reportのtarget/identity不一致、remote push、publication sidecar保存の失敗は具体的reason・例外連鎖・捕捉位置・相関ID・入力/成果物参照を残し、unknown/failedで終端照合を続けます。';
 flows.sort((a,b) => flowOrder.indexOf(a.id) - flowOrder.indexOf(b.id));
 export const renderFlow = renderReadableFlow;
 export async function writeFlowAssets() {

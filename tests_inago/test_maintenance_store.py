@@ -135,14 +135,16 @@ def test_c07_contract(tmp_path):
         lease=first_lease,
         started_at=BASE_TIME.isoformat(),
     )
-    with pytest.raises(MaintenanceStoreError, match="step_attempt_already_running"):
-        store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="investigation",
-            sequence=1,
-            lease=first_lease,
-            started_at=(BASE_TIME + timedelta(seconds=1)).isoformat(),
-        )
+    resumed = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="investigation",
+        sequence=1,
+        lease=first_lease,
+        started_at=(BASE_TIME + timedelta(seconds=1)).isoformat(),
+    )
+    assert resumed.reused is True
+    assert resumed.attempt_id == completed.attempt_id
+    assert resumed.attempt_no == completed.attempt_no
     store.complete_step_attempt(
         attempt_id=completed.attempt_id,
         lease=first_lease,
@@ -222,8 +224,14 @@ def test_c07_contract(tmp_path):
         lease=resumed_lease,
         started_at=(BASE_TIME + timedelta(seconds=35)).isoformat(),
     )
-    assert completed_again.reused
-    assert completed_again.attempt_id == retry.attempt_id
+    assert not completed_again.reused
+    assert completed_again.attempt_no == retry.attempt_no + 1
+    store.complete_step_attempt(
+        attempt_id=completed_again.attempt_id,
+        lease=resumed_lease,
+        result_version="investigation-v3",
+        completed_at=(BASE_TIME + timedelta(seconds=35)).isoformat(),
+    )
 
     resumed_step = store.begin_step_attempt(
         job_id=job.job_id,
@@ -234,16 +242,17 @@ def test_c07_contract(tmp_path):
     )
     assert not resumed_step.reused
     assert resumed_step.attempt_no == interrupted.attempt_no + 1
-    with pytest.raises(MaintenanceStoreError, match="step_attempt_already_running"):
-        store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="implementation",
-            sequence=2,
-            lease=resumed_lease,
-            started_at=(BASE_TIME + timedelta(seconds=37)).isoformat(),
-        )
+    repeated_step = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="implementation",
+        sequence=2,
+        lease=resumed_lease,
+        started_at=(BASE_TIME + timedelta(seconds=37)).isoformat(),
+    )
+    assert repeated_step.reused
+    assert repeated_step.attempt_id == resumed_step.attempt_id
     counts = store.counts()
-    assert counts["step_attempt"] == 4
+    assert counts["step_attempt"] == 5
     assert store.get_step_attempt(interrupted.attempt_id).status == "interrupted"
     assert store.get_step_attempt(completed.attempt_id).status == "complete"
     assert store.get_step_attempt(retry.attempt_id).status == "complete"
@@ -305,6 +314,53 @@ def test_c07_later_step_can_start_with_missing_predecessor_sequence(tmp_path):
         2,
         4,
     ]
+
+
+def test_c07_failed_step_attempt_closes_and_keeps_bound_artifact(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    lease = store.acquire_lease(
+        lease_key="maintenance-worker-failed-attempt",
+        owner_id="worker-failed-attempt",
+        owner_pid=4193,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME,
+        ttl_seconds=30,
+    )
+    attempt = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
+    output_path = f"{job.job_id}/{attempt.attempt_id}/failure-handoff.json"
+    output_sha256 = "a" * 64
+
+    store.fail_step_attempt(
+        attempt_id=attempt.attempt_id,
+        lease=lease,
+        result_version=f"failure-{attempt.attempt_id}",
+        failed_at=BASE_TIME + timedelta(seconds=1),
+        output_path=output_path,
+        output_sha256=output_sha256,
+    )
+
+    failed = store.get_step_attempt(attempt.attempt_id)
+    assert failed.status == "failed"
+    assert failed.result_version == f"failure-{attempt.attempt_id}"
+    assert failed.output_path == output_path
+    assert failed.output_sha256 == output_sha256
+    retry = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=lease,
+        started_at=BASE_TIME + timedelta(seconds=2),
+    )
+    assert retry.attempt_no == attempt.attempt_no + 1
+    assert retry.status == "running"
 
 
 def test_c07_job_finalization_releases_active_slot(tmp_path):

@@ -1,0 +1,371 @@
+{
+  "schema_version": "fc10-same-job-resume22-final-readback-v1",
+  "recorded_at_utc": "2026-10-19T22:22:16Z",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+  "tracking_remote": "origin/main",
+  "local_remote_sha_equal": true,
+  "runtime_apply": {
+    "switcher": "TaskSchedulerRuntimeSwitcher",
+    "activate_called_without_checkout": true,
+    "confirm_active_called": true,
+    "console_capture_note": "Initial exec wrapper returned before it forwarded the session id; active state, task actions and a separate healthy(commit) read-back were then directly verified.",
+    "active_root": "C:\\project\\rakuten-room-inago",
+    "active_commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+    "state": {
+      "active": {
+        "commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "healthy": true,
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "resume_worker": {
+    "command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.maintenance.cli --data-root .\\rakuten-room-inago\\runtime resume-worker --source-launch-id historical-9e7f0c175cc4c874c955a5dab29c4427 --job-id job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "result": {
+      "status": "queued",
+      "resume_count": 22,
+      "resume_event_id": "1b2edf119b1647498aeab20e032100ab",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427"
+    }
+  },
+  "worker": {
+    "command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.maintenance.cli --data-root .\\rakuten-room-inago\\runtime --maintenance-id workflow-publication-retry-resume22 worker --once --source-launch-id historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "exit_code": 0,
+    "result": {
+      "status": "maintenance_complete",
+      "maintenance_resolution_status": "complete",
+      "scope": "maintenance_workflow",
+      "duplicate": false,
+      "queue_id": null,
+      "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b"
+    }
+  },
+  "database": {
+    "path": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "mode": "read-only",
+    "quick_check": "ok",
+    "user_version": 16,
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "source_run_id": null,
+      "resume_count": 22,
+      "status": "complete",
+      "finished_at": "2026-10-19T22:18:51.798827Z",
+      "terminal_reason_code": null
+    },
+    "latest_resume_event": {
+      "resume_event_id": "1b2edf119b1647498aeab20e032100ab",
+      "resume_count": 22,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "reason_code": "workflow_terminal_observations_incomplete",
+      "resumed_at": "2026-10-19T22:18:32.115522Z"
+    },
+    "job_input_manifest_count": 1,
+    "incident_run_count_for_identity": 1,
+    "daily_launch_for_source_launch": [],
+    "daily_observation_for_source_launch": [],
+    "worker_queue_2026_10_19": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued",
+        "reason_code": null
+      }
+    ],
+    "watchdog_queue_2026_10_19": [],
+    "running_step_attempts_after_terminal": [
+      {
+        "attempt_id": "0809d9f7-36ce-4d5e-93cc-683484e2d383",
+        "step_key": "maintenance_planning",
+        "attempt_no": 11,
+        "status": "running",
+        "started_at": "2026-10-19T22:18:38.195272Z",
+        "finished_at": null
+      }
+    ]
+  },
+  "terminal": {
+    "path": "workflow-terminal/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d.json",
+    "sha256": "9f4d30217bd0951a8f6c9db9999bdec401fb71dfec530169113767a09d411d70",
+    "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+    "workflow_completion": "complete",
+    "job_terminal_status": "complete",
+    "terminal_reason_code": null,
+    "incident_resolution": "unknown",
+    "terminal_verification": {
+      "all_content_handoffs_read_back": true,
+      "all_stage_observations_present": true,
+      "deployment_result_or_failure_handoff_read_back": true,
+      "report_complete_observation": true,
+      "report_result_html_publication_sidecar_and_remote_readback": true,
+      "stage_attempt_or_failure_handoffs_read_back": true,
+      "stage_observation_identity_matches": true
+    },
+    "report_publication_readback": {
+      "attempt_id": "248743c6-c710-4ef3-af53-9336fbe2e3c1",
+      "html_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/report.html",
+      "html_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+      "public_html_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+      "publication_commit": "e17cf65f2fcca5c14ad28eb51b033b8ad996bd9d",
+      "publication_path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/report-publication.json",
+      "publication_sha256": "7f36fae2716a767d1da93a2bb77979c55718f5cc3837ffeaea2e8d680b1f1be0",
+      "remote_head_readback": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+      "remote_name": "origin",
+      "result_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/result.json",
+      "result_sha256": "6cf14145a95f6a4301ceeba47a69a90694ead6901d9df339b3586b4169992a34",
+      "target_branch": "main"
+    }
+  },
+  "stage_observations": [
+    {
+      "stage_name": "check_incident",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T22:18:38.064196Z"
+    },
+    {
+      "stage_name": "evidence",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T22:18:38.094069Z"
+    },
+    {
+      "stage_name": "job",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T22:18:38.144116Z"
+    },
+    {
+      "stage_name": "investigation",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T22:18:38.177461Z"
+    },
+    {
+      "stage_name": "planning",
+      "status": "unknown",
+      "reason_code": "ai_transport_failed",
+      "observed_at": "2026-10-19T22:18:41.116498Z"
+    },
+    {
+      "stage_name": "repair",
+      "status": "unknown",
+      "reason_code": "repair_attempt_not_actionable",
+      "observed_at": "2026-10-19T22:18:41.171398Z"
+    },
+    {
+      "stage_name": "deployment",
+      "status": "unknown",
+      "reason_code": "deployment_candidate_unavailable",
+      "observed_at": "2026-10-19T22:18:41.250464Z"
+    },
+    {
+      "stage_name": "report",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T22:18:48.544439Z"
+    }
+  ],
+  "stage_handoffs": [
+    {
+      "stage": "check_incident",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/check_incident.json",
+      "sha256": "a636073df7a3c4394b848c55511a121e3b1497ae053c455fa6b0ad86bb17b3cf",
+      "operation_result": "succeeded",
+      "reason_code": null,
+      "attempt_id": null,
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "b741d10b5b524784a729c279e24ab57d",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "evidence",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/evidence.json",
+      "sha256": "e1cd4f468d957f3131506eed2c519005f8b84051a8c44969279103058bdb9c68",
+      "operation_result": "succeeded",
+      "reason_code": null,
+      "attempt_id": null,
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "20a5ff5e3b7446b28fc843b2af1bdcfa",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "job",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/job.json",
+      "sha256": "bd107cc651f1dd297082df16c0a0970cbdf362dc05daa7b53e7e48385716c254",
+      "operation_result": "succeeded",
+      "reason_code": null,
+      "attempt_id": null,
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "cbf95efb49144b4aa2e9eab2cde2e9aa",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "investigation",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/investigation.json",
+      "sha256": "25724fd6ba1bcb362061713069c7c8146b3ad2f04e8bf41e8711030bf5273a2c",
+      "operation_result": "succeeded",
+      "reason_code": null,
+      "attempt_id": "feb4fb86-679c-44a0-85dd-93a64e88b87f",
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "2b457bf1c26a4064adefe1bdc4760d7e",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "planning",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/planning.json",
+      "sha256": "5e4be3d38eeb6a79b3f4ac250dea02c84e09d21c0eed7d2863351235870a3e92",
+      "operation_result": "unknown",
+      "reason_code": "ai_transport_failed",
+      "attempt_id": "c42dfaca-d55c-4ca7-a7c4-a44a978eba53",
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "5c4dadee2f74400ea01336a7b76c346f",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "repair",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/repair.json",
+      "sha256": "b05a2a9fdbf7e1a8fd1adde00bb3c4ffb32585cf192e54ae22a0c08eb73b6ac4",
+      "operation_result": "unknown",
+      "reason_code": "repair_attempt_not_actionable",
+      "attempt_id": "d582e2ef-24fd-42a9-9773-c3b1391e3b76",
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "ec6aa83c35404c9e812cc201b5f7c00e",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "deployment",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/deployment.json",
+      "sha256": "491f70e602d4edd7171d3b8deedf2ad730b1261d836d3996ebd2c11d920e8261",
+      "operation_result": "unknown",
+      "reason_code": "deployment_candidate_unavailable",
+      "attempt_id": null,
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "59070937bdc8486a8968ba16d04ad320",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    },
+    {
+      "stage": "report",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-d9e34e323a2a4c8fa2dc82fcdb09720d/report.json",
+      "sha256": "1d23070825c7fd27b23e245555414640a453b355a0893213e7b4f79c8bf3af6a",
+      "operation_result": "succeeded",
+      "reason_code": null,
+      "attempt_id": "be3f85da-aac7-446f-98ba-6dee354dade2",
+      "invocation_id": "workflow-d9e34e323a2a4c8fa2dc82fcdb09720d",
+      "correlation_id": "009e54f8dade415886b91a71c79cdba6",
+      "code_revision": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+      "error_count": 0
+    }
+  ],
+  "source_revision": {
+    "code_commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+    "runtime_fingerprint": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+    "current_fingerprint_recapture": "maintenance-source-v1-28f7d893b2e4f5b48159a25c65b95ad37574969524a6d39bdd5f2013d50cca9b",
+    "source_count": 75,
+    "matches_events": true
+  },
+  "report": {
+    "attempt_id": "248743c6-c710-4ef3-af53-9336fbe2e3c1",
+    "result_version": "report-69b06174df8c6a7a457cc70c-r13",
+    "result_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/result.json",
+    "result_sha256": "6cf14145a95f6a4301ceeba47a69a90694ead6901d9df339b3586b4169992a34",
+    "html_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/report.html",
+    "html_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "html_size_bytes": 32263,
+    "public_path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+    "public_local_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "origin_main_blob_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "review_status": "approved",
+    "review_findings": [],
+    "report_status": "pending",
+    "stage_status": "reviewed",
+    "publisher_commit": "e17cf65f2fcca5c14ad28eb51b033b8ad996bd9d",
+    "publication_target": "origin/main",
+    "publication_sidecar_sha256": "7f36fae2716a767d1da93a2bb77979c55718f5cc3837ffeaea2e8d680b1f1be0",
+    "author_response": {
+      "path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/B--rr-inago-incident-reporter--3567720c34954fcba53453f12f8973c4.json",
+      "sha256": "92eeaafbd98ddcb3501bbee706d05a69ee16cf0a2cb3694c0625244c7c4c9b4a",
+      "role_name": "rr-inago-incident-reporter"
+    },
+    "reviewer_response": {
+      "review_artifact_path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/review-response.json",
+      "review_artifact_sha256": "b169b867995c782b6915bb921abfd5265ad7d80405024826a8d6c602445eda1d",
+      "ai_output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/B--rr-inago-incident-report-reviewer--648bbda14fed4a78bd746142781a7e6a.json",
+      "ai_output_sha256": "4d97146f44c6fda00bbbfc70f292d3218b4d71f921fb51a35cbcb9a31dfa7fbb",
+      "ai_output_file_sha256": "4d97146f44c6fda00bbbfc70f292d3218b4d71f921fb51a35cbcb9a31dfa7fbb",
+      "final_review_path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/248743c6-c710-4ef3-af53-9336fbe2e3c1/review.json",
+      "final_review_sha256": "ebbbdf35af4505b50f7951e8f6a2994851675823a324a590447ab6ee70066b93",
+      "status": "approved",
+      "findings_count": 0,
+      "reviewed_version": "report-69b06174df8c6a7a457cc70c-r13",
+      "reviewed_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650"
+    },
+    "same_reviewed_published_bytes": true,
+    "standard": "docs/standards/イナゴ日次不具合レポート作成ルール.md"
+  },
+  "scope_guards": {
+    "worker_dispatch_excluded_dates": [
+      "2026-10-19"
+    ],
+    "10_19_worker_queue_still_queued": true,
+    "source_run_id_remains_null": true,
+    "no_daily_launch_created_for_source_launch": true,
+    "same_job_terminal_complete": true,
+    "new_job_used": false,
+    "daily_command_run": false,
+    "other_workspace_used": false
+  },
+  "original_incident": {
+    "root_cause": "unknown",
+    "incident_resolution": "unknown",
+    "planning": "unknown / AI transport failed; content handoff preserved",
+    "repair": "unknown / no actionable repair candidate; content handoff preserved",
+    "deployment": "unknown / no deployment candidate; content handoff preserved"
+  },
+  "acceptance_review": "independent FC11 reconciliation pending; do not treat this evidence capture alone as FC11 acceptance."
+}

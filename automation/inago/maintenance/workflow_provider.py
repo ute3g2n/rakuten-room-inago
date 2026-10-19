@@ -59,6 +59,7 @@ WORKFLOW_STAGE_ORDER = (
     "report",
 )
 _REASON_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
+_SAFE_ATTEMPT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 def _invocation_precondition_error(
@@ -109,7 +110,7 @@ def _valid_attempt_for_context(
         or attempt.job_id != job_id
         or attempt.source_run_id != context.launch.source_run_id
         or not isinstance(attempt.attempt_id, str)
-        or _REASON_CODE.fullmatch(attempt.attempt_id) is None
+        or _SAFE_ATTEMPT_ID.fullmatch(attempt.attempt_id) is None
     ):
         return None
     return attempt
@@ -384,6 +385,7 @@ class MaintenanceWorkflowProvider:
             or stage_name not in WORKFLOW_STAGE_ORDER
         ):
             return None
+
         root = self._store.database_path.parent.parent / "workflow-handoffs"
         # An unbound invocation gets its own namespace; never write beneath the
         # mismatched worker_job_id supplied by the queue.
@@ -430,6 +432,15 @@ class MaintenanceWorkflowProvider:
                 except OSError:
                     pass
 
+    @staticmethod
+    def _append_output_ref(handoff: dict[str, object], reference: str) -> None:
+        refs = handoff.get("output_refs")
+        if not isinstance(refs, list):
+            refs = []
+        if reference not in refs:
+            refs.append(reference)
+        handoff["output_refs"] = refs
+
     def _stage_handoff(
         self,
         *,
@@ -457,35 +468,87 @@ class MaintenanceWorkflowProvider:
             "target_date": context.launch.target_date,
             "attempt_id": stage_attempt_id,
         }
-        handoff = make_stage_handoff(
-            stage=stage_name,
-            invocation_id=invocation_id,
-            identity=identity,
-            operation=f"workflow.stage.{stage_name}",
-            operation_result=operation_result,
-            summary=(
-                f"{stage_name}工程の実行結果を記録しました。工程結果は{stage_status}です。"
-                if operation_result == "succeeded"
-                else f"{stage_name}工程は通常完了しませんでした。理由と次の引継ぎを記録しました。"
+        candidate_keys = [f"{stage_name}_stage_handoff"]
+        if stage_name == "repair":
+            candidate_keys.append("repair_handoff")
+        candidate = next(
+            (
+                context.state.get(key)
+                for key in candidate_keys
+                if isinstance(context.state.get(key), dict)
             ),
-            facts=[
-                f"工程担当の生の結果: {raw_status or '応答なし'}。",
-                f"工程の実行結果: {stage_status}。",
-            ],
-            limitations=(
-                []
-                if operation_result == "succeeded"
-                else ["通常の工程成果が得られなかったため、根本原因や業務回復は未確認です。"]
-            ),
-            next_actions=[
-                "後続工程はこの結果と不明点を受け取り、独立して実行を続けてください。",
-                "最終報告担当は、この工程の成否と未確認事項を平易に説明してください。",
-            ],
-            error=error,
-            reason_code=reason_code,
-            correlation_id=correlation_id,
-            artifact_origin="controller_fallback",
+            None,
         )
+        handoff: dict[str, object] | None = None
+        if isinstance(candidate, dict):
+            candidate_identity = candidate.get("identity")
+            if (
+                candidate.get("schema_version") == "maintenance-stage-handoff-v1"
+                and candidate.get("stage") == stage_name
+                and candidate.get("invocation_id") == invocation_id
+                and isinstance(candidate_identity, dict)
+                and all(
+                    candidate_identity.get(key) == value
+                    for key, value in identity.items()
+                    if key != "attempt_id"
+                )
+                and candidate.get("attempt_id") == stage_attempt_id
+                and isinstance(candidate.get("operation"), str)
+                and isinstance(candidate.get("operation_result"), str)
+                and isinstance(candidate.get("content_result"), dict)
+                and isinstance(candidate.get("errors"), list)
+            ):
+                handoff = json.loads(dumps_handoff(candidate))
+        if handoff is None:
+            handoff = make_stage_handoff(
+                stage=stage_name,
+                invocation_id=invocation_id,
+                identity=identity,
+                operation=f"workflow.stage.{stage_name}",
+                operation_result=operation_result,
+                summary=(
+                    f"{stage_name}工程の実行結果を記録しました。工程結果は{stage_status}です。"
+                    if operation_result == "succeeded"
+                    else f"{stage_name}工程は通常完了しませんでした。理由と次の引継ぎを記録しました。"
+                ),
+                facts=[
+                    f"工程担当の生の結果: {raw_status or '応答なし'}。",
+                    f"工程の実行結果: {stage_status}。",
+                ],
+                limitations=(
+                    []
+                    if operation_result == "succeeded"
+                    else ["通常の工程成果が得られなかったため、根本原因や業務回復は未確認です。"]
+                ),
+                next_actions=[
+                    "後続工程はこの結果と不明点を受け取り、独立して実行を続けてください。",
+                    "最終報告担当は、この工程の成否と未確認事項を平易に説明してください。",
+                ],
+                error=error,
+                reason_code=reason_code,
+                correlation_id=correlation_id,
+                artifact_origin="controller_fallback",
+            )
+        else:
+            handoff.setdefault("reason_code", reason_code)
+            if error is not None:
+                error_detail = make_stage_handoff(
+                    stage=stage_name,
+                    invocation_id=invocation_id,
+                    identity=identity,
+                    operation=f"workflow.stage.{stage_name}",
+                    operation_result="failed",
+                    summary="",
+                    facts=[],
+                    limitations=[],
+                    next_actions=[],
+                    error=error,
+                    reason_code=reason_code,
+                    correlation_id=correlation_id,
+                )["errors"][0]
+                errors = handoff.get("errors")
+                if isinstance(errors, list):
+                    errors.append(error_detail)
         handoff["stage_progress"] = "handed_off"
         saved_ref = self._save_stage_handoff(
             payload=handoff,
@@ -499,7 +562,7 @@ class MaintenanceWorkflowProvider:
                 "通常の成果物保存先へ引継ぎを書けたか確認できません。独立記録先へ保存結果を記録しました。"
             )
         else:
-            handoff["output_refs"] = [saved_ref]
+            self._append_output_ref(handoff, saved_ref)
         return handoff
 
     def __call__(
@@ -1151,7 +1214,7 @@ class MaintenanceWorkflowProvider:
                 stage_name=stage_name,
             )
             if saved_ref is not None:
-                handoff["output_refs"] = [saved_ref]
+                self._append_output_ref(handoff, saved_ref)
             elif handoff.get("stage_progress") != "handoff_unavailable":
                 handoff["stage_progress"] = "handoff_unavailable"
                 handoff["unknowns"].append(

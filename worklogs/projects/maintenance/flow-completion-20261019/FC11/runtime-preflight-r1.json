@@ -1,0 +1,76 @@
+{
+  "schema_version": "fc11-runtime-preflight-r1",
+  "observed_at_local": "2026-10-20T08:25:44+09:00",
+  "repository_root": "C:/project/rakuten-room-inago",
+  "source_commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+  "database_path": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+  "read_only": true,
+  "operations": [
+    {
+      "operation": "open_database_preflight",
+      "phase": "not_performed",
+      "reason_code": "database_path_not_found",
+      "requested_path": "runtime/maintenance/state.sqlite",
+      "exception_class": "sqlite3.OperationalError",
+      "safe_cause": "unable to open database file",
+      "capture_location": "read-only preflight query",
+      "recovery": "Used runtime_root from the official prior apply readback; the actual runtime is under rakuten-room-inago/runtime. No file was opened or modified."
+    },
+    {
+      "operation": "step_attempt_status_query",
+      "phase": "not_performed",
+      "reason_code": "preflight_table_name_mismatch",
+      "requested_table": "maintenance_step_attempt",
+      "exception_class": "sqlite3.OperationalError",
+      "safe_cause": "no such table: maintenance_step_attempt",
+      "capture_location": "read-only preflight query",
+      "recovery": "Inspected sqlite_master and PRAGMA table_info in read-only mode; the actual table is step_attempt."
+    },
+    {
+      "operation": "official_runtime_state_readback",
+      "phase": "succeeded",
+      "database_schema_version": 16,
+      "quick_check": "ok",
+      "identity": {
+        "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "target_date": "2026-10-17",
+        "source_run_id": null
+      },
+      "job_status": "complete",
+      "resume_count": 22,
+      "terminal_attempt_status_counts": {
+        "blocked": 1,
+        "complete": 19,
+        "failed": 15,
+        "handoff_accepted": 1,
+        "interrupted": 5,
+        "running": 1
+      },
+      "running_attempt": {
+        "attempt_id": "0809d9f7-36ce-4d5e-93cc-683484e2d383",
+        "step_key": "maintenance_planning",
+        "sequence": 2,
+        "attempt_no": 11,
+        "started_at": "2026-10-19T22:18:38.195272Z",
+        "finished_at": null
+      },
+      "daily_check": {
+        "target_date": "2026-10-17",
+        "check_status": "abnormal",
+        "source_run_id": null
+      },
+      "target_worker_queue_rows": 0,
+      "october_19_worker_queue": [
+        {
+          "queue_id": "82e35e362a064e3292355d27ed0f4289",
+          "target_date": "2026-10-19",
+          "status": "queued"
+        }
+      ],
+      "october_19_watchdog_queue_rows": 0,
+      "side_effects": "none"
+    }
+  ],
+  "next_action": "After selected commit/push and official fixed-root apply/readback, resume only the same job/source_launch_id and inspect whether the stale planning attempt is closed before accepting a new terminal result."
+}

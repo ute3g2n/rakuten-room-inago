@@ -1,0 +1,77 @@
+{
+  "schema_version": "fc10-runtime-apply-readback-v1",
+  "recorded_at_utc": "2026-10-19T22:22:16Z",
+  "branch": "main",
+  "commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+  "push_destination": "origin/main",
+  "fixed_repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "official_switcher": "TaskSchedulerRuntimeSwitcher",
+  "before": {
+    "actual_task_root": "C:\\project\\rakuten-room-inago",
+    "actual_task_commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+    "stored_switch_state_commit": "0a841e3e1b7c3e9a8b2a39ba4a0f72b5cbe0eb9a",
+    "stored_state_was_stale": true,
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "operation": "activate(commit) without checkout, then confirm_active(commit)",
+  "after": {
+    "active_root": "C:\\project\\rakuten-room-inago",
+    "active_commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+    "switch_state": {
+      "active": {
+        "commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "healthy": true,
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "initial_console_capture": "exec tool returned after 30 seconds without forwarding its session id. The switcher was then read back separately; status is confirmed from active identity/state, healthy=True, and all four task actions Ready/Enabled.",
+  "result": "applied and confirmed on the fixed root; no runtime workspace switch."
+}

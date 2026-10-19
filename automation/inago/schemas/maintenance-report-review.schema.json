@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-review.schema.json",
   "title": "Maintenance incident report review",
-  "description": "本文の理解しやすさ、区分・期待/実際・影響/回復・変更・試験範囲・根拠リンク、known/unknownの境界、合成例の見える表示、review/publicationとworkflow/incident状態の分離を確認する。指摘があれば場所と具体的な修正内容を記録し、承認結果を合成してはならない。",
+  "description": "HTML独立レビューは、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログとその記録内容の4点に絞る。欠落、事実誤認、根拠のない断定、理解を妨げる表現を指摘する。秘密・個人情報の露出も確認する。それ以外のHTML要素はレビュー対象外とする。発生区分、合成例表示、管理資料リンク、版対応表、工程status、review/publication/terminal間の管理情報は指摘対象にしない。試験PASSは前提とし、分類ラベルを要求しない。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "reviewer_id", "reviewed_version", "reviewed_sha256", "status", "reviewed_at", "findings"],

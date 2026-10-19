@@ -442,6 +442,37 @@ def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
     assert "error written in a record" in prompt
 
 
+def test_fc10_report_reviewer_prompt_limits_findings_to_requested_four_facts():
+    prompt = production_workflow._daily_report_review_prompt(
+        identity={"job_id": "fc10-report-review-scope"},
+        review_input={"report_html": "<html></html>"},
+    )
+
+    for required_fact in (
+        "what defect occurred",
+        "its cause",
+        "what fix was made",
+        "what tracing/logging was added",
+    ):
+        assert required_fact in prompt
+    for excluded_topic in (
+        "event-category labels",
+        "synthetic-scenario labels",
+        "evidence-index naming or completeness",
+        "stage/version mapping",
+        "status wording",
+        "report review, publication, and workflow terminal records",
+    ):
+        assert excluded_topic in prompt
+    assert "Do not issue findings requiring" in prompt
+    assert "do not require a visible" in prompt
+    assert "private/secret data" in prompt
+    assert "findings only about those four facts or exposed private/secret data" in prompt
+    assert "internal field" not in prompt
+    assert "print" not in prompt
+    assert "`.tree`" not in prompt
+
+
 def _fc08_crash_after_publish(fixture: dict[str, object], exit_code: int = 47):
     child = multiprocessing.get_context("spawn").Process(
         target=_fc08_publish_then_crash,
@@ -3157,6 +3188,30 @@ def test_fc10_repair_setup_cause_survives_into_not_run_handoff(
             },
         },
     )
+    try:
+        raise MaintenanceStoreError("synthetic repair author failure")
+    except MaintenanceStoreError as author_error:
+        context.state["repair_stage_handoff"] = production_workflow.make_stage_handoff(
+            stage="repair",
+            invocation_id="fc10-author-failure-invocation",
+            identity={**manifest.identity(), "attempt_id": started.attempt_id},
+            operation="workflow.repair.author.execute_or_validate",
+            operation_result="failed",
+            summary="修正担当の実行で失敗しました。",
+            facts=["修正担当の操作で例外が発生しました。"],
+            limitations=["修正内容を確認できません。"],
+            next_actions=["詳細な失敗記録を試験担当へ渡します。"],
+            input_refs=["repair-input/fc10-author-failure.json"],
+            error=author_error,
+            reason_code="repair_author_execution_failed",
+            correlation_id="fc10-author-failure-correlation",
+        )
+        context.state["repair_stage_handoff"]["journal_observation"] = {
+            "status": "written",
+            "event_id": "fc10-author-failure-event",
+            "path": "maintenance/failure-journal.jsonl",
+            "capture_location": "repair.author",
+        }
 
     result = production_workflow.run_daily_repair_test_stage(
         context, controller, store
@@ -3169,8 +3224,48 @@ def test_fc10_repair_setup_cause_survives_into_not_run_handoff(
     not_run = context.state["repair_test_not_performed"]
     assert not_run["outcome"] == "NOT_RUN"
     assert not_run["cause_class"] == "MaintenanceStoreError"
-    assert not_run["artifact_ref"]["path"] == (
-        f"{job.job_id}/{started.attempt_id}/repair-handoff.json"
+    assert not_run["artifact_ref"]["path"].startswith(
+        f"{job.job_id}/{started.attempt_id}/repair-"
+    )
+    failed_attempt = store.get_step_attempt(started.attempt_id)
+    assert failed_attempt.status == "failed"
+    assert failed_attempt.output_path == not_run["artifact_ref"]["path"]
+    stage_handoff = context.state["repair_stage_handoff"]
+    assert stage_handoff["attempt_id"] == started.attempt_id
+    assert stage_handoff["identity"]["source_run_id"] is None
+    assert stage_handoff["correlation_id"] == not_run["correlation_id"]
+    assert any(
+        item["operation"] == "workflow.repair.author.execute_or_validate"
+        and item["reason_code"] == "repair_author_execution_failed"
+        and item["exception_chain"] == ["MaintenanceStoreError"]
+        for item in stage_handoff["errors"]
+    )
+    assert any(
+        item["reason_code"] == "attempt_id_invalid"
+        and item["exception_chain"] == ["MaintenanceStoreError"]
+        for item in stage_handoff["errors"]
+    )
+    assert "repair-input/fc10-author-failure.json" in stage_handoff["input_refs"]
+    assert any(
+        item.get("event_id") == "fc10-author-failure-event"
+        for item in stage_handoff["journal_observations"]
+    )
+    assert {item["operation"] for item in stage_handoff["operation_observations"]} >= {
+        "workflow.repair.author.execute_or_validate",
+        "workflow.repair.prepare_repair_candidate_for_tests",
+    }
+    merged_handoff_bytes = store.read_attempt_artifact(
+        attempts_root=store.database_path.parent / "attempts",
+        relative_path=context.state["repair_stage_handoff_path"],
+        expected_sha256=context.state["repair_stage_handoff_sha256"],
+    )
+    merged_handoff = json.loads(merged_handoff_bytes)
+    assert merged_handoff["operation_observations"] == stage_handoff[
+        "operation_observations"
+    ]
+    assert any(
+        item["operation"] == "workflow.repair.author.execute_or_validate"
+        for item in merged_handoff["errors"]
     )
     handoff_bytes = store.read_attempt_artifact(
         attempts_root=store.database_path.parent / "attempts",
@@ -3184,6 +3279,159 @@ def test_fc10_repair_setup_cause_survives_into_not_run_handoff(
         frame.get("function") == "_daily_repair_setup_document"
         for frame in handoff["stack_frames"]
     )
+
+    original_save = production_workflow.save_attempt_artifact
+
+    def fail_versioned_handoff_save(*args, filename, **kwargs):
+        if filename.startswith("repair-test-handoff-"):
+            raise OSError("synthetic handoff artifact disk failure")
+        return original_save(*args, filename=filename, **kwargs)
+
+    monkeypatch.setattr(
+        production_workflow, "save_attempt_artifact", fail_versioned_handoff_save
+    )
+    production_workflow._record_repair_test_not_performed(
+        context,
+        store,
+        operation="verify_handoff_save_failure_recovery",
+        reason_code="repair_handoff_save_injected_failure",
+        error=MaintenanceStoreError("synthetic next-stage failure"),
+    )
+    failed_save_handoff = context.state["repair_stage_handoff"]
+    uncreated_handoff_path = (
+        f"{job.job_id}/{started.attempt_id}/repair-test-handoff-"
+        f"{failed_save_handoff['correlation_id'][:20]}.json"
+    )
+    assert uncreated_handoff_path not in failed_save_handoff["output_refs"]
+    assert any(
+        item["reason_code"] == "repair_test_handoff_save_failed"
+        and item["capture_location"]
+        == "run_daily_repair_test_stage.handoff_save"
+        and item["exception_chain"] == ["OSError"]
+        for item in failed_save_handoff["errors"]
+    )
+
+
+def test_fc11_deployment_candidate_failure_has_a_correlated_handoff(tmp_path: Path):
+    source_launch_id = "launch-fc11-deployment-candidate-failure"
+    target_date = "2026-10-17"
+    store = make_store(tmp_path)
+    incident_id = create_incident(store, launch_id=source_launch_id)
+    release = create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-fc11-deployment-candidate-failure",
+        base_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+        result_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+    )
+    manifest = store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+        created_at=BASE_TIME,
+    )
+    job = store.list_workflow_jobs_for_launch(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+    )[0]
+    lease = store.acquire_lease(
+        lease_key=f"maintenance:{job.job_id}",
+        owner_id="fc11-deployment-candidate-test",
+        owner_pid=1,
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    attempt = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_repair",
+        sequence=3,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
+    store.fail_step_attempt(
+        attempt_id=attempt.attempt_id,
+        lease=lease,
+        result_version=f"failure-{attempt.attempt_id}",
+        failed_at=BASE_TIME,
+    )
+    identity = {
+        **manifest.identity(),
+        "input_refs": [f"daily-launch/{source_launch_id}"],
+        "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+    }
+    attempts_root = store.database_path.parent / "attempts"
+    attempt_root = attempts_root / job.job_id / attempt.attempt_id
+    attempt_root.mkdir(parents=True, exist_ok=True)
+    context = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+        ),
+        check=SimpleNamespace(check_id="check-fc11-deployment-candidate"),
+        queue=SimpleNamespace(queue_id="queue-fc11-deployment-candidate"),
+        lease=lease,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(
+            job=job,
+            attempts=(store.get_step_attempt(attempt.attempt_id),),
+        ),
+        state={
+            "job": job,
+            "repair_attempt": store.get_step_attempt(attempt.attempt_id),
+            "precheck_identity": identity,
+            "repair_attempts_root": attempts_root,
+            "repair_output_root": attempt_root,
+            "invocation_id": "workflow-fc11-deployment-candidate-failure",
+        },
+    )
+
+    result = production_workflow.prepare_daily_deployment_candidate_stage(
+        context, store
+    )
+
+    assert result.status == "unknown"
+    assert result.reason_code == "deployment_candidate_repair_unavailable"
+    handoff = context.state["deployment_stage_handoff"]
+    assert handoff["operation_result"] == "unknown"
+    assert handoff["reason_code"] == result.reason_code
+    assert handoff["identity"]["source_run_id"] is None
+    assert handoff["errors"][0]["exception_chain"] == ["RepairContractError"]
+    candidate_operation = context.state["deployment_operation"]
+    candidate_artifact_ref = candidate_operation["artifact_ref"]
+    assert candidate_artifact_ref is not None, candidate_operation[
+        "artifact_save_observation"
+    ]
+    execution_result = production_workflow.run_daily_deployment_execution_stage(
+        context,
+        store,
+        coordinator=None,
+        remote_name=None,
+        target_branch=None,
+        active_checkout=Path(__file__).resolve().parents[1],
+    )
+    assert execution_result.status == "unknown"
+    operation = context.state["deployment_operation"]
+    artifact_ref = operation["artifact_ref"]
+    assert artifact_ref is not None
+    assert operation["prior_operation"]["reason_code"] == result.reason_code
+    final_handoff = context.state["deployment_stage_handoff"]
+    assert len(final_handoff["errors"]) >= 1
+    assert candidate_artifact_ref["path"] in final_handoff["output_refs"]
+    assert artifact_ref["path"] in final_handoff["output_refs"]
+    artifact = json.loads(
+        store.read_attempt_artifact(
+            attempts_root=attempts_root,
+            relative_path=artifact_ref["path"],
+            expected_sha256=artifact_ref["sha256"],
+        )
+    )
+    assert artifact["operation"] == "verify_or_apply_deployment_candidate"
+    assert artifact["correlation_id"] == final_handoff["correlation_id"]
 
 
 def test_fc10_planning_fallback_saves_with_manifest_only_context(
