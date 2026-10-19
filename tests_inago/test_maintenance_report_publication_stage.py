@@ -2230,7 +2230,7 @@ def test_fc10_fallback_review_round_uses_persisted_review_history(
         "fallback_review_changes_requested_then_approved",
         "fallback_revision_selects_current_turn_among_multiple_author_envelopes",
         "fallback_revision_turn_mismatch_is_traced_and_continues",
-        "fallback_second_review_findings_remain_bound_to_reviewed_version",
+        "fallback_multiple_review_findings_then_approved",
     ],
 )
 def test_fc07_report_role_review_revision_or_failure_reaches_publication(
@@ -2407,7 +2407,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                     reviewer_mode in {
                         "fallback_review_changes_requested_then_approved",
                         "fallback_revision_turn_mismatch_is_traced_and_continues",
-                        "fallback_second_review_findings_remain_bound_to_reviewed_version",
+                        "fallback_multiple_review_findings_then_approved",
                     }
                     and len(author_inputs) == 1
                 ):
@@ -2450,7 +2450,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                             if review_round == 1
                             or (
                                 reviewer_mode
-                                == "fallback_second_review_findings_remain_bound_to_reviewed_version"
+                                == "fallback_multiple_review_findings_then_approved"
                                 and review_round == 2
                             )
                             else "approved"
@@ -2477,7 +2477,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                             if (
                                 review_round == 1
                                 or reviewer_mode
-                                == "fallback_second_review_findings_remain_bound_to_reviewed_version"
+                                == "fallback_multiple_review_findings_then_approved"
                             )
                             else []
                         ),
@@ -2736,53 +2736,53 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert published_report["review"]["reviewed_sha256"] == review_inputs[1]["html_sha256"]
         assert published_report["output"]["path"] == review_inputs[1]["html_path"]
         assert published_report["output"]["sha256"] == review_inputs[1]["html_sha256"]
-    elif reviewer_mode == "fallback_second_review_findings_remain_bound_to_reviewed_version":
+    elif reviewer_mode == "fallback_multiple_review_findings_then_approved":
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
+            production_workflow._REPORT_AUTHOR_ROLE,
+            production_workflow._REPORT_REVIEWER_ROLE,
         ]
-        assert len(review_inputs) == 2
-        second_review = review_inputs[1]
+        assert len(author_inputs) == 3
+        assert len(review_inputs) == 3
+        assert author_inputs[1]["prior_findings"] == [
+            f"本文1: 版1の確認事項を具体化してください。"
+        ]
+        assert author_inputs[2]["prior_findings"] == [
+            f"本文2: 版2の確認事項を具体化してください。"
+        ]
+        assert len({item["result_version"] for item in review_inputs}) == 3
+        assert len({item["html_sha256"] for item in review_inputs}) == 3
         published_report = publication_calls[0]["report"]
         assert isinstance(published_report, dict)
-        # The second finding belongs to the exact revision the reviewer saw.
-        # A separately-rendered fallback may still be published, but must not
-        # claim that the stale finding reviewed that different HTML version.
-        assert published_report["review"]["status"] == "unavailable"
-        assert published_report["review"]["reviewed_version"] == published_report["result_version"]
-        assert published_report["review"]["reviewed_sha256"] == published_report["output"]["sha256"]
-        assert published_report["review"]["findings"] == []
-        assert published_report["output"]["path"] != second_review["html_path"]
-        assert published_report["output"]["sha256"] != second_review["html_sha256"]
-        assert published_report["report_status"] == "pending"
-        attempt_root = (
-            store.database_path.parent
-            / "attempts"
-            / job.job_id
-            / context.state["report_attempt"].attempt_id
-        )
-        response_path = attempt_root / f"review-response-fallback-{second_review['html_sha256'][:20]}.json"
-        prior_review = json.loads(response_path.read_text(encoding="utf-8"))
-        reviewed_input_path = prior_review["review_input"]["path"]
-        reviewed_input_sha256 = prior_review["review_input"]["sha256"]
-        reviewed_input_file = store.database_path.parent / "attempts" / Path(*reviewed_input_path.split("/"))
-        assert reviewed_input_file.is_file()
-        assert hashlib.sha256(reviewed_input_file.read_bytes()).hexdigest() == reviewed_input_sha256
-        assert reviewed_input_file.read_bytes() == (
-            json.dumps(second_review, ensure_ascii=False, sort_keys=True) + "\n"
-        ).encode("utf-8")
-        assert prior_review["review"]["reviewed_version"] == second_review["result_version"]
-        assert prior_review["review"]["reviewed_sha256"] == second_review["html_sha256"]
-        assert prior_review["review"]["findings"][0]["finding"] == "版2の確認事項を具体化してください。"
+        assert published_report["review"]["status"] == "approved"
+        assert published_report["report_status"] == "complete"
+        assert published_report["review"]["reviewed_version"] == review_inputs[2]["result_version"]
+        assert published_report["review"]["reviewed_sha256"] == review_inputs[2]["html_sha256"]
+        assert published_report["output"]["path"] == review_inputs[2]["html_path"]
+        assert published_report["output"]["sha256"] == review_inputs[2]["html_sha256"]
     elif reviewer_mode == "fallback_revision_turn_mismatch_is_traced_and_continues":
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
             production_workflow._REPORT_AUTHOR_ROLE,
+            production_workflow._REPORT_REVIEWER_ROLE,
         ]
-        assert context.state["report_result"]["stage_status"] == "review_unavailable"
+        assert context.state["report_result"]["stage_status"] == "reviewed"
+        assert context.state["report_result"]["review"]["status"] == "approved"
+        assert len(review_inputs) == 2
+        assert review_inputs[-1]["fallback_origin"] == "controller"
+        assert "指摘を反映済みとは扱っていません" in review_inputs[-1]["html"]
+        assert "指摘を本文へ反映しました" not in review_inputs[-1]["html"]
+        published_report = publication_calls[0]["report"]
+        assert isinstance(published_report, dict)
+        assert published_report["review"]["status"] == "approved"
+        assert published_report["review"]["reviewed_version"] == review_inputs[-1]["result_version"]
+        assert published_report["review"]["reviewed_sha256"] == review_inputs[-1]["html_sha256"]
+        assert published_report["output"]["path"] == review_inputs[-1]["html_path"]
+        assert published_report["output"]["sha256"] == review_inputs[-1]["html_sha256"]
         attempt_root = (
             store.database_path.parent
             / "attempts"

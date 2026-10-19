@@ -1,0 +1,69 @@
+{
+  "schema_version": "fc10-precommit-ownership-review-v1",
+  "revision": "r7",
+  "recorded_at_jst": "2026-10-20",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "head_before_commit": "a83afd131074d897f9c524bbba97b5d4095cde82",
+  "upstream": "origin/main",
+  "status_before_stage": {
+    "cached": 0,
+    "uncached_tracked_modifications": 4,
+    "untracked_task_evidence": 4,
+    "other_user_changes": 0
+  },
+  "owned_files": [
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "2c592bf9dce5013a01b7245c9dc1752dba06dcc6f55ac53371e902afc4321a36"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "sha256": "743b92c3d3c38d57c01581fd92e929359ca6dc53251fa19dbaf5a514d606b9d4"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "sha256": "655df31cd5b55a96c39f7984fcc347a691f23d93d17f8a4d0f3fc8e654dbffe6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json",
+      "sha256": "1f08f33503c1d311e04e34ea9bcf3405a76796de60f7c275f32eb65940135e6f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-review-retry-r1.md",
+      "sha256": "43cde0e5a4bc8176e090e6f76f4ae479a327bc8fcc8b9c281ca90c66999e7ae4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-review-retry-r1.json",
+      "sha256": "38a77ba49499b12f6bdb52586a4028cfceed7e76e4778330059ef70ef97b9b9e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-report-review-retry-r1.junit.xml",
+      "sha256": "5185918aae4ddc3423f25612b38b189f71bdbd8aa9da4992835905afccab186c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-report-review-retry-r1.console.txt",
+      "sha256": "d6285aa98c6b93bd408e9f43ac781dafed2b7a5993a656514f655e13b478df0e"
+    }
+  ],
+  "audit_files_to_stage": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r7.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r7.json"
+  ],
+  "audit_self_hashing": "Manifest and companion markdown are excluded from owned_files to avoid self-reference; both are task-owned commit candidates.",
+  "checks": {
+    "py_compile": "passed",
+    "final_focused_cases": "2 passed",
+    "relevant_publication_stage_module_before_final_copy_update": "42 passed",
+    "json_xml_parse": "passed",
+    "diff_check": "passed_with_crlf_normalization_warning",
+    "private_key_credential_email_scan": "0 matches in new evidence; added diff inspected",
+    "worker_excluded_date": "WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"})"
+  },
+  "review": {
+    "independent_product_review": "approved",
+    "findings": 0,
+    "target_source_sha256": "2c592bf9dce5013a01b7245c9dc1752dba06dcc6f55ac53371e902afc4321a36"
+  },
+  "commit_scope": "Only the eight owned files and these two ownership audit files."
+}

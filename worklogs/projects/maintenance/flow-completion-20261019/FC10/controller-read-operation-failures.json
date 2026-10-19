@@ -605,6 +605,33 @@
       "capture_location": "controller Python precommit inventory script",
       "side_effect": "none; inventory reads only and did not write an audit file before failing",
       "recovery": "Re-read status with git status --porcelain=v2 -z and parsed NUL-delimited raw UTF-8 paths. The subsequent inventory resolves every listed path and hashes it."
+    },
+    {
+      "operation": "read_task_owned_git_status_inventory_r1",
+      "attempted_reference": "PowerShell command containing unquoted @{u} Git upstream revision syntax",
+      "failure_class": "PowerShell ParserError",
+      "reason": "PowerShell parsed @{u} as a hashtable expression before Git was invoked.",
+      "capture_location": "controller PowerShell exec invocation",
+      "side_effect": "none; the command failed during parsing before any Git operation ran",
+      "recovery": "Reran status, branch, HEAD, upstream, staged, unstaged, and untracked inventory as separate commands, quoting '@{u}'. Confirmed only this task's two code/test files, plan log, and four FC10 evidence files are present."
+    },
+    {
+      "operation": "validate_controller_operation_failure_json_r1",
+      "attempted_reference": "Append the status-inventory parser failure to the FC10 controller operation log",
+      "failure_class": "JSONDecodeError",
+      "reason": "The appended operation object was missing a comma separator from its preceding object.",
+      "capture_location": "Python json.load validation at line 609 of controller-read-operation-failures.json",
+      "side_effect": "none; validation was read-only and the malformed edit was corrected before continuing",
+      "recovery": "Added the missing comma, parsed the document successfully, and retained the original operations."
+    },
+    {
+      "operation": "scan_task_owned_diff_for_sensitive_literals_r1",
+      "attempted_reference": "Inline Python regex scan of changed source, plan, and FC10 evidence",
+      "failure_class": "PowerShell ParserError",
+      "reason": "Nested quote characters in the inline Python expression were parsed by PowerShell before Python started.",
+      "capture_location": "controller PowerShell exec invocation",
+      "side_effect": "none; the scanner did not start and no repository content changed",
+      "recovery": "Use separate rg pattern searches on explicit owned paths and inspect the exact added diff lines directly."
     }
   ]
 }

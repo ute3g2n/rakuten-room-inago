@@ -1,0 +1,51 @@
+{
+  "schema_version": "flow-completion-fc10-report-review-retry-v1",
+  "observed_at_jst": "2026-10-20",
+  "scope": "fallback report author revision and independent review loop",
+  "initial_production_observation": {
+    "same_job_resume": 16,
+    "report_author_launched": true,
+    "independent_reviewer_launched": true,
+    "review_findings_remained_after_revision": true,
+    "unreviewed_fallback_was_published": true,
+    "workflow_terminal": "complete",
+    "acceptance": "not_met"
+  },
+  "changes": [
+    "Removed the single-revision branch that stopped after repeated review findings.",
+    "Re-run the author for findings and independently review each resulting HTML version.",
+    "Re-review a contentful controller fallback when an author output is unusable.",
+    "Keep fallback text explicit that author findings were not treated as reflected when author output could not be adopted."
+  ],
+  "target_files": [
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "2c592bf9dce5013a01b7245c9dc1752dba06dcc6f55ac53371e902afc4321a36"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "sha256": "743b92c3d3c38d57c01581fd92e929359ca6dc53251fa19dbaf5a514d606b9d4"
+    }
+  ],
+  "verification": {
+    "focused_cases": {
+      "result": "passed",
+      "passed": 2,
+      "failed": 0,
+      "evidence": [
+        "fc10-report-review-retry-r1.junit.xml",
+        "fc10-report-review-retry-r1.console.txt"
+      ]
+    },
+    "py_compile": "passed",
+    "git_diff_check": "passed_with_crlf_normalization_warning"
+  },
+  "independent_product_review": {
+    "initial_round": "changes_requested",
+    "initial_high_findings": 1,
+    "resolution": "Fallback wording now states author output was not adopted and does not claim findings were reflected; exact fallback is passed to the independent reviewer.",
+    "fresh_round": "approved",
+    "fresh_findings": 0
+  },
+  "next_action": "Commit and push only owned changes, apply through the official fixed-root runtime switcher, and resume the existing 2026-10-17 job."
+}

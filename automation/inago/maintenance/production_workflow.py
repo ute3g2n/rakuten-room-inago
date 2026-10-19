@@ -8806,24 +8806,27 @@ def _persist_minimal_daily_report(
             agent_config_dir=project_root / ".codex" / "agents",
         )
         revision_findings: list[str] = []
-        revision_attempted = False
         review_round_number = 0
         while True:
             if revision_findings:
                 fallback = build_fallback_report(
                     identity=identity,
                     operation=operation,
-                    outcome=outcome + " 独立確認で受けた指摘を本文へ反映しました。",
+                    outcome=outcome
+                    + " 別担当の指摘を受けましたが、修正担当の修正結果を採用できませんでした。指摘と修正できなかった経緯をこの報告に記録しています。",
                     unknowns=[
                         "根本原因と当日の業務影響は確認できていません。",
                         "通常形式の報告書生成は失敗しました。",
+                        "別担当の指摘に対する修正担当の出力を採用できませんでした。",
                     ],
-                    next_action="同じjobの不足記録を確認し、分かったことを追記します。",
+                    next_action="修正できなかった経緯と指摘を確認し、使える修正版を作って再確認します。",
                     technical_reference=technical_reference,
                     revision_findings=revision_findings,
                     **{
                         **fallback_content,
-                        "review_status": "前のページには別担当の指摘がありました。この修正版を作成した時点では再確認前で、結果は別記録へ保存します。",
+                        "review_status": "修正担当の出力を採用できなかったため、指摘を反映済みとは扱っていません。このページを別担当が確認します。",
+                        "publication_status": "指摘への修正を完了できなかった事実を記録し、確認結果に沿って公開します。",
+                        "workflow_status": "修正担当の失敗と指摘を記録し、別担当による確認を続けています。",
                     },
                 )
             html_name = "report-fallback-" + fallback.sha256[:20] + ".html"
@@ -8906,34 +8909,6 @@ def _persist_minimal_daily_report(
                     response_bytes = json.dumps({"review_input": {"path": review_input_path, "sha256": review_input_sha256}, "review": review_document}, ensure_ascii=False, sort_keys=True) + "\n"
                     response_name = "review-response-fallback-" + html_sha256[:20] + ".json"
                     save_attempt_artifact(output_root, attempts_root, artifact_context, filename=response_name, content=response_bytes, stage="report")
-                    if revision_attempted:
-                        reviewer_failure = "report_revision_still_has_findings"
-                        fallback = build_fallback_report(
-                            identity=identity, operation=operation,
-                            outcome=outcome + " 別担当の指摘は残っています。",
-                            unknowns=["別担当の指摘が解消したか確認できていません。", "元の日次処理の原因と影響も未確定です。"],
-                            next_action="同じjobの記録と指摘を見比べ、必要な修正と再確認を続けます。",
-                            technical_reference=technical_reference,
-                            revision_findings=revision_findings,
-                            **{**fallback_content, "review_status": "別担当が指摘を返しました。1回の修正と再確認後も指摘が残ったため、承認とは扱っていません。", "publication_status": "未解決の指摘を含む事実報告として公開を続けます。", "workflow_status": "報告の公開と終了記録を続けています。"},
-                        )
-                        html_name = "report-fallback-" + fallback.sha256[:20] + ".html"
-                        html_path, html_sha256 = save_attempt_artifact(output_root, attempts_root, artifact_context, filename=html_name, content=fallback.html, stage="report")
-                        result_version = fallback.report_version
-                        # The reviewer saw the preceding version only. Keep that
-                        # response in its versioned sidecar; this final fallback
-                        # has a separate truthful unavailable record.
-                        review_document = {
-                            "schema_version": "maintenance-report-review-v1",
-                            "reviewer_id": "controller-fallback-review-unavailable",
-                            "reviewed_version": result_version,
-                            "reviewed_sha256": html_sha256,
-                            "status": "unavailable",
-                            "reviewed_at": created_at,
-                            "findings": [],
-                        }
-                        break
-                    revision_attempted = True
                     review_round_number += 1
                     author_outputs: list[tuple[str, str, dict[str, Any]]] = []
                     matching_author_outputs: list[
@@ -9133,8 +9108,11 @@ def _persist_minimal_daily_report(
                         html_name = "report-fallback-" + fallback.sha256[:20] + ".html"
                         html_path, html_sha256 = save_attempt_artifact(output_root, attempts_root, artifact_context, filename=html_name, content=fallback.html, stage="report")
                         result_version = fallback.report_version
-                        review_document = {"schema_version": "maintenance-report-review-v1", "reviewer_id": "controller-fallback-review-unavailable", "reviewed_version": result_version, "reviewed_sha256": html_sha256, "status": "unavailable", "reviewed_at": created_at, "findings": []}
-                        break
+                        # The controller fallback is a new report version. Run
+                        # the independent reviewer against that exact version
+                        # on the next loop iteration instead of treating the
+                        # failed author turn as a review result.
+                        review_document = None
                     continue
                 save_attempt_artifact(
                     output_root,
