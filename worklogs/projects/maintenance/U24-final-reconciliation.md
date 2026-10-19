@@ -60,3 +60,10 @@ U24の最終照合を実施・記録した。これは全項目が成功した�
 
 - HTML v0.7 SHA `7e94679a1d04eedb2e106dac99594e92a869ab1fc7bd50f529fa1fbb806f9076`の独立reviewは21:00:12 JST `approved`、追加指摘0。HR-01～10を解消と確認し、48 links、13 unique IDs、table列数、事実/unknown/security記述を照合した。レビュー記録は`plans/incidents/2026/10/INC-20261017-001/reviews/html-review-v0.7.md/.json`。
 - GitへのHTML公開は未実施。ブラウザ、狭幅、印刷renderも未実施。原因unknown、formal deployment ledger active SHA mismatch、10/20 natural run `not_observed`を維持し、HTML review承認を障害解決や自然運用verifiedへ読み替えない。
+
+## 2026-10-19 21:12～21:13 JST U23.08最終report review/publication結果
+
+- v0.7 reviewは21:00:12 JST approved/finding 0。v0.7 SHA `7e94679a1d04eedb2e106dac99594e92a869ab1fc7bd50f529fa1fbb806f9076`をcommit `ec9557cdb52749ce1fa8f82ed57dfa8dce1f60ba`でmain→origin/mainへ初回公開した。commit対象は非versionedのcurrent report pathである。
+- 公開後にv0.7内のreview statusが古いと判明し、v0.8はその事実誤記を残したためreview artifactを発行せず、未review draftとして保持。v0.9でv0.7 approved・v0.8 review未発行理由・publication commit pathの違いを明示。v0.9 exact SHA `2efefd4cb6dff2d90360f04d7f324b39145b5af14dd48669fb468b8453f12947`の独立reviewは21:12:22 JST approved/findings 0。50 links/13 IDs/table structureと事実、unknown/securityを確認。browser/print render未実施。
+- 最終report commit `fa94d581cc647521898d616bc3d2107b48c98ff1` (`Publish reviewed historical report v0.9`)をmainから`https://github.com/ute3g2n/rakuten-room-inago.git`のorigin/mainへpush成功。current v0.9 report、v0.7/v0.8 exact snapshot copies、v0.9 review MD/JSONを含む。v0.7初回commitと最終v0.9 commitは別々の公開結果として保持し、v0.7 review artifactは別記録済み。
+- 上記はGit上のreport公開を示す。外部hosting、正式deployment ledger active SHAの整合、障害root cause、job終端状態/業務回復を意味しない。S04のjob `running`/stage `blocked`、Worker exit 3、formal ledger mismatch、U25 `not_observed`、10/19 queue/history未処理は確認済み結果として維持。
