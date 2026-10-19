@@ -1,0 +1,24 @@
+{
+  "schema_version": "fc10-renderer-review-target-v1",
+  "target_id": "fc10-renderer-resume17-r3",
+  "branch": "main",
+  "baseline_commit": "2e4118e1adcf79eb18e7d5483f32cc959dc4709d",
+  "files": [
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "sha256": "9afe97f3bc2e6b21e0fc8c2d8e86563425b00d2a8e8950f14c7b1816e1e17bbe"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+      "sha256": "054dfd98ab5c119f650f8a5ad994611ad159581b84f6936e6d2debfcaee6deac"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report.py",
+      "sha256": "5dee042986371e1f56673f47a8a89cb54facf126e48a9b80ca7d1f6401fb05d0"
+    }
+  ],
+  "test_evidence": "FC10/fc10-renderer-round3-green.junit.xml",
+  "requirements_html": "docs/specifications/inago/イナゴスキル要件定義書.html",
+  "review_scope": "report renderer, template, focused renderer tests",
+  "tests_read_only_integrity": true
+}

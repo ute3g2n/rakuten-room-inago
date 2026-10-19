@@ -104,8 +104,7 @@
 
   <section id="flow">
     <h2>処理の流れ</h2>
-    <p>調査で確認できた流れをまとめています。不明な部分は推測していません。</p>
-    <details><summary>処理の詳しい記録（参考）</summary><pre class="tree">{{flow_tree}}</pre></details>
+    <p>調べた内容は上の事象一覧と下の試験・反映結果に分けて説明しています。細かな工程記録は参考付録にまとめています。</p>
   </section>
 
   <section id="checks">
@@ -132,8 +131,8 @@
   <section id="evidence">
     <h2>根拠と関連文書</h2>
     <ul>
-      <li>調査: {{investigation_version}} · <a href="{{investigation_href}}">調査MD</a></li>
-      <li>計画: {{plan_version}} · <a href="{{plan_href}}">修正計画</a></li>
+      {{investigation_reference}}
+      {{plan_reference}}
       <li id="evidence-index">証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
     </ul>
     <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めません。元の資料本文は転載せず、参照した種類と公開ページで確認できない範囲を示します。</p>
@@ -149,6 +148,12 @@
       <li>案件: {{incident_id}}</li>
       <li>起動元: {{source_launch_id}} · run: {{source_run_id_or_null}}</li>
       <li>報告版: {{result_version}}</li>
+      <li>調査版・計画版: {{investigation_version}} · {{plan_version}}</li>
+      <li>報告担当が確認したチェック版: <pre>{{check_versions}}</pre></li>
+      <li>試験記録の版: {{tests_version}}</li>
+      <li>本番反映: 状態={{deployment_status}} · 確認版={{deployment_tested_commit}} · 公開版={{deployment_pushed_commit}} · 稼働版={{deployment_active_commit}}</li>
+      <li>次回確認: 状態={{next_day_status}} · 確認日時={{next_day_observed_at}}</li>
+      <li>工程の詳しい記録: <pre class="tree">{{flow_tree}}</pre></li>
       <li>コード: {{base_commit}} → {{result_commit_or_null}}</li>
       <li>報告担当: {{reporter_id}} · コードレビュー: {{review_status}} · {{reviewed_version}}</li>
       <li>停止理由の記録: {{stop_reason}}</li>

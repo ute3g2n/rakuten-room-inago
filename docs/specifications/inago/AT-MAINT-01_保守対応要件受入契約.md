@@ -125,7 +125,7 @@ U15のC38～C43/C57は一時DB、専用Git fixture/local bare remoteと通常pyt
 
 report stageのresponseは`maintenance-report-response-v1`、最終結果は`maintenance-report-result-v1`、独立レビューは`maintenance-report-review-v1`とする。利用可能なincident/source launch/source run/target date/job identity、調査・計画の版、実装commit、試験・反映・次回観測状態、evidence refsを入力として扱う。不一致・未承認・許可外参照・不正リンクは該当する値を未確認として記録し、作成可能なreportをblockedにしない。report作成者はreview指摘を受けてresponseとHTMLを修正できる。
 
-HTMLは操作・期待・実結果・影響・回復・原因確度・変更後動作・確認範囲、工程tree、試験一覧、未確認・未実施事項、根拠リンクを保持する。`complete`、`pending`、`blocked`は事実に合わせて選び、未完了状態を成功に書き換えない。report reviewerのstatus/findingsは改善情報として記録し、report authorはその指摘を受けて修正できる。公開可能な経路がある場合はreview approvedを待たず公開処理を試し、公開不能ならその理由を記録する。いずれの場合も他の後続処理を止めない。
+HTMLは操作・期待・実結果・影響・回復・原因確度・変更後動作・確認範囲、工程tree、試験一覧、未確認・未実施事項、根拠リンクを保持する。report statusは`complete`または`pending`で、未完了状態を成功に書き換えない。過去に入力・保存された`blocked`値は監査用の事実として保持するが、新しいreport stage resultには使わない。report reviewerのstatus/findingsは改善情報として記録し、report authorはその指摘を受けて修正できる。公開可能な経路がある場合はreview approvedを待たず公開処理を試し、公開不能ならその理由を記録する。いずれの場合も他の後続処理を止めない。
 
 同じformal attemptにreport author/reviewerの複数responseが保存される場合、host readerは同一job/attempt/identity/role/configurationを検証した全response候補を返す。今回起動したauthor/reviewer turnの結果はthread_idとturn_idの両方が一致する候補を一意に選ぶ。再開時に保存済みresponseを再利用する場合は、report result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補を一意に選ぶ。候補がないか複数一致する場合はそのresponseを再利用せず担当を起動し直す。以前のresponseが同じattempt内に存在することやファイル名順だけを理由に今回の修正版を失敗扱いにしない。
 
@@ -253,6 +253,9 @@ U02では本契約と要件対応を静的に確認し、HTML正本を再生成�
 
 ## FC06: reportの内容と継続
 本文だけで「何が起きた/調べた/変えた/不明/次」を理解できる平易な日本語を使い、内部値は参考付録へ置く。reporter失敗時は最小HTMLを同一job/attemptへ保存し、実report reviewerへ渡す。review所見は作者が反映し、review不能でも未承認を正直に残して公開を試す。公開完了とincident解決を分ける。
+
+source snapshotの調査・計画・コードreviewは、各sourceのstatusを対応させて表示し、固定文言で承認を補わない。未作成資料は本文の資料一覧へ誤ってリンクしない。リンク名は資料の役割と形式に合わせる。停止理由のnull/欠測は未確認とし、理由がなかったと断定しない。本文のreport statusは`complete`または`pending`とし、失敗・未確認はその理由と平易な表示で残す。工程tree、生status、reason code、内部ID、版キー、hashは技術付録へ置く。rendererはAI作成本文に状態コード等が含まれる時も本文へそのまま出さない。
+工程表の対象版欄が参考付録を指す場合、source工程の版とreport response内の全check工程名・版を付録に含める。
 ## FC09 schema v15のソース・適用確認
 
 現行コードはmigration 014でappend-only operation event表を追加し、migration 015でrepair predecessorがない場合を許すためall-or-none insert triggerだけを削除する。immutable-pin triggerは維持する。隔離DBではschema v14からv15へ更新し、pinなしrepair attemptを作れることを確認する。FC09のproduction適用では固定workspace内の既存DBを公式CLIで移行し、backup、`quick_check`、version・migration記録・両triggerをread-backする。

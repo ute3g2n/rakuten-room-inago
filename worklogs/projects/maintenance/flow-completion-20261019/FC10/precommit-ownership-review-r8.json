@@ -1,0 +1,176 @@
+{
+  "schema_version": "fc10-precommit-ownership-review-v1",
+  "round": "renderer-resume17-r8",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "head": "2e4118e1adcf79eb18e7d5483f32cc959dc4709d",
+  "upstream": "origin/main",
+  "upstream_head": "2e4118e1adcf79eb18e7d5483f32cc959dc4709d",
+  "ahead_behind": {
+    "ahead": 0,
+    "behind": 0
+  },
+  "cached_before_stage": [],
+  "uncached_tracked_count": 14,
+  "untracked_count_before_audit": 8,
+  "task_owned_files": [
+    {
+      "path": ".agents/skills/rr-inago-incident-report/SKILL.md",
+      "status": "uncached_tracked",
+      "size_bytes": 9996,
+      "sha256": "a2337b890c30d24f93f161c753b111332d77800f3e6728d87744b786e673e9e9"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-report/references/contracts.md",
+      "status": "uncached_tracked",
+      "size_bytes": 11416,
+      "sha256": "ff760e60653b70b87a8787801a0ad80053cf4bc2119ec7b4c371fa3f9c97c282"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-report-reviewer.toml",
+      "status": "uncached_tracked",
+      "size_bytes": 5641,
+      "sha256": "180e4999ebadf14ebceb2cab196c99e3e5b90cdde2c6ee5b336fa79b440c79f7"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-reporter.toml",
+      "status": "uncached_tracked",
+      "size_bytes": 7054,
+      "sha256": "469534691e1fcd7048e2afd23f23aff605db2a2b5012051648b55b989a7a1f30"
+    },
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "status": "uncached_tracked",
+      "size_bytes": 70635,
+      "sha256": "9afe97f3bc2e6b21e0fc8c2d8e86563425b00d2a8e8950f14c7b1816e1e17bbe"
+    },
+    {
+      "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "status": "uncached_tracked",
+      "size_bytes": 67696,
+      "sha256": "2d15f4be933ad84baee4a5bb59721dd40713631da259f8fbdffe26e17f3b4bfc"
+    },
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "status": "uncached_tracked",
+      "size_bytes": 4180171,
+      "sha256": "79aa1054334dbadf1e8bfda907b82ebf38060fe90d54db49f36f47a2dd4ed9d7"
+    },
+    {
+      "path": "docs/specifications/inago/要件データ辞書.md",
+      "status": "uncached_tracked",
+      "size_bytes": 129664,
+      "sha256": "dbba53edf66993501017b3bd82758290e1c6174f1d25b44eba41903de5ffb8bd"
+    },
+    {
+      "path": "docs/specifications/inago/要件追跡表.md",
+      "status": "uncached_tracked",
+      "size_bytes": 99279,
+      "sha256": "30ac0713e481fafa92dbcbc134399c3c1a87c0123f9f335422eac6b1fd7ab768"
+    },
+    {
+      "path": "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+      "status": "uncached_tracked",
+      "size_bytes": 14218,
+      "sha256": "6e2f6d30bee19bc6e9041cec15931083db3243e1d04ce83d00d9a72dedca716c"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+      "status": "uncached_tracked",
+      "size_bytes": 8750,
+      "sha256": "054dfd98ab5c119f650f8a5ad994611ad159581b84f6936e6d2debfcaee6deac"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "status": "uncached_tracked",
+      "size_bytes": 297180,
+      "sha256": "d7e8f7a9db61f99f0d6b38e41c198493353c6bd224a2886bd4aab661e7df5850"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report.py",
+      "status": "uncached_tracked",
+      "size_bytes": 29862,
+      "sha256": "5dee042986371e1f56673f47a8a89cb54facf126e48a9b80ca7d1f6401fb05d0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json",
+      "status": "uncached_tracked",
+      "size_bytes": 52493,
+      "sha256": "8313a67b438457d298a12408f175be57621397e6148c7cf3b14955f620fd9e1b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-renderer-round2-green.console.txt",
+      "status": "untracked",
+      "size_bytes": 102,
+      "sha256": "bc511f28146abbb450167465456892a7bbecf33c6912f04392a737c94322c9bb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-renderer-round2-green.junit.xml",
+      "status": "untracked",
+      "size_bytes": 1989,
+      "sha256": "184f0ac52a452bb4534400bef71ef584feff840f8006130e474ddd346b7a9bcb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-renderer-round3-green.console.txt",
+      "status": "untracked",
+      "size_bytes": 43,
+      "sha256": "cd6092e380c038c53475b15ebe99e47bdff666cc0597165368f4e676e58bf0cf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-renderer-round3-green.junit.xml",
+      "status": "untracked",
+      "size_bytes": 1989,
+      "sha256": "b0a8f01bd4f9fe476c92ce855a696e37522334434fd3e3a5fcefb0941d0b8c80"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/renderer-resume17-diagnosis.md",
+      "status": "untracked",
+      "size_bytes": 7529,
+      "sha256": "900029f0cf99188a47bc38e778e8de499492ed083dc0dcea9c0a4b34ab369563"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/renderer-resume17-review-r3.json",
+      "status": "untracked",
+      "size_bytes": 1384,
+      "sha256": "e7c31ec3a5e70664d3df8d02446156c5ebf85f2c732fe8ba1441419b782a45b1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/renderer-resume17-review-r3.md",
+      "status": "untracked",
+      "size_bytes": 1068,
+      "sha256": "11aef21b83ac05c2837320eb49fb6afafa7d4ca69ceb27e2dbd238b19eab668e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/renderer-resume17-review-target-r3.json",
+      "status": "untracked",
+      "size_bytes": 984,
+      "sha256": "3521c90087cf6d244578f812034d4cff5a0a63f71fa1ec40eaa064ea9af0a8b4"
+    }
+  ],
+  "audit_files_excluded_from_self_hash": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r8.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r8.md"
+  ],
+  "sensitive_scan": {
+    "added_lines_and_untracked_files": true,
+    "private_key_hits": 0,
+    "credential_hits": 0,
+    "windows_profile_path_hits": 0,
+    "personal_email_hits": 0,
+    "allowed_synthetic_example_invalid_emails_ignored": true
+  },
+  "verification": {
+    "focused_pytest": "13 passed; junit reports 13 tests and 0 failures",
+    "py_compile": "passed",
+    "requirements_builder": "v2.53, 28 chapters, 39 figures, 26 references, passed",
+    "report_roles_toml": "2 parsed",
+    "fc10_json": "3 parsed",
+    "git_diff_check": "exit 0; line-ending warnings only"
+  },
+  "product_review": {
+    "status": "approved",
+    "findings": 0,
+    "target_manifest_sha256": "3521c90087cf6d244578f812034d4cff5a0a63f71fa1ec40eaa064ea9af0a8b4",
+    "source_hashes_match": true
+  }
+}

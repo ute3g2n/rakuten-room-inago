@@ -53,8 +53,7 @@ _CONFIDENCE_LABELS = {
 }
 _STATUS_LABELS = {
     "complete": "確認完了",
-    "pending": "未確認・保留",
-    "blocked": "停止中",
+    "pending": "確認を続けます",
 }
 _SENSITIVE_PATTERNS = (
     re.compile(r"\bBearer\s+\S+", re.I),
@@ -63,6 +62,19 @@ _SENSITIVE_PATTERNS = (
         re.I,
     ),
     re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+)
+_PUBLIC_INTERNAL_PATTERNS = (
+    re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b", re.I),
+    re.compile(r"\b(?:job|launch|run|incident|attempt)-[A-Za-z0-9][A-Za-z0-9._:-]{7,}\b", re.I),
+    re.compile(r"\b[A-F0-9]{40,64}\b", re.I),
+    re.compile(r"\b(?:status|reason(?:_code)?|sha(?:256)?|commit)\s*[:=]", re.I),
+    re.compile(
+        r"\b(?:approved|blocked|changes_requested|complete|deployed|error|failed|"
+        r"not_created|not_observed|not_run|not_started|not_attempted|pending|"
+        r"passed|recurred|rejected|report_source_artifact_unavailable|rolled_back|"
+        r"skipped|unknown|unavailable|verified)\b",
+        re.I,
+    ),
 )
 _MARKDOWN_EVIDENCE_LINK = re.compile(r"\[([^\]\r\n]{1,160})\]\(([^()\s]{1,512})\)")
 _REFERENCE_SEPARATOR_ONLY = re.compile(r"^[\s,，、。;；:：|・]+$")
@@ -382,16 +394,6 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
 
 
 def _report_status(sources: Mapping[str, Any]) -> str:
-    statuses = (
-        sources["tests"]["status"],
-        sources["deployment"]["status"],
-        sources["next_day"]["status"],
-    )
-    if any(
-        value in {"failed", "blocked", "error", "rolled_back", "recurred"}
-        for value in statuses
-    ):
-        return "blocked"
     if (
         sources["tests"]["status"] != "passed"
         or sources["deployment"]["status"] != "deployed"
@@ -406,7 +408,7 @@ def _evidence_display_label(reference: str) -> str:
     if name in {"manifest.json", "source-evidence.json", "source.json"}:
         return "元の証拠一覧"
     if name == "result.json":
-        return "保存された工程結果"
+        return "工程結果の記録（JSON）"
     if name == "observation.json":
         return "対象日の観測記録"
     if name == "production-cli.filtered.json":
@@ -438,6 +440,32 @@ def _evidence_display_label(reference: str) -> str:
     if name.endswith(".md"):
         return "工程の記録"
     return "関連する確認記録"
+
+
+def _source_reference_label(kind: str, reference: str) -> str:
+    suffix = PurePosixPath(reference).suffix.casefold()
+    formats = {".json": "JSON", ".md": "文章", ".html": "HTML", ".xml": "XML"}
+    detail = f"（{formats[suffix]}）" if suffix in formats else ""
+    labels = {
+        "investigation": "調査結果",
+        "plan": "修正計画",
+        "tests": "試験結果の記録",
+        "deployment": "反映状況の記録",
+        "next_day": "翌日の確認記録",
+    }
+    return labels[kind] + detail
+
+
+def _source_document_available(
+    source: Mapping[str, Any], evidence_index_href: str
+) -> bool:
+    version = source.get("result_version")
+    reference = source.get("href", source.get("evidence_href"))
+    return (
+        isinstance(version, str)
+        and version.casefold() not in {"not_created", "not_available", "unavailable"}
+        and reference != evidence_index_href
+    )
 
 
 def _report_evidence_links(
@@ -615,6 +643,13 @@ def _e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+def _public_text(value: object, fallback: str = "詳しい工程情報は参考資料に記録しています。") -> str:
+    text = str(value)
+    if any(pattern.search(text) for pattern in _PUBLIC_INTERNAL_PATTERNS):
+        return fallback
+    return text
+
+
 def _report_evidence_index(
     response: Mapping[str, Any], sources: Mapping[str, Any]
 ) -> dict[str, dict[str, str]]:
@@ -628,7 +663,10 @@ def _report_evidence_index(
                 "anchor_id": f"report-evidence-{len(references) + 1}",
                 "label": preferred_label or _evidence_display_label(reference),
             }
+        elif preferred_label:
+            references[reference]["label"] = preferred_label
 
+    index_href = sources["evidence_index_href"]
     for key in ("issues", "checks"):
         items = response.get(key, [])
         if not isinstance(items, list):
@@ -643,15 +681,30 @@ def _report_evidence_index(
                 if isinstance(link, dict):
                     add(link.get("href"))
 
-    add(sources["investigation"]["href"], "調査結果")
-    add(sources["plan"]["href"], "実行計画")
-    add(sources["tests"]["evidence_href"], "試験記録")
-    add(sources["deployment"]["evidence_href"], "反映記録")
-    add(
-        sources["next_day"]["evidence_href"] or sources["evidence_index_href"],
-        "次回確認の記録",
-    )
-    add(sources["evidence_index_href"], "確認できた資料一覧")
+    for name in ("investigation", "plan"):
+        source = sources[name]
+        if _source_document_available(source, index_href):
+            add(source["href"], _source_reference_label(name, source["href"]))
+    tests = sources["tests"]
+    if tests["evidence_href"] != index_href:
+        add(
+            tests["evidence_href"],
+            _source_reference_label("tests", tests["evidence_href"]),
+        )
+    deployment = sources["deployment"]
+    if deployment["evidence_href"] != index_href:
+        add(
+            deployment["evidence_href"],
+            _source_reference_label("deployment", deployment["evidence_href"]),
+        )
+    next_day = sources["next_day"]
+    if next_day["evidence_href"] and next_day["evidence_href"] != index_href:
+        add(
+            next_day["evidence_href"],
+            _source_reference_label("next_day", next_day["evidence_href"]),
+        )
+
+    add(index_href, "確認に使った資料一覧")
 
     for key in ("issues", "checks"):
         items = response.get(key, [])
@@ -716,11 +769,11 @@ def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
     for index, item in enumerate(issues, start=1):
         rows.append(
             "<tr>"
-            f'<td><a href="#issue-{index}">{_e(item["phase"])}</a></td>'
+            f'<td><a href="#issue-{index}">{_e(_public_text(item["phase"], "関連する工程"))}</a></td>'
             f'<td>{_e(_EVENT_LABELS[item["event_class"]])}</td>'
-            f'<td>{_e(item["expected"])}</td>'
-            f'<td>{_e(item["actual"])}<br><strong>影響:</strong> {_e(item["impact"])}</td>'
-            f'<td>{_e(item["recovery"])}</td>'
+            f'<td>{_e(_public_text(item["expected"], "期待した内容は参考資料に記録しています。"))}</td>'
+            f'<td>{_e(_public_text(item["actual"], "実際の結果は参考資料に記録しています。"))}<br><strong>影響:</strong> {_e(_public_text(item["impact"], "影響は確認できていません。"))}</td>'
+            f'<td>{_e(_public_text(item["recovery"], "回復したかは確認できていません。"))}</td>'
             f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
         )
@@ -737,18 +790,18 @@ def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
         }[item["event_class"]]
         rows.append(
             f'<article class="issue {issue_class}" id="issue-{index}">'
-            f"<h3>{_e(item['title'])}</h3>"
+            f"<h3>{_e(_public_text(item['title'], '処理結果を確認できませんでした'))}</h3>"
             f'<p><span class="status pending">{_e(_EVENT_LABELS[item["event_class"]])}</span></p>'
             "<h4>操作・期待・実結果</h4>"
-            f"<p>{_e(item['operation'])}<br><strong>期待:</strong> {_e(item['expected'])}<br><strong>実結果:</strong> {_e(item['actual'])}</p>"
+            f"<p>{_e(_public_text(item['operation'], '操作内容は参考資料に記録しています。'))}<br><strong>期待:</strong> {_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。'))}<br><strong>実結果:</strong> {_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。'))}</p>"
             "<h4>影響と回復</h4>"
-            f"<p>{_e(item['impact'])}<br><strong>回復:</strong> {_e(item['recovery'])}</p>"
+            f"<p>{_e(_public_text(item['impact'], '影響は確認できていません。'))}<br><strong>回復:</strong> {_e(_public_text(item['recovery'], '回復したかは確認できていません。'))}</p>"
             "<h4>原因と分かっている範囲</h4>"
-            f"<p><strong>{_e(_CONFIDENCE_LABELS[item['cause_confidence']])}:</strong> {_e(item['cause_statement'])}</p>"
+            f"<p><strong>{_e(_CONFIDENCE_LABELS[item['cause_confidence']])}:</strong> {_e(_public_text(item['cause_statement'], '原因は確認できていません。'))}</p>"
             "<h4>変更後の動作</h4>"
-            f"<p>{_e(item['changed_behavior'])}</p>"
+            f"<p>{_e(_public_text(item['changed_behavior'], '変更後の動作は参考資料に記録しています。'))}</p>"
             "<h4>確認範囲と根拠</h4>"
-            f'<p>{_e(item["confirmation_scope"])} · {_render_evidence_links(item)}</p>'
+            f'<p>{_e(_public_text(item["confirmation_scope"], "確認範囲は参考資料に記録しています。"))} · {_render_evidence_links(item)}</p>'
             "</article>"
         )
     return "\n".join(rows)
@@ -762,69 +815,181 @@ def _render_check_rows(
     status_names = {
         "passed": ("passed", "確認済み"),
         "failed": ("failed", "失敗"),
-        "blocked": ("blocked", "停止"),
+        "blocked": ("pending", "要確認"),
         "not_run": ("pending", "未実施"),
         "skipped": ("pending", "未実施"),
         "error": ("failed", "確認できず"),
         "deployed": ("passed", "反映済み"),
         "pending": ("pending", "保留"),
-        "rolled_back": ("blocked", "復旧済み・未反映"),
+        "rolled_back": ("pending", "復旧済み・未反映"),
         "not_attempted": ("pending", "未実施"),
         "verified": ("passed", "確認済み"),
         "not_observed": ("pending", "未観測"),
         "recurred": ("failed", "再発"),
+        "approved": ("passed", "承認済み"),
+        "changes_requested": ("failed", "修正依頼あり"),
+        "rejected": ("failed", "承認されませんでした"),
+        "unavailable": ("pending", "実施できず"),
+        "not_started": ("pending", "未開始"),
     }
     rows = []
     for item in checks:
         css, label = status_names[item["status"]]
         rows.append(
             "<tr>"
-            f"<td>{_e(item['stage'])}</td><td>参考記録に記載</td>"
-            f"<td>{_e(item['expected'])}</td><td>{_e(item['actual'])}</td>"
+            f"<td>{_e(_public_text(item['stage'], '関連する工程'))}</td><td>版は参考付録を参照</td>"
+            f"<td>{_e(_public_text(item['expected'], '期待した内容は参考資料に記録しています。'))}</td>"
+            f"<td>{_e(_public_text(item['actual'], '実際の結果は参考資料に記録しています。'))}</td>"
             f'<td><span class="status {css}">{label}</span></td>'
             f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
         )
+    tests_status = sources["tests"]["status"]
+    tests_actual = {
+        "passed": "保存された結果では試験に成功しています。",
+        "failed": "試験で問題が見つかりました。詳しい結果は参考資料にあります。",
+        "blocked": "試験結果は未確認です。確認を続けます。",
+        "not_run": "試験は実施していません。試験結果の資料はありません。",
+        "skipped": "試験は省略されています。試験結果の資料はありません。",
+        "error": "試験結果を確認できませんでした。詳しい経緯は参考資料にあります。",
+    }[tests_status]
+    deployment_status = sources["deployment"]["status"]
+    deployment_actual = {
+        "deployed": "本番環境への反映と起動を確認しました。",
+        "pending": "本番環境へ反映したか、まだ確認できていません。",
+        "blocked": "本番環境への反映結果は未確認です。確認を続けます。",
+        "failed": "本番環境への反映に失敗した記録があります。",
+        "rolled_back": "反映後に元へ戻した記録があります。",
+        "not_attempted": "本番反映は実施していません。",
+    }[deployment_status]
+    next_day_status = sources["next_day"]["status"]
+    next_day_actual = {
+        "verified": "翌日の確認を行いました。",
+        "pending": "翌日の確認はまだ行っていません。",
+        "not_observed": "翌日の確認結果はまだ観測できていません。",
+        "recurred": "翌日の確認で同じ問題が見つかりました。",
+        "blocked": "翌日の確認結果は未確認です。確認を続けます。",
+    }[next_day_status]
+    index_href = sources["evidence_index_href"]
+    investigation = sources["investigation"]
+    plan = sources["plan"]
+    implementation = sources["implementation"]
     source_rows = (
         (
+            "調査レビュー",
+            "調査結果を別の担当者が確認する",
+            {
+                "approved": "調査結果は別の担当者に承認されました。",
+                "changes_requested": "調査結果に修正依頼がありました。",
+                "rejected": "調査結果は承認されませんでした。",
+                "unavailable": "調査結果のレビューは実施できませんでした。",
+                "not_started": "調査結果のレビューはまだ始まっていません。",
+            }[investigation["review_status"]],
+            investigation["review_status"],
+            investigation["href"]
+            if _source_document_available(investigation, index_href)
+            else index_href,
+        ),
+        (
+            "計画レビュー",
+            "修正計画を別の担当者が確認する",
+            {
+                "approved": "修正計画は別の担当者に承認されました。",
+                "changes_requested": "修正計画に修正依頼がありました。",
+                "rejected": "修正計画は承認されませんでした。",
+                "unavailable": "修正計画のレビューは実施できませんでした。",
+                "not_started": "修正計画のレビューはまだ始まっていません。",
+            }[plan["review_status"]],
+            plan["review_status"],
+            plan["href"] if _source_document_available(plan, index_href) else index_href,
+        ),
+        (
+            "プロダクトコードレビュー",
+            "変更したコードを別の担当者が確認する",
+            {
+                "approved": "変更したコードは別の担当者に承認されました。",
+                "changes_requested": "変更したコードに修正依頼がありました。",
+                "rejected": "変更したコードは承認されませんでした。",
+                "unavailable": "コードレビューは実施できませんでした。",
+                "not_started": "コードレビューはまだ始まっていません。",
+            }[implementation["review_status"]],
+            implementation["review_status"],
+            index_href,
+        ),
+        (
             "修正後テスト",
-            sources["tests"]["result_version"],
-            "必須テストがPASS",
-            sources["tests"]["summary"],
-            sources["tests"]["status"],
+            "修正後の動作を試験で確かめる",
+            tests_actual,
+            tests_status,
             sources["tests"]["evidence_href"],
         ),
         (
             "本番反映",
-            sources["implementation"]["result_commit"],
-            "試験済み版を反映",
-            f"tested={sources['deployment']['tested_commit']} / pushed={sources['deployment']['pushed_commit']} / active={sources['deployment']['active_commit']}",
-            sources["deployment"]["status"],
+            "確認した変更を本番環境に反映する",
+            deployment_actual,
+            deployment_status,
             sources["deployment"]["evidence_href"],
         ),
         (
             "次回の日次確認",
-            sources["implementation"]["result_commit"],
-            "修正事象の再発有無を自然観測",
-            sources["next_day"]["observed_at"] or "まだ観測していません",
-            sources["next_day"]["status"],
+            "翌日も同じ問題が起きるか確かめる",
+            next_day_actual,
+            next_day_status,
             sources["next_day"]["evidence_href"] or sources["evidence_index_href"],
         ),
     )
-    for stage, version, expected, actual, status, href in source_rows:
+    for stage, expected, actual, status, href in source_rows:
         css, label = status_names[status]
+        reference = evidence_references[href]
         rows.append(
             "<tr>"
-            f"<td>{_e(stage)}</td><td>参考記録に記載</td><td>{_e(expected)}</td>"
+            f"<td>{_e(stage)}</td><td>版は参考付録を参照</td><td>{_e(expected)}</td>"
             f'<td>{_e(actual)}</td><td><span class="status {css}">{label}</span></td>'
-            f'<td><a href="#{_e(evidence_references[href]["anchor_id"])}">'
-            f'{_e(evidence_references[href]["label"])}を見る</a></td></tr>'
+            f'<td><a href="#{_e(reference["anchor_id"])}">'
+            f'{_e(reference["label"])}を見る</a></td></tr>'
         )
     return "\n".join(rows)
 
 
+def _render_check_versions(checks: Sequence[Mapping[str, Any]]) -> str:
+    if not checks:
+        return "チェック記録がありません。"
+    return "\n".join(
+        f"・{_e(item['stage'])}: {_e(item['version'])}" for item in checks
+    )
+
+
 def _status_css(status: str) -> str:
-    return {"complete": "passed", "pending": "pending", "blocked": "blocked"}[status]
+    return {"complete": "passed", "pending": "pending"}[status]
+
+
+def _render_source_reference(
+    kind: str,
+    source: Mapping[str, Any],
+    evidence_index_href: str,
+    evidence_references: Mapping[str, Mapping[str, str]],
+) -> str:
+    result_version = source.get("result_version")
+    if not _source_document_available(source, evidence_index_href):
+        if result_version == "not_created":
+            return f"<li>{_e(kind)}の資料は作成されていません。</li>"
+        return f"<li>{_e(kind)}の資料を確認できませんでした。</li>"
+    href = source["href"]
+    reference = evidence_references[href]
+    return (
+        f'<li>{_e(kind)}: <a href="#{_e(reference["anchor_id"])}">'
+        f'{_e(reference["label"])}</a></li>'
+    )
+
+
+def _review_status_label(status: str) -> str:
+    return {
+        "approved": "承認済み",
+        "changes_requested": "修正依頼あり",
+        "rejected": "承認されませんでした",
+        "unavailable": "レビューを実施できませんでした",
+        "not_started": "未開始",
+    }[status]
 
 
 def _render_html(
@@ -837,12 +1002,17 @@ def _render_html(
 ) -> str:
     recovery = response["recovery"]
     evidence_references = _report_evidence_index(response, sources)
-    unknowns = "\n".join(f"・{item}" for item in recovery["unknowns"]) or "なし"
+    unknowns = "\n".join(
+        f"・{_public_text(item, '詳しい未確認事項は参考資料に記録しています。')}"
+        for item in recovery["unknowns"]
+    ) or "未確認事項の記録がありません。"
     replacements = {
         "{{incident_id}}": _e(job["incident_id"]),
         "{{target_date}}": _e(job["target_date"]),
-        "{{report_title}}": _e(response["title"]),
-        "{{report_summary}}": _e(response["summary"]),
+        "{{report_title}}": _e(_public_text(response["title"], "日次処理の確認結果")),
+        "{{report_summary}}": _e(
+            _public_text(response["summary"], "詳しい工程の状況は参考資料に記録しています。")
+        ),
         "{{created_at_jst}}": _e(response["created_at_jst"]),
         "{{result_version}}": _e(response["result_version"]),
         "{{source_launch_id}}": _e(job["source_launch_id"]),
@@ -854,25 +1024,61 @@ def _render_html(
         "{{check_rows}}": _render_check_rows(
             response["checks"], sources, evidence_references
         ),
+        "{{check_versions}}": _render_check_versions(response["checks"]),
         "{{flow_tree}}": _e(response["flow_tree"]),
         "{{unknowns}}": _e(unknowns),
-        "{{stop_reason}}": _e(recovery["stop_reason"] or "なし"),
-        "{{resume_condition}}": _e(recovery["resume_condition"]),
-        "{{side_effects}}": _e(recovery["side_effects"]),
+        "{{stop_reason}}": _e(
+            recovery["stop_reason"] or "記録がありません（未確認）"
+        ),
+        "{{resume_condition}}": _e(
+            _public_text(recovery["resume_condition"], "次に必要な確認は参考資料に記録しています。")
+        ),
+        "{{side_effects}}": _e(
+            _public_text(recovery["side_effects"], "実行していない操作は参考資料に記録しています。")
+        ),
         "{{investigation_version}}": _e(sources["investigation"]["result_version"]),
-        "{{investigation_href}}": _e(
-            "#" + evidence_references[sources["investigation"]["href"]]["anchor_id"]
+        "{{investigation_reference}}": _render_source_reference(
+            "調査結果",
+            sources["investigation"],
+            sources["evidence_index_href"],
+            evidence_references,
         ),
         "{{plan_version}}": _e(sources["plan"]["result_version"]),
-        "{{plan_href}}": _e(
-            "#" + evidence_references[sources["plan"]["href"]]["anchor_id"]
+        "{{plan_reference}}": _render_source_reference(
+            "修正計画",
+            sources["plan"],
+            sources["evidence_index_href"],
+            evidence_references,
         ),
         "{{base_commit}}": _e(sources["implementation"]["base_commit"]),
         "{{result_commit_or_null}}": _e(sources["implementation"]["result_commit"]),
+        "{{tests_version}}": _e(sources["tests"]["result_version"]),
+        "{{deployment_status}}": _e(sources["deployment"]["status"]),
+        "{{deployment_tested_commit}}": _e(
+            sources["deployment"]["tested_commit"]
+            if sources["deployment"]["tested_commit"] is not None
+            else "null"
+        ),
+        "{{deployment_pushed_commit}}": _e(
+            sources["deployment"]["pushed_commit"]
+            if sources["deployment"]["pushed_commit"] is not None
+            else "null"
+        ),
+        "{{deployment_active_commit}}": _e(
+            sources["deployment"]["active_commit"]
+            if sources["deployment"]["active_commit"] is not None
+            else "null"
+        ),
+        "{{next_day_status}}": _e(sources["next_day"]["status"]),
+        "{{next_day_observed_at}}": _e(
+            sources["next_day"]["observed_at"]
+            if sources["next_day"]["observed_at"] is not None
+            else "null"
+        ),
         "{{evidence_index_href}}": _e(
             "#" + evidence_references[sources["evidence_index_href"]]["anchor_id"]
         ),
-        "{{evidence_index_label}}": _e(sources["evidence_index_label"]),
+        "{{evidence_index_label}}": "確認に使った資料一覧",
         "{{evidence_reference_rows}}": _render_evidence_reference_rows(
             evidence_references
         ),
@@ -881,7 +1087,10 @@ def _render_html(
         ),
         "{{reporter_id}}": "報告担当",
         "{{reviewed_version}}": _e(sources["implementation"]["result_commit"]),
-        "{{review_status}}": "承認済み（プロダクトコード）",
+        "{{review_status}}": _e(
+            _review_status_label(sources["implementation"]["review_status"])
+            + "（プロダクトコード）"
+        ),
     }
     template_tokens = set(re.findall(r"\{\{[^{}]+\}\}", template))
     if set(replacements).difference(template_tokens):

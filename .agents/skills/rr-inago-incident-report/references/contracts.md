@@ -22,6 +22,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 - 調査、作業場所での検証、release gate、反映、次回日次観測は個別の状態として表す。未実施は未実施、skip/errorはPASSでない。
 - HTMLは意味的見出し、症状の一覧と詳細、索引、相対リンク、狭幅/印刷向けCSS、pre/codeの改行・字下げ保持、未確認状態の視認性を含む。
 - 内部fragment link（`href="#..."`）は最終HTML内の一致する`id`へ解決し、リンク先は一意でなければならない。
+- 工程表の対象版を参考付録へ案内する場合、source snapshot由来の各工程版とreport responseの個別check工程名・版を付録へすべて列挙する。参照先が実在しない版を「付録を参照」と表示しない。
 
 ## 出力・レビュー・再開
 
@@ -56,3 +57,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ### FC10 host-owned invocationと公開証拠
 
 `invocation_id`はcontrollerが採番し、handoff payloadに同じ値を設定する。reporter/reviewerはこの値を生成せず、入力された正式identityと報告対象の版を維持する。bodyは平易な日本語で何が起き、何を確認し、何を変え、何が不明で、次に何をするかを説明する。内部IDやstatus等は付録に置く。reviewerは実際の公開HTML本文だけでも説明が成り立つか読み、用語で平易さを代用させない。公開版のhash/read-backとDB終端登録は別操作の成果であり、reportの存在だけを完遂根拠にしない。
+
+### FC10 rendererとsource statusの表示
+
+source snapshotの調査・計画・コードreview状態は別々に日本語表示し、根拠のない承認を追加しない。`not_created`の資料へリンクせず、直接参照の資料名は実際の種類・形式に合わせる。停止理由のnull/欠測は「記録がなく未確認」とする。試験未実施、本番未反映、翌日未確認は日常語で説明し、`blocked`を新しいreport statusとして出さない。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。

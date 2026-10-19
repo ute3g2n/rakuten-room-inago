@@ -4,7 +4,7 @@
   "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
   "source_run_id": null,
   "target_date": "2026-10-17",
-  "recorded_at_utc": "2026-10-19T19:24:20.9423500Z",
+  "recorded_at_utc": "2026-10-19T19:24:20.94235Z",
   "operations": [
     {
       "operation": "read_same_job_report_attempt_artifacts",
@@ -417,7 +417,7 @@
         "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
         "origin/main:reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"
       ],
-      "recorded_at_utc": "2026-10-19T19:24:20.9423500Z"
+      "recorded_at_utc": "2026-10-19T19:24:20.94235Z"
     },
     {
       "operation": "read_git_status_and_upstream_with_unquoted_powershell_at_expression",
@@ -632,6 +632,69 @@
       "capture_location": "controller PowerShell exec invocation",
       "side_effect": "none; the scanner did not start and no repository content changed",
       "recovery": "Use separate rg pattern searches on explicit owned paths and inspect the exact added diff lines directly."
+    },
+    {
+      "operation": "run_fc10_renderer_focused_test_with_base_python",
+      "attempted_reference": "python -m pytest tests_inago/test_maintenance_report.py -q",
+      "failure_class": "ModuleNotFoundError",
+      "reason": "The selected uv-managed base interpreter does not have pytest installed, so pytest did not start test collection.",
+      "capture_location": "controller PowerShell exec result",
+      "side_effect": "none; no test case started",
+      "recovery": "Read automation/inago/requirements-test.txt and reran through uv run --with-requirements automation/inago/requirements-test.txt; the focused module passed 13 tests."
+    },
+    {
+      "operation": "locate_repository_test_runner_configuration",
+      "attempted_reference": "rg against absent root pyproject.toml, uv.lock, Makefile, justfile, and scripts paths",
+      "failure_class": "rg exit 2 / file-not-found",
+      "reason": "The exploratory command supplied several guessed root paths that do not exist in this repository.",
+      "capture_location": "controller PowerShell rg read-only command",
+      "side_effect": "none; search only",
+      "recovery": "Used rg --files to identify the actual automation/inago/requirements-test.txt and ran the focused module with uv."
+    },
+    {
+      "operation": "write_fc10_renderer_review_manifest_r3",
+      "attempted_reference": "PowerShell manifest construction and bound reviewer result",
+      "failure_class": "PowerShell command execution error",
+      "reason": "An unquoted PowerShell boolean literal was written as true instead of $true. The target manifest became JSON null and the first review-record hash bound to that null document.",
+      "capture_location": "controller PowerShell exec result and renderer-resume17-review-target-r3.json readback",
+      "side_effect": "only the newly created, task-owned review target/result records were temporarily invalid; source, tests, and production data were unchanged",
+      "recovery": "Rebuilt the target JSON with $true, recomputed its SHA-256, rewrote the review result binding, and validated target file count, result binding, and JSON parsing."
+    },
+    {
+      "operation": "read_fc10_renderer_junit_counts_r1",
+      "attempted_reference": "direct testsuite property on pytest JUnit XML root",
+      "failure_class": "XML result selection mismatch",
+      "reason": "The valid JUnit document uses a testsuites root, so direct testsuite properties were empty even though XML parsing succeeded.",
+      "capture_location": "controller PowerShell XML count extraction",
+      "side_effect": "none; the underlying JUnit XML was read only and remained unchanged",
+      "recovery": "Queried //testsuite explicitly and read 13 tests with zero failures."
+    },
+    {
+      "operation": "sync_fc10_report_version_requirement_into_tracking_table_r1",
+      "attempted_reference": "PowerShell insertion using CRLF-specific anchor in 要件追跡表.md",
+      "failure_class": "PowerShell script exception",
+      "reason": "The tracking markdown uses a different line ending than the expected CRLF prefix, so the exact CRLF anchor was not found.",
+      "capture_location": "controller PowerShell script before WriteAllText",
+      "side_effect": "none; the script threw before writing the in-memory text",
+      "recovery": "Re-read the text, changed the historical prefix in memory, inserted the new 2.53 note by line-independent substring index, wrote once, and corrected one incomplete sentence ending."
+    },
+    {
+      "operation": "validate_staged_fc10_renderer_changes_r1",
+      "attempted_reference": "git diff --cached --check",
+      "failure_class": "Git whitespace validation failure",
+      "reason": "The new renderer diagnosis markdown used two trailing spaces after its date, which Git reports as trailing whitespace.",
+      "capture_location": "git diff --cached --check on the staged ownership set",
+      "side_effect": "none; validation read the index and did not modify files",
+      "recovery": "Removed the trailing spaces, updated the staged diagnosis file and ownership hash manifest, then reran staged diff validation."
+    },
+    {
+      "operation": "scan_staged_snapshot_for_sensitive_literals_r1",
+      "attempted_reference": "whole-file scanner over all staged paths",
+      "failure_class": "scanner scope false positive",
+      "reason": "The first staged scan searched complete file snapshots and found two Windows profile-path patterns in pre-existing document lines, even though neither line was added by this task.",
+      "capture_location": "controller Python staged-file sensitive scan",
+      "side_effect": "none; read-only scan did not expose the matched value or change repository files",
+      "recovery": "Reran the sensitive scan over added staged hunks only; private-key, credential, profile-path, and personal-email hits were all zero. The pre-commit scan over added lines and new evidence files was also zero."
     }
   ]
 }

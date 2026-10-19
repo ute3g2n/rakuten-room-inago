@@ -115,7 +115,7 @@ def _report_response() -> dict[str, object]:
                 "title": "日次処理の結果を保存できない",
                 "operation": "日次処理の結果を書き込む操作を行いました。",
                 "expected": "当日分の結果が保存されること。",
-                "actual": "当日分の確定は0件で、処理はfailedでした。",
+                "actual": "当日分の確定は0件で、処理は失敗しました。",
                 "impact": "当日の結果を確定できませんでした。",
                 "recovery": "再試行による回復は確認していません。",
                 "cause_confidence": "limited",
@@ -129,7 +129,7 @@ def _report_response() -> dict[str, object]:
         "checks": [
             {
                 "stage": "ローカルfixture",
-                "version": "tests-v1",
+                "version": "check-version-v1",
                 "expected": "契約に沿って未確認を保留する",
                 "actual": "期待どおり未確認を保留しました。",
                 "status": "passed",
@@ -183,15 +183,15 @@ def test_c55_contract():
     assert result["routing"]["steps_started"] == []
 
     report_response = _report_response()
-    report_response["issues"][0]["actual"] = f"本日: failed、確定0件。前日画面: 12件。"
+    report_response["issues"][0]["actual"] = "本日は処理に失敗し、確定0件です。前日画面では12件でした。"
     report = _prepared_report(report_response)
-    assert "本日: failed、確定0件" in report.html
-    assert "前日画面: 12件" in report.html
+    assert "本日は処理に失敗し、確定0件です" in report.html
+    assert "前日画面では12件でした" in report.html
     assert "本番反映: 未実施" in report.html
     assert report.report_status == "pending"
 
 
-def test_c56_report_marks_recurrent_observation_blocked():
+def test_c56_report_keeps_recurrent_observation_as_pending_review():
     sources = _source_snapshot()
     sources["next_day"] = {
         "status": "recurred",
@@ -207,7 +207,7 @@ def test_c56_report_marks_recurrent_observation_blocked():
             / "docs/templates/incidents/日次不具合対応レポート_ひな形.html"
         ),
     )
-    assert report.report_status == "blocked"
+    assert report.report_status == "pending"
     assert "recurred" in report.result_json
 
 
@@ -216,12 +216,91 @@ def test_c44_contract():
     assert report.report_status == "pending"
     assert "操作・期待・実結果" in report.html
     assert "当日分の結果が保存されること。" in report.html
-    assert "当日分の確定は0件で、処理はfailedでした。" in report.html
+    assert "当日分の確定は0件で、処理は失敗しました。" in report.html
     assert "影響と回復" in report.html
     assert "変更後の動作" in report.html
     assert "本番反映と次回日次確認はまだ行っていません" in report.html
+    assert "版は参考付録を参照" in report.html
+    assert (
+        "報告担当が確認したチェック版: <pre>・ローカルfixture: check-version-v1</pre>"
+        in report.html
+    )
+    assert "試験記録の版: tests-v1" in report.html
+    assert (
+        "本番反映: 状態=not_attempted · 確認版=null · 公開版=null · 稼働版=null"
+        in report.html
+    )
+    assert "次回確認: 状態=pending · 確認日時=null" in report.html
     assert "{{" not in report.html
     assert '"stage_status":"ready_for_review"' in report.result_json
+
+
+def test_report_explains_unavailable_sources_without_exposing_internal_statuses():
+    root = Path(__file__).resolve().parents[1]
+    job = _job_context()
+    job["evidence_refs"].append("evidence/U16/result.json")
+    sources = _source_snapshot()
+    sources["investigation"] = {
+        "result_version": "investigation-v2",
+        "review_status": "changes_requested",
+        "href": "evidence/U16/result.json",
+    }
+    sources["plan"] = {
+        "result_version": "not_created",
+        "review_status": "not_started",
+        "href": sources["evidence_index_href"],
+    }
+    sources["implementation"]["review_status"] = "not_started"
+    sources["tests"] = {
+        "status": "not_run",
+        "result_version": "not_created",
+        "summary": "report_source_artifact_unavailable",
+        "evidence_href": sources["evidence_index_href"],
+    }
+    sources["deployment"]["evidence_href"] = sources["evidence_index_href"]
+    sources["next_day"]["status"] = "blocked"
+    response = _report_response()
+    response["recovery"]["stop_reason"] = None
+    response["summary"] = (
+        "report_source_artifact_unavailable、job-historical-12345678でblockedでした。"
+    )
+    response["issues"][0]["actual"] = "status=blocked; reason_code=report_stage_failed"
+
+    report = prepare_incident_report(
+        job,
+        sources,
+        response,
+        template_path=root / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+    body = report.html.split('<details class="muted">', maxsplit=1)[0]
+
+    assert report.report_status == "pending"
+    assert "調査結果（JSON）" in body
+    assert "修正計画の資料は作成されていません" in body
+    assert "試験は実施していません" in body
+    assert "本番反映は実施していません" in body
+    assert "翌日の確認結果は未確認です" in body
+    assert "調査結果に修正依頼がありました" in body
+    assert "コードレビューはまだ始まっていません" in body
+    assert "investigation-v2" not in body
+    assert "not_created" not in body
+    assert "changes_requested" not in body
+    assert "report_source_artifact_unavailable" not in body
+    assert "job-historical-12345678" not in body
+    assert "reason_code=report_stage_failed" not in body
+    assert "詳しい工程の状況は参考資料に記録しています。" in body
+    assert "tested=None" not in body
+    assert "pushed=None" not in body
+    assert "active=None" not in body
+    assert "承認済み（プロダクトコード）" not in report.html
+    assert "停止理由の記録: 記録がありません（未確認）" in report.html
+    assert "開始\n├─ 結果保存" not in body
+    assert "report-v1" not in body
+    assert "result.json" not in body
+    assert 'class="status blocked"' not in report.html
+    assert report.html.index("<pre class=\"tree\">") > report.html.index(
+        '<details class="muted">'
+    )
 
 
 def test_report_evidence_markdown_links_render_as_visible_reference_index():
@@ -233,7 +312,7 @@ def test_report_evidence_markdown_links_render_as_visible_reference_index():
     report = _prepared_report(response)
 
     assert 'href="#report-evidence-1">元の証拠一覧を見る</a>' in report.html
-    assert 'href="#report-evidence-2">試験記録を見る</a>' in report.html
+    assert 'href="#report-evidence-2">試験結果の記録（XML）を見る</a>' in report.html
     assert 'id="report-evidence-1"' in report.html
     assert 'id="report-evidence-2"' in report.html
     assert "元の資料本文はこの公開ページに含めていません" in report.html
