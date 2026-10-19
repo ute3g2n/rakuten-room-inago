@@ -96,7 +96,7 @@ def _source_snapshot() -> dict[str, object]:
             "evidence_href": None,
         },
         "evidence_index_href": "evidence/U16/index.md",
-        "evidence_index_label": "U16 evidence index",
+        "evidence_index_label": "当日の日次証拠索引（利用可能な記録）",
     }
 
 
@@ -369,12 +369,37 @@ def test_c45_contract():
     assert "pre, code { white-space: pre-wrap; }" in report.html
     assert ".tree, pre, code { white-space: pre-wrap; }" not in report.html
     assert "@media print" in report.html
+    assert "table { display: table; overflow: visible; table-layout: fixed; }" in report.html
+    assert "当日の記録にあるエラー" in report.html
+    assert "当日の日次証拠索引（利用可能な記録）" in report.html
+    assert "確認に使った資料一覧" not in report.html
     assert "├─ 結果保存" in report.html
     ids = set(re.findall(r'\bid="([^"]+)"', report.html))
     anchors = re.findall(r'href="#([^"]+)"', report.html)
     assert anchors
     assert set(anchors).issubset(ids)
     assert 'href="javascript:' not in report.html
+
+
+def test_public_report_rephrases_internal_source_snapshot_term():
+    response = _report_response()
+    response["summary"] = "source snapshotでは当日のエラーを確認しました。"
+    response["recovery"]["stop_reason"] = "source snapshotを確認中です。"
+    sources = _source_snapshot()
+    sources["evidence_index_label"] = "source snapshotの資料"
+
+    root = Path(__file__).resolve().parents[1]
+    report = prepare_incident_report(
+        _job_context(),
+        sources,
+        response,
+        template_path=root / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+
+    assert "source snapshot" not in report.html.casefold()
+    assert "確認に使った記録では当日のエラーを確認しました。" in report.html
+    assert "確認に使った記録を確認中です。" in report.html
+    assert "確認に使った記録の資料" in report.html
 
 
 def _git(cwd: Path, *args: str) -> str:

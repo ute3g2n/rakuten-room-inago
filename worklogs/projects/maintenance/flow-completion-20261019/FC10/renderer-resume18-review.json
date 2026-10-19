@@ -1,0 +1,24 @@
+{
+  "schema_version": "fc10-renderer-independent-review-v1",
+  "recorded_at_utc": "2026-10-19T21:25:27.931337Z",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "target_date": "2026-10-17",
+  "source_run_id": null,
+  "reviewer_task": "/root/fc10_renderer_review",
+  "review_scope": [
+    "automation/inago/maintenance/reporting.py",
+    "automation/inago/maintenance/production_workflow.py",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html"
+  ],
+  "verdict": "approved",
+  "finding_count": 0,
+  "review_summary": "独立reviewerが読取専用で現在版を確認。停止理由と証拠索引ラベルは平易化・escapeされ、記録だけのエラーと実発生を区別するprompt、印刷時の表の復帰と折返しを確認した。",
+  "source_sha256": {
+    "automation/inago/maintenance/reporting.py": "41c99d04ae90481fe93f1f68a9029ea7a86409a446bad5ae0e93067a9b1459a6",
+    "automation/inago/maintenance/production_workflow.py": "6794b90c4fdd34ec44e6b46f31b0982bb478411729ba46a6f3914f6bb1350ecc",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "d540b15bcacc49a5a8d8f78c8e888ad1a2bb666d8e54d1f2fa29e525e0d66cf6"
+  },
+  "test_code_review": "not_requested_by_plan",
+  "production_apply": "not_performed_yet"
+}

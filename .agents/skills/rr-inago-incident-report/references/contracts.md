@@ -20,7 +20,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 - 報告本文の作成時刻はJSTで検証する。独立レビューの `reviewed_at` はISO-8601のtimezone-aware値を受け付けてJSTへ正規化し、timezoneがない値は受け付けない。
 - 事象一覧と詳細で区分（当日発生 / 調査で判明 / 試験で確認）、工程、操作、期待、実結果、影響、回復、原因の確度、変更後動作、試験範囲、根拠リンクを維持する。
 - 調査、作業場所での検証、release gate、反映、次回日次観測は個別の状態として表す。未実施は未実施、skip/errorはPASSでない。
-- HTMLは意味的見出し、症状の一覧と詳細、索引、相対リンク、狭幅/印刷向けCSS、pre/codeの改行・字下げ保持、未確認状態の視認性を含む。
+- HTMLは意味的見出し、症状の一覧と詳細、索引、相対リンク、狭幅/印刷向けCSS、pre/codeの改行・字下げ保持、未確認状態の視認性を含む。狭幅用に表を横scrollさせる場合も、印刷時は通常表表示へ戻して横overflowを解除する。
 - 内部fragment link（`href="#..."`）は最終HTML内の一致する`id`へ解決し、リンク先は一意でなければならない。
 - 工程表の対象版を参考付録へ案内する場合、source snapshot由来の各工程版とreport responseの個別check工程名・版を付録へすべて列挙する。参照先が実在しない版を「付録を参照」と表示しない。
 
@@ -60,4 +60,4 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 
 ### FC10 rendererとsource statusの表示
 
-source snapshotの調査・計画・コードreview状態は別々に日本語表示し、根拠のない承認を追加しない。`not_created`の資料へリンクせず、直接参照の資料名は実際の種類・形式に合わせる。停止理由のnull/欠測は「記録がなく未確認」とする。試験未実施、本番未反映、翌日未確認は日常語で説明し、`blocked`を新しいreport statusとして出さない。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。
+入力記録の調査・計画・コードreview状態は別々に日本語表示し、根拠のない承認を追加しない。記録上のエラーだけなら実運用で起きたと断定せず、「当日の記録にあるエラー」などとする。本文に`source snapshot`などの内部用語を出さず、日常語に直す。資料名はsourceから渡された資料の種類が分かる表示を使い、`not_created`の資料へリンクしない。停止理由のnull/欠測は「記録がなく未確認」とする。試験未実施、本番未反映、翌日未確認は日常語で説明し、`blocked`を新しいreport statusとして出さない。本文にstatus/reason code、版キー、内部ID、hashが含まれる場合は技術付録へ移す。工程treeと生のsource参照は参考付録に置く。

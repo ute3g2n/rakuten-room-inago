@@ -436,6 +436,8 @@ def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
     assert "exact path string copied from `report_input.evidence_refs`" in prompt
     assert "The renderer supplies a readable link label" in prompt
     assert "Do not put a Markdown link" in prompt
+    assert "Do not use internal controller terms" in prompt
+    assert "error written in a record" in prompt
 
 
 def _fc08_crash_after_publish(fixture: dict[str, object], exit_code: int = 47):

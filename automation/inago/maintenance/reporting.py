@@ -42,7 +42,7 @@ _ISO_JST_PATTERN = re.compile(
 )
 _BRANCH_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$")
 _EVENT_LABELS = {
-    "observed": "当日発生",
+    "observed": "当日の記録にあるエラー",
     "investigation": "調査で判明",
     "test": "試験で確認",
 }
@@ -79,6 +79,9 @@ _PUBLIC_INTERNAL_PATTERNS = (
 _MARKDOWN_EVIDENCE_LINK = re.compile(r"\[([^\]\r\n]{1,160})\]\(([^()\s]{1,512})\)")
 _REFERENCE_SEPARATOR_ONLY = re.compile(r"^[\s,，、。;；:：|・]+$")
 _REFERENCE_NOTE_WORDS = re.compile(r"(?:記録|資料|証拠|確認|取得|参照|source|evidence|記載)", re.I)
+_SOURCE_SNAPSHOT_TERM = re.compile(
+    r"(?<![A-Za-z0-9_])source\s+snapshot(?![A-Za-z0-9_])", re.I
+)
 
 
 class ReportContractError(ValueError):
@@ -644,7 +647,7 @@ def _e(value: object) -> str:
 
 
 def _public_text(value: object, fallback: str = "詳しい工程情報は参考資料に記録しています。") -> str:
-    text = str(value)
+    text = _SOURCE_SNAPSHOT_TERM.sub("確認に使った記録", str(value))
     if any(pattern.search(text) for pattern in _PUBLIC_INTERNAL_PATTERNS):
         return fallback
     return text
@@ -704,7 +707,10 @@ def _report_evidence_index(
             _source_reference_label("next_day", next_day["evidence_href"]),
         )
 
-    add(index_href, "確認に使った資料一覧")
+    add(
+        index_href,
+        _public_text(sources["evidence_index_label"], "当日の証拠索引"),
+    )
 
     for key in ("issues", "checks"):
         items = response.get(key, [])
@@ -1028,7 +1034,10 @@ def _render_html(
         "{{flow_tree}}": _e(response["flow_tree"]),
         "{{unknowns}}": _e(unknowns),
         "{{stop_reason}}": _e(
-            recovery["stop_reason"] or "記録がありません（未確認）"
+            _public_text(
+                recovery["stop_reason"] or "記録がありません（未確認）",
+                "停止理由は確認できていません。",
+            )
         ),
         "{{resume_condition}}": _e(
             _public_text(recovery["resume_condition"], "次に必要な確認は参考資料に記録しています。")
@@ -1078,7 +1087,9 @@ def _render_html(
         "{{evidence_index_href}}": _e(
             "#" + evidence_references[sources["evidence_index_href"]]["anchor_id"]
         ),
-        "{{evidence_index_label}}": "確認に使った資料一覧",
+        "{{evidence_index_label}}": _e(
+            _public_text(sources["evidence_index_label"], "当日の証拠索引")
+        ),
         "{{evidence_reference_rows}}": _render_evidence_reference_rows(
             evidence_references
         ),

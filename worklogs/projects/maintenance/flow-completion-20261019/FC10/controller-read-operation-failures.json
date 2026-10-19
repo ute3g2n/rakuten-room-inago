@@ -4,7 +4,7 @@
   "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
   "source_run_id": null,
   "target_date": "2026-10-17",
-  "recorded_at_utc": "2026-10-19T19:24:20.94235Z",
+  "recorded_at_utc": "2026-10-19T21:25:27.931337Z",
   "operations": [
     {
       "operation": "read_same_job_report_attempt_artifacts",
@@ -695,6 +695,30 @@
       "capture_location": "controller Python staged-file sensitive scan",
       "side_effect": "none; read-only scan did not expose the matched value or change repository files",
       "recovery": "Reran the sensitive scan over added staged hunks only; private-key, credential, profile-path, and personal-email hits were all zero. The pre-commit scan over added lines and new evidence files was also zero."
+    },
+    {
+      "operation": "confirm_runtime_commit_after_activate_checkout_argument",
+      "failure_class": "RuntimeSwitchStateError",
+      "reason": "Calling the official activate(commit, checkout=fixed_root) path did not refresh the persisted runtime-switch state for the already-active same checkout. The subsequent confirm_active(commit) rejected runtime_switch_state_invalid; recorded state referenced an older commit while the fixed-root tasks/checkout already served 7f64ac7d2897f34f8bcc268f4217637eeca9219e.",
+      "capture_location": "TaskSchedulerRuntimeSwitcher confirmation read-back",
+      "side_effect": "the desired new renderer commit was not activated; no queue or daily job was processed",
+      "recovery": "Called the official activate(commit) overload without checkout, then confirm_active(commit); read-back reported healthy on 7f64ac7d2897f34f8bcc268f4217637eeca9219e with four tasks Ready/Enabled. For the next commit, use the same no-checkout overload and verify again."
+    },
+    {
+      "operation": "interrupt_same_job_report_worker_after_recurring_template_findings",
+      "failure_class": "ProcessInterrupted",
+      "reason": "The resume-18 report attempt had repeated findings tied to the shared renderer/template. The worker was deliberately interrupted so those root causes could be repaired before the same job was resumed. The ETX write returned process exit code 1 and no stdout; read-only process/DB checks found no active worker, while the job remained running and the report begin operation had no end event.",
+      "capture_location": "controller write_stdin(ETX), followed by read-only process and SQLite state inspection",
+      "side_effect": "only the in-progress report attempt was interrupted; no new job, daily run, 10/19 queue handling, or publication was performed",
+      "recovery": "After committing and applying the reviewed renderer change, resume only the same job/source_launch_id through official resume-worker, verify interruption reconciliation and continue author/reviewer/publication/terminal read-back."
+    },
+    {
+      "operation": "red_test_for_public_report_internal_term_leak",
+      "failure_class": "ExpectedAssertionFailure",
+      "reason": "Before implementation, the new regression test inserted “source snapshot” into the summary, recovery stop_reason, and evidence index label; the rendered HTML still leaked the raw term in the evidence index. This was the intended RED phase, not an unresolved production failure.",
+      "capture_location": "pytest tests_inago/test_maintenance_report.py::test_public_report_rephrases_internal_source_snapshot_term -q",
+      "side_effect": "none; fixture-only test",
+      "recovery": "Updated both evidence-index rendering paths and the stop-reason placeholder to use _public_text before HTML escaping; the post-change focused suites passed 56 tests."
     }
   ]
 }
