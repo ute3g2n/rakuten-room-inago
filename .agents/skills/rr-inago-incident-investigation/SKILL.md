@@ -20,6 +20,7 @@ controllerが対象jobを割り当てた時点で調査担当を起動する。�
 1. 入力ID、対象日、コード版、参照先、stage、許可出力がそろっているか確認する。runがなければnullのまま扱う。
 2. 正常日はcheck結果のみ作る。正常不足、失敗、部分結果、未知を混同しない。
 3. 要調査の場合、各事実に根拠IDを結び付け、期待・実結果・影響・回復・原因確度を記す。確認、限定、不明を分け、仮説を原因として書かない。
+U23.08の日次failure diagnosticを扱う場合、`failure_module`/`failure_function`/`failure_line`/`code_sha256`はpipeline側の捕捉位置であり、callback内部の発生箇所・根本原因ではないと記す。`error_name`/`constraint_label`はSQLiteの分類で、incident causeの断定ではない。提案run IDと永続化済みIDを区別し、hashやrun IDの欠測/nullを推測で補わない。
 4. 調査担当自身がinvestigation.mdを作成・修正する。確認できない章は「未確認」と埋め、原因や証拠が不足しても止めずに9章を完成する。
 5. 出力をallowed_outputsのattempt専用領域へ返す。controllerが版・schema・pathを検証するまで確定済みと扱わない。
 

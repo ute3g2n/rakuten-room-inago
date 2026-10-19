@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.48 §27.17。対象：MR-001～029 / MA-001～029。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.49 §27.17。対象：MR-001～029 / MA-001～029。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -211,6 +211,12 @@ report公開は利用可能なreportとtarget情報で試みる。review approve
 push後・publication artifact保存前に停止した場合は、利用可能なremote historyを見て既存publicationを再利用する。不一致や対象不明で公開操作を再開できない場合はその操作だけ未公開として記録し、report結果は保存して他の工程を止めない。report publicationの可否と障害解消状態を混同せず、それぞれの実測statusを保存する。job/worker queueの終端statusは全stageを試行した結果として記録し、stageのapproved/readiness/release gateを終端条件にしない。
 
 U23の現行終端対応は次のとおり。`report.status=complete`だけをjob `complete`・incident `resolved`・Worker成功として記録する。`pending`はartifactを保持してjobを`blocked`（`report_status_pending`）、incidentを`in_progress`、workflowを`waiting`として記録し、Workerは`maintenance_incomplete`を返す。`blocked`はartifactを保持してjob/incidentを`blocked`（job reason `report_status_blocked`）とし、Workerは`maintenance_incomplete`を返す。すでにcompleteのjobへpending/blockedの報告を訂正する場合も、この2 reasonに限りjobをblockedへ訂正する。いずれのstatusも次工程や報告のgateにしない。
+
+## U23.08 日次障害の診断・計装
+
+run作成と日次共有coreは、例外class、数値SQLite error code、許可済みSQLite分類、safe処理code、transaction phase、提案run IDと永続run ID、trace要求/書込結果を診断eventへ保存する。`source_run_id`を推測せず、提案IDを保存済みrunとして扱わない。日次pipelineのfailure logとJSONLは一度取得した同一のpipeline-local捕捉module/function/line/hashを共有する。この場所はcallback内の例外発生位置やroot causeを証明しない。hash取得不能は欠測/nullで記録する。
+
+failure logはrollbackと業務failure resultの組立後にbest-effortで出力し、trace result logも同様に例外を隔離する。logging handlerの失敗でrollbackや元の日次結果を変えず、trace write failureを業務SQLite stateへ伝播させない。例外message/traceback/SQL/params/絶対path/秘密/個人情報は保存しない。状態値、review/test結果、原因unknownは観測値として引き渡し、次工程のgateにしない。隔離fixture試験のPASSをproduction運転や原因解決の証明に読み替えない。
 
 ## U02の確認範囲
 

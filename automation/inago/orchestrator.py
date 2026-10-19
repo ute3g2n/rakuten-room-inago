@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -10,6 +11,7 @@ import re
 import secrets
 import sqlite3
 import threading
+import traceback
 import uuid
 from dataclasses import dataclass, replace
 from contextlib import ExitStack
@@ -46,7 +48,7 @@ from automation.inago.room_adapter import (
 )
 from automation.inago.run_lock import RunLock, RunLockBusy
 from automation.inago.trends_adapter import TrendsRequest, load_grouped_snapshot
-from automation.inago.trace import TraceSession, TraceWriter
+from automation.inago.trace import TraceSession, TraceWriter, make_trace_event
 from automation.inago.selection import (
     SourcePost,
     evaluate_sources,
@@ -711,6 +713,123 @@ def _run_by_date(connection: sqlite3.Connection, target_date: str):
     ).fetchone()
 
 
+def _run_create_diagnostic(
+    trace: TraceSession | None,
+    *,
+    transaction_phase: str,
+    proposed_run_id: str,
+    persisted_run_id: str | None,
+    run_persisted: bool | None,
+    exc: BaseException | None = None,
+) -> None:
+    """Emit allowlisted run creation diagnostics without affecting the outcome."""
+
+    error_name = getattr(exc, "sqlite_errorname", None)
+    allowed_error_names = {
+        "SQLITE_BUSY",
+        "SQLITE_LOCKED",
+        "SQLITE_CONSTRAINT",
+        "SQLITE_CONSTRAINT_CHECK",
+        "SQLITE_CONSTRAINT_FOREIGNKEY",
+        "SQLITE_CONSTRAINT_NOTNULL",
+        "SQLITE_CONSTRAINT_PRIMARYKEY",
+        "SQLITE_CONSTRAINT_UNIQUE",
+        "SQLITE_MISMATCH",
+    }
+    if error_name not in allowed_error_names:
+        error_name = "unknown"
+    constraint_label = {
+        "SQLITE_CONSTRAINT_UNIQUE": "unique",
+        "SQLITE_CONSTRAINT_PRIMARYKEY": "primary_key",
+        "SQLITE_CONSTRAINT_NOTNULL": "not_null",
+        "SQLITE_CONSTRAINT_CHECK": "check",
+        "SQLITE_CONSTRAINT_FOREIGNKEY": "foreign_key",
+    }.get(error_name, "unknown")
+    frames = traceback.extract_tb(exc.__traceback__) if exc is not None else []
+    failure_line = frames[-1].lineno if frames else None
+    try:
+        code_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    except OSError:
+        code_sha256 = None
+    logger = logging.getLogger(__name__)
+
+    def safe_log(level: str, message: str, extra: dict[str, Any]) -> None:
+        try:
+            getattr(logger, level)(message, extra=extra)
+        except Exception:
+            # Diagnostic I/O must never replace the daily transaction outcome.
+            return
+
+    trace_result = None
+    if trace is not None:
+        try:
+            event = make_trace_event(
+                run_id=proposed_run_id,
+                target_date=trace.target_date,
+                component="orchestrator",
+                operation="run_create",
+                phase="error" if exc is not None else "status",
+                clock=trace.clock,
+                event_kind="transaction",
+                status="failed" if exc is not None else transaction_phase,
+                processing_label="run_create",
+                table_label="run",
+                constraint_label=constraint_label,
+                transaction_phase=transaction_phase,
+                proposed_run_id=proposed_run_id,
+                persisted_run_id=persisted_run_id,
+                run_persisted=run_persisted,
+                trace_requested=True,
+                error_class=type(exc).__name__ if exc is not None else None,
+                primary_error_code=type(exc).__name__ if exc is not None else None,
+                error_code_number=getattr(exc, "sqlite_errorcode", None),
+                error_name=error_name,
+                failure_module=(
+                    "automation.inago.orchestrator" if exc is not None else None
+                ),
+                failure_function="_create_run" if exc is not None else None,
+                failure_line=failure_line,
+                code_sha256=code_sha256,
+            )
+            trace_result = trace.writer.write(event)
+        except Exception as trace_exc:
+            safe_log(
+                "warning",
+                "daily_run_create_trace_write_failed",
+                {"trace_error_class": type(trace_exc).__name__},
+            )
+    safe_log(
+        "info",
+        "daily_run_create_transaction",
+        {
+            "processing_label": "run_create",
+            "table_label": "run",
+            "constraint_label": constraint_label,
+            "transaction_phase": transaction_phase,
+            "proposed_run_id": proposed_run_id,
+            "persisted_run_id": persisted_run_id,
+            "run_persisted": run_persisted,
+            "exception_class": type(exc).__name__ if exc is not None else None,
+            "error_code_number": getattr(exc, "sqlite_errorcode", None),
+            "error_name": error_name,
+            "failure_module": (
+                "automation.inago.orchestrator" if exc is not None else None
+            ),
+            "failure_function": "_create_run" if exc is not None else None,
+            "failure_line": failure_line,
+            "code_sha256": code_sha256,
+            "trace_requested": trace is not None,
+            "trace_persisted": bool(
+                trace_result is not None
+                and trace_result.status in {"written", "appended"}
+            ),
+            "trace_status": (
+                trace_result.status if trace_result is not None else "unavailable"
+            ),
+        },
+    )
+
+
 def _create_run(
     connection: sqlite3.Connection,
     *,
@@ -719,6 +838,7 @@ def _create_run(
     ports: DailyPorts,
     run_id_factory: Callable[[date], str],
     seed_factory: Callable[[], str],
+    diagnostic_trace: TraceSession | None = None,
 ):
     existing = _run_by_date(connection, target_date)
     if existing is not None:
@@ -743,11 +863,25 @@ def _create_run(
     started_at = now.isoformat()
     status = "running"
     finished_at = None
-    connection.execute("BEGIN IMMEDIATE")
     try:
+        connection.execute("BEGIN IMMEDIATE")
+        _run_create_diagnostic(
+            diagnostic_trace,
+            transaction_phase="begin",
+            proposed_run_id=run_id,
+            persisted_run_id=None,
+            run_persisted=False,
+        )
         existing = _run_by_date(connection, target_date)
         if existing is not None:
             connection.rollback()
+            _run_create_diagnostic(
+                diagnostic_trace,
+                transaction_phase="rollback",
+                proposed_run_id=run_id,
+                persisted_run_id=str(existing["run_id"]),
+                run_persisted=True,
+            )
             return existing
         connection.execute(
             """
@@ -770,9 +904,59 @@ def _create_run(
             ),
         )
         connection.commit()
-    except BaseException:
+        _run_create_diagnostic(
+            diagnostic_trace,
+            transaction_phase="commit",
+            proposed_run_id=run_id,
+            persisted_run_id=run_id,
+            run_persisted=True,
+        )
+    except BaseException as exc:
+        rollback_error = None
         if connection.in_transaction:
-            connection.rollback()
+            try:
+                connection.rollback()
+            except BaseException as rollback_exc:
+                rollback_error = rollback_exc
+                _run_create_diagnostic(
+                    diagnostic_trace,
+                    transaction_phase="rollback_failed",
+                    proposed_run_id=run_id,
+                    persisted_run_id=None,
+                    run_persisted=None,
+                    exc=rollback_exc,
+                )
+            else:
+                _run_create_diagnostic(
+                    diagnostic_trace,
+                    transaction_phase="rollback",
+                    proposed_run_id=run_id,
+                    persisted_run_id=None,
+                    run_persisted=False,
+                )
+        if rollback_error is None:
+            try:
+                persisted = _run_by_date(connection, target_date)
+                persisted_id = (
+                    str(persisted["run_id"]) if persisted is not None else None
+                )
+                is_persisted: bool | None = persisted is not None
+            except sqlite3.Error:
+                persisted_id = None
+                is_persisted = None
+        else:
+            persisted_id = None
+            is_persisted = None
+        _run_create_diagnostic(
+            diagnostic_trace,
+            transaction_phase=(
+                "rollback_failed" if rollback_error is not None else "rollback"
+            ),
+            proposed_run_id=run_id,
+            persisted_run_id=persisted_id,
+            run_persisted=is_persisted,
+            exc=exc,
+        )
         raise
     return connection.execute("SELECT * FROM run WHERE run_id=?", (run_id,)).fetchone()
 
@@ -2304,6 +2488,7 @@ def run_daily(
             ports=ports,
             run_id_factory=lambda _target: proposed_run_id,
             seed_factory=actual_seed_factory,
+            diagnostic_trace=run_trace,
         )
         run_id = str(run["run_id"])
         if run["status"] in {"complete", "missed"}:

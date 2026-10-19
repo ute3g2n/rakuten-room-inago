@@ -33,6 +33,7 @@ TRACE_SUPPRESSION_RESERVE_BYTES = 1024
 
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _SAFE_LABEL = re.compile(r"[A-Za-z][A-Za-z0-9._:-]{0,127}\Z")
+_SAFE_FUNCTION_LABEL = re.compile(r"[A-Za-z_][A-Za-z0-9._:-]{0,127}\Z")
 _SAFE_ERROR_CLASS = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}\Z")
 _REPARSE_POINT = 0x400
 _GLOBAL_LOCK = threading.RLock()
@@ -115,6 +116,20 @@ _EVENT_FIELDS = {
     "stable_round",
     "row_status",
     "end_evidence",
+    "processing_label",
+    "table_label",
+    "constraint_label",
+    "transaction_phase",
+    "proposed_run_id",
+    "persisted_run_id",
+    "run_persisted",
+    "trace_requested",
+    "error_code_number",
+    "error_name",
+    "failure_module",
+    "failure_function",
+    "failure_line",
+    "code_sha256",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -388,10 +403,87 @@ def make_trace_event(
             selected = _safe_code(value, name=key)
             if selected is not None:
                 event[key] = selected
+        elif key == "error_code_number":
+            if value is not None and (
+                type(value) is not int or not 0 <= value <= 65535
+            ):
+                raise TraceContractError("error_code_number is outside the safe range")
+            if value is not None:
+                event[key] = value
         elif key in {"error_class", "cause_class", "cleanup_error_class"}:
             selected = _safe_class(value, name=key)
             if selected is not None:
                 event[key] = selected
+        elif key in {"proposed_run_id", "persisted_run_id"}:
+            selected = _safe_id(value, name=key, optional=True)
+            if selected is not None:
+                event[key] = selected
+            elif key == "persisted_run_id":
+                event[key] = None
+        elif key in {"run_persisted", "trace_requested"}:
+            if value is not None and type(value) is not bool:
+                raise TraceContractError(f"{key} must be a boolean")
+            if value is not None:
+                event[key] = value
+        elif key == "failure_line":
+            if value is None:
+                continue
+            if type(value) is not int or value < 1:
+                raise TraceContractError("failure_line must be a positive integer")
+            event[key] = value
+        elif key == "code_sha256":
+            if value is None:
+                continue
+            if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                raise TraceContractError("code_sha256 is outside the safe format")
+            event[key] = value
+        elif key in {"failure_module", "failure_function"}:
+            if value is None:
+                continue
+            safe_label = (
+                _SAFE_LABEL if key == "failure_module" else _SAFE_FUNCTION_LABEL
+            )
+            if not isinstance(value, str) or not safe_label.fullmatch(value):
+                raise TraceContractError(f"{key} is outside the safe label format")
+            event[key] = value
+        elif key == "error_name":
+            if value not in {
+                "SQLITE_BUSY",
+                "SQLITE_LOCKED",
+                "SQLITE_CONSTRAINT",
+                "SQLITE_CONSTRAINT_CHECK",
+                "SQLITE_CONSTRAINT_FOREIGNKEY",
+                "SQLITE_CONSTRAINT_NOTNULL",
+                "SQLITE_CONSTRAINT_PRIMARYKEY",
+                "SQLITE_CONSTRAINT_UNIQUE",
+                "SQLITE_MISMATCH",
+                "unknown",
+            }:
+                raise TraceContractError("error_name is outside the safe enum")
+            event[key] = value
+        elif key == "processing_label":
+            if value not in {"run_create", "daily_pipeline"}:
+                raise TraceContractError("processing_label is outside the safe enum")
+            event[key] = value
+        elif key == "table_label":
+            if value not in {"run", "unknown"}:
+                raise TraceContractError("table_label is outside the safe enum")
+            event[key] = value
+        elif key == "constraint_label":
+            if value not in {
+                "unique",
+                "primary_key",
+                "not_null",
+                "check",
+                "foreign_key",
+                "unknown",
+            }:
+                raise TraceContractError("constraint_label is outside the safe enum")
+            event[key] = value
+        elif key == "transaction_phase":
+            if value not in {"begin", "commit", "rollback", "rollback_failed"}:
+                raise TraceContractError("transaction_phase is outside the safe enum")
+            event[key] = value
         elif key == "network_code":
             if value is not None and (
                 not isinstance(value, str)

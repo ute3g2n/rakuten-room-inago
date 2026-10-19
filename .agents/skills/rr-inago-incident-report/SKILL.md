@@ -20,6 +20,7 @@ management stage=reportで、利用可能な調査・計画・試験・反映記
 - 最終HTML内の`href="#..."`は、同じHTML内に同じ`id`を持つ要素がちょうど1つあることを確認する。事象一覧と根拠欄のリンク先を一致させる。
 - 未確認、保留、欠測を明示し、本文・商品名・個人情報・秘密・生データを公開出力へ複製しない。
 - 根本原因がunknownでも報告を中断しない。trace/log追加だけを行った場合も、確認できた成果、原因未特定の事実、追加計装の目的、試験/レビュー/反映状況を記載してreport作成/公開まで続ける。計装を根本修正や原因判明として表現しない。
+- U23.08 safe diagnosticのSQLite `error_name`/`constraint_label`はエラー分類、`failure_module`/`failure_function`/`failure_line`/`code_sha256`はpipeline内の捕捉位置を表す。callbackの根本原因や発生行を証明する値として説明しない。提案run IDと永続run ID、trace requested/persistedも別に記す。raw exception、SQL、params、秘密、個人情報を本文へ複写しない。
 - `report.status=complete`だけをjob complete・incident resolved・Worker成功へ結びます。`pending`/`blocked`はartifactを保持し、jobを該当reason付きblocked、incidentをstatusに応じてin_progress/blockedとして記録します。未完了reportをWorker成功として表現しません。既にcompleteのjobを訂正する場合もpending/blockedの実statusを反映します。
 
 ## 禁止と停止

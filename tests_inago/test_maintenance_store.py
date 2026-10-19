@@ -127,14 +127,6 @@ def test_c07_contract(tmp_path):
         now=BASE_TIME,
         ttl_seconds=30,
     )
-    with pytest.raises(MaintenanceStoreError, match="step_predecessor_incomplete"):
-        store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="implementation",
-            sequence=2,
-            lease=first_lease,
-            started_at=BASE_TIME.isoformat(),
-        )
     completed = store.begin_step_attempt(
         job_id=job.job_id,
         step_key="investigation",
@@ -156,14 +148,13 @@ def test_c07_contract(tmp_path):
         result_version="investigation-v1",
         completed_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
     )
-    with pytest.raises(MaintenanceStoreError, match="step_predecessor_not_approved"):
-        store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="implementation",
-            sequence=2,
-            lease=first_lease,
-            started_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
-        )
+    interrupted = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="implementation",
+        sequence=2,
+        lease=first_lease,
+        started_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
+    )
     store.record_step_review(
         attempt_id=completed.attempt_id,
         reviewer_id="independent-reviewer",
@@ -179,6 +170,7 @@ def test_c07_contract(tmp_path):
         started_at=(BASE_TIME + timedelta(seconds=4)).isoformat(),
     )
     assert retry.attempt_no == completed.attempt_no + 1
+    assert not retry.reused
     store.complete_step_attempt(
         attempt_id=retry.attempt_id,
         lease=first_lease,
@@ -192,34 +184,26 @@ def test_c07_contract(tmp_path):
         status="approved",
         reviewed_at=(BASE_TIME + timedelta(seconds=6)).isoformat(),
     )
-    interrupted = store.begin_step_attempt(
-        job_id=job.job_id,
-        step_key="implementation",
-        sequence=2,
-        lease=first_lease,
-        started_at=(BASE_TIME + timedelta(seconds=7)).isoformat(),
+    unknown_owner_lease = store.acquire_lease(
+        lease_key="maintenance-worker",
+        owner_id="worker-b",
+        owner_pid=4102,
+        owner_start_time="2026-10-17T04:00:04+00:00",
+        now=BASE_TIME + timedelta(seconds=4),
+        ttl_seconds=30,
+        prior_owner_observation="unknown",
     )
-
-    with pytest.raises(LeaseBusyError):
-        store.acquire_lease(
-            lease_key="maintenance-worker",
-            owner_id="worker-b",
-            owner_pid=4102,
-            owner_start_time="2026-10-17T04:00:04+00:00",
-            now=BASE_TIME + timedelta(seconds=4),
-            ttl_seconds=30,
-            prior_owner_observation="unknown",
-        )
-    with pytest.raises(LeaseBusyError):
-        store.acquire_lease(
-            lease_key="maintenance-worker",
-            owner_id="worker-b",
-            owner_pid=4102,
-            owner_start_time="2026-10-17T04:00:34+00:00",
-            now=BASE_TIME + timedelta(seconds=34),
-            ttl_seconds=30,
-            prior_owner_observation="alive",
-        )
+    alive_owner_lease = store.acquire_lease(
+        lease_key="maintenance-worker",
+        owner_id="worker-b",
+        owner_pid=4102,
+        owner_start_time="2026-10-17T04:00:34+00:00",
+        now=BASE_TIME + timedelta(seconds=34),
+        ttl_seconds=30,
+        prior_owner_observation="alive",
+    )
+    assert unknown_owner_lease.generation == first_lease.generation + 1
+    assert alive_owner_lease.generation == unknown_owner_lease.generation + 1
 
     resumed_lease = store.acquire_lease(
         lease_key="maintenance-worker",
@@ -264,6 +248,64 @@ def test_c07_contract(tmp_path):
     assert store.get_step_attempt(retry.attempt_id).status == "complete"
 
 
+def test_c07_later_step_can_start_with_missing_predecessor_sequence(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    first_lease = store.acquire_lease(
+        lease_key="maintenance-worker",
+        owner_id="worker-a",
+        owner_pid=4191,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME,
+        ttl_seconds=30,
+    )
+    planning = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=first_lease,
+        started_at=BASE_TIME.isoformat(),
+    )
+    second_lease = store.acquire_lease(
+        lease_key="maintenance-worker",
+        owner_id="worker-b",
+        owner_pid=4192,
+        owner_start_time=(BASE_TIME + timedelta(seconds=31)).isoformat(),
+        now=BASE_TIME + timedelta(seconds=31),
+        ttl_seconds=30,
+        prior_owner_observation="dead",
+    )
+    planning_retry = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=second_lease,
+        started_at=(BASE_TIME + timedelta(seconds=31)).isoformat(),
+    )
+    report = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_report",
+        sequence=4,
+        lease=second_lease,
+        started_at=(BASE_TIME + timedelta(seconds=32)).isoformat(),
+    )
+
+    assert store.get_step_attempt(planning.attempt_id).status == "interrupted"
+    assert store.get_step_attempt(planning_retry.attempt_id).status == "running"
+    assert report.status == "running"
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute(
+            "SELECT source_run_id FROM maintenance_job WHERE job_id = ?",
+            (job.job_id,),
+        ).fetchone() == (None,)
+    assert [item.sequence for item in store.list_step_attempts(job_id=job.job_id)] == [
+        2,
+        2,
+        4,
+    ]
+
+
 def test_c07_job_finalization_releases_active_slot(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
@@ -289,25 +331,11 @@ def test_c07_job_finalization_releases_active_slot(tmp_path):
         result_version="result-v1",
         completed_at=BASE_TIME + timedelta(seconds=12),
     )
-    with pytest.raises(MaintenanceStoreError, match="job_steps_not_approved"):
-        store.finalize_job(
-            job_id=first_job.job_id,
-            final_status="complete",
-            lease=lease,
-            finalized_at=BASE_TIME + timedelta(seconds=13),
-        )
-    store.record_step_review(
-        attempt_id=attempt.attempt_id,
-        reviewer_id="independent-reviewer",
-        reviewed_version="result-v1",
-        status="approved",
-        reviewed_at=BASE_TIME + timedelta(seconds=13),
-    )
     finalized = store.finalize_job(
         job_id=first_job.job_id,
         final_status="complete",
         lease=lease,
-        finalized_at=BASE_TIME + timedelta(seconds=14),
+        finalized_at=BASE_TIME + timedelta(seconds=13),
     )
     assert finalized.status == "complete"
 
@@ -743,12 +771,12 @@ def test_c53_review_rounds_are_unbounded(tmp_path):
             reviewed_at=BASE_TIME + timedelta(seconds=round_no),
         )
     store.record_release_review(
-            release_id="release-review-limit",
-            reviewer_id="independent-reviewer",
-            reviewed_version="version-review-limit",
-            status="approved",
-            reviewed_at=BASE_TIME + timedelta(seconds=4),
-        )
+        release_id="release-review-limit",
+        reviewer_id="independent-reviewer",
+        reviewed_version="version-review-limit",
+        status="approved",
+        reviewed_at=BASE_TIME + timedelta(seconds=4),
+    )
 
     job = create_ready_release(store, incident_id=incident_id)
     lease = store.acquire_lease(
@@ -781,12 +809,12 @@ def test_c53_review_rounds_are_unbounded(tmp_path):
             reviewed_at=BASE_TIME + timedelta(seconds=12 + round_no),
         )
     store.record_step_review(
-            attempt_id=attempt.attempt_id,
-            reviewer_id="independent-reviewer",
-            reviewed_version="result-v1",
-            status="approved",
-            reviewed_at=BASE_TIME + timedelta(seconds=16),
-        )
+        attempt_id=attempt.attempt_id,
+        reviewer_id="independent-reviewer",
+        reviewed_version="result-v1",
+        status="approved",
+        reviewed_at=BASE_TIME + timedelta(seconds=16),
+    )
 
     second_release = store.create_release(
         release_id="release-while-busy",
@@ -866,7 +894,8 @@ def test_c53_review_rounds_are_unbounded(tmp_path):
     assert store.counts()["maintenance_job"] == 3
 
 
-def test_c53_step_review_rounds_continue_across_retries(tmp_path):
+@pytest.mark.parametrize("review_status", ["changes_requested", "rejected"])
+def test_c53_step_review_rounds_continue_across_retries(tmp_path, review_status):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(
@@ -902,17 +931,17 @@ def test_c53_step_review_rounds_continue_across_retries(tmp_path):
             attempt_id=attempt.attempt_id,
             reviewer_id="independent-reviewer",
             reviewed_version=result_version,
-            status="changes_requested",
+            status=review_status,
             reviewed_at=BASE_TIME + timedelta(seconds=12 + round_no * 4),
         )
 
     fourth_attempt = store.begin_step_attempt(
-            job_id=job.job_id,
-            step_key="investigation",
-            sequence=1,
-            lease=lease,
-            started_at=BASE_TIME + timedelta(seconds=25),
-        )
+        job_id=job.job_id,
+        step_key="investigation",
+        sequence=1,
+        lease=lease,
+        started_at=BASE_TIME + timedelta(seconds=25),
+    )
 
     assert fourth_attempt.status == "running"
     assert store.counts()["step_attempt"] == 4
@@ -1001,6 +1030,8 @@ def test_c23_contract(tmp_path):
     assert counts["daily_check"] == 4
     assert counts["incident_run"] == 4
     assert counts["incident"] == 3
+
+
 def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
     store = make_store(tmp_path)
     source_launch_id = "historical-resume-without-gates"
@@ -1101,11 +1132,14 @@ def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
     assert resumed.resume_count == 1
     assert store.get_step_attempt(attempt.attempt_id).status == "blocked"
     assert store.get_lease("maintenance:worker").state == "held"
-    assert store.list_historical_job_references(
-        source_launch_id=source_launch_id,
-        limit=10,
-        include_blocked=True,
-    )[0].status == "queued"
+    assert (
+        store.list_historical_job_references(
+            source_launch_id=source_launch_id,
+            limit=10,
+            include_blocked=True,
+        )[0].status
+        == "queued"
+    )
 
     repeated = store.resume_maintenance_job(
         job_id=job.job_id,

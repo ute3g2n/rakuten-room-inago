@@ -5255,27 +5255,6 @@ class MaintenanceStore:
                 "updated_at = ? WHERE job_id = ?",
                 (lease.lease_key, lease.generation, when, job),
             )
-            prior_rows = connection.execute(
-                "SELECT DISTINCT sequence FROM step_attempt "
-                "WHERE job_id = ? AND sequence < ? ORDER BY sequence",
-                (job, sequence),
-            ).fetchall()
-            prior_sequences = {int(row["sequence"]) for row in prior_rows}
-            if prior_sequences != set(range(1, sequence)):
-                raise MaintenanceStoreError("step_predecessor_incomplete")
-            for prior_sequence in range(1, sequence):
-                prior = connection.execute(
-                    "SELECT s.attempt_id, s.job_id, s.step_key, s.status, "
-                    "s.result_version, s.output_path, r.author_id "
-                    "FROM step_attempt s "
-                    "JOIN maintenance_job j ON j.job_id = s.job_id "
-                    "JOIN release r ON r.release_id = j.release_id "
-                    "WHERE s.job_id = ? AND s.sequence = ? "
-                    "ORDER BY s.attempt_no DESC LIMIT 1",
-                    (job, prior_sequence),
-                ).fetchone()
-                if prior is None:
-                    raise MaintenanceStoreError("step_predecessor_incomplete")
             latest = connection.execute(
                 "SELECT * FROM step_attempt WHERE job_id = ? AND step_key = ? "
                 "ORDER BY attempt_no DESC LIMIT 1",
@@ -5303,19 +5282,19 @@ class MaintenanceStore:
                     "ORDER BY rowid DESC LIMIT 1",
                     (latest["attempt_id"],),
                 ).fetchone()
-                if latest["status"] == "handoff_accepted":
+                review_requests_retry = (
+                    latest["status"] == "complete"
+                    and review is not None
+                    and review["reviewed_version"] == latest["result_version"]
+                    and review["status"] in {"changes_requested", "rejected"}
+                )
+                if latest["status"] == "handoff_accepted" or not review_requests_retry:
                     return StepAttemptResult(
                         str(latest["attempt_id"]),
                         int(latest["attempt_no"]),
                         str(latest["status"]),
                         True,
                     )
-                return StepAttemptResult(
-                    str(latest["attempt_id"]),
-                    int(latest["attempt_no"]),
-                    str(latest["status"]),
-                    True,
-                )
             if latest is not None and latest["status"] == "running":
                 if (
                     latest["lease_key"] == lease.lease_key

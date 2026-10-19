@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
+import hashlib
+import logging
 import re
 import sqlite3
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -20,6 +23,60 @@ _BLOCKED_STATUSES = {
     "recovery_required",
 }
 _SAFE_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
+
+
+def _pipeline_code_sha256() -> str | None:
+    try:
+        return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def _pipeline_capture_location() -> tuple[str, str, int | None]:
+    """Return the safe pipeline call site that observed the failure."""
+
+    try:
+        frame = sys._getframe(1)
+        module = frame.f_globals.get("__name__")
+        if not isinstance(module, str) or module != __name__:
+            module = __name__
+        return module, frame.f_code.co_name, frame.f_lineno
+    except Exception:
+        return __name__, "run_daily_execution_core", None
+
+
+def _best_effort_log(level: int, message: str, *, extra: Mapping[str, Any]) -> None:
+    """Keep diagnostic handlers from changing the daily execution result."""
+
+    try:
+        logging.getLogger(__name__).log(level, message, extra=dict(extra))
+    except Exception:
+        return
+
+
+def _sqlite_failure_labels(exc: BaseException | None) -> tuple[str, str]:
+    name = getattr(exc, "sqlite_errorname", None)
+    known = {
+        "SQLITE_BUSY",
+        "SQLITE_LOCKED",
+        "SQLITE_CONSTRAINT",
+        "SQLITE_CONSTRAINT_CHECK",
+        "SQLITE_CONSTRAINT_FOREIGNKEY",
+        "SQLITE_CONSTRAINT_NOTNULL",
+        "SQLITE_CONSTRAINT_PRIMARYKEY",
+        "SQLITE_CONSTRAINT_UNIQUE",
+        "SQLITE_MISMATCH",
+    }
+    if name not in known:
+        name = "unknown"
+    constraint = {
+        "SQLITE_CONSTRAINT_UNIQUE": "unique",
+        "SQLITE_CONSTRAINT_PRIMARYKEY": "primary_key",
+        "SQLITE_CONSTRAINT_NOTNULL": "not_null",
+        "SQLITE_CONSTRAINT_CHECK": "check",
+        "SQLITE_CONSTRAINT_FOREIGNKEY": "foreign_key",
+    }.get(name, "unknown")
+    return name, constraint
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +110,14 @@ class _PipelineEvent:
     error_code: str | None = None
     active_stage: str | None = None
     last_completed_stage: str | None = None
+    error_class: str | None = None
+    error_code_number: int | None = None
+    error_name: str | None = None
+    constraint_label: str = "unknown"
+    failure_line: int | None = None
+    failure_module: str | None = None
+    failure_function: str | None = None
+    failure_code_sha256: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -567,7 +632,13 @@ def _write_pipeline_trace(
     events: list[_PipelineEvent],
 ) -> dict[str, Any]:
     if run_id is None:
-        return {"status": "not_written", "event_count": 0, "reference": None}
+        return {
+            "status": "not_written",
+            "event_count": 0,
+            "reference": None,
+            "trace_requested": True,
+            "trace_persisted": False,
+        }
     from automation.inago.trace import TraceWriter, make_trace_event
 
     root_span = str(uuid.uuid5(uuid.NAMESPACE_URL, f"inago:run:{run_id}"))
@@ -586,6 +657,22 @@ def _write_pipeline_trace(
         }
         if item.error_code is not None:
             fields["primary_error_code"] = item.error_code
+        if item.error_class is not None:
+            fields.update(
+                {
+                    "error_class": item.error_class,
+                    "error_code_number": item.error_code_number,
+                    "error_name": item.error_name or "unknown",
+                    "processing_label": "daily_pipeline",
+                    "table_label": "unknown",
+                    "constraint_label": item.constraint_label,
+                    "failure_module": item.failure_module or __name__,
+                    "failure_function": item.failure_function or "phase_error",
+                    "failure_line": item.failure_line,
+                    "code_sha256": item.failure_code_sha256,
+                    "trace_requested": True,
+                }
+            )
         event = make_trace_event(
             run_id=run_id,
             target_date=target_date,
@@ -611,6 +698,8 @@ def _write_pipeline_trace(
         "event_count": written,
         "reference": str(writer.path.relative_to(data_root)).replace("\\", "/"),
         "error_code": error_code,
+        "trace_requested": True,
+        "trace_persisted": written > 0,
     }
 
 
@@ -663,9 +752,19 @@ def run_daily_execution_core(
         current_phase = None
         last_completed = operation
 
-    def phase_error(operation: str, code: str) -> None:
+    def phase_error(
+        operation: str,
+        code: str,
+        exc: BaseException | None = None,
+        *,
+        failure_location: tuple[str, str, int | None] | None = None,
+        failure_code_sha256: str | None = None,
+    ) -> None:
         nonlocal current_phase
         elapsed = max(0, round((time.monotonic() - phase_started) * 1000))
+        error_name, constraint_label = _sqlite_failure_labels(exc)
+        location = failure_location or _pipeline_capture_location()
+        failure_module, failure_function, failure_line = location
         timeline.append(
             _PipelineEvent(
                 operation=operation,
@@ -676,6 +775,14 @@ def run_daily_execution_core(
                 error_code=code,
                 active_stage=operation,
                 last_completed_stage=last_completed,
+                error_class=type(exc).__name__ if exc is not None else None,
+                error_code_number=getattr(exc, "sqlite_errorcode", None),
+                error_name=error_name,
+                constraint_label=constraint_label,
+                failure_line=failure_line,
+                failure_module=failure_module,
+                failure_function=failure_function,
+                failure_code_sha256=failure_code_sha256,
             )
         )
         current_phase = None
@@ -761,8 +868,21 @@ def run_daily_execution_core(
     except Exception as exc:
         phase = current_phase or "daily"
         code = _safe_error_code(getattr(exc, "code", None), type(exc).__name__)
+        failure_module, failure_function, failure_line = _pipeline_capture_location()
+        failure_code_sha256 = _pipeline_code_sha256()
         if current_phase is not None:
-            phase_error(current_phase, code)
+            phase_error(
+                current_phase,
+                code,
+                exc,
+                failure_location=(
+                    failure_module,
+                    failure_function,
+                    failure_line,
+                ),
+                failure_code_sha256=failure_code_sha256,
+            )
+        error_name, constraint_label = _sqlite_failure_labels(exc)
         if connection is not None and connection.in_transaction:
             try:
                 connection.rollback()
@@ -796,6 +916,27 @@ def run_daily_execution_core(
                 "status": "failed",
                 "error_code": code,
             }
+        _best_effort_log(
+            logging.ERROR,
+            "daily_pipeline_failure",
+            extra={
+                "processing_label": "daily_pipeline",
+                "phase": phase,
+                "exception_class": type(exc).__name__,
+                "primary_error_code": code,
+                "error_code_number": getattr(exc, "sqlite_errorcode", None),
+                "error_name": error_name,
+                "constraint_label": constraint_label,
+                "persisted_run_id": None,
+                "run_persisted": None,
+                "failure_module": failure_module,
+                "failure_function": failure_function,
+                "failure_line": failure_line,
+                "code_sha256": failure_code_sha256,
+                "trace_requested": True,
+                "trace_persisted": None,
+            },
+        )
     finally:
         if monitor_attempted and monitor is not None:
             phase_begin("operations_monitor_stop")
@@ -917,7 +1058,27 @@ def run_daily_execution_core(
             "event_count": 0,
             "reference": None,
             "error_code": _safe_error_code(type(exc).__name__, "trace_unavailable"),
+            "trace_requested": True,
+            "trace_persisted": False,
         }
+    persisted_run_id = daily_result.get("run_id")
+    _best_effort_log(
+        logging.INFO,
+        "daily_pipeline_trace_result",
+        extra={
+            "processing_label": "daily_pipeline",
+            "proposed_run_id": None,
+            "persisted_run_id": (
+                persisted_run_id if isinstance(persisted_run_id, str) else None
+            ),
+            "run_persisted": isinstance(persisted_run_id, str),
+            "trace_requested": trace_result.get("trace_requested", True),
+            "trace_persisted": trace_result.get("trace_persisted", False),
+            "trace_status": trace_result.get("status", "unknown"),
+            "trace_event_count": trace_result.get("event_count", 0),
+            "code_sha256": _pipeline_code_sha256(),
+        },
+    )
     return _combine_result(
         daily_result,
         daily_status=daily_status,

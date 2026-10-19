@@ -239,7 +239,7 @@ def test_n03(tmp_path: Path) -> None:
     assert adapter_failure_snapshot["last_completed_stage"] == "trends_period_reflected"
 
 
-def test_n04(tmp_path: Path) -> None:
+def test_n04(tmp_path: Path, caplog) -> None:
     """Store primary, cause and cleanup classes while dropping sensitive text."""
 
     trace = _trace_api()
@@ -300,6 +300,105 @@ def test_n04(tmp_path: Path) -> None:
             "https://room.example/?token=private-value Authorization: Bearer another-secret"
         ).find("private-value")
         == -1
+    )
+
+    from automation.inago import orchestrator, repository
+
+    database_path = tmp_path / "diagnostic" / "state.sqlite"
+    database_path.parent.mkdir(parents=True)
+    database = sqlite3.connect(database_path, isolation_level=None)
+    database.row_factory = sqlite3.Row
+    database.execute("PRAGMA foreign_keys=ON")
+    repository.initialize_database(database)
+    database.execute(
+        "INSERT INTO settings_version "
+        "(version,confirmed_at,genres_json,themes_json,pattern_refs_json,change_reason,created_at) "
+        "VALUES ('N04-SETTINGS', ?, '[]', '[]', '[]', 'isolated trace case', ?)",
+        ("2026-10-16T12:00:00+09:00", "2026-10-16T12:00:00+09:00"),
+    )
+    database.execute(
+        "INSERT INTO run "
+        "(run_id,target_date,mode,status,settings_version,seed,started_at,"
+        "draft_deadline,end_deadline,attempt_used,committed_count,checkpoint,metrics_status) "
+        "VALUES ('RUN-N04-PROPOSED','2026-10-15','daily','running','N04-SETTINGS',"
+        "'N04-SEED','2026-10-15T13:00:00+09:00',NULL,NULL,0,0,NULL,'not_started')"
+    )
+    caplog.set_level("INFO", logger="automation.inago.orchestrator")
+    diagnostic_writer = trace.TraceWriter(
+        tmp_path / "diagnostic-trace",
+        "RUN-N04-PROPOSED",
+        "2026-10-16",
+        clock=clock,
+    )
+    try:
+        orchestrator._create_run(
+            database,
+            target_date="2026-10-16",
+            now=clock.now_jst(),
+            ports=SimpleNamespace(
+                current_settings_version=lambda _connection: "N04-SETTINGS"
+            ),
+            run_id_factory=lambda _date: "RUN-N04-PROPOSED",
+            seed_factory=lambda: "N04-SEED",
+            diagnostic_trace=trace.TraceSession(
+                diagnostic_writer,
+                component="orchestrator",
+                request_id="RUN-N04-DIAGNOSTIC",
+                task_id="daily",
+                clock=clock,
+            ),
+        )
+    except sqlite3.IntegrityError as exc:
+        assert exc.sqlite_errorname == "SQLITE_CONSTRAINT_PRIMARYKEY"
+    else:
+        raise AssertionError("duplicate proposed run ID should fail in the isolated DB")
+
+    assert (
+        database.execute(
+            "SELECT COUNT(*) FROM run WHERE target_date='2026-10-16'"
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        database.execute(
+            "SELECT COUNT(*) FROM run WHERE run_id='RUN-N04-PROPOSED'"
+        ).fetchone()[0]
+        == 1
+    )
+    database.close()
+
+    saved_diagnostic = next(
+        event
+        for event in reversed(trace.read_trace_events(diagnostic_writer.path))
+        if event.get("processing_label") == "run_create"
+        and event.get("error_class") == "IntegrityError"
+    )
+    assert saved_diagnostic["processing_label"] == "run_create"
+    assert saved_diagnostic["transaction_phase"] == "rollback"
+    assert saved_diagnostic["proposed_run_id"] == "RUN-N04-PROPOSED"
+    assert saved_diagnostic["persisted_run_id"] is None
+    assert saved_diagnostic["run_persisted"] is False
+    assert saved_diagnostic["trace_requested"] is True
+    assert saved_diagnostic["error_name"] == "SQLITE_CONSTRAINT_PRIMARYKEY"
+    assert saved_diagnostic["constraint_label"] == "primary_key"
+    assert saved_diagnostic["error_code_number"] == 1555
+    assert saved_diagnostic["failure_module"] == "automation.inago.orchestrator"
+    assert saved_diagnostic["failure_function"] == "_create_run"
+    assert len(saved_diagnostic["code_sha256"]) == 64
+    transaction_log = next(
+        record
+        for record in reversed(caplog.records)
+        if record.getMessage() == "daily_run_create_transaction"
+    )
+    assert transaction_log.trace_persisted is True
+    assert transaction_log.trace_status in {"written", "appended"}
+    secrets = ("private-session", "secret-token", "private-cookie", "private-key")
+    assert all(
+        secret not in writer.path.read_text(encoding="utf-8") for secret in secrets
+    )
+    assert all(
+        secret not in diagnostic_writer.path.read_text(encoding="utf-8")
+        for secret in secrets
     )
 
 

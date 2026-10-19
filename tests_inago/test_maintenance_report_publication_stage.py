@@ -14,6 +14,7 @@ from automation.inago.maintenance.store import (
     MaintenanceJobRecord,
     StepAttemptRecord,
 )
+from automation.inago.maintenance.controller import MaintenanceController
 import automation.inago.maintenance.production_workflow as production_workflow
 from automation.inago.maintenance.production_workflow import (
     run_daily_report_publication_stage,
@@ -21,6 +22,12 @@ from automation.inago.maintenance.production_workflow import (
 from automation.inago.maintenance.workflow_provider import (
     MaintenanceWorkflowContext,
     WorkflowResumeState,
+)
+from tests_inago.maintenance_support import (
+    BASE_TIME,
+    create_incident,
+    create_ready_release,
+    make_store,
 )
 
 
@@ -356,11 +363,14 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     assert publication_record["report_sha256"] == html_sha256
     assert controller.finalized[-1]["final_status"] == expected_job_status
     assert controller.finalized[-1]["reason_code"] == expected_reason
-    assert controller.finalized[-1]["incident_status"] == {
-        "complete": "resolved",
-        "pending": "in_progress",
-        "blocked": "blocked",
-    }[report_status]
+    assert (
+        controller.finalized[-1]["incident_status"]
+        == {
+            "complete": "resolved",
+            "pending": "in_progress",
+            "blocked": "blocked",
+        }[report_status]
+    )
     assert (
         _git(
             repository,
@@ -372,3 +382,109 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         )
         == f"reports/incidents/{identity['target_date']}/job-{hashlib.sha256(job_id.encode()).hexdigest()[:20]}.html"
     )
+
+
+def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monkeypatch):
+    source_launch_id = "launch-report-stage-fallback"
+    target_date = "2026-10-17"
+    store = make_store(tmp_path)
+    incident_id = create_incident(store, launch_id=source_launch_id)
+    job_start = create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-report-stage-fallback",
+        base_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+        result_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+    )
+    assert job_start.job_id == "job-release-report-stage-fallback"
+    store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=job_start.job_id,
+        created_at=BASE_TIME,
+    )
+    job = store.list_workflow_jobs_for_launch(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=job_start.job_id,
+    )[0]
+    lease = store.acquire_lease(
+        lease_key=f"maintenance:{job.job_id}",
+        owner_id="report-stage-test",
+        owner_pid=1,
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    controller = MaintenanceController(store)
+    worktrees_root = store.database_path.parent / "worktrees"
+    worktrees_root.mkdir(parents=True)
+    identity = {
+        "incident_id": incident_id,
+        "source_launch_id": source_launch_id,
+        "source_run_id": None,
+        "target_date": target_date,
+        "job_id": job.job_id,
+    }
+    workflow = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+        ),
+        check=SimpleNamespace(check_id="check-report-stage-fallback"),
+        queue=SimpleNamespace(queue_id="queue-report-stage-fallback"),
+        lease=lease,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(job=job, attempts=()),
+        state={
+            "job": job,
+            "precheck_identity": {
+                **identity,
+                "input_refs": [
+                    f"daily-launch/{source_launch_id}",
+                    f"daily-result-observation/{source_launch_id}",
+                ],
+                "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+            },
+        },
+    )
+    author_calls: list[str] = []
+
+    class AuthorSession:
+        def run_turn(self, *_args, **_kwargs):
+            author_calls.append("run_turn")
+            raise production_workflow.MaintenanceAIBlockedError(
+                "synthetic_author_transport_unavailable"
+            )
+
+        def close(self):
+            author_calls.append("close")
+
+    class Adapter:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def plan_session(self, **kwargs):
+            return SimpleNamespace(
+                role_config_sha256="a" * 64,
+                cwd=kwargs["cwd"],
+            )
+
+        def create_session(self, _plan):
+            return AuthorSession()
+
+    monkeypatch.setattr(production_workflow, "MaintenanceAIAdapter", Adapter)
+    result = production_workflow.run_daily_report_stage(
+        workflow, controller, store, timeout_seconds=5
+    )
+
+    assert workflow.state["report_preparation_observation"] == (
+        "report_source_attempt_unavailable"
+    )
+    assert workflow.state["report_source_snapshot"]["identity"] == identity
+    assert author_calls == ["run_turn", "close"]
+    assert result.status == "blocked"
+    assert result.reason_code == "synthetic_author_transport_unavailable"
