@@ -17,6 +17,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 ## 内容確認
 
 - 案件・対象日・作成時刻・実行版を区別する。
+- 報告本文の作成時刻はJSTで検証する。独立レビューの `reviewed_at` はISO-8601のtimezone-aware値を受け付けてJSTへ正規化し、timezoneがない値は受け付けない。
 - 事象一覧と詳細で区分（当日発生 / 調査で判明 / 試験で確認）、工程、操作、期待、実結果、影響、回復、原因の確度、変更後動作、試験範囲、根拠リンクを維持する。
 - 調査、作業場所での検証、release gate、反映、次回日次観測は個別の状態として表す。未実施は未実施、skip/errorはPASSでない。
 - HTMLは意味的見出し、症状の一覧と詳細、索引、相対リンク、狭幅/印刷向けCSS、pre/codeの改行・字下げ保持、未確認状態の視認性を含む。

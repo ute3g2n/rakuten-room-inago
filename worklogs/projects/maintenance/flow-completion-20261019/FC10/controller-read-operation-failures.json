@@ -1,0 +1,53 @@
+{
+  "schema_version": "fc10-controller-operation-failures-v1",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "recorded_at_utc": "2026-10-19T17:51:38Z",
+  "operations": [
+    {
+      "operation": "read_same_job_report_attempt_artifacts",
+      "attempted_reference": "runtime/maintenance/attempts/<job_id>",
+      "failure_class": "FileNotFoundError",
+      "reason": "The repository working directory contains the runtime data root at rakuten-room-inago/runtime/maintenance, not runtime/maintenance.",
+      "capture_location": "controller PowerShell Get-ChildItem read",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Corrected the path and read the exact job/attempt artifacts under rakuten-room-inago/runtime/maintenance/attempts."
+    },
+    {
+      "operation": "read_same_job_stage_observations",
+      "attempted_reference": "maintenance_workflow_invocation",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "That table does not exist in the current maintenance schema; the actual stage table is maintenance_workflow_stage_observation.",
+      "capture_location": "controller read-only SQLite schema query",
+      "side_effect": "none; connection used mode=ro",
+      "recovery": "Inspected sqlite_master and the actual table definition, then queried the same job's invocation observations."
+    },
+    {
+      "operation": "read_same_job_handoff_artifacts",
+      "attempted_reference": "handoff_artifact.job_id",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The queried handoff table has no job_id column.",
+      "capture_location": "controller read-only SQLite query",
+      "side_effect": "none; connection used mode=ro",
+      "recovery": "Stopped that query and used the verified attempt artifact index and workflow observation table."
+    },
+    {
+      "operation": "invoke_runtime_switcher_wrapper",
+      "failure_class": "SyntaxError",
+      "reason": "An inline Python wrapper command had invalid syntax before the runtime switcher process could start.",
+      "capture_location": "controller exec command parser",
+      "side_effect": "none; switcher invocation was not reached",
+      "recovery": "A later official TaskSchedulerRuntimeSwitcher invocation completed and a health/read-back check confirmed the intended commit was active."
+    },
+    {
+      "operation": "search_report_recovery_test_names",
+      "failure_class": "PowerShell parameter/path parse error",
+      "reason": "A Unix-style wildcard path was passed to PowerShell rg invocation.",
+      "capture_location": "controller read-only rg command",
+      "side_effect": "none; read-only search",
+      "recovery": "Searched the explicit report test modules and located the relevant cases."
+    }
+  ]
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import html
 import json
@@ -152,6 +152,21 @@ def _validate_jst(value: object) -> str:
     if parsed.utcoffset() != timedelta(hours=9):
         raise ReportContractError("report_created_at_not_jst")
     return value
+
+
+def _normalize_reviewed_at_jst(value: object) -> str:
+    """Normalize a timezone-aware reviewer timestamp without rejecting UTC."""
+
+    if not isinstance(value, str):
+        raise ReportContractError("report_reviewed_at_invalid")
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ReportContractError("report_reviewed_at_invalid") from exc
+    if parsed.utcoffset() is None:
+        raise ReportContractError("report_reviewed_at_timezone_missing")
+    return parsed.astimezone(timezone(timedelta(hours=9))).isoformat()
 
 
 def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]:
@@ -746,7 +761,7 @@ def validate_report_review(
         or _SHA256_PATTERN.fullmatch(output_sha256) is None
     ):
         raise ReportContractError("report_review_output_mismatch")
-    _validate_jst(data["reviewed_at"])
+    data["reviewed_at"] = _normalize_reviewed_at_jst(data["reviewed_at"])
     return data
 
 

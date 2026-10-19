@@ -1,0 +1,21 @@
+{
+  "schema_version": "fc10-independent-product-review-v1",
+  "reviewer": "fc08_product_review",
+  "review_mode": "read_only",
+  "status": "approved",
+  "material_findings": [],
+  "manifest": {
+    "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-runtime-fix-review-target.json",
+    "sha256": "58151c03be296e8cfa57a0d464fbb896a52d18a590c4a951cb96bf3ab9f3731a"
+  },
+  "reviewed_sources": {
+    "automation/inago/maintenance/reporting.py": "5dfa6f9824327a476bc3a30199e4727d1ca364b0d11fb490e10ec135b7ac8324",
+    "automation/inago/maintenance/production_workflow.py": "b20e4b85b4f3c3c0c3b1a76652f0b730a2b3a40c3a781c946802a7d13f00124c"
+  },
+  "test_code_reviewed": false,
+  "production_data_touched_by_reviewer": false,
+  "assessment": [
+    "reviewed_at must have a timezone and is normalized to JST; authored created_at_jst remains under strict JST-offset validation.",
+    "The prior-attempt envelope is not passed to the current-attempt wrapper. If no current-attempt author envelope exists, the author is run again and the wrapper verifies the current attempt binding."
+  ]
+}

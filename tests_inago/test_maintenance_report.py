@@ -412,6 +412,42 @@ def test_report_review_must_bind_author_version_and_hash():
         )
 
 
+def test_report_review_normalizes_utc_timestamp_to_jst_and_rejects_naive_time():
+    report = _prepared_report()
+    review = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": "reviewer-1",
+        "reviewed_version": "report-v1",
+        "reviewed_sha256": report.html_sha256,
+        "status": "changes_requested",
+        "reviewed_at": "2026-10-19T17:42:12Z",
+        "findings": [
+            {
+                "severity": "high",
+                "location": "本文の説明",
+                "finding": "確認範囲と未確認の範囲を分けてください。",
+            }
+        ],
+    }
+    validated = validate_report_review(
+        review,
+        author_id="writer-1",
+        result_version="report-v1",
+        output_sha256=report.html_sha256,
+    )
+    assert validated["reviewed_at"] == "2026-10-20T02:42:12+09:00"
+    assert validated["findings"] == review["findings"]
+
+    review["reviewed_at"] = "2026-10-19T17:42:12"
+    with pytest.raises(ReportContractError, match="report_reviewed_at_timezone_missing"):
+        validate_report_review(
+            review,
+            author_id="writer-1",
+            result_version="report-v1",
+            output_sha256=report.html_sha256,
+        )
+
+
 def test_report_accepts_unapproved_status_but_rejects_unsafe_links_and_identity_drift():
     sources = _source_snapshot()
     sources["plan"]["review_status"] = "changes_requested"

@@ -9468,9 +9468,11 @@ def run_daily_report_stage(
                     allowed_outputs=_REPORT_AUTHOR_ALLOWED_OUTPUTS,
                     response_schema=author_schema,
                 )
-                author_raw = (
-                    current_outputs[0] if current_outputs else author_recovery[1]
-                )
+                # A prior-attempt envelope remains bound to that attempt. If it
+                # cannot be found under the current attempt, re-run the author
+                # below instead of passing a cross-attempt path to the current
+                # attempt wrapper.
+                author_raw = current_outputs[0] if current_outputs else None
             else:
                 current_outputs = _daily_report_ai_envelopes(
                     store=store,

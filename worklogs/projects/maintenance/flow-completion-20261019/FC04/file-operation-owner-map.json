@@ -4015,6 +4015,28 @@
       ],
       "controller_message": "approved exact FC10 extension after source review showed the terminal reconciler still required successful formal outputs for failed stages, preventing a contentful failure handoff from reaching terminal report completion",
       "reason": "Complete the handoff-based continuation already specified in AT-MAINT-01 while retaining identity-bound read-back. A failed or non-performed stage must not be represented as a successful attempt; its validated current-invocation handoff can evidence that the stage was carried forward, while completed attempt outputs and public reviewed report remain required read-backs."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/reporting.py",
+        "tests_inago/test_maintenance_report.py",
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+        ".agents/skills/rr-inago-incident-report/references/contracts.md"
+      ],
+      "owner": "FC10 controller",
+      "boundary": "validate_report_review only: accept valid timezone-aware reviewer timestamps such as ISO-8601 Z and normalize them to JST for persisted review output; preserve strict JST validation for authored created_at_jst; add focused regression and document the distinction",
+      "controller_message": "approved exact FC10 extension after same-job evidence showed the actual reviewer response was rejected by applying the authored-report JST rule to reviewed_at",
+      "reason": "The review schema permits ISO-8601 date-time values, while validate_report_review incorrectly reused the stricter authored created_at_jst validator. A legitimate UTC review timestamp was misclassified as report_created_at_not_jst, so substantive findings never reached the author revision path."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "owner": "FC10 controller",
+      "boundary": "run_daily_report_stage author recovery branch: reuse only current-attempt author envelopes; if the only matching response belongs to a prior attempt, launch reporter in the current formal attempt rather than sending the prior path to the current-attempt writer; focused continuation regression",
+      "controller_message": "approved exact FC10 extension after same-job trace showed a prior attempt envelope was selected and then rejected by current-attempt binding",
+      "reason": "The current wrapper correctly rejects cross-attempt responses, but the recovery branch passed the prior attempt output when no current-attempt response existed. This converted a recoverable stale response into report_response_attempt_mismatch and prevented the actual reporter from producing a current-attempt result."
     }
   ],
   "fc10_review_followup": [

@@ -1,0 +1,22 @@
+{
+  "schema_version": "fc10-report-runtime-fix-review-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "4e037eff4112e90130287a214e5578dd7350034c",
+  "product_sources": {
+    "automation/inago/maintenance/reporting.py": "5dfa6f9824327a476bc3a30199e4727d1ca364b0d11fb490e10ec135b7ac8324",
+    "automation/inago/maintenance/production_workflow.py": "b20e4b85b4f3c3c0c3b1a76652f0b730a2b3a40c3a781c946802a7d13f00124c"
+  },
+  "test_sources_not_for_independent_review": {
+    "tests_inago/test_maintenance_report.py": "f684f4976f59a81950f7f60d737d78f00db776ee99a1de167c7e2c658e38e5aa",
+    "tests_inago/test_maintenance_report_publication_stage.py": "21356a32634b841dfe847ce7ad3c71389b9b0cef6d2cc4247415251280d59e07"
+  },
+  "specification": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+  "skill_contract": ".agents/skills/rr-inago-incident-report/references/contracts.md",
+  "summary": "Normalize valid timezone-aware reviewer timestamps to JST without relaxing the strict authored created_at_jst contract; when only a prior-attempt reporter envelope exists, rerun reporter in current attempt instead of passing the stale envelope to current-attempt validation. Independent review scope is production product code only; tests are evidence, not review targets."
+}
