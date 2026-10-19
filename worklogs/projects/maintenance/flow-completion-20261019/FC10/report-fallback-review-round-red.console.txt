@@ -1,0 +1,12 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_fc10_fallback_review_round_uses_persisted_review_history ________
+tests_inago\test_maintenance_report_publication_stage.py:1720: in test_fc10_fallback_review_round_uses_persisted_review_history
+    assert result.status == "complete"
+E   AssertionError: assert 'unknown' == 'complete'
+E
+E     - complete
+E     + unknown
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc10_fallback_review_round_uses_persisted_review_history
+1 failed in 0.93s

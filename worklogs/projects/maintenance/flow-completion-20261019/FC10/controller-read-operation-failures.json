@@ -48,6 +48,42 @@
       "capture_location": "controller read-only rg command",
       "side_effect": "none; read-only search",
       "recovery": "Searched the explicit report test modules and located the relevant cases."
+    },
+    {
+      "operation": "read_owner_map_at_current_FC10_path",
+      "attempted_reference": "worklogs/projects/maintenance/flow-completion-20261019/FC10/file-operation-owner-map.json",
+      "failure_class": "PowerShell path not found",
+      "reason": "The current sequential owner map is stored under FC04; there is no duplicate owner-map file under FC10.",
+      "capture_location": "controller read-only Get-Content",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Read and appended the exact reviewed operation boundary to FC04/file-operation-owner-map.json."
+    },
+    {
+      "operation": "read_workflow_invocation_table",
+      "attempted_reference": "workflow_invocation",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The active database does not contain a workflow_invocation table; invocation observations use maintenance_workflow_stage_observation.",
+      "capture_location": "controller read-only SQLite schema query",
+      "side_effect": "none; SQLite connection used mode=ro",
+      "recovery": "Inspected the actual schema and read the latest invocation and all stage observations from maintenance_workflow_stage_observation."
+    },
+    {
+      "operation": "read_source_launch_id_from_maintenance_job",
+      "attempted_reference": "maintenance_job.source_launch_id",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "maintenance_job does not store source_launch_id; that identity is in job_input_manifest.",
+      "capture_location": "controller read-only SQLite query",
+      "side_effect": "none; SQLite connection used mode=ro",
+      "recovery": "Queried the verified job_input_manifest and confirmed the same source_launch_id, target date, and null source_run_id."
+    },
+    {
+      "operation": "focused_test_without_runtime_attempt_root",
+      "attempted_reference": "tmp_path/data/maintenance/attempts",
+      "failure_class": "MaintenanceAIBlockedError",
+      "reason": "The direct fallback-stage test fixture had not created the attempts root required by the existing guarded artifact writer.",
+      "capture_location": "test_fc10_fallback_review_round_uses_persisted_review_history",
+      "side_effect": "none; isolated pytest temporary directory only",
+      "recovery": "Created the fixture attempts directory. Then observed a genuine review_round_mismatch red failure with the old code and a pass with the corrected code."
     }
   ]
 }

@@ -1606,6 +1606,127 @@ def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monke
     assert result.reason_code == "synthetic_author_transport_unavailable"
 
 
+def test_fc10_fallback_review_round_uses_persisted_review_history(
+    tmp_path: Path, monkeypatch
+):
+    source_launch_id = "launch-fc10-fallback-review-round"
+    target_date = "2026-10-17"
+    store = make_store(tmp_path)
+    incident_id = create_incident(store, launch_id=source_launch_id)
+    base_commit = _git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD")
+    release = create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-fc10-fallback-review-round",
+        base_commit=base_commit,
+        result_commit=base_commit,
+    )
+    store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+        created_at=BASE_TIME,
+    )
+    job = store.list_workflow_jobs_for_launch(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+    )[0]
+    (store.database_path.parent / "attempts").mkdir(parents=True)
+    lease = store.acquire_lease(
+        lease_key=f"maintenance:{job.job_id}",
+        owner_id="fc10-fallback-review-round-test",
+        owner_pid=1,
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    for attempt_no in range(1, 5):
+        prior = store.begin_step_attempt(
+            job_id=job.job_id,
+            step_key="maintenance_report",
+            sequence=4,
+            lease=lease,
+            started_at=BASE_TIME,
+        )
+        assert prior.attempt_no == attempt_no
+        store.complete_step_attempt(
+            attempt_id=prior.attempt_id,
+            lease=lease,
+            result_version=f"prior-report-{attempt_no}",
+            completed_at=BASE_TIME,
+        )
+
+    class UnavailableReviewerSession:
+        def run_turn(self, *_args, **_kwargs):
+            raise production_workflow.MaintenanceAIBlockedError(
+                "synthetic_fallback_reviewer_transport_unavailable"
+            )
+
+        def close(self):
+            return None
+
+    class UnavailableReviewerAdapter:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def plan_session(self, **kwargs):
+            return SimpleNamespace(cwd=kwargs["cwd"], role_config_sha256="a" * 64)
+
+        def create_session(self, _plan):
+            return UnavailableReviewerSession()
+
+    monkeypatch.setattr(
+        production_workflow, "MaintenanceAIAdapter", UnavailableReviewerAdapter
+    )
+    workflow = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+        ),
+        check=SimpleNamespace(check_id="check-fc10-fallback-review-round"),
+        queue=SimpleNamespace(queue_id="queue-fc10-fallback-review-round"),
+        lease=lease,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(job=job, attempts=()),
+        state={
+            "job": job,
+            "precheck_identity": store.get_job_input_manifest(
+                job_id=job.job_id
+            ).identity(),
+            "report_base_commit": base_commit,
+            "report_source_snapshot": {
+                "implementation": {"result_commit": base_commit},
+                "tests": {"status": "not_run"},
+                "deployment": {"status": "not_attempted"},
+            },
+            "report_input_refs": ["historical-input/2026-10-17/observation.json"],
+            "report_evidence_refs": ["historical-input/2026-10-17/source-evidence.json"],
+        },
+    )
+
+    result = production_workflow._persist_minimal_daily_report(
+        workflow,
+        MaintenanceController(store),
+        store,
+        operation="synthetic_normal_report_failure",
+        outcome="確認できる記録の範囲を説明します。",
+        failure_reason="synthetic_report_author_unavailable",
+    )
+
+    assert result.status == "complete"
+    completed = workflow.state["report_attempt"]
+    assert completed.attempt_no == 5
+    assert completed.status == "complete"
+    assert workflow.state["report_result"]["review"]["status"] == "unavailable"
+    saved_review = store.get_step_attempt_review(attempt_id=completed.attempt_id)
+    assert saved_review is not None
+    assert saved_review["status"] == "unavailable"
+
+
 @pytest.mark.parametrize(
     "reviewer_mode",
     [

@@ -1,0 +1,27 @@
+{
+  "verdict": "APPROVED",
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "findings": [],
+  "conditions": [],
+  "manifest": "report-fallback-review-round-review-target.json",
+  "manifest_sha256": "4a5ee1b48852f8cb9ea1430fddd9cea04dda98c61241e1fa281e3d1cba626287",
+  "product_source": "automation/inago/maintenance/production_workflow.py",
+  "product_sha256": "b68f6828ed5dafb5048eecddfb7312bb50c399b90f91b78d4db781a4d4a95086",
+  "test_source_hash_checked_without_reading": "ec30e9b6fa61953ffd658c02bca92e517b7e1198211af65a53ee71cc78891aad",
+  "checks": [
+    "The replacement is the single intended production hunk from the specified base commit.",
+    "The fallback attempt is selected and lease-validated as running before deriving the next round.",
+    "The next round is counted from persisted history for the same job, step, and sequence.",
+    "The existing report flow still proceeds to publication after controller fallback.",
+    "No prior attempt count, alternate gate, or approval status is used to block the report."
+  ],
+  "test_contents_reviewed": false,
+  "tests_run": false,
+  "files_edited": false,
+  "production_data_touched": false
+}

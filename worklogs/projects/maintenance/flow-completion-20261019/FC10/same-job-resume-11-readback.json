@@ -1,0 +1,175 @@
+{
+  "schema_version": "fc10-same-job-resume-readback-v1",
+  "captured_at_local": "2026-10-20",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "official_active_commit": "525ad3fa8d2d1acdb6e2909d011e988be2deceff",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "status": "failed",
+    "resume_count": 11,
+    "updated_at": "2026-10-19T18:25:29.000750Z",
+    "finished_at": "2026-10-19T18:25:29.000750Z",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "resume_worker_result": {
+    "check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b",
+    "duplicate": false,
+    "maintenance_resolution_status": "unknown",
+    "queue_id": null,
+    "reason_code": "report_publication_inputs_incomplete",
+    "schema_version": "maintenance-worker-result-v3",
+    "scope": "maintenance_workflow",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "maintenance_incomplete",
+    "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  },
+  "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+  "stage_observations": [
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "check_incident",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:24:02.255005Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "evidence",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:24:02.298290Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "job",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:24:02.333304Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "investigation",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:24:02.365454Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "planning",
+      "status": "unknown",
+      "reason_code": "ai_transport_failed",
+      "observed_at": "2026-10-19T18:24:05.347934Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "repair",
+      "status": "unknown",
+      "reason_code": "repair_attempt_not_actionable",
+      "observed_at": "2026-10-19T18:24:05.400738Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "deployment",
+      "status": "unknown",
+      "reason_code": "deployment_candidate_unavailable",
+      "observed_at": "2026-10-19T18:24:05.475400Z"
+    },
+    {
+      "invocation_id": "workflow-eb61b66512e54d608170f6e9845d498b",
+      "stage_name": "report",
+      "status": "unknown",
+      "reason_code": "report_publication_inputs_incomplete",
+      "observed_at": "2026-10-19T18:25:28.924528Z"
+    }
+  ],
+  "report_attempts": [
+    {
+      "attempt_id": "f770f0df-d5f6-4ed2-acf0-d63658bcd6c7",
+      "attempt_no": 1,
+      "status": "interrupted",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "started_at": "2026-10-19T11:44:47.543879Z",
+      "finished_at": "2026-10-19T17:02:37.918057Z"
+    },
+    {
+      "attempt_id": "6a71ee19-cbf5-4ea1-b1c1-59e00e104e5a",
+      "attempt_no": 2,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "started_at": "2026-10-19T17:02:37.918057Z",
+      "finished_at": "2026-10-19T17:03:05.866295Z"
+    },
+    {
+      "attempt_id": "34ef5b9e-fcc1-481a-b780-a5cdd8473ca8",
+      "attempt_no": 3,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "started_at": "2026-10-19T17:41:53.631125Z",
+      "finished_at": "2026-10-19T17:42:24.252009Z"
+    },
+    {
+      "attempt_id": "00374287-2b70-43aa-a5ed-eedbd3e3a5a8",
+      "attempt_no": 4,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "started_at": "2026-10-19T17:55:32.415810Z",
+      "finished_at": "2026-10-19T17:57:11.376025Z"
+    },
+    {
+      "attempt_id": "0e1f5f2f-a30f-4e11-ae1a-4157a43cfae9",
+      "attempt_no": 5,
+      "status": "failed",
+      "result_version": null,
+      "output_path": null,
+      "output_sha256": null,
+      "started_at": "2026-10-19T18:24:05.559016Z",
+      "finished_at": "2026-10-19T18:25:29.000750Z"
+    }
+  ],
+  "database": {
+    "user_version": 15,
+    "quick_check": "ok"
+  },
+  "october_19_worker_queue": {
+    "row_count": 1,
+    "rows": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "worker_job_id": "worker-2a0f6cdfb9a4479f8f9c1b9244303e04",
+        "target_date": "2026-10-19",
+        "status": "queued",
+        "created_at": "2026-10-19T04:00:03.226334Z",
+        "updated_at": "2026-10-19T04:00:03.226334Z",
+        "reason_code": null
+      }
+    ],
+    "canonical_sha256": "6dd1f61e6f0bda267ae4df91fcf562401b999c35da79802ba8b377c04669133e"
+  },
+  "october_19_worker_queue_events": {
+    "row_count": 0,
+    "rows": [],
+    "canonical_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "pre_run_comparison": "Before resume 11, queue had one queued 2026-10-19 row and zero queue-history events (FC10/runtime-and-oct19-preflight-readback.json). After resume 11, the same row remains queued and event count remains zero.",
+  "publication": "No HTML publication or terminal success was recorded; fallback HTML/result files existed but the report step attempt had no committed output reference."
+}

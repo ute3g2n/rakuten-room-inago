@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.865" timestamp="2026-10-20T03:31:31.524051+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc10_fallback_review_round_uses_persisted_review_history" time="0.430"><failure message="AssertionError: assert 'unknown' == 'complete'&#10;  &#10;  - complete&#10;  + unknown">tests_inago\test_maintenance_report_publication_stage.py:1720: in test_fc10_fallback_review_round_uses_persisted_review_history
+    assert result.status == "complete"
+E   AssertionError: assert 'unknown' == 'complete'
+E
+E     - complete
+E     + unknown</failure></testcase></testsuite></testsuites>

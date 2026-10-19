@@ -9012,7 +9012,7 @@ def _persist_minimal_daily_report(
             reviewed_version=result_version,
             review_status=review_document["status"],
             reviewed_at=review_document["reviewed_at"],
-            review_round=max(1, current.attempt_no),
+            review_round=store.next_step_review_round(current.attempt_id),
         )
         workflow.state.update(
             {

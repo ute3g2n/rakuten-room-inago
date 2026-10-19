@@ -1,0 +1,25 @@
+{
+  "schema_version": "fc10-report-fallback-review-round-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "525ad3fa8d2d1acdb6e2909d011e988be2deceff",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "b68f6828ed5dafb5048eecddfb7312bb50c399b90f91b78d4db781a4d4a95086"
+  },
+  "test_sources_not_for_independent_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "ec30e9b6fa61953ffd658c02bca92e517b7e1198211af65a53ee71cc78891aad"
+  },
+  "local_evidence": {
+    "test_console": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-fallback-review-round.console.txt",
+    "test_console_sha256": "09951cd0206db4a57839c8e43aa083ed41205b9fbc9cce13e34ea350a7ecc18b",
+    "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC10/report-fallback-review-round.junit.xml",
+    "junit_sha256": "39937c08d191dfb65bff06a20e44c78807ecfa8a84e3efbfaa6cc5067039751f"
+  },
+  "finding_context": "The same-job 10/17 report attempt 5 had no saved review rows. Controller fallback passed attempt_no=5 as review_round, but MaintenanceStore requires the next round from persisted review history (1). The store rejected completion and publication inputs remained incomplete. The production change now obtains the next round from MaintenanceStore.next_step_review_round for the current running attempt.",
+  "summary": "Fresh read-only product review of the production change that binds fallback review registration to persisted per-step review history. Verify the exact product source hash, ensure the attempt is still running when the next round is derived, and confirm this does not create a gate based on prior attempt count or skip report publication after a completed fallback. The test source hash is provided for integrity only; do not read or review test code. Do not edit files or run tests."
+}

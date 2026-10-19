@@ -4201,6 +4201,18 @@
       ],
       "boundary": "Synchronize host-owned invocation binding, failure-journal secondary spool and replay semantics, deployment proof validation, report body/appendix rules, and FC09 post-apply observation in current contracts and role prompts; do not make AI invent controller identity fields",
       "reason": "FC10 added invocation-bound handoffs and independent fallback/recovery behavior after prior documentation snapshots; the operational contract and specialist role instructions must match the implemented behavior and same-job observations."
+    },
+    {
+      "finding": "FC10 same-job fallback review registration",
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": [
+        "_persist_minimal_daily_report complete_step_attempt_with_review: calculate review_round from the persisted review history for the current step, not attempt_no",
+        "tests_inago/test_maintenance_report_publication_stage.py: reproduce a fifth fallback attempt with four prior completed attempts and no saved review; assert fallback is durably completed and eligible for publication"
+      ],
+      "reason": "The 10/17 same-job report attempt 5 had zero persisted report reviews. The fallback passed attempt_no 5 as review_round while the store correctly required the next persisted review number 1, leaving the substantive fallback unpublished and the same job incomplete."
     }
   ]
 }
