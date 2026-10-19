@@ -1,0 +1,82 @@
+{
+  "review_status": "approved",
+  "result_version": "u23-08-update-v2",
+  "review_stage": "independent_investigation_rereview",
+  "reviewed_at_jst": "2026-10-19T20:49:37+09:00",
+  "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "attempt": null,
+  "base_commit": null,
+  "identity_gaps": ["formal review attempt", "controller base_commit", "complete controller input_refs/evidence_refs arrays"],
+  "reviewed_artifacts": [
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md", "sha256": "b221b23c23cb20b8e8dea4ff418fdcf319d47c2756bbe742c65bbca6fcb1dda2"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.json", "sha256": "0dc60c0d83868ace7484f47928b328ee12407e147146e83645a4bc0774e239d0"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.result.json", "sha256": "27f333a87f477f57dd6ebd935a40e92455b58386bdee6a830a1c3f8d9536930d"}
+  ],
+  "source_evidence_read": [
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md", "version": "1.3", "sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md", "sha256_at_rereview": "0f01b39fbebbca234337b119eb33cf7996ff19cfc1ab64d44d51b522123ba754", "note": "20:46以降の後続追記を含む。v2調査の更新時刻20:44:16より後の版。"}
+  ],
+  "prior_review": {
+    "result_version": "u23-08-update-v1",
+    "status": "changes_requested",
+    "ref_md": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.md",
+    "sha256_md": "dc540e12c253dde106d7fa93aa2deb33d049a51fdf699363957fc10e7f1545a3",
+    "ref_json": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.json",
+    "sha256_json": "38cce545c1dc5a38b15672d63d0af5904013cc6c06fba20334e11504618e88f8",
+    "preserved": true
+  },
+  "resolved_findings": [
+    {
+      "id": "IR-U23-01",
+      "status": "resolved_in_v2",
+      "location": "investigation MD:109-122; facts JSON s04_version_mapping/local_evidence",
+      "verification": "現在S04の先頭3750 bytesを独立再ハッシュし旧観測本文SHA49602…と一致。先頭5826 bytesを再ハッシュし包装/初回review時SHA26417…と一致。v2は観測本文版と20:38追記版を分け、U005が20:36観測だけを使うことと、別旧snapshot未提供を明記している。"
+    },
+    {
+      "id": "IR-U23-02",
+      "status": "resolved_in_v2",
+      "location": "facts JSON facts[F001-F008].evidence_refs; investigation MD:28",
+      "verification": "全8件のevidence_refsに実供給元 plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2 が追加された。歴史refsとsupplied/未再読属性は保持。供給計画SHAも現物と一致。"
+    }
+  ],
+  "s04_byte_version_checks": [
+    {"scope": "first 3750 bytes", "sha256": "49602dafee1821b4eac268075e85f29fdf4b9922c65d1cf20226bbcd844d36ce", "result": "match", "observation_interval_jst": ["2026-10-19T20:36:40.7904901+09:00", "2026-10-19T20:36:42.2412393+09:00"]},
+    {"scope": "first 5826 bytes, ending before added CRLF preceding Official one-shot Worker heading", "sha256": "26417d003bb1aa9b6502c00ed240332232e2d38798e757827cbfbcb45d5b7a79", "result": "match", "includes": "20:38 pre-resume/resume additions; packaged v2 evidence file version"},
+    {"scope": "whole file at rereview", "sha256": "0f01b39fbebbca234337b119eb33cf7996ff19cfc1ab64d44d51b522123ba754", "result": "later appended version observed", "includes": "20:46 Worker exit and post-Worker observations; outside investigation v2 cutoff"}
+  ],
+  "findings": [
+    {"id": "IR-U23-03", "severity": "low", "kind": "retained_evidence_limitation", "location": "investigation MD:96-106,124", "finding": "歴史原snapshot7件は未提供。各参照の供給SHA・観測/収集時刻は計画との一致に限る。F008 manifest自身のSHAはunknown。v2は制限を正しく保持している。", "action": "最終HTMLも供給値と独立再検証済み値を区別する。追加証拠を後続gateにしない。"},
+    {"id": "IR-U23-04", "severity": "low", "kind": "retained_review_scope_limitation", "location": "investigation MD:48-56,115-124", "finding": "U001-U004の元試験/製品review/旧review記録は今回reviewerの指定入力外。詳細時刻・code SHA・旧FAIL・各local記録SHAの独立原文照合は未実施。v2は調査担当の読取とreviewerの読取範囲を分けている。", "action": "独立reviewが原記録まで再検証済みという表現を避けて後続を続ける。"},
+    {"id": "IR-U23-V2-01", "severity": "low", "kind": "later_evidence_append_observation", "location": "investigation MD:13,114,122; S04 Official one-shot Worker/Post-Worker sections", "finding": "再review時のS04全体SHAは0f01…へ変化しているが、20:44作成のv2が使った26417…版は現行先頭5826 bytesとして再現できる。20:46の後続追記であり、v2の20:36観測U005へ混入していない。", "action": "最終HTMLではv2のcutoffと、後続Worker/DB観測を別時点の事実として記す。v2のresume_count7/runningを最新状態と表現しない。"}
+  ],
+  "checks": {
+    "review_status_meaning": "approved within assigned scope; no remaining correction request, three limitations/observations retained",
+    "nine_chapters": "pass; 1 through 9 exactly once",
+    "facts_count": 13,
+    "all_F001_F008_include_actual_supplied_plan_ref": true,
+    "result_version_consistency": "pass; MD/facts/result all u23-08-update-v2",
+    "artifact_sha_binding": "pass; result facts/investigation hashes equal reviewed bytes",
+    "immutable_identity_nullness": "pass across supplied plan, MD, facts, result and S04",
+    "formal_identity_gaps": "retained as unknown/null, no HEAD or other attempt substituted",
+    "expected_actual_impact_recovery": "separate",
+    "historical_vs_later_test_review": "separate",
+    "sqlite_error_labels": "classification, not root cause",
+    "pipeline_module_function_line_hash": "capture location, not callback origin",
+    "proposed_persisted_run_ids": "separate; missing values not inferred",
+    "root_cause_recovery_recurrence_actual_post_count": "unknown retained",
+    "markdown_entities": "no identifier-changing HTML entities observed",
+    "unsupported_zero_success_secrets_private_content": "none observed within assigned scope",
+    "v1_review_preserved": true,
+    "db_product_plan_writes": "none",
+    "tests": "not run; document review and in-memory hash comparison only"
+  },
+  "allowed_outputs": [
+    "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md",
+    "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.json"
+  ],
+  "next_stage_policy": "本人1名のlocal systemで堅牢性は品質目標にしない。reviewの承認/指摘/unknown/証拠不足は観測であり後続gateではない。HTML作成・独立review・指摘反映・公開とU24/U25を継続する。Gitは親controllerが今回所有分を選択commit/pushする。"
+}

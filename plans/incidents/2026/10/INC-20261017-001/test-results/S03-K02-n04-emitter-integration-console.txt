@@ -1,0 +1,10 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:312: in test_n04
+    repository.initialize_database(database)
+    ^^^^^^^^^^
+E   NameError: name 'repository' is not defined
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - NameError: name 'repos...
+1 failed in 0.49s

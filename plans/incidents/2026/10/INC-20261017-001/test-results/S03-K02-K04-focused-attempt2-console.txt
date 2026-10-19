@@ -1,0 +1,11 @@
+F...                                                                     [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:305: in test_n04
+    diagnostic = trace.make_trace_event(
+automation\inago\trace.py:441: in make_trace_event
+    raise TraceContractError(f"{key} is outside the safe label format")
+E   automation.inago.trace.TraceContractError: failure_function is outside the safe label format
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - automation.inago.trace...
+1 failed, 3 passed in 5.91s

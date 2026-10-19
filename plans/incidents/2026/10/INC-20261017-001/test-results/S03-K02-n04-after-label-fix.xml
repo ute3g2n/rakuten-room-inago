@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.280" timestamp="2026-10-19T20:12:30.559749+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.101"><failure message="KeyError: 'persisted_run_id'">tests_inago\test_daily_fix_trace.py:336: in test_n04
+    assert saved_diagnostic["persisted_run_id"] is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'persisted_run_id'</failure></testcase></testsuite></testsuites>

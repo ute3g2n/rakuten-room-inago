@@ -1,0 +1,83 @@
+{
+  "review_id": "s02-product-review-2026-10-19",
+  "reviewed_at": "2026-10-19",
+  "status": "changes_requested",
+  "read_only": true,
+  "head": {
+    "branch": "main",
+    "commit": "d7241547d5e6111962177105c9149d6414a2ddee"
+  },
+  "scope": [
+    {
+      "path": "automation/inago/orchestrator.py",
+      "git_blob": "eff6296ac44ffc06bee8823a9c833e1c64bf44c6",
+      "sha256": "F615A5C3C8DF6A94412791F95273560CE45D023BEBA34932D80616C295D7F2A7"
+    },
+    {
+      "path": "automation/inago/daily_pipeline.py",
+      "git_blob": "ccfb75ee545859acd3a88a854e1ac9047e69f304",
+      "sha256": "48CC59099CF8E4B20424B4C096F6E7DCFE0E04B7576303A085CEF632F622D251"
+    },
+    {
+      "path": "automation/inago/trace.py",
+      "git_blob": "4212d0308a8d562c6243ab36693dea9dba0bada0",
+      "sha256": "8B6743C6ED975D6C581E8F917EA5E4F41CDF89983F061A38E445D2F8513D786F"
+    }
+  ],
+  "excluded": [
+    "automation/inago/maintenance/store.py (S01 separately reviewed)",
+    "all test code",
+    "production database, Daily, and Scheduler execution"
+  ],
+  "test_evidence": {
+    "case_ids": ["K02", "K03", "K04"],
+    "result": "mixed; final K02 pass, K03 and K04 pass",
+    "observed": "Final K02 isolated SQLite emitter integration: 1 passed at 2026-10-19 20:15:10.890–20:15:11.974 JST against the listed current product hashes. K03 test_c09_contract and K04 test_n03 plus the existing nullable-deadline node passed in the earlier combined run; that combined run's K02 attempt failed before the product fixes. The plan's nullable-deadline node spelling was absent; its initial invocation ran zero tests, and the actual existing node was then run.",
+    "source": "plans/incidents/2026/10/INC-20261017-001/test-results/S03-K02-K04-focused-test-record.md",
+    "final_k02_sha256": {
+      "orchestrator.py": "F615A5C3C8DF6A94412791F95273560CE45D023BEBA34932D80616C295D7F2A7",
+      "daily_pipeline.py": "48CC59099CF8E4B20424B4C096F6E7DCFE0E04B7576303A085CEF632F622D251",
+      "trace.py": "8B6743C6ED975D6C581E8F917EA5E4F41CDF89983F061A38E445D2F8513D786F"
+    }
+  },
+  "findings": [
+    {
+      "id": "S02-R01",
+      "severity": "P2",
+      "file": "automation/inago/daily_pipeline.py",
+      "lines": [837, 856, 1015, 1030],
+      "title": "Diagnostic logging exceptions can alter daily results and skip rollback",
+      "detail": "The failure logger runs before rollback and both failure/success logging calls are unguarded. A handler exception can escape before the original result is constructed, and in the failure path can bypass rollback.",
+      "requested_change": "Contain logger exceptions as best-effort diagnostic I/O and ensure the failure logger cannot prevent rollback."
+    },
+    {
+      "id": "S02-R02",
+      "severity": "P2",
+      "file": "automation/inago/daily_pipeline.py",
+      "lines": [835, 852],
+      "title": "Failure line can refer to a callback while module/function/hash identify the pipeline wrapper",
+      "detail": "The innermost traceback frame's line is recorded while module, function, and code hash are fixed to daily_pipeline.run_daily_execution_core. Exceptions raised inside ports callbacks can therefore produce a mismatched source location.",
+      "requested_change": "Record a normalized matching frame/module/function/hash tuple, or use a pipeline-local capture location consistently."
+    }
+  ],
+  "checks": {
+    "trace_field_allowlist_and_types": "reviewed; new fields use allowlist and field-specific checks",
+    "no_free_text_exception_message_or_traceback_persistence": "reviewed; not observed in added trace fields",
+    "proposed_vs_persisted_run_ids": "separate fields",
+    "transaction_phase_coverage": ["begin", "commit", "rollback", "rollback_failed"],
+    "orchestrator_diagnostic_failure_isolated": true,
+    "pipeline_diagnostic_failure_isolated": false,
+    "incident_root_cause": "unknown"
+  },
+  "resolved_during_review": [
+    {
+      "issue": "_create_run function name was rejected by the safe function label regex",
+      "resolution": "trace.py now permits a leading underscore for function labels; final K02 integration passed"
+    },
+    {
+      "issue": "None persisted_run_id was omitted rather than represented as explicit JSON null",
+      "resolution": "trace.py now emits explicit null for persisted_run_id; final K02 integration passed"
+    }
+  ],
+  "follow_up": "Continue downstream stages regardless of this review status; do not describe instrumentation as a root-cause fix."
+}

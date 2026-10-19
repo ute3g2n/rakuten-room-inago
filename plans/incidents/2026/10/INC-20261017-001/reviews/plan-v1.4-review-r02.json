@@ -1,0 +1,50 @@
+{
+  "reviewer_id": "/root/u23_08_plan_v12_review",
+  "reviewed_at": "2026-10-19T21:04:12+09:00",
+  "status": "approved",
+  "plan_path": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md",
+  "plan_version": "1.4",
+  "plan_sha256": "d0166ab25f6884ef9106fcb41e28219a5730ce023fdcea89f6cda5a878a55f52",
+  "review_round": "r02",
+  "previous_review": "reviews/plan-v1.4-review.json",
+  "previous_plan_sha256": "e2e062810ac1bcd82dbd83b157eb036237aab2bee6ed031fbf8ee95cb7b829ff",
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "scope": "read-only follow-up on P14-01 and status/output consistency; no product/test code review or execution",
+  "resolved_findings": [
+    {
+      "id": "P14-01",
+      "location": "plan:78 (section 5)",
+      "status": "addressed",
+      "evidence": "Section 5 now records that version-1.2 observations were intermediate snapshots; final review status was never issued and review JSON/MD were not saved. It distinguishes later actual reviews and matches sections 0, 13 and 14."
+    }
+  ],
+  "checks": {
+    "exact_supplied_sha_matches": true,
+    "sections": "0-14 present",
+    "steps": "S01-S05 each 14 fields",
+    "cases": "K01-K08 each 12 fields",
+    "identity_and_nullness": "unchanged",
+    "job_and_worker_outcomes": "Worker exit 3/blocked and DB job still running are distinct; no terminal completion claimed",
+    "html_and_publication": "v0.7 review approved/findings 0, Git publication pending; HTML/review output paths unchanged",
+    "u24": "MR-029/MA-029 mapping correction and audit limitations retained",
+    "u25": "not_observed and natural-target counts 0 retained; no success or no-recurrence claim",
+    "unknown_cause_and_ledger_mismatch": "retained",
+    "no_gate_rules": "retained; this review is evidence and not a downstream condition",
+    "prior_review_record": "row 588 accurately binds the first version-1.4 review to its earlier exact SHA"
+  },
+  "findings": [],
+  "next_stage_gate": false,
+  "observed_head": "5f206cc6d3b81d4695f7d827a04b1afd1fb7f653",
+  "changed_files": [
+    "plans/incidents/2026/10/INC-20261017-001/reviews/plan-v1.4-review-r02.json",
+    "plans/incidents/2026/10/INC-20261017-001/reviews/plan-v1.4-review-r02.md"
+  ],
+  "limitations": "No new tests, production DB queries, Scheduler actions, product edits or rendering. Prior independent review scope remains unchanged.",
+  "git_commit_push_owner": "parent controller; only these two review files belong to this follow-up"
+}

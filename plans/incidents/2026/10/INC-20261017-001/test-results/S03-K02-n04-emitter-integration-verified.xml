@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.382" timestamp="2026-10-19T20:15:11.451244+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.225" /></testsuite></testsuites>

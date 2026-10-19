@@ -1,0 +1,16 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:388: in test_n04
+    assert transaction_log.trace_status == "appended"
+E   AssertionError: assert 'written' == 'appended'
+E     
+E     - appended
+E     + written
+------------------------------ Captured log call ------------------------------
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - AssertionError: assert...
+1 failed in 0.53s

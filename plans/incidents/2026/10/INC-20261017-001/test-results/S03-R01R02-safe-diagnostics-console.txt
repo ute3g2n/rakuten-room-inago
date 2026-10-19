@@ -1,0 +1,14 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_____ test_pipeline_diagnostic_logger_failures_do_not_change_daily_result _____
+tests_inago\test_daily_pipeline_safe_diagnostics.py:74: in test_pipeline_diagnostic_logger_failures_do_not_change_daily_result
+    failed = run_daily_execution_core(
+E   TypeError: run_daily_execution_core() got an unexpected keyword argument 'target_date'
+___________ test_pipeline_failure_records_its_own_capture_location ____________
+tests_inago\test_daily_pipeline_safe_diagnostics.py:126: in test_pipeline_failure_records_its_own_capture_location
+    result = run_daily_execution_core(
+E   TypeError: run_daily_execution_core() got an unexpected keyword argument 'target_date'
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_diagnostic_logger_failures_do_not_change_daily_result
+FAILED tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_failure_records_its_own_capture_location
+2 failed in 0.32s

@@ -1,0 +1,16 @@
+{
+  "schema_version": "maintenance-report-review-v1",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "reviewed_version": "v0.4",
+  "reviewed_sha256": "c5b3573c11c539e3e4b3e767d402ffaadff9fad52a80b732d523df059ed46ca9",
+  "status": "changes_requested",
+  "reviewed_at": "2026-10-19T20:56:09+09:00",
+  "findings": [
+    {
+      "id": "HR-08",
+      "severity": "low",
+      "location": "#recovery: 未確認事項",
+      "finding": "The unresolved-items list still says \"v0.3 review and HTML publication\" although the report records the v0.3 review result (changes_requested), HR-07 corrected in v0.4, and v0.4 review pending. The v0.4 creation time (20:55 JST) is after the v0.3 review at 20:54:52 JST. Update the unresolved item to v0.4 review and HTML publication."
+    }
+  ]
+}

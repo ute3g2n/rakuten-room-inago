@@ -1,0 +1,93 @@
+{
+  "review_status": "changes_requested",
+  "result_version": "u23-08-update-v1",
+  "review_stage": "independent_investigation_review",
+  "reviewed_at_jst": "2026-10-19T20:41:19+09:00",
+  "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "attempt": null,
+  "base_commit": null,
+  "identity_gaps": ["formal review attempt", "controller base_commit", "complete controller input_refs/evidence_refs arrays"],
+  "reviewed_artifacts": [
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md", "sha256": "2ed633f25031da9ac510ef9d82629940ecf78ee572e2aa8c7aea598ad93258d4"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.json", "sha256": "789d549e53cfb0db8632a59fb5eeb6b429c166e17adc40c3957efd9f0621416e"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.result.json", "sha256": "3ce48623f87c06863925acbfcf00f7ba4ee35a09c0375dfb38c7118e2ed846f6"}
+  ],
+  "source_evidence_read": [
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md", "version": "1.3", "sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994"},
+    {"ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md", "sha256": "26417d003bb1aa9b6502c00ed240332232e2d38798e757827cbfbcb45d5b7a79", "observation_interval_jst": ["2026-10-19T20:36:40.7904901+09:00", "2026-10-19T20:36:42.2412393+09:00"], "note": "このファイルは20:38の追記も含む。U005は20:36の観測区間を対象とする。"}
+  ],
+  "findings": [
+    {
+      "id": "IR-U23-01",
+      "severity": "medium",
+      "kind": "evidence_identity",
+      "location": "investigations/u23-08-investigation-update-2026-10-19.md:109-113; corresponding facts JSON:520-525",
+      "finding": "第9章はS04記録のSHAを49602DAFEE1821B4EAC268075E85F29FDF4B9922C65D1CF20226BBCD844D36CE（20:37:52取得）と記すが、facts JSONのpackaging SHAと今回読んだファイルは26417D003BB1AA9B6502C00ED240332232E2D38798E757827CBFBCB45D5B7A79。S04には20:38以降の追記があるため、異なる時点の版である可能性はあるが、旧SHAのsnapshot参照と両版の対応が供給されていない。数値U005の誤りは確認していない。",
+      "requested_change": "第9章とJSONで参照するS04の版を一致させるか、20:37:52版と包装時版を別行で識別し、旧版本文が未保存/未提供で再検証不能ならその旨を明記する。U005の20:36観測時刻はhash取得時刻へ置換しない。",
+      "evidence_refs": ["investigations/u23-08-investigation-update-2026-10-19.md", "investigations/u23-08-investigation-update-2026-10-19.json", "test-results/S04-production-readonly-observation.md"]
+    },
+    {
+      "id": "IR-U23-02",
+      "severity": "medium",
+      "kind": "fact_evidence_completeness",
+      "location": "investigations/u23-08-investigation-update-2026-10-19.json:58-251 (F001-F008 evidence_refs/readable_support_refs)",
+      "finding": "F001～F008の今回の値は計画§2から供給されたと明記されているが、各factのevidence_refsは歴史証拠だけで、実際に使用した計画参照はreadable_support_refsのみに入っている。全使用資料をevidence_refsへ含める契約を満たさない。歴史証拠7件の参照集合そのものは計画の各F行と一致する。",
+      "requested_change": "各Fのevidence_refsへ実際の供給源である計画v1.3の参照を追加し、歴史証拠はsupplied/原文未再読の属性とともに残す。readable_support_refsを残してもよい。",
+      "evidence_refs": ["investigations/u23-08-investigation-update-2026-10-19.json", "日次不具合修正計画_2026-10-17.md#2"]
+    },
+    {
+      "id": "IR-U23-03",
+      "severity": "low",
+      "kind": "missing_evidence_limitation",
+      "location": "investigations/u23-08-investigation-update-2026-10-19.md:96-106",
+      "finding": "歴史証拠7件の原文が今回の指定入力にはない。供給SHAと観測/収集時刻の計画からの転記は一致するが、原文の数値・時刻・SHAを独立に再検証できない。F008のmanifest自体のSHAは未提供。調査はこの限界を明記しており、供給事実の採用は可能。",
+      "requested_change": "最終HTMLでも供給値と再検証済み事実を区別し、F008 SHA unknownを維持する。追加証拠を起動・後続処理の条件にしない。",
+      "evidence_refs": ["investigations/u23-08-investigation-update-2026-10-19.md#9", "日次不具合修正計画_2026-10-17.md#2"]
+    },
+    {
+      "id": "IR-U23-04",
+      "severity": "low",
+      "kind": "review_scope_limitation",
+      "location": "investigations/u23-08-investigation-update-2026-10-19.md:48-56,114-119; facts U001-U004",
+      "finding": "U001～U004の元試験/製品review記録および旧review記録は今回reviewerの指定入力外。計画v1.3の集計記載とは整合するが、詳細の試験時刻・個別code SHA・旧FAIL内容と各local証拠SHAは原記録から独立照合していない。原記録が存在しないという判定ではない。",
+      "requested_change": "このreviewの検証範囲を原記録まで再検証済みと表現しない。後続報告は元記録または供給値の属性を明記して継続する。",
+      "evidence_refs": ["investigations/u23-08-investigation-update-2026-10-19.md", "日次不具合修正計画_2026-10-17.md#14"]
+    }
+  ],
+  "historical_evidence_comparison": [
+    {"ref": "historical-input/2026-10-17/observation.json", "sha256_supplied": "48b96385ba6b0d90859f7b53e0b66acc654e4a1ec4cfbaaa47beb945ce11e8f6", "time_supplied": "observed_at=2026-10-17T13:00:04.062398+09:00", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "historical-input/2026-10-17/source-evidence.json", "sha256_supplied": "0ece63496cf9423eca7e7cff4fa8b720ad06048cf962a1fa49ccb4f8c1d9e8c5", "time_supplied": "independent collection unknown; embedded CLI event 2026-10-17 13:00:04.062398 JST", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "historical-input/2026-10-17/e0-manifest.json", "sha256_supplied": "2b457d5a85a8b0859487ed5fddab81dec52cb96e57bf2a0e6e301ced0dca35e8", "time_supplied": "captured_at_jst=2026-10-17T14:17:06+09:00; manifest_version=1.0", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "historical-input/2026-10-17/production-cli.filtered.json", "sha256_supplied": "bcb6ae7f881d4806b7234646393987a3d814536f529853d9d5f70f0d8acd70cf", "time_supplied": "at_jst=2026-10-17T13:00:04.062398+09:00; independent collection unknown", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "historical-input/2026-10-17/scheduler.filtered.json", "sha256_supplied": "a638cdc1a72974c510501c0907448b73214529b736bb0d6d7c21d529374771e8", "time_supplied": "observed_at_jst=2026-10-17T14:17:05+09:00", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "historical-input/2026-10-17/read-aggregate.json", "sha256_supplied": "e97a935bacdfc9b3dc79c9262567fb9a2a8cca2bf71e7f53ed845d747e6e5c27", "time_supplied": "observed_at_jst=2026-10-17T14:14:35+09:00", "comparison": "matches_plan_supply_only", "original_reread": "unavailable"},
+    {"ref": "evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json", "sha256_supplied": null, "time_supplied": "view captured_at=2026-10-17T13:00:04+09:00", "comparison": "matches_plan_supply_only; SHA explicitly unknown", "original_reread": "unavailable"}
+  ],
+  "checks": {
+    "nine_chapters": "pass; 1 through 9 exactly once",
+    "facts_count": 13,
+    "historical_fact_values_and_ref_sets": "F001-F008 match plan supplied values",
+    "expected_actual_impact_recovery_separated": "pass",
+    "incident_investigation_test_classification": "pass; historical F and later U separated",
+    "uncertainty": "pass; root cause, unsaved-run reason, actual posting count, recovery, recurrence prevention unknown",
+    "immutable_identity": "pass against supplied plan and S04; source_run_id remains null",
+    "proposed_vs_persisted_run_identity": "pass; no run ID inferred",
+    "sqlite_classification": "pass; error_name/constraint_label not incident root cause",
+    "pipeline_capture_location": "pass; module/function/line/hash not callback origin",
+    "markdown_identifier_entities": "pass; no identifier-changing HTML entities found",
+    "other_days": "pass; 10/19 maintenance observation explicitly separate from 10/17 incident",
+    "unsupported_zero_success_cause": "none found within supplied-value review scope",
+    "secrets_private_content": "none observed in assigned artifacts",
+    "result_artifact_hash_binding": "pass; result.json facts/investigation hashes match reviewed bytes",
+    "tests_and_production_operations": "not performed; read-only review only"
+  },
+  "allowed_outputs": [
+    "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.md",
+    "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.json"
+  ],
+  "next_stage_policy": "本人1名のlocal systemで堅牢性は品質目標にしない。今回のchanges_requested、unknown、証拠不足は観測であり後続gateではない。計画・実装・試験・製品review・反映・最終HTML作成/指摘反映/公開を継続する。Git操作は親controllerの所有監査と選択commit/pushに委ねる。"
+}

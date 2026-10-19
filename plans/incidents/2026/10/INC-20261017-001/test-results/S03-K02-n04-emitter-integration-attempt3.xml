@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.476" timestamp="2026-10-19T20:14:44.742134+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.226"><failure message="AssertionError: assert 'SQLITE_CONSTRAINT_PRIMARYKEY' == 'SQLITE_CONSTRAINT_UNIQUE'&#10;  &#10;  - SQLITE_CONSTRAINT_UNIQUE&#10;  ?                   ^^ ^^&#10;  + SQLITE_CONSTRAINT_PRIMARYKEY&#10;  ?                   ^^ ^^^^^ +">tests_inago\test_daily_fix_trace.py:376: in test_n04
+    assert saved_diagnostic["error_name"] == "SQLITE_CONSTRAINT_UNIQUE"
+E   AssertionError: assert 'SQLITE_CONSTRAINT_PRIMARYKEY' == 'SQLITE_CONSTRAINT_UNIQUE'
+E     
+E     - SQLITE_CONSTRAINT_UNIQUE
+E     ?                   ^^ ^^
+E     + SQLITE_CONSTRAINT_PRIMARYKEY
+E     ?                   ^^ ^^^^^ +</failure></testcase></testsuite></testsuites>

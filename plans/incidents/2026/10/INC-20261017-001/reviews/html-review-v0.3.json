@@ -1,0 +1,16 @@
+{
+  "schema_version": "maintenance-report-review-v1",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "reviewed_version": "v0.3",
+  "reviewed_sha256": "aad4731c3e0528823c758a0706cc55f32b59c5b76f428e0011ea163c0eef116c",
+  "status": "changes_requested",
+  "reviewed_at": "2026-10-19T20:54:52+09:00",
+  "findings": [
+    {
+      "id": "HR-07",
+      "severity": "low",
+      "location": "header .facts: 全体状態",
+      "finding": "The top-level state says \"pending · v0.2 report review / HTML公開未完了\" while this v0.3 report states that v0.2 review is complete as changes_requested, HR-05/06 were reflected in v0.3, and v0.3 is awaiting review. Update this label to the v0.3 review state and publication state."
+    }
+  ]
+}

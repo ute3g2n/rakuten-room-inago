@@ -1,0 +1,22 @@
+{
+  "schema_version": "maintenance-report-review-v1",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "reviewed_version": "v0.2",
+  "reviewed_sha256": "20a249c40f14e50d9d2dc7a3e4e9329dfe2cefe1ec7ec8cce2cf0c2bdec390e2",
+  "status": "changes_requested",
+  "reviewed_at": "2026-10-19T20:52:16+09:00",
+  "findings": [
+    {
+      "id": "HR-05",
+      "severity": "low",
+      "location": "#evidence investigation line; #checks report review row; #recovery",
+      "finding": "HTML states that the independent re-review of investigation v2 has not occurred. The completed review artifact u23-08-investigation-review-v2.json records approved at 2026-10-19T20:49:37+09:00 for v2 (MD SHA-256 b221b23c23cb20b8e8dea4ff418fdcf319d47c2756bbe742c65bbca6fcb1dda2), with v1 findings IR-U23-01/02 resolved and no remaining correction request; limitations remain. Link and accurately summarize the v2 result while preserving v1 changes_requested as a separate version. Update report-review state to reflect this v0.2 review result."
+    },
+    {
+      "id": "HR-06",
+      "severity": "low",
+      "location": "#checks table rows: official resume-worker, official one-shot Worker, next natural daily, report review/HTML publication",
+      "finding": "The table header has five columns but these four rows each have four cells and no colspan. Add the missing status/evidence cell or explicit cell spans so the status and supporting link render under the intended columns."
+    }
+  ]
+}

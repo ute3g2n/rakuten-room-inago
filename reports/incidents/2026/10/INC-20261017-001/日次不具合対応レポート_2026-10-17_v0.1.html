@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="2026-10-17の日次不具合について、確認済み事実と未確認事項を分けた暫定報告">
+  <title>日次不具合対応レポート｜352492da-ac58-4680-b1fd-fe5f24000229</title>
+  <style>
+    :root { color-scheme: light; --ink:#20313d; --muted:#526675; --line:#cbd6dd; --soft:#f1f5f7; --accent:#175a72; --warn:#7a4c00; --bad:#8c2e35; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#eaf0f3; color:var(--ink); font:16px/1.65 system-ui,"Yu Gothic UI","Meiryo",sans-serif; }
+    main { width:min(1100px,calc(100% - 2rem)); margin:2rem auto; background:#fff; padding:clamp(1rem,4vw,3rem); box-shadow:0 5px 24px #20313d18; }
+    h1,h2,h3 { line-height:1.3; } h1 { font-size:clamp(1.55rem,4vw,2.25rem); }
+    h2 { margin-top:2.4rem; padding-bottom:.45rem; border-bottom:2px solid var(--line); color:var(--accent); font-size:1.35rem; }
+    a { color:#145c8b; overflow-wrap:anywhere; } .eyebrow,.muted { color:var(--muted); }
+    .summary { padding:1rem 1.2rem; background:var(--soft); border-left:4px solid var(--accent); }
+    .status { display:inline-block; padding:.15rem .55rem; border-radius:999px; background:#fff0d2; color:var(--warn); font-weight:700; }
+    .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.75rem; }
+    .fact,.issue { padding:.8rem 1rem; border:1px solid var(--line); border-radius:.45rem; min-width:0; }
+    .fact strong { display:block; color:var(--muted); font-size:.88rem; }
+    .issue { border-left:4px solid var(--line); } .actual { border-left-color:var(--bad); } .test { border-left-color:var(--accent); }
+    table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; }
+    th,td { padding:.6rem .7rem; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:var(--soft); }
+    code,pre { font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    @media print { body { background:white; font-size:11pt; } main { width:100%; margin:0; padding:0; box-shadow:none; } a { color:inherit; text-decoration:none; } h2,h3,.issue,.fact,tr { break-inside:avoid; } }
+    @media (max-width:520px) { body { font-size:15px; } main { width:100%; margin:0; padding:1rem; } }
+  </style>
+</head>
+<body><main>
+  <header>
+    <p class="eyebrow">日次不具合対応レポート · 2026-10-17</p>
+    <h1>2026-10-17 日次処理の不具合と対応状況</h1>
+    <p class="summary">当日のCLIはIntegrityErrorを記録して失敗しました。原因、実投稿件数、当日処理の回復は確認できていません。後続工程を再開できるようにする製品変更と安全な診断情報を追加し、隔離試験と製品コードレビューを実施しました。本番で同一jobを再開した結果、最終報告のreview、変更の反映、次回自然日次の結果はこの暫定版作成時点では未確認です。</p>
+    <div class="facts">
+      <div class="fact"><strong>案件・対象日</strong>352492da-ac58-4680-b1fd-fe5f24000229 · 2026-10-17（JST）</div>
+      <div class="fact"><strong>作成・対象版</strong>2026-10-19 20:37 JST · 暫定報告 v0.1</div>
+      <div class="fact"><strong>job / 元起動 / run</strong><code>job-historical-9e7f0c175cc4c874c955a5dab29c4427</code><br><code>historical-9e7f0c175cc4c874c955a5dab29c4427</code><br>source_run_id=null</div>
+      <div class="fact"><strong>全体状態</strong><span class="status">pending · S04本番操作と最終報告review未確認</span></div>
+    </div>
+  </header>
+  <nav aria-label="目次"><h2>このページ</h2><ol>
+    <li><a href="#overview">概要と確認範囲</a></li><li><a href="#issues">事象一覧</a></li><li><a href="#details">事象ごとの詳細と対応</a></li><li><a href="#flow">処理の流れ</a></li><li><a href="#checks">試験・レビュー・反映</a></li><li><a href="#recovery">未確認・再開</a></li><li><a href="#evidence">根拠</a></li>
+  </ol></nav>
+  <section id="overview"><h2>概要と確認範囲</h2>
+    <p>作業継続中の暫定報告です。対象は同一の2026-10-17履歴jobです。source_run_idは入力どおりnullです。Dailyの手動起動、別jobの受付、10/19 queue/historyの処理は行っていません。</p>
+    <ul><li>発生区分: 2026-10-17当日のCLI失敗（F001）</li><li>調査で判明: 観測範囲、記録欠落、原因確度（F002〜F008）</li><li>試験で確認: 後続attempt開始制限の除去と安全診断情報の隔離試験。いずれも当日の根本原因修正や本番回復を証明しません。</li><li>計画v1.3、開始時HEAD d7241547d5e6111962177105c9149d6414a2ddee。この暫定版作成時点でworking tree差分は未commit・未push。</li></ul>
+    <p>計画に記載されたhistorical-input/evidence原本はこのworkspaceに存在せず、原ファイルを再読できていません。以下の当日値は保存済み調査・計画記録の転記であり、原本の再検証結果ではありません。</p>
+  </section>
+  <section id="issues"><h2>事象一覧</h2><table><thead><tr><th>事象</th><th>区分</th><th>期待</th><th>実結果・影響</th><th>回復・状態</th><th>根拠</th></tr></thead><tbody>
+    <tr><td><a href="#issue-daily">当日CLIが失敗</a></td><td>当日発生</td><td>処理結果と診断を確認できること</td><td>IntegrityError、error_count 1、committed_count 0。観測CLI exit_code 4。</td><td>原因・回復未確認</td><td><a href="#evidence">F001</a></td></tr>
+    <tr><td><a href="#issue-observations">当日run・投稿・証拠</a></td><td>調査で判明</td><td>観測範囲を超えて断定しない</td><td>runtime当日run行なし、CLI確定数0/表示12。実投稿ゼロとは断定できない。</td><td>実投稿数・原因未確認</td><td><a href="#evidence">F002〜F008</a></td></tr>
+    <tr><td><a href="#issue-followup">後続attempt開始制限</a></td><td>調査・試験</td><td>先行行が欠けていても後続処理を開始できること</td><td>連続する全先行行を必須とする条件を除去。focused test 6件合格。</td><td>ローカル確認。本番反映・当日回復未確認。</td><td><a href="#evidence">試験記録</a></td></tr>
+    <tr><td><a href="#issue-diagnostics">安全な診断情報</a></td><td>変更・試験</td><td>DB失敗位置と結果を分類値で記録すること</td><td>SQLite分類、transaction段階、提案/永続runの区別、pipeline捕捉位置を追加。隔離試験・製品review実施。</td><td>原因特定・再発防止・本番反映ではない</td><td><a href="#evidence">試験・review</a></td></tr>
+  </tbody></table></section>
+  <section id="details"><h2>事象ごとの詳細と対応</h2>
+    <article class="issue actual" id="issue-daily"><h3>当日CLIのIntegrityError</h3>
+      <p>保存済み調査記録では、2026-10-17 13:00:04 JSTにCLIがIntegrityErrorを記録し、error_count=1、committed_count=0、観測CLI exit_code=4でした。独立した実プロセス終了値は未確認です。表・制約・入力や因果関係はunknownです。当日runの永続化なしとtrace未書込みは別の観測であり、原因を特定しません。</p>
+    </article>
+    <article class="issue" id="issue-observations"><h3>当日成果・証拠の限界</h3>
+      <p>記録上、14:14 JST時点のruntime当日run行は0（全run行2）。2つのbackupにも当日run行はありません。source_run_id=nullで、runが保存されなかった理由は不明です。CLI確定数0、表示数12、既存draft 12件、active予約12件、有効publication event 2件という観測から、実投稿数がゼロとは結論できません。</p>
+      <p>開始・終了backupはschema 5、integrity check ok、manifest一致と記録されています。CLI traceはnot_written/count 0、別retention観測には2件のpartial記録があり、対象範囲が異なります。metrics値はunknownで当日metrics観測行0です。当日のScheduler記録はReady/enabled、13:00:01起動、result 4。取得ビューのrecords=[]等は全ログ不存在の証明ではありません。</p>
+    </article>
+    <article class="issue test" id="issue-followup"><h3>後続処理を開始できない製品上の制限</h3>
+      <p>過去sequenceの全attempt行が連続して存在することを後続step開始の前提とする条件を除去しました。同一job・sequenceの競合やrepair固有の整合性検査は維持されています。同じresult versionへのreviewがchanges_requested/rejectedの場合、新しいattemptを開始できます。これは後続保守処理の開始に関する変更で、10/17のIntegrityError原因を直す変更ではありません。</p>
+    </article>
+    <article class="issue test" id="issue-diagnostics"><h3>安全な診断情報の追加</h3>
+      <p>SQLite分類名・制約ラベル、transaction段階、提案run IDと永続runの有無、pipeline内のmodule/function/line/hashを記録する変更を加えました。これらは分類とpipeline捕捉位置を示し、callbackの根本原因や当日の原因箇所を証明しません。logger例外が元の日次結果を置き換えないことも隔離試験で確認しました。計装は根本修正・再発防止の確認ではありません。</p>
+    </article>
+  </section>
+  <section id="flow"><h2>処理の流れ</h2><pre>2026-10-17 日次CLI
+  └─ IntegrityError / error_count=1 / committed_count=0 / 観測exit_code=4
+     ├─ 当日run行の観測なし（理由unknown）
+     ├─ CLI trace未書込み（別retention記録とは範囲が異なる）
+     └─ 実投稿数・根本原因・回復は未確認
+
+今回の保守作業
+  ├─ 後続attempt開始条件を変更
+  ├─ 安全なSQLite/pipeline診断情報を追加
+  ├─ 隔離fixtureでfocused test、製品コードreviewを実施
+  └─ S04同一job再開、報告review/公開、自然日次は未確認</pre></section>
+  <section id="checks"><h2>試験・レビュー・反映</h2><table><thead><tr><th>段階</th><th>対象版</th><th>実結果</th><th>状態</th><th>根拠</th></tr></thead><tbody>
+    <tr><td>focused tests</td><td>開始時HEADのworking tree</td><td>最終6 nodeは6 passed。K08 stage nodeは1 passed。合成transport unavailableでblockedとなり、test内でHTMLは作成していない。</td><td>隔離試験PASS。過去の初期FAILも記録済み。本番結果ではない。</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S03-R01R02-focused-retest-record.md">6 node記録</a> · <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S03-K08-report-stage-test-record.md">K08記録</a></td></tr>
+    <tr><td>製品コード独立review</td><td>4製品ファイル差分</td><td>approved、追加指摘なし。テストコードは対象外。</td><td>review完了。原因・回復確認ではない。</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/reviews/s03-final-product-review.md">review記録</a></td></tr>
+    <tr><td>仕様同期</td><td>要件書v2.49</td><td>計画記録では生成成功。28章、39図、26参照。</td><td>作業場所で確認。反映状態は未確認。</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md">計画</a></td></tr>
+    <tr><td>本番同一job再開</td><td>同一job / source_run_id=null</td><td>resume前status=running、resume_count=7。CLI再開後の結果は未記録。</td><td>未確認</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md">resume前観測</a></td></tr>
+    <tr><td>Git反映・本番反映</td><td>working tree差分</td><td>暫定版作成時点でcommit/push前。反映未確認。</td><td>未完了</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md">計画</a></td></tr>
+    <tr><td>次回自然日次</td><td>2026-10-20予定</td><td>次回結果はまだなく、Daily手動起動はしていない。</td><td>未観測</td><td><a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md">schedule観測</a></td></tr>
+    <tr><td>報告review・公開</td><td>本HTML v0.1</td><td>review結果と公開操作は未確認。</td><td>未完了</td><td><a href="#evidence">本報告</a></td></tr>
+  </tbody></table><p>fixture結果、本番反映、同一jobの回復、次回自然日次観測は別の状態として記録しています。review/test状態は後続作業のgateではありません。</p></section>
+  <section id="recovery"><h2>未確認・再開</h2><ul>
+    <li>未確認事項: IntegrityErrorの根本原因と制約、実プロセス終了値、runが保存されなかった理由、実投稿数、metrics実値、10/17業務回復、追加計装による将来の原因特定、本番再開後の状態、Git/push・本番反映、次回自然日次結果。</li>
+    <li>状態: S04進行中。本報告は本番再開結果および最終report review/publicationが未確認のためpending。</li>
+    <li>再開: 承認待ちではありません。同じjobの許可済みCLI再開結果を実測し、この報告を更新します。自然日次は予定日後に観測します。</li>
+    <li>副作用: 10/17の日次を再実行していません。投稿を作成していません。resume前観測はread-only。resume後のjob/DB結果は未確認。</li>
+  </ul></section>
+  <section id="evidence"><h2>根拠と関連文書</h2><ul>
+    <li>調査: investigation 82296e84-d1ac-4643-b248-9767cd8fad7d v1（保存attempt 8、独立review changes_requested）。調査原本はworkspaceに未収録。保存済み計画の第2節にあるF001〜F008と参照名を使用。</li>
+    <li>計画: v1.3 · <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md">修正計画</a></li>
+    <li>原証拠の参照名: <code>historical-input/2026-10-17/observation.json</code>, <code>historical-input/2026-10-17/source-evidence.json</code>, <code>historical-input/2026-10-17/production-cli.filtered.json</code>, <code>historical-input/2026-10-17/read-aggregate.json</code>, <code>historical-input/2026-10-17/e0-manifest.json</code>, <code>historical-input/2026-10-17/scheduler.filtered.json</code>, <code>evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json</code>。これらのURLは作成していません。</li>
+    <li>focused試験: <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S03-R01R02-focused-retest-record.md">retest記録</a> · <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S03-K08-report-stage-test-record.md">K08記録</a></li>
+    <li>本番観測: <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md">resume前read-only記録</a></li>
+    <li>製品コードreview: approved · <a href="../../../../../plans/incidents/2026/10/INC-20261017-001/reviews/s03-final-product-review.md">review記録</a></li>
+    <li>コード: d7241547d5e6111962177105c9149d6414a2ddee → 暫定報告作成時点で未commit</li>
+    <li id="evidence-index">証拠索引: F001〜F008の事実と原証拠参照名は計画第2節に対応。原証拠データはworkspaceにありません。</li>
+    <li>作成: rr-inago-incident-reporter · 2026-10-19 20:37 JST · 暫定報告v0.1</li>
+    <li>報告書review: pending · 結果未着</li>
+  </ul><p class="muted">公開向け本文に生ログ、DB行、秘密、個人情報、商品名、投稿本文を含めていません。原証拠の再読制約と計画内参照名を区別しています。</p></section>
+</main></body></html>

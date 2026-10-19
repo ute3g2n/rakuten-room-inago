@@ -1,0 +1,637 @@
+{
+  "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "attempt": null,
+  "stage": "investigation",
+  "base_commit": null,
+  "input_refs": null,
+  "evidence_refs": null,
+  "result_version": "u23-08-update-v2",
+  "status": "partial",
+  "created_at_jst": "2026-10-19T20:39:53.208532+09:00",
+  "identity_gaps": [
+    {
+      "field": "attempt",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "base_commit",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "input_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "evidence_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    }
+  ],
+  "source_binding_sha256_supplied": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30",
+  "observed_plan_base_commit": "d7241547d5e6111962177105c9149d6414a2ddee",
+  "allowed_outputs": [
+    "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+    "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.json",
+    "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.result.json"
+  ],
+  "facts": [
+    {
+      "fact_id": "F001",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "cli_status": "failed",
+        "exception_class": "IntegrityError",
+        "error_count": 1,
+        "committed_count": 0,
+        "cli_observation_exit_code": 4,
+        "os_process_exit_code": null,
+        "at_jst": "2026-10-17T13:00:04.062398+09:00"
+      },
+      "impact": "CLI失敗の供給観測。実process終了値・原因の直接証明はない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/observation.json",
+        "historical-input/2026-10-17/source-evidence.json",
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F002",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "observed_current_date_run_rows": 0,
+        "total_run_rows": 2,
+        "backup_current_date_run_rows": [
+          0,
+          0
+        ],
+        "source_run_id": null,
+        "observed_at_jst": "2026-10-17T14:14:35+09:00"
+      },
+      "impact": "run未保存理由はunknown。提案IDや他日のIDで補完しない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/observation.json",
+        "historical-input/2026-10-17/source-evidence.json",
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F003",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "cli_current_date_committed_count": 0,
+        "display_count": 12,
+        "existing_draft_count": 12,
+        "existing_active_reservation_count": 12,
+        "valid_publication_event_count": 2,
+        "actual_post_count": null
+      },
+      "impact": "既存12と当日0、publicationイベント2は別の集計範囲。実投稿ゼロを証明しない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/source-evidence.json",
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F004",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "backup_begin_at_jst": "2026-10-17T13:00:03.098658+09:00",
+        "backup_end_at_jst": "2026-10-17T13:00:03.888401+09:00",
+        "schema_version": 5,
+        "integrity": "ok",
+        "manifest": "match",
+        "preservation_export": "ready",
+        "restore_success": null
+      },
+      "impact": "保全チェックok/readyは日次回復・復元成功を証明しない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/source-evidence.json",
+        "historical-input/2026-10-17/e0-manifest.json",
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F005",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "cli_trace_status": "not_written",
+        "cli_trace_count": 0,
+        "cli_trace_ref": null,
+        "separate_retention_event_count": 2,
+        "separate_trace_status": "partial"
+      },
+      "impact": "CLIとretentionは別範囲。全trace不存在を証明しない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/e0-manifest.json",
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F006",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "metrics_status": "unknown",
+        "observed_current_date_metric_rows": 0,
+        "metric_values": null
+      },
+      "impact": "観測行0を指標値0や取得成功に読み替えない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/production-cli.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F007",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "scheduler_state": "Ready",
+        "scheduler_enabled": true,
+        "scheduler_launch_at_jst": "2026-10-17T13:00:01+09:00",
+        "scheduler_last_result": 4,
+        "observed_at_jst": "2026-10-17T14:17:05+09:00"
+      },
+      "impact": "当時のScheduler観測。現在状態・回復・OS実終了値の直接証明ではない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "historical-input/2026-10-17/observation.json",
+        "historical-input/2026-10-17/source-evidence.json",
+        "historical-input/2026-10-17/scheduler.filtered.json",
+        "historical-input/2026-10-17/read-aggregate.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "F008",
+      "event_class": "historical_observation_supplied",
+      "stage": "daily",
+      "expected": "対象日の処理結果・保存結果を範囲付きで観測する",
+      "actual": {
+        "view_records": [],
+        "L02": {
+          "artifact_count": 1,
+          "record_count": 0
+        },
+        "L03": {
+          "artifact_count": 1,
+          "record_count": 0
+        },
+        "other_not_listed_category_count": 24,
+        "captured_at_jst": "2026-10-17T13:00:04+09:00"
+      },
+      "impact": "限定ビューのrecords=[]/not_listed。全ログ不存在を証明しない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json",
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "readable_support_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2"
+      ],
+      "verification": "前セッション supplied、今回原証拠再読不能。今回確認はplan記載のみ。",
+      "evidence_source_attributes": {
+        "readable_supply_ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md#2",
+        "readable_supply_version": "1.3",
+        "readable_supply_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+        "historical_original_refs_status": "前セッション supplied、今回原文再読不能"
+      }
+    },
+    {
+      "fact_id": "U001",
+      "event_class": "later_maintenance_record",
+      "stage": "maintenance",
+      "expected": "実施結果を当日原因・回復と区別する",
+      "actual": {
+        "focused_passed": 5,
+        "related_file_passed": 15,
+        "exit_code": 0
+      },
+      "impact": "隔離store試験。10/17の回復確認ではない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/test-results/S01-K01-review-retry-test-record.md"
+      ],
+      "verification": "local_record_read"
+    },
+    {
+      "fact_id": "U002",
+      "event_class": "later_maintenance_record",
+      "stage": "maintenance",
+      "expected": "実施結果を当日原因・回復と区別する",
+      "actual": {
+        "latest_jst_start": "2026-10-19T20:30:10.461+09:00",
+        "latest_jst_end": "2026-10-19T20:30:17.425+09:00",
+        "collected": 6,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0
+      },
+      "impact": "診断logger障害・rollback後transaction状態・捕捉位置/hash整合の隔離確認。rollback後の行数は未検証。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/test-results/S03-R01R02-focused-retest-record.md"
+      ],
+      "verification": "local_record_read"
+    },
+    {
+      "fact_id": "U003",
+      "event_class": "later_maintenance_record",
+      "stage": "maintenance",
+      "expected": "実施結果を当日原因・回復と区別する",
+      "actual": {
+        "status": "approved",
+        "finding_count": 0,
+        "product_file_count": 4,
+        "test_code_reviewed": false
+      },
+      "impact": "製品差分の独立review。原因・回復・再発防止はunknown。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/reviews/s03-final-product-review.md"
+      ],
+      "verification": "local_record_read"
+    },
+    {
+      "fact_id": "U004",
+      "event_class": "later_maintenance_record",
+      "stage": "maintenance",
+      "expected": "実施結果を当日原因・回復と区別する",
+      "actual": {
+        "latest_jst_start": "2026-10-19T20:31:24.643+09:00",
+        "latest_jst_end": "2026-10-19T20:31:25.975+09:00",
+        "passed": 1,
+        "exit_code": 0,
+        "fallback_observed": true,
+        "stub_author_run_turn_observed": true,
+        "stage_status": "blocked",
+        "stage_reason": "synthetic_author_transport_unavailable",
+        "external_model_success": null,
+        "html_authored": false
+      },
+      "impact": "stub境界で作者呼出到達を確認。外部モデル成功やHTML完成の証明ではない。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/test-results/S03-K08-report-stage-test-record.md"
+      ],
+      "verification": "local_record_read"
+    },
+    {
+      "fact_id": "U005",
+      "event_class": "later_maintenance_record",
+      "stage": "maintenance",
+      "expected": "実施結果を当日原因・回復と区別する",
+      "actual": {
+        "capture_start_jst": "2026-10-19T20:36:40.7904901+09:00",
+        "capture_end_jst": "2026-10-19T20:36:42.2412393+09:00",
+        "maintenance_schema_version": 13,
+        "quick_check": "ok",
+        "job_status": "running",
+        "resume_count": 7,
+        "source_run_id": null,
+        "matching_maintenance_daily_python_process_count": 0,
+        "lease_states": [
+          "released",
+          "released"
+        ],
+        "worker_queue_2026_10_19": [
+          {
+            "status": "queued",
+            "count": 1
+          }
+        ],
+        "worker_queue_event_count_2026_10_19": 0,
+        "watchdog_queue_count_2026_10_19": 0,
+        "daily_next_run_jst": "2026-10-20T13:00:00+09:00"
+      },
+      "impact": "親のread-only観測記録。今回担当はDB/Schedulerを開いていない。これ以降の操作結果は本版外。",
+      "recovery": "unknown",
+      "cause_confidence": "unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md"
+      ],
+      "verification": "local_record_read"
+    }
+  ],
+  "hypotheses": [
+    {
+      "hypothesis_id": "H01",
+      "statement": "run作成transaction中の制約失敗",
+      "status": "unconfirmed"
+    },
+    {
+      "hypothesis_id": "H02",
+      "statement": "別callback/工程のIntegrityError",
+      "status": "unconfirmed"
+    },
+    {
+      "hypothesis_id": "H03",
+      "statement": "診断保存/相関不足で工程を復元できない",
+      "status": "unconfirmed",
+      "scope": "観測限界候補。業務失敗原因とは限らない。"
+    }
+  ],
+  "unknowns": [
+    {
+      "field": "attempt",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "base_commit",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "input_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "evidence_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "historical_source_contents",
+      "reason": "指定元ファイルはworkspaceで再読不能と親が供給。任意探索・DB再照会せず計画供給値で継続。"
+    },
+    {
+      "field": "root_cause",
+      "reason": "当日の表/制約/SQL/入力/例外発生工程と因果の証拠不足。"
+    },
+    {
+      "field": "source_run_not_saved_reason",
+      "reason": "source_run_id=nullと観測run行0はあるが理由未確認。"
+    },
+    {
+      "field": "os_process_exit_code",
+      "reason": "CLI observationとScheduler値はあるがOS実process終了値の独立確認なし。"
+    },
+    {
+      "field": "actual_post_count",
+      "reason": "既存draft/予約とpublicationイベントは当日の実投稿件数を確定しない。"
+    },
+    {
+      "field": "recovery",
+      "reason": "復元・再実行成功未確認。"
+    },
+    {
+      "field": "recurrence_prevention",
+      "reason": "原因未特定・自然日次未観測。"
+    },
+    {
+      "field": "deployment_active_commit",
+      "reason": "計画にledger不一致の供給記載。今回担当未照合。"
+    },
+    {
+      "field": "actual_model_effort_tier",
+      "reason": "指定high、実model/effort/tier観測は未提供。"
+    },
+    {
+      "field": "settings_language",
+      "reason": "settings/language.mdが存在せず読取不能。日本語指示で継続。"
+    }
+  ],
+  "counts": {
+    "scope": "Fごとのactualの集計範囲を保持し、相互に加減しない",
+    "current_date_committed_count_supplied": 0,
+    "existing_draft_count_supplied": 12,
+    "existing_active_reservation_count_supplied": 12,
+    "valid_publication_event_count_supplied": 2,
+    "actual_post_count": null
+  },
+  "recovery": {
+    "status": "unknown",
+    "root_cause_fixed": null,
+    "daily_recovered": null,
+    "recurrence_prevented": null,
+    "next_natural_daily": "not_observed"
+  },
+  "diagnostic_semantics": {
+    "sqlite_error_name_constraint_label": "classification_only",
+    "failure_location_hash": "pipeline_capture_location_not_callback_origin_or_root_cause",
+    "run_ids": "proposed_and_persisted_separate_preserve_null",
+    "exit_codes": "CLI_observation_Scheduler_result_OS_process_exit_separate"
+  },
+  "recommendations": [
+    {
+      "id": "T01",
+      "action": "次の実在launchでphase/operation、SQLite分類、transaction結果を収集してH01/H02を区別",
+      "kind": "instrumentation_not_root_cause_fix"
+    },
+    {
+      "id": "T02",
+      "action": "proposed_run_id/persisted_run_id/persistedフラグ、pipeline捕捉位置/hash、trace要求/保存結果を別欄で相関",
+      "kind": "instrumentation_not_root_cause_fix"
+    },
+    {
+      "id": "T03",
+      "action": "CLI/OS終了値・回復操作・自然日次観測を別々に取得し、欠測はunknownのまま報告",
+      "kind": "future_observation"
+    }
+  ],
+  "local_evidence": [
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md",
+      "sha256_at_packaging": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S01-K01-review-retry-test-record.md",
+      "sha256_at_packaging": "893bc255b09a3c9271c2e88c7bee49c5bd96f2858829e717d4d0d8d0f41e4806",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S03-R01R02-focused-retest-record.md",
+      "sha256_at_packaging": "c32d6929595ff7bd840f26b3751ecc92e62429d62e8617c0b7a17a5dd2d8ac6c",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/reviews/s03-final-product-review.md",
+      "sha256_at_packaging": "1f62ae65e01b38607b749b66a1d6b0ff335e17f0d62c58874b2c525b8c3dc822",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S03-K08-report-stage-test-record.md",
+      "sha256_at_packaging": "41d7473c4273e214c0252ab1a917fea7bff681f76883710f679ff6c4dc71902b",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md",
+      "sha256_at_packaging": "26417d003bb1aa9b6502c00ed240332232e2d38798e757827cbfbcb45d5b7a79",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。",
+      "version_scope": "whole file including 20:38 additions; U005 uses original 20:36 observation portion only",
+      "historical_observation_body_sha256": "49602dafee1821b4eac268075e85f29fdf4b9922c65d1cf20226bbcd844d36ce"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/reviews/s02-product-review.md",
+      "sha256_at_packaging": "e429e8b3e08ba2983c80325e354d6348c1079fde754afe5aec2b39072aaef27a",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    },
+    {
+      "ref": "plans/incidents/2026/10/INC-20261017-001/reviews/plan-v1.1-review.md",
+      "sha256_at_packaging": "7cfa4bc364901e472b738d0aa51ce11357d258572992ceba161199283cdacc5e",
+      "content_access": "local_record_read",
+      "note": "packaging時のhash。原証拠の採取時刻とは別。"
+    }
+  ],
+  "next_stage_policy": "本人1名のlocal system。堅牢性は品質目標にしない。review/status/evidence/retry不足をgateにせず、同一jobの計画・実装・試験・review・反映・最終HTML作成/指摘反映/公開を継続する。",
+  "updated_at_jst": "2026-10-19T20:44:16.451222+09:00",
+  "independent_review_response": {
+    "ref": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.md",
+    "reviewed_version": "u23-08-update-v1",
+    "reviewed_at_jst": "2026-10-19T20:41:19+09:00",
+    "status": "changes_requested",
+    "revision_version": "u23-08-update-v2",
+    "addressed_findings": [
+      "IR-U23-01",
+      "IR-U23-02"
+    ],
+    "preserved_limitations": [
+      "IR-U23-03: historical originals not supplied, F008 SHA unknown",
+      "IR-U23-04: U001-U004 original test/review records outside independent reviewer scope"
+    ],
+    "revision_review_status": "not_performed"
+  },
+  "s04_version_mapping": {
+    "ref": "plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md",
+    "historical_observation_body_version": {
+      "sha256": "49602dafee1821b4eac268075e85f29fdf4b9922c65d1cf20226bbcd844d36ce",
+      "original_hash_recorded_at_jst": "2026-10-19T20:37:52+09:00",
+      "current_file_prefix_bytes": 3750,
+      "prefix_hash_reverified": true,
+      "separate_old_snapshot_file_supplied": false,
+      "scope": "20:36:40.7904901–20:36:42.2412393 JST observations; U005"
+    },
+    "packaging_review_and_current_file_version": {
+      "sha256": "26417d003bb1aa9b6502c00ed240332232e2d38798e757827cbfbcb45d5b7a79",
+      "scope": "whole file including post-push 20:38 pre-resume/resume additions",
+      "used_by": "local_evidence.sha256_at_packaging",
+      "later_values_in_U005": false
+    }
+  },
+  "review_scope_limitations": [
+    "Historical originals not supplied to investigation or independent reviewer; supplied plan comparison only; F008 SHA remains unknown.",
+    "U001-U004 original test/review/old-review records were read by investigator but outside independent reviewer assigned input scope; do not claim independent original-record validation."
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "attempt": null,
+  "stage": "investigation",
+  "base_commit": null,
+  "input_refs": null,
+  "evidence_refs": null,
+  "result_version": "u23-08-update-v2",
+  "status": "partial",
+  "review_required": true,
+  "artifacts": {
+    "facts": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.json",
+    "investigation": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md"
+  },
+  "unknowns": [
+    {
+      "field": "attempt",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "base_commit",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "input_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "evidence_refs",
+      "reason": "今回のformal controller値が未提供。別attempt/HEAD/refsから推測しない。"
+    },
+    {
+      "field": "historical_source_contents",
+      "reason": "指定元ファイルはworkspaceで再読不能と親が供給。任意探索・DB再照会せず計画供給値で継続。"
+    },
+    {
+      "field": "root_cause",
+      "reason": "当日の表/制約/SQL/入力/例外発生工程と因果の証拠不足。"
+    },
+    {
+      "field": "source_run_not_saved_reason",
+      "reason": "source_run_id=nullと観測run行0はあるが理由未確認。"
+    },
+    {
+      "field": "os_process_exit_code",
+      "reason": "CLI observationとScheduler値はあるがOS実process終了値の独立確認なし。"
+    },
+    {
+      "field": "actual_post_count",
+      "reason": "既存draft/予約とpublicationイベントは当日の実投稿件数を確定しない。"
+    },
+    {
+      "field": "recovery",
+      "reason": "復元・再実行成功未確認。"
+    },
+    {
+      "field": "recurrence_prevention",
+      "reason": "原因未特定・自然日次未観測。"
+    },
+    {
+      "field": "deployment_active_commit",
+      "reason": "計画にledger不一致の供給記載。今回担当未照合。"
+    },
+    {
+      "field": "actual_model_effort_tier",
+      "reason": "指定high、実model/effort/tier観測は未提供。"
+    },
+    {
+      "field": "settings_language",
+      "reason": "settings/language.mdが存在せず読取不能。日本語指示で継続。"
+    }
+  ],
+  "next_stage": "independent_investigation_review_then_available_downstream_work",
+  "blocked": false,
+  "notes": [
+    "親が新規個別3ファイルを許可。formal attempt専用pathは未提供、既存attempt成果物へは書込まない。",
+    "原因・回復・実投稿ゼロ・再発防止を確認済みにしない。",
+    "後続statusや証拠不足をgateにしない。"
+  ],
+  "artifact_sha256": {
+    "facts": "0dc60c0d83868ace7484f47928b328ee12407e147146e83645a4bc0774e239d0",
+    "investigation": "b221b23c23cb20b8e8dea4ff418fdcf319d47c2756bbe742c65bbca6fcb1dda2"
+  },
+  "updated_at_jst": "2026-10-19T20:44:16.451222+09:00",
+  "independent_review_response": {
+    "ref": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review.md",
+    "reviewed_version": "u23-08-update-v1",
+    "reviewed_at_jst": "2026-10-19T20:41:19+09:00",
+    "status": "changes_requested",
+    "revision_version": "u23-08-update-v2",
+    "addressed_findings": [
+      "IR-U23-01",
+      "IR-U23-02"
+    ],
+    "preserved_limitations": [
+      "IR-U23-03: historical originals not supplied, F008 SHA unknown",
+      "IR-U23-04: U001-U004 original test/review records outside independent reviewer scope"
+    ],
+    "revision_review_status": "not_performed"
+  }
+}

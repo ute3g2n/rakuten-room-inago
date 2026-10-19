@@ -1,0 +1,84 @@
+{
+  "reviewer_id": "/root/u23_08_plan_v12_review",
+  "reviewed_at": "2026-10-19T21:02:49+09:00",
+  "status": "approved",
+  "plan_path": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md",
+  "plan_version": "1.4",
+  "plan_sha256": "e2e062810ac1bcd82dbd83b157eb036237aab2bee6ed031fbf8ee95cb7b829ff",
+  "base_commit": "d7241547d5e6111962177105c9149d6414a2ddee",
+  "observed_head": "5f206cc6d3b81d4695f7d827a04b1afd1fb7f653",
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "scope": "independent read-only plan and evidence-correspondence review; no product-code or test-code review",
+  "structure": {
+    "sections": "0-14 present",
+    "steps": "S01-S05 each contain all 14 fields",
+    "cases": "K01-K08 each contain all 12 fields",
+    "standalone_prompts": "present; S01-S03 historical prompts identified, current S04/S05 prompts reference version 1.4",
+    "mapping": "requirements, facts, evidence, steps, cases, owners, outputs, tests, reviewers and handoffs mapped"
+  },
+  "investigation": {
+    "version": "investigation:82296e84-d1ac-4643-b248-9767cd8fad7d:v1",
+    "recorded_status": "blocked",
+    "recorded_review_status": "changes_requested",
+    "facts_sha256_verified": "29bdb2f2736b4a93de67f78003f792a57520cbd7147d4bde3fefa1498da2fd59",
+    "report_sha256_verified": "20881918f8d27ca2e863a569a4b9b3967fac08cf1104a57155f9300b5e68b397",
+    "root_cause": "unknown",
+    "later_update": "investigation v2 review approved is distinguished from the preserved attempt-8 review"
+  },
+  "previous_findings": {
+    "P13-01": "addressed: current S04/S05 prompts use 1.4; completed S01-S03 prompts explicitly marked historical",
+    "P13-02": "addressed in sections 0/13/14; a stale future instruction remains as low-priority P14-01",
+    "P13-03": "addressed: K08 actual missing-artifact fixture and stub adapter are explicit; external model, HTML and sequence2 failure persistence are untested"
+  },
+  "current_outcomes_checked": {
+    "s01": "focused 5 passed, test file 15 passed; independent product review approved/findings 0 recorded",
+    "s03": "focused verification, product review, requirements HTML 2.49 and K08 local-stage scope are recorded separately from production success",
+    "s04": "official resume exit 0/resume_count 8; one-shot Worker exit 3/maintenance_incomplete/blocked; post-run job row still running, null source_run_id, no terminal completion inferred",
+    "s05": "HTML v0.7 SHA 7e94679a1d04eedb2e106dac99594e92a869ab1fc7bd50f529fa1fbb806f9076 matches current file and approved review; Git publication pending",
+    "u24": "static audit and limitations recorded; MR-029/MA-029 correction verified in master-plan range and crosswalk; no new C-case invented",
+    "u25": "20:55 read-only next-target ai_job/run counts 0; not_observed, not success or recurrence-free",
+    "remaining_uncertainty": "root cause, recovery, complete business impact, terminal job completion, formal deployment ledger SHA match, browser/print rendering remain unconfirmed"
+  },
+  "policy_checked": {
+    "fixed_workspace": true,
+    "same_job_and_null_source_run": true,
+    "excluded_2026_10_19_preserved": true,
+    "manual_daily_forbidden": true,
+    "high_effort_specified_runtime_observations_separate": true,
+    "review_test_readiness_release_evidence_and_counts_not_downstream_gates": true,
+    "unknown_cause_not_assumed_fixed": true,
+    "reporter_owns_report_revisions": true,
+    "selective_git_by_controller": true
+  },
+  "findings": [
+    {
+      "id": "P14-01",
+      "severity": "low",
+      "location": "plan:78 (section 5)",
+      "finding": "版1.2のreview結果をcontrollerが保存するという旧将来指示が残る。",
+      "evidence": "section 0 and sections 13/14 accurately say the version-1.2 final status/artifacts were never issued/saved, while section 5 still instructs saving version-1.2 review outputs.",
+      "suggested_correction": "旧指示を履歴と明示するか削除し、現在のversion-1.4 review保存契約へ合わせる。存在しない確定reviewを合成しない。",
+      "blocks_next_stage": false
+    }
+  ],
+  "next_stage_gate": false,
+  "limitations": [
+    "No new tests, production queries, Scheduler operations, product edits or HTML rendering performed by this reviewer.",
+    "Runtime/model/effort/tier observations not independently collected; specified high and recorded unknown values remain distinct.",
+    "Repository settings/language.md is absent; review continued in Japanese under the supplied instructions."
+  ],
+  "allowed_outputs": [
+    "plans/incidents/2026/10/INC-20261017-001/reviews/plan-v1.4-review.json",
+    "plans/incidents/2026/10/INC-20261017-001/reviews/plan-v1.4-review.md"
+  ],
+  "git": {
+    "task_owned_changes": "these two review files only",
+    "commit_push_owner": "parent controller; aggregate selective commit/push per assignment"
+  }
+}

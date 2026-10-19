@@ -1,0 +1,65 @@
+{
+  "reviewer_id": "/root/u23_08_plan_review",
+  "status": "changes_requested",
+  "plan_path": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md",
+  "plan_version": "1.1",
+  "plan_sha256": "2d582d4628b8f727358c076359c03ea0a103c5b64e7e233e108a6e80cf695dc9",
+  "base_commit": "d7241547d5e6111962177105c9149d6414a2ddee",
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "structure": {
+    "sections_0_to_14": "present",
+    "steps": "S01-S05 each contain fields 1-14",
+    "cases": "K01-K08 each contain fields 1-12",
+    "standalone_prompts": "present_with_ownership_and_output_gaps"
+  },
+  "investigation": {
+    "version": "investigation:82296e84-d1ac-4643-b248-9767cd8fad7d:v1",
+    "recorded_status": "blocked",
+    "review_status": "changes_requested",
+    "facts_sha256_verified": true,
+    "report_sha256_verified": true,
+    "root_cause": "unknown"
+  },
+  "findings": [
+    {
+      "id": "PR01",
+      "severity": "high",
+      "locations": ["plan:39", "plan:66", "plan:120", "plan:134", "plan:479"],
+      "finding": "report入力不足が作者起動を止める欠陥だという断定は、現行の部分入力fallbackを考慮していない。",
+      "evidence": "production_workflow.py:7427-7439ではstrict準備がcompleteでなければ既存_prepare_partial_daily_report_inputs_stageへ進む。同関数は6684-6875に実装済み。",
+      "required_change": "strict helper単体の結果と実際のreport起動経路を区別する。K08は既存fallbackを通じたreport author起動を確認し、実際に残る欠陥だけ修正対象にする。strict helper自体を常にcompleteにすることを受入条件にしない。"
+    },
+    {
+      "id": "PR02",
+      "severity": "medium",
+      "locations": ["plan:118", "plan:134", "plan:180", "plan:196", "plan:479"],
+      "finding": "K08の回帰実装先と、S01/S03の書込所有範囲が一致していない。",
+      "evidence": "K08はtest_maintenance_report_publication_stage.py又はtest_maintenance_workflow_provider.pyへの実装を指定する一方、S01/S03の所有範囲にはどちらも含まれない。",
+      "required_change": "K08を実装する担当とテストファイルを一つに決め、該当STEPの所有欄・全文prompt・成果物へ追加する。完全nodeは実在後に記録すればよく、この不足で担当起動を止めない。"
+    },
+    {
+      "id": "PR03",
+      "severity": "medium",
+      "locations": ["plan:242", "plan:258"],
+      "finding": "S05の全文promptはHTMLの実出力先を親の後続指定へ委ねており、単独実行に必要な書込所有が未確定。",
+      "required_change": "既存ファイルの有無と所有を確認して具体的なHTML出力先を割り当て、reporter自身の修正とreviewerの読取範囲を同じ対象へ結ぶ。利用可能な資料による報告作成は継続する。"
+    },
+    {
+      "id": "PR04",
+      "severity": "low",
+      "locations": ["plan:78", "plan:507", "review_output_contract"],
+      "finding": "attempt専用allowed_outputsが未供給で、plan/map/result及びreview.json/review.mdの正式保存先が未確定。",
+      "required_change": "controllerが今回の出力先を明示して保存する。既存attemptの推測や上書きは行わず、保存先不足を後続stageのgateにしない。"
+    }
+  ],
+  "next_stage_gate": false,
+  "file_changes": "none",
+  "review_artifacts_written": false,
+  "review_artifacts_reason": "read-only assignment; allowed_outputs not provided"
+}

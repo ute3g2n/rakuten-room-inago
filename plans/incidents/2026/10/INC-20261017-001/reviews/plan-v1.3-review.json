@@ -1,0 +1,65 @@
+{
+  "reviewer_id": "/root/u23_08_plan_v12_review",
+  "status": "changes_requested",
+  "plan_version": "1.3",
+  "plan_path": "plans/incidents/2026/10/INC-20261017-001/日次不具合修正計画_2026-10-17.md",
+  "plan_sha256": "bf5773e6fe9a42ebfa9dc05111e3357c05415654554a0ddcb7a95f241f8b2994",
+  "reviewed_at_jst": "2026-10-19T20:50:53+09:00",
+  "base_commit": "d7241547d5e6111962177105c9149d6414a2ddee",
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "structure": {
+    "sections_0_to_14": "present",
+    "step_fields": "S01-S05 each contain fields 1-14",
+    "case_fields": "K01-K08 each contain fields 1-12",
+    "fact_evidence_requirement_step_case_owner_output_reviewer_handoff_mapping": "present",
+    "standalone_prompts": "present; version references inconsistent"
+  },
+  "investigation": {
+    "version": "investigation:82296e84-d1ac-4643-b248-9767cd8fad7d:v1",
+    "recorded_status": "blocked",
+    "recorded_review_status": "changes_requested",
+    "facts_sha256_verified": true,
+    "report_sha256_verified": true,
+    "root_cause": "unknown"
+  },
+  "findings": [
+    {
+      "id": "P13-01",
+      "severity": "medium",
+      "locations": ["plan:137", "plan:175", "plan:251", "plan:289"],
+      "finding": "Plan version 1.3 had standalone prompts for S01/S02/S04/S05 referring to version 1.2.",
+      "required_change": "Mark completed S01/S02 prompts as historical version 1.2 prompts; align current S04/S05 prompts to the current plan version."
+    },
+    {
+      "id": "P13-02",
+      "severity": "medium",
+      "locations": ["plan:560", "plan:562", "plan:574"],
+      "finding": "The plan claimed a saved version 1.2 review artifact that did not exist; prior reviewer notes were an intermediate snapshot, not a final review result.",
+      "required_change": "Record the prior notes accurately as unsaved intermediate feedback and record the actual saved result with status, target SHA and artifact path."
+    },
+    {
+      "id": "P13-03",
+      "severity": "medium",
+      "locations": ["plan:510", "plan:516", "plan:524", "test-results/S03-K08-report-stage-test-record.md"],
+      "finding": "K08 prerequisites did not match the measured fixture; sequence 1-3 artifacts were all absent and adapter transport was synthetic/stubbed.",
+      "required_change": "Align case text to the actual fixture and explicitly state sequence-specific persistence, external model transport and HTML creation were not tested."
+    }
+  ],
+  "confirmed": [
+    "S01 final independent product review approved with zero findings; focused 5-node and file-level 15-node records exist.",
+    "K08 record exercises run_daily_report_stage and existing strict-to-partial fallback locally.",
+    "Reasonable no-gate policy, unknown root cause, instrumentation-versus-repair distinction, 10/19 exclusion and same-job/null identity are retained.",
+    "No new review/test/release gate was found."
+  ],
+  "next_stage_gate": false,
+  "reviewer_file_changes": "none",
+  "review_artifacts_written_by_reviewer": false,
+  "controller_saved_review_artifacts": true,
+  "commit_push": "not applicable to read-only reviewer"
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="4" time="5.830" timestamp="2026-10-19T20:11:39.309577+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.062"><failure message="automation.inago.trace.TraceContractError: failure_function is outside the safe label format">tests_inago\test_daily_fix_trace.py:305: in test_n04
+    diagnostic = trace.make_trace_event(
+automation\inago\trace.py:441: in make_trace_event
+    raise TraceContractError(f"{key} is outside the safe label format")
+E   automation.inago.trace.TraceContractError: failure_function is outside the safe label format</failure></testcase><testcase classname="tests_inago.test_maintenance_completion" name="test_c09_contract" time="0.101" /><testcase classname="tests_inago.test_daily_fix_trace" name="test_n03" time="0.230" /><testcase classname="tests_inago.test_daily_fix_outcome" name="test_n20f_daily_started_after_1800_runs_with_nullable_new_deadlines" time="4.962" /></testsuite></testsuites>

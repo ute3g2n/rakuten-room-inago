@@ -1,0 +1,13 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:358: in test_n04
+    saved_diagnostic = next(
+E   StopIteration
+------------------------------ Captured log call ------------------------------
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - StopIteration
+1 failed in 0.48s

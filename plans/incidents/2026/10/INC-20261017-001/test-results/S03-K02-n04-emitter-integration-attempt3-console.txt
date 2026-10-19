@@ -1,0 +1,18 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:376: in test_n04
+    assert saved_diagnostic["error_name"] == "SQLITE_CONSTRAINT_UNIQUE"
+E   AssertionError: assert 'SQLITE_CONSTRAINT_PRIMARYKEY' == 'SQLITE_CONSTRAINT_UNIQUE'
+E     
+E     - SQLITE_CONSTRAINT_UNIQUE
+E     ?                   ^^ ^^
+E     + SQLITE_CONSTRAINT_PRIMARYKEY
+E     ?                   ^^ ^^^^^ +
+------------------------------ Captured log call ------------------------------
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+INFO     automation.inago.orchestrator:orchestrator.py:758 daily_run_create_transaction
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - AssertionError: assert...
+1 failed in 0.53s

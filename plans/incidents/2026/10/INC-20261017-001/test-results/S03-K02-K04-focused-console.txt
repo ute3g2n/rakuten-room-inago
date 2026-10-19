@@ -1,0 +1,5 @@
+
+no tests ran in 0.51s
+ERROR: not found: C:\project\rakuten-room-inago\tests_inago\test_daily_fix_outcome.py::test_n20f_daily_started_with_nullable_new_deadlines
+(no match in any of [<Module test_daily_fix_outcome.py>])
+

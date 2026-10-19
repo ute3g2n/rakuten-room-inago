@@ -1,0 +1,30 @@
+{
+  "schema_version": "maintenance-report-review-v1",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "reviewed_version": "v0.1",
+  "reviewed_sha256": "a9f751f4bfd025804dcd39c5b107dc5614a43faa7ce9e1c83f05cec5977a0d81",
+  "status": "changes_requested",
+  "reviewed_at": "2026-10-19T20:45:00+09:00",
+  "findings": [
+    {
+      "severity": "medium",
+      "location": "概要、試験・レビュー・反映表、未確認・再開。『本番で同一jobを再開した結果』『CLI再開後の結果は未記録』『resume後のjob/DB結果は未確認』",
+      "finding": "HTML作成後の2026-10-19 20:38 JSTに公式resume-workerがexit 0で完了し、同一jobのresume_count=8、status=queued、source_launch_id一致が記録された。現在のS04記録に結果があるため『再開結果は未記録』は現行報告では古い。最終版ではresume実測を反映し、one-shot Workerの最終結果は確認できた値だけを別記する。"
+    },
+    {
+      "severity": "medium",
+      "location": "概要と確認範囲、Git反映・本番反映表、コード根拠。『未commit・未push』『commit/push前』",
+      "finding": "v0.1作成時点のsnapshotとしては時制が明記されているが、その後mainの5f206cc6d3b81d4695f7d827a04b1afd1fb7f653がorigin/mainへpush済みである。最終版では作成時点と更新後の状態を分けて記載し、製品コードのcommit/pushとHTML自体の公開・本番反映を混同しない。"
+    },
+    {
+      "severity": "low",
+      "location": "根拠と関連文書『調査』。investigation attempt 82296e84-... v1",
+      "finding": "現在利用できる調査更新はu23-08-update-v2で、v1に対するreview指摘2点を反映済みだが、v2の再reviewは未実施である。最終版ではv2を識別し、v1のchanges_requestedをv2の判定として表示しない。"
+    },
+    {
+      "severity": "low",
+      "location": "styleのtable規則および@media print",
+      "finding": "tableにdisplay:blockとoverflow-x:autoが指定されるが、印刷時に解除されない。印刷環境によって右側の列が切れる可能性があるため、最終HTMLでは印刷時の表を全幅表示に戻すか、印刷レンダリングで可読性を確認する。"
+    }
+  ]
+}

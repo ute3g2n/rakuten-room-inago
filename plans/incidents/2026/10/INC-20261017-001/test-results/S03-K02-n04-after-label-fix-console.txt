@@ -1,0 +1,10 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________________ test_n04 ___________________________________
+tests_inago\test_daily_fix_trace.py:336: in test_n04
+    assert saved_diagnostic["persisted_run_id"] is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'persisted_run_id'
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trace.py::test_n04 - KeyError: 'persisted_r...
+1 failed in 0.35s

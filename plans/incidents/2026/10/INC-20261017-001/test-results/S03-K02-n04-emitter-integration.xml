@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.406" timestamp="2026-10-19T20:13:58.018979+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.156"><failure message="NameError: name 'repository' is not defined">tests_inago\test_daily_fix_trace.py:312: in test_n04
+    repository.initialize_database(database)
+    ^^^^^^^^^^
+E   NameError: name 'repository' is not defined</failure></testcase></testsuite></testsuites>

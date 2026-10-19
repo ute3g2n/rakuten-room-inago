@@ -1,0 +1,14 @@
+{
+  "reviewer": "/root/u23_08_s01_review2",
+  "status": "approved",
+  "finding_count": 0,
+  "reviewed_files": [
+    "automation/inago/maintenance/store.py"
+  ],
+  "reviewed_head": "d7241547d5e6111962177105c9149d6414a2ddee",
+  "reviewed_blob": "48f1f6385b5b896db4fbc17a3370d50a2db0e6d3",
+  "reviewed_diff_fingerprint": "45063487214c0b15bc7ee34c87377e5dba27a69f",
+  "review_time": "not_provided",
+  "test_code_review": false,
+  "findings": []
+}
