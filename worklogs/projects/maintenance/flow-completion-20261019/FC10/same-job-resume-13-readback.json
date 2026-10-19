@@ -1,0 +1,1097 @@
+{
+  "read_only": true,
+  "database": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+  "quick_check": "ok",
+  "schema_version": 15,
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "result_version": "be04335443dc6cb1eddd7f464062eeaaf8d48a5a",
+    "lease_key": "maintenance:worker:0f7cdef14d134184b4f5509bd353e56f",
+    "lease_generation": 1,
+    "resume_count": 13,
+    "status": "failed",
+    "created_at": "2026-10-18T21:32:50.000000Z",
+    "updated_at": "2026-10-19T18:49:46.193373Z",
+    "finished_at": "2026-10-19T18:49:46.193373Z",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "resume_event_13": {
+    "resume_event_id": "1b4d18282bcd42939329326390416f09",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "resume_count": 13,
+    "reason_code": "workflow_terminal_observations_incomplete",
+    "owner_id": "resume-cli",
+    "generation": 13,
+    "resumed_at": "2026-10-19T18:48:45.307818Z"
+  },
+  "daily_launch_record": null,
+  "workflow_invocation_id": "workflow-e6f528db0908495c82147a23f3c9e129",
+  "stages": [
+    {
+      "stage_name": "check_incident",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:48:49.866150Z"
+    },
+    {
+      "stage_name": "evidence",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:48:49.908858Z"
+    },
+    {
+      "stage_name": "job",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:48:49.944135Z"
+    },
+    {
+      "stage_name": "investigation",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:48:49.974094Z"
+    },
+    {
+      "stage_name": "planning",
+      "status": "unknown",
+      "reason_code": "ai_transport_failed",
+      "observed_at": "2026-10-19T18:48:52.724626Z"
+    },
+    {
+      "stage_name": "repair",
+      "status": "unknown",
+      "reason_code": "repair_attempt_not_actionable",
+      "observed_at": "2026-10-19T18:48:52.772928Z"
+    },
+    {
+      "stage_name": "deployment",
+      "status": "unknown",
+      "reason_code": "deployment_candidate_unavailable",
+      "observed_at": "2026-10-19T18:48:52.844508Z"
+    },
+    {
+      "stage_name": "report",
+      "status": "unknown",
+      "reason_code": "report_review_binding_invalid",
+      "observed_at": "2026-10-19T18:49:46.102534Z"
+    }
+  ],
+  "latest_report_attempt": {
+    "attempt_id": "b722e3df-65d4-400b-b970-b9a06e2bf285",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "step_key": "maintenance_report",
+    "sequence": 4,
+    "attempt_no": 7,
+    "source_run_id": null,
+    "lease_key": "maintenance:worker:0f7cdef14d134184b4f5509bd353e56f",
+    "lease_generation": 1,
+    "status": "complete",
+    "result_version": "fallback-0e1a27fd18ad67fdfb00",
+    "output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/b722e3df-65d4-400b-b970-b9a06e2bf285/result.json",
+    "output_sha256": "4df5570d2fb6ef37a201a4d2c5a7084f5eb64a40d9930f851561ba4f420888ad",
+    "started_at": "2026-10-19T18:48:52.959200Z",
+    "finished_at": "2026-10-19T18:49:46.037080Z",
+    "repair_predecessor_attempt_id": null,
+    "repair_predecessor_result_version": null,
+    "repair_predecessor_output_sha256": null
+  },
+  "report_result_path": "attempts\\job-historical-9e7f0c175cc4c874c955a5dab29c4427\\b722e3df-65d4-400b-b970-b9a06e2bf285\\result.json",
+  "report_result_file_sha256": "4df5570d2fb6ef37a201a4d2c5a7084f5eb64a40d9930f851561ba4f420888ad",
+  "report_result_review": {
+    "findings": [],
+    "reviewed_at": "2026-10-20T03:48:53+09:00",
+    "reviewed_sha256": "0e1a27fd18ad67fdfb00aef389c519c39d037dcebefe6ae9d0623df61439db46",
+    "reviewed_version": "fallback-0e1a27fd18ad67fdfb00",
+    "reviewer_id": "controller-fallback-review-unavailable",
+    "schema_version": "maintenance-report-review-v1",
+    "status": "unavailable"
+  },
+  "report_result_status": "pending",
+  "report_result_stage_status": "review_unavailable",
+  "report_result_origin": "controller_fallback",
+  "report_html_path": "attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/b722e3df-65d4-400b-b970-b9a06e2bf285/report-fallback-0e1a27fd18ad67fdfb00.html",
+  "report_html_actual_sha256": "0e1a27fd18ad67fdfb00aef389c519c39d037dcebefe6ae9d0623df61439db46",
+  "report_review_rows": [
+    {
+      "review_id": "222e49d5-88b2-4d7e-aff0-ab36ec3dd2ab",
+      "scope_type": "step_attempt",
+      "scope_id": "b722e3df-65d4-400b-b970-b9a06e2bf285",
+      "reviewer_id": "controller-fallback-review-unavailable",
+      "reviewed_version": "fallback-0e1a27fd18ad67fdfb00",
+      "status": "unavailable",
+      "reviewed_at": "2026-10-19T18:48:53.000000Z"
+    }
+  ],
+  "publication_failure_event_in_fallback_journal": {
+    "artifact_refs": [
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/b722e3df-65d4-400b-b970-b9a06e2bf285/result.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/b722e3df-65d4-400b-b970-b9a06e2bf285/report-fallback-0e1a27fd18ad67fdfb00.html"
+    ],
+    "attempt_id": "b722e3df-65d4-400b-b970-b9a06e2bf285",
+    "capture_location": "run_daily_report_publication_stage",
+    "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+    "code_revision_reason": null,
+    "correlation_id": "workflow-e6f528db0908495c82147a23f3c9e129",
+    "event_id": "e27603332e6343a5a1871a1de139cea3",
+    "exception_chain": [
+      "ReportContractError"
+    ],
+    "exception_errno": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "input_refs": [
+      "evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json",
+      "historical-input/2026-10-17/e0-manifest.json",
+      "historical-input/2026-10-17/observation.json",
+      "historical-input/2026-10-17/production-cli.filtered.json",
+      "historical-input/2026-10-17/read-aggregate.json",
+      "historical-input/2026-10-17/scheduler.filtered.json",
+      "historical-input/2026-10-17/source-evidence.json",
+      "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json"
+    ],
+    "invocation_id": "workflow-e6f528db0908495c82147a23f3c9e129",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "observed_at": "2026-10-19T18:49:46.088+00:00",
+    "operation": "workflow.report.publication.validate_review_binding",
+    "parent_operation": "workflow.report.publication",
+    "phase": "failed",
+    "primary_sink": "report_publication",
+    "process_id": 44148,
+    "provider_error_code": null,
+    "provider_error_param": null,
+    "provider_error_type": null,
+    "reason_code": "report_review_binding_invalid",
+    "schema_version": 1,
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "stack_frames": [
+      {
+        "file": "production_workflow.py",
+        "function": "run_daily_report_publication_stage",
+        "line": 10470
+      }
+    ],
+    "stage": "report"
+  },
+  "invocation_operation_events": [
+    {
+      "event_id": "44ba02dcdcd2415db11f09ef2e2f3584",
+      "operation": "workflow.stage.check_incident",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:49.821000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "30b22470cb1b462c881cf848014950a7",
+      "operation": "workflow.stage.check_incident",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:49.858000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/check_incident.json"
+      ]
+    },
+    {
+      "event_id": "ea78e7c21e5b48209a6fe89599d9f234",
+      "operation": "workflow.stage.evidence",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:49.873000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "4d4a10fe03184c4890e2ba90df6b9e95",
+      "operation": "workflow.stage.evidence",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:49.897000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/evidence.json"
+      ]
+    },
+    {
+      "event_id": "d1f50427439d4d76bec9f545a1868529",
+      "operation": "workflow.stage.job",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:49.914000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "c0175304d0d74e25852e6ba707e0c510",
+      "operation": "workflow.stage.job",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:49.936000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/job.json"
+      ]
+    },
+    {
+      "event_id": "ed2589d60f084acb841fb8f569f7d2e8",
+      "operation": "workflow.stage.investigation",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:49.950000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "feb4fb86-679c-44a0-85dd-93a64e88b87f",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "1297b28516a24bf2815134a8f6dbdbf4",
+      "operation": "workflow.stage.investigation",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:49.965000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "feb4fb86-679c-44a0-85dd-93a64e88b87f",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/investigation.json"
+      ]
+    },
+    {
+      "event_id": "5629a57881a9465b84958d8d6a06ce59",
+      "operation": "workflow.stage.planning",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:49.981000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "f846f8e3-51f1-4ce0-b0f9-b473bbdcd7ff",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "a5e0ac2d47dc42b4977b31d8772bedde",
+      "operation": "workflow.stage.planning",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:52.714000Z",
+      "reason_code": "ai_transport_failed",
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "f846f8e3-51f1-4ce0-b0f9-b473bbdcd7ff",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/planning.json"
+      ]
+    },
+    {
+      "event_id": "6ed302fc083e47d29474726a9a6c7f1f",
+      "operation": "workflow.stage.repair",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:52.732000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "d582e2ef-24fd-42a9-9773-c3b1391e3b76",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "516471401d194f45b80fa049d07ee53e",
+      "operation": "workflow.stage.repair",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:52.764000Z",
+      "reason_code": "repair_attempt_not_actionable",
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "d582e2ef-24fd-42a9-9773-c3b1391e3b76",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/repair.json"
+      ]
+    },
+    {
+      "event_id": "51a3e48b4c1e4e638f69a285fbe06f77",
+      "operation": "workflow.stage.deployment",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:52.779000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "560f055f28f84f17843625cb6aedc95e",
+      "operation": "workflow.stage.deployment",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:48:52.835000Z",
+      "reason_code": "deployment_candidate_unavailable",
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": null,
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/deployment.json"
+      ]
+    },
+    {
+      "event_id": "6ce23878d59448caac0fbc5dd94b0317",
+      "operation": "workflow.stage.report",
+      "phase": "begin",
+      "observed_at": "2026-10-19T18:48:52.852000Z",
+      "reason_code": null,
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "a4d986bd-f0dc-4391-9328-6dc3f08f120c",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": []
+    },
+    {
+      "event_id": "2f687f9c5bd8478cb35eab370ac9efa0",
+      "operation": "workflow.stage.report",
+      "phase": "handoff",
+      "observed_at": "2026-10-19T18:49:46.093000Z",
+      "reason_code": "report_review_binding_invalid",
+      "capture_location": "maintenance.workflow_provider.MaintenanceWorkflowProvider.__call__",
+      "attempt_id": "b722e3df-65d4-400b-b970-b9a06e2bf285",
+      "exception_chain_json": [],
+      "stack_frames_json": [],
+      "input_refs_json": [],
+      "artifact_refs_json": [
+        "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-e6f528db0908495c82147a23f3c9e129/report.json"
+      ]
+    }
+  ],
+  "same_resume_failure_journal_replay_events": [
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "0df1bc7efe9f483fb1c809aade6bace6",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:6f19bdb7ef4a4c3fb92e6d1ba8908e6d"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.536+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.deployment.execute",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "deployment"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "e6c0d63e050b4864a46bbdba90e782e1",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:c015ed47b07c4425831be5c3efae2156"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.544+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_create_review",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "083148252e6b4636a84794c4537ac90d",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:750a3da203fd44d0a60c1f5fb239b3ca"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.573+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.deployment.execute",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "deployment"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "9654e0c3a1384b0f8717836cf6448167",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:1b7b4f4e7a86452faf6ba3c1547fb71c"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.583+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_create_review",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "5161d3d4bcd34638a707206fc5c687f6",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:4788a9a05a314931b8cf8ec503098a44"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.617+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.deployment.execute",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "deployment"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "1aedfba86d864962ab15a58a56fe2e72",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:6c02ef2b07124df5b891afdcb6c357d9"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.626+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_author_revision",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "8aaa32344af44b1bb214208d767b961e",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:ba314602dd92473d80b2bc1ab3ae4b4a"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.632+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_create_review",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "061d4697f5e74cc1828c6fb79f525c6a",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:80144bc4c5814e3aa7581869abf1c887"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.677+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.deployment.execute",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "deployment"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "5660d660a6564934b3265b49f208946e",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:cf07ac9b31014f10b62c93fd1ed16ddc"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.685+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_author_revision",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "257e0a1d50794584be37c48cebadf431",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:8fc7082776dd419bbd45de81925d3567"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.691+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_create_review",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "d2f33f42249b4ac8a9daf88c063c6ff3",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:80e79eb6270e4059934a988f1c66e4eb"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.790+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.deployment.execute",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "deployment"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "failure_journal.replay_failure_journal.store_record_operation_event",
+      "code_revision": "maintenance-source-v1-4a1769f5f84f76944ef8a9024da65732bda007ef8a13afbacdc7d7dd097ef525",
+      "code_revision_reason": null,
+      "correlation_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "event_id": "f584c4f5de864dd6b4cf7d324d2bc5e8",
+      "exception_chain": [
+        "MaintenanceStoreError"
+      ],
+      "exception_errno": null,
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "input_refs": [
+        "event:1c1d83b1fd55482882b5c5632920d780"
+      ],
+      "invocation_id": null,
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "observed_at": "2026-10-19T18:48:49.802+00:00",
+      "operation": "failure_journal.replay_store_event",
+      "parent_operation": "workflow.report.fallback_author_revision",
+      "phase": "failed",
+      "primary_sink": "maintenance_operation_event",
+      "process_id": 44148,
+      "provider_error_code": null,
+      "provider_error_param": null,
+      "provider_error_type": null,
+      "reason_code": "failure_journal_replay_failed",
+      "schema_version": 1,
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "failure_journal.py",
+          "function": "replay_failure_journal",
+          "line": 543
+        },
+        {
+          "file": "store.py",
+          "function": "record_operation_event",
+          "line": 6459
+        },
+        {
+          "file": "store.py",
+          "function": "optional_id",
+          "line": 6401
+        },
+        {
+          "file": "store.py",
+          "function": "_safe_id",
+          "line": 986
+        }
+      ],
+      "stage": "report"
+    }
+  ],
+  "oct19_worker_queue_rows": [
+    {
+      "queue_id": "82e35e362a064e3292355d27ed0f4289",
+      "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+      "worker_job_id": "worker-2a0f6cdfb9a4479f8f9c1b9244303e04",
+      "target_date": "2026-10-19",
+      "status": "queued",
+      "check_id": null,
+      "claim_owner_id": null,
+      "claim_generation": null,
+      "claimed_at": null,
+      "completed_at": null,
+      "reason_code": null,
+      "created_at": "2026-10-19T04:00:03.226334Z",
+      "updated_at": "2026-10-19T04:00:03.226334Z"
+    }
+  ],
+  "worker_queue_event_count": 0,
+  "incident_run_nonnull_source_run_row_count": 0,
+  "publication_performed": false,
+  "terminal_completed": false
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "fc10-report-review-unavailable-publication-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "ec06d07e0338b402285c388ebfeae36058469a5e",
+  "product_sources": {
+    "production_workflow_py_sha256": "7186adc923d253c362b904f74e8cb016d1ad2adc37a800db508834788cb991e7"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "test_maintenance_report_publication_stage_py_sha256": "2014cd9579894b0b61107cad5c374939bf6a84bcff774b739d75fbb8c65494dd"
+  },
+  "local_evidence": {
+    "report-review-unavailable-binding-red_console_txt_sha256": "78e0b097d27c19c9613f9941684d33d835e4854b3cdb25d7bbfb4b754fdec552",
+    "report-review-unavailable-binding-red_junit_xml_sha256": "675e825d4d211bcdc66123392ec163a8171bf3dc1397bd15a74f4da6c9b2fad2",
+    "report-review-unavailable-binding-green-focused_console_txt_sha256": "a8d51163e4ff1af60506b59cc7ba886b2d0951fb0f833c9989987e0524ad2959",
+    "report-review-unavailable-binding-green-focused_junit_xml_sha256": "7a144a9df436b03807c5207ecfd084271cde1dfdf2b7169a3d03da97f459042f",
+    "report-review-unavailable-binding-green-full_console_txt_sha256": "275113790379474e2302d497b25fabc23c0ebb234f3433b06d3f565ce2094593",
+    "report-review-unavailable-binding-green-full_junit_xml_sha256": "ee567f272c6d2b67a53fcbfeb80123784517e3f326c1f30569d90d12ad63c249"
+  },
+  "prior_observation": {
+    "resume_count": 13,
+    "reason": "report_review_binding_invalid",
+    "publication_not_performed": true,
+    "terminal_not_completed": true
+  },
+  "review_scope": [
+    "Verify the exact controller-generated unavailable review is publishable only when report_origin is controller_fallback, stage_status is review_unavailable, report_status is pending, next_action is publish, reviewer id/status are controller-fallback-review-unavailable/unavailable, result review equals the validated review, and DB review binding exactly matches the attempt version and review fields.",
+    "Verify the configured independent reviewer identity remains strict for normal reports.",
+    "Verify arbitrary reviewer, status, origin, stage, report status, next action, missing DB row, and mismatched DB row are rejected.",
+    "Verify exact report attempt/result/html identity and publication target checks are unchanged."
+  ],
+  "review_constraints": {
+    "read_tests": false,
+    "run_tests": false,
+    "edit_files": false,
+    "production_operations": false
+  },
+  "created_at_utc": "2026-10-19T18:55:25Z"
+}

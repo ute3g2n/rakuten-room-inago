@@ -4238,6 +4238,31 @@
         "test_maintenance_report_publication_stage.py: normal completed-report recovery retains validated refs in dedicated fields and leaves them out of precheck_identity."
       ],
       "reason": "Independent product review of the first canonical-identity fix found that normal completed-report recovery normalized precheck_identity but dropped the recovered references from the dedicated state fields used by partial-input recovery."
+    },
+    {
+      "finding": "FC10 fallback review unavailable publication binding",
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": [
+        "run_daily_report_publication_stage review binding: permit only controller-generated unavailable review for controller_fallback + review_unavailable + pending, with exact result/attempt/html/DB review bindings; keep configured independent reviewer identity strict.",
+        "run_daily_report_publication_stage review binding: require a persisted review_record for both normal and unavailable reviews, and match its reviewed_version/reviewer_id/status to the exact attempt and result review.",
+        "tests_inago/test_maintenance_report_publication_stage.py: drive the actual publication stage for fallback/unavailable and reject mismatched reviewer/status/origin/result combinations, including a missing DB row for a normal reviewer."
+      ],
+      "reason": "Same-job resume 13 passed report identity validation and created a complete hash-bound fallback, but publication rejected the truthful controller-fallback-review-unavailable reviewer record because the normal reviewer allowlist accepted only the AI reviewer role. Fresh independent review then found that the same binding helper accepted a missing persisted review row for a normal reviewer."
+    },
+    {
+      "finding": "FC10 replay legacy failure-journal capture locations",
+      "files": [
+        "automation/inago/maintenance/failure_journal.py",
+        "tests_inago/test_maintenance_integration.py"
+      ],
+      "boundary": [
+        "replay_failure_journal: normalize a legacy leading-underscore capture_location to a store-safe symbol reference in the replay copy while retaining the original fallback row unchanged.",
+        "tests_inago/test_maintenance_integration.py: replay a synthetic leading-underscore capture location into the maintenance operation ledger exactly once without a secondary replay failure."
+      ],
+      "reason": "Read-back of resume 13 found repeated failure_journal.replay_store_event records. The linked old spool rows use capture_location values such as _persist_minimal_daily_report; maintenance.store._safe_id rejects a leading underscore as operation_capture_location_invalid, so replay of valid fallback rows fails and repeats on each later invocation."
     }
   ]
 }

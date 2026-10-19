@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.420" timestamp="2026-10-20T03:57:54.862836+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_integration" name="test_failure_journal_replays_legacy_leading_underscore_capture_location" time="0.102"><failure message="AssertionError: assert {'status': 'p...e_errors': []} == {'status': 'c...e_errors': []}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'unknown': 1} != {'unknown': 0}&#10;  {'status': 'partial'} != {'status': 'complete'}&#10;  {'replayed': 0} != {'replayed': 1}&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1601/test_failure_journal_replays_l0')
+
+    def test_failure_journal_replays_legacy_leading_underscore_capture_location(
+        tmp_path,
+    ):
+        from automation.inago.maintenance import failure_journal
+    
+        data_root = tmp_path / "runtime"
+        result = failure_journal.append_failure_event(
+            data_root,
+            phase="failed",
+            operation="integration.legacy_capture_location",
+            correlation_id="corr-legacy-capture-location",
+            reason_code="synthetic_legacy_capture_location",
+            capture_location="_persist_minimal_daily_report",
+        )
+        store = make_store(tmp_path / "replay-db")
+    
+        replay = failure_journal.replay_failure_journal(data_root, store)
+        replay_again = failure_journal.replay_failure_journal(data_root, store)
+    
+&gt;       assert replay == {"status": "complete", "replayed": 1, "unknown": 0, "source_errors": []}
+E       AssertionError: assert {'status': 'p...e_errors': []} == {'status': 'c...e_errors': []}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'unknown': 1} != {'unknown': 0}
+E         {'status': 'partial'} != {'status': 'complete'}
+E         {'replayed': 0} != {'replayed': 1}
+E         Use -v to get more diff
+
+tests_inago\test_maintenance_integration.py:319: AssertionError</failure></testcase></testsuite></testsuites>

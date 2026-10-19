@@ -85,6 +85,19 @@ def _safe_id(value: object, limit: int = 128) -> str | None:
     return value
 
 
+def _store_safe_capture_location(value: object) -> object:
+    """Keep legacy private-symbol locations acceptable to the DB ID validator."""
+
+    if (
+        isinstance(value, str)
+        and value.startswith("_")
+        and len(value) <= 121
+        and all(character in _SAFE_ID_CHARS for character in value)
+    ):
+        return f"symbol:{value}"
+    return value
+
+
 _PROVIDER_ERROR_SENSITIVE_MARKERS = (
     "secret",
     "password",
@@ -537,6 +550,9 @@ def replay_failure_journal(data_root: str | Path, store: object) -> Mapping[str,
         event.setdefault("stack_frames", [])
         event.setdefault("input_refs", [])
         event.setdefault("artifact_refs", [])
+        event["capture_location"] = _store_safe_capture_location(
+            event.get("capture_location")
+        )
         # Both JSONL files are fallback sources to the maintenance DB ledger.
         event["fallback_status"] = "replayed_from_fallback"
         try:

@@ -1,0 +1,52 @@
+{
+  "schema_version": "fc10-review-binding-and-journal-replay-target-v2",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "ec06d07e0338b402285c388ebfeae36058469a5e",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "bd4414efb355685c8e9cc075f06e9e9d184945f90137bb727f126b16e3ff47bc",
+    "automation/inago/maintenance/failure_journal.py": "2a6cee9355255785d3e2eb2d85e3d4b0331c06d0e880e5bca28a46ec53849eb7"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "5f3464c4a435b175ea31ffc74560b2ad065f9ef628f2e6009d69315793078b3d",
+    "tests_inago/test_maintenance_integration.py": "f9c46914a5cb05197c57d937ca215754b6b6795c9ee87e18311b3ca174b921ed"
+  },
+  "local_evidence": {
+    "FC10/report-normal-review-missing-db-red.console.txt": "497bf0dffc3fcadf105c3f2fa3711ff37e873cbeac85f504b55928c044471dec",
+    "FC10/report-normal-review-missing-db-red.junit.xml": "b24b7b3f29367196f6463102d9c0e814cebb12f069f6d5560bee89f653cb4390",
+    "FC10/report-review-binding-green-r2-focused.console.txt": "523febeddd5eec95af3db6fd995a7145aa96046b55206ac7a9fcc6a39c9dcc6d",
+    "FC10/report-review-binding-green-r2-focused.junit.xml": "efcec9a9ac30d882b60137da750c5bf46fb1302f4851bff9b13d4a4376c806ea",
+    "FC10/report-review-binding-green-full-r2.console.txt": "2ceccd61d0b2a8acfdd4b78fd6b3128a196206662772f46894738b6fbd49e1c3",
+    "FC10/report-review-binding-green-full-r2.junit.xml": "9738fd94f96be4711959aecd046b531dc9f763f4864fa70f63f71f6970c941ef",
+    "FC10/failure-journal-leading-underscore-red.console.txt": "6c6474e70d3996abe1fbb52117c7896f7d1c5e99960c89c6fd6bd869a6fb0fc1",
+    "FC10/failure-journal-leading-underscore-red.junit.xml": "5afb82c0a1156740aea3a2517cc3bc5879ac9dec51bab7e346aaea8fd69e346a",
+    "FC10/failure-journal-leading-underscore-green-focused.console.txt": "2f205d25ca77e41f5ef026ebc73ed5be110f74f4325481a568b21104350a3e54",
+    "FC10/failure-journal-leading-underscore-green-focused.junit.xml": "6cf52cc7c6458bb77b583e5cf5e63aaa2aadcebc32a7460405c9321eda46f305",
+    "FC10/failure-journal-leading-underscore-green-full.console.txt": "1f8cc793d3d34504caeffb8ec1c9714456c09909d9f08c89b987da7309f59c4d",
+    "FC10/failure-journal-leading-underscore-green-full.junit.xml": "516003961d430269dffec0f06ccaf6e6995fb2ec2c70c7541cadfd16de66b68a"
+  },
+  "prior_review": {
+    "target_sha256": "adce6774960a15ff198518155ab9cc0e97cefd92b447b77e30fd2f9df5ae4915",
+    "verdict": "changes_requested",
+    "finding": "ordinary reviewer path allowed missing DB review row"
+  },
+  "review_scope": [
+    "Verify publication requires an exact persisted review row for ordinary reviewer and controller-unavailable fallback paths, matching reviewed_version to attempt.result_version and reviewer_id/status to the validated review.",
+    "Verify controller unavailable is allowed only for the exact controller_fallback + review_unavailable + pending + publish + fixed reviewer id/status tuple, with result review equality.",
+    "Verify ordinary reviewer id remains configured and strict, and missing/mismatched DB rows and arbitrary combinations are rejected.",
+    "Verify publication attempt/result/html/manifest/launch exact identity checks remain unchanged.",
+    "Verify legacy failure-journal replay normalizes only the replay copy of a leading-underscore capture_location to a store-safe symbol reference, and does not mutate the fallback row or duplicate a successfully replayed event."
+  ],
+  "review_constraints": {
+    "read_tests": false,
+    "run_tests": false,
+    "edit_files": false,
+    "production_operations": false
+  },
+  "created_at_utc": "2026-10-19T18:59:52Z"
+}

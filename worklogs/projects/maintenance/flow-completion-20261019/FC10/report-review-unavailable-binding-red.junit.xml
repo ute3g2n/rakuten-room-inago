@@ -1,0 +1,731 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="19.543" timestamp="2026-10-20T03:51:40.349186+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[sidecar-complete-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="3.472" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[sidecar-pending-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="3.398" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[sidecar-blocked-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="3.412" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[sidecar-pending-complete-complete-None-unavailable-controller-fallback-review-unavailable-review_unavailable-controller_fallback]" time="0.551"><failure message="AssertionError: assert 'report_revie...nding_invalid' == 'report_targe...anch_mismatch'&#10;  &#10;  - report_target_branch_mismatch&#10;  + report_review_binding_invalid">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1597/test_publication_stage_recover3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002535A89CB00&gt;
+report_status = 'pending', expected_status = 'complete'
+expected_job_status = 'complete', expected_reason = None
+review_status = 'unavailable'
+reviewer_id = 'controller-fallback-review-unavailable'
+stage_status = 'review_unavailable', report_origin = 'controller_fallback'
+failure_point = 'sidecar'
+
+    @pytest.mark.parametrize(
+        (
+            "report_status",
+            "expected_status",
+            "expected_job_status",
+            "expected_reason",
+            "review_status",
+            "reviewer_id",
+            "stage_status",
+            "report_origin",
+        ),
+        [
+            (
+                "complete",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "pending",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "blocked",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "pending",
+                "complete",
+                "complete",
+                None,
+                "unavailable",
+                "controller-fallback-review-unavailable",
+                "review_unavailable",
+                "controller_fallback",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("failure_point", ["sidecar", "push"])
+    def test_publication_stage_recovers_after_push_before_artifact_save(
+        tmp_path: Path,
+        monkeypatch,
+        report_status: str,
+        expected_status: str,
+        expected_job_status: str,
+        expected_reason: str | None,
+        review_status: str,
+        reviewer_id: str,
+        stage_status: str,
+        report_origin: str | None,
+        failure_point: str,
+    ):
+        runtime_root = tmp_path / "runtime"
+        runtime_root.mkdir()
+        attempts_root = runtime_root / "attempts"
+        job_id = "job-u21-report-publication"
+        attempt_id = "attempt-u21-report-publication"
+        attempt_root = attempts_root / job_id / attempt_id
+        attempt_root.mkdir(parents=True)
+    
+        repository = tmp_path / "repository"
+        repository.mkdir()
+        _git(repository, "init", "--initial-branch=main")
+        _git(repository, "config", "user.name", "U21 Publication Fixture")
+        _git(repository, "config", "user.email", "u21-publication@example.invalid")
+        (repository / "code.py").write_text("VALUE = 1\n", encoding="utf-8")
+        _git(repository, "add", "code.py")
+        _git(repository, "commit", "-m", "synthetic deployed code")
+        code_commit = _git(repository, "rev-parse", "HEAD")
+    
+        remote = tmp_path / "remote.git"
+        subprocess.run(
+            ["git", "init", "--bare", str(remote)], check=True, capture_output=True
+        )
+        _git(repository, "remote", "add", "origin", str(remote))
+        _git(repository, "push", "--set-upstream", "origin", "main")
+    
+        identity = {
+            "incident_id": "incident-u21-publication",
+            "source_launch_id": "launch-u21-publication",
+            "source_run_id": None,
+            "target_date": "2026-10-19",
+            "job_id": job_id,
+        }
+        html_path = f"{job_id}/{attempt_id}/report.html"
+        deployment_path = f"{job_id}/{attempt_id}/deployment-result.json"
+        html = b"&lt;!doctype html&gt;&lt;html&gt;&lt;body&gt;approved report&lt;/body&gt;&lt;/html&gt;\n"
+        html_sha256 = hashlib.sha256(html).hexdigest()
+        review = {
+            "schema_version": "maintenance-report-review-v1",
+            "reviewer_id": reviewer_id,
+            "reviewed_version": "report-u21-v1",
+            "reviewed_sha256": html_sha256,
+            "status": review_status,
+            "reviewed_at": "2026-10-19T03:00:00+09:00",
+            "findings": [],
+        }
+        result_document = {
+            "schema_version": "maintenance-report-result-v1",
+            "identity": identity,
+            "attempt_id": attempt_id,
+            "result_version": "report-u21-v1",
+            "created_at_jst": "2026-10-19T03:00:00+09:00",
+            "report_status": report_status,
+            "stage_status": stage_status,
+            "review": review,
+            "output": {"path": html_path, "sha256": html_sha256},
+            "source_versions": {
+                "investigation": "investigation-u21-v1",
+                "plan": "plan-u21-v1",
+                "implementation": code_commit,
+                "tests": "tests-u21-v1",
+                "deployment_status": "deployed",
+                "next_day_status": "pending",
+            },
+            "next_action": "publish",
+        }
+        if report_origin is not None:
+            result_document["report_origin"] = report_origin
+        if review_status == "unavailable":
+            result_document["review_failure"] = "synthetic_reviewer_unavailable"
+        result_bytes = (
+            json.dumps(
+                result_document,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        (attempt_root / "report.html").write_bytes(html)
+        (attempt_root / "result.json").write_bytes(result_bytes)
+        deployment_document = {
+            "schema_version": "maintenance-deployment-result-v1",
+            "deployment_id": "deployment-u21-publication",
+            "release_id": "release-u21-publication",
+            "status": "deployed",
+            "reason_code": None,
+            "source_commit": code_commit,
+            "base_commit": code_commit,
+            "tested_commit": code_commit,
+            "pushed_commit": code_commit,
+            "active_commit": code_commit,
+            "remote_name": "origin",
+            "target_branch": "main",
+        }
+        deployment_bytes = (
+            json.dumps(
+                deployment_document,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        (attempt_root / "deployment-result.json").write_bytes(deployment_bytes)
+        deployment_sha256 = hashlib.sha256(deployment_bytes).hexdigest()
+    
+        job = MaintenanceJobRecord(
+            job_id=job_id,
+            incident_id=identity["incident_id"],
+            release_id="release-u21-publication",
+            source_run_id=None,
+            result_version="release-u21-v1",
+            resume_count=0,
+            status="running",
+            created_at="2026-10-19T03:00:00+09:00",
+            updated_at="2026-10-19T03:00:00+09:00",
+            finished_at=None,
+            terminal_reason_code=None,
+        )
+        attempt = StepAttemptRecord(
+            attempt_id=attempt_id,
+            job_id=job_id,
+            step_key="maintenance_report",
+            sequence=4,
+            attempt_no=1,
+            source_run_id=None,
+            status="complete",
+            result_version="report-u21-v1",
+            output_path=f"{job_id}/{attempt_id}/result.json",
+            output_sha256=hashlib.sha256(result_bytes).hexdigest(),
+            started_at="2026-10-19T03:00:00+09:00",
+            finished_at="2026-10-19T03:00:00+09:00",
+        )
+    
+        class Manifest:
+            def identity(self):
+                return identity
+    
+        class Store:
+            database_path = runtime_root / "maintenance.sqlite"
+    
+            def get_job_input_manifest(self, *, job_id: str):
+                assert job_id == identity["job_id"]
+                return Manifest()
+    
+            def get_step_attempt_review(self, *, attempt_id: str):
+                assert attempt_id == attempt_id_expected
+                return {
+                    "status": review_status,
+                    "reviewed_version": "report-u21-v1",
+                    "reviewer_id": reviewer_id,
+                }
+    
+            def read_attempt_artifact(
+                self, *, attempts_root: Path, relative_path: str, expected_sha256: str
+            ) -&gt; bytes:
+                raw = attempts_root.joinpath(*relative_path.split("/")).read_bytes()
+                assert hashlib.sha256(raw).hexdigest() == expected_sha256
+                return raw
+    
+        attempt_id_expected = attempt_id
+        store = Store()
+        source_snapshot = {
+            "implementation": {"result_commit": code_commit},
+            "tests": {"status": "passed"},
+            "deployment": {
+                "status": "deployed",
+                "tested_commit": code_commit,
+                "pushed_commit": code_commit,
+                "active_commit": code_commit,
+                "evidence_href": deployment_path,
+            },
+        }
+    
+        class Guard:
+            held = False
+    
+            def acquire(self):
+                if self.held:
+                    return False
+                self.held = True
+                return True
+    
+            def release(self):
+                self.held = False
+    
+        class Controller:
+            finalized = []
+    
+            def finalize_job(self, **kwargs):
+                self.finalized.append(kwargs)
+    
+        guard = Guard()
+        controller = Controller()
+        workflow = MaintenanceWorkflowContext(
+            launch=SimpleNamespace(
+                source_launch_id=identity["source_launch_id"],
+                source_run_id=identity["source_run_id"],
+                target_date=identity["target_date"],
+            ),
+            check=SimpleNamespace(check_id="check-u21-publication"),
+            queue=SimpleNamespace(queue_id="queue-u21-publication"),
+            lease=LeaseToken("maintenance:u21-publication", "worker-u21", 1),
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=job, attempts=(attempt,)),
+            state={
+                "job": job,
+                "report_attempt": attempt,
+                "report_result": result_document,
+                "report_review": review,
+                "report_source_snapshot": source_snapshot,
+                "report_source_artifacts": {
+                    "deployment_result": {
+                        "path": deployment_path,
+                        "sha256": deployment_sha256,
+                    }
+                },
+                "report_base_commit": code_commit,
+                "report_html_path": html_path,
+                "report_html_sha256": html_sha256,
+                "report_input_refs": ["evidence/u21/input.json"],
+                "report_evidence_refs": ["evidence/u21/input.json"],
+                "precheck_identity": identity,
+            },
+        )
+    
+        original_save = production_workflow.save_attempt_artifact
+        original_publish = production_workflow.publish_reviewed_report
+        save_failed = False
+        push_failed = False
+    
+        def fail_first_publication_save(*args, **kwargs):
+            nonlocal save_failed
+            if kwargs.get("filename") == "report-publication.json" and not save_failed:
+                save_failed = True
+                raise OSError("synthetic crash after remote push")
+            return original_save(*args, **kwargs)
+    
+        def fail_first_publication_push(*args, **kwargs):
+            nonlocal push_failed
+            if not push_failed and kwargs.get("target_branch") == "main":
+                push_failed = True
+                raise OSError("synthetic remote push failure")
+            return original_publish(*args, **kwargs)
+    
+        if failure_point == "sidecar":
+            monkeypatch.setattr(
+                production_workflow, "save_attempt_artifact", fail_first_publication_save
+            )
+        else:
+            monkeypatch.setattr(
+                production_workflow, "publish_reviewed_report", fail_first_publication_push
+            )
+    
+        workflow.state["precheck_identity"] = {**identity, "job_id": "job-other"}
+        rejected = run_daily_report_publication_stage(
+            workflow,
+            controller,
+            store,
+            repository=repository,
+            remote_name="origin",
+            target_branch="main",
+            exclusion_guard=guard,
+        )
+        assert rejected.status == "unknown"
+        assert rejected.reason_code == "report_publication_identity_mismatch"
+        assert not guard.held
+        assert _git(remote, "rev-parse", "refs/heads/main") == code_commit
+        workflow.state["precheck_identity"] = identity
+    
+        target_mismatch = run_daily_report_publication_stage(
+            workflow,
+            controller,
+            store,
+            repository=repository,
+            remote_name="origin",
+            target_branch="other",
+            exclusion_guard=guard,
+        )
+        assert target_mismatch.status == "unknown"
+&gt;       assert target_mismatch.reason_code == "report_target_branch_mismatch"
+E       AssertionError: assert 'report_revie...nding_invalid' == 'report_targe...anch_mismatch'
+E         
+E         - report_target_branch_mismatch
+E         + report_review_binding_invalid
+
+tests_inago\test_maintenance_report_publication_stage.py:1469: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[push-complete-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="2.636" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[push-pending-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="2.475" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[push-blocked-complete-complete-None-approved-rr-inago-incident-report-reviewer-reviewed-None]" time="2.566" /><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[push-pending-complete-complete-None-unavailable-controller-fallback-review-unavailable-review_unavailable-controller_fallback]" time="0.544"><failure message="AssertionError: assert 'report_revie...nding_invalid' == 'report_targe...anch_mismatch'&#10;  &#10;  - report_target_branch_mismatch&#10;  + report_review_binding_invalid">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1597/test_publication_stage_recover7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002535B084EC0&gt;
+report_status = 'pending', expected_status = 'complete'
+expected_job_status = 'complete', expected_reason = None
+review_status = 'unavailable'
+reviewer_id = 'controller-fallback-review-unavailable'
+stage_status = 'review_unavailable', report_origin = 'controller_fallback'
+failure_point = 'push'
+
+    @pytest.mark.parametrize(
+        (
+            "report_status",
+            "expected_status",
+            "expected_job_status",
+            "expected_reason",
+            "review_status",
+            "reviewer_id",
+            "stage_status",
+            "report_origin",
+        ),
+        [
+            (
+                "complete",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "pending",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "blocked",
+                "complete",
+                "complete",
+                None,
+                "approved",
+                "rr-inago-incident-report-reviewer",
+                "reviewed",
+                None,
+            ),
+            (
+                "pending",
+                "complete",
+                "complete",
+                None,
+                "unavailable",
+                "controller-fallback-review-unavailable",
+                "review_unavailable",
+                "controller_fallback",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("failure_point", ["sidecar", "push"])
+    def test_publication_stage_recovers_after_push_before_artifact_save(
+        tmp_path: Path,
+        monkeypatch,
+        report_status: str,
+        expected_status: str,
+        expected_job_status: str,
+        expected_reason: str | None,
+        review_status: str,
+        reviewer_id: str,
+        stage_status: str,
+        report_origin: str | None,
+        failure_point: str,
+    ):
+        runtime_root = tmp_path / "runtime"
+        runtime_root.mkdir()
+        attempts_root = runtime_root / "attempts"
+        job_id = "job-u21-report-publication"
+        attempt_id = "attempt-u21-report-publication"
+        attempt_root = attempts_root / job_id / attempt_id
+        attempt_root.mkdir(parents=True)
+    
+        repository = tmp_path / "repository"
+        repository.mkdir()
+        _git(repository, "init", "--initial-branch=main")
+        _git(repository, "config", "user.name", "U21 Publication Fixture")
+        _git(repository, "config", "user.email", "u21-publication@example.invalid")
+        (repository / "code.py").write_text("VALUE = 1\n", encoding="utf-8")
+        _git(repository, "add", "code.py")
+        _git(repository, "commit", "-m", "synthetic deployed code")
+        code_commit = _git(repository, "rev-parse", "HEAD")
+    
+        remote = tmp_path / "remote.git"
+        subprocess.run(
+            ["git", "init", "--bare", str(remote)], check=True, capture_output=True
+        )
+        _git(repository, "remote", "add", "origin", str(remote))
+        _git(repository, "push", "--set-upstream", "origin", "main")
+    
+        identity = {
+            "incident_id": "incident-u21-publication",
+            "source_launch_id": "launch-u21-publication",
+            "source_run_id": None,
+            "target_date": "2026-10-19",
+            "job_id": job_id,
+        }
+        html_path = f"{job_id}/{attempt_id}/report.html"
+        deployment_path = f"{job_id}/{attempt_id}/deployment-result.json"
+        html = b"&lt;!doctype html&gt;&lt;html&gt;&lt;body&gt;approved report&lt;/body&gt;&lt;/html&gt;\n"
+        html_sha256 = hashlib.sha256(html).hexdigest()
+        review = {
+            "schema_version": "maintenance-report-review-v1",
+            "reviewer_id": reviewer_id,
+            "reviewed_version": "report-u21-v1",
+            "reviewed_sha256": html_sha256,
+            "status": review_status,
+            "reviewed_at": "2026-10-19T03:00:00+09:00",
+            "findings": [],
+        }
+        result_document = {
+            "schema_version": "maintenance-report-result-v1",
+            "identity": identity,
+            "attempt_id": attempt_id,
+            "result_version": "report-u21-v1",
+            "created_at_jst": "2026-10-19T03:00:00+09:00",
+            "report_status": report_status,
+            "stage_status": stage_status,
+            "review": review,
+            "output": {"path": html_path, "sha256": html_sha256},
+            "source_versions": {
+                "investigation": "investigation-u21-v1",
+                "plan": "plan-u21-v1",
+                "implementation": code_commit,
+                "tests": "tests-u21-v1",
+                "deployment_status": "deployed",
+                "next_day_status": "pending",
+            },
+            "next_action": "publish",
+        }
+        if report_origin is not None:
+            result_document["report_origin"] = report_origin
+        if review_status == "unavailable":
+            result_document["review_failure"] = "synthetic_reviewer_unavailable"
+        result_bytes = (
+            json.dumps(
+                result_document,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        (attempt_root / "report.html").write_bytes(html)
+        (attempt_root / "result.json").write_bytes(result_bytes)
+        deployment_document = {
+            "schema_version": "maintenance-deployment-result-v1",
+            "deployment_id": "deployment-u21-publication",
+            "release_id": "release-u21-publication",
+            "status": "deployed",
+            "reason_code": None,
+            "source_commit": code_commit,
+            "base_commit": code_commit,
+            "tested_commit": code_commit,
+            "pushed_commit": code_commit,
+            "active_commit": code_commit,
+            "remote_name": "origin",
+            "target_branch": "main",
+        }
+        deployment_bytes = (
+            json.dumps(
+                deployment_document,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        (attempt_root / "deployment-result.json").write_bytes(deployment_bytes)
+        deployment_sha256 = hashlib.sha256(deployment_bytes).hexdigest()
+    
+        job = MaintenanceJobRecord(
+            job_id=job_id,
+            incident_id=identity["incident_id"],
+            release_id="release-u21-publication",
+            source_run_id=None,
+            result_version="release-u21-v1",
+            resume_count=0,
+            status="running",
+            created_at="2026-10-19T03:00:00+09:00",
+            updated_at="2026-10-19T03:00:00+09:00",
+            finished_at=None,
+            terminal_reason_code=None,
+        )
+        attempt = StepAttemptRecord(
+            attempt_id=attempt_id,
+            job_id=job_id,
+            step_key="maintenance_report",
+            sequence=4,
+            attempt_no=1,
+            source_run_id=None,
+            status="complete",
+            result_version="report-u21-v1",
+            output_path=f"{job_id}/{attempt_id}/result.json",
+            output_sha256=hashlib.sha256(result_bytes).hexdigest(),
+            started_at="2026-10-19T03:00:00+09:00",
+            finished_at="2026-10-19T03:00:00+09:00",
+        )
+    
+        class Manifest:
+            def identity(self):
+                return identity
+    
+        class Store:
+            database_path = runtime_root / "maintenance.sqlite"
+    
+            def get_job_input_manifest(self, *, job_id: str):
+                assert job_id == identity["job_id"]
+                return Manifest()
+    
+            def get_step_attempt_review(self, *, attempt_id: str):
+                assert attempt_id == attempt_id_expected
+                return {
+                    "status": review_status,
+                    "reviewed_version": "report-u21-v1",
+                    "reviewer_id": reviewer_id,
+                }
+    
+            def read_attempt_artifact(
+                self, *, attempts_root: Path, relative_path: str, expected_sha256: str
+            ) -&gt; bytes:
+                raw = attempts_root.joinpath(*relative_path.split("/")).read_bytes()
+                assert hashlib.sha256(raw).hexdigest() == expected_sha256
+                return raw
+    
+        attempt_id_expected = attempt_id
+        store = Store()
+        source_snapshot = {
+            "implementation": {"result_commit": code_commit},
+            "tests": {"status": "passed"},
+            "deployment": {
+                "status": "deployed",
+                "tested_commit": code_commit,
+                "pushed_commit": code_commit,
+                "active_commit": code_commit,
+                "evidence_href": deployment_path,
+            },
+        }
+    
+        class Guard:
+            held = False
+    
+            def acquire(self):
+                if self.held:
+                    return False
+                self.held = True
+                return True
+    
+            def release(self):
+                self.held = False
+    
+        class Controller:
+            finalized = []
+    
+            def finalize_job(self, **kwargs):
+                self.finalized.append(kwargs)
+    
+        guard = Guard()
+        controller = Controller()
+        workflow = MaintenanceWorkflowContext(
+            launch=SimpleNamespace(
+                source_launch_id=identity["source_launch_id"],
+                source_run_id=identity["source_run_id"],
+                target_date=identity["target_date"],
+            ),
+            check=SimpleNamespace(check_id="check-u21-publication"),
+            queue=SimpleNamespace(queue_id="queue-u21-publication"),
+            lease=LeaseToken("maintenance:u21-publication", "worker-u21", 1),
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=job, attempts=(attempt,)),
+            state={
+                "job": job,
+                "report_attempt": attempt,
+                "report_result": result_document,
+                "report_review": review,
+                "report_source_snapshot": source_snapshot,
+                "report_source_artifacts": {
+                    "deployment_result": {
+                        "path": deployment_path,
+                        "sha256": deployment_sha256,
+                    }
+                },
+                "report_base_commit": code_commit,
+                "report_html_path": html_path,
+                "report_html_sha256": html_sha256,
+                "report_input_refs": ["evidence/u21/input.json"],
+                "report_evidence_refs": ["evidence/u21/input.json"],
+                "precheck_identity": identity,
+            },
+        )
+    
+        original_save = production_workflow.save_attempt_artifact
+        original_publish = production_workflow.publish_reviewed_report
+        save_failed = False
+        push_failed = False
+    
+        def fail_first_publication_save(*args, **kwargs):
+            nonlocal save_failed
+            if kwargs.get("filename") == "report-publication.json" and not save_failed:
+                save_failed = True
+                raise OSError("synthetic crash after remote push")
+            return original_save(*args, **kwargs)
+    
+        def fail_first_publication_push(*args, **kwargs):
+            nonlocal push_failed
+            if not push_failed and kwargs.get("target_branch") == "main":
+                push_failed = True
+                raise OSError("synthetic remote push failure")
+            return original_publish(*args, **kwargs)
+    
+        if failure_point == "sidecar":
+            monkeypatch.setattr(
+                production_workflow, "save_attempt_artifact", fail_first_publication_save
+            )
+        else:
+            monkeypatch.setattr(
+                production_workflow, "publish_reviewed_report", fail_first_publication_push
+            )
+    
+        workflow.state["precheck_identity"] = {**identity, "job_id": "job-other"}
+        rejected = run_daily_report_publication_stage(
+            workflow,
+            controller,
+            store,
+            repository=repository,
+            remote_name="origin",
+            target_branch="main",
+            exclusion_guard=guard,
+        )
+        assert rejected.status == "unknown"
+        assert rejected.reason_code == "report_publication_identity_mismatch"
+        assert not guard.held
+        assert _git(remote, "rev-parse", "refs/heads/main") == code_commit
+        workflow.state["precheck_identity"] = identity
+    
+        target_mismatch = run_daily_report_publication_stage(
+            workflow,
+            controller,
+            store,
+            repository=repository,
+            remote_name="origin",
+            target_branch="other",
+            exclusion_guard=guard,
+        )
+        assert target_mismatch.status == "unknown"
+&gt;       assert target_mismatch.reason_code == "report_target_branch_mismatch"
+E       AssertionError: assert 'report_revie...nding_invalid' == 'report_targe...anch_mismatch'
+E         
+E         - report_target_branch_mismatch
+E         + report_review_binding_invalid
+
+tests_inago\test_maintenance_report_publication_stage.py:1469: AssertionError</failure></testcase></testsuite></testsuites>

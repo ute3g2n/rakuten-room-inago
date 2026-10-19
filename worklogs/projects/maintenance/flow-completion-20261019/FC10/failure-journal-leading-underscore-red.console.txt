@@ -1,0 +1,47 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\project\rakuten-room-inago
+plugins: platformdirs-4.13.0, cov-7.1.0
+collected 14 items / 13 deselected / 1 selected
+
+tests_inago\test_maintenance_integration.py F                            [100%]
+
+================================== FAILURES ===================================
+___ test_failure_journal_replays_legacy_leading_underscore_capture_location ___
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1601/test_failure_journal_replays_l0')
+
+    def test_failure_journal_replays_legacy_leading_underscore_capture_location(
+        tmp_path,
+    ):
+        from automation.inago.maintenance import failure_journal
+    
+        data_root = tmp_path / "runtime"
+        result = failure_journal.append_failure_event(
+            data_root,
+            phase="failed",
+            operation="integration.legacy_capture_location",
+            correlation_id="corr-legacy-capture-location",
+            reason_code="synthetic_legacy_capture_location",
+            capture_location="_persist_minimal_daily_report",
+        )
+        store = make_store(tmp_path / "replay-db")
+    
+        replay = failure_journal.replay_failure_journal(data_root, store)
+        replay_again = failure_journal.replay_failure_journal(data_root, store)
+    
+>       assert replay == {"status": "complete", "replayed": 1, "unknown": 0, "source_errors": []}
+E       AssertionError: assert {'status': 'p...e_errors': []} == {'status': 'c...e_errors': []}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'unknown': 1} != {'unknown': 0}
+E         {'status': 'partial'} != {'status': 'complete'}
+E         {'replayed': 0} != {'replayed': 1}
+E         Use -v to get more diff
+
+tests_inago\test_maintenance_integration.py:319: AssertionError
+- generated xml file: C:\project\rakuten-room-inago\rakuten-room-inago\runtime\maintenance\failure-journal-leading-underscore-red.junit.xml -
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_integration.py::test_failure_journal_replays_legacy_leading_underscore_capture_location
+====================== 1 failed, 13 deselected in 0.75s =======================

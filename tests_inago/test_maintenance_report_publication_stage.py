@@ -1117,11 +1117,57 @@ def test_fc08_terminal_reconciliation_never_completes_with_missing_evidence(
 
 
 @pytest.mark.parametrize(
-    ("report_status", "expected_status", "expected_job_status", "expected_reason"),
+    (
+        "report_status",
+        "expected_status",
+        "expected_job_status",
+        "expected_reason",
+        "review_status",
+        "reviewer_id",
+        "stage_status",
+        "report_origin",
+    ),
     [
-        ("complete", "complete", "complete", None),
-        ("pending", "complete", "complete", None),
-        ("blocked", "complete", "complete", None),
+        (
+            "complete",
+            "complete",
+            "complete",
+            None,
+            "approved",
+            "rr-inago-incident-report-reviewer",
+            "reviewed",
+            None,
+        ),
+        (
+            "pending",
+            "complete",
+            "complete",
+            None,
+            "approved",
+            "rr-inago-incident-report-reviewer",
+            "reviewed",
+            None,
+        ),
+        (
+            "blocked",
+            "complete",
+            "complete",
+            None,
+            "approved",
+            "rr-inago-incident-report-reviewer",
+            "reviewed",
+            None,
+        ),
+        (
+            "pending",
+            "complete",
+            "complete",
+            None,
+            "unavailable",
+            "controller-fallback-review-unavailable",
+            "review_unavailable",
+            "controller_fallback",
+        ),
     ],
 )
 @pytest.mark.parametrize("failure_point", ["sidecar", "push"])
@@ -1132,6 +1178,10 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     expected_status: str,
     expected_job_status: str,
     expected_reason: str | None,
+    review_status: str,
+    reviewer_id: str,
+    stage_status: str,
+    report_origin: str | None,
     failure_point: str,
 ):
     runtime_root = tmp_path / "runtime"
@@ -1172,10 +1222,10 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     html_sha256 = hashlib.sha256(html).hexdigest()
     review = {
         "schema_version": "maintenance-report-review-v1",
-        "reviewer_id": "rr-inago-incident-report-reviewer",
+        "reviewer_id": reviewer_id,
         "reviewed_version": "report-u21-v1",
         "reviewed_sha256": html_sha256,
-        "status": "approved",
+        "status": review_status,
         "reviewed_at": "2026-10-19T03:00:00+09:00",
         "findings": [],
     }
@@ -1186,7 +1236,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         "result_version": "report-u21-v1",
         "created_at_jst": "2026-10-19T03:00:00+09:00",
         "report_status": report_status,
-        "stage_status": "reviewed",
+        "stage_status": stage_status,
         "review": review,
         "output": {"path": html_path, "sha256": html_sha256},
         "source_versions": {
@@ -1199,6 +1249,10 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         },
         "next_action": "publish",
     }
+    if report_origin is not None:
+        result_document["report_origin"] = report_origin
+    if review_status == "unavailable":
+        result_document["review_failure"] = "synthetic_reviewer_unavailable"
     result_bytes = (
         json.dumps(
             result_document,
@@ -1280,9 +1334,9 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         def get_step_attempt_review(self, *, attempt_id: str):
             assert attempt_id == attempt_id_expected
             return {
-                "status": "approved",
+                "status": review_status,
                 "reviewed_version": "report-u21-v1",
-                "reviewer_id": "rr-inago-incident-report-reviewer",
+                "reviewer_id": reviewer_id,
             }
 
         def read_attempt_artifact(
@@ -3094,3 +3148,74 @@ def test_fc10_completed_normal_report_restore_keeps_refs_outside_identity(
     assert workflow.state["precheck_identity"] == identity
     assert workflow.state["report_input_refs"] == input_refs
     assert workflow.state["report_evidence_refs"] == evidence_refs
+
+
+def test_fc10_unavailable_review_binding_requires_exact_controller_fallback():
+    attempt = SimpleNamespace(result_version="fallback-review-u1")
+    review = {
+        "reviewer_id": "controller-fallback-review-unavailable",
+        "reviewed_version": attempt.result_version,
+        "reviewed_sha256": "a" * 64,
+        "status": "unavailable",
+    }
+    result_document = {
+        "report_origin": "controller_fallback",
+        "stage_status": "review_unavailable",
+        "report_status": "pending",
+        "next_action": "publish",
+        "review": review,
+    }
+    review_record = {
+        "reviewer_id": review["reviewer_id"],
+        "reviewed_version": attempt.result_version,
+        "status": "unavailable",
+    }
+    assert production_workflow._daily_report_publication_review_binding_valid(
+        review,
+        result_document=result_document,
+        review_record=review_record,
+        attempt=attempt,
+    )
+
+    for mismatched in (
+        {**result_document, "report_origin": "reporter"},
+        {**result_document, "stage_status": "reviewed"},
+        {**result_document, "report_status": "complete"},
+        {**result_document, "next_action": "hold"},
+        {**result_document, "review": {**review, "reviewer_id": "unknown"}},
+    ):
+        assert not production_workflow._daily_report_publication_review_binding_valid(
+            review,
+            result_document=mismatched,
+            review_record=review_record,
+            attempt=attempt,
+        )
+    for mismatched_record in (
+        None,
+        {**review_record, "reviewer_id": "rr-inago-incident-report-reviewer"},
+        {**review_record, "reviewed_version": "another-version"},
+        {**review_record, "status": "approved"},
+    ):
+        assert not production_workflow._daily_report_publication_review_binding_valid(
+            review,
+            result_document=result_document,
+            review_record=mismatched_record,
+            attempt=attempt,
+        )
+
+
+def test_fc10_normal_review_binding_requires_persisted_review_record():
+    attempt = SimpleNamespace(result_version="normal-review-u1")
+    review = {
+        "reviewer_id": "rr-inago-incident-report-reviewer",
+        "reviewed_version": attempt.result_version,
+        "reviewed_sha256": "b" * 64,
+        "status": "approved",
+    }
+    result_document = {"review": review}
+    assert not production_workflow._daily_report_publication_review_binding_valid(
+        review,
+        result_document=result_document,
+        review_record=None,
+        attempt=attempt,
+    )

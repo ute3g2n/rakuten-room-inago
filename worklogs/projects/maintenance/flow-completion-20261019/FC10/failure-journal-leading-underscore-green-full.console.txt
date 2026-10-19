@@ -1,0 +1,325 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\project\rakuten-room-inago
+plugins: platformdirs-4.13.0, cov-7.1.0
+collected 14 items
+
+tests_inago\test_maintenance_integration.py ........F....F               [100%]
+
+================================== FAILURES ===================================
+______________________________ test_c59_contract ______________________________
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1603/test_c59_contract0')
+
+    def test_c59_contract(tmp_path):
+        store = make_store(tmp_path)
+        observed_during_launch = []
+    
+        def process_probe(pid):
+            launch = next(iter(store.list_daily_launches(target_date="2026-10-17")))
+            if launch.status == "running" and pid == launch.owner_pid:
+                return ProcessObservation("running", launch.owner_start_time)
+            return ProcessObservation("stopped", None)
+    
+        def process_runner(_command, _cwd, on_started):
+            on_started(9202)
+            launch = next(iter(store.list_daily_launches(target_date="2026-10-17")))
+            during = run_worker_once(
+                store,
+                now=BASE_TIME + timedelta(minutes=2),
+                owner_id="worker-c59-during",
+                owner_pid=9203,
+                owner_start_time=(BASE_TIME + timedelta(minutes=2)).isoformat(),
+                process_probe=process_probe,
+                source_launch_id=launch.source_launch_id,
+            )
+            observed_during_launch.append(during)
+            payload = {
+                "schema_version": "daily-run-result-v1",
+                "target_date": "2026-10-17",
+                "status": "complete",
+                "overall_status": "complete",
+                "daily_status": "complete",
+                "run_id": "run-c59",
+            }
+            return DailyProcessResult(
+                returncode=0,
+                stdout=json.dumps(payload).encode("utf-8"),
+                stderr=b"",
+                pid=9202,
+            )
+    
+        launch_outcome = run_daily_launch(
+            store,
+            data_root=tmp_path / "runtime",
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=process_runner,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        assert launch_outcome.notification_status == "saved"
+        assert observed_during_launch[0].status == "waiting"
+        assert observed_during_launch[0].reason_code == "daily_launch_running"
+    
+        launch_id = launch_outcome.launch_id
+        task_calls = []
+        dispatched = dispatch_ready_worker(
+            store,
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            task_runner=lambda command, **_kwargs: task_calls.append(command)
+            or type("Result", (), {"returncode": 0})(),
+        )
+        assert dispatched.status == "dispatched"
+        assert task_calls == [["schtasks.exe", "/Run", "/TN", "RakutenRoomInagoWorker"]]
+        complete = run_worker_once(
+            store,
+            now=BASE_TIME + timedelta(minutes=3),
+            owner_id="worker-c59-after",
+            owner_pid=9204,
+            owner_start_time=(BASE_TIME + timedelta(minutes=3)).isoformat(),
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            source_launch_id=launch_id,
+        )
+        duplicate = run_worker_once(
+            store,
+            now=BASE_TIME + timedelta(minutes=4),
+            owner_id="worker-c59-duplicate",
+            owner_pid=9205,
+            owner_start_time=(BASE_TIME + timedelta(minutes=4)).isoformat(),
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            source_launch_id=launch_id,
+        )
+    
+>       assert complete.status == "dispatch_complete"
+E       AssertionError: assert 'maintenance_incomplete' == 'dispatch_complete'
+E         
+E         - dispatch_complete
+E         + maintenance_incomplete
+
+tests_inago\test_maintenance_integration.py:619: AssertionError
+______________________________ test_c50_contract ______________________________
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1603/test_c50_contract0')
+
+    def test_c50_contract(tmp_path):
+        import hashlib
+        import subprocess
+        import sys
+        from copy import deepcopy
+        from pathlib import Path
+    
+        from automation.inago.maintenance.deployment import (
+            DeploymentCoordinator,
+            PendingSnapshot,
+            commit_owned_paths,
+        )
+        from automation.inago.maintenance.reporting import (
+            finalize_report_review,
+            prepare_incident_report,
+            publish_reviewed_report,
+        )
+        from automation.inago.maintenance.repair import RepairController, RepairReview
+        from tests_inago.test_maintenance_planning import (
+            PLAN_VERSION,
+            _complete_plan,
+            _make_plan_response,
+            _start_planning_attempt,
+        )
+        from tests_inago.test_maintenance_repair import _with_repair_scope
+        from tests_inago.test_maintenance_report import (
+            _job_context,
+            _report_response,
+            _source_snapshot,
+        )
+    
+        (
+            store,
+            controller,
+            lease,
+            plan_context,
+            attempts_root,
+            plan_output,
+            _plan_attempt,
+        ) = _start_planning_attempt(tmp_path / "workflow")
+        plan_outcome = _complete_plan(
+            controller,
+            lease,
+            plan_context,
+            attempts_root,
+            plan_output,
+            _with_repair_scope(_make_plan_response(plan_context)),
+        )
+        repair_attempt = controller.begin_repair_attempt(
+            job_id=plan_context["job_id"],
+            attempts_root=attempts_root,
+            lease=lease,
+            started_at=BASE_TIME + timedelta(seconds=18),
+        )
+    
+        repo = tmp_path / "toy-repo"
+        repo.mkdir()
+        _git(repo, "init", "--initial-branch=main")
+        _git(repo, "config", "user.name", "C50 Fixture")
+        _git(repo, "config", "user.email", "c50@example.invalid")
+        fix_path = repo / "automation" / "inago" / "maintenance" / "fix.py"
+        fix_path.parent.mkdir(parents=True)
+        fix_path.write_text(
+            "def calculate(value):\n    return value + 2\n", encoding="utf-8"
+        )
+        test_path = repo / "tests" / "test_fix.py"
+        test_path.parent.mkdir()
+        test_path.write_text(
+            "from automation.inago.maintenance.fix import calculate\n\n"
+            "def test_calculate():\n    assert calculate(0) == 1\n",
+            encoding="utf-8",
+        )
+        _git(repo, "add", "--all")
+        _git(repo, "commit", "-m", "test fixture baseline")
+        base_commit = _git(repo, "rev-parse", "HEAD")
+        remote = tmp_path / "toy-remote.git"
+        _git(tmp_path, "init", "--bare", str(remote))
+        _git(repo, "remote", "add", "origin", str(remote))
+        _git(repo, "push", "--set-upstream", "origin", "main")
+        active = tmp_path / "active-runtime"
+        _git(tmp_path, "clone", "--branch", "main", str(remote), str(active))
+        _git(active, "config", "user.name", "C50 Runtime")
+        _git(active, "config", "user.email", "runtime@example.invalid")
+    
+        red = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "tests/test_fix.py"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+            check=False,
+        )
+        assert red.returncode == 1
+        _git(repo, "checkout", "-b", "codex/repair")
+        fix_path.write_text(
+            "def calculate(value):\n    return value + 1\n", encoding="utf-8"
+        )
+        green = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "tests/test_fix.py"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+            check=False,
+        )
+        assert green.returncode == 0
+        code_sha256 = hashlib.sha256(fix_path.read_bytes()).hexdigest()
+        patch_assessment = RepairController().assess_patch(
+            changed_paths=("automation/inago/maintenance/fix.py",),
+            owned_paths=("automation/inago/maintenance/fix.py",),
+            baseline_assertions={"tests/test_fix.py": {"expected": "calculate(0) == 1"}},
+            candidate_assertions={"tests/test_fix.py": {"expected": "calculate(0) == 1"}},
+        )
+        review_controller = RepairController(
+            identity_resolver=lambda identity: (
+                "implementer" if identity == "repair-author-c50" else "read_only_reviewer"
+            )
+        )
+        repair_review = RepairReview(
+            author_id="repair-author-c50",
+            reviewer_id="repair-reviewer-c50",
+            tested_result_version="repair-c50-v1",
+            reviewed_result_version="repair-c50-v1",
+            tested_code_sha256=code_sha256,
+            reviewed_code_sha256=code_sha256,
+        )
+        assert patch_assessment.accepted is True
+        assert review_controller.validate_review(repair_review) is True
+        repair_commit = commit_owned_paths(
+            repo,
+            ("automation/inago/maintenance/fix.py",),
+            message="fix: correct synthetic daily result calculation",
+        )
+        _git(repo, "push", "origin", f"{repair_commit}:refs/heads/codex/repair")
+    
+        release_id = "release-c50-toy"
+        result_version = "release-c50-v1"
+        store.create_release(
+            release_id=release_id,
+            author_id="repair-author-c50",
+            base_commit=base_commit,
+            result_commit=repair_commit,
+            result_version=result_version,
+            config_version="config-c50-v1",
+            required_case_ids=("case-c50-toy",),
+            created_at=BASE_TIME + timedelta(minutes=30),
+        )
+        store.record_test_result(
+            release_id=release_id,
+            case_id="case-c50-toy",
+            attempt=1,
+            result_version=result_version,
+            status="PASS",
+            evidence_ref="evidence/C50/toy-pytest.json",
+            recorded_at=BASE_TIME + timedelta(minutes=31),
+        )
+        store.record_release_review(
+            release_id=release_id,
+            reviewer_id="release-reviewer-c50",
+            reviewed_version=result_version,
+            status="approved",
+            reviewed_at=BASE_TIME + timedelta(minutes=32),
+        )
+    
+        class Runtime:
+            def current_commit(self):
+                return _git(active, "rev-parse", "HEAD")
+    
+            def activate(self, commit, checkout=None):
+                _git(active, "fetch", "origin", "main")
+                _git(active, "checkout", "--detach", commit)
+                assert checkout is None or _git(checkout, "rev-parse", "HEAD") == commit
+    
+            def healthy(self, expected_commit):
+                return self.current_commit() == expected_commit
+    
+        class Guard:
+            held = False
+    
+            def acquire(self):
+                if self.held:
+                    return False
+                self.held = True
+                return True
+    
+            def release(self):
+                self.held = False
+    
+        deployment = DeploymentCoordinator(
+            store=store,
+            repository=repo,
+            worktree_root=tmp_path / "managed-worktrees",
+            daily_active_probe=lambda: False,
+            pending_probe=lambda: PendingSnapshot(0, "pending-c50"),
+            runtime_switcher=Runtime(),
+            exclusion_guard=Guard(),
+            clock=lambda: BASE_TIME + timedelta(hours=2),
+        ).deploy(
+            release_id=release_id,
+            tested_version=result_version,
+            reviewed_version=result_version,
+            remote_name="origin",
+            target_branch="main",
+            active_checkout=active,
+            expected_target_commit=base_commit,
+            owner_id="deployer-c50",
+        )
+>       assert deployment.status == "deployed"
+E       AssertionError: assert 'blocked' == 'deployed'
+E         
+E         - deployed
+E         + blocked
+
+tests_inago\test_maintenance_integration.py:1265: AssertionError
+- generated xml file: C:\project\rakuten-room-inago\rakuten-room-inago\runtime\maintenance\failure-journal-leading-underscore-green-full.junit.xml -
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_integration.py::test_c59_contract - Asser...
+FAILED tests_inago/test_maintenance_integration.py::test_c50_contract - Asser...
+======================== 2 failed, 12 passed in 11.24s ========================

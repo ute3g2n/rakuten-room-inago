@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.456" timestamp="2026-10-20T03:56:34.508598+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc10_normal_review_binding_requires_persisted_review_record" time="0.001"><failure message="AssertionError: assert not True&#10; +  where True = &lt;function _daily_report_publication_review_binding_valid at 0x000001A007320860&gt;({'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}, result_document={'review': {'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}}, review_record=None, attempt=namespace(result_version='normal-review-u1'))&#10; +    where &lt;function _daily_report_publication_review_binding_valid at 0x000001A007320860&gt; = production_workflow._daily_report_publication_review_binding_valid">def test_fc10_normal_review_binding_requires_persisted_review_record():
+        attempt = SimpleNamespace(result_version="normal-review-u1")
+        review = {
+            "reviewer_id": "rr-inago-incident-report-reviewer",
+            "reviewed_version": attempt.result_version,
+            "reviewed_sha256": "b" * 64,
+            "status": "approved",
+        }
+        result_document = {"review": review}
+&gt;       assert not production_workflow._daily_report_publication_review_binding_valid(
+            review,
+            result_document=result_document,
+            review_record=None,
+            attempt=attempt,
+        )
+E       AssertionError: assert not True
+E        +  where True = &lt;function _daily_report_publication_review_binding_valid at 0x000001A007320860&gt;({'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}, result_document={'review': {'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}}, review_record=None, attempt=namespace(result_version='normal-review-u1'))
+E        +    where &lt;function _daily_report_publication_review_binding_valid at 0x000001A007320860&gt; = production_workflow._daily_report_publication_review_binding_valid
+
+tests_inago\test_maintenance_report_publication_stage.py:3216: AssertionError</failure></testcase></testsuite></testsuites>

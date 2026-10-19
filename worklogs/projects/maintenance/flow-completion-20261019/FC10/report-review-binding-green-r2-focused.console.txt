@@ -1,0 +1,10 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\project\rakuten-room-inago
+plugins: platformdirs-4.13.0, cov-7.1.0
+collected 37 items / 27 deselected / 10 selected
+
+tests_inago\test_maintenance_report_publication_stage.py ..........      [100%]
+
+- generated xml file: C:\project\rakuten-room-inago\rakuten-room-inago\runtime\maintenance\report-review-binding-green-r2-focused.junit.xml -
+===================== 10 passed, 27 deselected in 24.94s ======================

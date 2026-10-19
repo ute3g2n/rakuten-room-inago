@@ -8545,6 +8545,38 @@ def _daily_report_reviewer_id_valid(review: dict[str, Any]) -> bool:
     return review.get("reviewer_id") == _REPORT_REVIEWER_ROLE
 
 
+def _daily_report_publication_review_binding_valid(
+    review: dict[str, Any],
+    *,
+    result_document: dict[str, Any],
+    review_record: dict[str, str] | None,
+    attempt: StepAttemptRecord,
+) -> bool:
+    controller_unavailable_review = (
+        result_document.get("report_origin") == "controller_fallback"
+        and result_document.get("stage_status") == "review_unavailable"
+        and result_document.get("report_status") == "pending"
+        and result_document.get("next_action") == "publish"
+        and review.get("reviewer_id") == "controller-fallback-review-unavailable"
+        and review.get("status") == "unavailable"
+    )
+    if not (
+        _daily_report_reviewer_id_valid(review) or controller_unavailable_review
+    ):
+        return False
+    if result_document.get("review") != review:
+        return False
+    if not isinstance(review_record, dict):
+        return False
+    if (
+        review_record.get("reviewed_version") != attempt.result_version
+        or review_record.get("reviewer_id") != review.get("reviewer_id")
+        or review_record.get("status") != review.get("status")
+    ):
+        return False
+    return True
+
+
 def _daily_report_review_markdown(review: dict[str, Any]) -> str:
     lines = [
         "# 日次不具合レポートのレビュー",
@@ -10454,18 +10486,11 @@ def run_daily_report_publication_stage(
             result_version=str(attempt.result_version),
             output_sha256=html_sha256,
         )
-        if (
-            not _daily_report_reviewer_id_valid(validated_review)
-            or result_document.get("review") != validated_review
-            or (
-                isinstance(review_record, dict)
-                and (
-                    review_record.get("reviewed_version") != attempt.result_version
-                    or review_record.get("reviewer_id")
-                    != validated_review.get("reviewer_id")
-                    or review_record.get("status") != validated_review.get("status")
-                )
-            )
+        if not _daily_report_publication_review_binding_valid(
+            validated_review,
+            result_document=result_document,
+            review_record=review_record,
+            attempt=attempt,
         ):
             raise ReportContractError("report_review_binding_invalid")
         html = _daily_report_read_bytes(

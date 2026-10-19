@@ -1,0 +1,35 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\project\rakuten-room-inago
+plugins: platformdirs-4.13.0, cov-7.1.0
+collected 37 items / 36 deselected / 1 selected
+
+tests_inago\test_maintenance_report_publication_stage.py F               [100%]
+
+================================== FAILURES ===================================
+______ test_fc10_normal_review_binding_requires_persisted_review_record _______
+
+    def test_fc10_normal_review_binding_requires_persisted_review_record():
+        attempt = SimpleNamespace(result_version="normal-review-u1")
+        review = {
+            "reviewer_id": "rr-inago-incident-report-reviewer",
+            "reviewed_version": attempt.result_version,
+            "reviewed_sha256": "b" * 64,
+            "status": "approved",
+        }
+        result_document = {"review": review}
+>       assert not production_workflow._daily_report_publication_review_binding_valid(
+            review,
+            result_document=result_document,
+            review_record=None,
+            attempt=attempt,
+        )
+E       AssertionError: assert not True
+E        +  where True = <function _daily_report_publication_review_binding_valid at 0x000001A007320860>({'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}, result_document={'review': {'reviewer_id': 'rr-inago-incident-report-reviewer', 'reviewed_version': 'normal-review-u1', 'reviewed_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'status': 'approved'}}, review_record=None, attempt=namespace(result_version='normal-review-u1'))
+E        +    where <function _daily_report_publication_review_binding_valid at 0x000001A007320860> = production_workflow._daily_report_publication_review_binding_valid
+
+tests_inago\test_maintenance_report_publication_stage.py:3216: AssertionError
+- generated xml file: C:\project\rakuten-room-inago\rakuten-room-inago\runtime\maintenance\report-normal-review-missing-db-red.junit.xml -
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc10_normal_review_binding_requires_persisted_review_record
+====================== 1 failed, 36 deselected in 0.55s =======================

@@ -1,0 +1,27 @@
+{
+  "schema_version": "fc10-product-review-result-v1",
+  "review_target": "report-review-binding-and-journal-replay-review-target-r2.json",
+  "review_target_sha256": "944eb61c67bbf10574385dd60208828f5982d04404b2c766afabcd48f00a59bf",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "bd4414efb355685c8e9cc075f06e9e9d184945f90137bb727f126b16e3ff47bc",
+    "automation/inago/maintenance/failure_journal.py": "2a6cee9355255785d3e2eb2d85e3d4b0331c06d0e880e5bca28a46ec53849eb7"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "5f3464c4a435b175ea31ffc74560b2ad065f9ef628f2e6009d69315793078b3d",
+    "tests_inago/test_maintenance_integration.py": "f9c46914a5cb05197c57d937ca215754b6b6795c9ee87e18311b3ca174b921ed"
+  },
+  "reviewer": "/root/fc08_product_review",
+  "verdict": "approved",
+  "findings": [],
+  "confirmed": [
+    "Publication requires a persisted review row for normal and controller-unavailable reviewer paths, matched to the attempt version and review identity/status.",
+    "Controller-unavailable publication is restricted to the exact controller_fallback + review_unavailable + pending + publish + fixed reviewer identity/status combination, and the result review must equal the validated review.",
+    "Ordinary reviewer identity remains strict; attempt, result, HTML, manifest, and launch bindings remain exact.",
+    "Legacy leading-underscore capture_location normalization applies only to the replay copy; the original fallback row and event id are preserved and replay deduplication remains in place."
+  ],
+  "limitations": [
+    "The review covered only the two product source files listed in the manifest.",
+    "Both test files were integrity-checked by hash only; the reviewer did not read or run tests.",
+    "The reviewer did not inspect the maintenance store sink implementation, edit files, or touch production data."
+  ]
+}

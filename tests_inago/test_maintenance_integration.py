@@ -297,6 +297,46 @@ def test_failure_journal_primary_failure_uses_independent_spool_and_replays_once
     assert result["event_id"] in stored_event_ids
 
 
+def test_failure_journal_replays_legacy_leading_underscore_capture_location(
+    tmp_path,
+):
+    from automation.inago.maintenance import failure_journal
+
+    data_root = tmp_path / "runtime"
+    result = failure_journal.append_failure_event(
+        data_root,
+        phase="failed",
+        operation="integration.legacy_capture_location",
+        correlation_id="corr-legacy-capture-location",
+        reason_code="synthetic_legacy_capture_location",
+        capture_location="_persist_minimal_daily_report",
+    )
+    store = make_store(tmp_path / "replay-db")
+
+    replay = failure_journal.replay_failure_journal(data_root, store)
+    replay_again = failure_journal.replay_failure_journal(data_root, store)
+
+    assert replay == {
+        "status": "complete",
+        "replayed": 1,
+        "unknown": 0,
+        "source_errors": [],
+    }
+    assert replay_again == {
+        "status": "complete",
+        "replayed": 1,
+        "unknown": 0,
+        "source_errors": [],
+    }
+    with store._connect() as connection:
+        stored = connection.execute(
+            "SELECT capture_location FROM maintenance_operation_event WHERE event_id = ?",
+            (result["event_id"],),
+        ).fetchone()
+    assert stored is not None
+    assert stored[0] == "symbol:_persist_minimal_daily_report"
+
+
 def test_failure_journal_dual_sink_failure_does_not_gate_tracked_operation(
     tmp_path, monkeypatch
 ):

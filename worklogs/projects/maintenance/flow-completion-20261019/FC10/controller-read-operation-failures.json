@@ -152,6 +152,116 @@
       "side_effect": "none; read-only check",
       "recovery": "Retained the original evidence bytes. The scoped git diff --cached --check using Git exclude pathspecs for **/*.console.txt and **/*.junit.xml exited 0 for all code, plan, JSON and narrative records. The only full-check findings were those four raw test-output padding lines.",
       "recorded_at_utc": "2026-10-19T18:46:47Z"
+    },
+    {
+      "operation": "read_resume_13_attempt_table_with_legacy_name",
+      "attempted_reference": "SQLite query of maintenance_step_attempt and stage observations ordered by created_at",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The active schema has no maintenance_step_attempt table and maintenance_workflow_stage_observation has no created_at column. The report-attempt table is step_attempt; stage observations use observed_at.",
+      "capture_location": "same-job-resume-13 targeted readback",
+      "side_effect": "none; read-only query failed before returning data",
+      "recovery": "Queried step_attempt, review_result, and maintenance_workflow_stage_observation ordered by observed_at; confirmed attempt 7 and review binding.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "read_runtime_apply_record_with_wrong_database_filename",
+      "attempted_reference": "runtime maintenance DB at runtime/maintenance/maintenance.sqlite",
+      "failure_class": "FileNotFoundError",
+      "reason": "The official runtime stores state.sqlite, not maintenance.sqlite. The activation itself had already succeeded; this wrapper stopped before writing its local readback record.",
+      "capture_location": "runtime-apply readback wrapper",
+      "side_effect": "none from this read operation; activation was already successful and unchanged",
+      "recovery": "Read the official fixed-root state at rakuten-room-inago/runtime/maintenance/state.sqlite and independently recorded active root/SHA, pending=null, health, scheduled tasks, schema, and quick_check.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "read_report_schemas_from_wrong_directory",
+      "attempted_reference": "automation/inago/maintenance/schemas/maintenance-report-review.schema.json and maintenance-report-result.schema.json",
+      "failure_class": "FileNotFoundError",
+      "reason": "The repository stores these schemas under automation/inago/schemas, not automation/inago/maintenance/schemas.",
+      "capture_location": "schema read for same-job resume 13",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Read the two existing schema files from automation/inago/schemas and parsed them successfully.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "parse_current_git_tracking_with_unquoted_braces",
+      "attempted_reference": "git rev-parse --abbrev-ref --symbolic-full-name @{u} through PowerShell",
+      "failure_class": "PowerShell ParserError",
+      "reason": "PowerShell interpreted the unquoted @{u} token as a hashtable literal before Git ran.",
+      "capture_location": "exec_command PowerShell parser",
+      "side_effect": "none; no Git mutation",
+      "recovery": "Quoted 'HEAD@{u}' and confirmed branch main and upstream origin/main.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "open_failure_journal_test_at_nonexistent_filename",
+      "attempted_reference": "tests_inago/test_maintenance_failure_journal.py",
+      "failure_class": "FileNotFoundError",
+      "reason": "There is no dedicated test module with that name; failure-journal integration tests are in tests_inago/test_maintenance_integration.py.",
+      "capture_location": "Get-Content test source lookup",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Searched tests_inago filenames and read the existing replay tests in test_maintenance_integration.py.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "parse_junit_failure_node_with_element_truthiness",
+      "attempted_reference": "JUnit XML parser used case.find(\"failure\") or case.find(\"error\")",
+      "failure_class": "AttributeError",
+      "reason": "An empty junit failure element is falsey in ElementTree, so the or expression selected None and a later get() call failed.",
+      "capture_location": "JUnit readback helper",
+      "side_effect": "none; read-only parse helper failed after loading the JUnit file",
+      "recovery": "Selected the failure element with explicit is None checks; extracted both failing cases and their exact assertion outputs.",
+      "recorded_at_utc": "2026-10-19T18:59:28Z"
+    },
+    {
+      "operation": "read_resume13_manifest_launch_from_daily_launch_table",
+      "attempted_reference": "daily_launch WHERE source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "failure_class": "TypeError from dict(None)",
+      "reason": "This historical source launch has no daily_launch row; its identity is in job_input_manifest and maintenance_job_resume_event. Treating it as a launched Daily run would invent history.",
+      "capture_location": "same-job-resume-13 readback builder",
+      "side_effect": "none; read-only query",
+      "recovery": "Recorded daily_launch_record=null and separately verified source_run_id remains null and the incident has zero non-null source_run rows.",
+      "recorded_at_utc": "2026-10-19T19:03:09Z"
+    },
+    {
+      "operation": "read_resume13_publication_failure_from_sqlite_ledger",
+      "attempted_reference": "maintenance_operation_event WHERE operation=workflow.report.publication.validate_review_binding",
+      "failure_class": "RuntimeError: publication failure event not found",
+      "reason": "The inner publication failure was written to the append-only failure-journal JSONL, while SQLite contains the report-stage handoff observation.",
+      "capture_location": "same-job-resume-13 readback builder",
+      "side_effect": "none; read-only query",
+      "recovery": "Read the exact event e27603332e6343a5a1871a1de139cea3 from failure-journal/events.jsonl and pair it with the SQLite report handoff.",
+      "recorded_at_utc": "2026-10-19T19:03:09Z"
+    },
+    {
+      "operation": "read_resume13_result_from_non_attempt_relative_path",
+      "attempted_reference": "runtime/maintenance/<job_id>/<attempt_id>/result.json",
+      "failure_class": "FileNotFoundError",
+      "reason": "step_attempt.output_path is relative to the runtime attempts directory, which prefixes attempts/<job_id>/<attempt_id>.",
+      "capture_location": "same-job-resume-13 artifact readback",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Used DB path attempts/job-historical-.../b722e3df-.../result.json and verified the result SHA-256.",
+      "recorded_at_utc": "2026-10-19T19:03:09Z"
+    },
+    {
+      "operation": "read_resume13_html_by_result_path_as_runtime_relative",
+      "attempted_reference": "runtime/maintenance/<result.output.path>",
+      "failure_class": "FileNotFoundError / missing readback candidate",
+      "reason": "The result output path is a logical artifact reference; the HTML file is stored beside result.json in the attempt artifact directory.",
+      "capture_location": "same-job-resume-13 HTML hash readback",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Resolved the artifact sibling by the basename of output.path and verified the actual HTML SHA-256 against output.sha256.",
+      "recorded_at_utc": "2026-10-19T19:03:09Z"
+    },
+    {
+      "operation": "full_round2_staged_diff_check_on_immutable_pytest_evidence",
+      "attempted_reference": "git diff --cached --check across 36 explicitly staged owned paths",
+      "failure_class": "git diff --check whitespace finding",
+      "reason": "The preserved pytest console/JUnit captures include the runner padded E-status line and blank lines with trailing spaces. The check reported no source, plan, JSON, or narrative documentation whitespace defects.",
+      "capture_location": "git diff --cached --check",
+      "side_effect": "none; read-only check",
+      "recovery": "Kept the raw output bytes unchanged. Re-ran git diff --cached --check with explicit Git exclude pathspecs for **/*.console.txt and **/*.junit.xml; the scoped product, plan, JSON, and narrative check exited 0. Review target evidence hashes still match.",
+      "recorded_at_utc": "2026-10-19T19:05:55Z"
     }
   ]
 }

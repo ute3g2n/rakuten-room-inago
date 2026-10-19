@@ -1,0 +1,28 @@
+{
+  "schema_version": "fc10-product-review-result-v1",
+  "review_target": "report-review-unavailable-publication-review-target.json",
+  "review_target_sha256": "adce6774960a15ff198518155ab9cc0e97cefd92b447b77e30fd2f9df5ae4915",
+  "product_source_sha256": "7186adc923d253c362b904f74e8cb016d1ad2adc37a800db508834788cb991e7",
+  "test_source_integrity_sha256": "2014cd9579894b0b61107cad5c374939bf6a84bcff774b739d75fbb8c65494dd",
+  "reviewer": "/root/fc08_product_review",
+  "verdict": "changes_requested",
+  "findings": [
+    {
+      "severity": "medium",
+      "location": "automation/inago/maintenance/production_workflow.py::_daily_report_publication_review_binding_valid lines 8569-8577 at reviewed version",
+      "finding": "A persisted review row was mandatory only for controller-unavailable reviews. For an ordinary configured reviewer, review_record=None fell through and returned true, so a missing DB review row did not fail closed.",
+      "required_change": "Require a persisted review_record dict for both normal and unavailable review branches, then match reviewed_version, reviewer_id, and status to the exact attempt/result review."
+    }
+  ],
+  "confirmed_constraints": [
+    "Controller unavailable tuple and result review equality were constrained correctly.",
+    "Normal reviewer identity remained exact.",
+    "Result/attempt/HTML and manifest/launch checks remained strict."
+  ],
+  "review_constraints_satisfied": {
+    "tests_read": false,
+    "tests_run": false,
+    "files_edited": false,
+    "production_data_touched": false
+  }
+}
