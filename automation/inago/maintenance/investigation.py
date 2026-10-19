@@ -422,11 +422,16 @@ def validate_investigation_response(
 def _markdown_text(value: object, *, fallback: str = "未確認") -> str:
     if not isinstance(value, str) or not value.strip():
         value = fallback
-    flattened = " ".join(value.split())
-    escaped = html.escape(flattened, quote=False)
-    for char in ("\\", "`", "*", "_", "[", "]", "|", "#", ">"):
-        escaped = escaped.replace(char, f"&#{ord(char)};")
-    return escaped
+    return html.escape(" ".join(value.split()), quote=False)
+
+
+def _markdown_table_text(value: object, *, fallback: str = "未確認") -> str:
+    flattened = _markdown_text(value, fallback=fallback)
+    return re.sub(
+        r"(\\*)\|",
+        lambda match: "&#92;" * len(match.group(1)) + "&#124;",
+        flattened,
+    )
 
 
 def _fact_lines(fact: Mapping[str, Any]) -> list[str]:
@@ -509,14 +514,14 @@ def render_investigation_markdown(
         ]
     if facts:
         for fact in facts:
-            refs = ", ".join(_markdown_text(ref) for ref in fact["evidence_refs"])
+            refs = ", ".join(_markdown_table_text(ref) for ref in fact["evidence_refs"])
             lines.append(
                 "| {classification} / {phase} | {expected} | {actual} | {impact} | {refs} |".format(
-                    classification=_markdown_text(fact["classification"]),
-                    phase=_markdown_text(fact["phase"]),
-                    expected=_markdown_text(fact["expected"]),
-                    actual=_markdown_text(fact["actual"]),
-                    impact=_markdown_text(fact["impact"]),
+                    classification=_markdown_table_text(fact["classification"]),
+                    phase=_markdown_table_text(fact["phase"]),
+                    expected=_markdown_table_text(fact["expected"]),
+                    actual=_markdown_table_text(fact["actual"]),
+                    impact=_markdown_table_text(fact["impact"]),
                     refs=refs,
                 )
             )
@@ -577,7 +582,7 @@ def render_investigation_markdown(
     if observations:
         for item in observations:
             lines.append(
-                f"| {_markdown_text(item['item'])} | {_markdown_text(item['observation'])} | {_markdown_text(item['basis'])} | {_markdown_text(item['limits'])} |"
+                f"| {_markdown_table_text(item['item'])} | {_markdown_table_text(item['observation'])} | {_markdown_table_text(item['basis'])} | {_markdown_table_text(item['limits'])} |"
             )
     else:
         lines.append("| 該当なし | 未確認 | 根拠不足のため正常判定なし | 未確認 |")
@@ -615,7 +620,7 @@ def render_investigation_markdown(
     if data["verification_candidates"]:
         for item in data["verification_candidates"]:
             lines.append(
-                f"| {_markdown_text(item)} | 上記の許可済みfact/evidence参照 | 読取専用の隔離確認 | 根拠不足ならblockedとして再開条件を記録 |"
+                f"| {_markdown_table_text(item)} | 上記の許可済みfact/evidence参照 | 読取専用の隔離確認 | 根拠不足ならblockedとして再開条件を記録 |"
             )
     else:
         lines.append("| 該当なし | 未確認 | 追加情報をcontrollerへ依頼 | 情報取得後に再開 |")
