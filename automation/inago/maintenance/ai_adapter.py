@@ -703,6 +703,8 @@ class MaintenanceAISession:
         if server_output_schema is not None:
             self._prepare_output_schema(server_output_schema)
             server_schema = server_output_schema
+        server_schema = self._strict_server_output_schema(server_schema)
+        self._prepare_output_schema(server_schema)
         allowed = self._validate_allowed_outputs(allowed_outputs)
         self._revalidate_write_roots()
         try:
@@ -755,6 +757,9 @@ class MaintenanceAISession:
                 error=exc,
                 capture_location="ai_adapter.MaintenanceAISession.run_turn",
                 input_refs=(self.plan.session_key,),
+                provider_error_type=getattr(exc, "provider_error_type", None),
+                provider_error_code=getattr(exc, "provider_error_code", None),
+                provider_error_param=getattr(exc, "provider_error_param", None),
                 primary_sink="app_server_transport",
             )
             raise MaintenanceAIBlockedError("ai_transport_failed") from exc
@@ -836,6 +841,46 @@ class MaintenanceAISession:
         except (TypeError, ValueError, SchemaError) as exc:
             raise MaintenanceAIBlockedError("output_schema_invalid") from exc
         return Draft202012Validator(schema)
+
+    @classmethod
+    def _strict_server_output_schema(
+        cls, output_schema: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Copy a response schema into the Codex strict-schema subset.
+
+        The original schema remains the local validation contract. Codex does
+        not accept Draft 2020-12's ``unevaluatedProperties`` keyword, so the
+        transport copy drops it. Where a closed root object has only explicit
+        root properties, ``additionalProperties: false`` is equivalent and
+        retains that rejection at the provider boundary.
+        """
+
+        def convert(value: Any) -> Any:
+            if isinstance(value, Mapping):
+                converted = {
+                    key: convert(child)
+                    for key, child in value.items()
+                    if key != "unevaluatedProperties"
+                }
+                if (
+                    value.get("unevaluatedProperties") is False
+                    and value.get("type") == "object"
+                    and isinstance(value.get("properties"), Mapping)
+                    and not any(
+                        keyword in value
+                        for keyword in ("$ref", "allOf", "anyOf", "oneOf")
+                    )
+                ):
+                    converted.setdefault("additionalProperties", False)
+                return converted
+            if isinstance(value, list):
+                return [convert(item) for item in value]
+            return value
+
+        converted = convert(output_schema)
+        if not isinstance(converted, dict):
+            raise MaintenanceAIBlockedError("output_schema_invalid")
+        return converted
 
     def _validate_allowed_outputs(
         self, allowed_outputs: Sequence[str]

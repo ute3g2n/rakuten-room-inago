@@ -1,0 +1,134 @@
+{
+  "schema_version": "common-review-result-v1",
+  "reviewer_id": "common-reviewer-fc10",
+  "scope_type": "plan_step",
+  "scope_id": "FC10-product-review-r1",
+  "reviewed_version": "FC10-product-eb16f9ec-5file-readonly",
+  "reviewed_at": "2026-10-19T17:24:53Z",
+  "status": "changes_requested",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "review_scope": {
+    "branch": "main",
+    "head": "eb16f9ec8fc145a0884ad9ce78c80f7d4a098df3",
+    "included_product_file_count": 5,
+    "source_hashes": [
+      {
+        "path": "automation/inago/app_server.py",
+        "expected_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "actual_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/ai_adapter.py",
+        "expected_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "actual_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/failure_journal.py",
+        "expected_sha256": "b6061806268cbe6df7f780082e27f55924446716691942d3b183773ee04a2814",
+        "actual_sha256": "b6061806268cbe6df7f780082e27f55924446716691942d3b183773ee04a2814",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/production_workflow.py",
+        "expected_sha256": "0925de9055082caceccfcf5fa5bb9f6d967401d4d53bcd28ffb9ce705a4d790a",
+        "actual_sha256": "0925de9055082caceccfcf5fa5bb9f6d967401d4d53bcd28ffb9ce705a4d790a",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/workflow_reconciliation.py",
+        "expected_sha256": "023ec9d6f4d256d01c1cc9b768258fa466666f1188c12fa6156328e87af3d68c",
+        "actual_sha256": "023ec9d6f4d256d01c1cc9b768258fa466666f1188c12fa6156328e87af3d68c",
+        "match": true
+      }
+    ],
+    "test_source_reviewed": false,
+    "test_execution_evidence_inspected": true,
+    "tests_executed_by_reviewer": false,
+    "production_database_or_job_touched": false,
+    "alternate_worktree_used": false
+  },
+  "plan": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "version": "1.2",
+    "current_sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e",
+    "reviewed_requirements": [
+      "FC-A02",
+      "FC-A03",
+      "FC-A05",
+      "FC-A07",
+      "FC-A08",
+      "FC-A09"
+    ]
+  },
+  "test_evidence": {
+    "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition-results.json",
+    "sha256": "0ac71770ca9154fdd58849a0a7809f9cf2632445cc9cf9ef43d8065ad5957b5e",
+    "observed": "FC09-F1 identity-precondition focused synthetic SQLite case: 1 passed; inspected as prior evidence only, not run by reviewer and not evidence for the five FC10 source changes",
+    "fc10_evidence": "No FC10 evidence directory was present when reviewed; current FC10 execution results therefore not verified."
+  },
+  "findings": [
+    {
+      "id": "FC10-F1",
+      "severity": "high",
+      "location": {
+        "file": "automation/inago/maintenance/production_workflow.py",
+        "function": "run_daily_planning_author_stage",
+        "lines": "4491-4521"
+      },
+      "plan_case": "FC-A05 / no future blocked stage results",
+      "finding": "このstage runnerはtimeout不正時とattempt/context不整合時にstatus=\"blocked\"を返す。workflow_providerは通常のjob-bound経路ではraw_statusとしてblockedを保持し、statusをunknownへ正規化して後続を続けるが、stage自身は未来の実行結果としてblockedを返しており、実装契約が二重になっている。個別stage runnerを直接使う呼出し元ではその値がそのまま残る。計画の「過去raw blockedのみ保持し、未来stageのblockedを出さない」に揃えるにはunknown/failedへ統一し、理由と手渡し成果を維持すべき。",
+      "evidence": "Source lines 4496-4499 and 4518-4521 return blocked. workflow_provider.py:1082-1091 confirms only the provider adapter normalizes it; this wrapper is outside the requested hash set and does not remove the runner return value."
+    },
+    {
+      "id": "FC10-F2",
+      "severity": "high",
+      "location": {
+        "file": "automation/inago/maintenance/workflow_reconciliation.py",
+        "function": "_durable_stage_handoffs",
+        "lines": "49-92"
+      },
+      "plan_case": "FC-A03 / FC-A07",
+      "finding": "終端照合は現在invocation配下のファイルを読むものの、handoff payload内のinvocation_idを要求・比較していない。stage_handoff schema/make_stage_handoffにもinvocation_idフィールドがなく、同一job/launch/run/dateとstageの値だけで当該invocationの成果と認定する。別invocation由来の内容を現在invocationの置き場へ複製・復旧した場合、stage identityが一致すれば誤結合して終端完成に使える。payloadとschemaへinvocation_idを加え、現在値との一致を確認する必要がある。",
+      "evidence": "Lines 69-78 validate schema_version, stage, five identity fields and content only. workflow_provider._save_stage_handoff writes by invocation directory, but that path is not cryptographic/content binding; maintenance-stage-handoff.schema.json and stage_handoff.make_stage_handoff omit invocation_id."
+    },
+    {
+      "id": "FC10-F3",
+      "severity": "high",
+      "location": {
+        "file": "automation/inago/maintenance/workflow_reconciliation.py",
+        "function": "_attempt_and_deployment_outputs",
+        "lines": "516-547"
+      },
+      "plan_case": "FC-A07 / FC-A08",
+      "finding": "deployment-result.jsonをterminal proofとして認定する検査が不十分。現repair attempt folderからJSONを読むだけで、schema_version、status enum、release/candidate/commit整合、attemptに保存された期待hashや正式deployment recordとの一致を確認せず、5項目が文字列であればcomputed hashを付けて有効なdeployment outputとする。例えばstatus=\"garbage\"や不一致commitのpayloadでも残りのterminal条件が揃えばworkflow_completeを支え得る。report readbackと同様に正式result/schema/対象releaseとのbindとhash readbackを行うべき。",
+      "evidence": "Lines 529-547 accept deployment-result.json if deployment_id, release_id, status, source_commit, tested_commit are strings; no schema/status/value binding follows. maintenance-deployment-result.schema.json has explicit status enum and commit pattern, but this reader does not validate it."
+    },
+    {
+      "id": "FC10-F4",
+      "severity": "medium",
+      "location": {
+        "file": "automation/inago/maintenance/failure_journal.py",
+        "function": "append_failure_event",
+        "lines": "268-304"
+      },
+      "plan_case": "FC-A02",
+      "finding": "failure journal自体の保存が失敗すると、独立した永続sinkへの退避を試さず、stderrに固定文字列だけを書いてexception classを返す。元のoperation、identity、相関ID、例外連鎖、参照が失われ、同じ原因を復旧後に再生する材料がない。logger failureをnon-gatingにする点は正しいが、「ログ出力自身の失敗を追跡し独立fallback/recoveryする」要求は満たせない。別ファイル/OS spool等の独立fallbackへ安全な最小イベントを保存し、復旧時に再取り込みできるようにする必要がある。",
+      "evidence": "Lines 293-304 catch the journal I/O error, write maintenance_failure_journal_unavailable to fd 2, and return only exception_class/capture_location; there is no fallback artifact or replay reference for the lost event."
+    }
+  ],
+  "limitations": [
+    "このレビューでは指定された5製品ファイルだけをhash照合した。stage_handoff.py/schema/providerはinvocation-binding欠落の統合根拠として読み取ったが、この5-file source hash manifestには含めていない。",
+    "reviewerはpytest・本番DB・本番job・remote publicationを実行していない。FC09の既存合成証拠はその範囲の履歴として確認しただけで、FC10の同一job実測ではない。",
+    "settings/language.mdはリポジトリ内で見つからなかった。レビュー記録は日本語。"
+  ]
+}

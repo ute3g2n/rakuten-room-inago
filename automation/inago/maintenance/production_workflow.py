@@ -306,6 +306,7 @@ def _persist_stage_fallback(
     )
     handoff = make_stage_handoff(
         stage=stage,
+        invocation_id=str(workflow.state.get("invocation_id") or correlation_id),
         identity=identity,
         operation=operation,
         operation_result="failed",
@@ -521,7 +522,12 @@ def run_daily_repair_test_stage(
     author_result = run_daily_repair_author_stage(workflow, controller, store)
     if author_result.status != "complete":
         reason_code = author_result.reason_code or "repair_author_unavailable"
-        error = RepairContractError(reason_code)
+        saved_error = workflow.state.get("repair_author_failure")
+        error = (
+            saved_error
+            if isinstance(saved_error, BaseException)
+            else RepairContractError(reason_code)
+        )
         _record_repair_test_not_performed(
             workflow,
             store,
@@ -713,76 +719,97 @@ def _record_repair_test_not_performed(
 
     attempt = workflow.state.get("repair_attempt")
     identity = workflow.state.get("precheck_identity")
+    identity = identity if isinstance(identity, dict) else {}
     attempts_root = workflow.state.get("repair_attempts_root")
     output_root = workflow.state.get("repair_output_root")
     cause_chain, stack_frames = _exception_details(error)
-    if not isinstance(identity, dict) or attempt is None:
-        identity = identity if isinstance(identity, dict) else {}
-        artifact_ref = None
-    else:
-        document = {
-            "schema_version": "maintenance-repair-test-operation-v1",
-            "identity": identity,
-            "attempt_id": getattr(attempt, "attempt_id", None),
-            "result_version": workflow.state.get("repair_author_response", {}).get(
-                "result_version"
+    job = workflow.state.get("job")
+    job_id = getattr(attempt, "job_id", None) or getattr(job, "job_id", None)
+    if isinstance(job_id, str):
+        try:
+            identity = store.get_job_input_manifest(job_id=job_id).identity()
+        except Exception:
+            # Preserve the verified precheck identity if manifest lookup itself
+            # is unavailable. The fallback journal below retains the cause.
+            pass
+    document = {
+        "schema_version": "maintenance-repair-test-operation-v1",
+        "identity": identity,
+        "attempt_id": getattr(attempt, "attempt_id", None),
+        "result_version": workflow.state.get("repair_author_response", {}).get(
+            "result_version"
+        )
+        if isinstance(workflow.state.get("repair_author_response"), dict)
+        else None,
+        "operation": operation,
+        "operation_result": "not_performed",
+        "test_outcome": "NOT_RUN",
+        "reason_code": reason_code,
+        "observed_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        "cause_class": type(error).__name__,
+        "cause_chain": cause_chain,
+        "stack_frames": stack_frames,
+        "cause_location": "run_daily_repair_test_stage",
+        "workflow_completion": "incomplete",
+        "incident_resolution": "unknown",
+        "next_action": "後続担当が未実施理由を引き継ぎ、利用可能な入力で確認を続ける。",
+    }
+    artifact_ref = None
+    if (
+        attempt is not None
+        and isinstance(attempts_root, Path)
+        and isinstance(output_root, Path)
+    ):
+        try:
+            base_commit = workflow.state.get("repair_base_commit")
+            if not isinstance(base_commit, str):
+                base_commit = store.get_latest_deployed_commit()
+            context = {
+                **identity,
+                "attempt_id": attempt.attempt_id,
+                "attempt": attempt.attempt_no,
+                "base_commit": base_commit,
+                "input_refs": identity.get("input_refs", []),
+                "evidence_refs": identity.get("evidence_refs", []),
+            }
+            encoded = (
+                json.dumps(document, ensure_ascii=False, sort_keys=True) + "\n"
+            ).encode("utf-8")
+            path, digest = save_attempt_artifact(
+                output_root,
+                attempts_root,
+                context,
+                filename="repair-handoff.json",
+                content=encoded,
+                stage="repair",
             )
-            if isinstance(workflow.state.get("repair_author_response"), dict)
-            else None,
-            "operation": operation,
-            "operation_result": "not_performed",
-            "test_outcome": "NOT_RUN",
-            "reason_code": reason_code,
-            "observed_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
-            "cause_class": type(error).__name__,
-            "cause_chain": cause_chain,
-            "stack_frames": stack_frames,
-            "cause_location": "run_daily_repair_test_stage",
-            "workflow_completion": "incomplete",
-            "incident_resolution": "unknown",
-            "next_action": "後続担当が未実施理由を引き継ぎ、利用可能な入力で確認を続ける。",
-        }
-        artifact_ref = None
-        if isinstance(attempts_root, Path) and isinstance(output_root, Path):
+            store.read_attempt_artifact(
+                attempts_root=attempts_root,
+                relative_path=path,
+                expected_sha256=digest,
+            )
+            artifact_ref = {"path": path, "sha256": digest}
+        except Exception as save_error:
             try:
-                encoded = (
-                    json.dumps(document, ensure_ascii=False, sort_keys=True) + "\n"
-                ).encode("utf-8")
-                path, digest = save_attempt_artifact(
-                    output_root,
-                    attempts_root,
-                    {**identity, "attempt_id": attempt.attempt_id},
-                    filename="test-not-performed.json",
-                    content=encoded,
+                append_failure_event(
+                    store.database_path.parent.parent,
+                    phase="fallback",
+                    operation="workflow.repair.test_result_save",
+                    correlation_id=workflow.launch.source_launch_id,
+                    parent_operation=getattr(attempt, "attempt_id", None),
+                    job_id=job_id,
+                    incident_id=identity.get("incident_id"),
+                    source_launch_id=workflow.launch.source_launch_id,
+                    source_run_id=workflow.launch.source_run_id,
                     stage="repair",
+                    attempt_id=getattr(attempt, "attempt_id", None),
+                    reason_code="repair_test_result_save_failed",
+                    error=save_error,
+                    capture_location="run_daily_repair_test_stage",
+                    primary_sink="attempt_artifact",
                 )
-                store.read_attempt_artifact(
-                    attempts_root=attempts_root,
-                    relative_path=path,
-                    expected_sha256=digest,
-                )
-                artifact_ref = {"path": path, "sha256": digest}
-            except Exception as save_error:
-                try:
-                    append_failure_event(
-                        store.database_path.parent.parent,
-                        phase="fallback",
-                        operation="workflow.repair.test_result_save",
-                        correlation_id=workflow.launch.source_launch_id,
-                        parent_operation=attempt.attempt_id,
-                        job_id=attempt.job_id,
-                        incident_id=identity.get("incident_id"),
-                        source_launch_id=workflow.launch.source_launch_id,
-                        source_run_id=workflow.launch.source_run_id,
-                        stage="repair",
-                        attempt_id=attempt.attempt_id,
-                        reason_code="repair_test_result_save_failed",
-                        error=save_error,
-                        capture_location="run_daily_repair_test_stage",
-                        primary_sink="attempt_artifact",
-                    )
-                except Exception:
-                    pass
+            except Exception:
+                pass
     try:
         append_failure_event(
             store.database_path.parent.parent,
@@ -790,7 +817,7 @@ def _record_repair_test_not_performed(
             operation=f"workflow.repair.{operation}",
             correlation_id=workflow.launch.source_launch_id,
             parent_operation=getattr(attempt, "attempt_id", None),
-            job_id=getattr(attempt, "job_id", None),
+            job_id=job_id,
             incident_id=identity.get("incident_id"),
             source_launch_id=workflow.launch.source_launch_id,
             source_run_id=workflow.launch.source_run_id,
@@ -808,6 +835,10 @@ def _record_repair_test_not_performed(
         "status": "not_performed",
         "outcome": "NOT_RUN",
         "reason_code": reason_code,
+        "cause_class": type(error).__name__,
+        "cause_chain": cause_chain,
+        "stack_frames": stack_frames,
+        "document": document,
         "artifact_ref": artifact_ref,
     }
 
@@ -3597,6 +3628,9 @@ def run_daily_investigation_author_stage(
             if isinstance(attempts_root, Path) and isinstance(output_root, Path):
                 handoff = make_stage_handoff(
                     stage="investigation",
+                    invocation_id=str(
+                        workflow.state.get("invocation_id") or correlation_id
+                    ),
                     identity=identity,
                     operation="investigation.author.run_turn_or_validate",
                     operation_result="failed",
@@ -3632,7 +3666,9 @@ def run_daily_investigation_author_stage(
                 workflow.state["investigation_stage_handoff"] = handoff
             return WorkflowStageResult(status="complete")
         workflow.state["investigation_stage_handoff"] = make_stage_handoff(
-            stage="investigation", identity=identity,
+            stage="investigation",
+            invocation_id=str(workflow.state.get("invocation_id") or correlation_id),
+            identity=identity,
             operation="investigation.setup_or_author", operation_result="failed",
             summary="調査担当を起動できなかったため、確認できた値と不足を管理側で記録しました。",
             facts=["元のrun番号は提供値を保持し、欠測を推測で補いません。"],
@@ -4458,17 +4494,198 @@ def run_daily_planning_author_stage(
 ) -> WorkflowStageResult:
     """Run one approved planner turn and retain its hash-bound response state."""
 
+    def handoff_without_author(reason_code: str, operation: str) -> WorkflowStageResult:
+        """Record a contentful continuation when the planner cannot start."""
+
+        error = PlanningContractError(reason_code)
+        attempt = workflow.state.get("planning_attempt")
+        job = workflow.state.get("job")
+        planning_context = workflow.state.get("planning_context")
+        planning_context = planning_context if isinstance(planning_context, dict) else {}
+        precheck_identity = workflow.state.get("precheck_identity")
+        precheck_identity = (
+            precheck_identity if isinstance(precheck_identity, dict) else {}
+        )
+        manifest = workflow.state.get("planning_manifest")
+        job_id = getattr(attempt, "job_id", None) or getattr(job, "job_id", None)
+        try:
+            if not hasattr(manifest, "identity") and isinstance(job_id, str):
+                manifest = store.get_job_input_manifest(job_id=job_id)
+            identity = (
+                manifest.identity()
+                if hasattr(manifest, "identity")
+                else precheck_identity
+            )
+        except Exception:
+            identity = precheck_identity
+        identity = dict(identity) if isinstance(identity, dict) else {}
+        identity.update(
+            {
+                "job_id": identity.get("job_id", job_id),
+                "incident_id": identity.get(
+                    "incident_id", getattr(job, "incident_id", None)
+                ),
+                "source_launch_id": identity.get(
+                    "source_launch_id", workflow.launch.source_launch_id
+                ),
+                "source_run_id": identity.get(
+                    "source_run_id", workflow.launch.source_run_id
+                ),
+                "target_date": identity.get(
+                    "target_date", workflow.launch.target_date
+                ),
+                "attempt_id": getattr(attempt, "attempt_id", None),
+            }
+        )
+        correlation_id = uuid4().hex
+        root = store.database_path.parent.parent
+        handoff = make_stage_handoff(
+            stage="planning",
+            identity=identity,
+            operation=operation,
+            operation_result="not_performed",
+            summary="計画担当の開始条件が不足していたため、同じjobで確認を再開するための情報を引き継ぎます。",
+            facts=[
+                "計画担当の回答を開始できなかったため、原因の確認と同じjobでの再開を引き継ぎます。"
+            ],
+            limitations=[
+                "この時点では有効な計画担当の回答がありません。",
+                f"実行条件の確認結果は「{reason_code}」で、計画内容は未確認です。",
+            ],
+            next_actions=[
+                "不足または不正な計画入力・実行条件を確認し、同じjobの計画工程を再開する。",
+                "計画の確認後、後続の試験・review・反映確認を続ける。",
+            ],
+            input_refs=[
+                item
+                for item in planning_context.get(
+                    "input_refs", precheck_identity.get("input_refs", [])
+                )
+                if isinstance(item, str)
+            ],
+            error=error,
+            reason_code=reason_code,
+            correlation_id=correlation_id,
+            invocation_id=str(
+                workflow.state.get("invocation_id") or correlation_id
+            ),
+        )
+        journal = record_stage_failure(
+            data_root=root,
+            identity=identity,
+            stage="planning",
+            operation=operation,
+            error=error,
+            reason_code=reason_code,
+            correlation_id=correlation_id,
+        )
+        handoff["correlation_id"] = correlation_id
+        handoff["journal_observation"] = dict(journal)
+
+        # If this invocation already has a trusted manifest and attempt, save
+        # the handoff under that attempt using the artifact contract. The
+        # independent failure journal above remains available when it does not.
+        manifest_identity = None
+        try:
+            if hasattr(manifest, "identity"):
+                manifest_identity = manifest.identity()
+            elif isinstance(job_id, str):
+                manifest_identity = store.get_job_input_manifest(job_id=job_id).identity()
+        except Exception:
+            manifest_identity = None
+        output_root = workflow.state.get("planning_output_root")
+        attempts_root = workflow.state.get("planning_attempts_root")
+        if (
+            isinstance(attempt, StepAttemptRecord)
+            and isinstance(manifest_identity, dict)
+            and isinstance(manifest_identity.get("job_id"), str)
+        ):
+            attempts_root = (
+                attempts_root
+                if isinstance(attempts_root, Path)
+                else store.database_path.parent / "attempts"
+            )
+            output_root = (
+                output_root
+                if isinstance(output_root, Path)
+                else attempts_root / attempt.job_id / attempt.attempt_id
+            )
+            base_commit = planning_context.get("base_commit")
+            if (
+                not isinstance(base_commit, str)
+                or re.fullmatch(r"[0-9a-fA-F]{40,64}", base_commit) is None
+            ):
+                try:
+                    base_commit = store.get_job_base_commit(job_id=attempt.job_id)
+                except Exception:
+                    base_commit = None
+            if isinstance(base_commit, str):
+                artifact_context = {
+                    **manifest_identity,
+                    "attempt_id": attempt.attempt_id,
+                    "attempt": attempt.attempt_no,
+                    "base_commit": base_commit,
+                    "input_refs": planning_context.get(
+                        "input_refs", precheck_identity.get("input_refs", [])
+                    ),
+                    "evidence_refs": planning_context.get(
+                        "evidence_refs", precheck_identity.get("evidence_refs", [])
+                    ),
+                }
+                try:
+                    content = dumps_handoff(handoff)
+                    path, digest = save_attempt_artifact(
+                        output_root,
+                        attempts_root,
+                        artifact_context,
+                        filename="controller-fallback.json",
+                        content=content,
+                        stage="planning",
+                    )
+                    handoff["output_refs"] = [path]
+                    content = dumps_handoff(handoff)
+                    path, digest = save_attempt_artifact(
+                        output_root,
+                        attempts_root,
+                        artifact_context,
+                        filename="stage-handoff.json",
+                        content=content,
+                        stage="planning",
+                    )
+                    workflow.state["planning_stage_handoff_path"] = path
+                    workflow.state["planning_stage_handoff_sha256"] = digest
+                    workflow.state["planning_stage_handoff_ref"] = {
+                        "path": path,
+                        "sha256": digest,
+                    }
+                except Exception as artifact_error:
+                    record_stage_failure(
+                        data_root=root,
+                        identity=identity,
+                        stage="planning",
+                        operation="planning.start_failure_handoff.save",
+                        error=artifact_error,
+                        reason_code="planning_fallback_artifact_save_failed",
+                        correlation_id=correlation_id,
+                    )
+        workflow.state["planning_stage_handoff"] = handoff
+        return WorkflowStageResult(status="unknown", reason_code=reason_code)
+
     if (
         isinstance(timeout_seconds, bool)
         or not isinstance(timeout_seconds, int)
         or timeout_seconds < 1
     ):
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="planning_timeout_invalid",
+        return handoff_without_author(
+            "planning_timeout_invalid", "planning.author.start_validation"
         )
     prepared = prepare_daily_planning_stage(workflow, controller, store)
     if prepared.status != "complete":
+        if prepared.status == "blocked":
+            reason_code = prepared.reason_code or "planning_preparation_failed"
+            return handoff_without_author(
+                reason_code, "planning.author.preparation_handoff"
+            )
         return prepared
     attempt = workflow.state.get("planning_attempt")
     session_plan = workflow.state.get("planning_session_plan")
@@ -4485,9 +4702,8 @@ def run_daily_planning_author_stage(
         or not isinstance(facts, list)
         or not isinstance(daily_completion, dict)
     ):
-        return WorkflowStageResult(
-            status="blocked",
-            reason_code="planning_attempt_not_actionable",
+        return handoff_without_author(
+            "planning_attempt_not_actionable", "planning.author.start_validation"
         )
     if workflow.cancel_event.is_set():
         return WorkflowStageResult(
@@ -4576,6 +4792,23 @@ def run_daily_planning_author_stage(
         output_root = workflow.state.get("planning_output_root")
         attempts_root = workflow.state.get("planning_attempts_root")
         context_for_save = workflow.state.get("planning_context")
+        planning_attempt = workflow.state.get("planning_attempt")
+        planning_manifest = workflow.state.get("planning_manifest")
+        artifact_context_for_save: dict[str, Any] | None = None
+        if (
+            isinstance(context_for_save, dict)
+            and planning_attempt is not None
+            and hasattr(planning_manifest, "identity")
+        ):
+            manifest_identity = planning_manifest.identity()
+            artifact_context_for_save = {
+                **manifest_identity,
+                "attempt_id": planning_attempt.attempt_id,
+                "attempt": planning_attempt.attempt_no,
+                "base_commit": context_for_save.get("base_commit"),
+                "input_refs": context_for_save.get("input_refs", []),
+                "evidence_refs": context_for_save.get("evidence_refs", []),
+            }
         handoff = make_stage_handoff(
             stage="planning", identity=identity,
             operation="planning.author.run_turn_or_validate",
@@ -4585,23 +4818,30 @@ def run_daily_planning_author_stage(
             limitations=limitations, next_actions=next_actions,
             input_refs=[item for item in context.get("input_refs", []) if isinstance(item, str)],
             error=exc, reason_code=reason_code, correlation_id=correlation_id,
+            invocation_id=str(
+                workflow.state.get("invocation_id") or correlation_id
+            ),
         )
         handoff["journal_observation"] = dict(journal)
-        if isinstance(output_root, Path) and isinstance(attempts_root, Path) and isinstance(context_for_save, dict):
+        if (
+            isinstance(output_root, Path)
+            and isinstance(attempts_root, Path)
+            and isinstance(artifact_context_for_save, dict)
+        ):
             try:
                 fallback_json = dumps_handoff(handoff)
                 fallback_path, _ = save_attempt_artifact(
-                    output_root, attempts_root, context_for_save,
+                    output_root, attempts_root, artifact_context_for_save,
                     filename="controller-fallback.json", content=fallback_json,
                     stage="planning",
                 )
                 handoff_path, handoff_sha = save_attempt_artifact(
-                    output_root, attempts_root, context_for_save,
+                    output_root, attempts_root, artifact_context_for_save,
                     filename="stage-handoff.json", content=fallback_json,
                     stage="planning",
                 )
                 plan_path, _ = save_attempt_artifact(
-                    output_root, attempts_root, context_for_save,
+                    output_root, attempts_root, artifact_context_for_save,
                     filename="plan.md", content=plan_markdown, stage="planning",
                 )
                 handoff["output_refs"] = [fallback_path, handoff_path, plan_path]
@@ -4614,6 +4854,16 @@ def run_daily_planning_author_stage(
                     reason_code="planning_fallback_artifact_save_failed",
                     correlation_id=correlation_id,
                 )
+        elif not isinstance(artifact_context_for_save, dict):
+            record_stage_failure(
+                data_root=data_root,
+                identity=identity,
+                stage="planning",
+                operation="planning.fallback_context.build",
+                error=PlanningContractError("planning_fallback_context_unavailable"),
+                reason_code="planning_fallback_context_unavailable",
+                correlation_id=correlation_id,
+            )
         workflow.state["planning_stage_handoff"] = handoff
         workflow.state["planning_fallback_plan_markdown"] = plan_markdown
         return WorkflowStageResult(status="unknown", reason_code=reason_code)
@@ -8998,33 +9248,40 @@ def run_daily_report_stage(
                 if not isinstance(findings, list):
                     return WorkflowStageResult(status="complete")
                 prior_findings = list(findings)
-            if (
-                latest is not None
-                and latest.status == "running"
-                and latest.lease_key == workflow.lease.lease_key
-                and latest.lease_generation == workflow.lease.generation
-            ):
+            # StepAttemptRecord intentionally exposes no lease columns. Validate
+            # a running attempt through the store's authoritative DB projection;
+            # direct reads of lease_key/lease_generation raised AttributeError
+            # on same-job resume before either report role could run.
+            reuse_running_attempt = False
+            if latest is not None and latest.status == "running":
+                try:
+                    store.validate_step_attempt_lease(
+                        attempt_id=latest.attempt_id,
+                        lease=workflow.lease,
+                        at=datetime.now(timezone.utc),
+                    )
+                    reuse_running_attempt = True
+                except MaintenanceStoreError:
+                    reuse_running_attempt = False
+            if reuse_running_attempt:
                 attempt = latest
             else:
-                try:
-                    started = controller.begin_step_attempt(
-                        job_id=job.job_id,
-                        step_key="maintenance_report",
-                        sequence=4,
-                        lease=workflow.lease,
-                        started_at=datetime.now(timezone.utc),
-                    )
-                    attempt = controller.get_step_attempt(attempt_id=started.attempt_id)
-                except MaintenanceStoreError:
-                    raise
-                report_attempts = sorted(
-                    (
-                        item
-                        for item in store.list_step_attempts(job_id=job.job_id)
-                        if item.step_key == "maintenance_report" and item.sequence == 4
-                    ),
-                    key=lambda item: item.attempt_no,
+                started = controller.begin_step_attempt(
+                    job_id=job.job_id,
+                    step_key="maintenance_report",
+                    sequence=4,
+                    lease=workflow.lease,
+                    started_at=datetime.now(timezone.utc),
                 )
+                attempt = controller.get_step_attempt(attempt_id=started.attempt_id)
+            report_attempts = sorted(
+                (
+                    item
+                    for item in store.list_step_attempts(job_id=job.job_id)
+                    if item.step_key == "maintenance_report" and item.sequence == 4
+                ),
+                key=lambda item: item.attempt_no,
+            )
             if (
                 attempt.job_id != job.job_id
                 or attempt.source_run_id != identity["source_run_id"]
@@ -10708,7 +10965,11 @@ def prepare_daily_repair_stage(
         attempt_root = _ensure_directories_beneath(
             data_parent, "attempts", job.job_id, latest.attempt_id
         )
+        workflow.state["repair_attempt"] = latest
+        workflow.state["repair_attempts_root"] = attempts_root
+        workflow.state["repair_output_root"] = attempt_root
         base_commit = store.get_latest_deployed_commit()
+        workflow.state["repair_base_commit"] = base_commit
         project_root = Path(__file__).resolve().parents[3]
         worktree_root = project_root
         worktree_commit = _ensure_repair_worktree(
@@ -10747,6 +11008,7 @@ def prepare_daily_repair_stage(
             stage="repair",
         )
     except MaintenanceAIBlockedError as exc:
+        workflow.state["repair_setup_failure"] = exc
         return WorkflowStageResult(status="blocked", reason_code=exc.reason_code)
     except (
         MaintenanceStoreError,
@@ -10754,11 +11016,13 @@ def prepare_daily_repair_stage(
         PlanningContractError,
         InvestigationContractError,
     ) as exc:
+        workflow.state["repair_setup_failure"] = exc
         reason_code = getattr(exc, "code", None)
         if not isinstance(reason_code, str):
             reason_code = "repair_setup_failed"
         return WorkflowStageResult(status="blocked", reason_code=reason_code)
     except Exception as exc:
+        workflow.state["repair_setup_failure"] = exc
         reason_code = getattr(exc, "code", None)
         if (
             not isinstance(reason_code, str)
@@ -11198,6 +11462,9 @@ def run_daily_repair_author_stage(
         )
     prepared = prepare_daily_repair_stage(workflow, controller, store)
     if prepared.status != "complete":
+        setup_error = workflow.state.get("repair_setup_failure")
+        if isinstance(setup_error, BaseException):
+            workflow.state["repair_author_failure"] = setup_error
         return prepared
     attempt = workflow.state.get("repair_attempt")
     setup = workflow.state.get("repair_setup")

@@ -392,6 +392,7 @@ def test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff():
     assert "相関ID" in plan
     handoff = make_stage_handoff(
         stage="planning",
+        invocation_id="fc07-plan-invocation",
         identity=identity,
         operation="planning.create_instrumentation_plan",
         operation_result="unknown",
@@ -464,6 +465,7 @@ def _fc07_child_process_crash(data_root: str) -> None:
     output.mkdir(parents=True, exist_ok=True)
     handoff = make_stage_handoff(
         stage="planning",
+        invocation_id="fc07-process-crash-invocation",
         identity=identity,
         operation="planning.create_handoff",
         operation_result="unknown",

@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import re
 import stat
 import subprocess
 import threading
@@ -20,6 +21,80 @@ from typing import Any, Callable, Mapping, Sequence
 
 class AppServerError(RuntimeError):
     """A sanitized transport failure; arbitrary upstream text is never logged."""
+
+    def __init__(
+        self,
+        code: str,
+        *,
+        provider_error_type: str | None = None,
+        provider_error_code: str | None = None,
+        provider_error_param: str | None = None,
+    ) -> None:
+        self.code = code
+        self.provider_error_type = provider_error_type
+        self.provider_error_code = provider_error_code
+        self.provider_error_param = provider_error_param
+        super().__init__(code)
+
+
+class AppServerProviderRejection(RuntimeError):
+    """A safe cause marker for a provider rejection, without its message/body."""
+
+    def __init__(self, **details: str | None) -> None:
+        self.provider_error_type = details.get("provider_error_type")
+        self.provider_error_code = details.get("provider_error_code")
+        self.provider_error_param = details.get("provider_error_param")
+        super().__init__("provider rejected the structured response schema")
+
+
+_SAFE_PROVIDER_IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9._:-]{0,127}$")
+_PROVIDER_SENSITIVE_MARKERS = (
+    "secret",
+    "password",
+    "credential",
+    "cookie",
+    "token",
+    "apikey",
+    "api_key",
+    "privatekey",
+    "private_key",
+)
+
+
+def _safe_provider_identifier(value: object) -> str | None:
+    if not isinstance(value, str) or _SAFE_PROVIDER_IDENTIFIER.fullmatch(value) is None:
+        return None
+    folded = value.casefold()
+    if any(marker in folded for marker in _PROVIDER_SENSITIVE_MARKERS):
+        return None
+    return value
+
+
+def _provider_error_details(error: object) -> dict[str, str | None]:
+    """Extract only short type/code/param IDs from structured RPC error data."""
+
+    details: dict[str, str | None] = {
+        "provider_error_type": None,
+        "provider_error_code": None,
+        "provider_error_param": None,
+    }
+    pending: list[Mapping[str, Any]] = [error] if isinstance(error, Mapping) else []
+    visited = 0
+    while pending and visited < 8:
+        current = pending.pop(0)
+        visited += 1
+        for source, target in (
+            ("type", "provider_error_type"),
+            ("code", "provider_error_code"),
+            ("param", "provider_error_param"),
+        ):
+            if details[target] is None:
+                details[target] = _safe_provider_identifier(current.get(source))
+        for key in ("data", "error", "details"):
+            child = current.get(key)
+            if isinstance(child, Mapping):
+                pending.append(child)
+    return details
 
 
 @dataclass(frozen=True, slots=True)
@@ -336,6 +411,10 @@ class AppServerSession:
                 continue
             if "error" in message:
                 self._log("rpc_failed", method=method, code="rpc_error")
+                details = _provider_error_details(message.get("error"))
+                if any(details.values()):
+                    cause = AppServerProviderRejection(**details)
+                    raise AppServerError("rpc_error", **details) from cause
                 raise AppServerError("rpc_error")
             if not isinstance(message.get("result"), dict):
                 raise AppServerError("rpc_result_invalid")

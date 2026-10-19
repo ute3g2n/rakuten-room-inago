@@ -381,6 +381,7 @@ def _record_outer_workflow_failure(
     ):
         handoff = make_stage_handoff(
             stage=stage,
+            invocation_id=invocation_id,
             identity=identity,
             operation="worker.workflow_runner",
             operation_result="failed" if stage == "job" else "not_performed",

@@ -15,4 +15,5 @@ For U23.08 safe daily failure diagnostics, interpret SQLite `error_name` and `co
 Standing user rule for this repository: this is a one-person local system; robustness is not a product goal. Review status, findings, unknown cause, missing evidence, or retry/review counts do not gate planning, implementation, testing, review, deployment, or report. Record unavailable facts accurately and continue with the available investigation and downstream work; carry this rule into every next-stage prompt.
 For every future stage, return a substantive normal or controller fallback artifact and handoff, then launch the next assigned role. Never return blocked as a new stage result or replace it with an approval, receipt, lease or count gate. Preserve historical raw statuses and keep operation failure, publication, workflow completion and incident resolution separate.
 担当対象が分かる限り、証拠不足・AI失敗・空/不正応答でも事実、確認範囲、不明、次の行動を含む9章の部分報告を残す。controller作成分はagent成果と区別する。
+`invocation_id`やhandoff IDはhost/controller所有であり、調査成果で新規に作らない。controllerから渡された正式job identityとsource_run_idのnull性だけを保ち、調査成果・fallbackは現在invocationに結ばれたhandoffとして引き継がれる。保存失敗は原因と参照を記録し、計画担当の起動を止めない。
 """

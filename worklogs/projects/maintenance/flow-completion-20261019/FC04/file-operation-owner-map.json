@@ -99,7 +99,7 @@
         "baseline_line": 49,
         "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
       },
-      "operation": "parent B max→high; actual launch/transport/timeout/empty/parse failure correlation",
+      "operation": "parent B max\u2192high; actual launch/transport/timeout/empty/parse failure correlation",
       "execution_order": 3,
       "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
       "reviewer": "FC08 independent product reviewer",
@@ -786,7 +786,7 @@
         "baseline_line": null,
         "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
       },
-      "operation": "schema13→14 append-only event/handoff/lifecycle fields; FC05 sequential coordination",
+      "operation": "schema13\u219214 append-only event/handoff/lifecycle fields; FC05 sequential coordination",
       "execution_order": 3,
       "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
       "reviewer": "FC08 independent product reviewer",
@@ -2470,7 +2470,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "file": "docs/specifications/inago/AT-MAINT-01_\u4fdd\u5b88\u5bfe\u5fdc\u8981\u4ef6\u53d7\u5165\u5951\u7d04.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2502,7 +2502,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "file": "docs/specifications/inago/AT-TRACE-01_\u5171\u901a\u30c8\u30ec\u30fc\u30b9\u5951\u7d04.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2534,7 +2534,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/要件データ辞書.md",
+      "file": "docs/specifications/inago/\u8981\u4ef6\u30c7\u30fc\u30bf\u8f9e\u66f8.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2566,7 +2566,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/要件追跡表.md",
+      "file": "docs/specifications/inago/\u8981\u4ef6\u8ffd\u8de1\u8868.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2598,7 +2598,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/保守運用設定仕様.md",
+      "file": "docs/specifications/inago/\u4fdd\u5b88\u904b\u7528\u8a2d\u5b9a\u4ed5\u69d8.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2630,7 +2630,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "file": "docs/specifications/inago/\u30a4\u30ca\u30b4\u30b9\u30ad\u30eb\u8981\u4ef6\u5b9a\u7fa9\u66f8.html",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2726,7 +2726,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/図解/F12.svg",
+      "file": "docs/specifications/inago/\u56f3\u89e3/F12.svg",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2758,7 +2758,7 @@
       ]
     },
     {
-      "file": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "file": "docs/operations/\u65e5\u6b21\u30bf\u30b9\u30af\u306e\u30c8\u30ec\u30fc\u30b9\u30fb\u30ed\u30b0\u51fa\u529b\u4e00\u89a7.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2790,7 +2790,7 @@
       ]
     },
     {
-      "file": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "file": "plans/projects/maintenance/\u81ea\u52d5\u4e0d\u5177\u5408\u5bfe\u5fdc\u30d5\u30ed\u30fc\u5b8c\u9042\u3068\u5168\u5de5\u7a0b\u8ffd\u8de1_\u5b9f\u884c\u8a08\u753b_2026-10-19.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -3254,7 +3254,7 @@
       "reviewer": "FC08 independent product reviewer",
       "evidence": [
         "FC02/file-operation-owner-map.json",
-        "docs/standards/イナゴ日次不具合レポート作成ルール.md"
+        "docs/standards/\u30a4\u30ca\u30b4\u65e5\u6b21\u4e0d\u5177\u5408\u30ec\u30dd\u30fc\u30c8\u4f5c\u6210\u30eb\u30fc\u30eb.md"
       ],
       "cases": [
         "FCT08",
@@ -3356,7 +3356,7 @@
       "reviewer": "FC08 independent product reviewer",
       "evidence": [
         "FC02/file-operation-owner-map.json",
-        "docs/standards/イナゴ日次不具合レポート作成ルール.md"
+        "docs/standards/\u30a4\u30ca\u30b4\u65e5\u6b21\u4e0d\u5177\u5408\u30ec\u30dd\u30fc\u30c8\u4f5c\u6210\u30eb\u30fc\u30eb.md"
       ],
       "cases": [
         "FCT08",
@@ -3771,7 +3771,7 @@
         ".codex/agents/rr-inago-incident-report-reviewer.toml"
       ],
       "controller_message": "approved strictly scoped active-role synchronization",
-      "reason": "remove active max/worktree/blocked and report-complete→incident-resolved contradictions"
+      "reason": "remove active max/worktree/blocked and report-complete\u2192incident-resolved contradictions"
     },
     {
       "files": [
@@ -3790,7 +3790,7 @@
         "automation/inago/maintenance/deployment.py",
         "automation/inago/maintenance/runtime_switcher.py"
       ],
-      "controller_message": "approved narrowly scoped no-alternate-workspace compatibility changes required by the user and plan; shared production_workflow.py operations are sequential FC04→FC05→FC06",
+      "controller_message": "approved narrowly scoped no-alternate-workspace compatibility changes required by the user and plan; shared production_workflow.py operations are sequential FC04\u2192FC05\u2192FC06",
       "reason": "The currently invoked repair author path clones and checks out a per-job repository, report publication uses git worktree add, and deployment creates managed worktrees. The plan and explicit user instructions require zero alternate workspaces while still completing the same job."
     },
     {
@@ -3918,13 +3918,13 @@
         "automation/inago/maintenance/store.py",
         "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
         "tests_inago/test_maintenance_store.py",
-        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
-        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
-        "docs/specifications/inago/要件データ辞書.md",
-        "docs/specifications/inago/要件追跡表.md",
-        "docs/operations/日次タスクのトレース・ログ出力一覧.md",
-        "docs/specifications/inago/保守運用設定仕様.md",
-        "docs/specifications/inago/イナゴスキル要件定義書.html"
+        "docs/specifications/inago/AT-MAINT-01_\u4fdd\u5b88\u5bfe\u5fdc\u8981\u4ef6\u53d7\u5165\u5951\u7d04.md",
+        "docs/specifications/inago/AT-TRACE-01_\u5171\u901a\u30c8\u30ec\u30fc\u30b9\u5951\u7d04.md",
+        "docs/specifications/inago/\u8981\u4ef6\u30c7\u30fc\u30bf\u8f9e\u66f8.md",
+        "docs/specifications/inago/\u8981\u4ef6\u8ffd\u8de1\u8868.md",
+        "docs/operations/\u65e5\u6b21\u30bf\u30b9\u30af\u306e\u30c8\u30ec\u30fc\u30b9\u30fb\u30ed\u30b0\u51fa\u529b\u4e00\u89a7.md",
+        "docs/specifications/inago/\u4fdd\u5b88\u904b\u7528\u8a2d\u5b9a\u4ed5\u69d8.md",
+        "docs/specifications/inago/\u30a4\u30ca\u30b4\u30b9\u30ad\u30eb\u8981\u4ef6\u5b9a\u7fa9\u66f8.html"
       ],
       "owner": "FC09",
       "boundary": [
@@ -3948,6 +3948,128 @@
       ],
       "controller_message": "approved FC09 extension for independent product-review finding FC09-F1",
       "reason": "The early return silently skips all stage handoffs and the final report when an identity/queue precondition fails. Preserve strict identity and exclusion safety while producing correlated, durable failure context and starting independent downstream stages with substantive handoffs."
+    },
+    {
+      "files": [
+        "automation/inago/app_server.py",
+        "automation/inago/maintenance/ai_adapter.py",
+        "automation/inago/maintenance/failure_journal.py",
+        "automation/inago/schemas/maintenance-planning-response.schema.json",
+        "tests_inago/test_maintenance_integration.py"
+      ],
+      "owner": "FC10",
+      "boundary": [
+        "app_server.py: _call preserves only validated provider error type/code/parameter identifiers on a sanitized AppServerError; never retain provider message, raw body, prompt, or response",
+        "ai_adapter.py: send a Codex strict-compatible copy of the response schema while retaining the original Draft 2020-12 validator; journal safe provider rejection type/code/parameter with the cause chain",
+        "failure_journal.py: append optional provider error identifiers as individually validated fields and preserve the safe exception class/cause chain; never store provider message text",
+        "maintenance-planning-response.schema.json: keep the planner response contract semantically identical while removing or replacing only the unsupported strict-schema keyword",
+        "test_maintenance_integration.py: focused fake-RPC regression verifies strict request compatibility, local validation semantics, and privacy-safe provider error capture"
+      ],
+      "controller_message": "approved exact FC10 follow-up for live planner HTTP 400 invalid_json_schema finding",
+      "reason": "The live planner request was rejected because strict Codex JSON Schema does not accept unevaluatedProperties, and AppServer currently discards provider error type/code/param before the maintenance failure journal can capture them. Preserve local response validation, capture only safe structured rejection identifiers and exception classes, and continue downstream stages without adding a gate."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "owner": "FC10",
+      "boundary": [
+        "production_workflow.py: run_daily_planning_author_stage fallback branch, derive a save-only artifact context from manifest identity and trusted attempt data; preserve the original planning AI context for prompt/validation",
+        "production_workflow.py: run_daily_repair_test_stage author failure handoff and _record_repair_test_not_performed cause propagation/artifact persistence when no valid attempt artifact context is available",
+        "production_workflow.py: run_daily_report_stage reuses a running report attempt only after store.validate_step_attempt_lease confirms the current workflow lease, rather than reading nonexistent lease fields from StepAttemptRecord",
+        "tests_inago/test_maintenance_report_publication_stage.py: report role-matrix verifies resumed attempt launch, reviewer findings bound to the exact response/version, author revision, and publication; planning fallback save context and repair original-cause NOT_RUN handoff regressions",
+        "tests_inago/test_maintenance_report_publication_stage.py: focused regressions for planning fallback context and repair author failure cause/handoff; no production DB mutation"
+      ],
+      "controller_message": "approved exact FC10 extension after live same-job planning fallback failed at investigation._validate_context and repair handoff lost the original attempt_id_invalid source/trace",
+      "reason": "Make controller fallbacks persist with the safe artifact-context contract; preserve and serialize the real repair-stage failure chain, and retain a substantive NOT_RUN artifact/handoff when the original attempt artifact cannot be addressed."
+    },
+    {
+      "file": "automation/inago/maintenance/workflow_reconciliation.py",
+      "existence": "existing",
+      "owner": "FC10",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "_durable_stage_handoffs; _attempt_and_deployment_outputs; reconcile_workflow_terminal",
+        "baseline_line": 49,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Allow the current invocation's identity-bound, contentful stage handoff to satisfy terminal evidence for a failed or not-performed stage without a formal successful attempt/deployment artifact; keep complete attempt output and final report publication/readback requirements intact.",
+      "execution_order": 10,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC10/; exact same-job terminal/readback evidence",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC02/stage-output-matrix.json",
+        "FC04/handoff.json",
+        "FC09/independent-review findings"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "existing AT-MAINT-01 FC02 contract and dictionary definition of complete as all stages attempted with failure/not-performed handoff",
+        "FC10 execution log, focused failure-continuation regression, and plan §14"
+      ],
+      "controller_message": "approved exact FC10 extension after source review showed the terminal reconciler still required successful formal outputs for failed stages, preventing a contentful failure handoff from reaching terminal report completion",
+      "reason": "Complete the handoff-based continuation already specified in AT-MAINT-01 while retaining identity-bound read-back. A failed or non-performed stage must not be represented as a successful attempt; its validated current-invocation handoff can evidence that the stage was carried forward, while completed attempt outputs and public reviewed report remain required read-backs."
+    }
+  ],
+  "fc10_review_followup": [
+    {
+      "finding": "FC10-F1",
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": "run_daily_planning_author_stage direct timeout/precondition outcomes must be non-blocked and leave contentful fallback; focused direct-call regression",
+      "reason": "Future stage results cannot emit blocked; provider normalization alone is not sufficient."
+    },
+    {
+      "finding": "FC10-F2",
+      "files": [
+        "automation/inago/maintenance/stage_handoff.py",
+        "automation/inago/maintenance/workflow_provider.py",
+        "automation/inago/maintenance/worker.py",
+        "automation/inago/maintenance/production_workflow.py",
+        "automation/inago/maintenance/workflow_reconciliation.py",
+        "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+        "tests_inago/test_maintenance_report_publication_stage.py",
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+        "docs/specifications/inago/イナゴスキル要件定義書.html",
+        "docs/specifications/inago/保守運用設定仕様.md",
+        "docs/specifications/inago/要件データ辞書.md",
+        "docs/specifications/inago/要件追跡表.md",
+        "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+        ".agents/skills/common-implementation/references/contracts.md",
+        ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+        ".agents/skills/rr-inago-incident-report/references/contracts.md"
+      ],
+      "boundary": "Bind every handoff payload to its producing invocation_id, validate that field against the terminal invocation, and reject cross-invocation copies; include all producers and schema",
+      "reason": "The path is invocation-scoped but payload content was not, permitting stale same-job content to be presented as current."
+    },
+    {
+      "finding": "FC10-F3",
+      "files": [
+        "automation/inago/maintenance/workflow_reconciliation.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": "Validate deployment-result against the registered schema and bind status, release, source/tested commits, identity and result hash to the formal deployment record and current attempt before terminal evidence; malformed success payload must not satisfy terminal",
+      "reason": "A syntactically plausible but unverified JSON file is not deployment proof."
+    },
+    {
+      "finding": "FC10-F4",
+      "files": [
+        "automation/inago/maintenance/failure_journal.py",
+        "tests_inago/test_maintenance_integration.py",
+        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+        "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+      ],
+      "boundary": "Persist sanitized events to an independent append-only fallback when primary journal writes fail; replay/reconcile both sources without making logging a business-operation gate; focused loss/replay injection",
+      "reason": "A primary logger failure currently discards the event except for a fixed stderr marker."
     }
   ],
   "revisions": [
@@ -3969,6 +4091,24 @@
       },
       "evidence": "FC02/revision-fc02-r01.json",
       "reviewer": "independent fc02_review follow-up"
+    },
+    {
+      "finding": "FC10 contract synchronization",
+      "files": [
+        ".codex/agents/rr-inago-incident-investigator.toml",
+        ".codex/agents/rr-inago-incident-reporter.toml",
+        ".codex/agents/rr-inago-incident-report-reviewer.toml",
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+        "docs/specifications/inago/要件データ辞書.md",
+        "docs/specifications/inago/要件追跡表.md",
+        "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+        ".agents/skills/common-implementation/references/contracts.md",
+        ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+        ".agents/skills/rr-inago-incident-report/references/contracts.md"
+      ],
+      "boundary": "Synchronize host-owned invocation binding, failure-journal secondary spool and replay semantics, deployment proof validation, report body/appendix rules, and FC09 post-apply observation in current contracts and role prompts; do not make AI invent controller identity fields",
+      "reason": "FC10 added invocation-bound handoffs and independent fallback/recovery behavior after prior documentation snapshots; the operational contract and specialist role instructions must match the implemented behavior and same-job observations."
     }
   ]
 }

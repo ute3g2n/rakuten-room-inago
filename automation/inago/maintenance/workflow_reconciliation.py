@@ -10,7 +10,11 @@ from pathlib import Path
 from pathlib import PurePosixPath
 import re
 import tempfile
+from functools import lru_cache
 from typing import Any
+
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import ValidationError
 
 from automation.inago.maintenance.failure_journal import append_failure_event
 from automation.inago.maintenance.store import (
@@ -31,6 +35,155 @@ _STAGES = (
     "deployment",
     "report",
 )
+_SCHEMA_ROOT = Path(__file__).resolve().parents[1] / "schemas"
+
+
+@lru_cache(maxsize=4)
+def _registered_schema_validator(filename: str) -> Draft202012Validator:
+    """Load the checked-in schema used by the producer of a terminal artifact."""
+
+    if filename not in {
+        "maintenance-deployment-result.schema.json",
+        "maintenance-deployment-candidate.schema.json",
+        "maintenance-repair-handoff.schema.json",
+    }:
+        raise ValueError("terminal_schema_name_invalid")
+    document = json.loads((_SCHEMA_ROOT / filename).read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(document)
+    return Draft202012Validator(document, format_checker=FormatChecker())
+
+
+def _deployment_result_matches_attempt(
+    store: MaintenanceStore,
+    *,
+    payload: dict[str, Any],
+    identity: dict[str, object],
+    repair_attempt: Any,
+    attempts_root: Path,
+) -> str | None:
+    """Verify deployment bytes against the current repair and durable DB rows."""
+
+    try:
+        try:
+            _registered_schema_validator(
+                "maintenance-deployment-result.schema.json"
+            ).validate(payload)
+        except ValidationError:
+            return "deployment_result_schema_invalid"
+        job_id = str(identity.get("job_id") or "")
+        attempt_id = getattr(repair_attempt, "attempt_id", None)
+        if (
+            not isinstance(attempt_id, str)
+            or getattr(repair_attempt, "job_id", None) != job_id
+            or not isinstance(getattr(repair_attempt, "result_version", None), str)
+        ):
+            return "deployment_current_repair_attempt_invalid"
+
+        candidate_path = attempts_root / job_id / attempt_id / "deployment-candidate.json"
+        candidate, candidate_raw = _read_json(candidate_path)
+        if candidate is None or candidate_raw is None:
+            return "deployment_candidate_readback_missing"
+        try:
+            _registered_schema_validator(
+                "maintenance-deployment-candidate.schema.json"
+            ).validate(candidate)
+        except ValidationError:
+            return "deployment_candidate_schema_invalid"
+        expected_identity = {
+            key: identity.get(key)
+            for key in (
+                "incident_id", "source_launch_id", "source_run_id", "target_date", "job_id"
+            )
+        }
+        if (
+            candidate.get("identity") != expected_identity
+            or candidate.get("job_id") != job_id
+            or candidate.get("attempt_id") != attempt_id
+            or candidate.get("result_version") != repair_attempt.result_version
+        ):
+            return "deployment_candidate_repair_identity_mismatch"
+        repair_ref = candidate.get("repair_handoff")
+        expected_repair_path = PurePosixPath(job_id, attempt_id, "repair-handoff.json").as_posix()
+        if (
+            not isinstance(repair_ref, dict)
+            or repair_ref.get("path") != expected_repair_path
+            or not isinstance(repair_ref.get("sha256"), str)
+        ):
+            return "deployment_candidate_repair_handoff_reference_invalid"
+        repair_bytes = store.read_attempt_artifact(
+            attempts_root=attempts_root,
+            relative_path=expected_repair_path,
+            expected_sha256=repair_ref["sha256"],
+        )
+        repair_document = json.loads(repair_bytes)
+        try:
+            _registered_schema_validator(
+                "maintenance-repair-handoff.schema.json"
+            ).validate(repair_document)
+        except ValidationError:
+            return "deployment_repair_handoff_schema_invalid"
+        if (
+            repair_document.get("identity") != expected_identity
+            or repair_document.get("attempt_id") != attempt_id
+            or repair_document.get("result_version") != repair_attempt.result_version
+        ):
+            return "deployment_repair_handoff_identity_mismatch"
+
+        candidate_release = candidate.get("candidate_release")
+        if not isinstance(candidate_release, dict):
+            return "deployment_candidate_release_missing"
+        candidate_key = hashlib.sha256(
+            "\0".join(
+                (
+                    job_id,
+                    attempt_id,
+                    str(candidate_release.get("code_sha256") or ""),
+                    repair_ref["sha256"],
+                )
+            ).encode("utf-8")
+        ).hexdigest()
+        expected_release_id = f"repair-{candidate_key[:48]}"
+        if candidate_release.get("release_id") != expected_release_id:
+            return "deployment_candidate_release_attempt_binding_mismatch"
+        basis = store.get_release_deployment_basis(release_id=expected_release_id)
+        if (
+            basis.get("base_commit") != candidate_release.get("base_commit")
+            or basis.get("result_commit") != candidate_release.get("commit")
+            or basis.get("result_version") != repair_attempt.result_version
+        ):
+            return "deployment_candidate_release_basis_mismatch"
+
+        deployment_id = payload.get("deployment_id")
+        if not isinstance(deployment_id, str):
+            return "deployment_result_id_missing"
+        record = store.get_deployment(deployment_id=deployment_id)
+        deployments = store.list_deployments_for_release(release_id=expected_release_id)
+        if (
+            record is None
+            or not deployments
+            or deployments[-1].deployment_id != deployment_id
+            or record.release_id != expected_release_id
+        ):
+            return "deployment_result_store_record_mismatch"
+        expected_payload = {
+            "schema_version": "maintenance-deployment-result-v1",
+            "deployment_id": record.deployment_id,
+            "release_id": record.release_id,
+            "status": record.status,
+            "reason_code": record.reason_code,
+            "source_commit": record.source_commit or record.result_commit,
+            "base_commit": record.base_commit or "",
+            "tested_commit": record.tested_commit or record.result_commit,
+            "pushed_commit": record.pushed_commit,
+            "active_commit": record.active_commit,
+            "remote_name": record.remote_name or "",
+            "target_branch": record.target_branch or "",
+        }
+        if payload != expected_payload:
+            return "deployment_result_store_payload_mismatch"
+    except Exception:
+        return "deployment_result_validation_or_readback_failed"
+    return None
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any] | None, bytes | None]:
@@ -69,6 +222,7 @@ def _durable_stage_handoffs(
             payload is None
             or raw is None
             or payload.get("schema_version") != "maintenance-stage-handoff-v1"
+            or payload.get("invocation_id") != invocation_id
             or payload.get("stage") != stage
             or payload.get("identity") != {
                 key: identity.get(key)
@@ -77,9 +231,14 @@ def _durable_stage_handoffs(
                 )
             }
             or not isinstance(payload.get("content_result"), dict)
-            or not payload["content_result"].get("summary")
+            or not isinstance(payload["content_result"].get("summary"), str)
+            or not payload["content_result"]["summary"].strip()
             or not isinstance(payload["content_result"].get("next_actions"), list)
             or not payload["content_result"]["next_actions"]
+            or any(
+                not isinstance(action, str) or not action.strip()
+                for action in payload["content_result"]["next_actions"]
+            )
         ):
             missing.append(stage)
             continue
@@ -326,9 +485,60 @@ def _published_report_readback(
 
 
 def _attempt_and_deployment_outputs(
-    store: MaintenanceStore, *, job_id: str, identity: dict[str, object]
-) -> tuple[list[dict[str, object]], list[str], dict[str, str] | None]:
-    """Read back formal investigation/plan/repair outputs and deployment result."""
+    store: MaintenanceStore,
+    *,
+    job_id: str,
+    identity: dict[str, object],
+    handoff_refs: list[str],
+    invocation_id: str | None,
+) -> tuple[list[dict[str, object]], list[str], dict[str, object] | None]:
+    """Read completed outputs or the current invocation's failure handoffs."""
+
+    data_root = store.database_path.parent.parent
+    handoff_ref_by_stage = {
+        PurePosixPath(ref).stem: ref for ref in handoff_refs
+    }
+
+    def failure_handoff(stage: str) -> dict[str, object] | None:
+        """Return verified stage-level evidence only for a non-success outcome."""
+
+        relative = handoff_ref_by_stage.get(stage)
+        if relative is None:
+            return None
+        payload, raw = _read_json(data_root / Path(*PurePosixPath(relative).parts))
+        expected_identity = {
+            key: identity.get(key)
+            for key in (
+                "job_id", "incident_id", "source_launch_id", "source_run_id", "target_date"
+            )
+        }
+        if (
+            payload is None
+            or raw is None
+            or payload.get("schema_version") != "maintenance-stage-handoff-v1"
+            or payload.get("invocation_id") != invocation_id
+            or payload.get("stage") != stage
+            or payload.get("identity") != expected_identity
+            or not isinstance(payload.get("content_result"), dict)
+            or not isinstance(payload["content_result"].get("summary"), str)
+            or not payload["content_result"]["summary"].strip()
+            or not isinstance(payload["content_result"].get("next_actions"), list)
+            or not payload["content_result"]["next_actions"]
+            or any(
+                not isinstance(action, str) or not action.strip()
+                for action in payload["content_result"]["next_actions"]
+            )
+            or payload.get("operation_result") not in {"failed", "not_performed", "unknown"}
+        ):
+            return None
+        reason_code = payload.get("reason_code")
+        return {
+            "stage": stage,
+            "path": relative,
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "operation_result": payload.get("operation_result"),
+            "reason_code": reason_code if isinstance(reason_code, str) else None,
+        }
 
     try:
         attempts = store.list_step_attempts(job_id=job_id)
@@ -351,10 +561,10 @@ def _attempt_and_deployment_outputs(
     attempts_root = store.database_path.parent / "attempts"
     refs: list[dict[str, object]] = []
     gaps: list[str] = []
-    for sequence, step_key in (
-        (1, "maintenance_investigation"),
-        (2, "maintenance_planning"),
-        (3, "maintenance_repair"),
+    for sequence, step_key, stage in (
+        (1, "maintenance_investigation", "investigation"),
+        (2, "maintenance_planning", "planning"),
+        (3, "maintenance_repair", "repair"),
     ):
         candidate = max(
             (
@@ -364,34 +574,97 @@ def _attempt_and_deployment_outputs(
             key=lambda item: item.attempt_no,
             default=None,
         )
-        if candidate is None:
-            gaps.append(f"{step_key}:attempt_missing")
-            continue
-        if (
-            candidate.job_id != job_id
-            or candidate.source_run_id != identity.get("source_run_id")
-            or not isinstance(candidate.output_path, str)
-            or not isinstance(candidate.output_sha256, str)
-        ):
-            gaps.append(f"{step_key}:output_reference_missing_or_identity_mismatch")
-            continue
-        try:
-            content = store.read_attempt_artifact(
-                attempts_root=attempts_root,
-                relative_path=candidate.output_path,
-                expected_sha256=candidate.output_sha256,
-            )
-        except Exception:
-            gaps.append(f"{step_key}:output_readback_failed")
+        identity_matches = (
+            candidate is not None
+            and candidate.job_id == job_id
+            and candidate.source_run_id == identity.get("source_run_id")
+        )
+        formal_output_observation: str | None = None
+        if candidate is not None and candidate.status == "complete" and identity_matches:
+            if not isinstance(candidate.output_path, str) or not isinstance(
+                candidate.output_sha256, str
+            ):
+                formal_output_observation = "completed_output_reference_missing"
+                append_failure_event(
+                    data_root,
+                    phase="unknown",
+                    operation="workflow.terminal.formal_attempt_output_readback",
+                    correlation_id=invocation_id or str(identity.get("source_launch_id") or "workflow-terminal"),
+                    parent_operation=candidate.attempt_id,
+                    job_id=job_id,
+                    incident_id=str(identity.get("incident_id") or ""),
+                    source_launch_id=str(identity.get("source_launch_id") or ""),
+                    source_run_id=identity.get("source_run_id"),
+                    invocation_id=invocation_id,
+                    stage=stage,
+                    attempt_id=candidate.attempt_id,
+                    reason_code="terminal_attempt_output_reference_missing",
+                    capture_location="workflow_reconciliation._attempt_and_deployment_outputs",
+                    primary_sink="attempt_artifact",
+                )
+            else:
+                try:
+                    content = store.read_attempt_artifact(
+                        attempts_root=attempts_root,
+                        relative_path=candidate.output_path,
+                        expected_sha256=candidate.output_sha256,
+                    )
+                except Exception as exc:
+                    formal_output_observation = "completed_output_readback_failed"
+                    append_failure_event(
+                        data_root,
+                        phase="failed",
+                        operation="workflow.terminal.formal_attempt_output_readback",
+                        correlation_id=invocation_id or str(identity.get("source_launch_id") or "workflow-terminal"),
+                        parent_operation=candidate.attempt_id,
+                        job_id=job_id,
+                        incident_id=str(identity.get("incident_id") or ""),
+                        source_launch_id=str(identity.get("source_launch_id") or ""),
+                        source_run_id=identity.get("source_run_id"),
+                        invocation_id=invocation_id,
+                        stage=stage,
+                        attempt_id=candidate.attempt_id,
+                        reason_code="terminal_attempt_output_readback_failed",
+                        error=exc,
+                        capture_location="workflow_reconciliation._attempt_and_deployment_outputs",
+                        artifact_refs=(candidate.output_path,),
+                        primary_sink="attempt_artifact",
+                    )
+                else:
+                    refs.append(
+                        {
+                            "step_key": step_key,
+                            "attempt_id": candidate.attempt_id,
+                            "status": candidate.status,
+                            "result_version": candidate.result_version,
+                            "output_path": candidate.output_path,
+                            "output_sha256": hashlib.sha256(content).hexdigest(),
+                            "evidence_kind": "completed_attempt_output",
+                        }
+                    )
+                    continue
+
+        # A failed, interrupted, absent, or mismatched historical attempt cannot
+        # stand in for a success. The same invocation must instead leave a
+        # content-bearing, identity-bound handoff explaining that stage.
+        handoff = failure_handoff(stage)
+        if handoff is None:
+            reason = "attempt_identity_mismatch" if candidate is not None and not identity_matches else "failure_handoff_missing_or_invalid"
+            gaps.append(f"{step_key}:{reason}")
             continue
         refs.append(
             {
                 "step_key": step_key,
-                "attempt_id": candidate.attempt_id,
-                "status": candidate.status,
-                "result_version": candidate.result_version,
-                "output_path": candidate.output_path,
-                "output_sha256": hashlib.sha256(content).hexdigest(),
+                "attempt_id": candidate.attempt_id if candidate is not None else None,
+                "status": candidate.status if candidate is not None else handoff["operation_result"],
+                "result_version": candidate.result_version if candidate is not None else None,
+                "output_path": handoff["path"],
+                "output_sha256": handoff["sha256"],
+                "evidence_kind": "stage_failure_handoff",
+                "stage": stage,
+                "operation_result": handoff["operation_result"],
+                "reason_code": handoff["reason_code"],
+                "formal_output_observation": formal_output_observation,
             }
         )
 
@@ -403,7 +676,7 @@ def _attempt_and_deployment_outputs(
         key=lambda item: item.attempt_no,
         default=None,
     )
-    deployment_ref: dict[str, str] | None = None
+    deployment_ref: dict[str, object] | None = None
     if repair is None:
         gaps.append("deployment:repair_attempt_missing")
     else:
@@ -416,21 +689,67 @@ def _attempt_and_deployment_outputs(
             if filename == "deployment-not-performed.json" and payload.get("identity") != identity:
                 gaps.append("deployment:output_identity_mismatch")
                 break
-            if filename == "deployment-result.json" and not all(
-                isinstance(payload.get(key), str)
-                for key in ("deployment_id", "release_id", "status", "source_commit", "tested_commit")
-            ):
-                gaps.append("deployment:output_fields_invalid")
-                break
+            if filename == "deployment-result.json":
+                validation_reason = _deployment_result_matches_attempt(
+                    store,
+                    payload=payload,
+                    identity=identity,
+                    repair_attempt=repair,
+                    attempts_root=attempts_root,
+                )
+                if validation_reason is not None:
+                    gaps.append(f"deployment:{validation_reason}")
+                    append_failure_event(
+                        data_root,
+                        phase="unknown",
+                        operation="workflow.terminal.deployment_result_readback_validate",
+                        correlation_id=invocation_id or str(
+                            identity.get("source_launch_id") or "workflow-terminal"
+                        ),
+                        parent_operation=repair.attempt_id,
+                        job_id=job_id,
+                        incident_id=str(identity.get("incident_id") or ""),
+                        source_launch_id=str(identity.get("source_launch_id") or ""),
+                        source_run_id=identity.get("source_run_id"),
+                        invocation_id=invocation_id,
+                        stage="deployment",
+                        attempt_id=repair.attempt_id,
+                        reason_code=validation_reason,
+                        error=ValueError(validation_reason),
+                        capture_location="workflow_reconciliation._attempt_and_deployment_outputs",
+                        input_refs=(
+                            path.relative_to(attempts_root).as_posix(),
+                            f"{job_id}/{repair.attempt_id}/deployment-candidate.json",
+                        ),
+                        artifact_refs=(path.relative_to(attempts_root).as_posix(),),
+                        primary_sink="deployment_result_readback",
+                    )
+                    break
             deployment_ref = {
                 "path": path.relative_to(attempts_root).as_posix(),
                 "sha256": hashlib.sha256(raw).hexdigest(),
+                "evidence_kind": "deployment_attempt_output",
             }
             break
-        if deployment_ref is None and not any(
-            item.startswith("deployment:") for item in gaps
-        ):
-            gaps.append("deployment:output_missing")
+    if deployment_ref is None:
+        handoff = failure_handoff("deployment")
+        if handoff is None:
+            if not any(item.startswith("deployment:") for item in gaps):
+                gaps.append("deployment:output_missing_or_failure_handoff_missing")
+        else:
+            deployment_observations = [
+                item for item in gaps if item.startswith("deployment:")
+            ]
+            gaps = [item for item in gaps if not item.startswith("deployment:")]
+            deployment_ref = {
+                "path": str(handoff["path"]),
+                "sha256": str(handoff["sha256"]),
+                "evidence_kind": "stage_failure_handoff",
+                "stage": "deployment",
+                "operation_result": str(handoff["operation_result"]),
+                "reason_code": str(handoff["reason_code"] or ""),
+                "attempt_output_observations": deployment_observations,
+            }
     return refs, gaps, deployment_ref
 
 
@@ -487,7 +806,11 @@ def reconcile_workflow_terminal(
         store, data_root=data_root, job_id=job_id, identity=identity
     )
     attempt_refs, attempt_gaps, deployment_ref = _attempt_and_deployment_outputs(
-        store, job_id=job_id, identity=identity
+        store,
+        job_id=job_id,
+        identity=identity,
+        handoff_refs=handoff_refs,
+        invocation_id=invocation_id,
     )
     # The publication runner records bytes only. This reconciler is the sole
     # terminal writer, after every durable handoff, formal output, deployment
@@ -496,8 +819,8 @@ def reconcile_workflow_terminal(
         "all_stage_observations_present": not missing_stages,
         "stage_observation_identity_matches": not identity_mismatches,
         "all_content_handoffs_read_back": not handoff_gaps,
-        "formal_attempt_outputs_read_back": not attempt_gaps,
-        "deployment_output_read_back": deployment_ref is not None,
+        "stage_attempt_or_failure_handoffs_read_back": not attempt_gaps,
+        "deployment_result_or_failure_handoff_read_back": deployment_ref is not None,
         "report_complete_observation": report_complete,
         "report_result_html_publication_sidecar_and_remote_readback": (
             report_evidence is not None

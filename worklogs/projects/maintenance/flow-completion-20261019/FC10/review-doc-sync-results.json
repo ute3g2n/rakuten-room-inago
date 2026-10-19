@@ -1,0 +1,150 @@
+{
+  "record_type": "FC10 intermediate review and contract synchronization",
+  "recorded_at_utc": "2026-10-19T17:37:46.229805+00:00",
+  "plan": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "version": "1.2",
+    "sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "same_job_status": "not yet re-resumed after the first FC10 incomplete attempt; this record does not claim FC10 or FC-A acceptance",
+  "product_review": {
+    "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/fc10-product-review-r2.json",
+    "sha256": "effc7543ab6beef4cb3db13abe0fb55895e184e8a07cb89d1f807b28525ea365",
+    "status": "approved",
+    "findings_count": 0,
+    "reviewed_version": "FC10-product-r2-eb16f9ec-9file-hash-bound-failure-journal-e3fe788",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "product_source_hashes": [
+      {
+        "path": "automation/inago/app_server.py",
+        "expected_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "actual_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/ai_adapter.py",
+        "expected_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "actual_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/failure_journal.py",
+        "expected_sha256": "e3fe788367153097e9e529a4ec7e848e78784d589c180201feeaf3ea48759857",
+        "actual_sha256": "e3fe788367153097e9e529a4ec7e848e78784d589c180201feeaf3ea48759857",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/production_workflow.py",
+        "expected_sha256": "fb801b6e079bb21c2ec7a58c198a643637e6114a35ddefdc5f28b6ea753b0d2b",
+        "actual_sha256": "fb801b6e079bb21c2ec7a58c198a643637e6114a35ddefdc5f28b6ea753b0d2b",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/workflow_reconciliation.py",
+        "expected_sha256": "3247ba7d924709663876338293c721d08fbce43f3f4c2540af998b0503a6805f",
+        "actual_sha256": "3247ba7d924709663876338293c721d08fbce43f3f4c2540af998b0503a6805f",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/stage_handoff.py",
+        "expected_sha256": "82869661992c29356fab4fa7ccf01fb5f7cc117d921329249c8b7b8b6cdcb089",
+        "actual_sha256": "82869661992c29356fab4fa7ccf01fb5f7cc117d921329249c8b7b8b6cdcb089",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/workflow_provider.py",
+        "expected_sha256": "b3f134900eaa3540f885a0d9cea8e2a7e64f59df50e24ec31488558dfef3d3fb",
+        "actual_sha256": "b3f134900eaa3540f885a0d9cea8e2a7e64f59df50e24ec31488558dfef3d3fb",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/worker.py",
+        "expected_sha256": "e741df2d0594270637aaa7b9107a1d6d915ae8cd19beb99c33672a202538f2c0",
+        "actual_sha256": "e741df2d0594270637aaa7b9107a1d6d915ae8cd19beb99c33672a202538f2c0",
+        "match": true
+      },
+      {
+        "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+        "expected_sha256": "410b3e29c64626e86f34b64e50c4577a88a85499e19a22723aae2a9a0bd6645e",
+        "actual_sha256": "410b3e29c64626e86f34b64e50c4577a88a85499e19a22723aae2a9a0bd6645e",
+        "match": true
+      }
+    ]
+  },
+  "focused_pytest": {
+    "runner_attempts": [
+      {
+        "command": "python -m pytest ...",
+        "exit_code": 1,
+        "result": "No module named pytest in the system Python; no tests collected."
+      },
+      {
+        "command": ".venv-inago/Scripts/python.exe -m pytest -q [12 selected nodes, including 3 terminal-reconciliation parameter cases]",
+        "exit_code": 0,
+        "result": "14 passed in 19.87s"
+      }
+    ],
+    "selected_nodes": [
+      "tests_inago/test_maintenance_integration.py::test_model_schema_rejection_is_sent_strictly_and_journaled_safely",
+      "tests_inago/test_maintenance_integration.py::test_failure_journal_primary_failure_uses_independent_spool_and_replays_once",
+      "tests_inago/test_maintenance_integration.py::test_failure_journal_dual_sink_failure_does_not_gate_tracked_operation",
+      "tests_inago/test_maintenance_integration.py::test_failure_journal_primary_resolution_failure_keeps_secondary_replay_available",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc10_repair_setup_cause_survives_into_not_run_handoff",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc10_planning_fallback_saves_with_manifest_only_context",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc10_planning_author_invalid_timeout_returns_unknown_with_invocation_handoff",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_required",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_terminal_reconciliation_never_completes_with_missing_evidence (3 parameter cases)",
+      "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes",
+      "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff",
+      "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_process_crash_is_reconciled_then_same_job_runs_remaining_roles"
+    ]
+  },
+  "machine_checks": {
+    "git_diff_check": "passed",
+    "py_compile": "passed for all eight modified production Python files",
+    "json_parse": "passed for owner map, stage handoff schema, and FC10 review r2",
+    "toml_parse": "passed for investigator, reporter, and report-reviewer role files",
+    "requirements_builder": {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "exit_code": 0,
+      "version": "2.50",
+      "chapters": 28,
+      "figures": 39,
+      "reference_documents": 26,
+      "bytes": 4154348,
+      "sha256": "57fb0bb22b486e7a1eb9a7eb4e2e80ffd7f79bd32a45d4207c43029a452d9c82",
+      "embedded_reference_hashes": {
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "10297ef561bfdeaf098b15ab858f30ce302c48660d8e1faa7e08fb1b1d8f3ec9",
+        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "f16473de4c3fa515d25c2825921eff4b3be5c3ab067a62b9150978fc3a2206e2",
+        "docs/specifications/inago/保守運用設定仕様.md": "77c4207786bed8abc4a7b4aa48c8b7fb36c3554b059f92f2f06509963b6d5daf",
+        "docs/specifications/inago/要件データ辞書.md": "a97c0735023d19a0441123995fd2bb6d97fc076709049e0705c00d7455d7bb14",
+        "docs/specifications/inago/要件追跡表.md": "b1061159a8e1a26addd556712bdc6d09eb7fd5f1c65c386a9f5a9f337cc203cf"
+      }
+    }
+  },
+  "synced_contracts": [
+    ".agents/skills/common-implementation/references/contracts.md",
+    ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md",
+    ".codex/agents/rr-inago-incident-investigator.toml",
+    ".codex/agents/rr-inago-incident-reporter.toml",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/specifications/inago/要件データ辞書.md",
+    "docs/specifications/inago/要件追跡表.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+  ],
+  "limitations": [
+    "This record covers FC10 source review and focused local verification only. The same historical job has not yet been resumed after its first incomplete live attempt. Production runtime switch, same-job reporter/reviewer/publication, terminal read-back, and FC-A acceptance remain to be performed."
+  ]
+}

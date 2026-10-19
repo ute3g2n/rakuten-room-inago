@@ -300,7 +300,9 @@ maintenanceの各stage開始・終了・例外・保存失敗は相関IDとopera
 
 ## FC03 実装範囲と再開時の記録
 
-保守JSONLの保存失敗はstage操作を失敗に変換せず、`maintenance/failure-journal/events.jsonl`へ別経路で退避する。DBのoperation eventとjournalの両方に相関ID、親操作、対象identity、phase、code revision、safe exception chain/frames、数値errno（存在する場合）、capture位置、参照を結ぶ。一次trace writerが例外を捕捉した境界で詳細をjournalへ一度記録し、呼出側は重複するgeneric-only eventを追加しない。起動時はfallback eventをDBへ再照合し、DB再照合自身が失敗した時も、元correlation IDと失敗exception chain/errno/frameを独立journalへ追記する。終端なしbeginは過去の終了値・原因を推測せず`interruption_observed`として追記する。DB eventのlatest順は`observed_at`、同時刻ならSQLite append順の`rowid`で決め、ミリ秒timestamp tieによる誤ったopen判定を避ける。journal保存失敗自身は短いstderr markerを試すが、その最終出力も失敗した未記録区間はunknownとして残す。
+保守JSONLの保存失敗はstage操作を失敗に変換せず、通常先`maintenance/failure-journal/events.jsonl`に退避する。DBのoperation eventとjournalの両方に相関ID、親操作、対象identity、phase、code revision、safe exception chain/frames、数値errno（存在する場合）、capture位置、参照を結ぶ。一次trace writerが例外を捕捉した境界で詳細をjournalへ一度記録し、呼出側は重複するgeneric-only eventを追加しない。起動時は両journalをDBへ再照合し、DB再照合自身が失敗した時も、元correlation IDと失敗exception chain/errno/frameを独立journalへ追記する。終端なしbeginは過去の終了値・原因を推測せず`interruption_observed`として追記する。DB eventのlatest順は`observed_at`、同時刻ならSQLite append順の`rowid`で決め、ミリ秒timestamp tieによる誤ったopen判定を避ける。journal保存失敗自身は短いstderr markerを試すが、その最終出力も失敗した未記録区間はunknownとして残す。
+
+通常journalへの書込またはそのpath解決に失敗した場合、検証済みmaintenance DB rootから別に解決する`maintenance/failure-journal-secondary/events.jsonl`へ安全化eventを追記する。primary pathが読めない場合もsecondaryの読込・再生を続ける。両JSONLはevent IDで重複を除き、DBへ冪等に再生する。両sinkとも失敗した場合は元処理を止めず、利用できる呼出側へ両方の安全化exception chain、errno、frameとcapture locationを返し、stderr markerも試す。両方の保存先・呼出側記録・stderrが全て失われた区間は復元できたと装わず、次の起動でunknownとして扱う。
 
 failure journalの`input_refs`と`artifact_refs`は識別子とpath参照を別々に扱う。安全な識別子は既存のID形式で保持し、path参照はprivate rootからの相対POSIX形式だけを表示用に保持する。絶対path、バックスラッシュ、空・`.`・`..`のpath要素、制御/記号文字、secret・password・credential・cookie・token・private key・環境file等を含む参照は落とす。pathをjob/incident/attempt等のidentity fieldへ変換せず、参照値が不正または危険な場合は値を記録しない。
 
@@ -321,3 +323,9 @@ failure journalの`input_refs`と`artifact_refs`は識別子とpath参照を別�
 migration 014は保守operation eventをappend-onlyで保存する。migration 015は、任意のrepair predecessor pinを3列すべてNULLで保存できるようall-or-none insert triggerだけを取り除き、既存pinの変更を拒むimmutable triggerを残す。`SCHEMA_VERSION=15`は両migrationを順に適用する。隔離DBのv14→v15移行・pinなしattempt作成はFC09 focused nodeで確認する。
 
 2026-10-20の本番移行前観測はschema v13、`quick_check=ok`、migration 001～013。正式適用後はFC09の実行記録に移行結果、backupとread-back、対象job identity/status、operation eventの実記録を追記する。旧raw stage blockedはそのまま観測履歴として保持し、将来のstage結果には使わない。
+
+## FC10 invocation bindingとdeployment証明
+
+hostはworkflowごとに一意な`invocation_id`を採番し、同じ値を保存先pathだけでなくhandoff payloadにも入れる。handoff schemaはこのfieldを必須とし、terminal照合時はpayload内の値を現在invocationと比較する。pathの配置だけでは現行invocationの証明にならない。AIが返すstage本文にはhostの相関fieldを生成させず、controllerが実行コンテキストから設定する。
+
+deploymentの終端証明は登録schema、現在のjob/attempt、repair candidate、repair handoffの保存内容/hash、formal release recordを相互照合する。任意のJSONにstatus等の値が並ぶだけでは反映成功として扱わない。個別stageが失敗・未実施の時はcurrent-invocation handoffを使えるが、reportの公開commit/hash/read-backと必須成果のterminal read-backは別に確認する。

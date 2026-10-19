@@ -1,0 +1,143 @@
+{
+  "schema_version": "common-review-result-v1",
+  "reviewer_id": "common-reviewer-fc10-r2",
+  "scope_type": "plan_step",
+  "scope_id": "FC10-product-review-r2",
+  "reviewed_version": "FC10-product-r2-eb16f9ec-9file-hash-bound-failure-journal-e3fe788",
+  "reviewed_at": "2026-10-19T17:32:34Z",
+  "status": "approved",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "review_scope": {
+    "branch": "main",
+    "head": "eb16f9ec8fc145a0884ad9ce78c80f7d4a098df3",
+    "included_product_file_count": 9,
+    "source_hashes": [
+      {
+        "path": "automation/inago/app_server.py",
+        "expected_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "actual_sha256": "d32678392c90aa4d0a0a8c9310cdbd7c4ab7950171b9d9ec5a7c23864ba3019c",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/ai_adapter.py",
+        "expected_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "actual_sha256": "7e0b98e444161c40afa5f9d9a301f8d91bd15475e5a0245fd73e905ea183c080",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/failure_journal.py",
+        "expected_sha256": "e3fe788367153097e9e529a4ec7e848e78784d589c180201feeaf3ea48759857",
+        "actual_sha256": "e3fe788367153097e9e529a4ec7e848e78784d589c180201feeaf3ea48759857",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/production_workflow.py",
+        "expected_sha256": "fb801b6e079bb21c2ec7a58c198a643637e6114a35ddefdc5f28b6ea753b0d2b",
+        "actual_sha256": "fb801b6e079bb21c2ec7a58c198a643637e6114a35ddefdc5f28b6ea753b0d2b",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/workflow_reconciliation.py",
+        "expected_sha256": "3247ba7d924709663876338293c721d08fbce43f3f4c2540af998b0503a6805f",
+        "actual_sha256": "3247ba7d924709663876338293c721d08fbce43f3f4c2540af998b0503a6805f",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/stage_handoff.py",
+        "expected_sha256": "82869661992c29356fab4fa7ccf01fb5f7cc117d921329249c8b7b8b6cdcb089",
+        "actual_sha256": "82869661992c29356fab4fa7ccf01fb5f7cc117d921329249c8b7b8b6cdcb089",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/workflow_provider.py",
+        "expected_sha256": "b3f134900eaa3540f885a0d9cea8e2a7e64f59df50e24ec31488558dfef3d3fb",
+        "actual_sha256": "b3f134900eaa3540f885a0d9cea8e2a7e64f59df50e24ec31488558dfef3d3fb",
+        "match": true
+      },
+      {
+        "path": "automation/inago/maintenance/worker.py",
+        "expected_sha256": "e741df2d0594270637aaa7b9107a1d6d915ae8cd19beb99c33672a202538f2c0",
+        "actual_sha256": "e741df2d0594270637aaa7b9107a1d6d915ae8cd19beb99c33672a202538f2c0",
+        "match": true
+      },
+      {
+        "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+        "expected_sha256": "410b3e29c64626e86f34b64e50c4577a88a85499e19a22723aae2a9a0bd6645e",
+        "actual_sha256": "410b3e29c64626e86f34b64e50c4577a88a85499e19a22723aae2a9a0bd6645e",
+        "match": true
+      }
+    ],
+    "test_source_reviewed": false,
+    "test_execution_evidence_inspected": true,
+    "tests_executed_by_reviewer": false,
+    "production_database_or_job_touched": false,
+    "public_publication_touched": false,
+    "alternate_worktree_used": false,
+    "non_reviewed_test_source_hash": {
+      "reviewed": false,
+      "path": "tests_inago/test_maintenance_integration.py",
+      "sha256": "a020bd0266875538a8e212692e29096fab8963bbdd179de52733e76087afbd04"
+    }
+  },
+  "plan": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "version": "1.2",
+    "current_sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e",
+    "expected_sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e",
+    "reviewed_requirements": [
+      "FC-A02",
+      "FC-A03",
+      "FC-A05",
+      "FC-A07",
+      "FC-A08",
+      "FC-A09"
+    ]
+  },
+  "prior_findings": {
+    "FC10_F1": "resolved: invalid timeout, preparation blocked, and non-actionable planning attempt now produce a contentful handoff and unknown result",
+    "FC10_F2": "resolved: handoff producer supplies invocation_id, required by schema, and compared by both terminal handoff readers",
+    "FC10_F3": "resolved: registered schemas and exact repair/candidate/release/DB record binding are checked",
+    "FC10_F4": "resolved for primary-sink failure: independent secondary spool, dual-source replay/reconciliation, idempotency, and non-gating failure handling"
+  },
+  "source_contract_checks": {
+    "planning_author_direct_blocked": "none in run_daily_planning_author_stage; preparation blocked is converted to unknown contentful handoff",
+    "handoff_invocation": "all make_stage_handoff call sites reviewed supply invocation_id; schema requires it; terminal readers compare payload invocation_id to active invocation",
+    "deployment_binding": "registered result/candidate/repair schemas, repair attempt/result version, candidate repair handoff readback, deterministic release ID, DB release basis and deployment record checked",
+    "journal_fallback": "separate failure-journal-secondary/events.jsonl; primary failure details written to spool; both sources read/reconciled/replayed with event-id dedupe",
+    "worker_exclusion": "WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"})",
+    "identity_invariant": "target remains 2026-10-17 and source_run_id null"
+  },
+  "test_evidence": [
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/F4/execution-result.json",
+      "sha256": "7080254e267bcb6adc38cbbc5f223198546745f2dbfb59fdf54a72e99e9f012e",
+      "reported": "Two exact FC10-F4 pytest nodes passed (2 passed in 0.32s); primary failure spool/replay and dual-sink non-gating.",
+      "reviewer_action": "Inspected execution artifact only; did not run tests or inspect test source."
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-f1-planning-author-preflight-followup.md",
+      "sha256": "3d5fad56232bfcfd7cee012a60746233bfa53296199053f6003f46bb5e0c02fd",
+      "reported": "Planning preflight follow-up documents py_compile and diff-check; it explicitly says pytest was not run for that follow-up.",
+      "reviewer_action": "Inspected source-change note only."
+    },
+    {
+      "controller_reported": "The parent reports 13 focused FC10 tests passed; no consolidated 13-test ledger was present among FC10 files at review time.",
+      "verified_by_reviewer": false
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Reviewer did not run tests and did not operate production database, target job, or public publication.",
+    "FC10 production same-job workflow outcome is not proven by this source review.",
+    "If both independent journal sinks fail, no durable local event is possible; sanitized failure detail returns and caller is not gated.",
+    "Review covers only the nine hash-bound source files; other modified product files are outside this r2 scope."
+  ]
+}

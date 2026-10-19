@@ -1,0 +1,45 @@
+{
+  "stage": "FC10-F4",
+  "finding": "FC10-F4: independent append-only fallback spool, dual-source replay/reconciliation, and non-gating dual-sink failure handling",
+  "result": "implemented_and_focused_verified",
+  "observed_at": "2026-10-20T02:28:48+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "changed_files": [
+    {
+      "path": "automation/inago/maintenance/failure_journal.py",
+      "sha256": "244c9378776c134896d84ba9bfd36cdfb35d28af2695b3836fe0f4443b59b568",
+      "summary": "Added a sibling secondary append-only JSONL spool, safe append/read helpers, primary exception-chain metadata, tolerant dual-sink returns, reading from both sources during reconciliation and replay, event-id de-duplication across sources, and persistent DB replay idempotency through MaintenanceStore's INSERT OR IGNORE."
+    },
+    {
+      "path": "tests_inago/test_maintenance_integration.py",
+      "sha256": "f84b5ce3265b31e08371ab5ae34e73ad027de9051f238be3eb8b2b7441352a53",
+      "summary": "Added two FC10-F4 regressions: primary failure routes to secondary, reconciliation reads secondary, both sources replay once into a temporary SQLite store across repeated replay; dual sink failure does not prevent the tracked business operation from running. Existing FC10-F3 test content in this shared file was preserved."
+    }
+  ],
+  "tdd": {
+    "red_command": ".\\.venv-inago\\Scripts\\python.exe -m pytest tests_inago/test_maintenance_integration.py::test_failure_journal_primary_failure_uses_independent_spool_and_replays_once tests_inago/test_maintenance_integration.py::test_failure_journal_dual_sink_failure_does_not_gate_tracked_operation -q",
+    "red_result": "exit 1; 1 failed, 1 passed. The primary-write injection returned status unavailable and no secondary journal was created.",
+    "green_command": ".\\.venv-inago\\Scripts\\python.exe -m pytest tests_inago/test_maintenance_integration.py::test_failure_journal_primary_failure_uses_independent_spool_and_replays_once tests_inago/test_maintenance_integration.py::test_failure_journal_dual_sink_failure_does_not_gate_tracked_operation -q",
+    "green_result": "exit 0; 2 passed in 0.32s against the final source hashes above."
+  },
+  "additional_checks": [
+    {
+      "command": "git diff --check -- automation/inago/maintenance/failure_journal.py tests_inago/test_maintenance_integration.py",
+      "result": "exit 0"
+    },
+    {
+      "command": ".\\.venv-inago\\Scripts\\python.exe -m py_compile automation/inago/maintenance/failure_journal.py tests_inago/test_maintenance_integration.py",
+      "result": "exit 0"
+    }
+  ],
+  "scope_notes": [
+    "The test uses an isolated temporary data root and initialized temporary MaintenanceStore SQLite DB; no production DB or external publication was accessed.",
+    "No files beyond the assigned journal, assigned integration test, and this FC10/F4 evidence folder were edited by this follow-up.",
+    "Other files and existing FC10-F3 changes in the shared working tree were preserved."
+  ],
+  "remaining_limits": [
+    "When both filesystem sinks fail, no durable journal can be written. The caller receives sanitized primary and secondary exception classes, errno, safe frame data, and capture location, while stderr receives a generic marker; the business operation continues.",
+    "Cross-source recovery order uses observed_at plus deterministic read order for equal timestamps. SQLite rowid remains the persistent append-order tie-breaker after replay."
+  ],
+  "handoff": "FC10-F4 code and focused evidence are ready for the controller to continue with the planned next stage/review. Re-run no production workflow from this follow-up."
+}

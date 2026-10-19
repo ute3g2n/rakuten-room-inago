@@ -6,6 +6,7 @@
   "properties": {
     "schema_version": {"const": "maintenance-stage-handoff-v1"},
     "handoff_id": {"$ref": "#/$defs/id"},
+    "invocation_id": {"$ref": "#/$defs/id"},
     "stage": {"$ref": "#/$defs/id"},
     "identity": {"$ref": "#/$defs/identity"},
     "attempt_id": {"type": ["string", "null"]},
@@ -74,7 +75,7 @@
       "additionalProperties": false
     }
   },
-  "required": ["schema_version", "handoff_id", "stage", "identity", "attempt_id", "operation", "operation_result", "stage_progress", "artifact_origin", "correlation_id", "captured_at", "code_revision", "input_refs", "output_refs", "content_result", "errors", "unknowns"],
+  "required": ["schema_version", "handoff_id", "invocation_id", "stage", "identity", "attempt_id", "operation", "operation_result", "stage_progress", "artifact_origin", "correlation_id", "captured_at", "code_revision", "input_refs", "output_refs", "content_result", "errors", "unknowns"],
   "allOf": [
     {
       "if": {

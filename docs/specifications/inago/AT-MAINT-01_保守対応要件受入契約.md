@@ -255,3 +255,13 @@ U02では本契約と要件対応を静的に確認し、HTML正本を再生成�
 現行コードはmigration 014でappend-only operation event表を追加し、migration 015でrepair predecessorがない場合を許すためall-or-none insert triggerだけを削除する。immutable-pin triggerは維持する。隔離DBではschema v14からv15へ更新し、pinなしrepair attemptを作れることを確認する。FC09のproduction適用では固定workspace内の既存DBを公式CLIで移行し、backup、`quick_check`、version・migration記録・両triggerをread-backする。
 
 2026-10-20の適用前 read-only確認ではproduction DBはschema v13で`quick_check=ok`、migration 001～013が記録されていた。対象jobは同一job・launch、`source_run_id=null`、status running、resume_count 8だった。この値は移行前観測であり、適用後の結果はFC09実行記録に記録する。FC01のschema13観測やFC03のschema14 source追加時点を現在状態として読み替えない。
+
+### FC09 実適用後の観測
+
+2026-10-20、固定workspaceの正式CLIで保守DBをschema v13からv15へ適用し、SQLite backup、migration 014/015、`quick_check=ok`と適用後のschemaを読み戻した。適用前のschema13/status観測を現在値として使わない。対象jobの以後の状態は、各同一job再開の実測記録を参照する。
+
+### FC10 同一invocationのhandoffと失敗記録
+
+controllerが採番した`invocation_id`をhandoff payloadにも保存し、正式schemaで必須にする。terminal照合は現在のinvocationとpayload内のIDを両方比較し、別invocationの古いhandoffを拒む。AIにはこのcontroller-owned IDを生成させない。deployment結果は登録schema、現在attempt、candidate、repair handoffのhash、release記録の全てを突合し、文字列5項目だけのJSONを反映証明にしない。
+
+failure journalの通常先`maintenance/failure-journal/events.jsonl`への書込またはpath解決に失敗した場合、検証済みDB rootから別に導く`maintenance/failure-journal-secondary/events.jsonl`へ安全化eventを追記する。復旧時は両方を読み、event IDで重複を除いてDBへ冪等に再生する。両sinkの失敗も元のoperationを止めず、具体的な安全化された失敗情報を残す。2026-10-20の同一job実測と未解決理由はFC10実行記録で確認する。

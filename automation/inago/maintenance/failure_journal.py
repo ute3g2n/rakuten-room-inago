@@ -18,6 +18,8 @@ import uuid
 from typing import Iterator, Mapping
 
 from automation.inago.maintenance.paths import (
+    _has_reparse_point,
+    resolve_maintenance_database_path,
     resolve_maintenance_failure_journal_path,
 )
 from automation.inago.maintenance.code_revision import (
@@ -81,6 +83,29 @@ def _safe_id(value: object, limit: int = 128) -> str | None:
     if any(character not in _SAFE_ID_CHARS for character in value):
         return None
     return value
+
+
+_PROVIDER_ERROR_SENSITIVE_MARKERS = (
+    "secret",
+    "password",
+    "credential",
+    "cookie",
+    "token",
+    "apikey",
+    "api_key",
+    "privatekey",
+    "private_key",
+)
+
+
+def _safe_provider_error_identifier(value: object) -> str | None:
+    safe = _safe_id(value, 128)
+    if safe is None:
+        return None
+    folded = safe.casefold()
+    if any(marker in folded for marker in _PROVIDER_ERROR_SENSITIVE_MARKERS):
+        return None
+    return safe
 
 
 _SENSITIVE_REFERENCE_MARKERS = (
@@ -181,6 +206,132 @@ def _lock_for(path: Path) -> threading.RLock:
         return _LOCKS.setdefault(key, threading.RLock())
 
 
+def _secondary_journal_path(data_root: str | Path) -> Path:
+    """Resolve the secondary spool directly from the validated DB root."""
+
+    database_path = resolve_maintenance_database_path(data_root)
+    maintenance_root = database_path.parent
+    # Keep the emergency spool in a sibling directory so a damaged or
+    # unavailable primary directory cannot take both sinks down together.
+    fallback = maintenance_root / "failure-journal-secondary" / FAILURE_JOURNAL_FILENAME
+    if any(_has_reparse_point(candidate) for candidate in (fallback.parent, fallback)):
+        raise ValueError("failure_journal_secondary_reparse_point")
+    try:
+        resolved = fallback.resolve(strict=False)
+        resolved.relative_to(maintenance_root.resolve(strict=False))
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ValueError("failure_journal_secondary_path_invalid") from exc
+    return resolved
+
+
+def _append_encoded(path: Path, encoded: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if _has_reparse_point(path.parent) or _has_reparse_point(path):
+        raise ValueError("failure_journal_reparse_point")
+    with _lock_for(path):
+        flags = os.O_CREAT | os.O_APPEND | os.O_WRONLY
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+        flags |= getattr(os, "O_BINARY", 0)
+        descriptor = os.open(path, flags, 0o600)
+        try:
+            view = memoryview(encoded)
+            while view:
+                count = os.write(descriptor, view)
+                if count <= 0:
+                    raise OSError("journal append made no progress")
+                view = view[count:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+
+def _encoded_event(event: Mapping[str, object]) -> bytes:
+    return (
+        json.dumps(event, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+
+
+def _read_event_sources(
+    data_root: str | Path,
+) -> tuple[list[tuple[dict[str, object], str]], list[dict[str, object]]]:
+    """Read both append-only sources, retaining valid rows if one source fails."""
+
+    rows: list[tuple[dict[str, object], str]] = []
+    errors: list[dict[str, object]] = []
+    sources: list[tuple[str, Path]] = []
+    try:
+        sources.append(("fallback", _secondary_journal_path(data_root)))
+    except Exception as exc:
+        errors.append(
+            {
+                "source": "fallback_path_resolution",
+                "exception_class": type(exc).__name__,
+                "exception_errno": _exception_errno(exc),
+            }
+        )
+    try:
+        sources.append(
+            (
+                "primary",
+                resolve_maintenance_failure_journal_path(
+                    data_root, filename=FAILURE_JOURNAL_FILENAME
+                ),
+            )
+        )
+    except Exception as exc:
+        errors.append(
+            {
+                "source": "primary_path_resolution",
+                "exception_class": type(exc).__name__,
+                "exception_errno": _exception_errno(exc),
+            }
+        )
+    # Read order is secondary first so recovery stays useful even when
+    # validation of the original journal path fails.
+    for source, path in sources:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except FileNotFoundError:
+            continue
+        except Exception as exc:
+            errors.append(
+                {
+                    "source": source,
+                    "exception_class": type(exc).__name__,
+                    "exception_errno": _exception_errno(exc),
+                }
+            )
+            continue
+        for line_number, line in enumerate(lines, start=1):
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except (ValueError, UnicodeDecodeError) as exc:
+                errors.append(
+                    {
+                        "source": source,
+                        "line": line_number,
+                        "exception_class": type(exc).__name__,
+                        "exception_errno": _exception_errno(exc),
+                    }
+                )
+                continue
+            if isinstance(row, dict):
+                rows.append((row, source))
+            else:
+                errors.append(
+                    {
+                        "source": source,
+                        "line": line_number,
+                        "exception_class": "JournalRowNotObject",
+                        "exception_errno": None,
+                    }
+                )
+    return rows, errors
+
+
 def append_failure_event(
     data_root: str | Path,
     *,
@@ -201,6 +352,9 @@ def append_failure_event(
     input_refs: tuple[str, ...] = (),
     artifact_refs: tuple[str, ...] = (),
     primary_sink: str | None = None,
+    provider_error_type: object = None,
+    provider_error_code: object = None,
+    provider_error_param: object = None,
 ) -> Mapping[str, object]:
     """Append one event; only identifiers, exception classes and code frames persist."""
 
@@ -227,6 +381,9 @@ def append_failure_event(
         "code_revision": current_code_revision(),
         "code_revision_reason": current_code_revision_reason() or None,
         "reason_code": _safe_id(reason_code, 128),
+        "provider_error_type": _safe_provider_error_identifier(provider_error_type),
+        "provider_error_code": _safe_provider_error_identifier(provider_error_code),
+        "provider_error_param": _safe_provider_error_identifier(provider_error_param),
         "exception_chain": classes,
         "exception_errno": _exception_errno(error),
         "stack_frames": frames,
@@ -236,43 +393,60 @@ def append_failure_event(
         "primary_sink": _safe_id(primary_sink, 32),
         "process_id": os.getpid(),
     }
-    encoded = (json.dumps(event, ensure_ascii=True, separators=(",", ":"), sort_keys=True) + "\n").encode("utf-8")
     try:
-        path = resolve_maintenance_failure_journal_path(
+        primary = resolve_maintenance_failure_journal_path(
             data_root, filename=FAILURE_JOURNAL_FILENAME
         )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path = resolve_maintenance_failure_journal_path(
-            data_root, filename=FAILURE_JOURNAL_FILENAME
-        )
-        with _lock_for(path):
-            flags = os.O_CREAT | os.O_APPEND | os.O_WRONLY
-            flags |= getattr(os, "O_NOFOLLOW", 0)
-            flags |= getattr(os, "O_BINARY", 0)
-            descriptor = os.open(path, flags, 0o600)
-            try:
-                view = memoryview(encoded)
-                while view:
-                    count = os.write(descriptor, view)
-                    if count <= 0:
-                        raise OSError("journal append made no progress")
-                    view = view[count:]
-                os.fsync(descriptor)
-            finally:
-                os.close(descriptor)
-        return {"status": "written", "path": path.as_posix(), "event_id": event["event_id"]}
-    except (OSError, RuntimeError, ValueError) as exc:
-        # Never recurse through a logger. A short stderr marker is the last
-        # available fallback; it intentionally contains no user data.
-        try:
-            os.write(2, b"maintenance_failure_journal_unavailable\n")
-        except OSError:
-            pass
+        _append_encoded(primary, _encoded_event(event))
         return {
-            "status": "unavailable",
-            "exception_class": type(exc).__name__,
-            "capture_location": "failure_journal.append_failure_event",
+            "status": "written",
+            "path": primary.as_posix(),
+            "event_id": event["event_id"],
+            "primary_status": "written",
+            "fallback_status": "not_needed",
         }
+    except Exception as primary_exc:
+        classes, frames = _exception_details(primary_exc)
+        event["primary_sink_failure"] = {
+            "exception_chain": classes,
+            "errno": _exception_errno(primary_exc),
+            "capture_location": "failure_journal.append_failure_event.primary_write",
+            "stack_frames": frames,
+        }
+        event["fallback_status"] = "written_to_secondary_spool"
+        try:
+            fallback = _secondary_journal_path(data_root)
+            _append_encoded(fallback, _encoded_event(event))
+            return {
+                "status": "written",
+                "path": fallback.as_posix(),
+                "event_id": event["event_id"],
+                "primary_status": "unavailable",
+                "fallback_status": "written",
+                "primary_exception_class": type(primary_exc).__name__,
+                "primary_exception_errno": _exception_errno(primary_exc),
+            }
+        except Exception as fallback_exc:
+            fallback_classes, fallback_frames = _exception_details(fallback_exc)
+            primary_classes, primary_frames = _exception_details(primary_exc)
+            try:
+                os.write(2, b"maintenance_failure_journal_both_sinks_unavailable\n")
+            except Exception:
+                pass
+            return {
+                "status": "unavailable",
+                "primary_status": "unavailable",
+                "fallback_status": "unavailable",
+                "primary_exception_class": type(primary_exc).__name__,
+                "primary_exception_errno": _exception_errno(primary_exc),
+                "primary_exception_chain": primary_classes,
+                "primary_stack_frames": primary_frames,
+                "fallback_exception_class": type(fallback_exc).__name__,
+                "fallback_exception_errno": _exception_errno(fallback_exc),
+                "fallback_exception_chain": fallback_classes,
+                "fallback_stack_frames": fallback_frames,
+                "capture_location": "failure_journal.append_failure_event.secondary_write",
+            }
 
 
 @contextmanager
@@ -304,20 +478,16 @@ def tracked_operation(data_root: str | Path, **identity: object) -> Iterator[str
 def reconcile_open_operations(data_root: str | Path) -> Mapping[str, object]:
     """Append interruption observations for begin events without a terminal event."""
 
-    try:
-        path = resolve_maintenance_failure_journal_path(
-            data_root, filename=FAILURE_JOURNAL_FILENAME
-        )
-        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
-    except FileNotFoundError:
-        return {"status": "complete", "reconciled": 0, "unknown": 0}
-    except (OSError, RuntimeError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return {"status": "unknown", "reconciled": 0, "unknown": 1, "exception_class": type(exc).__name__}
-    latest: dict[str, dict[str, object]] = {}
-    for row in rows:
+    rows, errors = _read_event_sources(data_root)
+    latest: dict[str, tuple[int, dict[str, object]]] = {}
+    ordered = sorted(
+        enumerate(rows),
+        key=lambda item: (str(item[1][0].get("observed_at") or ""), item[0]),
+    )
+    for sequence, (row, _source) in ordered:
         if isinstance(row, dict) and isinstance(row.get("correlation_id"), str):
-            latest[row["correlation_id"]] = row
-    open_rows = [row for row in latest.values() if row.get("phase") == "begin"]
+            latest[row["correlation_id"]] = (sequence, row)
+    open_rows = [item[1] for item in latest.values() if item[1].get("phase") == "begin"]
     for row in open_rows:
         append_failure_event(
             data_root,
@@ -336,35 +506,38 @@ def reconcile_open_operations(data_root: str | Path) -> Mapping[str, object]:
             capture_location="failure_journal.reconcile_open_operations",
             primary_sink="fallback_spool",
         )
-    return {"status": "complete", "reconciled": len(open_rows), "unknown": 0}
+    return {
+        "status": "complete" if not errors else "partial",
+        "reconciled": len(open_rows),
+        "unknown": len(errors),
+        "source_errors": errors,
+    }
 
 
 def replay_failure_journal(data_root: str | Path, store: object) -> Mapping[str, object]:
     """Copy fallback events into the primary append-only ledger after recovery."""
 
-    try:
-        path = resolve_maintenance_failure_journal_path(
-            data_root, filename=FAILURE_JOURNAL_FILENAME
-        )
-        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
-    except FileNotFoundError:
-        return {"status": "complete", "replayed": 0, "unknown": 0}
-    except (OSError, RuntimeError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return {"status": "unknown", "replayed": 0, "unknown": 1, "exception_class": type(exc).__name__}
+    rows, errors = _read_event_sources(data_root)
     replayed = 0
-    failures = 0
+    failures = len(errors)
     record = getattr(store, "record_operation_event", None)
     if not callable(record):
         return {"status": "unknown", "replayed": 0, "unknown": 1}
-    for row in rows:
+    seen_event_ids: set[str] = set()
+    for row, _source in rows:
         if not isinstance(row, dict) or not isinstance(row.get("event_id"), str):
             failures += 1
             continue
+        event_id = row["event_id"]
+        if event_id in seen_event_ids:
+            continue
+        seen_event_ids.add(event_id)
         event = dict(row)
         event.setdefault("exception_chain", [])
         event.setdefault("stack_frames", [])
         event.setdefault("input_refs", [])
         event.setdefault("artifact_refs", [])
+        # Both JSONL files are fallback sources to the maintenance DB ledger.
         event["fallback_status"] = "replayed_from_fallback"
         try:
             record(event)
@@ -395,4 +568,5 @@ def replay_failure_journal(data_root: str | Path, store: object) -> Mapping[str,
         "status": "complete" if failures == 0 else "partial",
         "replayed": replayed,
         "unknown": failures,
+        "source_errors": errors,
     }

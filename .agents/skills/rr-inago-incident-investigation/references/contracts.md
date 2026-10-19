@@ -66,3 +66,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ### FC04 fallback引継ぎ
 
 通常の調査出力が得られない場合、controllerは確認できた範囲、未知、次の調査を含む9章の部分報告とhandoffを保存する。artifact_origin=controller_fallbackと失敗理由を保持し、調査内容が未確認であることを明記して計画担当へ渡す。
+
+### FC10 controller invocationと失敗記録
+
+handoffの`invocation_id`はhost/controllerが採番する。調査担当は入力にあるjob/launch/run/date/attemptをそのまま保ち、controller-owned invocation IDやworkflow相関値を推測・生成しない。AI応答が保存不能でも、controller fallbackが現在invocationに結ばれた部分報告を作成し、読取範囲・未知・次の操作・元の失敗理由を残して計画担当を起動する。安全なjob/attempt pathがまだ使えない場合は、保存を試みた操作と不成立理由を参照可能なjournalへ渡す。

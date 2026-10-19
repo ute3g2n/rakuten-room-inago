@@ -459,6 +459,7 @@ class MaintenanceWorkflowProvider:
         }
         handoff = make_stage_handoff(
             stage=stage_name,
+            invocation_id=invocation_id,
             identity=identity,
             operation=f"workflow.stage.{stage_name}",
             operation_result=operation_result,
@@ -642,6 +643,7 @@ class MaintenanceWorkflowProvider:
         )
         context.state["code_revision"] = revision.code_revision
         context.state["code_revision_reason"] = revision.reason_code
+        context.state["invocation_id"] = invocation_id
         context.state["identity_precondition_error"] = reason
         context.state["identity_failure_record"] = failure_observation
         stage_outcomes: dict[str, dict[str, object]] = {}
@@ -796,6 +798,7 @@ class MaintenanceWorkflowProvider:
             except Exception as handoff_error:
                 handoff = make_stage_handoff(
                     stage=stage_name,
+                    invocation_id=invocation_id,
                     identity={
                         "job_id": None,
                         "incident_id": None,
@@ -942,6 +945,7 @@ class MaintenanceWorkflowProvider:
         )
         context.state["code_revision"] = revision.code_revision
         context.state["code_revision_reason"] = revision.reason_code
+        context.state["invocation_id"] = invocation_id
         stage_outcomes: dict[str, dict[str, object]] = {}
         context.state["workflow_stage_outcomes"] = stage_outcomes
         context.state["workflow_stage_handoffs"] = {}

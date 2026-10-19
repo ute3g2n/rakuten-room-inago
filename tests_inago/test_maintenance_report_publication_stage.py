@@ -13,6 +13,7 @@ import pytest
 
 from automation.inago.maintenance.store import (
     LeaseToken,
+    MaintenanceStoreError,
     MaintenanceJobRecord,
     StepAttemptRecord,
 )
@@ -378,6 +379,7 @@ def _fc08_seed_terminal_fixture(tmp_path: Path, monkeypatch):
     for stage in WORKFLOW_STAGE_ORDER:
         handoff = {
             "schema_version": "maintenance-stage-handoff-v1",
+            "invocation_id": invocation_id,
             "identity": identity,
             "stage": stage,
             "stage_progress": "handed_off",
@@ -570,7 +572,198 @@ def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
     assert incident_row["status"] == "in_progress"
 
 
-@pytest.mark.parametrize("missing_condition", ["stage_handoff", "public_report"])
+def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_required(
+    tmp_path: Path, monkeypatch
+):
+    fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+    _fc08_crash_after_publish(fixture, exit_code=49)
+    store = fixture["store"]
+    attempts_root = store.database_path.parent / "attempts"
+    connection = store._connect()
+    try:
+        for attempt in store.list_step_attempts(
+            job_id=fixture["identity"]["job_id"]
+        ):
+            if attempt.sequence not in {2, 3}:
+                continue
+            connection.execute(
+                "UPDATE step_attempt SET status = 'failed', result_version = NULL, "
+                "finished_at = ?, output_path = NULL, output_sha256 = NULL "
+                "WHERE attempt_id = ?",
+                (BASE_TIME.isoformat(), attempt.attempt_id),
+            )
+        connection.commit()
+    finally:
+        connection.close()
+
+    repair_attempt = next(
+        attempt
+        for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+        if attempt.sequence == 3
+    )
+    investigation_attempt = next(
+        attempt
+        for attempt in store.list_step_attempts(job_id=fixture["identity"]["job_id"])
+        if attempt.sequence == 1
+    )
+    (
+        attempts_root
+        / investigation_attempt.job_id
+        / investigation_attempt.attempt_id
+        / "result.json"
+    ).unlink()
+    (attempts_root / repair_attempt.job_id / repair_attempt.attempt_id / "deployment-not-performed.json").unlink()
+    # This satisfies the former shallow five-string check but is not a valid,
+    # store-bound deployment result and must not stand as terminal evidence.
+    (attempts_root / repair_attempt.job_id / repair_attempt.attempt_id / "deployment-result.json").write_text(
+        json.dumps(
+            {
+                "deployment_id": "synthetic-deployment",
+                "release_id": "synthetic-release",
+                "status": "garbage",
+                "source_commit": "synthetic-source",
+                "tested_commit": "synthetic-tested",
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    handoff_root = (
+        store.database_path.parent.parent
+        / "workflow-handoffs"
+        / fixture["identity"]["job_id"]
+        / fixture["invocation_id"]
+    )
+    for stage in ("investigation", "planning", "repair", "deployment"):
+        handoff_path = handoff_root / f"{stage}.json"
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["operation_result"] = "not_performed" if stage == "deployment" else "failed"
+        handoff["content_result"] = {
+            "summary": f"{stage} did not complete; the reason was handed forward.",
+            "next_actions": ["Continue to the final report with the recorded limitation."],
+            "limitations": ["This stage did not produce its normal successful output."],
+        }
+        handoff_path.write_text(
+            json.dumps(handoff, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        store.record_workflow_stage_observation(
+            invocation_id=fixture["invocation_id"],
+            job_id=fixture["identity"]["job_id"],
+            source_launch_id=fixture["identity"]["source_launch_id"],
+            source_run_id=None,
+            target_date=fixture["identity"]["target_date"],
+            stage_name=stage,
+            status="unknown" if stage != "deployment" else "not_performed",
+            reason_code=f"{stage}_result_unavailable",
+            observed_at=BASE_TIME,
+        )
+
+    reopened = MaintenanceStore(
+        store.database_path.parent.parent,
+        daily_database_path=fixture["daily_database_path"],
+    )
+    reopened.initialize()
+    resumed_lease = reopened.acquire_lease(
+        lease_key=f"maintenance:{fixture['identity']['job_id']}",
+        owner_id="fc10-handoff-terminal-reconciler",
+        owner_pid=os.getpid(),
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        workflow_reconciliation_module,
+        "__file__",
+        str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+    )
+    terminal = reconcile_workflow_terminal(
+        reopened,
+        job_id=fixture["identity"]["job_id"],
+        lease=resumed_lease,
+        expected_identity=fixture["identity"],
+    )
+
+    assert terminal["workflow_completion"] == "complete", json.dumps(
+        {
+            "reason_code": terminal["reason_code"],
+            "terminal_verification": terminal["terminal_verification"],
+            "missing_attempt_outputs": terminal["missing_attempt_outputs"],
+        },
+        sort_keys=True,
+    )
+    assert terminal["terminal_verification"][
+        "stage_attempt_or_failure_handoffs_read_back"
+    ]
+    attempt_refs = {item["step_key"]: item for item in terminal["attempt_output_refs"]}
+    assert attempt_refs["maintenance_investigation"]["evidence_kind"] == "stage_failure_handoff"
+    assert attempt_refs["maintenance_investigation"]["status"] == "complete"
+    assert attempt_refs["maintenance_investigation"]["formal_output_observation"] == (
+        "completed_output_readback_failed"
+    )
+    for step_key in ("maintenance_planning", "maintenance_repair"):
+        assert attempt_refs[step_key]["evidence_kind"] == "stage_failure_handoff"
+        assert attempt_refs[step_key]["status"] == "failed"
+    assert terminal["deployment_output_ref"]["evidence_kind"] == "stage_failure_handoff"
+    assert terminal["deployment_output_ref"]["stage"] == "deployment"
+    assert "deployment:deployment_result_schema_invalid" in terminal[
+        "deployment_output_ref"]["attempt_output_observations"]
+    assert terminal["report_publication_readback"]["public_html_sha256"]
+    failure_events = [
+        json.loads(line)
+        for line in (
+            reopened.database_path.parent / "failure-journal" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    formal_readback_event = next(
+        event
+        for event in failure_events
+        if event.get("operation") == "workflow.terminal.formal_attempt_output_readback"
+    )
+    assert formal_readback_event["invocation_id"] == fixture["invocation_id"]
+    assert formal_readback_event["capture_location"] == (
+        "workflow_reconciliation._attempt_and_deployment_outputs"
+    )
+    assert formal_readback_event["exception_chain"][:2] == [
+        "HandoffContractError",
+        "OSError",
+    ]
+    assert formal_readback_event["reason_code"] == (
+        "terminal_attempt_output_readback_failed"
+    )
+    assert formal_readback_event["artifact_refs"] == [
+        f"{investigation_attempt.job_id}/{investigation_attempt.attempt_id}/result.json"
+    ]
+    deployment_validation_event = next(
+        event
+        for event in failure_events
+        if event.get("operation")
+        == "workflow.terminal.deployment_result_readback_validate"
+    )
+    assert deployment_validation_event["invocation_id"] == fixture["invocation_id"]
+    assert deployment_validation_event["reason_code"] == (
+        "deployment_result_schema_invalid"
+    )
+    final_job = reopened.list_workflow_jobs_for_launch(
+        source_launch_id=fixture["identity"]["source_launch_id"],
+        source_run_id=None,
+        target_date=fixture["identity"]["target_date"],
+        job_id=fixture["identity"]["job_id"],
+    )[0]
+    assert final_job.status == "complete"
+    incident_row = reopened._connect().execute(
+        "SELECT status FROM incident WHERE incident_id = ?",
+        (fixture["identity"]["incident_id"],),
+    ).fetchone()
+    assert incident_row["status"] == "in_progress"
+
+
+@pytest.mark.parametrize(
+    "missing_condition",
+    ["stage_handoff", "handoff_invocation_mismatch", "public_report"],
+)
 def test_fc08_terminal_reconciliation_never_completes_with_missing_evidence(
     tmp_path: Path, monkeypatch, missing_condition: str
 ):
@@ -585,6 +778,20 @@ def test_fc08_terminal_reconciliation_never_completes_with_missing_evidence(
             / fixture["invocation_id"]
             / "planning.json"
         ).unlink()
+    elif missing_condition == "handoff_invocation_mismatch":
+        planning_path = (
+            store.database_path.parent.parent
+            / "workflow-handoffs"
+            / fixture["identity"]["job_id"]
+            / fixture["invocation_id"]
+            / "planning.json"
+        )
+        planning = json.loads(planning_path.read_text(encoding="utf-8"))
+        planning["invocation_id"] = "fc08-prior-invocation"
+        planning_path.write_text(
+            json.dumps(planning, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     else:
         report_path = fixture["report_path"]
         removal_repository = tmp_path / "fc08-remove-public-report"
@@ -631,7 +838,7 @@ def test_fc08_terminal_reconciliation_never_completes_with_missing_evidence(
     assert terminal["job_terminal_status"] == "failed"
     assert terminal["reason_code"] == "workflow_terminal_observations_incomplete"
     assert not all(terminal["terminal_verification"].values())
-    if missing_condition == "stage_handoff":
+    if missing_condition in {"stage_handoff", "handoff_invocation_mismatch"}:
         assert "planning" in terminal["missing_stage_handoffs"]
     else:
         assert not terminal["terminal_verification"][
@@ -1145,6 +1352,7 @@ def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monke
     "reviewer_mode",
     [
         "changes_requested_then_approved",
+        "resumed_attempt_with_four_findings",
         "transport_failure",
         "fallback_review_changes_requested_then_approved",
         "fallback_second_review_findings_remain_bound_to_reviewed_version",
@@ -1189,6 +1397,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         owner_start_time=BASE_TIME,
         now=BASE_TIME,
     )
+    controller = MaintenanceController(store)
     identity = {
         "incident_id": incident_id,
         "source_launch_id": source_launch_id,
@@ -1222,8 +1431,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
     runtime_root = store.database_path.parent.parent
     (store.database_path.parent / "worktrees").mkdir(parents=True)
     reports: dict[str, dict[str, object]] = {}
+    reviewer_responses: list[dict[str, object]] = []
     review_inputs: list[dict[str, object]] = []
     author_inputs: list[dict[str, object]] = []
+    author_attempt_ids: list[str] = []
     role_calls: list[str] = []
     turn_number = 0
 
@@ -1261,6 +1472,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             thread_id = f"fc07-thread-{turn_number}"
             if self.role == production_workflow._REPORT_AUTHOR_ROLE:
                 report_input = author_inputs[-1]
+                author_attempt_ids.append(self.attempt_id)
                 if (
                     reviewer_mode in {
                         "fallback_review_changes_requested_then_approved",
@@ -1308,7 +1520,23 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                         ),
                         "reviewed_at": "2026-10-20T00:00:00+09:00",
                         "findings": (
-                            [{"severity": "medium", "location": f"本文{review_round}", "finding": f"版{review_round}の確認事項を具体化してください。"}]
+                            [
+                                {
+                                    "severity": "medium",
+                                    "location": f"本文{review_round}-{finding_index}",
+                                    "finding": f"版{review_round}の確認事項{finding_index}を具体化してください。",
+                                }
+                                for finding_index in range(1, 5)
+                            ]
+                            if reviewer_mode == "resumed_attempt_with_four_findings"
+                            and review_round == 1
+                            else [
+                                {
+                                    "severity": "medium",
+                                    "location": f"本文{review_round}",
+                                    "finding": f"版{review_round}の確認事項を具体化してください。",
+                                }
+                            ]
                             if (
                                 review_round == 1
                                 or reviewer_mode
@@ -1337,6 +1565,8 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 "sha256": "a" * 64,
                 "envelope": envelope,
             }
+            if self.role == production_workflow._REPORT_REVIEWER_ROLE:
+                reviewer_responses.append(envelope)
             return SimpleNamespace(
                 turn=SimpleNamespace(turn_id=turn_id, thread_id=thread_id),
                 response=response,
@@ -1388,6 +1618,16 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         return WorkflowStageResult(status="complete")
 
     monkeypatch.setattr(production_workflow, "run_daily_report_publication_stage", publish)
+    resumed_attempt_id = None
+    if reviewer_mode == "resumed_attempt_with_four_findings":
+        started = controller.begin_step_attempt(
+            job_id=job.job_id,
+            step_key="maintenance_report",
+            sequence=4,
+            lease=lease,
+            started_at=BASE_TIME,
+        )
+        resumed_attempt_id = started.attempt_id
     provider = production_workflow.build_production_workflow_provider(store)
     result = provider._stage_runners["report"](context)
 
@@ -1404,7 +1644,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             "report_result",
         )
     }
-    if reviewer_mode == "changes_requested_then_approved":
+    if reviewer_mode in {
+        "changes_requested_then_approved",
+        "resumed_attempt_with_four_findings",
+    }:
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
@@ -1417,6 +1660,12 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         }
         assert len(author_inputs) == 2
         assert author_inputs[1]["prior_review_findings"]
+        if reviewer_mode == "resumed_attempt_with_four_findings":
+            assert len(author_inputs[1]["prior_review_findings"]) == 4
+            assert author_attempt_ids[0] == resumed_attempt_id
+            assert context.state["report_attempt"].attempt_id != resumed_attempt_id
+            assert context.state["report_attempt"].status == "complete"
+            assert publication_calls[0]["report"]["attempt_id"] == author_attempt_ids[-1]
         assert author_inputs[0]["result_version"] != author_inputs[1]["result_version"]
         assert review_inputs[0]["html_sha256"] != review_inputs[1]["html_sha256"]
         assert publication_calls[0]["report"]["review"]["status"] == "approved"
@@ -1427,8 +1676,16 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
         ]
-        expected_finding = "本文: 確認できた内容を具体化してください。"
         assert len(author_inputs) == 2
+        first_attempt_id = author_attempt_ids[0]
+        first_review_envelope = reviewer_responses[0]
+        first_review = first_review_envelope["response"]["review"]
+        assert first_review["reviewed_version"] == review_inputs[0]["result_version"]
+        assert review_inputs[0]["attempt_id"] == first_attempt_id
+        expected_finding = (
+            f"{first_review['findings'][0]['location']}: "
+            f"{first_review['findings'][0]['finding']}"
+        )
         assert author_inputs[1]["prior_findings"] == [expected_finding]
         assert len(review_inputs) == 2
         assert review_inputs[0]["result_version"] != review_inputs[1]["result_version"]
@@ -1494,6 +1751,266 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert published_report["stage_status"] == "review_unavailable"
         assert published_report["review"]["status"] == "unavailable"
         assert published_report["report_origin"] == "controller_fallback"
+
+
+def test_fc10_repair_setup_cause_survives_into_not_run_handoff(
+    tmp_path: Path, monkeypatch
+):
+    source_launch_id = "launch-fc10-repair-cause"
+    target_date = "2026-10-17"
+    store = make_store(tmp_path)
+    incident_id = create_incident(store, launch_id=source_launch_id)
+    base_commit = _git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD")
+    release = create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-fc10-repair-cause",
+        base_commit=base_commit,
+        result_commit=base_commit,
+    )
+    manifest = store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+        created_at=BASE_TIME,
+    )
+    job = store.list_workflow_jobs_for_launch(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+    )[0]
+    lease = store.acquire_lease(
+        lease_key=f"maintenance:{job.job_id}",
+        owner_id="fc10-repair-cause-test",
+        owner_pid=1,
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    controller = MaintenanceController(store)
+    started = controller.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_repair",
+        sequence=3,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_ensure_repair_worktree",
+        lambda *, project_root, worktree_root, base_commit: base_commit,
+    )
+    context = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+        ),
+        check=SimpleNamespace(check_id="check-fc10-repair-cause"),
+        queue=SimpleNamespace(queue_id="queue-fc10-repair-cause"),
+        lease=lease,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(job=job, attempts=()),
+        state={
+            "job": job,
+            "precheck_identity": {
+                **manifest.identity(),
+                "input_refs": [f"daily-launch/{source_launch_id}"],
+                "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+            },
+        },
+    )
+
+    result = production_workflow.run_daily_repair_test_stage(
+        context, controller, store
+    )
+
+    assert result.status == "unknown"
+    assert result.reason_code == "attempt_id_invalid"
+    assert context.state["repair_setup_failure"].__class__ is MaintenanceStoreError
+    assert context.state["repair_author_failure"] is context.state["repair_setup_failure"]
+    not_run = context.state["repair_test_not_performed"]
+    assert not_run["outcome"] == "NOT_RUN"
+    assert not_run["cause_class"] == "MaintenanceStoreError"
+    assert not_run["artifact_ref"]["path"] == (
+        f"{job.job_id}/{started.attempt_id}/repair-handoff.json"
+    )
+    handoff_bytes = store.read_attempt_artifact(
+        attempts_root=store.database_path.parent / "attempts",
+        relative_path=not_run["artifact_ref"]["path"],
+        expected_sha256=not_run["artifact_ref"]["sha256"],
+    )
+    handoff = json.loads(handoff_bytes)
+    assert handoff["operation_result"] == "not_performed"
+    assert handoff["reason_code"] == "attempt_id_invalid"
+    assert any(
+        frame.get("function") == "_daily_repair_setup_document"
+        for frame in handoff["stack_frames"]
+    )
+
+
+def test_fc10_planning_fallback_saves_with_manifest_only_context(
+    tmp_path: Path, monkeypatch
+):
+    source_launch_id = "launch-fc10-planning-fallback-context"
+    target_date = "2026-10-17"
+    store = make_store(tmp_path)
+    incident_id = create_incident(store, launch_id=source_launch_id)
+    base_commit = _git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD")
+    release = create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-fc10-planning-fallback-context",
+        base_commit=base_commit,
+        result_commit=base_commit,
+    )
+    manifest = store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+        created_at=BASE_TIME,
+    )
+    job = store.list_workflow_jobs_for_launch(
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date=target_date,
+        job_id=release.job_id,
+    )[0]
+    lease = store.acquire_lease(
+        lease_key=f"maintenance:{job.job_id}",
+        owner_id="fc10-planning-fallback-test",
+        owner_pid=1,
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    controller = MaintenanceController(store)
+    begun = controller.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
+    attempt = controller.get_step_attempt(attempt_id=begun.attempt_id)
+    attempts_root = store.database_path.parent / "attempts"
+    output_root = attempts_root / job.job_id / attempt.attempt_id
+    output_root.mkdir(parents=True)
+    precheck_identity = {
+        **manifest.identity(),
+        "input_refs": [f"daily-launch/{source_launch_id}"],
+        "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+    }
+    planning_context = {
+        **precheck_identity,
+        "attempt_id": attempt.attempt_id,
+        "attempt": attempt.attempt_no,
+        "base_commit": base_commit,
+        "planning_scope": "この計画専用の追加コンテキスト",
+    }
+    context = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+        ),
+        check=SimpleNamespace(check_id="check-fc10-planning-fallback"),
+        queue=SimpleNamespace(queue_id="queue-fc10-planning-fallback"),
+        lease=lease,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(job=job, attempts=()),
+        state={
+            "job": job,
+            "invocation_id": "fc10-planning-fallback-invocation",
+            "precheck_identity": precheck_identity,
+            "planning_attempt": attempt,
+            "planning_session_plan": SimpleNamespace(cwd=Path(__file__).resolve().parents[1]),
+            "planning_context": planning_context,
+            "planning_facts": [{"fact": "調査資料に原因を特定できる情報がない"}],
+            "planning_daily_completion": {"status": "unknown"},
+            "planning_output_root": output_root,
+            "planning_attempts_root": attempts_root,
+            "planning_manifest": manifest,
+        },
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "prepare_daily_planning_stage",
+        lambda *_args: WorkflowStageResult(status="complete"),
+    )
+
+    class FailedSession:
+        def run_turn(self, prompt, *_args, **_kwargs):
+            assert "この計画専用の追加コンテキスト" in prompt
+            raise production_workflow.MaintenanceAIBlockedError(
+                "synthetic_planning_ai_failure"
+            )
+
+        def close(self):
+            return None
+
+    class FailedAdapter:
+        def create_session(self, _session_plan):
+            return FailedSession()
+
+    monkeypatch.setattr(
+        production_workflow,
+        "_adapter_for_session_plan",
+        lambda *_args: FailedAdapter(),
+    )
+
+    result = production_workflow.run_daily_planning_author_stage(
+        context, controller, store
+    )
+
+    assert result.status == "unknown"
+    assert result.reason_code == "synthetic_planning_ai_failure"
+    assert context.state["planning_context"]["planning_scope"] == "この計画専用の追加コンテキスト"
+    assert context.state["planning_stage_handoff_path"] == (
+        f"{job.job_id}/{attempt.attempt_id}/stage-handoff.json"
+    )
+    saved_handoff = json.loads(
+        (output_root / "stage-handoff.json").read_text(encoding="utf-8")
+    )
+    assert saved_handoff["invocation_id"] == "fc10-planning-fallback-invocation"
+    assert (output_root / "controller-fallback.json").is_file()
+    assert (output_root / "stage-handoff.json").is_file()
+    assert (output_root / "plan.md").is_file()
+
+
+def test_fc10_planning_author_invalid_timeout_returns_unknown_with_invocation_handoff(
+    tmp_path: Path,
+):
+    source_launch_id = "launch-fc10-planning-invalid-timeout"
+    store = make_store(tmp_path)
+    context = MaintenanceWorkflowContext(
+        launch=SimpleNamespace(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date="2026-10-17",
+        ),
+        check=SimpleNamespace(check_id="check-fc10-planning-invalid-timeout"),
+        queue=SimpleNamespace(queue_id="queue-fc10-planning-invalid-timeout"),
+        lease=None,
+        cancel_event=threading.Event(),
+        resume_state=WorkflowResumeState(job=None, attempts=()),
+        state={"invocation_id": "fc10-planning-invalid-timeout-invocation"},
+    )
+
+    result = production_workflow.run_daily_planning_author_stage(
+        context, MaintenanceController(store), store, timeout_seconds=0
+    )
+
+    assert result.status == "unknown"
+    assert result.reason_code == "planning_timeout_invalid"
+    handoff = context.state["planning_stage_handoff"]
+    assert handoff["operation_result"] == "not_performed"
+    assert handoff["invocation_id"] == context.state["invocation_id"]
+    assert handoff["content_result"]["summary"]
+    assert handoff["content_result"]["next_actions"]
 
 
 def test_fc07_missing_identity_still_persists_substantive_fallback_html(

@@ -6,8 +6,17 @@ import sqlite3
 from datetime import timedelta
 import json
 import sqlite3
+from pathlib import Path
 
 from automation.inago.maintenance.controller import MaintenanceController
+from automation.inago.app_server import (
+    AppServerError,
+    AppServerSession,
+)
+from automation.inago.maintenance.ai_adapter import (
+    MaintenanceAIBlockedError,
+    MaintenanceAISession,
+)
 from automation.inago.maintenance.cli import main as maintenance_cli_main
 from automation.inago.maintenance.daily_launcher import (
     DailyProcessResult,
@@ -35,6 +44,321 @@ from automation.inago.maintenance.worker import (
     run_worker_once,
 )
 from automation.inago.maintenance.verification import report_source
+
+
+def test_model_schema_rejection_is_sent_strictly_and_journaled_safely(tmp_path):
+    identity = {
+        "job_id": "job-schema-failure",
+        "incident_id": "incident-schema-failure",
+        "source_launch_id": "launch-schema-failure",
+        "source_run_id": None,
+        "target_date": "2026-10-17",
+    }
+    manifest = type(
+        "Manifest",
+        (),
+        {
+            **identity,
+            "job_id": identity["job_id"],
+            "identity": lambda self: identity,
+        },
+    )()
+    plan = type(
+        "Plan",
+        (),
+        {
+            "manifest": manifest,
+            "requested_model": "gpt-6-luna",
+            "requested_effort": "high",
+            "requested_service_tier": "priority",
+            "session_key": "session-schema-failure",
+            "attempt_id": "attempt-schema-failure",
+        },
+    )()
+    store = type(
+        "Store", (), {"database_path": tmp_path / "runtime" / "maintenance" / "state.sqlite"}
+    )()
+    controller = type(
+        "Controller",
+        (),
+        {
+            "_diagnostic_trace": None,
+            "_store": store,
+            "get_job_input_manifest": lambda self, *, job_id: manifest,
+            "record_ai_session_observation": lambda self, **_kwargs: None,
+        },
+    )()
+    class RejectedRPC(AppServerSession):
+        def __init__(self):
+            self._next_id = 0
+            self.process = None
+
+        def _send(self, _message):
+            return None
+
+        def _log(self, *_args, **_kwargs):
+            return None
+
+        def _receive(self, _deadline, _cancel_event=None):
+            return {
+                "id": 1,
+                "error": {
+                    "code": -32600,
+                    "message": "PRIVATE_PROVIDER_BODY_SENTINEL",
+                    "data": {
+                        "error": {
+                            "type": "invalid_request_error",
+                            "code": "invalid_json_schema",
+                            "param": "text.format.schema.unevaluatedProperties",
+                        }
+                    },
+                },
+            }
+
+    try:
+        RejectedRPC()._call("turn/start", {}, deadline=1)
+    except AppServerError as exc:
+        rejected = exc
+    else:
+        raise AssertionError("synthetic provider rejection must raise AppServerError")
+
+    class FakeAppServer:
+        sent_schema = None
+
+        def run_turn(self, prompt, output_schema, **_kwargs):
+            self.sent_schema = output_schema
+            assert "PRIVATE_PROMPT_SENTINEL" in prompt
+            raise rejected
+
+    class TestSession(MaintenanceAISession):
+        def _validate_allowed_outputs(self, _outputs):
+            return ()
+
+        def _revalidate_write_roots(self):
+            return None
+
+        def _validate_turn_cwd(self, _cwd):
+            return tmp_path
+
+    app_server = FakeAppServer()
+    session = TestSession(controller, plan, app_server)
+    schema = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "automation"
+            / "inago"
+            / "schemas"
+            / "maintenance-planning-response.schema.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert schema["unevaluatedProperties"] is False
+
+    try:
+        session.run_turn(
+            "PRIVATE_PROMPT_SENTINEL",
+            schema,
+            allowed_outputs=(),
+            deadline=9999999999,
+        )
+    except MaintenanceAIBlockedError as exc:
+        assert exc.reason_code == "ai_transport_failed"
+    else:
+        raise AssertionError("synthetic provider schema rejection must be recorded")
+
+    assert app_server.sent_schema is not None
+    pending = [app_server.sent_schema]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            assert "unevaluatedProperties" not in node
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    assert app_server.sent_schema["additionalProperties"] is False
+    assert rejected.provider_error_type == "invalid_request_error"
+    assert rejected.provider_error_code == "invalid_json_schema"
+    assert rejected.provider_error_param == "text.format.schema.unevaluatedProperties"
+    assert "unevaluatedProperties" in schema
+    local_schema = {
+        "type": "object",
+        "properties": {"answer": {"type": "string"}},
+        "required": ["answer"],
+        "unevaluatedProperties": False,
+    }
+    validator = session._prepare_output_schema(local_schema)
+    try:
+        validator.validate({**identity, "answer": "ok", "extra": "rejected locally"})
+    except Exception:
+        pass
+    else:
+        raise AssertionError("the original local validator must still reject extra fields")
+
+    from automation.inago.maintenance.paths import (
+        resolve_maintenance_failure_journal_path,
+    )
+
+    journal = resolve_maintenance_failure_journal_path(tmp_path / "runtime")
+    journal_text = journal.read_text(encoding="utf-8")
+    event = next(
+        item
+        for item in map(json.loads, journal_text.splitlines())
+        if item.get("operation") == "ai_transport.run_turn"
+    )
+    assert event["provider_error_type"] == "invalid_request_error"
+    assert event["provider_error_code"] == "invalid_json_schema"
+    assert event["provider_error_param"] == "text.format.schema.unevaluatedProperties"
+    assert event["exception_chain"] == [
+        "AppServerError",
+        "AppServerProviderRejection",
+    ]
+    assert "PRIVATE_PROMPT_SENTINEL" not in journal_text
+    assert "PRIVATE_PROVIDER_BODY_SENTINEL" not in journal_text
+
+
+def test_failure_journal_primary_failure_uses_independent_spool_and_replays_once(
+    tmp_path, monkeypatch
+):
+    from automation.inago.maintenance import failure_journal
+    from automation.inago.maintenance.paths import (
+        resolve_maintenance_failure_journal_path,
+    )
+
+    data_root = tmp_path / "runtime"
+    primary = resolve_maintenance_failure_journal_path(data_root)
+    fallback = primary.parent.parent / "failure-journal-secondary" / primary.name
+    original_open = failure_journal.os.open
+
+    def fail_primary_open(path, flags, mode=0o777):
+        if Path(path) == primary:
+            raise OSError(28, "synthetic primary disk full")
+        return original_open(path, flags, mode)
+
+    monkeypatch.setattr(failure_journal.os, "open", fail_primary_open)
+    result = failure_journal.append_failure_event(
+        data_root,
+        phase="failed",
+        operation="integration.injected_primary_journal_failure",
+        correlation_id="corr-primary-failure",
+        reason_code="synthetic_primary_failure",
+        capture_location="test_failure_journal_primary_failure_uses_independent_spool_and_replays_once",
+    )
+    assert result["status"] == "written"
+    assert result["primary_status"] == "unavailable"
+    assert result["fallback_status"] == "written"
+    assert fallback.exists()
+    event = json.loads(fallback.read_text(encoding="utf-8").splitlines()[0])
+    assert event["event_id"] == result["event_id"]
+    assert event["primary_sink_failure"]["exception_chain"] == ["OSError"]
+    assert event["primary_sink_failure"]["errno"] == 28
+
+    failure_journal.append_failure_event(
+        data_root,
+        phase="begin",
+        operation="integration.interrupted_operation",
+        correlation_id="corr-fallback-open",
+    )
+    reconciled = failure_journal.reconcile_open_operations(data_root)
+    assert reconciled["reconciled"] == 1
+    fallback_rows = [
+        json.loads(line) for line in fallback.read_text(encoding="utf-8").splitlines()
+    ]
+    assert any(
+        row.get("correlation_id") == "corr-fallback-open"
+        and row.get("phase") == "interruption_observed"
+        for row in fallback_rows
+    )
+
+    monkeypatch.setattr(failure_journal.os, "open", original_open)
+    primary_result = failure_journal.append_failure_event(
+        data_root,
+        phase="end",
+        operation="integration.primary_source_event",
+        correlation_id="corr-primary-source",
+    )
+    assert primary_result["primary_status"] == "written"
+    primary_rows = [
+        json.loads(line) for line in primary.read_text(encoding="utf-8").splitlines()
+    ]
+    store = make_store(tmp_path / "replay-db")
+    first = failure_journal.replay_failure_journal(data_root, store)
+    second = failure_journal.replay_failure_journal(data_root, store)
+    assert first["status"] == second["status"] == "complete"
+    expected_event_ids = {
+        row["event_id"] for row in (*fallback_rows, *primary_rows)
+    }
+    with store._connect() as connection:
+        stored_event_ids = {
+            row[0]
+            for row in connection.execute(
+                "SELECT event_id FROM maintenance_operation_event"
+            ).fetchall()
+        }
+    assert stored_event_ids == expected_event_ids
+    assert result["event_id"] in stored_event_ids
+
+
+def test_failure_journal_dual_sink_failure_does_not_gate_tracked_operation(
+    tmp_path, monkeypatch
+):
+    from automation.inago.maintenance import failure_journal
+
+    def fail_all_opens(*_args, **_kwargs):
+        raise OSError(28, "synthetic both journal sinks full")
+
+    monkeypatch.setattr(failure_journal.os, "open", fail_all_opens)
+    entered = []
+    with failure_journal.tracked_operation(
+        tmp_path / "runtime", operation="integration.dual_sink_failure"
+    ):
+        entered.append("business operation ran")
+    assert entered == ["business operation ran"]
+
+
+def test_failure_journal_primary_resolution_failure_keeps_secondary_replay_available(
+    tmp_path, monkeypatch
+):
+    from automation.inago.maintenance import failure_journal
+    from automation.inago.maintenance.paths import resolve_maintenance_database_path
+
+    data_root = tmp_path / "runtime"
+    fallback = (
+        resolve_maintenance_database_path(data_root).parent
+        / "failure-journal-secondary"
+        / "events.jsonl"
+    )
+
+    def fail_primary_resolution(*_args, **_kwargs):
+        raise ValueError("synthetic primary path reparse point")
+
+    monkeypatch.setattr(
+        failure_journal,
+        "resolve_maintenance_failure_journal_path",
+        fail_primary_resolution,
+    )
+    result = failure_journal.append_failure_event(
+        data_root,
+        phase="failed",
+        operation="integration.primary_path_resolution_failure",
+        correlation_id="corr-primary-resolution-failure",
+        reason_code="synthetic_primary_path_failure",
+    )
+    assert result["status"] == "written"
+    assert result["primary_status"] == "unavailable"
+    assert result["fallback_status"] == "written"
+    assert fallback.is_file()
+
+    store = make_store(tmp_path / "replay-db")
+    replay = failure_journal.replay_failure_journal(data_root, store)
+    assert replay["replayed"] == 1
+    assert replay["unknown"] == 1
+    with store._connect() as connection:
+        event_ids = {
+            row[0]
+            for row in connection.execute(
+                "SELECT event_id FROM maintenance_operation_event"
+            ).fetchall()
+        }
+    assert result["event_id"] in event_ids
 
 
 def test_c49_contract(tmp_path):

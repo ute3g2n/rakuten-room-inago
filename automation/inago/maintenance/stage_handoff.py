@@ -54,6 +54,7 @@ def exception_details(error: BaseException) -> dict[str, object]:
 def make_stage_handoff(
     *,
     stage: str,
+    invocation_id: str,
     identity: Mapping[str, object],
     operation: str,
     operation_result: str,
@@ -78,6 +79,7 @@ def make_stage_handoff(
     result: dict[str, Any] = {
         "schema_version": "maintenance-stage-handoff-v1",
         "handoff_id": uuid4().hex,
+        "invocation_id": invocation_id,
         "stage": stage,
         "identity": {field: identity.get(field) for field in _IDENTITY_FIELDS},
         "attempt_id": identity.get("attempt_id"),

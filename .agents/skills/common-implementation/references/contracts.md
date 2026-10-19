@@ -54,3 +54,9 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ### FC04 固定rootとunknown
 
 repair authorのworkspaceは固定rootのみ。既存変更を保持し、別checkout/worktreeを作成しない。原因不明でも計装を実装し、未確認事項を成果・handoffに残す。
+
+### FC10 invocation bindingとjournal復旧
+
+`invocation_id`はcontrollerが採番・設定する値であり、AIが作らない。controllerは通常成果とfallback成果のhandoff payloadに現在値を保存し、terminal照合はpathだけでなくpayload内の値も照合する。古いinvocationの成果を現行扱いしない。
+
+保守failure journalのprimary write/path resolutionが失敗しても、検証済みDB rootから別解決するsecondary spoolへの保存・replayを続ける。event IDで冪等化し、両sink failureも元処理をgateせず、利用できる戻り値に原因連鎖・capture位置・参照を残す。deployment resultはregistered schema、current attempt、candidate、repair handoff hash、release recordを合わせて検証し、JSONの見た目だけで反映成功を記録しない。
