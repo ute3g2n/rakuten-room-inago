@@ -1,0 +1,118 @@
+[
+  {
+    "path": "automation/inago/maintenance/ai_adapter.py",
+    "sha256": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac"
+  },
+  {
+    "path": "automation/inago/maintenance/diagnostic_trace.py",
+    "sha256": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2"
+  },
+  {
+    "path": "automation/inago/maintenance/failure_journal.py",
+    "sha256": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c"
+  },
+  {
+    "path": "automation/inago/maintenance/paths.py",
+    "sha256": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72"
+  },
+  {
+    "path": "automation/inago/maintenance/safe_file.py",
+    "sha256": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac"
+  },
+  {
+    "path": "automation/inago/maintenance/settings.py",
+    "sha256": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215"
+  },
+  {
+    "path": "automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+    "sha256": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e"
+  },
+  {
+    "path": "automation/inago/maintenance/store.py",
+    "sha256": "d8e4bfe7e73610dce64018314dd83c25d653632286373ee13e837e77ee5a5ba5"
+  },
+  {
+    "path": "automation/inago/maintenance/workflow_provider.py",
+    "sha256": "5632732f424cbd632b2585ad8a4deee8ae8c93b8db0dd4b619533de7b236788e"
+  },
+  {
+    "path": "automation/inago/schemas/maintenance-check-response.schema.json",
+    "sha256": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f"
+  },
+  {
+    "path": "automation/inago/schemas/maintenance-check-result.schema.json",
+    "sha256": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b"
+  },
+  {
+    "path": "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+    "sha256": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa"
+  },
+  {
+    "path": "automation/inago/schemas/maintenance-evidence.schema.json",
+    "sha256": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b"
+  },
+  {
+    "path": "automation/inago/schemas/maintenance-settings.schema.json",
+    "sha256": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53"
+  },
+  {
+    "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "sha256": "37ab0c56a64735d402204c0ba5b4a17dad7006c4819fab8803c1c85a31ebe578"
+  },
+  {
+    "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "sha256": "751943f42cd66897d1a4a3500401d94d592b25cf8dd80b956d75b8ccf5415af8"
+  },
+  {
+    "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "sha256": "5fb2ddc71c2ac36a571cb421f5673a3d846d93d13b52dc4cef5c6141a402e0f3"
+  },
+  {
+    "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "sha256": "0561d2cd9e61552008d799b180af0480cd39b86c59bf3c9bcedfcf5f92b173c8"
+  },
+  {
+    "path": "docs/specifications/inago/保守運用設定仕様.md",
+    "sha256": "a3ac74781837d241cdff6ef53133049377d12de21051ce3e7f12e98cd2033ea1"
+  },
+  {
+    "path": "docs/specifications/inago/図解/F12.svg",
+    "sha256": "dd06f987d502a52f079cfba81a14cb4e3cee1130312fa54be8d60de0be538aee"
+  },
+  {
+    "path": "docs/specifications/inago/要件データ辞書.md",
+    "sha256": "b5daeb4ae934ca2e1b3c4392feb0805f55d84ed838cfa535bea6e36333e824c9"
+  },
+  {
+    "path": "docs/specifications/inago/要件追跡表.md",
+    "sha256": "421b8f109ccd00ef821f803df25f71eb8b03f7207ece673bc41803bc370739ac"
+  },
+  {
+    "path": "tools/docs/inago-requirements/task-flows.mjs",
+    "sha256": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2"
+  },
+  {
+    "path": ".agents/skills/common-implementation/SKILL.md",
+    "sha256": "cbbbfe7b9c08ec5c3c2bee964f43cdcdff4801b4da547c76ac8fc0d56ab75871"
+  },
+  {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "sha256": "38951f32b24bcd0f3341ade80610656a5a2bea4e0ec5ac460dfa6ec3afb4aa4c"
+  },
+  {
+    "sha256": "6190e72e7d37a0c3ac4b90ffb2c690c5b4db66c6f6e0c8d2422f0dd0dd3b2806",
+    "path": ".agents/skills/common-implementation/references/contracts.md"
+  },
+  {
+    "sha256": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+    "path": "automation/inago/maintenance/code_revision.py"
+  },
+  {
+    "sha256": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+    "path": "automation/inago/maintenance/stage_handoff.py"
+  },
+  {
+    "sha256": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92",
+    "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+  }
+]

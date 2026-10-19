@@ -1,0 +1,145 @@
+{
+  "schema_version": "fc06-static-checks-v1",
+  "checks": [
+    {
+      "command": "python -m py_compile report_fallback.py reporting.py production_workflow.py",
+      "result": "PASS",
+      "detail": "3 implementation modules compile; no tests or DB execution."
+    },
+    {
+      "command": "Draft202012Validator.check_schema on 3 maintenance report schemas + tomllib parse 2 report roles",
+      "result": "PASS",
+      "detail": "All 3 schemas and both TOML role files parse; this is schema-definition validation, not a test case."
+    },
+    {
+      "command": "node --check task-flows.mjs; node --check flow-descriptions.mjs",
+      "result": "PASS",
+      "detail": "Both requirement-builder source modules parse."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "result": "PASS",
+      "detail": "Builder v2.50; 28 chapters, 39 figures, 26 references; HTML bytes 4,102,250. Regenerated requirements HTML and F12 from canonical source."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs initial attempt",
+      "result": "FAIL_THEN_FIXED",
+      "detail": "First attempt rejected an appended lone Markdown table row in the traceability reference. Replaced it with prose, reran builder successfully; no contents were treated as accepted from the failed build."
+    },
+    {
+      "command": "pytest/failure injection/production/apply",
+      "result": "NOT_PERFORMED",
+      "detail": "Explicitly assigned to FC07/FC09/FC10; not run in FC06."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "detail": "Exit 0. Git emitted only existing CRLF-to-LF normalization warnings for the common-implementation skill, report skill/contracts, report standard, and plan; no whitespace errors."
+    },
+    {
+      "command": "review_unavailable result/schema/terminal-readback static inspection",
+      "result": "PASS",
+      "detail": "Schema preserves historical blocked enum and adds review_unavailable. Fallback records review.status=unavailable with report_status=pending. Terminal readback only accepts reviewed + complete + approved, or review_unavailable + pending + unavailable, then verifies published HTML/sidecar hashes. Product behavior not executed."
+    },
+    {
+      "command": "actual reporter/reviewer session and final production HTML",
+      "result": "NOT_PERFORMED",
+      "detail": "FC06 scope prepares the invocation and contracts; actual role session, independent HTML review, publication and same-job terminal readback are assigned to FC10. No synthetic approval was created."
+    },
+    {
+      "command": "FC07 publication-failure fix static check",
+      "result": "PASS",
+      "detail": "production_workflow.py py_compile PASS; operation-specific trace phases present; failure helper retains valid exception codes, records correlated journal refs and returns unknown. Builder v2.50 regenerated requirement HTML/F12 (28 chapters, 39 figures, 26 references, 4,104,595 bytes); both report role TOMLs parse; git diff --check exit 0 with existing line-ending warnings."
+    },
+    {
+      "command": "FC07 tester rerun of publication mismatch/push/sidecar-save nodes",
+      "result": "PENDING_TESTER",
+      "detail": "Not run by FC06 implementer. Exact expected statuses and reasons are in followup-publication-failure.md and sent to FC07 tester."
+    },
+    {
+      "command": "FC07 HTML finding follow-up: render_report_examples static structure check",
+      "result": "PASS",
+      "detail": "4 generated examples have visible synthetic notice, date/classification, expected/actual/impact/recovery/change/test/evidence/known-unknown/workflow-vs-incident sections; all internal evidence links resolve to exactly one ID and appendix details are open. This is static source validation, not an independent HTML review."
+    },
+    {
+      "command": "FC07 HTML follow-up: py_compile report_fallback.py, production_workflow.py, reporting.py",
+      "result": "PASS",
+      "detail": "Assigned implementation modules compile; no tests executed."
+    },
+    {
+      "command": "FC07 HTML follow-up: Draft202012Validator.check_schema on three report schemas and tomllib parse two report roles",
+      "result": "PASS",
+      "detail": "Schema definitions and TOML roles parse; no product workflow or AI roles invoked."
+    },
+    {
+      "command": "FC07 HTML follow-up: node --check task-flows.mjs; node --check flow-descriptions.mjs; node build.mjs",
+      "result": "PASS",
+      "detail": "Builder v2.50, 28 chapters, 39 figures, 26 references, 4,107,524 HTML bytes; generated source-derived requirements HTML/F12."
+    },
+    {
+      "command": "FC07 HTML follow-up independent reviewer",
+      "result": "PENDING",
+      "detail": "Fresh independent follow-up is requested from controller; author did not call or claim approval. Target hash manifest: fc07-html-followup-target.json."
+    },
+    {
+      "command": "FC07 FCT08 report defect correction: production_workflow.py AST source checks",
+      "result": "PASS",
+      "detail": "Wrapper requires store/job_id, both author and reviewer callsites pass both, wrapper obtains its attempt from the artifact path and validates job/attempt/step/sequence/status. Fallback validates the candidate with MaintenanceStore.validate_step_attempt_lease and reads no absent lease fields from StepAttemptRecord. Report, report-recovery, and publication handlers contain no future blocked result."
+    },
+    {
+      "command": "FC07 FCT08 affected test nodes and actual report/reviewer/publication integration",
+      "result": "NOT_PERFORMED",
+      "detail": "FC06 implementation assignment prohibits tests. FC07 tester was asked to rerun the affected author wrapper, fallback/revision/publication, and reviewer failure paths; no retest result is yet available."
+    },
+    {
+      "command": "FC07 FCT09 follow-up: python -m py_compile production_workflow.py report_fallback.py workflow_reconciliation.py",
+      "result": "PASS",
+      "detail": "All three assigned implementation modules compile after bounded author revision, immutable artifact paths, and missing-identity HTML changes."
+    },
+    {
+      "command": "FC07 FCT09 follow-up: four generated fallback example HTMLs parsed; event category, visible synthetic marker, required narrative sections, anchors, existing repository references checked",
+      "result": "PASS",
+      "detail": "Four examples regenerated from renderer; each has required sections and existing docs/automation references, no samples/ references, and all href anchors resolve. Static check only; no independent approval."
+    },
+    {
+      "command": "FC07 FCT09 follow-up: report result schema JSON parse and git diff --check",
+      "result": "PASS",
+      "detail": "Schema JSON parses with constrained report-fallback HTML/input paths. diff --check exit 0; Git reports existing CRLF normalization warnings. No pytest/DB/production."
+    },
+    {
+      "command": "FC07 exact transport_failure parameter rerun",
+      "result": "NOT_PERFORMED",
+      "detail": "Owned by FC07 tester; requested node tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure] against the current target manifest."
+    },
+    {
+      "command": "Independent HTML follow-up after F1-F4 changes",
+      "result": "PENDING",
+      "detail": "Fresh reviewer must use the new target manifest hash; no approval claimed."
+    },
+    {
+      "command": "FC07-owned FCT08 exact transport_failure parameter against final FC06 product hashes",
+      "result": "PASS",
+      "detail": "Tester recorded 1 passed in worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.junit.xml. The test verifies reviewer transport failure invokes author/reviewer, persists controller fallback, reports pending/review_unavailable truthfully, and reaches publication callback. Tester preserved prior product failures/intermediate test edit error. FC06 implementer did not run the test."
+    },
+    {
+      "command": "FC07 independent HTML review r2 findings F1-F3 correction: py_compile four modules, report schema JSON parse, git diff --check",
+      "result": "PASS",
+      "detail": "Static syntax/schema/whitespace checks pass. No pytest/DB/production/role invocation by FC06. FC07 needs to run its exact new synthetic F1/F2/F3 cases against the current hashes; independent HTML re-review remains pending."
+    },
+    {
+      "command": "FC07 r3 review finding R3-F1: py_compile production_workflow.py workflow_reconciliation.py; inspect reviewed/pending status combinations",
+      "result": "PASS",
+      "detail": "Both modules compile. Source inspection confirms exactly approved+complete, changes_requested/rejected+pending, and unavailable+pending combinations. Focused pytest belongs to FC07 and is pending; no test was run by FC06."
+    },
+    {
+      "command": "FC07 R3-F1 focused parameterized resume tests against exact target manifest",
+      "result": "PASS",
+      "detail": "FC07 ran test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[rejected] and [changes_requested]; both restored the same synthetic job+attempt, preserved review status and report_status=pending/stage_status=reviewed/next_action=publish. Evidence: FC07/r3-f1-rejected-pending-resume.junit.xml and FC07/r3-f1-changes-requested-pending-resume.junit.xml. FC06 did not run tests."
+    },
+    {
+      "command": "FC08-F1 publication terminal ownership: py_compile + AST assertions on run_daily_report_publication_stage",
+      "result": "PASS",
+      "detail": "The publication stage has no controller.finalize_job call or incident_status selection, retains the publication path/hash in workflow.state, and returns stage complete after publication evidence is saved. FC07 focused interruption/failure cases are pending; no test/production run by FC06."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "fc06-html-review-target-v1",
+  "review_source": "FC07 independent HTML reviewer findings relayed by controller",
+  "reviewed_version_sha256": {
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html": "b6b58aa46ddb137b2362f24ae3c4fadf6a80dabb68cdabf0b09b0d556f0f8114",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html": "bb4e62a960333397f3c82609246974ed2b26f0273b35235113ca892f6be18c58",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html": "9080f156d14c8a1f2714585e595199527d1147bd0adb979163b1b5276f94e20c",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html": "f113aad3cbaad55a04837586ee72c84639baef8314a8037a25ecdc0da9ef336d",
+    "automation/inago/maintenance/report_fallback.py": "461a9c0aae8e1c451c909ce11ff6f368d24a81aeb47113cac366cb71c3bd44f1",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "176376192796bce6e690a216ef3aa25f44b0734c9369c2cba548600873557e65",
+    "automation/inago/maintenance/production_workflow.py": "675c87495dd4bb97c9ab37cc71fd5b515777d5fc34dfc0fecfc8d4c19a36784e",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "d0eb6ff69c38a31c4f50e77dad5adce64d91de296ec18f231588eed3d7c9c04e"
+  },
+  "findings_received": [
+    "Visible synthetic label is hidden in collapsed appendix.",
+    "Examples claim no review changes although no review ran.",
+    "Normal example omits event classification, expected/actual/impact/recovery/change/evidence and asserts no unknowns.",
+    "Unknown example contradicts known investigation facts and fails to separate known from unknown scope.",
+    "No-change example lacks instrumentation consideration and the reason it was not added.",
+    "Renderer failure example lacks confirmed facts/fallback contents and review/publication state.",
+    "All examples need day/classification, expected/actual/impact/recovery, concrete evidence references, and separate workflow completion versus incident resolution."
+  ]
+}

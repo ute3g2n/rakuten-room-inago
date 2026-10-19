@@ -1,0 +1,155 @@
+{
+  "schema_version": "fc05-implementation-result-v1",
+  "step": "FC05",
+  "status": "implementation_complete_static_only",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "branch": "main",
+  "base_head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "plan_original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "plan_current_sha256": "a6a855a2e22234b014d9c3a55a72dc73f4c4390358ad5c63f71c65195adbeed3",
+  "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "changed_files": [
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "sha256": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac"
+    },
+    {
+      "path": "automation/inago/maintenance/cli.py",
+      "sha256": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441"
+    },
+    {
+      "path": "automation/inago/maintenance/controller.py",
+      "sha256": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0"
+    },
+    {
+      "path": "automation/inago/maintenance/deployment.py",
+      "sha256": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443"
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e"
+    },
+    {
+      "path": "automation/inago/maintenance/runtime_switcher.py",
+      "sha256": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+      "sha256": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6"
+    },
+    {
+      "path": "automation/inago/maintenance/store.py",
+      "sha256": "d8e4bfe7e73610dce64018314dd83c25d653632286373ee13e837e77ee5a5ba5"
+    },
+    {
+      "path": "automation/inago/maintenance/worker.py",
+      "sha256": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_reconciliation.py",
+      "sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "sha256": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "sha256": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "sha256": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "sha256": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "sha256": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "sha256": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "sha256": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620"
+    }
+  ],
+  "excluded_date_rule": "WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"}) retained",
+  "implementation": [
+    "test未完了でもread-only common-reviewerを固定rootで実起動するfallbackを実装（実起動は未確認）",
+    "review/test/approval/evidence不足を後続工程の内部gateにしない流れ、deployment candidate/preflight/attempt記録を接続",
+    "terminal reconciliationに同invocationの8 handoff、正式attempt/output refs、deployment output、report attempt/result、HTML、publication record、remote branch readbackを要求",
+    "terminal incomplete/failed時も同一jobとsource_launch_idでresumeできる実装を静的確認",
+    "worker runner例外・invalid outcome・check_id不一致を即時blocked returnせず、fallback handoff/journalを保存してterminal reconciliationへ継続",
+    "CLIはmaintenance_incompleteのstatus/reasonを維持しつつ通常終了コードへ写像",
+    "AT-MAINT/AT-TRACE・辞書・追跡・ログ一覧・settings・skills/contracts・reviewer/tester roles・F12 builder source/outputを同期",
+    "追加読取指摘を反映し、worker例外・不正outcome・check_id不一致の各分岐で新しいfallback invocationの8工程unknown handoff/observationを保存後にterminal reconciliationへ進む。",
+    "CLIのmaintenance_incompleteをstatus/reason保持のままexit 0へ写像。",
+    "provider未設定も即時blocked returnとせず、具体例外をfallbackへ記録して同じ終端照合経路へ流す。",
+    "FC08-F1追補: terminal_verification 7条件に全8 observation/handoff、出力、deployment、report/HTML/public sidecar/readbackを明示し、全条件成立後にのみreconcile_workflow_terminalがfinalize_job。incident_statusは常時in_progress。"
+  ],
+  "mapping": [
+    "FC-R01/03/05/07/08/09/10",
+    "FCT01/04/06/07/10/11は実測未実施、FC07/08/09/10で実施"
+  ],
+  "not_performed": [
+    "pytest・fault injectionはFC07担当",
+    "独立製品コードreviewはFC08担当",
+    "本番DB/schema/code適用はFC09担当",
+    "同一jobの本番worker実行、reporter/reviewer、最終HTML公開、正しいterminal登録はFC10担当",
+    "本番DB・queue/history・Daily・10/19対象操作なし",
+    "commit/pushはcontroller担当"
+  ],
+  "unresolved": [
+    "全工程の動作、AI reviewer実起動、同一jobの再開/最終HTML remote readback/終端は静的確認だけで受入済みではない",
+    "jsonschema semantic validation不可、依存不足",
+    "CLI変更のbehavioral testは未実施",
+    "worker fallback artifact save/failure/reconcileを失敗注入していない",
+    "worker fallback/CLI写像の動作はsource静的確認のみで、FC07のfault injection/CLI command test待ち。",
+    "worker/CLI実挙動および全failure-injectionはFC07のfocused test待ち。",
+    "FC07のF1 focused crash/failure injection未実施。"
+  ],
+  "artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/static-checks.json"
+  ],
+  "next_stage": "FC06: report/publication hunks only; then FC07 focused tests/fault injection, FC08 independent product review, FC09 apply, FC10 same-job execution and evidence, FC11 final report/publication review.",
+  "changed_paths": [
+    "automation/inago/maintenance/ai_adapter.py",
+    "automation/inago/maintenance/cli.py",
+    "automation/inago/maintenance/controller.py",
+    "automation/inago/maintenance/deployment.py",
+    "automation/inago/maintenance/production_workflow.py",
+    "automation/inago/maintenance/runtime_switcher.py",
+    "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+    "automation/inago/maintenance/store.py",
+    "automation/inago/maintenance/worker.py",
+    "automation/inago/maintenance/workflow_reconciliation.py",
+    "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+    "automation/inago/schemas/maintenance-deployment-result.schema.json",
+    "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+    "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+    "automation/inago/schemas/maintenance-repair-review.schema.json",
+    "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+    "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/diff-summary.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/review-followup-FC08-F1.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/static-checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC08/fc08-f1-followup-handoff.json"
+  ]
+}

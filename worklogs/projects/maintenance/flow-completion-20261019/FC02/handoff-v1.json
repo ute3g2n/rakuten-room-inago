@@ -1,0 +1,113 @@
+{
+  "schema_version": "fc02-handoff-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "step": "FC02",
+  "stage_progress": "completed",
+  "artifact_origin": "agent",
+  "result_version": "fc02-contract-v1",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "operation_results": [
+    {
+      "operation": "contract/role/document synchronization",
+      "result": "succeeded"
+    },
+    {
+      "operation": "requirements builder",
+      "result": "succeeded",
+      "exit_code": 0
+    },
+    {
+      "operation": "product changes/tests/deploy/job-resume",
+      "result": "not_performed",
+      "reason": "FC02 scope; assigned FC03–FC10"
+    }
+  ],
+  "output_refs": [
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/contract-decision.md",
+      "sha256": "589c050ff0b7501baa56c43d3ad42046859b8a0358747b1f094125ad93244138"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/execution-record.md",
+      "sha256": "3087470891a555cf941f96ab75311585d4c7df33bfac876764739859f4993470"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/file-operation-owner-map.json",
+      "sha256": "0dd6bd1f59084c15aae9d7fbcc1062ba6f743e0be266436a79fb3973244623c7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/instrumentation-allocation.md",
+      "sha256": "2a1d19d0eb479bf2885ea2a54d2d3a1fd4ed3fb96ef58c4eff22fda343aab03b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks.json",
+      "sha256": "24efb055a7c04fd94028a97b4758060d5ce070c306607c7ca5d63f8ba8b4938f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+      "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/requirement-step-case-map.json",
+      "sha256": "7ce956c75cf0662fb65e13382c6d69203285691ff626e0fc135d26d1b19a101b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/role-high-sync-result.json",
+      "sha256": "df81f1d7c162960147f22766fb2f85e7cb68f0e6660c95d90e2e6c2f0e8ba469"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/schema-change-list.md",
+      "sha256": "85823096d55984bede4f459805fff152d20469bb6e104e6ea04851c8d3d8eb18"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/stage-output-matrix.md",
+      "sha256": "465f18c953f2865cae25468241d16aaf8bbea4ff858a80daba4a43bdf322bb36"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/synchronization-evidence.json",
+      "sha256": "1ad19444021840f25c8acb37eec8f51eef52bf674045184bcff6f52c63feaddf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/write-intent.json",
+      "sha256": "e7f1a9661eb456ab095b7ba90e18a5a24cefbbb14faedd1777285aa7eaafbe81"
+    }
+  ],
+  "unknowns": [
+    "original root cause/business recovery/post count",
+    "actual runtime model/effort/tier",
+    "FC03–06 final schema storage implementation",
+    "new failure-injection pytest nodes pending FC07"
+  ],
+  "next": {
+    "step": "FC03",
+    "operations": [
+      "implement missing operation trace and independent failure journal",
+      "parent B product settings high",
+      "non-gating writer and safe cause-chain capture"
+    ],
+    "start_gate": "none"
+  },
+  "review": {
+    "required": true,
+    "status": "not_yet_observed",
+    "reviewer": "separate FC02 independent reviewer"
+  },
+  "notes": [
+    "raw history preserved",
+    "schema13 is observed; 014 source planned only",
+    "original approved plan remains execution authority"
+  ],
+  "machine_checks_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks.json",
+  "finished_at": "2026-10-19T14:00:07.285227+00:00",
+  "approved_plan_snapshot": {
+    "source": "git show HEAD:plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "current_execution_plan_sha256": "71438035d43da211ab9f85457d88b518fe948dfb49a8dbcc2919de2ec0710280"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "schema_version": "fc02-contract-result-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "step": "FC02",
+  "result_version": "fc02-contract-v1",
+  "status": "completed_with_unknowns",
+  "stage_progress": "completed",
+  "artifact_origin": "agent",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "started_at": "2026-10-19T13:52:30.194734+00:00",
+  "finished_at": "2026-10-19T14:00:07.285227+00:00",
+  "artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/contract-decision.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/execution-record.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/file-operation-owner-map.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/instrumentation-allocation.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/requirement-step-case-map.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/role-high-sync-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/schema-change-list.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/stage-output-matrix.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/synchronization-evidence.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/write-intent.json"
+  ],
+  "product_implementation": "not performed in FC02",
+  "product_tests": "NOT_RUN",
+  "product_review": "not performed in FC02",
+  "deployment": "not performed in FC02",
+  "same_job_execution": "not performed in FC02",
+  "build": {
+    "command": "node tools/docs/inago-requirements/build.mjs",
+    "exit_code": 0
+  },
+  "unknowns": [
+    "original root cause/business recovery/post count",
+    "actual runtime model/effort/tier",
+    "FC03–06 final schema storage implementation",
+    "new failure-injection pytest nodes pending FC07"
+  ],
+  "review": {
+    "required": true,
+    "status": "not_yet_observed",
+    "reviewer": "separate FC02 independent reviewer"
+  },
+  "next": {
+    "step": "FC03",
+    "operations": [
+      "implement missing operation trace and independent failure journal",
+      "parent B product settings high",
+      "non-gating writer and safe cause-chain capture"
+    ],
+    "start_gate": "none"
+  },
+  "git": {
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "owner": "controller FC09"
+  },
+  "owned_files": [
+    ".agents/skills/common-execution-planning/SKILL.md",
+    ".agents/skills/common-execution-planning/references/contracts.md",
+    ".agents/skills/common-implementation/SKILL.md",
+    ".agents/skills/common-implementation/references/contracts.md",
+    ".agents/skills/common-review/SKILL.md",
+    ".agents/skills/common-review/references/contracts.md",
+    ".agents/skills/common-testing/SKILL.md",
+    ".agents/skills/common-testing/references/contracts.md",
+    ".agents/skills/rr-inago-incident-investigation/SKILL.md",
+    ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+    ".agents/skills/rr-inago-incident-report/SKILL.md",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md",
+    ".codex/agents/common-execution-plan-reviewer.toml",
+    ".codex/agents/common-execution-planner.toml",
+    ".codex/agents/common-implementer.toml",
+    ".codex/agents/common-reviewer.toml",
+    ".codex/agents/common-tester.toml",
+    ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+    ".codex/agents/rr-inago-incident-investigator.toml",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml",
+    ".codex/agents/rr-inago-incident-reporter.toml",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/specifications/inago/図解/F12.svg",
+    "docs/specifications/inago/要件データ辞書.md",
+    "docs/specifications/inago/要件追跡表.md",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "tools/docs/inago-requirements/flow-descriptions.mjs",
+    "tools/docs/inago-requirements/task-flows.mjs",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/contract-decision.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/execute_contract_sync.py",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/execution-record.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/file-operation-owner-map.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/instrumentation-allocation.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/requirement-step-case-map.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/role-high-sync-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/schema-change-list.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/stage-output-matrix.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/synchronization-evidence.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC02/write-intent.json"
+  ],
+  "approved_plan_snapshot": {
+    "source": "git show HEAD:plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "current_execution_plan_sha256": "71438035d43da211ab9f85457d88b518fe948dfb49a8dbcc2919de2ec0710280"
+  },
+  "builder_summary": {
+    "exit_code": 0,
+    "version": "2.50",
+    "chapters": 28,
+    "figures": 39,
+    "referenceDocuments": 26,
+    "bytes": 4042174
+  },
+  "machine_checks": [
+    {
+      "operation": "9 active role TOMLs/high/no future-blocked/fixed workspace",
+      "result": "passed",
+      "count": 9
+    },
+    {
+      "operation": "12 active skill/contracts direct contradiction removal",
+      "result": "passed",
+      "count": 12
+    },
+    {
+      "operation": "canonical 2.50/F12 XML and 11 unrelated SVGs byte-preserved",
+      "result": "passed"
+    },
+    {
+      "operation": "approved input SHA / identity-null / requirement-fact-step-case coverage",
+      "result": "passed",
+      "requirements": 10,
+      "facts": 10,
+      "steps": 11,
+      "cases": 13
+    },
+    {
+      "operation": "FC02 JSON parse",
+      "result": "passed",
+      "count": 8
+    },
+    {
+      "operation": "git diff --check",
+      "result": "passed",
+      "exit_code": 0
+    }
+  ]
+}

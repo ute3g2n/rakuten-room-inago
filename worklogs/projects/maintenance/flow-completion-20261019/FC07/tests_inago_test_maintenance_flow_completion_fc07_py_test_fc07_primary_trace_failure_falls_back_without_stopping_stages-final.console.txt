@@ -1,0 +1,35 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_fc07_primary_trace_failure_falls_back_without_stopping_stages ______
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-2/test_fc07_primary_trace_failur0')
+
+    def test_fc07_primary_trace_failure_falls_back_without_stopping_stages(tmp_path: Path):
+        store, launch, check, queue, lease = _context(
+            tmp_path, primary_trace_failure=True
+        )
+        calls: list[str] = []
+    
+        def runner(stage_name: str):
+            def run(_context):
+                calls.append(stage_name)
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {name: runner(name) for name in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+    
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+        assert outcome.status == "complete"
+        spool = tmp_path / "maintenance" / "failure-journal.jsonl"
+>       assert spool.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-2/test_fc07_primary_trace_failur0/maintenance/failure-journal.jsonl').is_file
+
+tests_inago\test_maintenance_flow_completion_fc07.py:178: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_primary_trace_failure_falls_back_without_stopping_stages
+1 failed in 0.41s

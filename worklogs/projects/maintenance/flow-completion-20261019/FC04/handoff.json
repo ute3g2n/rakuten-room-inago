@@ -1,0 +1,35 @@
+{
+  "schema_version": "fc04-handoff-v1",
+  "step": "FC04",
+  "status": "implementation_ready_for_downstream",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json"
+  ],
+  "owner_map_sha256": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f",
+  "completed": [
+    "Code and schema changes in FC04-assigned boundaries.",
+    "FC04 documentation/requirements/F12 sync and requirements builder generation.",
+    "Static syntax/schema/TOML/diff checks."
+  ],
+  "pending": [
+    {"step": "FC07", "operation": "Run only planned focused pytest/fault injection and record exact results; correct failures with FC04 owner if directed."},
+    {"step": "FC08", "operation": "Independent product-code review of exact resulting implementation; return findings to original owner for corrections."},
+    {"step": "FC09", "operation": "Formal production migration/code apply and read-back; do not claim applied before exact verification."},
+    {"step": "FC10", "operation": "Resume the same job and launch actual investigation/planning/repair/test/review/deployment/report stages using unchanged identity; no invented attempt IDs."}
+  ],
+  "limitations": [
+    "No tests, production data DB operation, daily run, worker dispatch, queue/history processing, or attempt creation occurred in this FC04 implementation assignment.",
+    "Root cause and incident resolution are not established."
+  ],
+  "next_resume_position": "FC07/FC08 before FC09/FC10; preserve the exact job identity above."
+}

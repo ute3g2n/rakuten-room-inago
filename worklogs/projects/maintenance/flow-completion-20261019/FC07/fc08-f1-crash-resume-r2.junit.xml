@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.252" timestamp="2026-10-20T01:23:15.240514+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes" time="0.772"><failure message="sqlite3.IntegrityError: repair_predecessor_pin_required">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f1-success-r2/test_fc08_publication_crash_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000220A2CFD880&gt;
+
+    def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
+        tmp_path: Path, monkeypatch
+    ):
+&gt;       fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_report_publication_stage.py:433: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_report_publication_stage.py:280: in _fc08_seed_terminal_fixture
+    attempt = store.begin_step_attempt(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x00000220A2CFD730&gt;
+job_id = 'job-historical-9e7f0c175cc4c874c955a5dab29c4427'
+step_key = 'maintenance_repair', sequence = 3
+lease = LeaseToken(lease_key='maintenance:job-historical-9e7f0c175cc4c874c955a5dab29c4427', owner_id='fc08-publication-crash-child', generation=1)
+started_at = datetime.datetime(2026, 10, 17, 4, 0, tzinfo=datetime.timezone.utc)
+repair_predecessor_attempt_id = None, repair_predecessor_result_version = None
+repair_predecessor_output_sha256 = None
+
+    def begin_step_attempt(
+        self,
+        *,
+        job_id: str,
+        step_key: str,
+        sequence: int,
+        lease: LeaseToken,
+        started_at: datetime | str,
+        repair_predecessor_attempt_id: str | None = None,
+        repair_predecessor_result_version: str | None = None,
+        repair_predecessor_output_sha256: str | None = None,
+    ) -&gt; StepAttemptResult:
+        job = _safe_id(job_id, "job_id_invalid")
+        step = _safe_code(step_key, "step_key_invalid")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence &lt; 1:
+            raise MaintenanceStoreError("step_sequence_invalid")
+        when = _timestamp(started_at)
+        predecessor_values = (
+            repair_predecessor_attempt_id,
+            repair_predecessor_result_version,
+            repair_predecessor_output_sha256,
+        )
+        if step == "maintenance_repair":
+            if sequence != 3:
+                raise MaintenanceStoreError("repair_step_sequence_invalid")
+            if all(value is not None for value in predecessor_values):
+                repair_predecessor_attempt_id = _safe_id(
+                    repair_predecessor_attempt_id, "repair_predecessor_pin_invalid"
+                )
+                repair_predecessor_result_version = _safe_id(
+                    repair_predecessor_result_version, "repair_predecessor_pin_invalid"
+                )
+                if not isinstance(repair_predecessor_output_sha256, str) or not (
+                    _SHA256_PATTERN.fullmatch(repair_predecessor_output_sha256)
+                ):
+                    raise MaintenanceStoreError("repair_predecessor_pin_invalid")
+            elif any(value is not None for value in predecessor_values):
+                repair_predecessor_attempt_id = None
+                repair_predecessor_result_version = None
+                repair_predecessor_output_sha256 = None
+        elif any(value is not None for value in predecessor_values):
+            raise MaintenanceStoreError("repair_predecessor_pin_invalid")
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            job_row = connection.execute(
+                "SELECT source_run_id, status, lease_key, lease_generation, resume_count "
+                "FROM maintenance_job WHERE job_id = ?",
+                (job,),
+            ).fetchone()
+            if job_row is None:
+                raise MaintenanceStoreError("job_not_found")
+            if job_row["status"] not in {"queued", "running"}:
+                raise MaintenanceStoreError("job_not_active")
+            if step == "maintenance_repair" and repair_predecessor_attempt_id is not None:
+                predecessor = connection.execute(
+                    "SELECT s.attempt_id, s.step_key, s.status AS attempt_status, "
+                    "s.result_version, s.output_sha256, r.reviewer_id, "
+                    "r.reviewed_version, r.status AS review_status, "
+                    "release.author_id "
+                    "FROM step_attempt s LEFT JOIN review_result r "
+                    "ON r.scope_type = 'step_attempt' AND r.scope_id = s.attempt_id "
+                    "JOIN maintenance_job job ON job.job_id = s.job_id "
+                    "JOIN release ON release.release_id = job.release_id "
+                    "WHERE s.job_id = ? AND s.sequence = 2 "
+                    "ORDER BY s.attempt_no DESC, r.rowid DESC LIMIT 1",
+                    (job,),
+                ).fetchone()
+                if (
+                    predecessor is None
+                    or predecessor["attempt_id"] != repair_predecessor_attempt_id
+                    or predecessor["step_key"] != "maintenance_planning"
+                    or predecessor["result_version"]
+                    != repair_predecessor_result_version
+                    or predecessor["output_sha256"] != repair_predecessor_output_sha256
+                ):
+                    raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
+            connection.execute(
+                "UPDATE maintenance_job SET lease_key = ?, lease_generation = ?, "
+                "updated_at = ? WHERE job_id = ?",
+                (lease.lease_key, lease.generation, when, job),
+            )
+            latest = connection.execute(
+                "SELECT * FROM step_attempt WHERE job_id = ? AND step_key = ? "
+                "ORDER BY attempt_no DESC LIMIT 1",
+                (job, step),
+            ).fetchone()
+            if latest is not None and int(latest["sequence"]) != sequence:
+                raise MaintenanceStoreError("step_sequence_conflict")
+            if (
+                latest is not None
+                and step == "maintenance_repair"
+                and repair_predecessor_attempt_id is not None
+                and (
+                    latest["repair_predecessor_attempt_id"]
+                    != repair_predecessor_attempt_id
+                    or latest["repair_predecessor_result_version"]
+                    != repair_predecessor_result_version
+                    or latest["repair_predecessor_output_sha256"]
+                    != repair_predecessor_output_sha256
+                )
+            ):
+                raise MaintenanceStoreError("repair_predecessor_pin_mismatch")
+            if latest is not None and latest["status"] in _STEP_TERMINAL_STATUSES:
+                # Prior terminal outcomes are history, not a gate on an
+                # explicitly requested local continuation.
+                pass
+            if latest is not None and latest["status"] == "running":
+                if (
+                    latest["lease_key"] == lease.lease_key
+                    and int(latest["lease_generation"]) == lease.generation
+                ):
+                    return StepAttemptResult(
+                        str(latest["attempt_id"]),
+                        int(latest["attempt_no"]),
+                        str(latest["status"]),
+                        True,
+                    )
+                connection.execute(
+                    "UPDATE step_attempt SET status = 'interrupted', finished_at = ? "
+                    "WHERE attempt_id = ? AND status = 'running'",
+                    (when, latest["attempt_id"]),
+                )
+            prior_sequence = connection.execute(
+                "SELECT step_key FROM step_attempt WHERE job_id = ? AND sequence = ? "
+                "AND step_key &lt;&gt; ? LIMIT 1",
+                (job, sequence, step),
+            ).fetchone()
+            if prior_sequence is not None:
+                raise MaintenanceStoreError("step_sequence_conflict")
+            attempt_no = 1 if latest is None else int(latest["attempt_no"]) + 1
+            attempt_id = str(uuid.uuid4())
+&gt;           connection.execute(
+                "INSERT INTO step_attempt "
+                "(attempt_id, job_id, step_key, sequence, attempt_no, source_run_id, "
+                "lease_key, lease_generation, status, started_at, "
+                "repair_predecessor_attempt_id, repair_predecessor_result_version, "
+                "repair_predecessor_output_sha256) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)",
+                (
+                    attempt_id,
+                    job,
+                    step,
+                    sequence,
+                    attempt_no,
+                    job_row["source_run_id"],
+                    lease.lease_key,
+                    lease.generation,
+                    when,
+                    repair_predecessor_attempt_id,
+                    repair_predecessor_result_version,
+                    repair_predecessor_output_sha256,
+                ),
+            )
+E           sqlite3.IntegrityError: repair_predecessor_pin_required
+
+automation\inago\maintenance\store.py:5322: IntegrityError</failure></testcase></testsuite></testsuites>

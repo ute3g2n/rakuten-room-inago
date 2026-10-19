@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07html-20261020 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct09-html-final.junit.xml",
+  "start_jst": "2026-10-20T00:27:05.2604259+09:00",
+  "end_jst": "2026-10-20T00:27:06.2536456+09:00",
+  "exit": 0,
+  "cases": 1,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct09-html-final.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct09-html-final.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07html-20261020",
+  "status": "PASS"
+}

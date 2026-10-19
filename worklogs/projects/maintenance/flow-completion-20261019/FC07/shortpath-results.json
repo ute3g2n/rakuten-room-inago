@@ -1,0 +1,26 @@
+[
+  {
+    "node": "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07r-002304\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-shortpath.junit.xml",
+    "start_jst": "2026-10-20T00:23:04.6916460+09:00",
+    "end_jst": "2026-10-20T00:23:05.6667430+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-shortpath.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-shortpath.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07r-002304\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07r-002304\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-shortpath.junit.xml",
+    "start_jst": "2026-10-20T00:23:05.6921208+09:00",
+    "end_jst": "2026-10-20T00:23:07.3710104+09:00",
+    "exit": 1,
+    "pytest_count": 3,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-shortpath.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-shortpath.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07r-002304\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save",
+    "status": "FAIL"
+  }
+]

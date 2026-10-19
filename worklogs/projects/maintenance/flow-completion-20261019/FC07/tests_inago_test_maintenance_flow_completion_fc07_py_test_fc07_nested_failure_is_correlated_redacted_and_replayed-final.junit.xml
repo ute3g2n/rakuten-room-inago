@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.242" timestamp="2026-10-20T00:23:51.015615+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_nested_failure_is_correlated_redacted_and_replayed" time="0.022"><failure message="AssertionError: assert [None] == ['evidence/fc07/input.json']&#10;  &#10;  At index 0 diff: None != 'evidence/fc07/input.json'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-3/test_fc07_nested_failure_is_co0')
+
+    def test_fc07_nested_failure_is_correlated_redacted_and_replayed(tmp_path: Path):
+        try:
+            try:
+                raise OSError("SYNTHETIC_PRIVATE_SECRET")
+            except OSError as cause:
+                raise RuntimeError("outer synthetic failure") from cause
+        except RuntimeError as error:
+            result = append_failure_event(
+                tmp_path,
+                phase="failed",
+                operation="workflow.stage.investigation",
+                correlation_id="fc07-correlation",
+                parent_operation="fc07-invocation",
+                job_id=JOB_ID,
+                source_launch_id=LAUNCH_ID,
+                source_run_id=None,
+                incident_id=INCIDENT_ID,
+                stage="investigation",
+                attempt_id="fc07-attempt",
+                reason_code="synthetic_nested_failure",
+                error=error,
+                capture_location="test_maintenance_flow_completion_fc07",
+                input_refs=("evidence/fc07/input.json",),
+                artifact_refs=("attempts/fc07/output.json",),
+                primary_sink="maintenance_operation_event",
+            )
+    
+        assert result["status"] == "written"
+        journal = Path(result["path"])
+        serialized = journal.read_text(encoding="utf-8")
+        assert "SYNTHETIC_PRIVATE_SECRET" not in serialized
+        row = json.loads(serialized)
+        assert row["exception_chain"] == ["RuntimeError", "OSError"]
+        assert row["correlation_id"] == "fc07-correlation"
+        assert row["parent_operation"] == "fc07-invocation"
+        assert row["capture_location"] == "test_maintenance_flow_completion_fc07"
+&gt;       assert row["input_refs"] == ["evidence/fc07/input.json"]
+E       AssertionError: assert [None] == ['evidence/fc07/input.json']
+E         
+E         At index 0 diff: None != 'evidence/fc07/input.json'
+E         Use -v to get more diff
+
+tests_inago\test_maintenance_flow_completion_fc07.py:223: AssertionError</failure></testcase></testsuite></testsuites>

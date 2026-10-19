@@ -1,0 +1,519 @@
+{
+  "schema_version": "fc02-requirement-step-case-map-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "approved_plan_version": "1.2",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "source": "approved plan §10.1",
+  "mappings": [
+    {
+      "requirement": "FC-R01",
+      "acceptance": "FC-A01",
+      "facts": [
+        "F02",
+        "F03",
+        "F04",
+        "F08"
+      ],
+      "evidence": [
+        "F02/03/04/08；S04、現provider/store",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT10",
+        "FCT11"
+      ],
+      "owner": "controller/implementer",
+      "output": "stage envelope、attempt/terminal/publication参照",
+      "reviewer": "product reviewer/最終照合担当",
+      "completion_evidence": "W/FC07結果＋same job DB前後/最終公開。未実施",
+      "existing_requirements": [
+        "MR-008",
+        "MR-012",
+        "MR-025",
+        "MA-025"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R02",
+      "acceptance": "FC-A02",
+      "facts": [
+        "F01",
+        "F02",
+        "F03",
+        "F04"
+      ],
+      "evidence": [
+        "F01/02/03/04；調査v2/S04/diagnostic_trace",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "owner": "trace実装担当/controller",
+      "output": "structured events、fallback spool、cause/stack/operation索引",
+      "reviewer": "product reviewer",
+      "completion_evidence": "全失敗注入表と相関trace・中断復旧、同一jobの新trace。未実施",
+      "existing_requirements": [
+        "MR-014",
+        "MR-021",
+        "MA-021"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R03",
+      "acceptance": "FC-A03",
+      "facts": [
+        "F02",
+        "F03",
+        "F09",
+        "F10"
+      ],
+      "evidence": [
+        "F02/03/09/10；調査v2/review/S04/skills契約",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT05",
+        "FCT06",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "owner": "controller＋全stage担当",
+      "output": "失敗/不明時も意味ある各stage MD/JSON/HTML/handoff",
+      "reviewer": "plan/product/report reviewers",
+      "completion_evidence": "各次担当が読んだ版と起動・返答・保存。未実施",
+      "existing_requirements": [
+        "MR-011",
+        "MR-015",
+        "MR-016",
+        "MA-029"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R04",
+      "acceptance": "FC-A04",
+      "facts": [
+        "F01",
+        "F08",
+        "F09"
+      ],
+      "evidence": [
+        "F01/08/09；調査v2第8章/過去試験の限定",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT03",
+        "FCT11",
+        "FCT12"
+      ],
+      "owner": "同一job実装担当＋計装基盤担当",
+      "output": "具体計装計画/新製品diff/試験/review/正式反映/新trace",
+      "reviewer": "product reviewer",
+      "completion_evidence": "same-job内の実装・適用・event相関、旧PASS流用なし。未実施",
+      "existing_requirements": [
+        "MR-010",
+        "MR-017",
+        "MR-025",
+        "MA-025"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R05",
+      "acceptance": "FC-A05",
+      "facts": [
+        "F03",
+        "F04",
+        "F08",
+        "F10"
+      ],
+      "evidence": [
+        "F03/04/08/10；内側runnerと旧契約",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT13"
+      ],
+      "owner": "controller/各implementer",
+      "output": "全return/raise inventoryと制御契約差分、全担当成果",
+      "reviewer": "product reviewer",
+      "completion_evidence": "内外stage後続到達、role実起動/empty禁止。未実施",
+      "existing_requirements": [
+        "MR-023",
+        "MR-029",
+        "MA-029"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R06",
+      "acceptance": "FC-A06",
+      "facts": [
+        "F05",
+        "F10"
+      ],
+      "evidence": [
+        "F05/10；本人指摘/文章ルール/ひな形",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC02",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT08",
+        "FCT09",
+        "FCT11",
+        "FCT13"
+      ],
+      "owner": "reporter＋renderer実装担当",
+      "output": "平易HTML通常/最小版、文章review/指摘修正版、技術付録",
+      "reviewer": "HTML reviewer（作者と別）/product reviewer",
+      "completion_evidence": "本文読解質問、構成/リンク/renderと対象版。未実施",
+      "existing_requirements": [
+        "MR-020",
+        "MR-026",
+        "MA-020"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R07",
+      "acceptance": "FC-A07",
+      "facts": [
+        "F02",
+        "F05",
+        "F06"
+      ],
+      "evidence": [
+        "F02/05/06；S04/旧外部HTML公開",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "owner": "controller/deployment/publication担当",
+      "output": "正式ledger、同一job report/publication/terminal、公開HTML/version sidecar",
+      "reviewer": "product reviewer/最終照合担当",
+      "completion_evidence": "DB→attempt→review→HTML→commit/push参照とremote read-back。未実施",
+      "existing_requirements": [
+        "MR-019",
+        "MR-026",
+        "MA-026"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R08",
+      "acceptance": "FC-A08",
+      "facts": [
+        "F01",
+        "F04",
+        "F09",
+        "F10"
+      ],
+      "evidence": [
+        "F01/04/09/10；調査unknown/旧job-incident結合",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT08",
+        "FCT11",
+        "FCT12"
+      ],
+      "owner": "store/schema実装担当＋全stage作者",
+      "output": "workflow/operation/incident/daily分離field、unknown説明",
+      "reviewer": "product/report reviewers",
+      "completion_evidence": "元daily・raw履歴不変、未解決でflow complete実測。未実施",
+      "existing_requirements": [
+        "MR-007",
+        "MR-027",
+        "MA-027"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R09",
+      "acceptance": "FC-A09",
+      "facts": [
+        "F07"
+      ],
+      "evidence": [
+        "F07；S04除外/queue/ユーザー指示",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT11",
+        "FCT12",
+        "FCT13"
+      ],
+      "owner": "全担当/controller",
+      "output": "所有監査、除外/queue前後、明示job操作、Git記録",
+      "reviewer": "最終照合担当",
+      "completion_evidence": "10/19処理0・Daily手動0・重複0・別workspace0。未実施",
+      "existing_requirements": [
+        "MR-024",
+        "MR-027",
+        "MA-027"
+      ],
+      "status": "NOT_RUN; contract only"
+    },
+    {
+      "requirement": "FC-R10",
+      "acceptance": "FC-A10",
+      "facts": [
+        "F06",
+        "F07",
+        "F08",
+        "F10"
+      ],
+      "evidence": [
+        "F06/07/08/10；旧計画/要件/role/ledger",
+        "FC01/baseline.md",
+        "FC01/failure-path-map.md"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT07",
+        "FCT11",
+        "FCT13"
+      ],
+      "owner": "docs/controller/各implementer",
+      "output": "要件/受入/辞書/追跡表/log/skills/role/template/build、SHA一致",
+      "reviewer": "plan/product/report reviewers",
+      "completion_evidence": "実行model/effort/tier実値、build/Git/正式ledger readback。未実施",
+      "existing_requirements": [
+        "MR-003",
+        "MR-009",
+        "MR-010",
+        "MR-011",
+        "MR-021",
+        "MA-029"
+      ],
+      "status": "NOT_RUN; contract only"
+    }
+  ],
+  "existing_node_inventory": [
+    {
+      "node": "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_workflow_provider.py::test_provider_loads_existing_job_and_attempt_before_running_stages",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_workflow_provider.py::test_completed_job_resume_runs_only_report_stage",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_c07_later_step_can_start_with_missing_predecessor_sequence",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_job_completion_updates_incident_and_recovers_idempotently",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_report_nonpass_can_correct_a_previously_completed_job",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_c07_terminal_job_closes_running_attempt",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_c07_resume_count_does_not_limit_restarts",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_planning.py::test_c31_review_status_does_not_gate_next_action",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes",
+      "status": "definition observed in approved plan; not executed in FC02"
+    },
+    {
+      "node": "tests_inago/test_daily_fix_trace.py::test_n29",
+      "status": "definition observed in approved plan; not executed in FC02"
+    }
+  ],
+  "new_failure_case_nodes": "not created; FC07 must bind FCT01–13 to exact collected real nodes",
+  "existing_requirement_mapping": "compatibility cross-reference; no new approved MR/MA IDs invented",
+  "investigation_limits": [
+    "IR-U23-03",
+    "IR-U23-04",
+    "IR-U23-V2-01"
+  ],
+  "existing_requirement_evidence": "requirements-source §27.17 MR/MA table rows inspected at FC02; §27.18 current amendments"
+}

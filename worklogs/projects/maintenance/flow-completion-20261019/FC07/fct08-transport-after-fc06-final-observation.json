@@ -1,0 +1,106 @@
+{
+  "schema_version": "fc07-fct08-rerun-observation-v1",
+  "jst_started": "2026-10-20 00:55:12+09:00",
+  "jst_finished": "2026-10-20 00:55:14+09:00",
+  "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure] --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-fct08-transport-final --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final.junit.xml",
+  "expected": "Reviewer transport error yields content-bearing versioned fallback, preserves unknown/unapproved review state, calls publication with report, and records journal cause chain.",
+  "actual": "1 failed. Both author and reviewer were called and publication callback was invoked, but its report is None. Fallback failed before output with InvestigationContractError reason report_artifact_name_invalid; save_attempt_artifact rejects the versioned fallback HTML filename. Exact chain in journal and console; product defect sent to FC06. Not PASS.",
+  "exit_code": 1,
+  "junit": "fct08-transport-after-fc06-final.junit.xml",
+  "console": "fct08-transport-after-fc06-final-console-summary.txt",
+  "observed_product_hashes": {
+    "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+    "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+    "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+    "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+  },
+  "failure_journal_events": [
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "run_daily_report_stage",
+      "code_revision": "source-sha256-8cf6b7d438a0c4c64f465f07c3083aa7e9a16efef1584d3ae0ce917793addfe7",
+      "correlation_id": "launch-fc07-transport_failure",
+      "event_id": "d34e8f4bc56943d18e440de0c6564e0f",
+      "exception_chain": [
+        "MaintenanceAIBlockedError"
+      ],
+      "exception_errno": null,
+      "incident_id": "8f1be272-3882-4d19-89cd-0c346bfcd622",
+      "input_refs": [],
+      "invocation_id": null,
+      "job_id": "job-release-fc07-transport_failure",
+      "observed_at": "2026-10-19T15:54:58.691+00:00",
+      "operation": "workflow.report.ai_author_or_reviewer",
+      "parent_operation": null,
+      "phase": "failed",
+      "primary_sink": "maintenance_store",
+      "process_id": 63012,
+      "reason_code": "synthetic_reviewer_transport_unavailable",
+      "schema_version": 1,
+      "source_launch_id": "launch-fc07-transport_failure",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "production_workflow.py",
+          "function": "run_daily_report_stage",
+          "line": 9400
+        },
+        {
+          "file": "test_maintenance_report_publication_stage.py",
+          "function": "run_turn",
+          "line": 674
+        }
+      ],
+      "stage": "report"
+    },
+    {
+      "artifact_refs": [],
+      "attempt_id": null,
+      "capture_location": "_persist_minimal_daily_report",
+      "code_revision": "source-sha256-8cf6b7d438a0c4c64f465f07c3083aa7e9a16efef1584d3ae0ce917793addfe7",
+      "correlation_id": "launch-fc07-transport_failure",
+      "event_id": "208392cc23d14a3cacf689930a670d48",
+      "exception_chain": [
+        "InvestigationContractError"
+      ],
+      "exception_errno": null,
+      "incident_id": "8f1be272-3882-4d19-89cd-0c346bfcd622",
+      "input_refs": [],
+      "invocation_id": null,
+      "job_id": "job-release-fc07-transport_failure",
+      "observed_at": "2026-10-19T15:54:58.706+00:00",
+      "operation": "workflow.report.fallback_create_review",
+      "parent_operation": "synthetic_reviewer_transport_unavailable",
+      "phase": "failed",
+      "primary_sink": "maintenance_store",
+      "process_id": 63012,
+      "reason_code": "report_artifact_name_invalid",
+      "schema_version": 1,
+      "source_launch_id": "launch-fc07-transport_failure",
+      "source_run_id": null,
+      "stack_frames": [
+        {
+          "file": "production_workflow.py",
+          "function": "_persist_minimal_daily_report",
+          "line": 8426
+        },
+        {
+          "file": "investigation.py",
+          "function": "save_attempt_artifact",
+          "line": 687
+        }
+      ],
+      "stage": "report"
+    }
+  ],
+  "capture": "_persist_minimal_daily_report",
+  "stack": [
+    "production_workflow.py:8426",
+    "investigation.py:687"
+  ],
+  "cause": "InvestigationContractError(report_artifact_name_invalid); versioned report-fallback-<sha20>.html / report-input-fallback-<sha20>.json are rejected by save_attempt_artifact fixed-name allowlist.",
+  "next": "FC06 extends safe artifact-name contract or uses allowed durable versioned naming and updates schema/reconciliation; FC07 reruns only this parameter on exact new source hash.",
+  "production_state_touched": false
+}

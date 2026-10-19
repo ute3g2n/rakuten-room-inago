@@ -1,0 +1,48 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff ___
+
+    def test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff():
+        identity = {
+            "job_id": JOB_ID,
+            "incident_id": INCIDENT_ID,
+            "source_launch_id": LAUNCH_ID,
+            "source_run_id": None,
+            "target_date": TARGET_DATE,
+        }
+        plan = render_instrumentation_plan(
+            limits=["�����𔻒f�ł���ڍׂȗ�O�L�^���c���Ă��܂���B"],
+            owner_paths=["automation/inago/maintenance/workflow_provider.py"],
+        )
+        assert "workflow_provider.py" in plan
+        assert "����ID" in plan
+        handoff = make_stage_handoff(
+            stage="planning",
+            identity=identity,
+            operation="planning.create_instrumentation_plan",
+            operation_result="unknown",
+            summary="�����͕�����Ȃ����߁A���s�̒ǐՋL�^�𑝂₷�v��������p���܂��B",
+            facts=["�ߋ��̗�O�ڍׂ��\���Ɋm�F�ł��܂���ł����B"],
+            limitations=["10��17���̍��{�����͖��m�F�ł��B"],
+            next_actions=["�w�肵�����s���E�֑��փ��O��ǉ����č����������܂��B"],
+            input_refs=["evidence-fc07.json"],
+            output_refs=["instrumentation-plan-fc07.md"],
+            reason_code="planning_author_unavailable",
+            correlation_id="fc07-plan-correlation",
+        )
+        assert handoff["identity"]["source_run_id"] is None
+        assert handoff["artifact_origin"] == "controller_fallback"
+        assert handoff["content_result"]["next_actions"]
+        assert handoff["output_refs"] == ["instrumentation-plan-fc07.md"]
+        no_change_html = render_no_change_explanation_html(
+            what_was_checked=["�����L�^�Ǝ��s�̋L�^���m�F���܂����B"],
+            why_unchanged=["�C�����L�^�ǉ����𗧂����f����؋�������܂���B"],
+            next_actions=["����job�ŕ񍐂����A�����͕s���Ɛ������܂��B"],
+        )
+>       assert "�����N������" in no_change_html
+E       assert '�����N������' in '<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale...l><li>����job�ŕ񍐂����A�����͕s���Ɛ������܂��B</li></ul></section>\n<p>�����ƋƖ��̉񕜂͖��m�F�ł��B�V�����؋�������ꂽ��A�����Ή��L�^���瑱�����s���܂��B</p></main></html>\n'
+
+tests_inago\test_maintenance_flow_completion_fc07.py:247: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff
+1 failed in 0.25s

@@ -1,0 +1,148 @@
+{
+  "schema": "maintenance-flow-completion-fc01-handoff-v1",
+  "plan": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "version": "1.2",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "review": {
+      "result": "approved",
+      "findings": 0,
+      "product_execution_approved": false
+    }
+  },
+  "step": "FC01",
+  "result": "observed_with_unknowns",
+  "started_from": {
+    "workspace": "C:/project/rakuten-room-inago",
+    "branch": "main",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "tracking": "origin/main",
+    "tracking_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "initial_git_status": "clean",
+    "settings_language_reference": "not_found; continued in Japanese per AGENTS"
+  },
+  "observed_at": "2026-10-19T13:43:53Z",
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "production_read_only_observation": {
+    "preflight": "ready",
+    "schema_version": 13,
+    "database_health": "ok",
+    "database_quick_check": "ok",
+    "job_status": "running",
+    "resume_count": 8,
+    "finished_at": null,
+    "terminal_reason_code": null,
+    "step_attempt_count": 11,
+    "stage_observation_count": 16,
+    "handoff_artifact_count": 1,
+    "ai_session_count": 8,
+    "ai_observation_count": 35,
+    "deployment_count": 13,
+    "pending_planning_attempt": {
+      "attempt_id": "3df719f6-ef87-4734-8279-9ed14b23eeaa",
+      "status": "running",
+      "output_path": null,
+      "finished_at": null
+    },
+    "pending_report_attempt": {
+      "attempt_id": "f770f0df-d5f6-4ed2-acf0-d63658bcd6c7",
+      "status": "running",
+      "output_path": null,
+      "finished_at": null
+    },
+    "worker_excluded_dates_source_confirmed": ["2026-10-19"],
+    "target_date_queue": {
+      "target_date": "2026-10-19",
+      "queued": 1,
+      "queue_events": 0,
+      "watchdog_queue": 0,
+      "processed_or_modified": false
+    },
+    "latest_deployment_active_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "current_repository_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "runtime_switch_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "runtime_vs_repository_commit_match": false,
+    "scheduler_tasks_manually_started": false,
+    "maintenance_process_snapshot_final_count": 0
+  },
+  "historical_observations": {
+    "blocked_values_are_preserved_as_raw_history": true,
+    "latest_workflow_invocation": "workflow-0b3e8042053547f88986f13a7398c86d",
+    "latest_future_stage_observation_statuses": {
+      "planning": "blocked",
+      "repair": "blocked",
+      "deployment": "blocked",
+      "report": "blocked"
+    },
+    "latest_planning_reason": "planning_author_turn_failed",
+    "latest_repair_reason": "repair_plan_not_approved",
+    "latest_deployment_reason": "deployment_candidate_repair_unavailable",
+    "latest_report_reason": "maintenance_workflow_stage_failed",
+    "planning_failure_exception_chain": "not persisted; root cause unknown",
+    "original_2026_10_17_failure_root_cause": "unknown",
+    "business_recovery_and_post_count": "unknown",
+    "actual_ai_runtime_settings": "unobserved; all 35 observations configured_unverified"
+  },
+  "artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC01/baseline.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC01/failure-path-map.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC01/ownership.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC01/instrumentation-backlog.md"
+  ],
+  "review": {
+    "review_required": true,
+    "reviewer": "independent common execution plan reviewer",
+    "review_target_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "review_result": "pending"
+  },
+  "next": {
+    "step": "FC02",
+    "owner": "planner/controller",
+    "required_inputs": [
+      "FC01 baseline, failure-path map, ownership map, instrumentation backlog",
+      "schema 13 and live runtime/code commit mismatch",
+      "all active status/output contracts and current role effort settings",
+      "existing daily SQLite trace implementation to avoid duplication"
+    ],
+    "start_gate": "none; proceed with available evidence and preserve unknowns",
+    "primary_actions": [
+      "define append-only progress/quality/publication/terminal and durable handoff contracts",
+      "map exact file/function/operation owners and in-step requirements/skills/roles sync",
+      "synchronize five role TOMLs and embedded instructions from max to high",
+      "assign FC03 instrumentation missing from the actual maintenance path without deferral"
+    ]
+  },
+  "side_effects": {
+    "production_code_or_config_changed": false,
+    "production_db_written": false,
+    "scheduler_changed_or_manually_started": false,
+    "daily_run_created": false,
+    "job_created_or_duplicated": false,
+    "drafts_generated": false,
+    "raw_history_modified": false
+  },
+  "command_corrections": [
+    {
+      "operation": "production preflight",
+      "failure": "required environment/config flags omitted on first call",
+      "result": "read-only CLI usage error; corrected call returned ready"
+    },
+    {
+      "operation": "read-only SQLite schema exploration",
+      "failure": "initial exploratory SELECT used three column names absent from live schema",
+      "result": "OperationalError recorded; PRAGMA table_info used, corrected SELECTs succeeded; no data change"
+    },
+    {
+      "operation": "FC01 artifact JSON validation",
+      "failure": "bash heredoc syntax was passed to PowerShell and rejected by its parser",
+      "result": "reran with a PowerShell here-string piped to Python; valid JSON and target identity/null values confirmed"
+    }
+  ]
+}

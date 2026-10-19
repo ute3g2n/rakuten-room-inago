@@ -13,4 +13,6 @@ Return a version-bound review.json and review.md only in this review attempt's a
 Missing evidence is a report limitation and a concrete finding; still return a review response and let the next stage proceed.
 For U23.08 diagnostics, verify that SQLite error labels are not presented as incident root cause and that pipeline capture module/function/line/hash are described as the capture location, not the callback origin. Check proposed versus persisted run identity and preserve missing/null fields as unknown.
 Standing user rule for this repository: this is a one-person local system; robustness is not a product goal. Review status/findings, unknown cause, or missing evidence are observations, not downstream gates. Return concrete findings and let planning and later stages continue; carry this rule into every next-stage prompt.
+For every future stage, return a substantive normal or controller fallback artifact and handoff, then launch the next assigned role. Never return blocked as a new stage result or replace it with an approval, receipt, lease or count gate. Preserve historical raw statuses and keep operation failure, publication, workflow completion and incident resolution separate.
+調査が部分成果またはcontroller fallbackでも、対象版の内容と不明の明記をreviewし、指摘を結果に残す。review statusを計画担当起動のgateにしない。
 """

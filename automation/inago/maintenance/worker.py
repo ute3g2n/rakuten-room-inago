@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import threading
+import tempfile
 from typing import Callable, Protocol
 import uuid
 
@@ -24,6 +25,9 @@ from automation.inago.maintenance.store import (
     MaintenanceStore,
     MaintenanceStoreError,
     WorkerQueueRecord,
+)
+from automation.inago.maintenance.workflow_reconciliation import (
+    reconcile_workflow_terminal,
 )
 
 
@@ -232,22 +236,25 @@ def _blocked_result(
             try:
                 store.finalize_job(
                     job_id=historical_job_id,
-                    final_status="blocked",
+                    final_status="failed",
                     lease=lease,
                     finalized_at=(
                         datetime.now(timezone.utc) if not owns_lease else now
                     ),
                     reason_code=reason_code,
+                    incident_status="in_progress",
                 )
             except Exception:
-                reason_code = "historical_job_block_persist_failed"
+                reason_code = "historical_job_failure_persist_failed"
             return WorkerRunResult(
-                status="blocked",
+                status="maintenance_incomplete",
                 worker_job_id=historical_job_id,
                 source_launch_id=queue.source_launch_id,
                 check_id=check_id,
                 reason_code=reason_code,
-                maintenance_resolution_status=resolution_status,
+                maintenance_resolution_status=(
+                    "failed" if resolution_status == "blocked" else resolution_status
+                ),
             )
         blocked = store.block_worker_queue(
             queue_id=queue.queue_id,
@@ -342,6 +349,119 @@ def _historical_input_failure(
         owner_start_time=owner_start_time,
         now=now,
         historical_job_id=reference.job_id,
+    )
+
+
+def _record_outer_workflow_failure(
+    store: MaintenanceStore,
+    *,
+    job_id: str,
+    launch: WorkflowLaunch,
+    check: DailyCheckRecord,
+    error: BaseException,
+    reason_code: str,
+) -> None:
+    """Persist a substantive worker-boundary handoff without stopping reconciliation."""
+
+    from automation.inago.maintenance.failure_journal import append_failure_event
+    from automation.inago.maintenance.stage_handoff import dumps_handoff, make_stage_handoff
+
+    root = store.database_path.parent.parent
+    identity = store.get_job_input_manifest(job_id=job_id).identity()
+    # A fresh fallback invocation preserves prior raw observations. Every stage
+    # receives an explicit unknown/not-performed observation and handoff.
+    invocation_id = uuid.uuid4().hex
+    directory = root / "workflow-handoffs" / job_id / invocation_id
+    temporary: str | None = None
+    directory.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc)
+    for stage in (
+        "check_incident", "evidence", "job", "investigation",
+        "planning", "repair", "deployment", "report",
+    ):
+        handoff = make_stage_handoff(
+            stage=stage,
+            identity=identity,
+            operation="worker.workflow_runner",
+            operation_result="failed" if stage == "job" else "not_performed",
+            summary=(
+                "保守ワークフローの外側で例外または不正な結果を検出しました。終端照合へ進みます。"
+                if stage == "job"
+                else f"外側の実行が継続できず、{stage}工程の通常結果を取得できませんでした。"
+            ),
+            facts=[
+                f"source_launch_id={launch.source_launch_id}",
+                f"check_id={check.check_id}",
+                f"reason_code={reason_code}",
+            ],
+            limitations=["工程結果、公開、原因修正は未確認です。"],
+            next_actions=["同じjobを再開し、この工程の担当が結果を保存してください。"],
+            error=error if stage == "job" else None,
+            reason_code=reason_code,
+            correlation_id=invocation_id,
+        )
+        handoff["stage_progress"] = "handed_off"
+        final_path = directory / f"{stage}.json"
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb", dir=directory, prefix=".worker-handoff-", suffix=".tmp", delete=False
+            ) as stream:
+                temporary = stream.name
+                stream.write(dumps_handoff(handoff).encode("utf-8"))
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, final_path)
+            temporary = None
+        except (OSError, RuntimeError, ValueError, TypeError) as save_error:
+            append_failure_event(
+                root, phase="fallback", operation=f"worker.workflow_handoff_save.{stage}",
+                correlation_id=invocation_id, job_id=job_id,
+                incident_id=str(identity.get("incident_id") or ""),
+                source_launch_id=launch.source_launch_id,
+                source_run_id=launch.source_run_id,
+                reason_code="worker_workflow_handoff_save_failed", error=save_error,
+                capture_location="maintenance.worker._record_outer_workflow_failure",
+                primary_sink="workflow_handoff_file",
+            )
+        finally:
+            if temporary:
+                try:
+                    os.unlink(temporary)
+                except OSError:
+                    pass
+        try:
+            store.record_workflow_stage_observation(
+                invocation_id=invocation_id, job_id=job_id,
+                source_launch_id=launch.source_launch_id,
+                source_run_id=launch.source_run_id, target_date=launch.target_date,
+                stage_name=stage, status="unknown", reason_code=reason_code,
+                observed_at=now,
+            )
+        except Exception as observation_error:
+            append_failure_event(
+                root, phase="failed", operation=f"worker.workflow_observation.{stage}",
+                correlation_id=invocation_id, job_id=job_id,
+                incident_id=str(identity.get("incident_id") or ""),
+                source_launch_id=launch.source_launch_id,
+                source_run_id=launch.source_run_id,
+                reason_code="worker_workflow_observation_save_failed",
+                error=observation_error,
+                capture_location="maintenance.worker._record_outer_workflow_failure",
+                primary_sink="maintenance_workflow_stage_observation",
+            )
+    append_failure_event(
+        root,
+        phase="failed",
+        operation="worker.workflow_runner",
+        correlation_id=invocation_id,
+        job_id=job_id,
+        incident_id=str(identity.get("incident_id") or ""),
+        source_launch_id=launch.source_launch_id,
+        source_run_id=launch.source_run_id,
+        reason_code=reason_code,
+        error=error,
+        capture_location="maintenance.worker.run_worker_once",
+        primary_sink="worker_workflow_runner",
     )
 
 
@@ -563,19 +683,6 @@ def run_worker_once(
         )
 
     requires_workflow = check.check_status in {"abnormal", "incomplete", "unknown"}
-    if requires_workflow and workflow_runner is None:
-        return _blocked_result(
-            store,
-            queue,
-            check_id=check.check_id,
-            reason_code="maintenance_workflow_provider_unavailable",
-            owner_id=owner,
-            owner_pid=pid,
-            owner_start_time=process_start,
-            now=now,
-            historical_job_id=historical_job_id,
-        )
-
     lease = _acquire_worker_lease(
         store,
         owner_id=owner,
@@ -612,45 +719,120 @@ def run_worker_once(
 
     resolution_status = "not_started"
     workflow_reason_code: str | None = None
+    runner_failure: BaseException | None = None
     try:
         if requires_workflow:
-            assert workflow_runner is not None
             try:
+                if workflow_runner is None:
+                    raise RuntimeError("maintenance workflow provider is unavailable")
                 outcome = workflow_runner(launch, check, queue, lease, cancel_workflow)
             except Exception as exc:
+                runner_failure = exc
                 safe_reason = getattr(exc, "code", None)
                 if (
                     not isinstance(safe_reason, str)
                     or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", safe_reason) is None
                 ):
                     safe_reason = "maintenance_workflow_failed"
-                return _blocked_result(
-                    store,
-                    queue,
-                    check_id=check.check_id,
-                    reason_code=(
-                        heartbeat_errors[0] if heartbeat_errors else safe_reason
-                    ),
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    historical_job_id=historical_job_id,
+                workflow_reason_code = (
+                    heartbeat_errors[0] if heartbeat_errors else safe_reason
+                )
+                outcome = WorkerWorkflowOutcome(
+                    status="unknown", check_id=check.check_id,
+                    reason_code=workflow_reason_code,
                 )
             if not isinstance(outcome, WorkerWorkflowOutcome):
-                return _blocked_result(
-                    store,
-                    queue,
-                    check_id=check.check_id,
-                    reason_code="maintenance_workflow_result_invalid",
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    historical_job_id=historical_job_id,
+                runner_failure = TypeError(
+                    f"workflow_runner returned {type(outcome).__name__}, expected WorkerWorkflowOutcome"
                 )
+                workflow_reason_code = "maintenance_workflow_result_invalid"
+                outcome = WorkerWorkflowOutcome(
+                    status="unknown", check_id=check.check_id,
+                    reason_code=workflow_reason_code,
+                )
+            if outcome.check_id != check.check_id:
+                runner_failure = ValueError(
+                    "workflow_runner outcome check_id does not match the completed daily check"
+                )
+                workflow_reason_code = "maintenance_workflow_check_mismatch"
+                outcome = WorkerWorkflowOutcome(
+                    status="unknown", check_id=check.check_id,
+                    reason_code=workflow_reason_code,
+                )
+            if historical_item is not None:
+                try:
+                    identity = store.get_job_input_manifest(
+                        job_id=historical_item.job.job_id
+                    ).identity()
+                except Exception as exc:
+                    identity = None
+                    terminal_error = exc
+                else:
+                    terminal_error = None
+                if runner_failure is not None and identity is not None:
+                    try:
+                        _record_outer_workflow_failure(
+                            store,
+                            job_id=historical_item.job.job_id,
+                            launch=launch,
+                            check=check,
+                            error=runner_failure,
+                            reason_code=workflow_reason_code or "maintenance_workflow_failed",
+                        )
+                    except Exception as handoff_error:
+                        try:
+                            from automation.inago.maintenance.failure_journal import (
+                                append_failure_event,
+                            )
+
+                            append_failure_event(
+                                store.database_path.parent.parent,
+                                phase="failed",
+                                operation="worker.workflow.fallback_handoff",
+                                correlation_id=historical_item.source_launch_id,
+                                job_id=historical_item.job.job_id,
+                                incident_id=historical_item.job.incident_id,
+                                source_launch_id=historical_item.source_launch_id,
+                                source_run_id=None,
+                                reason_code="worker_workflow_fallback_handoff_failed",
+                                error=handoff_error,
+                                capture_location="maintenance.worker.run_worker",
+                                primary_sink="worker_fallback_handoff",
+                            )
+                        except Exception:
+                            pass
+                if identity is not None:
+                    try:
+                        reconcile_workflow_terminal(
+                            store,
+                            job_id=historical_item.job.job_id,
+                            lease=lease,
+                            expected_identity=identity,
+                        )
+                    except Exception as exc:
+                        terminal_error = exc
+                if terminal_error is not None:
+                    try:
+                        from automation.inago.maintenance.failure_journal import (
+                            append_failure_event,
+                        )
+
+                        append_failure_event(
+                            store.database_path.parent.parent,
+                            phase="failed",
+                            operation="worker.workflow.terminal_reconcile",
+                            correlation_id=(historical_item.source_launch_id or "workflow-terminal-unknown"),
+                            job_id=historical_item.job.job_id,
+                            incident_id=historical_item.job.incident_id,
+                            source_launch_id=historical_item.source_launch_id,
+                            source_run_id=None,
+                            reason_code="workflow_terminal_reconcile_failed",
+                            error=terminal_error,
+                            capture_location="maintenance.worker.run_worker",
+                            primary_sink="workflow_terminal_reconcile",
+                        )
+                    except Exception:
+                        pass
             if outcome.status != "complete":
                 # Stage failure/wait states describe operations; they do not
                 # prevent the worker from recording the result and advancing.
@@ -661,19 +843,6 @@ def run_worker_once(
                 )
             if heartbeat_errors and workflow_reason_code is None:
                 workflow_reason_code = heartbeat_errors[0]
-            if outcome.check_id != check.check_id:
-                return _blocked_result(
-                    store,
-                    queue,
-                    check_id=check.check_id,
-                    reason_code="maintenance_workflow_check_mismatch",
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    historical_job_id=historical_job_id,
-                )
             resolution_status = outcome.status
 
         completed_at = datetime.now(timezone.utc) if requires_workflow else now

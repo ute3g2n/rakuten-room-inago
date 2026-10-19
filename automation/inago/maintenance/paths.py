@@ -105,3 +105,28 @@ def resolve_maintenance_settings_path(
         daily_database_path=daily_database_path,
     )
     return database_path.with_name("settings.json")
+
+
+def resolve_maintenance_failure_journal_path(
+    data_root: str | Path | None, *, filename: str = "events.jsonl"
+) -> Path:
+    """Resolve the independent fallback journal below the maintenance root."""
+
+    if (
+        not isinstance(filename, str)
+        or not filename
+        or Path(filename).name != filename
+        or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for character in filename)
+    ):
+        raise UnsafeMaintenancePathError("failure_journal_filename_invalid")
+    database_path = resolve_maintenance_database_path(data_root)
+    journal = database_path.parent / "failure-journal" / filename
+    for candidate in (journal.parent, journal):
+        if _has_reparse_point(candidate):
+            raise UnsafeMaintenancePathError("failure_journal_reparse_point")
+    try:
+        resolved = journal.resolve(strict=False)
+        resolved.relative_to(database_path.parent.resolve(strict=False))
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise UnsafeMaintenancePathError("failure_journal_path_invalid") from exc
+    return resolved

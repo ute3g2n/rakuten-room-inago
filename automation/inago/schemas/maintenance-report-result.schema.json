@@ -23,7 +23,7 @@
     "result_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
     "created_at_jst": { "type": "string", "format": "date-time" },
     "report_status": { "enum": ["complete", "pending", "blocked"] },
-    "stage_status": { "enum": ["ready_for_review", "reviewed", "blocked"] },
+    "stage_status": { "enum": ["ready_for_review", "reviewed", "review_unavailable", "blocked"] },
     "review": {
       "anyOf": [
         { "type": "null" },
@@ -48,7 +48,7 @@
       "additionalProperties": false,
       "required": ["path", "sha256"],
       "properties": {
-        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/report\\.html$" },
+        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/report(?:-fallback-[a-f0-9]{20})?\\.html$" },
         "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     },
@@ -65,6 +65,17 @@
         "next_day_status": { "enum": ["verified", "pending", "not_observed", "recurred", "blocked"] }
       }
     },
-    "next_action": { "enum": ["report_review", "publish", "hold"] }
+    "next_action": { "enum": ["report_review", "publish", "hold"] },
+    "report_origin": { "enum": ["reporter", "controller_fallback"] },
+    "report_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/report-input(?:-fallback-[a-f0-9]{20})?\\.json$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "review_failure": { "type": ["string", "null"], "maxLength": 256 }
   }
 }

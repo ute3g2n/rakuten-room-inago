@@ -1,0 +1,42 @@
+{
+  "schema_version": "fc05-ownership-adjustment-v3",
+  "step": "FC05",
+  "owner_map_revisions": [
+    {
+      "sha256": "d185b61f647e7bc075c15e5b9afa5a8a5fb3e6f0e0408b2d8637083129bad11d",
+      "reason": "Optional repair pin path through controller/store and migration 015."
+    },
+    {
+      "sha256": "d6435838ac3c23693e35c0ed3f29765e3ba3c7e6829dc15e51884f39bf51332f",
+      "reason": "Worker provider-level exception continuation and CLI worker process exit mapping."
+    }
+  ],
+  "updated_owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+  "updated_owner_map_sha256": "0dc804c7a5dfd6b1d430d16546afe4188a36d648d804ca1eb8c4aa7fce6d725f",
+  "assigned_operations": [
+    {
+      "file": "automation/inago/maintenance/worker.py",
+      "boundary": "run_worker_once workflow runner exception/invalid outcome/identity mismatch and historical terminal reconciliation",
+      "owner": "FC05",
+      "execution_order": 5,
+      "goal": "Persist cause-specific fallback and continue later actors and terminal reconciliation; do not return a blocked worker result for future stage failures."
+    },
+    {
+      "file": "automation/inago/maintenance/cli.py",
+      "boundary": "main worker command exit-code mapping for maintenance_complete/maintenance_incomplete",
+      "owner": "FC05",
+      "execution_order": 5,
+      "goal": "Keep actual operation quality in output fields while returning process success after recording all stages and terminal result; remove the exit-3 chain."
+    },
+    {
+      "file": "automation/inago/maintenance/ai_adapter.py",
+      "boundary": "MaintenanceAIAdapter.plan_session reviewer root policy; fixed-root read-only role mapping",
+      "owner": "FC05",
+      "execution_order": 5,
+      "goal": "Launch common-reviewer from the fixed repository root with read-only repository access and attempt-output-only writes."
+    }
+  ],
+  "production_state_changed": false,
+  "database_or_queue_operation_performed": false,
+  "next": "FC05 implementer owns only these exact extensions plus its existing FC05 assignments; update all final artifacts with the latest owner map SHA."
+}

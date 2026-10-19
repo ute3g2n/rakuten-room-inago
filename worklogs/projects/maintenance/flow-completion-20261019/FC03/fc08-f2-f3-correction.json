@@ -1,0 +1,151 @@
+{
+  "schema_version": "fc03-review-corrections-v1",
+  "observed_at_jst": "2026-10-20 01:23 JST",
+  "owner_map": {
+    "sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+    "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json"
+  },
+  "identity": {
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "target_date": "2026-10-17"
+  },
+  "review_findings": [
+    {
+      "correction": "New code_revision.py captures one frozen manifest fingerprint at invocation start from all automation/inago/maintenance Python and SQL sources, all maintenance-*.schema.json files, and daily_pipeline.py/orchestrator.py/trace.py. Manifest metadata explicitly includes worker source, worker dispatch exclusion dates, worker result schema literals, workflow source and stage order, and schema-declared versions. Failure events and handoffs use the bound immutable fingerprint. No environment override or helper-file fallback is used.",
+      "capture_failure": "Records code_revision=unknown, stage-specific code_revision_reason, safe exception class/cause/frames and failed relative source ref in a correlated fallback event; stage handoffs carry the reason. Invocation continues.",
+      "files": [
+        "automation/inago/maintenance/code_revision.py",
+        "automation/inago/maintenance/failure_journal.py",
+        "automation/inago/maintenance/stage_handoff.py",
+        "automation/inago/maintenance/workflow_provider.py",
+        "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+        "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+      ],
+      "id": "FC08-F2 / R02",
+      "issue": "Failure events and handoffs hashed only helper files by default, so a product source change could be invisible."
+    },
+    {
+      "correction": "Stage attempt selection now validates exact step_key, sequence, job and source_run_id. Deployment uses a schema/identity-validated deployment candidate that matches a complete maintenance_repair sequence-3 attempt; otherwise it uses that validated repair attempt, or null. Report uses only the latest exact maintenance_report sequence-4 attempt. Deployment can never take a report attempt.",
+      "files": [
+        "automation/inago/maintenance/workflow_provider.py"
+      ],
+      "id": "FC08-F3 / R03",
+      "issue": "Sequence 4 belongs to maintenance_report; deployment sequence lookup could attach deployment to a prior report attempt, while report lookup used sequence 5."
+    }
+  ],
+  "static_checks": [
+    {
+      "command": ".venv-inago/Scripts/python.exe -m py_compile automation/inago/maintenance/code_revision.py automation/inago/maintenance/failure_journal.py automation/inago/maintenance/stage_handoff.py automation/inago/maintenance/workflow_provider.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "meaning": "syntax compilation only"
+    },
+    {
+      "command": "PowerShell static source assertions",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": "5/5 assertions for manifest coverage, no helper fallback, one provider bind, unknown reason fields, and exact attempt mappings"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "exit_code": 0,
+      "notes": "CRLF normalization warnings only"
+    },
+    {
+      "command": "PowerShell JSON parse for edited schemas",
+      "result": "PASS",
+      "exit_code": 0,
+      "schemas": [
+        "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+        "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+      ]
+    }
+  ],
+  "focused_fc07_tests": [
+    {
+      "status": "REQUESTED_NOT_RUN",
+      "expected": "all events/handoffs in one invocation carry the same aggregate fingerprint including worker/workflow/schema source versions",
+      "proposed_node": "test_fc07_invocation_revision_fingerprint_is_shared_by_events_and_handoffs",
+      "owner": "FC07"
+    },
+    {
+      "status": "REQUESTED_NOT_RUN",
+      "expected": "capture failure writes correlated event with code_revision unknown and concrete reason, and later stages still run",
+      "proposed_node": "test_fc07_revision_capture_failure_records_unknown_and_continues",
+      "owner": "FC07"
+    },
+    {
+      "status": "REQUESTED_NOT_RUN",
+      "expected": "seed report attempt sequence 4 and repair attempt sequence 3; deployment begin/failure/handoff uses repair id or null",
+      "proposed_node": "test_fc07_deployment_never_uses_maintenance_report_attempt",
+      "owner": "FC07"
+    },
+    {
+      "status": "REQUESTED_NOT_RUN",
+      "expected": "report handoff/event identifies actual step_key maintenance_report attempt, never sequence 5 inference",
+      "proposed_node": "test_fc07_report_uses_exact_maintenance_report_attempt",
+      "owner": "FC07"
+    }
+  ],
+  "acceptance": {
+    "runtime_behavior": "NOT_RUN",
+    "product_review": "FC08 findings implemented; independent re-review pending",
+    "acceptance_claim": "none",
+    "production": "NOT_PERFORMED"
+  },
+  "unresolved": [
+    "The new fingerprint and attempt associations have static evidence only; FC07 must run the focused nodes before runtime acceptance.",
+    "Fingerprint capture failure persistence depends on the independent fallback sink; if all sinks fail, loss remains unknown under the existing contract.",
+    "The 10/17 incident root cause remains unknown; this metadata correction does not assert incident repair."
+  ],
+  "source_sha256": [
+    {
+      "sha256": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+      "path": "automation/inago/maintenance/code_revision.py"
+    },
+    {
+      "sha256": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c",
+      "path": "automation/inago/maintenance/failure_journal.py"
+    },
+    {
+      "sha256": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+      "path": "automation/inago/maintenance/stage_handoff.py"
+    },
+    {
+      "sha256": "5632732f424cbd632b2585ad8a4deee8ae8c93b8db0dd4b619533de7b236788e",
+      "path": "automation/inago/maintenance/workflow_provider.py"
+    },
+    {
+      "sha256": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa",
+      "path": "automation/inago/schemas/maintenance-diagnostic-event.schema.json"
+    },
+    {
+      "sha256": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92",
+      "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+    },
+    {
+      "sha256": "5fb2ddc71c2ac36a571cb421f5673a3d846d93d13b52dc4cef5c6141a402e0f3",
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md"
+    },
+    {
+      "sha256": "37ab0c56a64735d402204c0ba5b4a17dad7006c4819fab8803c1c85a31ebe578",
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+    },
+    {
+      "sha256": "b5daeb4ae934ca2e1b3c4392feb0805f55d84ed838cfa535bea6e36333e824c9",
+      "path": "docs/specifications/inago/要件データ辞書.md"
+    },
+    {
+      "sha256": "6190e72e7d37a0c3ac4b90ffb2c690c5b4db66c6f6e0c8d2422f0dd0dd3b2806",
+      "path": ".agents/skills/common-implementation/references/contracts.md"
+    },
+    {
+      "sha256": "38951f32b24bcd0f3341ade80610656a5a2bea4e0ec5ac460dfa6ec3afb4aa4c",
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md"
+    }
+  ]
+}

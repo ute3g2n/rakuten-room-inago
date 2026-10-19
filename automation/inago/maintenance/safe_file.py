@@ -3,18 +3,53 @@
 from __future__ import annotations
 
 import ctypes
+from functools import wraps
+from types import GeneratorType
 import os
 import stat
 from contextlib import ExitStack, contextmanager
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO, Callable, Iterator, Literal
 
+from automation.inago.maintenance.failure_journal import (
+    record_current_operation_failure,
+)
+
 
 class SafeFileError(OSError):
     """A path could not be opened without following a reparse point."""
 
 
+def _trace_safe_file_operation(function):
+    """Capture failures at the safe-file boundary without masking the cause."""
+
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        try:
+            result = function(*args, **kwargs)
+        except Exception as exc:
+            record_current_operation_failure(
+                f"safe_file.{function.__name__}", exc
+            )
+            raise
+        if isinstance(result, GeneratorType):
+            def observed_generator():
+                try:
+                    yield from result
+                except Exception as exc:
+                    record_current_operation_failure(
+                        f"safe_file.{function.__name__}", exc
+                    )
+                    raise
+
+            return observed_generator()
+        return result
+
+    return wrapped
+
+
 @contextmanager
+@_trace_safe_file_operation
 def open_file_beneath(
     root: str | Path,
     relative_path: str,
@@ -42,6 +77,7 @@ def open_file_beneath(
         yield stream
 
 
+@_trace_safe_file_operation
 def unlink_file_beneath(root: str | Path, relative_path: str) -> None:
     """Remove one file below a pinned root without following path aliases."""
 
@@ -56,6 +92,7 @@ def unlink_file_beneath(root: str | Path, relative_path: str) -> None:
     _unlink_posix_beneath(Path(root), parts)
 
 
+@_trace_safe_file_operation
 def publish_file_beneath(
     root: str | Path, temporary_path: str, target_path: str
 ) -> None:
@@ -80,6 +117,7 @@ def publish_file_beneath(
     _publish_posix_beneath(Path(root), temporary_parts, target_parts)
 
 
+@_trace_safe_file_operation
 def ensure_directory_beneath(root: str | Path, relative_path: str) -> Path:
     """Create each directory below a pinned root without following aliases."""
 

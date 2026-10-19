@@ -1,0 +1,200 @@
+{
+  "stage": "FC09 requirements and operations synchronization (pre-production apply)",
+  "observed_at_jst": "2026-10-20T01:57:05+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "plan_original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "plan_current_sha256_at_record": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e",
+  "requirements_version": "2.50",
+  "requirements_source_sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+  "builder": {
+    "command": "node tools/docs/inago-requirements/build.mjs",
+    "exit_code": 0,
+    "chapters": 28,
+    "figures": 39,
+    "reference_documents": 26,
+    "output_bytes": 4129581,
+    "observed_at_jst": "2026-10-20T01:56:06+09:00"
+  },
+  "synchronized_files": [
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+      "bytes": 4129581
+    },
+    {
+      "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "sha256": "76276a148e5b896cdf959e221ea9420b410d41da7915f8849d717b5ac5a7cdf7",
+      "bytes": 63694
+    },
+    {
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "sha256": "df93054e85e54c77208b6560aaefff7ba8acdc0423700159425fc28117bd1d19",
+      "bytes": 76561
+    },
+    {
+      "path": "docs/specifications/inago/要件データ辞書.md",
+      "sha256": "48ac356b2a2667ac32d23f351140cc25e1af4fbebed0e8a424bc80b08a0c3be8",
+      "bytes": 127748
+    },
+    {
+      "path": "docs/specifications/inago/要件追跡表.md",
+      "sha256": "0a27f59ae3679319f1532aad52afda5652c79d720911e86240d75d8fa85f20c3",
+      "bytes": 97152
+    },
+    {
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "sha256": "0893bc1e3a466f92ac0b3c13db0a43a2958a8967d9c2cbc316dcb3e297deca5e",
+      "bytes": 72228
+    },
+    {
+      "path": "docs/specifications/inago/保守運用設定仕様.md",
+      "sha256": "a49430fd62410498c1f2223eb4b2d5966dbd8c71719db454f06045bbf8176558",
+      "bytes": 28678
+    },
+    {
+      "path": "tools/docs/inago-requirements/flow-descriptions.mjs",
+      "sha256": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289",
+      "bytes": 38826
+    },
+    {
+      "path": "tools/docs/inago-requirements/task-flows.mjs",
+      "sha256": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2",
+      "bytes": 5012
+    }
+  ],
+  "operation_failures_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC09/operation-failures.json",
+  "test_results_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC09/test-results.json",
+  "production_apply": "not yet performed; approved code review and schema migration remain pending",
+  "rerun_history": [
+    {
+      "observed_at_jst": "2026-10-20T01:45:35+09:00",
+      "plan_current_sha256_at_record": "b3d55a1b0de4e0cc1f0f674e65cd301c2d0cda1d00b3b51c28d7a32c7a33f18d",
+      "requirements_source_sha256": "b2af02589b7a0c7fc4af474af25005534544095ec730edcd521cc1fc6c2a83e4",
+      "builder": {
+        "command": "node tools/docs/inago-requirements/build.mjs",
+        "exit_code": 0,
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "output_bytes": 4129581,
+        "observed_at_jst": "2026-10-20T01:56:06+09:00"
+      },
+      "synchronized_files": [
+        {
+          "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+          "sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+          "bytes": 4129581
+        },
+        {
+          "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+          "sha256": "76276a148e5b896cdf959e221ea9420b410d41da7915f8849d717b5ac5a7cdf7",
+          "bytes": 63694
+        },
+        {
+          "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+          "sha256": "df93054e85e54c77208b6560aaefff7ba8acdc0423700159425fc28117bd1d19",
+          "bytes": 76561
+        },
+        {
+          "path": "docs/specifications/inago/要件データ辞書.md",
+          "sha256": "48ac356b2a2667ac32d23f351140cc25e1af4fbebed0e8a424bc80b08a0c3be8",
+          "bytes": 127748
+        },
+        {
+          "path": "docs/specifications/inago/要件追跡表.md",
+          "sha256": "0a27f59ae3679319f1532aad52afda5652c79d720911e86240d75d8fa85f20c3",
+          "bytes": 97152
+        },
+        {
+          "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+          "sha256": "0893bc1e3a466f92ac0b3c13db0a43a2958a8967d9c2cbc316dcb3e297deca5e",
+          "bytes": 72228
+        },
+        {
+          "path": "docs/specifications/inago/保守運用設定仕様.md",
+          "sha256": "a49430fd62410498c1f2223eb4b2d5966dbd8c71719db454f06045bbf8176558",
+          "bytes": 28678
+        },
+        {
+          "path": "tools/docs/inago-requirements/flow-descriptions.mjs",
+          "sha256": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289",
+          "bytes": 38826
+        },
+        {
+          "path": "tools/docs/inago-requirements/task-flows.mjs",
+          "sha256": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2",
+          "bytes": 5012
+        }
+      ],
+      "record_type": "superseded_builder_observation_preserved"
+    },
+    {
+      "observed_at_jst": "2026-10-20T01:56:06+09:00",
+      "plan_current_sha256_at_record": "7f306659f6d7d159fec563ba1aafaaf709901c31eb3fb2be719c904c7fa695eb",
+      "requirements_source_sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+      "builder": {
+        "command": "node tools/docs/inago-requirements/build.mjs",
+        "exit_code": 0,
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "output_bytes": 4129581,
+        "observed_at_jst": "2026-10-20T01:56:06+09:00"
+      },
+      "synchronized_files": [
+        {
+          "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+          "sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+          "bytes": 4129581
+        },
+        {
+          "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+          "sha256": "76276a148e5b896cdf959e221ea9420b410d41da7915f8849d717b5ac5a7cdf7",
+          "bytes": 63694
+        },
+        {
+          "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+          "sha256": "df93054e85e54c77208b6560aaefff7ba8acdc0423700159425fc28117bd1d19",
+          "bytes": 76561
+        },
+        {
+          "path": "docs/specifications/inago/要件データ辞書.md",
+          "sha256": "48ac356b2a2667ac32d23f351140cc25e1af4fbebed0e8a424bc80b08a0c3be8",
+          "bytes": 127748
+        },
+        {
+          "path": "docs/specifications/inago/要件追跡表.md",
+          "sha256": "0a27f59ae3679319f1532aad52afda5652c79d720911e86240d75d8fa85f20c3",
+          "bytes": 97152
+        },
+        {
+          "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+          "sha256": "0893bc1e3a466f92ac0b3c13db0a43a2958a8967d9c2cbc316dcb3e297deca5e",
+          "bytes": 72228
+        },
+        {
+          "path": "docs/specifications/inago/保守運用設定仕様.md",
+          "sha256": "a49430fd62410498c1f2223eb4b2d5966dbd8c71719db454f06045bbf8176558",
+          "bytes": 28678
+        },
+        {
+          "path": "tools/docs/inago-requirements/flow-descriptions.mjs",
+          "sha256": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289",
+          "bytes": 38826
+        },
+        {
+          "path": "tools/docs/inago-requirements/task-flows.mjs",
+          "sha256": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2",
+          "bytes": 5012
+        }
+      ],
+      "record_type": "superseded_builder_observation_preserved"
+    }
+  ],
+  "plan_hash_observation_after_builder": {
+    "observed_at_jst": "2026-10-20T01:57:05+09:00",
+    "sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e",
+    "note": "Plan §14 execution update was recorded after the requirements builder run; plan is not a builder input."
+  }
+}

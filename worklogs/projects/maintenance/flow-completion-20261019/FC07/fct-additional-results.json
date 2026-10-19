@@ -1,0 +1,254 @@
+{
+  "stage": "FC07",
+  "plan_version": "1.2",
+  "workspace": "C:/project/rakuten-room-inago",
+  "branch": "main",
+  "fixed_synthetic_identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "production_state_touched": false,
+  "runs": [
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-real-report-role-loop.junit.xml",
+      "jst_execution_window": "2026-10-20 00:43-00:46",
+      "expected": "real run_report closure invokes author then reviewer; changes_requested causes a second author with findings and changed HTML hash, approved review reaches publication; reviewer transport failure still reaches publication with a truthful fallback",
+      "actual": "2 failed before reviewer. Both invoke author, then NameError in `_daily_report_save_ai_wrapper` (production_workflow.py:8064, called at :9105) because `store`, `source_attempt_id`, and `job_id` are unbound. The report fallback then fails with AttributeError in `_persist_minimal_daily_report` (:8267/:8272), reason report_fallback_failed; publication spy is called but receives no completed report. Recorded causes in temp fixture `data/maintenance/failure-journal/events.jsonl` and durable JUnit/console. Exact product defect sent to FC06 owner. No reviewer/revision/publication success claimed; rerun held only until FC06 fix.",
+      "exit_code": 1,
+      "junit": "fct08-real-report-role-loop.junit.xml",
+      "evidence_refs": [
+        "fct08-real-report-role-loop.junit.xml",
+        "fct08-debug2.console.txt",
+        "tests_inago/test_maintenance_report_publication_stage.py",
+        "production_workflow.py:8064",
+        "production_workflow.py:9105",
+        "production_workflow.py:8267"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-after-fc06-fix-followup.junit.xml",
+      "jst_execution_window": "2026-10-20 00:48-00:50",
+      "source_hashes": {
+        "automation/inago/maintenance/production_workflow.py": "1776d36e3de9e1999ba5bc70e032fba6591ab580e1a090f156140e88893d9956",
+        "automation/inago/maintenance/report_fallback.py": "6d467b78c0d1a1f822374e838fb976e43193bf80b58d24ce68591bc1f282caa6"
+      },
+      "expected": "changes_requested triggers author revision and approved review reaches publication; reviewer transport failure keeps an unknown/unavailable review report and reaches publication",
+      "actual": "1 passed, 1 failed. The changes_requested case genuinely calls author/reviewer/author/reviewer; second author receives prior findings, result_version changes, reviewed HTML SHA changes, and publication receives approved report. The transport-failure case calls author and reviewer then reaches publication callback, but callback receives report_result=None because the fallback reuses an already-written report artifact and raises `InvestigationContractError→FileExistsError`, reason `investigation_artifact_already_exists` at production_workflow.py:8393 / investigation.py:753. Exact failure sent to FC06. The transport case remains unpassed pending product fix and exact rerun.",
+      "exit_code": 1,
+      "junit": "fct08-after-fc06-fix-followup.junit.xml",
+      "evidence_refs": [
+        "fct08-after-fc06-fix-followup.junit.xml",
+        "fct08-after-fc06-fix-followup.console.txt",
+        "synthetic temp data/maintenance/failure-journal/events.jsonl"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner",
+      "commands": [
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-author-fallback-after-fc06.junit.xml",
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-author-fallback-after-fc06-followup.junit.xml"
+      ],
+      "jst_execution_window": "2026-10-20 00:49-00:50",
+      "expected": "new future report-stage failure contract records `unknown` and still confirms author session start/close",
+      "actual": "First post-FC06 run failed only on stale test expectation `blocked`; updated to `unknown`, then exact node passed 1/1.",
+      "exit_code": 0,
+      "junit": "fct08-author-fallback-after-fc06-followup.junit.xml",
+      "evidence_refs": [
+        "fct08-author-fallback-after-fc06.junit.xml",
+        "fct08-author-fallback-after-fc06-followup.junit.xml",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp <temp> --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct07-publication-after-fc06.junit.xml",
+      "jst_execution_window": "2026-10-20 00:49-00:50",
+      "expected": "the six local-remote post-push/sidecar recovery matrix cases remain valid against updated production workflow source",
+      "actual": "6 passed in 18.53s; local bare remote only",
+      "exit_code": 0,
+      "junit": "fct07-publication-after-fc06.junit.xml",
+      "evidence_refs": [
+        "fct07-publication-after-fc06.junit.xml"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_timeout_and_malformed_agent_errors_are_traced_and_handed_off",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_timeout_and_malformed_agent_errors_are_traced_and_handed_off --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct02-timeout-malformed.junit.xml",
+      "jst_execution_window": "2026-10-20 00:38-00:42",
+      "expected": "timeout and malformed JSON are captured with correlation/cause and all later runners are invoked",
+      "actual": "2 passed; all expected handoffs/runners and redaction assertions passed",
+      "exit_code": 0,
+      "junit": "fct02-timeout-malformed.junit.xml",
+      "evidence_refs": [
+        "fct02-timeout-malformed.junit.xml",
+        "tests_inago/test_maintenance_flow_completion_fc07.py"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_all_trace_sinks_unavailable_then_same_job_resume_records_again",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_all_trace_sinks_unavailable_then_same_job_resume_records_again --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct05-all-sinks-recovery.junit.xml",
+      "jst_execution_window": "2026-10-20 00:38-00:42",
+      "expected": "content-bearing stage handoffs continue during simultaneous trace-sink outage; restoration permits correlated record and same synthetic identity rerun",
+      "actual": "1 passed; handoffs and runners continued; restored journal recorded the later run",
+      "exit_code": 0,
+      "junit": "fct05-all-sinks-recovery.junit.xml",
+      "evidence_refs": [
+        "fct05-all-sinks-recovery.junit.xml",
+        "tests_inago/test_maintenance_flow_completion_fc07.py"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner",
+      "commands": [
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight.junit.xml",
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-followup.junit.xml",
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-followup2.junit.xml",
+        ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-final.junit.xml"
+      ],
+      "jst_execution_window": "2026-10-20 00:38-00:42",
+      "expected": "synthetic reviewer rejected/invalid and preflight failure reach report/finalize runner and preserve reasons/handoffs",
+      "actual": "First fixture wrongly modeled reviewer as a top-level stage (2 failed, 1 passed); second run corrected that but asserted a later report stage after report (2 failed, 1 passed); final fixture maps review outcomes to report-stage result, checks report invocation/handoff and deployment continuation (3 passed)",
+      "exit_code": 0,
+      "junit": "fct06-review-preflight-final.junit.xml",
+      "evidence_refs": [
+        "fct06-review-preflight.junit.xml",
+        "fct06-review-preflight-followup.junit.xml",
+        "fct06-review-preflight-followup2.junit.xml",
+        "fct06-review-preflight-final.junit.xml",
+        "tests_inago/test_maintenance_flow_completion_fc07.py"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_process_crash_is_reconciled_then_same_job_runs_remaining_roles",
+      "command": ".venv-inago\\Scripts\\python.exe -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_process_crash_is_reconciled_then_same_job_runs_remaining_roles --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct10-process-artifact-resume.junit.xml",
+      "jst_execution_window": "2026-10-20 00:38-00:42",
+      "expected": "child persists a content-bearing handoff and begin record then exits abruptly; reconciliation and a same-job/null-run rerun call every later stage",
+      "actual": "1 passed; artifact identity/content, interruption correlation, same synthetic identity, and all stage calls verified",
+      "exit_code": 0,
+      "junit": "fct10-process-artifact-resume.junit.xml",
+      "evidence_refs": [
+        "fct10-process-artifact-resume.junit.xml",
+        "tests_inago/test_maintenance_flow_completion_fc07.py"
+      ]
+    },
+    {
+      "node": "FCT09 independent HTML follow-up review",
+      "command": "Independent reviewer role run by controller; FC07 only recorded returned report; no pytest command",
+      "jst_execution_window": "2026-10-20 (review artifact timestamp not included in returned report)",
+      "expected": "Review exact manifest and example hashes; record findings without gating later work",
+      "actual": "changes_requested; manifest SHA f6d60c4f77244f677ad2d82aa97ea7ed2e036f78082f42eedbb9a3a6302dfc53 and all four example hashes match. Previous seven findings 1-6 addressed and #7 partial; follow-up adds F1 classification missing, F2 nine nonexistent evidence paths, F3 fallback ignores findings/review loop can repeat without publication, F4 fallback rejects missing identity. Browser/print rendering and real report not reviewed.",
+      "exit_code": null,
+      "junit": null,
+      "evidence_refs": [
+        "html-independent-followup-review.md",
+        "../FC06/fc07-html-followup-target.json"
+      ]
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure] --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-fct08-transport-final --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final.junit.xml",
+      "jst_execution_window": "2026-10-20 00:55 JST",
+      "expected": "Reviewer transport error yields content-bearing versioned fallback, preserves unknown/unapproved review state, calls publication with report, and records journal cause chain.",
+      "actual": "1 failed. Both author and reviewer were called and publication callback was invoked, but its report is None. Fallback failed before output with InvestigationContractError reason report_artifact_name_invalid; save_attempt_artifact rejects the versioned fallback HTML filename. Exact chain in journal and console; product defect sent to FC06. Not PASS.",
+      "exit_code": 1,
+      "junit": "fct08-transport-after-fc06-final.junit.xml",
+      "evidence_refs": [
+        "fct08-transport-after-fc06-final.junit.xml",
+        "fct08-transport-after-fc06-final-console-summary.txt",
+        "fct08-transport-after-fc06-final-observation.json",
+        "tmp-fct08-transport-final/test_fc07_report_role_review_r0/data/maintenance/failure-journal/events.jsonl"
+      ],
+      "tested_source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      }
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-fct08-transport-final4 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.junit.xml",
+      "jst_execution_window": "2026-10-20 00:56-00:57",
+      "expected": "After whitelisting content-addressed fallback artifact names, author/reviewer transport failure yields a fallback result with unapproved/unavailable reviewer state and calls publication with that result.",
+      "actual": "1 passed after adjusting stale test expectation to reflect the fallback reviewer invocation (author→normal reviewer failure→fallback reviewer failure). Published result is a dict with report_status=pending, stage_status=review_unavailable, review.status=unavailable, report_origin=controller_fallback. This run was before the fallback-specific changes_requested test was added; later exact transport rerun after final test-file edits also passed (fct08-transport-after-fallback-fixture-change.junit.xml).",
+      "exit_code": 0,
+      "junit": "fct08-transport-after-fc06-final4.junit.xml",
+      "evidence_refs": [
+        "fct08-transport-after-fc06-final4.junit.xml",
+        "fct08-transport-after-fc06-final4.console.txt"
+      ],
+      "tested_source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      }
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_review_changes_requested_then_approved]",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_review_changes_requested_then_approved]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-fct08-fallback-review-revision2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-fallback-review-revision2.junit.xml",
+      "jst_execution_window": "2026-10-20 00:58 JST",
+      "expected": "Normal author failure starts controller fallback; fallback reviewer findings are passed verbatim to a real provider author invocation; revised artifact/version is reviewed by the reviewer; publication receives that final reviewed output.",
+      "actual": "1 passed. Exact finding list reached the author; second artifact path, result_version and HTML SHA differ from the first reviewed fallback; second review binds to the new version/hash; publication callback receives report_status=complete, review.status=approved and exactly the reviewed output path/hash. Initial fixture failure due fake turn lacking response is preserved in fct08-fallback-review-revision1.junit.xml; adding the response field aligned the fixture with adapter contract.",
+      "exit_code": 0,
+      "junit": "fct08-fallback-review-revision2.junit.xml",
+      "evidence_refs": [
+        "fct08-fallback-review-revision1.junit.xml",
+        "fct08-fallback-review-revision2.junit.xml",
+        "fct08-fallback-review-revision2.console.txt"
+      ],
+      "tested_source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      }
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure] after final fixture revision",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-fct08-transport-final5 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fallback-fixture-change.junit.xml",
+      "jst_execution_window": "2026-10-20 00:58 JST",
+      "expected": "Revalidate the transport-failure parameter after adding response to synthetic adapter turn and fallback-specific review parameter.",
+      "actual": "1 passed; content-bearing pending/review_unavailable controller fallback result reaches publication after author and both reviewer calls.",
+      "exit_code": 0,
+      "junit": "fct08-transport-after-fallback-fixture-change.junit.xml",
+      "evidence_refs": [
+        "fct08-transport-after-fallback-fixture-change.junit.xml",
+        "fct08-transport-after-fallback-fixture-change.console.txt",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "tested_source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      }
+    }
+  ],
+  "not_measured_in_fc07": [
+    {
+      "case": "FCT10 public publication readback / no duplicate remote commit after a child-process crash",
+      "reason": "FC07 did not perform a public report/deployment repository readback or prove no duplicate public commit after child-process interruption. FC07 did run separate local-bare-remote publication recovery cases and temporary-SQLite artifact-before-terminal-registration recovery, but the crash window was not combined with a public Git publication. This is outside FC07 test scope and belongs to the explicitly authorized same-job FC10/FC11 execution; no public remote was touched."
+    }
+  ],
+  "first_failures_preserved": true,
+  "case_registry": "case-registry.json",
+  "next_owner": "FC08",
+  "pending_review_targets": [
+    {
+      "case": "FCT09 independent HTML re-review after FC06 response to F1-F4",
+      "target": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+      "manifest_sha256": "9f62e02d5239be4cee3e292a763602e20a99f09a0a43469be6195c62377d5623",
+      "status": "not_reviewed_yet",
+      "reason": "The reviewed manifest f6d60c… returned changes_requested. FC06 generated a revised manifest after that review. This exact new revision requires an independent reviewer; prior result does not transfer."
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.158" timestamp="2026-10-20T01:23:59.837724+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes" time="3.790"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f1-success-r6/test_fc08_publication_crash_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A4E5796930&gt;
+
+    def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
+        tmp_path: Path, monkeypatch
+    ):
+        fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+        original_store = fixture["store"]
+        _fc08_crash_after_publish(fixture)
+    
+        job_before = original_store.list_workflow_jobs_for_launch(
+            source_launch_id=fixture["identity"]["source_launch_id"],
+            source_run_id=None,
+            target_date=fixture["identity"]["target_date"],
+            job_id=fixture["identity"]["job_id"],
+        )[0]
+        assert job_before.status in {"queued", "running"}
+        assert job_before.finished_at is None
+        incident_row = original_store._connect().execute(
+            "SELECT status FROM incident WHERE incident_id = ?",
+            (fixture["identity"]["incident_id"],),
+        ).fetchone()
+        assert incident_row["status"] != "resolved"
+        report_attempt = fixture["report_attempt"]
+        publication_path = (
+            original_store.database_path.parent
+            / "attempts"
+            / fixture["identity"]["job_id"]
+            / report_attempt.attempt_id
+            / "report-publication.json"
+        )
+        assert publication_path.is_file()
+        publication = json.loads(publication_path.read_text(encoding="utf-8"))
+        assert publication["identity"] == fixture["identity"]
+        assert publication["attempt_id"] == report_attempt.attempt_id
+        assert _git(fixture["remote"], "rev-parse", "refs/heads/main") == publication[
+            "publication_commit"
+        ]
+        public_bytes = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(fixture["repository"]),
+                "show",
+                f"refs/remotes/origin/main:{publication['report_path']}",
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout
+        assert hashlib.sha256(public_bytes).hexdigest() == publication["report_sha256"]
+    
+        reopened = MaintenanceStore(
+            original_store.database_path.parent.parent,
+            daily_database_path=fixture["daily_database_path"],
+        )
+        reopened.initialize()
+        resumed_lease = reopened.acquire_lease(
+            lease_key=f"maintenance:{fixture['identity']['job_id']}",
+            owner_id="fc08-same-job-reconciler",
+            owner_pid=os.getpid(),
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        calls = []
+        original_finalize = reopened.finalize_job
+    
+        def record_finalizer(**kwargs):
+            calls.append(dict(kwargs))
+            return original_finalize(**kwargs)
+    
+        reopened.finalize_job = record_finalizer
+        monkeypatch.setattr(
+            workflow_reconciliation_module,
+            "__file__",
+            str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+        )
+        terminal = reconcile_workflow_terminal(
+            reopened,
+            job_id=fixture["identity"]["job_id"],
+            lease=resumed_lease,
+            expected_identity=fixture["identity"],
+        )
+&gt;       assert terminal["workflow_completion"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_report_publication_stage.py:526: AssertionError</failure></testcase></testsuite></testsuites>

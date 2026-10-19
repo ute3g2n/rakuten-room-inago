@@ -1,0 +1,60 @@
+{
+  "schema_version": "fc06-handoff-v1",
+  "step": "FC06",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "status": "fc08_f1_publication_terminal_ownership_fixed_pycompile_ast_pass_tests_and_fresh_review_pending",
+  "acceptance_status": "not_claimed",
+  "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "result_path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/result.json",
+  "source_hashes_path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/source-hashes.json",
+  "artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-review-target.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/publication-handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/r3-status-combinations.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md"
+  ],
+  "handoff_to": "FC07 tester and independent HTML follow-up reviewer/controller",
+  "required_followup": [
+    "FC07 tester runs focused publication interruption/failure and terminal ownership cases against exact production_workflow.py hash.",
+    "Fresh independent HTML review runs against current target manifest after FC08-F1 and final plan §14.",
+    "FC08 product-code reviewer reviews current code changes; resolve findings if any.",
+    "FC10 owns actual reporter/reviewer, same-job publication/readback and final acceptance; no production operation performed by FC06."
+  ],
+  "prohibited_side_effects_respected": [
+    "No alternate workspace/worktree/checkout",
+    "No pytest, DB access/apply, production execution, or Git mutation",
+    "No actual job, daily run, or queue/history processing"
+  ],
+  "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+  "target_manifest_sha256": "de9180302e02731c1ef1cd4d5576dae245fc121aae08f394f503e9b6b331e583",
+  "scope_extension": {
+    "file": "automation/inago/maintenance/investigation.py",
+    "symbol": "save_attempt_artifact filename validation allowlist",
+    "owner_map_sha256": "6a1cc69c0c1c112b9d8ee1eb9273e3e7652f16da17d066ef2775572396ff78f3",
+    "allowed_patterns": [
+      "report-fallback-[a-f0-9]{20}.html",
+      "report-input-fallback-[a-f0-9]{20}.json",
+      "review-input-fallback-[a-f0-9]{20}.json",
+      "review-response-fallback-[a-f0-9]{20}.json",
+      "review-fallback-[a-f0-9]{20}.json"
+    ],
+    "restriction": "report stage only; no change to artifact immutability or other stage allowlists"
+  }
+}

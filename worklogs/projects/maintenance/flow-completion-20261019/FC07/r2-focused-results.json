@@ -1,0 +1,121 @@
+{
+  "stage": "FC07",
+  "purpose": "Focused synthetic regression evidence for FCT09 HTML follow-up r2 findings F1-F3, plus the directly affected reviewer-transport fallback path.",
+  "workspace": "C:/project/rakuten-room-inago",
+  "plan_version": "1.2",
+  "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "target_identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "use": "production job untouched; test cases use different synthetic job IDs"
+  },
+  "review_target": {
+    "manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "manifest_sha256": "50918af4703c85161358359b0b4b63eccc181291e90d08bded61d59887e82960",
+    "independent_review_status": "changes_requested",
+    "review_report": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r2.md",
+    "finding_ids": ["F1", "F2", "F3"],
+    "next_review": "FC06 must address findings and provide a new exact manifest; a reviewer must independently assess that exact manifest. This source-level test evidence does not approve the HTML target."
+  },
+  "code_sha256": {
+    "automation/inago/maintenance/production_workflow.py": "09b6ad44f4a44f50e1685c553afafeb92f528137e951d4edba1ad3e5fbd113a2",
+    "automation/inago/maintenance/workflow_reconciliation.py": "71305d148569f017a83a24c9bbfb5782af48f91be7e21829b3e73ce782f6d72e",
+    "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+    "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+    "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+    "tests_inago/test_maintenance_report_publication_stage.py": "ce508b2bb85d6e4771e6223de512052202314da7d8f95c82f139f9d5af956ac8"
+  },
+  "pytest": {
+    "interpreter": ".venv-inago/Scripts/python.exe",
+    "common_flags": "-B -m pytest -q <exact node> --basetemp <unique local directory> --junitxml=<unique FC07 file>",
+    "initial_data_scope": "temporary MaintenanceStore SQLite or temporary attempt files only; no production DB, Daily, Scheduler, historical worker, queue/history, public remote or live AI",
+    "global_git_config_changed": false,
+    "10_19_worker_exclusion_mutated": false
+  },
+  "cases": [
+    {
+      "finding": "F1",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_second_review_findings_remain_bound_to_reviewed_version]",
+      "expected": "A second fallback reviewer response remains stored against the exact revised HTML path/hash/version that reviewer saw. If a distinct final fallback HTML is published, its review record is unavailable with no stale findings and binds only that final HTML.",
+      "initial": {
+        "jst": "2026-10-20 01:05:21",
+        "exit_code": 1,
+        "result": "FAIL: test fixture did not inject the intended initial normal-author transport error; two additional normal-report role calls occurred before fallback.",
+        "junit": "r2-f1-second-review-binding.junit.xml",
+        "classification": "test-fixture setup defect; product behavior was not measured by this run"
+      },
+      "rerun": {
+        "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_second_review_findings_remain_bound_to_reviewed_version]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-f1-fixture2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f1-second-review-binding-fixture2.junit.xml",
+        "jst": "2026-10-20 01:06:13",
+        "expected_actual": "1 passed; author and two reviewer turns were invoked. The exact second-review response and input path/hash are retained in the immutable response sidecar. A separately rendered final fallback is pending/unavailable, has empty findings, and its review hash matches only its own output; the second-review hash is different.",
+        "exit_code": 0,
+        "junit": "r2-f1-second-review-binding-fixture2.junit.xml",
+        "database_counts": "one synthetic job; one complete maintenance_report attempt; resume_count 0"
+      }
+    },
+    {
+      "finding": "F2",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_missing_identity_still_persists_substantive_fallback_html",
+      "expected": "With incident_id missing from raw manifest identity, fallback HTML and its fallback-input JSON persist under the existing safe job+attempt context; raw missing identity remains missing and the HTML explains the unknown.",
+      "initial": {
+        "jst": "2026-10-20 01:05:21",
+        "exit_code": 1,
+        "result": "FAIL: the direct-call fixture did not create attempts_root. The recorded exception was MaintenanceAIBlockedError maintenance_write_root_invalid at _ensure_directories_beneath; this was a fixture environment defect, not identity persistence evidence.",
+        "junit": "r2-f2-missing-identity.junit.xml",
+        "trace": "tmp-r2-f2/test_fc07_missing_identity_sti0/data/maintenance/failure-journal/events.jsonl"
+      },
+      "rerun": {
+        "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_missing_identity_still_persists_substantive_fallback_html --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-f2-fixture2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f2-missing-identity-fixture2.junit.xml",
+        "jst": "2026-10-20 01:06:13",
+        "expected_actual": "1 passed; substantive fallback HTML and maintenance-report-fallback-input-v1 were persisted under the same synthetic job/attempt; incident_id is absent from raw input identity and shown as missing in the HTML. The reviewer transport failure remained visible while the attempt was durably completed as a pending report.",
+        "exit_code": 0,
+        "junit": "r2-f2-missing-identity-fixture2.junit.xml",
+        "database_counts": "one synthetic job; one complete maintenance_report attempt; resume_count 0",
+        "artifact_refs": "tmp-r2-f2-fixture2/test_fc07_missing_identity_sti0/data/maintenance/attempts/job-release-fc07-missing-identity/<attempt>/report-fallback-<content-hash>.html and report-input-fallback-<content-hash>.json"
+      }
+    },
+    {
+      "finding": "F3",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_result_reads_exact_report_input_reference",
+      "expected_actual": "1 passed; exact result.report_input path and SHA resolve the fallback-input schema/content under the same job+attempt, even when a lexically earlier decoy fallback file exists.",
+      "jst": "2026-10-20 01:05:21",
+      "exit_code": 0,
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_result_reads_exact_report_input_reference --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-f3-helper --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f3-reference-reader.junit.xml",
+      "junit": "r2-f3-reference-reader.junit.xml"
+    },
+    {
+      "finding": "F3",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_reopening_completed_fallback_uses_result_bound_input",
+      "expected_actual": "1 passed; _restore_completed_daily_report_context reads the synthetic completed result, passes its exact report_input path/hash to the resolver, and reads the matching maintenance-report-fallback-input-v1 artifact for that same attempt instead of the decoy. The completed job/attempt are synthetic resume-state records; attempt artifact content and digest are read from a normal temporary store path.",
+      "jst": "2026-10-20 01:05:21",
+      "exit_code": 0,
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_reopening_completed_fallback_uses_result_bound_input --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-f3-reopen --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f3-completed-reopen.junit.xml",
+      "junit": "r2-f3-completed-reopen.junit.xml"
+    },
+    {
+      "finding": "F1-F3 affected-path regression",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]",
+      "expected_actual": "1 passed; transport failure produces a content-bearing pending/review_unavailable fallback and reaches the publication callback on the stable r2 source version.",
+      "jst": "2026-10-20 01:05:21",
+      "exit_code": 0,
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-transport --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-transport-publication.junit.xml",
+      "junit": "r2-transport-publication.junit.xml"
+    }
+  ],
+  "validation": {
+    "py_compile": "PASS before the focused nodes; affected test file recompiled after fixture-only corrections by pytest import",
+    "git_diff_check": "PASS before final fixture-only correction; rerun required for final FC07 handoff",
+    "test_code_independent_review": "not required by plan"
+  },
+  "console_summary": "r2-r3-console-summary.txt",
+  "scope": {
+    "production_job_used": false,
+    "production_database_touched": false,
+    "daily_scheduler_worker_queue_history_touched": false,
+    "public_remote_or_post_touched": false,
+    "next": "FC08 product review and FC06 exact-manifest independent review remain separate; FCT09 stays changes_requested until a new exact manifest receives independent review. FC10/11 own the actual same-job execution and publication."
+  }
+}

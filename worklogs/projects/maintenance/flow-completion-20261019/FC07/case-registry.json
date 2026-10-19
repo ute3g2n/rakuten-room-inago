@@ -1,0 +1,211 @@
+{
+  "plan_version": "1.2",
+  "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "stage": "FC07",
+  "workspace": "C:/project/rakuten-room-inago",
+  "branch": "main",
+  "head_at_test_start": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "use": "synthetic fixture only; production job untouched"
+  },
+  "pytest_policy": {
+    "interpreter": ".venv-inago/Scripts/python.exe",
+    "flags": "-B -m pytest -q exact-node --basetemp <attempt-specific-temp> --junitxml=<FC07-ref>",
+    "jst_date": "2026-10-20",
+    "database_scope": "temporary fixture databases only",
+    "git_scope": "temporary fixture repositories and local bare remotes only",
+    "global_git_config_changed": false,
+    "production_database_or_job_touched": false,
+    "daily_scheduler_or_historical_worker_run": false,
+    "october_19_dispatch_exclusion_asserted": true
+  },
+  "cases": [
+    {
+      "id": "FCT01",
+      "result": "partial_pass",
+      "measured": [
+        "existing-node-results.json",
+        "new-cases-results.json",
+        "fct01-all-stage-legacy-status-final.json",
+        "fct-extra-results.json",
+        "trace-repaired-results.json"
+      ],
+      "evidence": "8 stage positions each return a legacy blocked result; every stage runner executes and every stage handoff is written with the fixed identity. Raw blocked is retained while future observation is unknown. Two consecutive nested exceptions also produce fallback records and later stage calls. Existing provider/integration/store nodes were exercised."
+    },
+    {
+      "id": "FCT02",
+      "result": "partial_pass",
+      "measured": [
+        "tests_inago_test_maintenance_ai_py_test_c26_transport_log_failure_still_interrupts_and_closes.junit.xml",
+        "trace-repaired-results.json",
+        "fct08-invalid-reporter.json",
+        "fct-extra-results.json",
+        "fct02-timeout-malformed.junit.xml"
+      ],
+      "evidence": "Nested RuntimeError→OSError chain is recorded with correlation, parent operation, capture location and safe refs; secret marker is absent and fallback replay reaches the synthetic store. Existing AI transport/log failure node passes. Empty and malformed report responses are separately parameterized. Focused synthetic investigation adapter failure test measured timeout and malformed JSON separately (2/2 PASS); each records operation/correlation/cause and continues all later runners. External live AI service was not used."
+    },
+    {
+      "id": "FCT03",
+      "result": "partial_pass",
+      "measured": [
+        "fct03-planner-fallback-final-rerun.json",
+        "fct08-f1-f3-final-results.json"
+      ],
+      "evidence": "Controller fallback instrumentation plan names the existing provider file and exact correlation logging work; fallback handoff preserves null source_run_id, limitation and next action. No-change HTML carries checked scope, reason and next action. Full author/reviewer orchestration was not exercised by this node. FC08-F2 runtime evidence: source fingerprint changes when a copied maintenance source changes; injected capture failure records unknown revision, failed relative source, concrete exception/reason and continues later stage runners. This supplements but does not replace the unverified real author/reviewer orchestration."
+    },
+    {
+      "id": "FCT04",
+      "result": "partial_pass",
+      "measured": [
+        "fct01-all-stage-legacy-status-final.json",
+        "existing-node-results.json",
+        "fct-extra-results.json",
+        "fc08-f1-f3-final-results.json"
+      ],
+      "evidence": "Synthetic stage-runner spies confirm test/review/deployment/report stages are called after upstream errors; planning review-status node and report author fallback node pass. Controller fallback-to-real tester/reviewer/deployer agent invocation and all three no-change fixtures remain unverified in FC07. FC08-F2 capture-failure and event/handoff tests confirm downstream synthetic stage runners and handoffs execute after error. This is runner-spy evidence only; it does not assert external agent launch."
+    },
+    {
+      "id": "FCT05",
+      "result": "partial_pass",
+      "measured": [
+        "trace-repaired-results.json",
+        "existing-node-results.json",
+        "fct05-all-sinks-recovery.junit.xml"
+      ],
+      "evidence": "Primary DB operation-event sink failure falls back to JSONL and all stage runners continue; nested error event replays into a synthetic primary sink. Existing transport log failure node passes. New all-sinks unavailable-then-restored fixture (1/1 PASS) checks all stage handoffs and calls persist while trace sinks are unavailable, restores the independent journal, and reruns the same synthetic identity to produce correlated records. Every artifact/rename/schema failure boundary was not covered."
+    },
+    {
+      "id": "FCT06",
+      "result": "partial_pass",
+      "measured": [
+        "fct01-all-stage-legacy-status-final.json",
+        "existing-node-results.json",
+        "fct06-review-preflight-final.junit.xml"
+      ],
+      "evidence": "Review-stage legacy failure does not prevent later deployment/report runner calls; existing review-status-does-not-gate-next-action node passes. New synthetic review-rejected, reviewer-response-invalid, and deployment-preflight-missing params pass 3/3; reviewer outcomes are attached to report-stage result/handoff and report/finalize runner is called. Initial test assumptions placed reviewer as a top-level stage (2 FAIL); corrected fixture maps report-review outcomes to the report stage and preserves first JUnit. Actual reviewer agent revision path is not covered here."
+    },
+    {
+      "id": "FCT07",
+      "result": "partial_pass_after_product_fix",
+      "measured": [
+        "publication-after-fc06-repair.json",
+        "publication-after-fc06-repair-matrix-rerun.json",
+        "publication-after-fc06-repair-matrix-rerun.junit.xml",
+        "publication-after-fc06-repair-matrix-rerun.console.txt",
+        "fct07-publication-after-fc06.junit.xml",
+        "pathref-final-rerun2.json",
+        "pathref-final-rerun2.junit.xml",
+        "pathref-final-1.junit.xml",
+        "fc08-f1-f3-final-results.json"
+      ],
+      "evidence": "FC06 identity/target/sidecar expected statuses were updated and the first 3-param rerun passed. The first expanded 6-param run failed because failure_journal `_safe_id` dropped slash-containing input refs. FC03 updated the assigned safe-reference handling to preserve safe relative paths and reject absolute/traversal/secret refs. After that source change the publication matrix passed all 6 params, including input/artifact-ref sanitization and no-null-slot assertions. A test-only stale pre-retry remote-commit reference caused an intermediate failure and was corrected; the final matrix confirms an injected push failure retries and publishes once, while a sidecar-save failure recovers without republishing. After FC06 source update, the exact publication matrix was rerun and passed 6/6 (`fct07-publication-after-fc06.junit.xml`). Synthetic local Git remote only. FC08-F1 follow-up: publication stage writes public report/sidecar evidence but makes no finalizer call; same-job synthetic restart and terminal reconciler read back all 8 handoffs/observations, artifacts and local bare-remote HTML before the sole finalizer marks job complete while incident stays in_progress. Missing handoff and missing public HTML each prevent complete. The existing six publication retry parameters initially failed on a stale assertion indexing an intentionally empty finalizer list; that contradictory test assertion was removed and exact matrix rerun PASS 6/6."
+    },
+    {
+      "id": "FCT08",
+      "result": "partial_pass_with_transport_and_fallback_revision_pass",
+      "measured": [
+        "fct08-invalid-reporter.json",
+        "existing-node-results.json",
+        "fct08-real-report-role-loop.junit.xml",
+        "fct08-after-fc06-fix-followup.junit.xml",
+        "fct08-author-fallback-after-fc06-followup.junit.xml",
+        "fct08-transport-after-fc06-final-observation.json",
+        "fct08-transport-after-fc06-final.junit.xml",
+        "fct08-transport-after-fc06-final-console-summary.txt",
+        "fct08-transport-after-fc06-final4.junit.xml",
+        "fct08-transport-after-fallback-fixture-change.junit.xml",
+        "fct08-fallback-review-revision1.junit.xml",
+        "fct08-fallback-review-revision2.junit.xml"
+      ],
+      "evidence": "Empty/None/malformed report fallback and the normal changes_requested→author revision→approved reviewer→publication integration pass. Reviewer transport failure was first found to fail due to existing artifacts, then the FC06 versioned fallback name was blocked by the save whitelist; both product failures and an intermediate stale-assertion FAIL are retained. On final FC06 source hashes the exact transport parameter passes and publishes a content-bearing controller fallback with report_status=pending, stage_status=review_unavailable, review.status=unavailable. A new fallback-specific changes_requested case also passes: exact findings are sent to author, a distinct artifact path/version/hash is produced, reviewer reruns against that version/hash, and publication receives that exact approved output. Initial fixture lacked turn.response and failed; corrected adapter fixture result passes. Exact JUnit/console and product hashes are in fct-additional-results.json."
+    },
+    {
+      "id": "FCT09",
+      "result": "approved_r6_exact_final_manifest",
+      "measured": [
+        "fct09-html-final.json",
+        "html-independent-review.md",
+        "../FC06/examples/通常.html sha256=9080f156d14c8a1f2714585e595199527d1147bd0adb979163b1b5276f94e20c",
+        "../FC06/examples/全項目不明.html sha256=b6b58aad46dd137b2362f24ae3c4fadf6a80dabb68cdabf0b09b0d556f0f8114",
+        "../FC06/examples/通常renderer失敗.html sha256=f113aad3cbaad55a04837586ee72c84639baef8314a8037a25ecdc0da9ef336d",
+        "../FC06/examples/変更なし.html sha256=bb4e62a960333397f3c82609246974ed2b26f0273b35235113ca892f6be18c58",
+        "html-independent-followup-review.md",
+        "FC06 follow-up target manifest SHA 9f62e02d5239be4cee3e292a763602e20a99f09a0a43469be6195c62377d5623",
+        "html-independent-followup-review-r2.md",
+        "html-independent-followup-review-r3.md",
+        "r2-focused-results.json",
+        "r3-focused-results.json",
+        "r3-f1-rejected-pending-resume.junit.xml",
+        "r3-f1-changes-requested-pending-resume.junit.xml",
+        "r3-f3-exact-input-restore-regression.junit.xml",
+        "r2-r3-console-summary.txt",
+        "html-independent-followup-review-r6.md"
+      ],
+      "evidence": "Independent follow-up review r2 of exact target manifest SHA 9f62e02d5239be4cee3e292a763602e20a99f09a0a43469be6195c62377d5623 returned changes_requested with three findings: second-round findings are rebound to a different fallback HTML hash; missing identity may prevent fallback input persistence; reopening a completed fallback result does not use result.report_input path/hash/schema. These findings remain open pending FC06 author fix and a new exact manifest review. No approval claimed. Independent review r3 of exact manifest SHA 50918af4703c85161358359b0b4b63eccc181291e90d08bded61d59887e82960 confirmed prior 7, F1-F4, and r2 F1-F3 corrected, then added R3-F1: completed fallback results with review.status=rejected or changes_requested remain pending and should restore without status promotion. Browser/print and real 10/17 report remain unreviewed. FC06 supplied a source fix; FC07 has added a focused two-status regression node but will not execute it until FC06 provides the refreshed fix manifest. FCT09 remains changes_requested. FC06 supplied R3-F1 fix with manifest SHA 261aa9d333707060fcc81b894c36d67ff450abecb0daedf9f54442ba186a287. Both focused synthetic completed-fallback restore parameters passed: rejected and changes_requested remain the exact review status, report_status=pending, stage_status=reviewed, next_action=publish, and never become approved. The resume job/attempt are synthetic records; no remote publication was attempted in FC07. The new exact manifest still needs independent review, so FCT09 remains changes_requested. R3-F1 changed the completed-fallback restore branch; the exact F3 result.report_input path/hash/schema reopen node was rerun against the post-R3 product source and passed (r3-f3-exact-input-restore-regression.junit.xml). FC06 then refreshed the target manifest to SHA 02b3d3b91764e2d3ba15e2f01225602dcbca0e0862540b028ffd7e8d601cb0c3 to include finalized plan §14 source. The tests ran against manifest 261aa9d333707060fcc81b894c36d67ff450abecb0daedf9f54442ba186a287 with unchanged product hashes; they did not include or independently verify the plan source. The current exact manifest still needs independent review. Final status update: r2 and r3 remain recorded as intermediate changes_requested reviews. Independent review r6 approved the exact final synthetic target manifest SHA 19cdf63a192710d095886308875bda2326a8238a3c9189e515a9993486e74f7a; review file SHA-256 4304a8c5d05658b8c6fd3850f3f05d990b94240e1aece722c5e67bc97b3ea984; it reports all 18/18 manifest hashes match. The focused synthetic tests were run against manifest 261aa9d333707060fcc81b894c36d67ff450abecb0daedf9f54442ba186a287 and the product source hashes recorded in r3-focused-results.json; subsequent plan-hash refreshes were not included in those tests and the plan source was not independently tested by them. Product source hashes remained unchanged. Approval covers the synthetic target examples only: the actual 10/17 production report and browser/print rendering remain unreviewed and belong to FC10/11."
+    },
+    {
+      "id": "FCT10",
+      "result": "partial_pass",
+      "measured": [
+        "fct-process-results.json",
+        "fct10-process-artifact-resume.junit.xml",
+        "fct10-sqlite-artifact-before-db.junit.xml",
+        "existing-node-results.json",
+        "shortpath-results.json",
+        "fc08-f1-f3-final-results.json"
+      ],
+      "evidence": "A spawned child writes a content-bearing planning handoff for the fixed synthetic identity, persists a begin event, and exits via os._exit(19), bypassing finally. The handoff artifact is read back before reconciliation; reconciliation adds an interruption event; a provider run with the same job/launch/date/null-run then calls every stage (PASS). An additional synthetic SQLite test creates exactly one matching job/manifest and a running report attempt, then a spawned process writes report.html and exits before attempt terminal/output registration. Reopening the store and continuing the same job marks the old attempt interrupted without adding output metadata, starts attempt_no+1, completes it, and leaves no running orphan (PASS). Existing completed-job report-only resume and terminal-attempt closure nodes pass. No production DB, real reporter/reviewer, or public remote is used. Additional FC08-F1 process crash after report remote publication and sidecar but before reconciliation passes: synthetic SQLite job stays nonterminal through child exit; same identity resumes; all stage records/artifacts and public remote content are read back; only reconciliation finalizes. Incident remains in_progress. Missing handoff and missing public report readback do not finalize complete. This is local synthetic evidence, not the production job."
+    },
+    {
+      "id": "FCT11",
+      "result": "not_run_by_fc07_scope",
+      "measured": [],
+      "evidence": "The actual 10/17 production job is explicitly prohibited as a pytest fixture and belongs to FC10 controller operation, not tester scope. No production job, DB, worker, Daily or Scheduler operation was attempted. This remains a required acceptance measurement in FC10 and is not a pass."
+    },
+    {
+      "id": "FCT12",
+      "result": "partial_pass",
+      "measured": [
+        "fct03-planner-fallback-final-rerun.json",
+        "fct-extra-results.json",
+        "fct08-invalid-reporter.json",
+        "fct09-html-final.json",
+        "fct-process-results.json",
+        "fc08-f1-f3-final-results.json"
+      ],
+      "evidence": "Synthetic identity fields and null source_run_id are asserted; 10/19 dispatch exclusion is asserted unchanged; exception and report body tests assert a secret marker is not exposed. Production history, queue, user changes and real job counts are not read or written in this stage. FC08-F3 attempt binding adds synthetic coverage: deployment points to validated maintenance_repair sequence-3 attempt or null, and report uses the actual maintenance_report sequence-4 attempt, never a decoy. Fixed target identity values remain data contract only; no production job was used."
+    },
+    {
+      "id": "FCT13",
+      "result": "partial_pass",
+      "measured": [
+        "fct13-static-check.json",
+        "fc08-f1-f3-final-results.json"
+      ],
+      "evidence": "Read-only measurement parsed all 24 active maintenance schema JSON files, all 9 role TOMLs, and verified 5 selected active skill files are nonempty. All nine role TOMLs report reasoning effort high. The FC07 execution row exists exactly once. Requirements builder, complete semantic blocked/gate scan, complete active docs synchronization and Git ownership audit remain assigned to FC09/controller and are not represented as completed by this partial check. FC08-F2 runtime revision tests verify an isolated source edit changes the fingerprint, one invocation revision is identical across failure event and all stage handoffs, and capture failure records unknown with concrete correlated cause while continuing. Full requirements/build/Git synchronization remains outstanding."
+    },
+    {
+      "id": "FC08-F1/F2/F3 focused follow-up",
+      "result": "pass_synthetic_focused_cases; overall_FC07_partial",
+      "measured": [
+        "fc08-f1-f3-final-results.json",
+        "fc08-f1-crash-resume-final-r2.junit.xml",
+        "fc08-f1-missing-handoff-final-r2.junit.xml",
+        "fc08-f1-missing-public-final-r3.junit.xml",
+        "fc08-f1-publication-regression-final-r2.junit.xml",
+        "fc08-f2-fingerprint.junit.xml",
+        "fc08-f2-shared-revision.junit.xml",
+        "fc08-f2-capture-failure.junit.xml",
+        "fc08-f3-attempt-binding-valid-r2.junit.xml",
+        "fc08-f3-attempt-binding-null.junit.xml"
+      ],
+      "evidence": "The report publication stage did not finalize job or incident. Child interruption after publish+sidecar resumed the same synthetic job. Reconciliation verified eight stage handoffs/observations, artifacts, report/sidecar, deployment and actual HTML bytes from local bare remote before one finalizer; final job complete and incident in_progress. Missing handoff or public HTML cannot complete. Fingerprint source-change, shared event/handoff revision, capture-failure continuation, and correct maintenance_repair seq3 / maintenance_report seq4 binding all passed. Initial fixture/test assertion failures are kept in JUnit and final result JSON. Synthetic local only; production acceptance remains with FC10/11."
+    }
+  ],
+  "universal_acceptance": "not_claimed; FCT09 final synthetic target manifest received independent approval in r6, while remaining FCT partials and actual 10/17 production report/publication measurements are assigned to later stages."
+}

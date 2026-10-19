@@ -1,0 +1,58 @@
+{
+  "schema": "maintenance-fc01-independent-review-v1",
+  "reviewer_id": "/root/fc01_review",
+  "reasoning_effort": "high",
+  "scope_type": "execution-step-evidence-follow-up",
+  "scope_id": "FC01",
+  "reviewed_at": "2026-10-19T13:48:46Z",
+  "status": "approved",
+  "reviewed_version": {
+    "plan_version": "1.2",
+    "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "artifacts": {
+      "baseline.md": "415ea67fd6c4f47282be5d6b71b021a57b702ab26003ca5595a01323126fe556",
+      "failure-path-map.md": "27eb90c06dcd60eda33c12100fb7306990774c734393283b8fa6317e8fffe993",
+      "instrumentation-backlog.md": "a653b02d4e40c157b6ee22759ff4829e846282557e963bd42bb409d5b3300fb2",
+      "ownership.md": "e91ccc0ff92326f86ea5da3f2e6b97f7747a2cef022a9ead480234ffe57e4eef",
+      "handoff.json": "b0c469bbb925f956f9e68c53692136d3599e40a4f3acf37de30cf8058c605572"
+    }
+  },
+  "prior_review_preserved": {
+    "independent-review.md": "7935bc5162a1f5d19eb90dbff3e741232320c7cf8f19162211de6e7fe221f893",
+    "independent-review.json": "4dcf16040a4b2251ff0dee46b551abca559a10b254c96f094a222588c6d5d1bb"
+  },
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "prior_findings": [
+    {
+      "id": "FC01-R01",
+      "resolution": "resolved",
+      "evidence": "baseline.md now lists check_incident/evidence/job/investigation complete and planning/repair/deployment/report historical blocked, matching the observed stage rows."
+    },
+    {
+      "id": "FC01-R02",
+      "resolution": "resolved",
+      "evidence": "baseline.md existing-diagnostics section, failure-path-map.md source operation table and instrumentation-backlog.md introduction map files/functions/lines/fields to source version and mark formal application unknown pending FC09. Independent git diff --shortstat confirmed 3 files, 448 insertions, 22 deletions between active and repository commits."
+    }
+  ],
+  "findings": [],
+  "validation": {
+    "five_artifacts_reopened": true,
+    "handoff_json_parse": "passed",
+    "read_only_job_manifest_identity": "matched",
+    "source_run_null_preserved": true,
+    "current_job_status": "running",
+    "current_resume_count": 8,
+    "original_review_preserved": true,
+    "author_artifacts_or_product_runtime_mutated": false
+  },
+  "handoff": {"next_step": "FC02", "review_status_gates_next_step": false},
+  "later_acceptance_satisfied_by_this_review": false,
+  "limitations": ["FC01 evidence only", "No product tests, deployment, same-job completion or publication certified", "Original incident cause and business recovery remain unknown"]
+}

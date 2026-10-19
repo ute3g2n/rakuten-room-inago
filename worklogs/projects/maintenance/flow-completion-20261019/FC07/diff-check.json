@@ -1,0 +1,5 @@
+{
+  "check": "git diff --check scoped FC07 test files + execution-plan row",
+  "exit": 0,
+  "time_jst": "2026-10-20T00:36:55.9082491+09:00"
+}

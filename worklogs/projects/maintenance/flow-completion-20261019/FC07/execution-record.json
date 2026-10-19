@@ -1,0 +1,156 @@
+{
+  "stage": "FC07",
+  "plan": {
+    "version": "1.2",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md"
+  },
+  "execution": {
+    "started_jst": "2026-10-20T00:18:33+09:00",
+    "last_recorded_test_end_jst": "2026-10-20T01:28:12+09:00",
+    "workspace": "C:/project/rakuten-room-inago",
+    "branch": "main",
+    "head_at_start": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "role": "common-tester",
+    "model": "gpt-6-luna",
+    "reasoning_effort": "high",
+    "service_tier": "not_observed",
+    "command_pattern": ".venv-inago\\Scripts\\python.exe -B -m pytest -q <exact node> --basetemp <attempt-specific temp> --junitxml=<attempt-specific FC07 file>",
+    "first_existing_nodes_file": "existing-node-results.json",
+    "additional_test_records": [
+      "followup-results.json",
+      "followup2-results.json",
+      "followup3-results.json",
+      "shortpath-results.json",
+      "new-cases-results.json",
+      "trace-repaired-results.json",
+      "fct-extra-results.json",
+      "fct-process-results.json",
+      "fct08-invalid-reporter.json",
+      "fct09-html-final.json",
+      "fct03-planner-fallback-final-rerun.json",
+      "fct01-all-stage-legacy-status-final.json",
+      "fct02-timeout-malformed.junit.xml",
+      "fct05-all-sinks-recovery.junit.xml",
+      "fct06-review-preflight-final.junit.xml",
+      "fct10-process-artifact-resume.junit.xml",
+      "fct10-sqlite-artifact-before-db.junit.xml",
+      "fct10-sqlite-artifact-before-db.console.txt",
+      "fct08-real-report-role-loop.junit.xml",
+      "fct08-debug2.console.txt",
+      "fct08-after-fc06-fix.junit.xml",
+      "fct08-after-fc06-fix-followup.junit.xml",
+      "fct08-after-fc06-fix-followup.console.txt",
+      "fct08-author-fallback-after-fc06.junit.xml",
+      "fct08-author-fallback-after-fc06-followup.junit.xml",
+      "fct07-publication-after-fc06.junit.xml",
+      "fct-additional-results.json",
+      "html-independent-review.md",
+      "publication-after-fc06-repair.json",
+      "publication-after-fc06-repair-matrix-rerun.json",
+      "pathref-final-results.json",
+      "pathref-final-rerun2.json",
+      "html-independent-followup-review.md",
+      "fct08-transport-after-fallback-fixture-change.junit.xml",
+      "fct08-transport-after-fallback-fixture-change.console.txt",
+      "fct08-fallback-review-revision1.junit.xml",
+      "fct08-fallback-review-revision2.junit.xml",
+      "fct08-fallback-review-revision2.console.txt",
+      "fc08-f1-f3-final-results.json",
+      "fc08-f1-crash-resume-final-r2.junit.xml",
+      "fc08-f1-missing-handoff-final-r2.junit.xml",
+      "fc08-f1-missing-public-final-r3.junit.xml",
+      "fc08-f1-publication-regression-final-r2.junit.xml",
+      "fc08-f2-fingerprint.junit.xml",
+      "fc08-f2-shared-revision.junit.xml",
+      "fc08-f2-capture-failure.junit.xml",
+      "fc08-f3-attempt-binding-valid-r2.junit.xml",
+      "fc08-f3-attempt-binding-null.junit.xml",
+      "fc08-f1-publication-regression-final.junit.xml"
+    ],
+    "pytest_policy": {
+      "normal_local_runner": true,
+      "synthetic_fixtures_or_local_git_only": true,
+      "production_db_worker_daily_scheduler_or_raw_history_modified": false,
+      "real_job_used_as_fixture": false,
+      "global_git_configuration_changed": false,
+      "git_safe_directory": "process-local test environment; exact temporary repository only"
+    }
+  },
+  "final_version_sha256": {
+    "tests_inago/test_maintenance_flow_completion_fc07.py": "619E5F141C9FE44A4FDB93A80BA88F23DCD114611AD38EA6CF11F9FB7E24F356",
+    "tests_inago/test_maintenance_integration.py": "73256DF62074BEAFD06570948CA26EECFA086348DFEA11AA4C803F53400DBA1D",
+    "tests_inago/test_maintenance_workflow_provider.py": "D91D5FC9490F179B8DF7C63391AC9BFD85C2F53954F5E6481E7944202C412A17",
+    "tests_inago/test_maintenance_store.py": "E564782BA59D18036E5B80DD218C2B168BAECDFF8BDFE1E01523BD0209A9FE98",
+    "tests_inago/test_maintenance_report_publication_stage.py": "0F7CE6FDB304AF795D1B30D75EFB74FF0ECDFC7C02AC1DDF979744AD7354F05A",
+    "automation/inago/maintenance/failure_journal.py": "8CF6B7D438A0C4C64F465F07C3083AA7E9A16EFEF1584D3AE0CE917793ADDFE7",
+    "automation/inago/maintenance/production_workflow.py": "1776D36E3DE9E1999BA5BC70E032FBA6591AB580E1A090F156140E88893D9956",
+    "automation/inago/maintenance/report_fallback.py": "6D467B78C0D1A1F822374E838FB976E43193BF80B58D24CE68591BC1F282CAA6"
+  },
+  "owned_test_changes": [
+    "tests_inago/test_maintenance_flow_completion_fc07.py",
+    "tests_inago/test_maintenance_integration.py",
+    "tests_inago/test_maintenance_workflow_provider.py",
+    "tests_inago/test_maintenance_store.py",
+    "tests_inago/test_maintenance_report_publication_stage.py"
+  ],
+  "change_summary": "Adjusted only assigned test/fixture expectations and Git test isolation; added focused synthetic failure tests. No product code changed by this tester.",
+  "outcome": "FC07 has measured results and test artifacts. Additional FCT02/05/06 cases pass; FCT10 handoff and temporary-SQLite artifact-before-DB crash recovery pass. Against FC06 source SHA 1776d36e..., FCT08 changes_requested→author revision→approved review→publication callback passes; reviewer transport failure still fails because fallback cannot reuse an artifact already written in the same attempt, and its report result is absent. The original NameError was corrected; the remaining exact failure is with FC06 for repair and rerun. The six-case publication matrix passed after the source update. An independent HTML reviewer returned changes_requested with seven findings. Several FCT purposes remain partial, and the real same-job acceptance is owned by later controller stages. Overall flow completion is not claimed.",
+  "next": "FC08 independent product code review must read actual source changes and this evidence; findings go to original source owners and do not gate FC09/FC10 startup.",
+  "review_records": [
+    {
+      "case": "FCT09 independent HTML follow-up",
+      "reviewer": "independent HTML reviewer role (controller launched)",
+      "artifact": "html-independent-followup-review.md",
+      "result": "changes_requested",
+      "target_manifest_sha256": "f6d60c4f77244f677ad2d82aa97ea7ed2e036f78082f42eedbb9a3a6302dfc53",
+      "findings": [
+        "F1: defined event class missing",
+        "F2: nine listed sample evidence paths are absent",
+        "F3: fallback does not apply findings and repeated review can bypass publication",
+        "F4: missing identity causes fallback rejection instead of unknown preservation"
+      ],
+      "scope_limits": [
+        "prior seven findings #1-6 fixed and #7 partial",
+        "browser/print rendering not performed",
+        "real 10/17 report not reviewed",
+        "no approval claimed"
+      ]
+    },
+    {
+      "case": "FCT09 revised target awaiting independent re-review",
+      "manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+      "manifest_sha256": "9f62e02d5239be4cee3e292a763602e20a99f09a0a43469be6195c62377d5623",
+      "status": "not_reviewed_yet",
+      "reason": "Previous f6d60c… target returned changes_requested; this distinct revised hash has no independent result yet."
+    }
+  ],
+  "tested_product_versions": [
+    {
+      "case": "FCT08 transport_failure exact parameter rerun; result failed",
+      "source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      },
+      "junit": "fct08-transport-after-fc06-final.junit.xml",
+      "result": "1 failed; report_artifact_name_invalid; sent to FC06"
+    },
+    {
+      "case": "FC06 report transport fallback and fallback-review revision",
+      "source_sha256": {
+        "automation/inago/maintenance/production_workflow.py": "a92c8a28e10bd8189ae5f553f1cd132b2f62422c97d42635f6a8e1483c9a6375",
+        "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "automation/inago/maintenance/workflow_reconciliation.py": "aecbad550f8e5029d17721d5ab715dce4305f222adf2fb643f1dfa305bf3e0e6",
+        "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+      },
+      "junit_refs": [
+        "fct08-transport-after-fallback-fixture-change.junit.xml",
+        "fct08-fallback-review-revision2.junit.xml"
+      ],
+      "outcome": "both focused parameters passed; prior failures preserved"
+    }
+  ]
+}

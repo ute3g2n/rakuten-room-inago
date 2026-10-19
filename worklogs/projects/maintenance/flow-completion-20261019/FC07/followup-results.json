@@ -1,0 +1,63 @@
+[
+  {
+    "node": "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup.junit.xml",
+    "start_jst": "2026-10-20T00:20:53.8076656+09:00",
+    "end_jst": "2026-10-20T00:20:54.8770882+09:00",
+    "exit": 1,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable",
+    "status": "FAIL"
+  },
+  {
+    "node": "tests_inago/test_maintenance_workflow_provider.py::test_provider_loads_existing_job_and_attempt_before_running_stages",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_workflow_provider.py::test_provider_loads_existing_job_and_attempt_before_running_stages --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages-followup.junit.xml",
+    "start_jst": "2026-10-20T00:20:54.9024926+09:00",
+    "end_jst": "2026-10-20T00:20:56.2019360+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages-followup.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages-followup.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_workflow_provider.py::test_completed_job_resume_runs_only_report_stage",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_workflow_provider.py::test_completed_job_resume_runs_only_report_stage --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage-followup.junit.xml",
+    "start_jst": "2026-10-20T00:20:56.2105678+09:00",
+    "end_jst": "2026-10-20T00:20:57.2268287+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage-followup.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage-followup.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_store.py::test_report_nonpass_can_resume_the_same_job_without_resolving_incident",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_store.py::test_report_nonpass_can_resume_the_same_job_without_resolving_incident --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident-followup.junit.xml",
+    "start_jst": "2026-10-20T00:20:57.2346196+09:00",
+    "end_jst": "2026-10-20T00:20:58.2314453+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident-followup.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident-followup.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup.junit.xml",
+    "start_jst": "2026-10-20T00:20:58.2387225+09:00",
+    "end_jst": "2026-10-20T00:20:59.4194311+09:00",
+    "exit": 1,
+    "pytest_count": 3,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup-20261020-002053\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save",
+    "git_config": "process-local safe.directory paths only",
+    "status": "FAIL"
+  }
+]

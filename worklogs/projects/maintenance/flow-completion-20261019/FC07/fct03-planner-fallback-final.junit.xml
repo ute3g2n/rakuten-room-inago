@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.204" timestamp="2026-10-20T00:29:41.040155+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff" time="0.001"><failure message="assert '何が起きたか' in '&lt;!doctype html&gt;&lt;html lang=&quot;ja&quot;&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale...l&gt;&lt;li&gt;同じjobで報告を作り、原因は不明と説明します。&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;\n&lt;p&gt;原因と業務の回復は未確認です。新しい証拠が得られたら、同じ対応記録から続きを行います。&lt;/p&gt;&lt;/main&gt;&lt;/html&gt;\n'">def test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff():
+        identity = {
+            "job_id": JOB_ID,
+            "incident_id": INCIDENT_ID,
+            "source_launch_id": LAUNCH_ID,
+            "source_run_id": None,
+            "target_date": TARGET_DATE,
+        }
+        plan = render_instrumentation_plan(
+            limits=["原因を判断できる詳細な例外記録が残っていません。"],
+            owner_paths=["automation/inago/maintenance/workflow_provider.py"],
+        )
+        assert "workflow_provider.py" in plan
+        assert "相関ID" in plan
+        handoff = make_stage_handoff(
+            stage="planning",
+            identity=identity,
+            operation="planning.create_instrumentation_plan",
+            operation_result="unknown",
+            summary="原因は分からないため、失敗の追跡記録を増やす計画を引き継ぎます。",
+            facts=["過去の例外詳細を十分に確認できませんでした。"],
+            limitations=["10月17日の根本原因は未確認です。"],
+            next_actions=["指定した失敗境界へ相関ログを追加して合成試験します。"],
+            input_refs=["evidence-fc07.json"],
+            output_refs=["instrumentation-plan-fc07.md"],
+            reason_code="planning_author_unavailable",
+            correlation_id="fc07-plan-correlation",
+        )
+        assert handoff["identity"]["source_run_id"] is None
+        assert handoff["artifact_origin"] == "controller_fallback"
+        assert handoff["content_result"]["next_actions"]
+        assert handoff["output_refs"] == ["instrumentation-plan-fc07.md"]
+        no_change_html = render_no_change_explanation_html(
+            what_was_checked=["調査記録と失敗の記録を確認しました。"],
+            why_unchanged=["修正も記録追加も役立つか判断する証拠が足りません。"],
+            next_actions=["同じjobで報告を作り、原因は不明と説明します。"],
+        )
+&gt;       assert "何が起きたか" in no_change_html
+E       assert '何が起きたか' in '&lt;!doctype html&gt;&lt;html lang="ja"&gt;&lt;meta charset="utf-8"&gt;&lt;meta name="viewport" content="width=device-width, initial-scale...l&gt;&lt;li&gt;同じjobで報告を作り、原因は不明と説明します。&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;\n&lt;p&gt;原因と業務の回復は未確認です。新しい証拠が得られたら、同じ対応記録から続きを行います。&lt;/p&gt;&lt;/main&gt;&lt;/html&gt;\n'
+
+tests_inago\test_maintenance_flow_completion_fc07.py:247: AssertionError</failure></testcase></testsuite></testsuites>

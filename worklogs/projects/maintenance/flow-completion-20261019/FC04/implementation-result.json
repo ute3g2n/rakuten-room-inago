@@ -1,0 +1,85 @@
+{
+  "schema_version": "fc04-implementation-diff-v1",
+  "plan_version": "1.2",
+  "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "owner_map_sha256": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f",
+  "assigned_hunks": [
+    {"file": "automation/inago/maintenance/workflow_provider.py", "boundary": "MaintenanceWorkflowProvider stage loop/result normalization; sequential after FC03 correlation", "summary": "Preserve raw prior status as observation; emit future failed/unknown/not_performed with a content handoff; dispatch later stages; correlate identity and operation errors."},
+    {"file": "automation/inago/maintenance/controller.py", "boundary": "complete_investigation_attempt and resume_investigation_handoff only", "summary": "Preserve fallback provenance and result references in investigation completion/handoff."},
+    {"file": "automation/inago/maintenance/production_workflow.py", "boundary": "investigation/planning/repair author; _ensure_repair_worktree; prepare_daily_repair_stage; run_daily_repair_author_stage; _daily_repair_author_prompt", "summary": "Create substantive fallback outputs and handoffs on author failure; use fixed project root for repair author without clone/worktree/checkout."},
+    {"file": "automation/inago/maintenance/ai_adapter.py", "boundary": "MaintenanceAIAdapter.plan_session; MaintenanceAISession._validate_allowed_outputs; MaintenanceAISession._revalidate_write_roots", "summary": "Allow assigned parent B writer roles only at the fixed project root with safe relative output allowlists."},
+    {"file": "automation/inago/maintenance/investigation.py", "boundary": "validate_investigation_response and controller fallback builder", "summary": "Validate stage provenance/result metadata and make controller fallback distinct from agent output."},
+    {"file": "automation/inago/maintenance/stage_handoff.py", "boundary": "new FC04 module", "summary": "Build safe exception chains, substantive nine-section investigation fallback, actionable instrumentation plan and plain no-change HTML."}
+  ],
+  "new_files": [
+    "automation/inago/maintenance/stage_handoff.py",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+  ],
+  "changed_files": [
+    ".agents/skills/common-execution-planning/SKILL.md",
+    ".agents/skills/common-execution-planning/references/contracts.md",
+    ".agents/skills/common-implementation/SKILL.md",
+    ".agents/skills/common-implementation/references/contracts.md",
+    ".agents/skills/rr-inago-incident-investigation/SKILL.md",
+    ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+    ".codex/agents/common-execution-plan-reviewer.toml",
+    ".codex/agents/common-execution-planner.toml",
+    ".codex/agents/common-implementer.toml",
+    ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+    ".codex/agents/rr-inago-incident-investigator.toml",
+    "automation/inago/maintenance/ai_adapter.py",
+    "automation/inago/maintenance/controller.py",
+    "automation/inago/maintenance/investigation.py",
+    "automation/inago/maintenance/production_workflow.py",
+    "automation/inago/maintenance/workflow_provider.py",
+    "automation/inago/maintenance/stage_handoff.py",
+    "automation/inago/schemas/maintenance-investigation-response.schema.json",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/specifications/inago/図解/F12.svg",
+    "docs/specifications/inago/要件データ辞書.md",
+    "docs/specifications/inago/要件追跡表.md",
+    "docs/templates/incidents/日次不具合修正計画_ひな形.md",
+    "docs/templates/incidents/日次不具合調査レポート_ひな形.md",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md#§14 FC04 row only",
+    "tools/docs/inago-requirements/task-flows.mjs",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/command-attempts.json"
+  ],
+  "schema_changes": [
+    "automation/inago/schemas/maintenance-investigation-response.schema.json",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json"
+  ],
+  "requirement_mapping": [
+    {"requirements": ["FC-R01", "FC-R03", "FC-R05"], "acceptance": ["FC-A01", "FC-A03", "FC-A05"], "implementation": "Substantive investigation/planning fallback and dispatch of later stages without future blocked results."},
+    {"requirements": ["FC-R02", "FC-R04"], "acceptance": ["FC-A02", "FC-A04"], "implementation": "Correlated stage operation errors and observation persistence failures include safe cause/frames, capture boundary, identity and refs; independent journal fallback."},
+    {"requirements": ["FC-R08", "FC-R09"], "acceptance": ["FC-A08", "FC-A09"], "implementation": "Preserve incident vs workflow results, fixed workspace, exact target identity and Oct 19 worker exclusion."},
+    {"requirements": ["FC-R10"], "acceptance": ["FC-A10"], "implementation": "In-step requirements, contracts, dictionary, traceability, ops log, settings, skills, roles, templates and generated F12 synchronization."}
+  ],
+  "diff_summary": {
+    "automation/inago/maintenance/ai_adapter.py": "114 additions, 29 deletions in full shared file diff; FC03 adapter changes preserved.",
+    "automation/inago/maintenance/controller.py": "17 additions in full shared file diff; FC03 operation capture preserved.",
+    "automation/inago/maintenance/investigation.py": "56 additions, 1 deletion.",
+    "automation/inago/maintenance/production_workflow.py": "395 additions, 119 deletions in full shared file diff; contains sequential FC03/FC04 changes.",
+    "automation/inago/maintenance/workflow_provider.py": "570 additions, 17 deletions in full shared file diff; contains sequential FC03/FC04 changes.",
+    "note": "These are whole-file diffs visible in the shared workspace, not attributed entirely to FC04; file and function boundaries above identify FC04-owned hunks."
+  },
+  "production_state_changed": false,
+  "pytest_run": false,
+  "commit_or_push": false,
+  "artifact_sha256": {
+    "automation/inago/maintenance/stage_handoff.py": "a91cef1ec8357974cd031990bc3d73f6bc67025393aedb1ec545c3842565b962",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json": "526f0ce6ce4534ac243a5761534d66b79a72c1baa7f19205239fdda988b0b6c7",
+    "automation/inago/maintenance/workflow_provider.py": "001565f03bfacc494563de1f28a285bf41a45f55d3d65a445e6cfbc40ba09adb",
+    "automation/inago/maintenance/production_workflow.py": "c8ea8d89a5039bcf83e7f9f9b5b349055eeaecc128e850999c69e6b488a72ac4",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "22db0f13024062329c99f9320bdb1f01948cdf71331e2ce19c413286939cc403",
+    "docs/specifications/inago/図解/F12.svg": "d1a7eb48784f904f5eb25aa102ec5bb83209481ec93ed1f037d9a6664fc60583",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f"
+  }
+}

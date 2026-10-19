@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07stagefinal --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct01-all-stage-legacy-status-final.junit.xml",
+  "start_jst": "2026-10-20T00:30:41.2998468+09:00",
+  "end_jst": "2026-10-20T00:30:42.6526956+09:00",
+  "exit": 0,
+  "cases": 8,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct01-all-stage-legacy-status-final.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct01-all-stage-legacy-status-final.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07stagefinal",
+  "status": "PASS"
+}

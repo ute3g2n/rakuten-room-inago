@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.233" timestamp="2026-10-20T01:39:34.422880+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_store" name="test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger" time="0.003"><failure message="assert 14 == 15">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/schema-upgrade-red/test_schema_15_upgrade_drops_o0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002B68F0F5460&gt;
+
+    def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
+        tmp_path, monkeypatch
+    ):
+        target_schema_version = maintenance_store_module.SCHEMA_VERSION
+&gt;       assert target_schema_version == 15
+E       assert 14 == 15
+
+tests_inago\test_maintenance_store.py:1172: AssertionError</failure></testcase></testsuite></testsuites>

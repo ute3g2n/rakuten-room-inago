@@ -1,0 +1,139 @@
+{
+  "schema_version": "common-review-result-v1",
+  "reviewer_id": "common-reviewer-fc09",
+  "scope_type": "plan_step",
+  "scope_id": "FC09",
+  "reviewed_at": "2026-10-19T16:47:16Z",
+  "status": "changes_requested",
+  "reviewed_version": "69cc38f136a4d0f904f24e56c922263439a3b070c6d3e8e31589dcf9d7c5b3a7",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "scope": {
+    "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC09/product-review-target.json",
+    "target_manifest_claimed_sha256": "69cc38f136a4d0f904f24e56c922263439a3b070c6d3e8e31589dcf9d7c5b3a7",
+    "target_manifest_file_sha256": "fbe0f0d7068f66c0ecf857dac81ce62861f0f8f1e96e826cb05a59af7d58fbe5",
+    "file_count": 39,
+    "source_hash_mismatches": [],
+    "source_sha256": {
+      "automation/inago/maintenance/ai_adapter.py": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac",
+      "automation/inago/maintenance/cli.py": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441",
+      "automation/inago/maintenance/code_revision.py": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+      "automation/inago/maintenance/controller.py": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0",
+      "automation/inago/maintenance/deployment.py": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443",
+      "automation/inago/maintenance/diagnostic_trace.py": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2",
+      "automation/inago/maintenance/failure_journal.py": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c",
+      "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+      "automation/inago/maintenance/paths.py": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72",
+      "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+      "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+      "automation/inago/maintenance/reporting.py": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+      "automation/inago/maintenance/runtime_switcher.py": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b",
+      "automation/inago/maintenance/safe_file.py": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac",
+      "automation/inago/maintenance/settings.py": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215",
+      "automation/inago/maintenance/sql/014_flow_completion_trace.sql": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e",
+      "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6",
+      "automation/inago/maintenance/stage_handoff.py": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+      "automation/inago/maintenance/store.py": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6",
+      "automation/inago/maintenance/worker.py": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a",
+      "automation/inago/maintenance/workflow_provider.py": "5632732f424cbd632b2585ad8a4deee8ae8c93b8db0dd4b619533de7b236788e",
+      "automation/inago/maintenance/workflow_reconciliation.py": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+      "automation/inago/schemas/maintenance-check-response.schema.json": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f",
+      "automation/inago/schemas/maintenance-check-result.schema.json": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b",
+      "automation/inago/schemas/maintenance-deployment-candidate.schema.json": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4",
+      "automation/inago/schemas/maintenance-deployment-result.schema.json": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15",
+      "automation/inago/schemas/maintenance-diagnostic-event.schema.json": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa",
+      "automation/inago/schemas/maintenance-evidence.schema.json": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b",
+      "automation/inago/schemas/maintenance-investigation-response.schema.json": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff",
+      "automation/inago/schemas/maintenance-repair-review-claim.schema.json": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0",
+      "automation/inago/schemas/maintenance-repair-review-target.schema.json": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0",
+      "automation/inago/schemas/maintenance-repair-review.schema.json": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90",
+      "automation/inago/schemas/maintenance-repair-test-evidence.schema.json": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed",
+      "automation/inago/schemas/maintenance-repair-test-ledger.schema.json": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620",
+      "automation/inago/schemas/maintenance-report-response.schema.json": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+      "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+      "automation/inago/schemas/maintenance-report-review.schema.json": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+      "automation/inago/schemas/maintenance-settings.schema.json": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53",
+      "automation/inago/schemas/maintenance-stage-handoff.schema.json": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92"
+    },
+    "branch": "main",
+    "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "test_source_reviewed": false,
+    "test_execution_evidence_inspected": true,
+    "production_database_or_job_touched": false
+  },
+  "plan_and_evidence": {
+    "plan_version": "1.2",
+    "plan_current_sha256": "7f306659f6d7d159fec563ba1aafaaf709901c31eb3fb2be719c904c7fa695eb",
+    "fc09_results": "worklogs/projects/maintenance/flow-completion-20261019/FC09/test-results.json",
+    "fc09_results_sha256": "169e58d886b32457730371f640f1d546323e4235d42ab14af07bf8c2cee7d090",
+    "owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+    "limitations": [
+      "Reviewer did not execute pytest. FC09 final JUnit evidence was inspected as recorded execution evidence.",
+      "All supplied migration and publication tests used temporary SQLite/job fixtures and a local bare remote; no production database or same production job was read or modified.",
+      "No tests specifically inject invocation precondition mismatch before provider stage startup.",
+      "Public production deployment and incident resolution were not tested by this product reviewer."
+    ]
+  },
+  "test_evidence": [
+    {
+      "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade-r2.junit.xml",
+      "sha256": "dd6271feaaca85f7d9a7ef032a9dfca21425c6224c0f79e5bacef456e1dcfad4",
+      "testcase_count": 1,
+      "failure_error_skip_count": 0,
+      "status": "PASS"
+    },
+    {
+      "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume-r2.junit.xml",
+      "sha256": "83072851767da5d627ec96dc15c8adbfd6dbd0b06e3d337501d9a1e5d0b6ec7d",
+      "testcase_count": 1,
+      "failure_error_skip_count": 0,
+      "status": "PASS"
+    }
+  ],
+  "findings": [
+    {
+      "id": "FC09-F1",
+      "severity": "medium",
+      "plan_refs": [
+        "FC-R03/FC-A03",
+        "FC-R04/FC-A04",
+        "FCT01",
+        "FCT10"
+      ],
+      "locations": [
+        {
+          "file": "automation/inago/maintenance/workflow_provider.py",
+          "lines": "501-517",
+          "symbols": [
+            "_invocation_precondition_error",
+            "MaintenanceWorkflowProvider.__call__"
+          ]
+        }
+      ],
+      "issue": "Before assigning an invocation id, capturing the code revision, or writing an operation record/handoff, __call__ returns WorkerWorkflowOutcome(status=\"blocked\") when the launch/check/queue identity or queue state mismatches. This path produces no substantive per-stage handoffs and prevents downstream report/fallback work. run_worker_once later observes only the non-complete outcome and terminal reconciliation can mark the workflow incomplete; the reviewer found no provider handoff for the precondition failure itself. This is a future blocked workflow result and a continuation gap for an operation-level identity/state mismatch.",
+      "evidence": "Static source inspection at workflow_provider.py:501-517, with call flow continuing directly to invocation_id/capture only after the early return. FC09 test-results.json and final JUnit cover schema-15 migration and publication crash/resume, but not this precondition path. The explicit 2026-10-19 exclusion check is included in the helper and must remain intact.",
+      "requested_fix": "Keep the 2026-10-19 no-dispatch rule and never execute work with an untrusted/mismatched identity. For identity/queue-state mismatch, emit a correlated concrete unknown/not_performed operation and content-bearing safe handoffs (or a controller fallback handoff naming the supplied and expected safe identity fields) so the reporter/downstream owner is still started; do not return a future blocked stage/workflow result or silently omit the reason.",
+      "impact": "The workflow can terminate without invoking required later owners or recording why the stage chain did not start, contrary to the no-gate/content-bearing continuation contract.",
+      "test_evidence": [
+        "FC09 publication-crash-resume-r2.junit.xml: PASS, synthetic only; no precondition mismatch coverage.",
+        "FC09 schema-15-upgrade-r2.junit.xml: PASS, synthetic only; no precondition mismatch coverage."
+      ]
+    }
+  ],
+  "scope_assessment": {
+    "schema_version_15": "SCHEMA_VERSION=15 matches migration map entries 14 and 15; transactional migration runner applies each version in order and records both user_version and schema_migration.",
+    "migration_014": "Creates operation event table, correlation/job indexes, and no-update/no-delete triggers. Static review found no SQL text/input interpolation.",
+    "migration_015": "Drops only the named all-or-none repair predecessor trigger; immutable predecessor trigger from migration 005 remains. Store enforces sequence 3 and validates a complete predecessor pin or normalizes partial evidence to all NULL, matching optional-pin continuation.",
+    "blocked_and_gates": "Stage-level blocked/waiting outputs are normalized to unknown and iteration continues. The specific early precondition return is the finding above. The worker 2026-10-19 exclusion remains exactly WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"}).",
+    "privacy": "Failure records persist exception class/cause classes, numeric errno, basename/line/function frames, and allowlisted IDs/relative artifact refs; raw exception text, prompts, environment values, locals, SQL parameters and tokens are not included in the reviewed trace path.",
+    "scope": "Reviewed the 39 exact manifest-listed product Python modules, migration sources and JSON schemas. Test source was not reviewed."
+  },
+  "next_action": "Return FC09-F1 for source correction and focused verification, without gating later FC10/FC11. This result is tied to the exact target manifest source hashes."
+}

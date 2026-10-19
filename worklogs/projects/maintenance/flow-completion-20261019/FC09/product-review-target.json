@@ -1,0 +1,203 @@
+{
+  "format_version": 1,
+  "scope": "all changed product Python, SQL migrations, and JSON schemas under automation/inago; tests/docs excluded",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "files": [
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "status": "tracked_modified",
+      "sha256": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac"
+    },
+    {
+      "path": "automation/inago/maintenance/cli.py",
+      "status": "tracked_modified",
+      "sha256": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441"
+    },
+    {
+      "path": "automation/inago/maintenance/code_revision.py",
+      "status": "untracked",
+      "sha256": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f"
+    },
+    {
+      "path": "automation/inago/maintenance/controller.py",
+      "status": "tracked_modified",
+      "sha256": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0"
+    },
+    {
+      "path": "automation/inago/maintenance/deployment.py",
+      "status": "tracked_modified",
+      "sha256": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443"
+    },
+    {
+      "path": "automation/inago/maintenance/diagnostic_trace.py",
+      "status": "tracked_modified",
+      "sha256": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2"
+    },
+    {
+      "path": "automation/inago/maintenance/failure_journal.py",
+      "status": "untracked",
+      "sha256": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c"
+    },
+    {
+      "path": "automation/inago/maintenance/investigation.py",
+      "status": "tracked_modified",
+      "sha256": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2"
+    },
+    {
+      "path": "automation/inago/maintenance/paths.py",
+      "status": "tracked_modified",
+      "sha256": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72"
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "status": "tracked_modified",
+      "sha256": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e"
+    },
+    {
+      "path": "automation/inago/maintenance/report_fallback.py",
+      "status": "untracked",
+      "sha256": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36"
+    },
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "status": "tracked_modified",
+      "sha256": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a"
+    },
+    {
+      "path": "automation/inago/maintenance/runtime_switcher.py",
+      "status": "tracked_modified",
+      "sha256": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b"
+    },
+    {
+      "path": "automation/inago/maintenance/safe_file.py",
+      "status": "tracked_modified",
+      "sha256": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac"
+    },
+    {
+      "path": "automation/inago/maintenance/settings.py",
+      "status": "tracked_modified",
+      "sha256": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+      "status": "untracked",
+      "sha256": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+      "status": "untracked",
+      "sha256": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6"
+    },
+    {
+      "path": "automation/inago/maintenance/stage_handoff.py",
+      "status": "untracked",
+      "sha256": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a"
+    },
+    {
+      "path": "automation/inago/maintenance/store.py",
+      "status": "tracked_modified",
+      "sha256": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6"
+    },
+    {
+      "path": "automation/inago/maintenance/worker.py",
+      "status": "tracked_modified",
+      "sha256": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_provider.py",
+      "status": "tracked_modified",
+      "sha256": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_reconciliation.py",
+      "status": "untracked",
+      "sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-check-response.schema.json",
+      "status": "tracked_modified",
+      "sha256": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-check-result.schema.json",
+      "status": "tracked_modified",
+      "sha256": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "status": "tracked_modified",
+      "sha256": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "status": "tracked_modified",
+      "sha256": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+      "status": "tracked_modified",
+      "sha256": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-evidence.schema.json",
+      "status": "tracked_modified",
+      "sha256": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-investigation-response.schema.json",
+      "status": "tracked_modified",
+      "sha256": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "status": "tracked_modified",
+      "sha256": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "status": "tracked_modified",
+      "sha256": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "status": "tracked_modified",
+      "sha256": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "status": "tracked_modified",
+      "sha256": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "status": "tracked_modified",
+      "sha256": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-response.schema.json",
+      "status": "tracked_modified",
+      "sha256": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-result.schema.json",
+      "status": "tracked_modified",
+      "sha256": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-review.schema.json",
+      "status": "tracked_modified",
+      "sha256": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-settings.schema.json",
+      "status": "tracked_modified",
+      "sha256": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+      "status": "untracked",
+      "sha256": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92"
+    }
+  ],
+  "manifest_sha256": "c50687d9ccf1ddbe7a7963b3ac16b008e44615d752e276034d196a1620bf1213"
+}

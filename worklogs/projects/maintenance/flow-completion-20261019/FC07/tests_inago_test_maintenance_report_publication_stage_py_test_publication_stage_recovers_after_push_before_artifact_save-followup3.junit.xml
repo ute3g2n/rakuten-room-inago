@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.514" timestamp="2026-10-20T00:21:52.272793+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[complete-complete-complete-None]" time="0.045"><failure message="subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover0\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-followup3-20261020-002150/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save/test_publication_stage_recover0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001832AE6B920&gt;
+report_status = 'complete', expected_status = 'complete'
+expected_job_status = 'complete', expected_reason = None
+
+    @pytest.mark.parametrize(
+        ("report_status", "expected_status", "expected_job_status", "expected_reason"),
+        [
+            ("complete", "complete", "complete", None),
+            ("pending", "complete", "complete", None),
+            ("blocked", "complete", "complete", None),
+        ],
+    )
+    def test_publication_stage_recovers_after_push_before_artifact_save(
+        tmp_path: Path,
+        monkeypatch,
+        report_status: str,
+        expected_status: str,
+        expected_job_status: str,
+        expected_reason: str | None,
+    ):
+        runtime_root = tmp_path / "runtime"
+        runtime_root.mkdir()
+        attempts_root = runtime_root / "attempts"
+        job_id = "job-u21-report-publication"
+        attempt_id = "attempt-u21-report-publication"
+        attempt_root = attempts_root / job_id / attempt_id
+        attempt_root.mkdir(parents=True)
+    
+        repository = tmp_path / "repository"
+        repository.mkdir()
+&gt;       _git(repository, "init", "--initial-branch=main")
+
+tests_inago\test_maintenance_report_publication_stage.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_report_publication_stage.py:40: in _git
+    result = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_r...overs_after_push_before_artifact_save\\test_publication_stage_recover0\\repository', 'init', '--initial-branch=main'],)
+kwargs = {'text': True, 'encoding': 'utf-8', 'env': {'ALLUSERSPROFILE': 'C:\\ProgramData', 'AMDRMPATH': 'C:\\Program Files\\AMD\\RyzenMaster\\', 'APPDATA': 'C:\\Users\\ute3g\\AppData\\Roaming', 'ASL.LOG': 'Destination=file', ...}, 'stdout': -1, ...}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output &amp; stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+&gt;               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover0\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\subprocess.py:571: CalledProcessError</failure></testcase><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[pending-complete-complete-None]" time="0.045"><failure message="subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover1\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-followup3-20261020-002150/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save/test_publication_stage_recover1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001832AEA1820&gt;
+report_status = 'pending', expected_status = 'complete'
+expected_job_status = 'complete', expected_reason = None
+
+    @pytest.mark.parametrize(
+        ("report_status", "expected_status", "expected_job_status", "expected_reason"),
+        [
+            ("complete", "complete", "complete", None),
+            ("pending", "complete", "complete", None),
+            ("blocked", "complete", "complete", None),
+        ],
+    )
+    def test_publication_stage_recovers_after_push_before_artifact_save(
+        tmp_path: Path,
+        monkeypatch,
+        report_status: str,
+        expected_status: str,
+        expected_job_status: str,
+        expected_reason: str | None,
+    ):
+        runtime_root = tmp_path / "runtime"
+        runtime_root.mkdir()
+        attempts_root = runtime_root / "attempts"
+        job_id = "job-u21-report-publication"
+        attempt_id = "attempt-u21-report-publication"
+        attempt_root = attempts_root / job_id / attempt_id
+        attempt_root.mkdir(parents=True)
+    
+        repository = tmp_path / "repository"
+        repository.mkdir()
+&gt;       _git(repository, "init", "--initial-branch=main")
+
+tests_inago\test_maintenance_report_publication_stage.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_report_publication_stage.py:40: in _git
+    result = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_r...overs_after_push_before_artifact_save\\test_publication_stage_recover1\\repository', 'init', '--initial-branch=main'],)
+kwargs = {'text': True, 'encoding': 'utf-8', 'env': {'ALLUSERSPROFILE': 'C:\\ProgramData', 'AMDRMPATH': 'C:\\Program Files\\AMD\\RyzenMaster\\', 'APPDATA': 'C:\\Users\\ute3g\\AppData\\Roaming', 'ASL.LOG': 'Destination=file', ...}, 'stdout': -1, ...}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output &amp; stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+&gt;               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover1\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\subprocess.py:571: CalledProcessError</failure></testcase><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_publication_stage_recovers_after_push_before_artifact_save[blocked-complete-complete-None]" time="0.043"><failure message="subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover2\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-followup3-20261020-002150/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save/test_publication_stage_recover2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001832AEA1670&gt;
+report_status = 'blocked', expected_status = 'complete'
+expected_job_status = 'complete', expected_reason = None
+
+    @pytest.mark.parametrize(
+        ("report_status", "expected_status", "expected_job_status", "expected_reason"),
+        [
+            ("complete", "complete", "complete", None),
+            ("pending", "complete", "complete", None),
+            ("blocked", "complete", "complete", None),
+        ],
+    )
+    def test_publication_stage_recovers_after_push_before_artifact_save(
+        tmp_path: Path,
+        monkeypatch,
+        report_status: str,
+        expected_status: str,
+        expected_job_status: str,
+        expected_reason: str | None,
+    ):
+        runtime_root = tmp_path / "runtime"
+        runtime_root.mkdir()
+        attempts_root = runtime_root / "attempts"
+        job_id = "job-u21-report-publication"
+        attempt_id = "attempt-u21-report-publication"
+        attempt_root = attempts_root / job_id / attempt_id
+        attempt_root.mkdir(parents=True)
+    
+        repository = tmp_path / "repository"
+        repository.mkdir()
+&gt;       _git(repository, "init", "--initial-branch=main")
+
+tests_inago\test_maintenance_report_publication_stage.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_report_publication_stage.py:40: in _git
+    result = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_r...overs_after_push_before_artifact_save\\test_publication_stage_recover2\\repository', 'init', '--initial-branch=main'],)
+kwargs = {'text': True, 'encoding': 'utf-8', 'env': {'ALLUSERSPROFILE': 'C:\\ProgramData', 'AMDRMPATH': 'C:\\Program Files\\AMD\\RyzenMaster\\', 'APPDATA': 'C:\\Users\\ute3g\\AppData\\Roaming', 'ASL.LOG': 'Destination=file', ...}, 'stdout': -1, ...}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output &amp; stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+&gt;               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\ute3g\\AppData\\Local\\Temp\\fc07-followup3-20261020-002150\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save\\test_publication_stage_recover2\\repository', 'init', '--initial-branch=main']' returned non-zero exit status 128.
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\subprocess.py:571: CalledProcessError</failure></testcase></testsuite></testsuites>

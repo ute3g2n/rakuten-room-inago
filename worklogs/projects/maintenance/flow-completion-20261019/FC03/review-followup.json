@@ -1,0 +1,60 @@
+{
+  "stage": "FC03",
+  "review_source": "Root's independent read-only review of the exact FC03 diff",
+  "status": "three_findings_addressed_static_checks_passed",
+  "updated_at_jst": "2026-10-19 23:18",
+  "findings": [
+    {
+      "id": "FC03-RF01",
+      "path": "automation/inago/maintenance/diagnostic_trace.py",
+      "locations": ["MaintenanceDiagnosticTrace.write", "MaintenanceDiagnosticTrace.require_written", "DiagnosticWriteResult"],
+      "cause": "Writer catches collapsed original exceptions to trace_write_unavailable; require_written then wrote a generic fallback event without original class/cause/errno/frames.",
+      "change": "Catch boundaries now call independent append_failure_event with the caught exception and safe operation identity. Journal records exception class/cause, numeric errno when present, and basename/line/function frames without exception message. DiagnosticWriteResult.failure_journal_attempted prevents require_written from duplicating a generic-only event, including when the journal attempt itself is unavailable.",
+      "check": "py_compile diagnostic_trace.py exit 0; source inspection confirms catch passes error and require_written honors failure_journal_attempted.",
+      "runtime_fault_injection": "NOT_RUN; FC07 FCT05"
+    },
+    {
+      "id": "FC03-RF02",
+      "path": "automation/inago/maintenance/failure_journal.py",
+      "location": "replay_failure_journal record(event) exception handler",
+      "cause": "DB/store replay exceptions only incremented a counter and discarded their error details.",
+      "change": "The catch now appends a separate correlated failure_journal_replay_failed event with original job/launch/run/incident/invocation/stage/attempt/correlation, parent operation, failed event ref, exception class/cause/errno/frames, and capture location. No exception message is stored.",
+      "check": "py_compile failure_journal.py exit 0; source inspection confirms store catch binds exc and calls append_failure_event.",
+      "runtime_fault_injection": "NOT_RUN; FC07 FCT05"
+    },
+    {
+      "id": "FC03-RF03",
+      "path": "automation/inago/maintenance/store.py",
+      "location": "list_open_operation_events",
+      "cause": "Selecting MAX(observed_at) alone can select a begin at the same millisecond as a later end and falsely classify it open.",
+      "change": "Latest event selection now compares observed_at and then SQLite rowid as stable append-order tie breaker. The method docstring and AT-TRACE/dictionary/operations log document the ordering. Migration 014 and Store preserve optional numeric exception_errno.",
+      "check": "py_compile store.py exit 0; in-memory SQLite migration smoke confirms exception_errno column and both immutable triggers; source inspection confirms rowid tie comparison.",
+      "runtime_fault_injection": "NOT_RUN; timestamp-tie/restart case is FC07 FCT10"
+    }
+  ],
+  "build_followup": {
+    "first_command": "node tools/docs/inago-requirements/build.mjs",
+    "first_result": "FAIL exit 1: writeFlowAssets at tools/docs/inago-requirements/task-flows.mjs:74 failed on open of docs/specifications/inago/図解/F12.svg; Node errno -4094, code UNKNOWN, syscall open. Stack: writeFile -> writeFlowAssets -> build.mjs:11.",
+    "triage": "F12.svg existed (14,202 bytes); file and directory ACLs allowed Modify. The error was not EACCES/permission denied. Node had already parsed/imported task-flows.mjs and reached writeFlowAssets, so malformed JavaScript was not the reported failure. No process lock was proven from this error output.",
+    "corrective_retry": "Same builder command retried once after FC04 paused writes to shared F12/requirements files; exit 0, HTML v2.50, 28 chapters, 39 figures, 26 references, 4,066,177 bytes.",
+    "result": "Requirement source docs and generated HTML/F12 are synchronized for this follow-up."
+  },
+  "scope": {
+    "workflow_provider.py": "not modified (FC04 shared-file pause condition honored)",
+    "FC07_fault_injection": "NOT_RUN",
+    "FC08_independent_product_review": "still pending",
+    "production_database_or_job": "untouched",
+    "plan_section_14": "not modified"
+  },
+  "source_hashes_ref": "source-hashes.json",
+  "important_sha256": {
+    "automation/inago/maintenance/diagnostic_trace.py": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2",
+    "automation/inago/maintenance/failure_journal.py": "573449f667cd02857889db53a0c651e76ee08aafa165ec884511d59851151591",
+    "automation/inago/maintenance/store.py": "05bbe98b011300b7ebdc71f005f0eb6090c61a0a254e46b1e30d0ba4d88bc010",
+    "automation/inago/maintenance/sql/014_flow_completion_trace.sql": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e",
+    "automation/inago/maintenance/ai_adapter.py": "adc67bfb54e2afd7df4398e464da82aaff02277ead9a0fe259b4ece083a283e9",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "ede8a29eea042adf242763141a2815c24ca7ced92b99261743d4134ad0e00add",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "b36c11b14ddd09cd16fdae7d4287b7d96a2611563c993717356f2e3ebef9cc57",
+    "docs/specifications/inago/図解/F12.svg": "aaf2f611db1259143d4cf3503d930c3df4a18d4495eb317bdb3d2ea2ab50a536"
+  }
+}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="日次処理の障害、調査、修正、検証、反映状況を根拠とともに確認する報告ひな形">
-  <title>日次不具合対応レポート｜{{incident_id}}</title>
+  <title>日次作業の不具合対応報告</title>
   <style>
     :root { color-scheme: light; --ink: #20313d; --muted: #526675; --line: #cbd6dd; --soft: #f1f5f7; --accent: #175a72; --warn: #7a4c00; --bad: #8c2e35; --good: #246146; }
     * { box-sizing: border-box; }
@@ -53,14 +53,12 @@
 <body>
 <main>
   <header>
-    <p class="eyebrow">日次不具合対応レポート · {{target_date}}</p>
+    <p class="eyebrow">対象日: {{target_date}}</p>
     <h1>{{report_title}}</h1>
     <p class="summary">{{report_summary}}</p>
     <div class="facts">
-      <div class="fact"><strong>案件・対象日</strong>{{incident_id}} · {{target_date}}（JST）</div>
-      <div class="fact"><strong>作成・対象版</strong>{{created_at_jst}} · {{result_version}}</div>
-      <div class="fact"><strong>元起動・run</strong>{{source_launch_id}} · {{source_run_id_or_null}}</div>
-      <div class="fact"><strong>全体状態</strong><span class="status {{status_class}}">{{status_label}}</span></div>
+      <div class="fact"><strong>確認状況</strong><span class="status {{status_class}}">{{status_label}}</span></div>
+      <div class="fact"><strong>報告日</strong>{{created_at_jst}}</div>
     </div>
   </header>
 
@@ -70,7 +68,7 @@
       <li><a href="#overview">概要と確認範囲</a></li>
       <li><a href="#issues">事象一覧</a></li>
       <li><a href="#details">事象ごとの詳細と修正</a></li>
-      <li><a href="#flow">処理の流れ</a></li>
+      <li><a href="#flow">確認したこと</a></li>
       <li><a href="#checks">試験・レビュー・反映</a></li>
       <li><a href="#recovery">未確認・停止・再開</a></li>
       <li><a href="#evidence">根拠と関連文書</a></li>
@@ -79,11 +77,12 @@
 
   <section id="overview">
     <h2>概要と確認範囲</h2>
-    <p>対象runで試みたことと実際の結果をまとめ、確認できた範囲と未確認の範囲を分けて記載します。</p>
+    <p>何をしようとしたか、実際にどうなったか、次に何をするかを、確かめられた範囲で説明します。</p>
     <ul>
       <li>発生区分: 事象ごとの詳細に記載</li>
       <li>日次最終状態・作業場所での検証・本番反映・次回の日次確認: 下の表に別々に記載</li>
     </ul>
+    <p>各事象について、期待した結果、実際の結果、影響、回復、変更内容、確認した根拠を説明します。記録が足りないときは、何を調べ、何が分からないかを書きます。</p>
   </section>
 
   <section id="issues">
@@ -103,8 +102,8 @@
 
   <section id="flow">
     <h2>処理の流れ</h2>
-    <p>以下の枝・字下げを保ち、確認できない遷移を補わないでください。</p>
-    <pre class="tree">{{flow_tree}}</pre>
+    <p>調査で確認できた流れをまとめています。不明な部分は推測していません。</p>
+    <details><summary>処理の詳しい記録（参考）</summary><pre class="tree">{{flow_tree}}</pre></details>
   </section>
 
   <section id="checks">
@@ -115,16 +114,16 @@
         {{check_rows}}
       </tbody>
     </table>
-    <p>fixture試験、本番反映、次回の日次確認を別々に記載します。未実施や未確認を成功として扱いません。review指摘、試験FAIL、証拠不足は状態として示し、解消していなくてもレポートの作成・保存を続けます。report status completeだけがjob complete・incident resolved・Worker成功に対応します。pending/blockedは報告artifactを保持してjobをblocked、incidentを実statusに合わせ、Workerはmaintenance_incompleteとして記録します。</p>
+    <p>試験、本番への反映、次回の日次確認は、それぞれ別に記載します。未実施や未確認を成功とは扱いません。</p>
+    <p>この報告書のreview結果と公開結果、全工程が終了したか、元の不具合が解決したかも別々に説明します。報告書を作った時点の状態と、その後に保存された結果を混同しません。</p>
   </section>
 
   <section id="recovery">
     <h2>未確認・停止・再開</h2>
     <ul class="checklist">
       <li>未確認事項: {{unknowns}}</li>
-      <li>停止理由と状態: {{stop_reason}}</li>
-      <li>再開条件: {{resume_condition}}</li>
-      <li>日次再起動・投稿・DB変更: {{side_effects}}</li>
+      <li>続けるために必要な確認: {{resume_condition}}</li>
+      <li>行っていない操作: {{side_effects}}</li>
     </ul>
   </section>
 
@@ -133,13 +132,22 @@
     <ul>
       <li>調査: {{investigation_version}} · <a href="{{investigation_href}}">調査MD</a></li>
       <li>計画: {{plan_version}} · <a href="{{plan_href}}">修正計画</a></li>
-      <li>コード: {{base_commit}} → {{result_commit_or_null}}</li>
       <li id="evidence-index">証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
-      <li>作成: {{reporter_id}} · {{created_at_jst}} · {{result_version}}</li>
-      <li>コードレビュー: {{review_status}} · {{reviewed_version}}</li>
     </ul>
     <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めない。非公開証拠はアクセス制御された参照で示す。</p>
   </section>
+  <details class="muted">
+    <summary>参考付録：確認用の内部記録</summary>
+    <ul>
+      <li>案件: {{incident_id}}</li>
+      <li>起動元: {{source_launch_id}} · run: {{source_run_id_or_null}}</li>
+      <li>報告版: {{result_version}}</li>
+      <li>コード: {{base_commit}} → {{result_commit_or_null}}</li>
+      <li>報告担当: {{reporter_id}} · コードレビュー: {{review_status}} · {{reviewed_version}}</li>
+      <li>停止理由の記録: {{stop_reason}}</li>
+      <li>作業時の状態と副作用: {{status_label}} · {{side_effects}}</li>
+    </ul>
+  </details>
 </main>
 </body>
 </html>

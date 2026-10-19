@@ -1,0 +1,115 @@
+{
+  "stage": "FC09 schema migration acceptance",
+  "observed_at_jst": "2026-10-20T01:41:36+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "role": "tester",
+  "reasoning_effort": "high",
+  "environment": {
+    "interpreter": ".venv-inago/Scripts/python.exe",
+    "encoding_env": "PYTHONUTF8=1",
+    "pytest_flags": "-B -m pytest -q <exact node> --basetemp <FC09 attempt directory> --junitxml=<FC09 result>",
+    "basetemp_root": "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/",
+    "all_databases_temporary": true,
+    "production_database_or_job_touched": false,
+    "product_or_test_code_edited_by_tester": false,
+    "global_git_configuration_changed": false
+  },
+  "target_identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "use": "synthetic fixture only; same-named production job was not opened, read, or modified"
+  },
+  "source_sha256_at_final_runs": {
+    "automation/inago/maintenance/store.py": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6",
+    "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6",
+    "tests_inago/test_maintenance_store.py": "c97fcc6552dde017bad278af1af5d0f7e9cd8dcf91d3a33c3a3f1e1c3b2573c3",
+    "tests_inago/test_maintenance_report_publication_stage.py": "2409533dd3083b44653e908bdbcf7814be249f7b2e8a469a021db3e10ee1c880",
+    "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "automation/inago/maintenance/workflow_reconciliation.py": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28"
+  },
+  "cases": [
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger",
+      "expectation": "synthetic v14 database upgrades to schema v15; migration 015 drops only the all-or-none repair predecessor trigger and preserves immutable predecessor trigger; a repair attempt can start without predecessor pin fields",
+      "initial_run": {
+        "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node1'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_store.py::test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger --basetemp $base --junitxml=\"$out/schema-15-upgrade.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/schema-15-upgrade.console.txt\"; exit $LASTEXITCODE",
+        "exit_code": 1,
+        "result": "FAIL; 1 failed. Migration completed through user_version=15; assertion stopped at test code checking schema_migration.",
+        "failure": "The test executes SELECT 1 FROM schema_migration WHERE version = 15 but compares the returned tuple to (15,). Actual result is (1,). The test was corrected by the parent from (15,) to (1,); no product/test edits were made by this tester.",
+        "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade.junit.xml",
+        "console": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade.console.txt",
+        "read_only_temp_db_observation_after_failure": {
+          "database": "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node1/test_schema_15_upgrade_drops_o0/data/maintenance/state.sqlite",
+          "user_version": 15,
+          "schema_migration_version_15": 15,
+          "all_or_none_predecessor_trigger": "absent",
+          "immutable_predecessor_trigger": "present",
+          "maintenance_jobs": 1,
+          "step_attempts": 0,
+          "incidents": 1,
+          "note": "Read-only inspection of this failed test's temporary database; no attempt assertion was reached."
+        }
+      },
+      "final_run_after_test_assertion_fix": {
+        "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node1-r2'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_store.py::test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger --basetemp $base --junitxml=\"$out/schema-15-upgrade-r2.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/schema-15-upgrade-r2.console.txt\"; exit $LASTEXITCODE",
+        "exit_code": 0,
+        "result": "PASS; 1 passed in 0.47s.",
+        "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade-r2.junit.xml",
+        "console": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade-r2.console.txt",
+        "timestamp_jst": "2026-10-20T01:41:27+09:00",
+        "read_only_temp_db_counts_after_pass": {
+          "schema_version": 15,
+          "maintenance_jobs": 1,
+          "step_attempts": 1,
+          "incidents": 1
+        }
+      }
+    },
+    {
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes",
+      "expectation": "schema 15 synthetic job stops after report publication/sidecar and before reconciliation; same fixture job resumes; reconciliation verifies all eight stage records and required outputs plus local bare-remote report bytes, and alone finalizes the job without resolving the incident",
+      "initial_run": {
+        "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node2'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes --basetemp $base --junitxml=\"$out/publication-crash-resume.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/publication-crash-resume.console.txt\"; exit $LASTEXITCODE",
+        "exit_code": 0,
+        "result": "PASS; 1 passed in 4.19s.",
+        "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume.junit.xml",
+        "console": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume.console.txt",
+        "timestamp_jst": "2026-10-20T01:40:23+09:00"
+      },
+      "final_run_after_assertion_fix": {
+        "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node2-r2'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes --basetemp $base --junitxml=\"$out/publication-crash-resume-r2.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/publication-crash-resume-r2.console.txt\"; exit $LASTEXITCODE",
+        "exit_code": 0,
+        "result": "PASS; 1 passed in 4.40s.",
+        "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume-r2.junit.xml",
+        "console": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume-r2.console.txt",
+        "timestamp_jst": "2026-10-20T01:41:27+09:00",
+        "read_only_temp_db_counts_after_pass": {
+          "schema_version": 15,
+          "maintenance_jobs": 1,
+          "step_attempts": 4,
+          "incidents": 1
+        }
+      }
+    }
+  ],
+  "overall": {
+    "requested_nodes_final": "2/2 PASS after one test assertion correction by parent",
+    "initial_schema_node_failure": "preserved and never represented as PASS; final corrected run is separately recorded",
+    "production_state": "untouched",
+    "test_or_product_code_changes_by_tester": "none"
+  },
+  "follow_up": {
+    "id": "FC09-F1 identity-precondition mismatch handoff",
+    "result": "PASS",
+    "evidence": "f1-identity-precondition-results.json",
+    "junit": "f1-identity-precondition.junit.xml",
+    "console": "f1-identity-precondition.console.txt",
+    "node": "tests_inago/test_maintenance_workflow_provider.py::test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report",
+    "expected_hashes_matched_before_run": true,
+    "product_or_test_code_changed": false,
+    "production_state_touched": false
+  }
+}

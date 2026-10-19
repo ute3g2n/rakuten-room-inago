@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.763" timestamp="2026-10-20T01:05:21.602610+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc07_missing_identity_still_persists_substantive_fallback_html" time="0.425"><failure message="AssertionError: assert 'unknown' == 'complete'&#10;  &#10;  - complete&#10;  + unknown">tmp_path = WindowsPath('C:/project/rakuten-room-inago/worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r2-f2/test_fc07_missing_identity_sti0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000299151B0FE0&gt;
+
+    def test_fc07_missing_identity_still_persists_substantive_fallback_html(
+        tmp_path: Path, monkeypatch
+    ):
+        source_launch_id = "launch-fc07-missing-identity"
+        store = make_store(tmp_path)
+        incident_id = create_incident(store, launch_id=source_launch_id)
+        release = create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id="release-fc07-missing-identity",
+            base_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+            result_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+        )
+        store.bind_job_input_manifest(
+            incident_id=incident_id,
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date="2026-10-17",
+            job_id=release.job_id,
+            created_at=BASE_TIME,
+        )
+        job = store.list_workflow_jobs_for_launch(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date="2026-10-17",
+            job_id=release.job_id,
+        )[0]
+        lease = store.acquire_lease(
+            lease_key=f"maintenance:{job.job_id}",
+            owner_id="fc07-missing-identity",
+            owner_pid=1,
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        authoritative_identity = store.get_job_input_manifest(job_id=job.job_id).identity()
+        missing_identity = {
+            key: value for key, value in authoritative_identity.items()
+            if key != "incident_id"
+        }
+        monkeypatch.setattr(
+            store,
+            "get_job_input_manifest",
+            lambda **_kwargs: SimpleNamespace(identity=lambda: dict(missing_identity)),
+        )
+    
+        class ReviewerSession:
+            def run_turn(self, *_args, **_kwargs):
+                raise production_workflow.MaintenanceAIBlockedError(
+                    "synthetic_reviewer_transport_unavailable"
+                )
+    
+            def close(self):
+                return None
+    
+        class Adapter:
+            def __init__(self, *_args, **_kwargs):
+                pass
+    
+            def plan_session(self, **kwargs):
+                return SimpleNamespace(cwd=kwargs["cwd"])
+    
+            def create_session(self, _plan):
+                return ReviewerSession()
+    
+        monkeypatch.setattr(production_workflow, "MaintenanceAIAdapter", Adapter)
+        workflow = MaintenanceWorkflowContext(
+            launch=SimpleNamespace(
+                source_launch_id=source_launch_id,
+                source_run_id=None,
+                target_date="2026-10-17",
+            ),
+            check=SimpleNamespace(check_id="check-fc07-missing-identity"),
+            queue=SimpleNamespace(queue_id="queue-fc07-missing-identity"),
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=job, attempts=()),
+            state={
+                "job": job,
+                "precheck_identity": {
+                    **authoritative_identity,
+                    "input_refs": ["daily-launch/launch-fc07-missing-identity"],
+                    "evidence_refs": [],
+                },
+            },
+        )
+    
+        result = production_workflow._persist_minimal_daily_report(
+            workflow,
+            MaintenanceController(store),
+            store,
+            operation="synthetic_report_author_failure",
+            outcome="通常報告の作成に失敗した",
+            failure_reason="synthetic_author_failure",
+        )
+    
+&gt;       assert result.status == "complete"
+E       AssertionError: assert 'unknown' == 'complete'
+E         
+E         - complete
+E         + unknown
+
+tests_inago\test_maintenance_report_publication_stage.py:977: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="0.351" timestamp="2026-10-20T00:40:30.526707+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner[report-report_review_rejected]" time="0.041"><failure message="AssertionError: assert 'report' in []">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1504/test_fc07_review_and_preflight0')
+failed_stage = 'report', reason = 'report_review_rejected'
+
+    @pytest.mark.parametrize(
+        ("failed_stage", "reason"),
+        [
+            ("report", "report_review_rejected"),
+            ("report", "report_review_response_invalid"),
+            ("deployment", "deployment_preflight_candidate_missing"),
+        ],
+    )
+    def test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner(
+        tmp_path: Path, failed_stage: str, reason: str
+    ):
+        store, launch, check, queue, lease = _context(tmp_path)
+        calls: list[str] = []
+        contexts: list[MaintenanceWorkflowContext] = []
+    
+        def make_runner(stage_name: str):
+            def run(context: MaintenanceWorkflowContext):
+                calls.append(stage_name)
+                contexts.append(context)
+                if stage_name == failed_stage:
+                    return WorkflowStageResult(status="failed", reason_code=reason)
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {name: make_runner(name) for name in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+    
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+        assert outcome.status == ("failed" if failed_stage == "report" else "complete")
+        state = contexts[-1].state
+        failure = state["workflow_stage_outcomes"][failed_stage]
+        assert failure["status"] == "failed"
+        assert failure["reason_code"] == reason
+&gt;       assert "report" in calls[calls.index(failed_stage) + 1 :]
+E       AssertionError: assert 'report' in []
+
+tests_inago\test_maintenance_flow_completion_fc07.py:364: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner[report-report_review_response_invalid]" time="0.034"><failure message="AssertionError: assert 'report' in []">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1504/test_fc07_review_and_preflight1')
+failed_stage = 'report', reason = 'report_review_response_invalid'
+
+    @pytest.mark.parametrize(
+        ("failed_stage", "reason"),
+        [
+            ("report", "report_review_rejected"),
+            ("report", "report_review_response_invalid"),
+            ("deployment", "deployment_preflight_candidate_missing"),
+        ],
+    )
+    def test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner(
+        tmp_path: Path, failed_stage: str, reason: str
+    ):
+        store, launch, check, queue, lease = _context(tmp_path)
+        calls: list[str] = []
+        contexts: list[MaintenanceWorkflowContext] = []
+    
+        def make_runner(stage_name: str):
+            def run(context: MaintenanceWorkflowContext):
+                calls.append(stage_name)
+                contexts.append(context)
+                if stage_name == failed_stage:
+                    return WorkflowStageResult(status="failed", reason_code=reason)
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {name: make_runner(name) for name in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+    
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+        assert outcome.status == ("failed" if failed_stage == "report" else "complete")
+        state = contexts[-1].state
+        failure = state["workflow_stage_outcomes"][failed_stage]
+        assert failure["status"] == "failed"
+        assert failure["reason_code"] == reason
+&gt;       assert "report" in calls[calls.index(failed_stage) + 1 :]
+E       AssertionError: assert 'report' in []
+
+tests_inago\test_maintenance_flow_completion_fc07.py:364: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_review_and_preflight_failures_still_reach_report_finalize_runner[deployment-deployment_preflight_candidate_missing]" time="0.034" /></testsuite></testsuites>

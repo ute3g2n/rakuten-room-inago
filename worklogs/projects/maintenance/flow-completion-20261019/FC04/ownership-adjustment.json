@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "controller_adjustment": "FC04-stage-dispatch-future-blocked",
+  "observed_at_jst": "2026-10-19T23:18:50+09:00",
+  "reason": "FC03 added operation correlation but the existing stage loop still initialized status = 'blocked' and left it for missing/throwing runners. User requires future stage results never be blocked and all later roles to run.",
+  "exact_boundary": "automation/inago/maintenance/workflow_provider.py :: MaintenanceWorkflowProvider.__call__ stage_order loop/result normalization/outcome persistence; baseline line 240 @ 51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "owner": "FC04, sequential after FC03, preserving FC03 correlation changes",
+  "previous_owner_map_sha256": "a45d563c02fa7a0f7fb8ce77a227fa1c9ad69f90c63909fdc000dae6a81455c7",
+  "updated_owner_map_sha256": "64e4d1a71aa575d94e3a075433827858125fe67df8e73409625ae667736c3b2e",
+  "previous_map_snapshot": "file-operation-owner-map-before-controller-adjustment.json",
+  "expected_acceptance": [
+    "FCT01",
+    "FCT03",
+    "FCT04",
+    "FCT10",
+    "FCT11"
+  ],
+  "production_database_changed": false
+}

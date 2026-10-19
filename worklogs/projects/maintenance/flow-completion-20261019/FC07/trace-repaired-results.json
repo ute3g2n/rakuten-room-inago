@@ -1,0 +1,26 @@
+[
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_primary_trace_failure_falls_back_without_stopping_stages",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_primary_trace_failure_falls_back_without_stopping_stages --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07x-002445-1 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-repaired.junit.xml",
+    "start_jst": "2026-10-20T00:24:45.2007435+09:00",
+    "end_jst": "2026-10-20T00:24:46.0401439+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-repaired.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-repaired.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07x-002445-1",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_nested_failure_is_correlated_redacted_and_replayed",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_nested_failure_is_correlated_redacted_and_replayed --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07x-002445-2 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-repaired.junit.xml",
+    "start_jst": "2026-10-20T00:24:46.0664561+09:00",
+    "end_jst": "2026-10-20T00:24:46.8089336+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-repaired.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-repaired.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07x-002445-2",
+    "status": "PASS"
+  }
+]

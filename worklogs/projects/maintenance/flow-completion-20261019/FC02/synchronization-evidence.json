@@ -1,0 +1,206 @@
+{
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "started_at": "2026-10-19T13:52:30.194734+00:00",
+  "finished_at": "2026-10-19T14:00:07.285227+00:00",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "before_sha256": {
+    ".codex/agents/common-execution-planner.toml": "445929186981fdaef82f040457e8399a5ef8df59b5dbb71ce0c8ee164da8bef2",
+    ".codex/agents/common-execution-plan-reviewer.toml": "7a788e6d3ba88cedd3a66fb2231e7bbd02302a98af07e6a83e1fc786b96bebec",
+    ".codex/agents/rr-inago-incident-investigator.toml": "d2f104fe5f347882fb50f3d71a1fd08071ecf1a667460f2cf773d8f3bff57dea",
+    ".codex/agents/rr-inago-incident-investigation-reviewer.toml": "263d2d2afbfea16b361c30461c955a65c4c7e131eab5111bc62ffc1064f5d80b",
+    ".codex/agents/common-implementer.toml": "84f817b9148da045ecf3f5dba8889be8fe2650d389624fe05c043978763f027b",
+    ".codex/agents/common-tester.toml": "d4ce2ac0b8e0af69bba08ee644e1c948734d696c4968f37b3884c5fc908d1397",
+    ".codex/agents/common-reviewer.toml": "d0514abed7f5e1dccb76a208a753ad171016340a5f274f6f6648966b2461c14b",
+    ".codex/agents/rr-inago-incident-reporter.toml": "6b58184c3cbb232ea3d5ebe571ba770c1effb94d10cf507f4fbe440e63129b00",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml": "3421f049583f22e36c9d0022ec596b5fd002b48a803d87f7d3b16776e739def7",
+    ".agents/skills/rr-inago-incident-investigation/SKILL.md": "32641ad88f363d2a43268b0c564c164087304a4e923d74dd3edb6f17430d1af0",
+    ".agents/skills/rr-inago-incident-investigation/references/contracts.md": "a723745311bca3d3fdea8b9a3584d9fffd1e1c7149b3317edcb58265fe8bcedb",
+    ".agents/skills/common-execution-planning/SKILL.md": "06c3817b3a434f2dc527a5a30d794cf60419a1fdd58dec7b2403d8edf2dac183",
+    ".agents/skills/common-execution-planning/references/contracts.md": "d7a9a8e8dbd455dd27d8ad6a8ddd635ac5d10322a901e656a187b9beff92372d",
+    ".agents/skills/common-implementation/SKILL.md": "073dc352a990a1ecaf073c1c57f1a8eb3290a5b21128ec27c90e7aa6c1022126",
+    ".agents/skills/common-implementation/references/contracts.md": "4700de2ee15d4d285388ce3110453a17b0c8b11ed572a476393819f6576ec0f0",
+    ".agents/skills/common-testing/SKILL.md": "ebbf56e3a66d44b65c6a3192eae62490a9ac687c9b289c7e02caa888bbadd16c",
+    ".agents/skills/common-testing/references/contracts.md": "86b1f288987f2d9778661079635549f44be72079a00d5ef2cc9854742cb389ed",
+    ".agents/skills/common-review/SKILL.md": "1c39e219add06b4146f377e8ae94da7007963f54d08b2f7bd18a462cc94934e5",
+    ".agents/skills/common-review/references/contracts.md": "47e94f4c57a2e27f1da50b435df8aa51ace5f5174eb52981603160de57c5029c",
+    ".agents/skills/rr-inago-incident-report/SKILL.md": "88dd2465027109b382a8e4291c5810cec9f469f61278a2609965c1a23308a388",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "8f87e1efe0376e1ed6d3f6ffaa58f41d8068cd8c018067ff8d163f1222b763eb",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "8013bf9df9698164a544571e805437fc7abc225a2e87d05dea025227ddcd270d",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "1802df1e0b5dffe292b0ee87cc1aa1428d93217fbd74732a27b6c91a01fa75e4",
+    "docs/specifications/inago/要件データ辞書.md": "910c987903a649d7dafec71a4aeb1d3b2e8f6b869a25112adab24346fa494fa1",
+    "docs/specifications/inago/要件追跡表.md": "65ef076a1ae4004109d6abfd2991731996bb77fe01587c15ef6e153132622faa",
+    "docs/specifications/inago/保守運用設定仕様.md": "c62ac834f18b6da036516898804376c176c5ac4515b5013f07ac14bc89d2ed50",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "19b44fc37e1b1f6484b7b495240d191dc58634530475e2155d5655ff8f5f9d06",
+    "tools/docs/inago-requirements/flow-descriptions.mjs": "b3172b52765ffbb7d2019706dd03a8df6d4e15e65e273b63a7c9d38ed7a1c6d8",
+    "tools/docs/inago-requirements/task-flows.mjs": "36c58649a5700dfa9ea9deaba8988e709ad320afc557f3f19de44af703ddf517",
+    "docs/specifications/inago/図解/F12.svg": "9bb89448d47eb4c46e1f74b95a3cd75fa5edca1ac737f7b6d8333f26faa18d83",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md": "90ec93f9d91415f82f44a35d44ca9e8ff49b60ba5c6f209796c3c86b7bc8d7f7",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md": "1b4eb526a7f7084e6001ed7a3e3f51187cfb3ab433c04dc8238c142a40edbf73"
+  },
+  "after_sha256": {
+    ".codex/agents/common-execution-planner.toml": "148c87c46b37dae9e8dcf3a744ffd59fdeac725127b0967afc59c11faa0328a7",
+    ".codex/agents/common-execution-plan-reviewer.toml": "a95fa0111446eb8493106eb08befa6127585c913e166b3d1cf5d89fb7aa10028",
+    ".codex/agents/rr-inago-incident-investigator.toml": "3aec86ab73beb35f27146c9297a5455f3de682c8a79079656bf55232d05b065d",
+    ".codex/agents/rr-inago-incident-investigation-reviewer.toml": "8dd7fa94d312885c5460005d46c9aff6fa8fd615838861aec9ce9437ef9b445c",
+    ".codex/agents/common-implementer.toml": "b802e4ff62e30d0ff2f244f973423971caac07cc790a35f26435dc8b251ec905",
+    ".codex/agents/common-tester.toml": "011e00bf09cce7951d2df52249f251433ecb015ab5bd26ed5c37763dc8740a8a",
+    ".codex/agents/common-reviewer.toml": "e3fe47ff57732e45bbcb57507aa55f43ab2ac048db71e3a58bbc6c4a9e1f32a0",
+    ".codex/agents/rr-inago-incident-reporter.toml": "2a605af61cf75530e47043380ac1f02270e2aaa4add3d375adb0ca3da7c4bc18",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml": "f19e9478d1c634cbd423841eea08ce6f7481d26b055aa166afa8049a9177b01b",
+    ".agents/skills/rr-inago-incident-investigation/SKILL.md": "57892af4a3e6018eace9d7e649cab7028e5aca3e09d6e3d9932cafdaeb67d284",
+    ".agents/skills/rr-inago-incident-investigation/references/contracts.md": "c8a927dbfa421dab808c26908fb1e96cba6691246dd32307af2f7f83d2095752",
+    ".agents/skills/common-execution-planning/SKILL.md": "c01c43a06d3e9c6d9506a133458ca98ee6bdf8b4d1e21fa811b87b1fb5d61539",
+    ".agents/skills/common-execution-planning/references/contracts.md": "8ca3a43fe81ee1446017d187b9f4f79b202d974f0c2ac1fc4594bf05e64f78b6",
+    ".agents/skills/common-implementation/SKILL.md": "ad11866ce3d223ed4195c62f3c3ea0859cb11b720e1557c28ef1790f4043a61e",
+    ".agents/skills/common-implementation/references/contracts.md": "3237db6f8204cd9ac22d1415c4f4b3b8faf449b72a2f07a5c78d12574f2cd42f",
+    ".agents/skills/common-testing/SKILL.md": "d66ffdb05b1b6ae23e5fb8795e2934b0697f83852f1ccff10f64799839967e0d",
+    ".agents/skills/common-testing/references/contracts.md": "62cd860c5f2f59eb5ecaf7b7a44a33b4553d40406960f65b19f947d0a6515d5b",
+    ".agents/skills/common-review/SKILL.md": "7e753a84903adea3cd1d49f811929e5b6e0bc38c15e95a154c5476c7c5e7d5fe",
+    ".agents/skills/common-review/references/contracts.md": "6b080ee4d740bcf070b10bea904e77f316f24c103cbb408529a14ed67a611526",
+    ".agents/skills/rr-inago-incident-report/SKILL.md": "1a6cccc1394f2aa40805958ef30514558d2153251de11dd7f8bc4eb339b6c95b",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "0044884772969d8f4898173b799b47121ac278d3e603bf38239f47c5a7885045",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "55b99f3ff4786b88a4ab4b86da7941fec76f232fa3c843257f8c4976d67fff04",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "91d08a4f7957cb3c5538c34999ff7415693cabe74b5a16a0021d29fb829b90f1",
+    "docs/specifications/inago/要件データ辞書.md": "6ef05b3d022c6c8e9716d5b7aa761fb2b43314aef396052d7d8377215dba8dbb",
+    "docs/specifications/inago/要件追跡表.md": "8a455b950fad11c8e50e1f3a6865834f92451b94df30708650900ac076d5f13c",
+    "docs/specifications/inago/保守運用設定仕様.md": "5eab7d0dc419b9ad454205373846b7a17da56ba702bb6abc2fb7170f0a11c895",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "61cadd5afcf328cb7c92979c047862c651e3cb518ea51f995ec739b265ee5413",
+    "tools/docs/inago-requirements/flow-descriptions.mjs": "81813344e5aa36993e018d7784d99eccf5624c6fa4ef78d2e89ce4316896870e",
+    "tools/docs/inago-requirements/task-flows.mjs": "397586ab4ef59cb5783f0dc89ce75c344196f23a98d3201387e75146f48a95d2",
+    "docs/specifications/inago/図解/F12.svg": "9f550e27f40370a45e62f4ce1331719a5e7af458398ee436f3759c8a656d526e",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md": "14a5dabc29ec2a04599d39636a0a1d429cb6a70236fdc93455497c66cfbe325e",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md": "71438035d43da211ab9f85457d88b518fe948dfb49a8dbcc2919de2ec0710280"
+  },
+  "command": "node tools/docs/inago-requirements/build.mjs",
+  "exit_code": 0,
+  "stdout": "final builder: version 2.50, chapters 28, figures 39, referenceDocuments 26, bytes 4042174",
+  "stderr": "",
+  "flow_change": {
+    "file": "tools/docs/inago-requirements/flow-descriptions.mjs",
+    "boundary": "F12 maintenance controller / store S-node",
+    "old": "U23の現在方針ではrelease/readiness gateで後続stageを止めません。report completeだけがjob complete/incident resolved/Worker成功へ対応し、pending/blockedはartifactを保持して未完了statusを記録します。同一起動・同一事象の確認記録は重複させず、元の日次結果を保持します",
+    "new": "各工程は失敗や不明を内容ある成果に残して次担当を実起動します。工程の引継ぎ完了、操作の成否、公開結果、フロー完遂と元障害の解消を分けて記録します。必須成果・公開版・終了登録を照合して完遂を確認し、原因や回復が不明なら不明のまま保ちます。記録の失敗は独立した保存先へ残して処理を続け、同一起動の元の日次結果と旧履歴は保持します"
+  },
+  "product_tests": "NOT_RUN in FC02",
+  "production_mutations": "none",
+  "approved_input_snapshot": {
+    "source": "git show HEAD:plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "current_execution_plan_sha256": "71438035d43da211ab9f85457d88b518fe948dfb49a8dbcc2919de2ec0710280"
+  },
+  "builder_runs": [
+    {
+      "reason": "initial contract/F12",
+      "exit_code": 0,
+      "bytes": 4023605
+    },
+    {
+      "reason": "source terminal/model corrections",
+      "exit_code": 0,
+      "bytes": 4023211
+    },
+    {
+      "reason": "current specs/dictionary/tracing",
+      "exit_code": 0,
+      "bytes": 4042174
+    },
+    {
+      "reason": "parent spot-check active role/skill direct corrections",
+      "exit_code": 0,
+      "bytes": 4042174
+    }
+  ],
+  "static_checks": [
+    {
+      "operation": "9 active role TOMLs/high/no future-blocked/fixed workspace",
+      "result": "passed",
+      "count": 9
+    },
+    {
+      "operation": "12 active skill/contracts direct contradiction removal",
+      "result": "passed",
+      "count": 12
+    },
+    {
+      "operation": "canonical 2.50/F12 XML and 11 unrelated SVGs byte-preserved",
+      "result": "passed"
+    },
+    {
+      "operation": "approved input SHA / identity-null / requirement-fact-step-case coverage",
+      "result": "passed",
+      "requirements": 10,
+      "facts": 10,
+      "steps": 11,
+      "cases": 13
+    },
+    {
+      "operation": "FC02 JSON parse",
+      "result": "passed",
+      "count": 8
+    },
+    {
+      "operation": "git diff --check",
+      "result": "passed",
+      "exit_code": 0
+    }
+  ],
+  "command_corrections": [
+    "PowerShell brace expansion syntax was rejected before any read/write; corrected to explicit directories",
+    "rg literal wildcard rejected by Windows; corrected to exact paths. No writes.",
+    "Finalization assertion incorrectly scanned FC02 stage-list row outside section14; stopped before writes and corrected to section14-only.",
+    "Finalization Python one-line conditional contained invalid assignment syntax; parser rejected entire script before any execution. Corrected into separate short scripts."
+  ],
+  "note": "execute_contract_sync.py records initial baseline-specific synchronization only. Subsequent exact scope corrections and builder reruns are recorded here. It refuses replay on source version2.50; it is not a final-state replay tool.",
+  "revision_fc02_r01": {
+    "finding": "FC02-R01",
+    "revision_version": "fc02-contract-v2",
+    "observed_at": "2026-10-19T14:05:06.612523+00:00",
+    "files": [
+      {
+        "path": ".codex/agents/common-tester.toml",
+        "sha256": "011e00bf09cce7951d2df52249f251433ecb015ab5bd26ed5c37763dc8740a8a"
+      },
+      {
+        "path": ".agents/skills/common-testing/SKILL.md",
+        "sha256": "d66ffdb05b1b6ae23e5fb8795e2934b0697f83852f1ccff10f64799839967e0d"
+      }
+    ],
+    "checks": [
+      {
+        "operation": "targeted forbidden instruction rg",
+        "exit_code": 1,
+        "expected": "1 means no conflicting wording",
+        "stdout": ""
+      },
+      {
+        "operation": "targeted current policy rg",
+        "exit_code": 0,
+        "stdout": ".agents/skills/common-testing/SKILL.md:16:- 計画指定のcaseと完全nodeをfocused local pytestで検証する。新しく追加した計画内nodeの実在確認が必要な場合だけ、そのnodeに絞った最小collectionを行う。関連code/test版が変わった影響nodeは版と理由を記録して再実行し、変更のない既PASSの確認は重複実行しない。\n.agents/skills/common-testing/SKILL.md:27:- planにないtest node、無関係なcollection、全suite、外部サービス、本番remote、日次処理を実行しない。計画内の新規node確認に必要な最小collectionは上記の範囲で行う。\n.codex/agents/common-tester.toml:11:Write or change only test/fixture files assigned to you; run plan-specified focused local pytest nodes. Use minimal collection only when needed to confirm a newly added planned node; do not run unrelated collection, a nested suite, or a full suite. Never change product code, production or daily DB, credentials, Scheduler, settings, public remote, or posts.\n.codex/agents/common-tester.toml:12:Record exact command, timestamps, expected and actual results, exit, node, versions, initial/final counts, JUnit/console, evidence refs, and cleanup. SKIP/XFAIL/ERROR/NOT_RUN/UNVERIFIED are never PASS. Re-execute an impacted planned node when its relevant code or test version changes, recording the version and reason. Do not repeat an unchanged previously PASS node as duplicate evidence. Test-code independent review is not required, and any test result is evidence rather than a downstream gate.\n"
+      },
+      {
+        "operation": "TOML parse / high / focused new-node collection / unchanged PASS / no test-code review / non-gating outcomes",
+        "result": "passed"
+      },
+      {
+        "operation": "FC02 JSON parse",
+        "result": "passed"
+      },
+      {
+        "operation": "targeted git diff --check",
+        "exit_code": 0
+      }
+    ],
+    "prior_review_hashes_preserved": {
+      "independent-review.md": "9f4fd868b2fbd4671415ccd4314b485f1490f8ead4a5ae25d67abafd16d8fb7a",
+      "independent-review.json": "e2d50d9ec97be3aaffc0a22fc7f580dafac4f5961ad9d79c028d093365ed022d"
+    },
+    "product_tests": "NOT_RUN; instruction-only correction",
+    "builder": "NOT_RUN for this revision; tester role/skill are not requirements-source/builder inputs and generated content was not changed"
+  }
+}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日次作業の不具合対応について</title>
+<style>body{font-family:system-ui,sans-serif;line-height:1.8;max-width:920px;margin:2rem auto;padding:0 1rem;color:#17202a}h1,h2{line-height:1.4}section{margin:1.5rem 0}.note{background:#f1f5f9;padding:1rem;border-radius:.5rem}.synthetic{border:2px solid #7c2d12;background:#fff7ed;padding:.8rem;font-weight:700}pre,code{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{max-width:none;margin:0}}</style>
+</head><body><main>
+<h1>日次作業の不具合対応について</h1>
+<p class="synthetic">合成したシナリオ例です。実際の2026年10月17日の調査結果ではありません。</p>
+<p>対象日: 2026-10-17。<strong>出来事の区分:</strong> 試験で確認。<strong>内容:</strong> 日次処理の一部が記録されていない例</p>
+<section><h2>何が起きたか</h2><p>10月17日の日次処理で、予定した3件のうち2件だけ記録に残った合成例です。</p><p><strong>期待:</strong> 合成例では、予定した3件すべてが結果に残る想定です。</p><p><strong>実際:</strong> この表示例では、試験用に作った記録は2件で、1件分が見つかりません。</p></section>
+<section><h2>影響と回復</h2><p><strong>影響:</strong> この例だけでは、記録がない1件が利用者へ影響したか分かりません。</p><p><strong>回復:</strong> 再実行や回復の記録は、この例では確認していません。</p></section>
+<section><h2>何を調べ、何を変えたか</h2><p><strong>確認した範囲:</strong> 予定3件の合成記録と、結果2件の合成記録を見比べた例です。</p><p><strong>変更:</strong> この例では元の製品コードを変更していません。</p><p><strong>試験の範囲:</strong> 3件を入力し2件だけ結果に残る、試験用に作った記録の例です。製品試験の結果ではありません。</p></section>
+<section><h2>確認した記録</h2><p>記録の種類: 試験用に作った合成記録</p><ul><li><a href="#evidence-1">報告書作成ルール</a></li><li><a href="#evidence-2">代替報告の作成処理</a></li></ul></section>
+<section><h2>分かっていないこと</h2><ul><li>記録が1件不足した原因と、利用者への実際の影響は分かりません。</li></ul></section>
+<section><h2>レビューと公開</h2><p>この例の想定では、別の担当者による確認はまだ行われていません。 この合成例では別担当の確認を行っていません。</p><p>この例の想定では、まだ公開していません。</p></section>
+<section><h2>工程の完了と元の不具合</h2><p><strong>自動対応の工程:</strong> この例の想定では、工程全体の終了登録前です。</p><p><strong>元の不具合:</strong> 元の不具合が直ったかは、このシナリオでも未確認です。</p></section>
+<section><h2>次に行うこと</h2><p>同じ処理に結び付いた元の記録で、不足した1件と影響を確認します。</p></section>
+<details class="note" open><summary>参考付録：内部記録と根拠の参照先</summary><ul><li id="evidence-1"><strong>報告書作成ルール</strong>: <code>docs/standards/イナゴ日次不具合レポート作成ルール.md</code></li><li id="evidence-2"><strong>代替報告の作成処理</strong>: <code>automation/inago/maintenance/report_fallback.py</code></li></ul><p>確認できなかった対象情報: なし</p><pre>このHTMLは表示例です。実際の調査結果ではありません。</pre></details>
+</main></body></html>

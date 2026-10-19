@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-response.schema.json",
   "title": "Maintenance incident report response",
+  "description": "本文は平易な日本語で、事象区分、期待/実結果、影響/回復、変更、試験範囲、根拠参照、確認済み事実と不明点を説明する。review/publication、workflow完了、incident解決を分け、内部識別子やhashは参考付録だけに置く。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,8 +22,8 @@
     "identity": { "$ref": "#/$defs/identity" },
     "result_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
     "created_at_jst": { "type": "string", "format": "date-time" },
-    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-    "summary": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "title": { "type": "string", "description": "利用者が分かる工程名で表し、内部エラー名は使わない。", "minLength": 1, "maxLength": 200 },
+    "summary": { "type": "string", "description": "起きたこと、分かったこと、不明点を日常語でまとめる。", "minLength": 1, "maxLength": 4000 },
     "issues": {
       "type": "array",
       "minItems": 1,
@@ -51,6 +52,7 @@
       }
     },
     "issue": {
+      "description": "各事象を区分・期待・実結果・影響・回復・原因確度・実際の変更・確認範囲・具体的な根拠参照で説明し、未確認の断定をしない。",
       "type": "object",
       "additionalProperties": false,
       "required": [

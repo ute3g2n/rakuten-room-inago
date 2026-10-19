@@ -21,6 +21,7 @@
       ]
     },
     "summary": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "operation_trace": {"$ref": "#/$defs/operationTrace"},
     "evidence_refs": {
       "type": "array",
       "uniqueItems": true,
@@ -32,6 +33,16 @@
   "$defs": {
     "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "reference": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$"},
+    "operationTrace": {
+      "type": "object",
+      "properties": {
+        "correlation_id": {"$ref": "#/$defs/identifier"},
+        "operation": {"$ref": "#/$defs/identifier"},
+        "phase": {"enum": ["begin", "end", "failed", "fallback", "interruption_observed"]}
+      },
+      "required": ["correlation_id", "operation", "phase"],
+      "additionalProperties": false
+    },
     "context": {
       "type": "object",
       "properties": {

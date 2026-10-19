@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07refs-rerun2 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\pathref-final-rerun2.junit.xml",
+  "start_jst": "2026-10-20T00:34:37.3971436+09:00",
+  "end_jst": "2026-10-20T00:34:56.6615143+09:00",
+  "exit": 0,
+  "cases": 6,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\pathref-final-rerun2.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\pathref-final-rerun2.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07refs-rerun2",
+  "status": "PASS"
+}

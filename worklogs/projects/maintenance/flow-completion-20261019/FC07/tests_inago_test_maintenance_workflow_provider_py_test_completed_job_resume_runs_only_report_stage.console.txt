@@ -1,0 +1,151 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_completed_job_resume_runs_only_report_stage _______________
+
+    def test_completed_job_resume_runs_only_report_stage():
+        launch_id = "launch-u21-complete-resume"
+        run_id = "run-u21-complete-resume"
+        target_date = "2026-10-18"
+        job = MaintenanceJobRecord(
+            job_id="job-u21-complete-resume",
+            incident_id="incident-u21-complete-resume",
+            release_id="release-u21-complete-resume",
+            source_run_id=run_id,
+            result_version="release-u21-v1",
+            resume_count=0,
+            status="complete",
+            created_at=BASE_TIME.isoformat(),
+            updated_at=BASE_TIME.isoformat(),
+            finished_at=BASE_TIME.isoformat(),
+            terminal_reason_code=None,
+        )
+        launch = DailyLaunchRecord(
+            source_launch_id=launch_id,
+            target_date=target_date,
+            owner_pid=9501,
+            started_at=BASE_TIME.isoformat(),
+            status="complete",
+            child_pid=9502,
+            source_run_id=run_id,
+            exit_code=4,
+            completed_at=BASE_TIME.isoformat(),
+            result_json=None,
+            owner_start_time=BASE_TIME.isoformat(),
+            child_start_time=BASE_TIME.isoformat(),
+        )
+        check = DailyCheckRecord(
+            check_id="check-u21-complete-resume",
+            source_launch_id=launch_id,
+            source_run_id=run_id,
+            target_date=target_date,
+            check_status="abnormal",
+            reason_code="daily_error",
+            observed_at=BASE_TIME.isoformat(),
+        )
+        queue = WorkerQueueRecord(
+            queue_id="queue-u21-complete-resume",
+            source_launch_id=launch_id,
+            worker_job_id="worker-u21-complete-resume",
+            target_date=target_date,
+            status="queued",
+            check_id=check.check_id,
+            claim_owner_id=None,
+            claim_generation=None,
+            claimed_at=None,
+            completed_at=None,
+            reason_code=None,
+            created_at=BASE_TIME.isoformat(),
+            updated_at=BASE_TIME.isoformat(),
+        )
+        lease = LeaseToken(
+            lease_key="maintenance:complete-resume",
+            owner_id="worker-u21-complete-resume",
+            generation=2,
+        )
+    
+        class Store:
+            def list_workflow_jobs_for_launch(self, **_kwargs):
+                return (job,)
+    
+            def list_step_attempts(self, *, job_id):
+                assert job_id == job.job_id
+                return ()
+    
+        stage_calls = []
+    
+        def runner(stage_name):
+            def run(context):
+                stage_calls.append(stage_name)
+                assert context.resume_state.job == job
+                assert context.resume_state.attempts == ()
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        provider = MaintenanceWorkflowProvider(
+            Store(), {stage: runner(stage) for stage in WORKFLOW_STAGE_ORDER}
+        )
+>       outcome = provider(launch, check, queue, lease, threading.Event())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_workflow_provider.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <automation.inago.maintenance.workflow_provider.MaintenanceWorkflowProvider object at 0x00000182DCECDFA0>
+launch = DailyLaunchRecord(source_launch_id='launch-u21-complete-resume', target_date='2026-10-18', owner_pid=9501, started_at=...0+00:00', result_json=None, owner_start_time='2026-10-17T04:00:00+00:00', child_start_time='2026-10-17T04:00:00+00:00')
+check = DailyCheckRecord(check_id='check-u21-complete-resume', source_launch_id='launch-u21-complete-resume', source_run_id='r... target_date='2026-10-18', check_status='abnormal', reason_code='daily_error', observed_at='2026-10-17T04:00:00+00:00')
+queue = WorkerQueueRecord(queue_id='queue-u21-complete-resume', source_launch_id='launch-u21-complete-resume', worker_job_id='...e, completed_at=None, reason_code=None, created_at='2026-10-17T04:00:00+00:00', updated_at='2026-10-17T04:00:00+00:00')
+lease = LeaseToken(lease_key='maintenance:complete-resume', owner_id='worker-u21-complete-resume', generation=2)
+cancel_event = <threading.Event at 0x182dd267830: unset>
+
+    def __call__(
+        self,
+        launch: WorkflowLaunch,
+        check: DailyCheckRecord,
+        queue: WorkerQueueRecord,
+        lease: LeaseToken,
+        cancel_event: threading.Event,
+    ) -> WorkerWorkflowOutcome:
+        historical_input = getattr(launch, "historical_input", None)
+        if (
+            launch.source_launch_id != queue.source_launch_id
+            or check.source_launch_id != launch.source_launch_id
+            or launch.target_date != queue.target_date
+            or check.target_date != launch.target_date
+            or check.source_run_id != launch.source_run_id
+            or queue.check_id not in {None, check.check_id}
+            or queue.status != "queued"
+            or (
+                historical_input is not None
+                and (
+                    getattr(historical_input, "source_launch_id", None)
+                    != launch.source_launch_id
+                    or getattr(historical_input, "target_date", None)
+                    != launch.target_date
+                    or getattr(historical_input, "check", None) != check
+                    or getattr(getattr(historical_input, "job", None), "job_id", None)
+                    != queue.worker_job_id
+                    or launch.source_run_id is not None
+                )
+            )
+        ):
+            return WorkerWorkflowOutcome(
+                status="blocked",
+                check_id=check.check_id,
+                reason_code="maintenance_workflow_identity_invalid",
+            )
+        if launch.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
+            return WorkerWorkflowOutcome(
+                status="blocked",
+                check_id=check.check_id,
+                reason_code="target_date_worker_dispatch_disabled",
+            )
+        invocation_id = f"workflow-{uuid.uuid4().hex}"
+>       data_root = self._store.database_path.parent.parent
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Store' object has no attribute 'database_path'
+
+automation\inago\maintenance\workflow_provider.py:385: AttributeError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_workflow_provider.py::test_completed_job_resume_runs_only_report_stage
+1 failed in 0.33s

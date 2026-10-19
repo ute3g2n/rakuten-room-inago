@@ -1,0 +1,75 @@
+{
+  "schema_version": "fc05-static-checks-v1",
+  "checks": [
+    {
+      "command": "python -m py_compile automation/inago/maintenance/{worker,cli,workflow_reconciliation,production_workflow,controller,store,ai_adapter,deployment,runtime_switcher}.py",
+      "result": "PASS",
+      "detail": "9 assigned modules compiled; no runtime or database execution."
+    },
+    {
+      "command": "maintenance JSON schema parse",
+      "result": "PASS",
+      "detail": "12 maintenance schema files parsed as JSON in prior FC05 check; semantic validation not run because jsonschema is unavailable."
+    },
+    {
+      "command": "reviewer/tester TOML parse",
+      "result": "PASS",
+      "detail": "Both modified role definitions parsed."
+    },
+    {
+      "command": "node --check tools/docs/inago-requirements/task-flows.mjs and flow-descriptions.mjs",
+      "result": "PASS",
+      "detail": "Syntax check completed."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "result": "PASS",
+      "detail": "v2.50; 28 chapters, 39 figures, 26 references; 4,091,985 bytes."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "detail": "exit 0; existing CRLF-to-LF warning for common-implementation SKILL.md."
+    },
+    {
+      "command": "python -m py_compile plus git diff --check after worker/CLI updates",
+      "result": "PASS",
+      "detail": "exit 0 on current FC05 changes."
+    },
+    {
+      "command": "resume path static inspection",
+      "result": "PASS_STATIC_ONLY",
+      "detail": "resume_maintenance_job binds same job and source_launch_id, preserves source_run_id via manifest predicates, and requeues failed/finished statuses without review/lease gate; runtime behavior deferred to FC07/FC10."
+    },
+    {
+      "command": "jsonschema semantic validation",
+      "result": "NOT_PERFORMED",
+      "detail": "Python jsonschema dependency is not installed (ModuleNotFoundError); schema syntax parse passed."
+    },
+    {
+      "command": "worker outer failure continuation static inspection",
+      "result": "PASS",
+      "detail": "Source inspection confirms exception/invalid outcome/check_id mismatch are normalized to unknown fallback, no immediate _blocked_result return in runner boundary, and fallback handoffs/observations precede terminal reconciliation."
+    },
+    {
+      "command": "CLI maintenance_incomplete mapping static inspection",
+      "result": "PASS",
+      "detail": "Source contains maintenance_incomplete in worker success-exit mapping; emitted result retains full status/reason fields. No behavioral test run."
+    },
+    {
+      "command": "same-job resume implementation inspection",
+      "result": "PASS_STATIC_ONLY",
+      "detail": "resume_maintenance_job selects exact job + launch with source_run_id SQL identity predicates and requeues unfinished/failed job without review/lease gate; no database execution."
+    },
+    {
+      "command": "worker absent-provider continuation static inspection",
+      "result": "PASS",
+      "detail": "A missing workflow_runner is converted to an explicit RuntimeError outcome and uses the same fallback handoff/observation and terminal reconciliation path; no immediate blocked return."
+    },
+    {
+      "command": "FC08-F1 terminal-order/coverage/incident static assertions",
+      "result": "PASS",
+      "detail": "reconcile_workflow_terminal has only terminal finalizer calls after the explicit seven-field verification; mapping covers all 8 observations/handoffs, formal attempt outputs, deployment output, report complete, result/HTML/sidecar/remote readback. Missing public readback makes all(verification) false. Both finalizer calls set incident_status=in_progress; FC06 publisher source has no finalize_job/resolved write."
+    }
+  ]
+}

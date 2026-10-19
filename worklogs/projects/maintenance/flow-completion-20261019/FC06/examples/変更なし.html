@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日次作業の不具合対応について</title>
+<style>body{font-family:system-ui,sans-serif;line-height:1.8;max-width:920px;margin:2rem auto;padding:0 1rem;color:#17202a}h1,h2{line-height:1.4}section{margin:1.5rem 0}.note{background:#f1f5f9;padding:1rem;border-radius:.5rem}.synthetic{border:2px solid #7c2d12;background:#fff7ed;padding:.8rem;font-weight:700}pre,code{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{max-width:none;margin:0}}</style>
+</head><body><main>
+<h1>日次作業の不具合対応について</h1>
+<p class="synthetic">合成したシナリオ例です。実際の2026年10月17日の調査結果ではありません。</p>
+<p>対象日: 2026-10-17。<strong>出来事の区分:</strong> 調査で判明。<strong>内容:</strong> 原因未確定。修正要否も確認中です。</p>
+<section><h2>何が起きたか</h2><p>10月17日の不具合について、原因の手掛かりが足りず、すぐに安全な修正を決められない合成例です。</p><p><strong>期待:</strong> 日次処理の原因、実際の結果、影響を証拠で説明できる状態を目指します。</p><p><strong>実際:</strong> この例では要約記録だけがあり、失敗した処理へつながる詳しい記録がありません。</p></section>
+<section><h2>影響と回復</h2><p><strong>影響:</strong> 実際の影響範囲は記録から確かめられません。</p><p><strong>回復:</strong> 回復を示す記録もありません。</p></section>
+<section><h2>何を調べ、何を変えたか</h2><p><strong>確認した範囲:</strong> 分かっているのは、現在見える証拠が要約ログだけという範囲です。</p><p><strong>変更:</strong> 原因を特定できないため製品コードは変更していません。処理を結ぶ番号や呼び出した側の情報を受け取る場所が見つからず、その場だけに記録を足しても何が原因か分からないため、記録の追加もしていません。次は、処理を結ぶ情報を渡せる場所を調べ、見つかったら必要な記録を追加する計画です。</p><p><strong>試験の範囲:</strong> 要約記録だけで、発生地点へ結ぶ追跡情報がない試験用の例です。製品試験ではありません。</p></section>
+<section><h2>確認した記録</h2><p>記録の種類: 試験用に作った合成記録</p><ul><li><a href="#evidence-1">共通トレース契約</a></li><li><a href="#evidence-2">代替報告の作成処理</a></li></ul></section>
+<section><h2>分かっていないこと</h2><ul><li>原因、期待結果との差、影響、回復は未確認です。呼出元から失敗地点までの情報を渡せる接続点も未特定です。</li></ul></section>
+<section><h2>レビューと公開</h2><p>この例の想定では、別の担当者による確認はまだ行われていません。 この合成例では別担当の確認を行っていません。</p><p>この例の想定では、まだ公開していません。</p></section>
+<section><h2>工程の完了と元の不具合</h2><p><strong>自動対応の工程:</strong> この例の想定では、工程全体の終了登録前です。</p><p><strong>元の不具合:</strong> 元の不具合が直ったかは、このシナリオでも未確認です。</p></section>
+<section><h2>次に行うこと</h2><p>同じ処理の流れを確認し、処理を結ぶ情報と失敗の内容を一緒に残せる場所を探します。</p></section>
+<details class="note" open><summary>参考付録：内部記録と根拠の参照先</summary><ul><li id="evidence-1"><strong>共通トレース契約</strong>: <code>docs/specifications/inago/AT-TRACE-01_共通トレース契約.md</code></li><li id="evidence-2"><strong>代替報告の作成処理</strong>: <code>automation/inago/maintenance/report_fallback.py</code></li></ul><p>確認できなかった対象情報: なし</p><pre>このHTMLは表示例です。実際の調査結果ではありません。</pre></details>
+</main></body></html>

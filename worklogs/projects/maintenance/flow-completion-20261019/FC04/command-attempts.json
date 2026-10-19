@@ -1,0 +1,18 @@
+{
+  "schema_version": "fc04-command-attempts-v1",
+  "attempts": [
+    {
+      "operation": "FC04 documentation synchronization script dispatch",
+      "result": "not_started",
+      "failure": "The isolated JavaScript command runtime does not expose btoa/TextEncoder. The command failed before dispatch to the repository shell, so no file was changed by this attempt.",
+      "recovery": "Used an explicit Python script through PowerShell with UTF-8 output encoding; synchronization then completed and the requirements builder succeeded."
+    },
+    {
+      "operation": "FC04 generated-reference consistency check",
+      "result": "command_parse_error",
+      "failure": "Two inline python -c attempts had PowerShell quote/backslash parsing errors before Python could run. They made no repository changes and produced no validation result.",
+      "recovery": "Re-ran the check through a UTF-8 PowerShell here-string piped to python -; source, generated AT-TRACE-01/F12 references, schema JSON, role TOML and FC04 result JSON validation all passed."
+    }
+  ],
+  "note": "Failed command construction attempts are preserved as execution facts; they do not replace successful checks or product-stage results."
+}

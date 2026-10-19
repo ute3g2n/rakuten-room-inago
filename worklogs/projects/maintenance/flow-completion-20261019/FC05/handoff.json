@@ -1,0 +1,62 @@
+{
+  "schema_version": "fc05-handoff-v1",
+  "step": "FC05",
+  "status": "ready_for_fc06_with_unverified_acceptance",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "source_hashes_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC05/source-hashes.json",
+  "static_checks_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC05/static-checks.json",
+  "result_ref": "worklogs/projects/maintenance/flow-completion-20261019/FC05/result.json",
+  "ownership_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "facts": [
+    "固定rootのmain branch、HEAD=51cfc7503775a25af731c8f4bcf727c94f10a595を確認",
+    "CLIのmaintenance_incomplete exit mappingおよびworker outer exception continuationを追加",
+    "同一job failed resume関数はsame job/launchのmanifest結合で再キューする実装を静的確認",
+    "worker outer failureから8工程fallback handoff/unknown observationを保存してterminal reconciliationへ接続する実装を追加。",
+    "CLI maintenance_incomplete exit mappingを変更し、状態とreasonはJSON出力に残す。",
+    "provider欠損もfallback→terminal reconciliation経路に接続することを追加し、sourceを静的確認。",
+    "FC08-F1追補: publication sidecar保存とjob終端を分離。terminal readback条件とincident_status=in_progressを明示、FC07向けfocused tests handoffを作成。"
+  ],
+  "limitations": [
+    "pytest/fault injection、独立review、本番適用、AI起動、同一job run、報告公開/remote readback、terminalの実測は未実施",
+    "FC06はproduction_workflow.pyのreport/publication部分を編集可能"
+  ],
+  "next_actions": [
+    "FC07: run focused cases in worklogs/projects/maintenance/flow-completion-20261019/FC08/fc08-f1-followup-handoff.json after the publication and reconciler edits are stable.",
+    "FC09/FC10: apply and exercise the same job without using review/test status as a gate."
+  ],
+  "plan_current_sha256": "a6a855a2e22234b014d9c3a55a72dc73f4c4390358ad5c63f71c65195adbeed3",
+  "changed_paths": [
+    "automation/inago/maintenance/ai_adapter.py",
+    "automation/inago/maintenance/cli.py",
+    "automation/inago/maintenance/controller.py",
+    "automation/inago/maintenance/deployment.py",
+    "automation/inago/maintenance/production_workflow.py",
+    "automation/inago/maintenance/runtime_switcher.py",
+    "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+    "automation/inago/maintenance/store.py",
+    "automation/inago/maintenance/worker.py",
+    "automation/inago/maintenance/workflow_reconciliation.py",
+    "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+    "automation/inago/schemas/maintenance-deployment-result.schema.json",
+    "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+    "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+    "automation/inago/schemas/maintenance-repair-review.schema.json",
+    "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+    "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/diff-summary.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/review-followup-FC08-F1.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC05/static-checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC08/fc08-f1-followup-handoff.json"
+  ]
+}

@@ -94,6 +94,10 @@
     "parent_key": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
     "role_name": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
     "artifact_ref": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "correlation_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "operation_id": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "code_revision": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+    "code_revision_reason": { "oneOf": [{ "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,63}$" }, { "type": "null" }] },
     "reason_code": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
     "error_class": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$" },
     "model": {

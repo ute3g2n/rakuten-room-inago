@@ -1,4 +1,4 @@
-"""Switch production scheduler code roots to reviewed managed Git worktrees."""
+"""Keep production scheduler code roots on the fixed repository checkout."""
 
 from __future__ import annotations
 
@@ -98,10 +98,7 @@ class TaskSchedulerRuntimeSwitcher:
         if _has_reparse_point(root):
             raise DeploymentError("runtime_code_root_invalid")
         if root != self.repository:
-            try:
-                root.relative_to(self.worktree_root)
-            except ValueError as exc:
-                raise DeploymentError("runtime_code_root_out_of_scope") from exc
+            raise DeploymentError("runtime_code_root_out_of_scope")
         git_root = Path(self._run_git(root, "rev-parse", "--show-toplevel"))
         if git_root.resolve(strict=True) != root:
             raise DeploymentError("runtime_code_root_invalid")

@@ -1,0 +1,331 @@
+{
+  "schema_version": "fc06-result-v1",
+  "step": "FC06",
+  "execution_status": "r2_findings_implemented_static_checks_pass_awaiting_fc07_cases_and_fresh_independent_review",
+  "acceptance_status": "not_claimed",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "plan_version": "1.2",
+  "plan_original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "owner_map_sha256": "6a1cc69c0c1c112b9d8ee1eb9273e3e7652f16da17d066ef2775572396ff78f3",
+  "changed_files": [
+    ".agents/skills/rr-inago-incident-report/SKILL.md",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml",
+    ".codex/agents/rr-inago-incident-reporter.toml",
+    "automation/inago/maintenance/production_workflow.py",
+    "automation/inago/maintenance/report_fallback.py",
+    "automation/inago/maintenance/reporting.py",
+    "automation/inago/maintenance/workflow_reconciliation.py",
+    "automation/inago/schemas/maintenance-report-response.schema.json",
+    "automation/inago/schemas/maintenance-report-result.schema.json",
+    "automation/inago/schemas/maintenance-report-review.schema.json",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/specifications/inago/図解/F12.svg",
+    "docs/specifications/inago/要件データ辞書.md",
+    "docs/specifications/inago/要件追跡表.md",
+    "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "tools/docs/inago-requirements/flow-descriptions.mjs",
+    "tools/docs/inago-requirements/task-flows.mjs",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/diff-summary.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-review-target.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/publication-handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/static-checks.json",
+    "automation/inago/maintenance/investigation.py"
+  ],
+  "diff_summary": "Connected normal report failure/exception to fallback HTML, real reviewer invocation, revision loop and publication. Added truthful review_unavailable state and terminal readback pairing: reviewed+complete+approved or review_unavailable+pending+unavailable. Added four sample HTML forms and synced reporting rules/contracts/docs. FC07/FCT09 independent HTML reviewer returned seven actionable text findings; revised the four synthetic examples, fallback builder, reporter/reviewer prompts, standard and skill contract. Anchored evidence appendices are open, synthetic labeling is visible, and no synthetic approval is claimed. FC07/FCT09 reviewer findings (7) corrected across examples, fallback, prompt and report contract; FC07 FCT08 found author wrapper NameError and fallback attempt lease AttributeError, both fixed with explicit binding and Store API validation. Report stage/recovery/publication future results return unknown with truthful reason.",
+  "requirement_mapping": {
+    "FC06": "plain Japanese report, fallback, reviewer/revision contract, publication and same-job recovery/readback",
+    "FC-A01": "report source/output references bound to formal attempt contract (static only)",
+    "FC-A06": "review failure recorded as unavailable and remains unapproved; downstream publication stays callable",
+    "FC-A09": "same immutable identity passed through report/publication contracts (not executed)",
+    "FCT08_FCT09_FCT10": "report scenario examples and terminal-readback contract prepared; behavior remains for FC07/FC10"
+  },
+  "checks": [
+    {
+      "command": "python -m py_compile report_fallback.py reporting.py production_workflow.py",
+      "result": "PASS",
+      "detail": "3 implementation modules compile; no tests or DB execution."
+    },
+    {
+      "command": "Draft202012Validator.check_schema on 3 maintenance report schemas + tomllib parse 2 report roles",
+      "result": "PASS",
+      "detail": "All 3 schemas and both TOML role files parse; this is schema-definition validation, not a test case."
+    },
+    {
+      "command": "node --check task-flows.mjs; node --check flow-descriptions.mjs",
+      "result": "PASS",
+      "detail": "Both requirement-builder source modules parse."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "result": "PASS",
+      "detail": "Builder v2.50; 28 chapters, 39 figures, 26 references; HTML bytes 4,102,250. Regenerated requirements HTML and F12 from canonical source."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs initial attempt",
+      "result": "FAIL_THEN_FIXED",
+      "detail": "First attempt rejected an appended lone Markdown table row in the traceability reference. Replaced it with prose, reran builder successfully; no contents were treated as accepted from the failed build."
+    },
+    {
+      "command": "pytest/failure injection/production/apply",
+      "result": "NOT_PERFORMED",
+      "detail": "Explicitly assigned to FC07/FC09/FC10; not run in FC06."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "detail": "Exit 0. Git emitted only existing CRLF-to-LF normalization warnings for the common-implementation skill, report skill/contracts, report standard, and plan; no whitespace errors."
+    },
+    {
+      "command": "review_unavailable result/schema/terminal-readback static inspection",
+      "result": "PASS",
+      "detail": "Schema preserves historical blocked enum and adds review_unavailable. Fallback records review.status=unavailable with report_status=pending. Terminal readback only accepts reviewed + complete + approved, or review_unavailable + pending + unavailable, then verifies published HTML/sidecar hashes. Product behavior not executed."
+    },
+    {
+      "command": "actual reporter/reviewer session and final production HTML",
+      "result": "NOT_PERFORMED",
+      "detail": "FC06 scope prepares the invocation and contracts; actual role session, independent HTML review, publication and same-job terminal readback are assigned to FC10. No synthetic approval was created."
+    },
+    {
+      "command": "FC07 publication-failure fix static check",
+      "result": "PASS",
+      "detail": "production_workflow.py py_compile PASS; operation-specific trace phases present; failure helper retains valid exception codes, records correlated journal refs and returns unknown. Builder v2.50 regenerated requirement HTML/F12 (28 chapters, 39 figures, 26 references, 4,104,595 bytes); both report role TOMLs parse; git diff --check exit 0 with existing line-ending warnings."
+    },
+    {
+      "command": "FC07 tester rerun of publication mismatch/push/sidecar-save nodes",
+      "result": "PENDING_TESTER",
+      "detail": "Not run by FC06 implementer. Exact expected statuses and reasons are in followup-publication-failure.md and sent to FC07 tester."
+    },
+    {
+      "command": "FC07 HTML follow-up static validation and requirement builder",
+      "result": "PASS",
+      "detail": "Four example structures and anchors checked, implementation modules compile, three schema definitions/two role TOMLs parse, requirements builder v2.50 succeeds. No tests/DB/production/Git and no independent approval performed."
+    },
+    {
+      "command": "FC07 FCT08 report defects and final HTML source: AST/source, HTML anchors, py_compile, schemas/TOML, requirements builder",
+      "result": "PASS",
+      "detail": "Static-only checks passed. FCT08 affected pytest/role/publication rerun and independent HTML follow-up review remain pending; production and DB were not accessed."
+    }
+  ],
+  "not_performed": [
+    {
+      "operation": "pytest/failure injection",
+      "owner": "FC07",
+      "reason": "explicit FC06 scope prohibits test execution"
+    },
+    {
+      "operation": "independent product code review",
+      "owner": "FC08",
+      "reason": "separate assigned reviewer stage"
+    },
+    {
+      "operation": "actual reporter/reviewer session and final HTML generation/review/publication",
+      "owner": "FC10",
+      "reason": "FC06 prepares contract and examples; real role launch is assigned to FC10"
+    },
+    {
+      "operation": "production DB/schema/runtime apply",
+      "owner": "FC09",
+      "reason": "explicit FC06 scope prohibits apply"
+    },
+    {
+      "operation": "same-job execution/terminal readback/Git commit or push",
+      "owner": "FC10/controller",
+      "reason": "explicit FC06 scope prohibits these operations"
+    }
+  ],
+  "limitations": [
+    "No workflow behavior or role invocation was executed; acceptance is not claimed.",
+    "Example HTML review is an author static readability check, not an independent review.",
+    "Unknown root cause is retained; fallback content does not claim a fix.",
+    "Legacy blocked values remain parseable; future reviewer unavailability uses review_unavailable."
+  ],
+  "next_resume": "FC07 tester reruns the affected wrapper/fallback/review-to-publication nodes; controller launches independent HTML review against fc07-html-followup-target.json. Any finding returns to FC06 author. FC10 performs actual reporter/reviewer and same-job public HTML/readback.",
+  "followup": {
+    "observation": "FC07 found future blocked returns from report publication identity/target/push/sidecar-save failures; actual remote target reason is report_target_branch_mismatch.",
+    "change": "Publication failure now preserves valid reason codes, emits correlated failure-journal detail for operation/cause/location/input/artifact and returns unknown so provider handoff and terminal reconciliation continue. Generic push and sidecar-save failures use operation-specific codes.",
+    "static_checks": "py_compile, builder, TOML parse, and diff check pass; tester rerun is pending and is not claimed.",
+    "expected_results": {
+      "identity_mismatch": [
+        "unknown",
+        "report_publication_identity_mismatch"
+      ],
+      "target_mismatch": [
+        "unknown",
+        "report_target_branch_mismatch"
+      ],
+      "generic_push_failure": [
+        "unknown",
+        "report_publication_push_failed"
+      ],
+      "generic_sidecar_save_failure": [
+        "unknown",
+        "report_publication_sidecar_save_failed"
+      ]
+    },
+    "evidence": "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md"
+  },
+  "followup_html_review": {
+    "reviewer_observation": "FC07/FCT09 reviewer returned seven actionable findings on the prior four examples; exact pre-revision sources remain hashed in fc07-html-review-target.json and reviewer findings are in html-review-findings.md.",
+    "changes": "Visible synthetic labels; truthful review/publication states; expected/actual/impact/recovery/change/test/evidence scope; explicit known and unknown boundary; no-change instrumentation rationale; renderer-failure confirmed facts and pending operations; workflow completion separated from incident resolution; links resolve to visible open appendix content. Reporter and reviewer prompts now check visible anchors and claims.",
+    "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "independent_followup_status": "pending",
+    "acceptance_status": "not_claimed",
+    "browser_or_print_rendering": "not_performed",
+    "source_sha256_manifest": "f6d60c4f77244f677ad2d82aa97ea7ed2e036f78082f42eedbb9a3a6302dfc53"
+  },
+  "followup_fct08": {
+    "observations": [
+      "report AI wrapper referenced store/source_attempt_id/job_id without bindings",
+      "fallback selected StepAttemptRecord using absent lease_key/lease_generation attributes",
+      "Versioned report artifacts were rejected by save_attempt_artifact fixed allowlist (report_artifact_name_invalid); tester preserved failure."
+    ],
+    "changes": [
+      "passed Store and job_id to both author/reviewer wrapper callsites and validates job+attempt+step+sequence+status from the AI artifact path",
+      "checks candidate report attempt with MaintenanceStore.validate_step_attempt_lease; stale ended/mismatched candidates are skipped, other Store failures are preserved with cause chain",
+      "changed report/recovery/publication stage failure results from future blocked to unknown with original reason",
+      "Added report-stage-only anchored allowlist for five hash-versioned fallback HTML/input/review artifact names; all non-report stages retain existing fixed names. No overwrite behavior was changed."
+    ],
+    "evidence": "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md",
+    "static_checks": "Latest py_compile passed for four modules; report-stage filename-pattern static check and schema/HTML checks passed. FC07 transport_failure rerun is pending and not claimed.",
+    "tester_rerun": "PASS: 1 passed; evidence worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.junit.xml; passed against hashes recorded in target manifest and FC06 source-hashes.json. FC06 did not execute tests.",
+    "acceptance_status": "not_claimed",
+    "test_adjustment": "FC07 tester changed stale expected fallback status to pending/review_unavailable/controller_fallback publication after observing actual role launches; prior product FAILs and intermediate test edit ERROR preserved. No product failure was removed from history."
+  },
+  "followup_fct09": {
+    "independent_review_source": "FC07/html-independent-followup-review.md SHA-256 4fd1bd3e0e292a3c27887fcfc3fe42740327ffadf099c3d27c64049984acccb57",
+    "verdict": "changes_requested",
+    "findings": "All four findings revised: event origin category; evidence refs point to existing repo files; exact review findings reach one real reporter revision and second reviewer run with truthful pending fallback on failures; missing identity no longer raises.",
+    "new_target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "new_target_manifest_sha256": "50918af4703c85161358359b0b4b63eccc181291e90d08bded61d59887e82960",
+    "independent_followup": "pending controller reviewer launch",
+    "acceptance_status": "not_claimed",
+    "r2_review": {
+      "source": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r2.md",
+      "sha256": "2827443cb8fdf314ff260042385baac1324dec966dd2f0b427b6354f74d59f28",
+      "verdict": "changes_requested",
+      "findings_and_response": [
+        "Exact reviewer version/hash response remains in a versioned sidecar; final unreviewed fallback gets separate unavailable record bound to its own hash.",
+        "Strict global artifact context is retained; storage context derives from job row/current launch while supplied incomplete identity remains in body/input with missing fields.",
+        "Resume reads the exact result.report_input path/hash, validates same attempt, fallback schema, output hash and review binding."
+      ],
+      "acceptance_status": "not_claimed",
+      "fresh_independent_followup": "pending"
+    },
+    "r3_review": {
+      "source": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r3.md",
+      "sha256": "095b33891177ab49cf23f37914125a4f76ff2815ef854fab81d197266e50f713",
+      "verdict": "changes_requested",
+      "finding": "R3-F1: restore rejected reviewed+pending fallback statuses although the reviewer result was truthful; published readback also required reviewed+complete+approved.",
+      "response": "Both restore and readback now preserve reviewed+pending+changes_requested/rejected. Approved remains paired only with complete; unavailable remains review_unavailable+pending. No approval promotion.",
+      "source_hashes": {
+        "production_workflow.py": "481b4623c8a0a9b5aa100fa41d20abc521c9427c8ca96663ced2be989de4a273",
+        "workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c"
+      },
+      "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+      "target_manifest_sha256": "19cdf63a192710d095886308875bda2326a8238a3c9189e515a9993486e74f7a",
+      "focused_tests": {
+        "result": "PASS",
+        "nodes": [
+          "test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[rejected]",
+          "test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[changes_requested]"
+        ],
+        "evidence": [
+          "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml",
+          "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml"
+        ],
+        "observed": "Both restored the same synthetic job+attempt, retained the actual non-approved review status with report_status=pending and stage_status=reviewed, and continued to next_action=publish without approval promotion."
+      },
+      "fresh_independent_review": {
+        "source": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md",
+        "sha256": "4304a8c5d05658b8c6fd3850f3f05d990b94240e1aece722c5e67bc97b3ea984",
+        "verdict": "approved",
+        "target_manifest_sha256": "19cdf63a192710d095886308875bda2326a8238a3c9189e515a9993486e74f7a"
+      },
+      "acceptance_status": "not_claimed"
+    }
+  },
+  "changed_files_sha256": {
+    ".agents/skills/rr-inago-incident-report/SKILL.md": "f8b2221c4d4bc262215c088c9200faaf1bef4b5331078f76003fa7f440807d19",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "cb2a4a1c0cee6a652981fd28c3175f8fd9d1a00d197b3e468952742eca0921d6",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml": "afb9d33a5cee9bac07f9995e4a2c1d6ee23d17f6190278e59626535f1f913ad7",
+    ".codex/agents/rr-inago-incident-reporter.toml": "0b54967948794fca8664747d79ba9a86c358226aa932c05313004c60718b74ba",
+    "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+    "automation/inago/maintenance/reporting.py": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+    "automation/inago/maintenance/workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c",
+    "automation/inago/schemas/maintenance-report-response.schema.json": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+    "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+    "automation/inago/schemas/maintenance-report-review.schema.json": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md": "a9300d1e2a438d49f4702a7948128a3c35d9f78c70c42a027deca8f1419e1949",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "751943f42cd66897d1a4a3500401d94d592b25cf8dd80b956d75b8ccf5415af8",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "0ebb7834bb0e462ca17b5b02b100c6c12f17707c3daacd4046294fcf938a8eb4",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "0561d2cd9e61552008d799b180af0480cd39b86c59bf3c9bcedfcf5f92b173c8",
+    "docs/specifications/inago/保守運用設定仕様.md": "a3ac74781837d241cdff6ef53133049377d12de21051ce3e7f12e98cd2033ea1",
+    "docs/specifications/inago/図解/F12.svg": "dd06f987d502a52f079cfba81a14cb4e3cee1130312fa54be8d60de0be538aee",
+    "docs/specifications/inago/要件データ辞書.md": "e3361c555b55afe36ef77dc05c0dc0b0ffe03adebee2150a7689f44dae007d26",
+    "docs/specifications/inago/要件追跡表.md": "421b8f109ccd00ef821f803df25f71eb8b03f7207ece673bc41803bc370739ac",
+    "docs/standards/イナゴ日次不具合レポート作成ルール.md": "0b292b48d5ed2a664528a1162b70893ca7d369a72ae43c658bad26bbf167fe81",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "f2189271d0f85f5c0be4968ed4f62adba7c8552689b26b31336a2d0ed42fba3f",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md": "ea3a6f1a558e30e36acdbda91994e03a8cf8b136695c63a917dac69c477529ac",
+    "tools/docs/inago-requirements/flow-descriptions.mjs": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289",
+    "tools/docs/inago-requirements/task-flows.mjs": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/diff-summary.md": "dc6fdd7f6879c70854962db06125273e4c202a5336e9f9a6747b04d179154236",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html": "751bafa96778e878e3cea113b4d9e64c6758fa83f983ce4b6815af7bde881059",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html": "514db4f1fd61b03201f231074c4a871cf669df0a30765d676ec49f235eb10ff8",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html": "31ecb4e0d115b3fd82cfa789e5cf3862a5e126f1e0a663d91e3336eeeeb2c8d4",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html": "1171f80698567fe6ae19b041944d7d4f19b9f01846e15e9d6272cd68facdd66b",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json": "de9180302e02731c1ef1cd4d5576dae245fc121aae08f394f503e9b6b331e583",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-review-target.json": "5152e89598c1a8e69e74ba032d11d513bf12160e427a40412f6e928aca702add",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md": "3a5533a326f0a6f5ece4a5760870e46b4265663c0c488e9971bc170aedb9264f",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md": "8127bc404f435df21b7bf365df5469f94730b9dca0b796a760201683c3b8420f",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/handoff.json": "b02a5046cdc2cac3d32f964d49d708016c86f082c9a4bf2e0026447a84a71a0c",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md": "fec338764411c8100e429ffffdd1b33928724cd4f7fdde87e7c1670e67d9a745",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/publication-handoff.json": "12ac7658c5216400f68946666e638645069ce6f050eeea13b7ccf84793638c39",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md": "34cf0a6f1f355c771b3b138d30c1c009363a28b385dad882079e8e8891b80a24",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/result.json": "4a0c7b0bda3be5f82fc82777000746a825521df1ebc157dddf337082aaf74155",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/source-hashes.json": "3db6addeb3fd4fea7ac50d87b5b0b1e24d81470be01b5b7ef72ce90f36983e61",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/static-checks.json": "4321f7958dc8279b16b776e14cb693301110e9807294c3d109ee976f2de2e212",
+    "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/r3-status-combinations.md": "d9b351a4ecf169c717da0ba113b48c8e0bf0b098ca29b2d48e48c17509e6c555",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml": "5ddfbd43b479e7f958fd987494fdbcacbeb326a8d886df9750abd99b9baf69a1",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml": "757ec86c9adbee6f78023660a11a6a887e150a79a28805e1421d698e4dcb2f31",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md": "4304a8c5d05658b8c6fd3850f3f05d990b94240e1aece722c5e67bc97b3ea984"
+  },
+  "followup_fc08": {
+    "finding": "FC08-F1 scope extension: publication branch finalized the job directly and mapped report complete to incident resolved, duplicating FC05 terminal reconciliation.",
+    "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+    "change": "Removed direct controller.finalize_job and incident_status selection from run_daily_report_publication_stage. Successful publication persists sidecar path/hash to workflow.state and returns complete for the stage; FC05 reconcile_workflow_terminal is sole terminal finalizer.",
+    "source_sha256": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "target_manifest_sha256": "de9180302e02731c1ef1cd4d5576dae245fc121aae08f394f503e9b6b331e583",
+    "static_check": "PASS: py_compile and AST boundary assertions",
+    "focused_tester": "pending FC07 publication interruption/failure and terminal ownership cases",
+    "independent_review": "pending fresh review on current target manifest",
+    "production_execution": "not performed"
+  }
+}

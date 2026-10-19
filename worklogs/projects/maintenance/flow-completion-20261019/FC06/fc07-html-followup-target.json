@@ -1,0 +1,46 @@
+{
+  "schema_version": "fc06-html-followup-review-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "review_status": "pending_independent_followup_review_after_fc08_f1",
+  "acceptance_status": "not_claimed",
+  "source_files_sha256": {
+    "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+    "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "docs/standards/イナゴ日次不具合レポート作成ルール.md": "0b292b48d5ed2a664528a1162b70893ca7d369a72ae43c658bad26bbf167fe81",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "f2189271d0f85f5c0be4968ed4f62adba7c8552689b26b31336a2d0ed42fba3f",
+    ".agents/skills/rr-inago-incident-report/SKILL.md": "f8b2221c4d4bc262215c088c9200faaf1bef4b5331078f76003fa7f440807d19",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "cb2a4a1c0cee6a652981fd28c3175f8fd9d1a00d197b3e468952742eca0921d6",
+    ".codex/agents/rr-inago-incident-reporter.toml": "0b54967948794fca8664747d79ba9a86c358226aa932c05313004c60718b74ba",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml": "afb9d33a5cee9bac07f9995e4a2c1d6ee23d17f6190278e59626535f1f913ad7",
+    "automation/inago/schemas/maintenance-report-response.schema.json": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+    "automation/inago/schemas/maintenance-report-review.schema.json": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+    "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html": "31ecb4e0d115b3fd82cfa789e5cf3862a5e126f1e0a663d91e3336eeeeb2c8d4",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html": "751bafa96778e878e3cea113b4d9e64c6758fa83f983ce4b6815af7bde881059",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html": "514db4f1fd61b03201f231074c4a871cf669df0a30765d676ec49f235eb10ff8",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html": "1171f80698567fe6ae19b041944d7d4f19b9f01846e15e9d6272cd68facdd66b",
+    "automation/inago/maintenance/workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c",
+    "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md": "c503f5506de8758f8875b407f95e968daeb228d8d6fd2b9156ee38fb464e6346"
+  },
+  "review_prompt": "production_workflow.py:_daily_report_review_prompt",
+  "author_prompt": "production_workflow.py:_daily_report_prompt",
+  "scope": "FC07 からの7件の文章review指摘を受けた修正版4 HTML例、fallback renderer、reporter/reviewer契約。実本番HTMLではなく合成例。 The hashed production_workflow.py also includes the FC07 FCT08 author-wrapper binding and fallback attempt-lease corrections; these changes are not part of an approval claim for the synthetic HTML examples. FC07 follow-up F1-F4 revision: event category, existing evidence references, one bounded real reporter revision with re-review and pending fallback on failure, missing-identity continuation; versioned immutable same-attempt output/review/input artifact paths and reconciliation/schema allowlist. Save whitelist scope extension in investigation.save_attempt_artifact is restricted to five anchored, 20-hex, report-stage-only artifact patterns. R2 findings: final review record is bound to the final hash only when genuinely reviewed; unresolved previous findings stay in the exact response sidecar. Missing input identity uses job/launch-derived artifact-storage context without weakening global context validation. Completed fallback resume reads exact report_input path and hash before restoring. R3-F1: completed fallback restore and published readback preserve truthful rejected/changes_requested review with pending report status; approved is accepted only with complete, unavailable only with review_unavailable+pending. No status is promoted to approval. Focused FC07 status-combination tests and fresh independent review are pending. FC08-F1: report publication persists publication evidence and returns stage completion without finalizing the job or selecting incident resolved/in_progress; FC05 terminal reconciliation is sole finalizer. Owner-map scope extension SHA df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066. Focused interruption/failure test and fresh independent review pending.",
+  "rendering": "HTML source only; browser and print rendering were not performed.",
+  "followup_findings_reference": "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md",
+  "author_check_reference": "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md",
+  "implementation_followup": {
+    "bounded_revision": "One real author invocation receives exact findings, emits a new HTML version, then reviewer is relaunched once. Author failure or repeated findings produces a factual pending/unapproved HTML and proceeds to publication.",
+    "missing_identity": "Report body/input preserve supplied incomplete identity and enumerate missing fields. Artifact context derives only from immutable job row/current launch; global _validate_context remains strict.",
+    "immutable_artifacts": "Fallback HTML/input/review-input/review-response/review paths use content-hash versions within the same attempt. Result path remains stable. save_attempt_artifact whitelist now allows only those five hash-versioned names for report stage; all other stages retain their fixed allowlists.",
+    "acceptance_status": "not_claimed",
+    "review_binding": "Each raw reviewer result stays bound to the HTML path/hash it reviewed. A newly generated final fallback receives a separate unavailable record bound to the final hash.",
+    "resume": "Resume loads exact result.report_input path/hash, validates same job/attempt fixed versioned name, fallback schema/identity/storage identity, output path/hash, and review binding."
+  }
+}

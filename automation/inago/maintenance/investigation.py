@@ -389,6 +389,12 @@ def validate_investigation_response(
         raise InvestigationContractError("investigation_stage_mismatch")
     if data["schema_version"] != INVESTIGATION_RESPONSE_SCHEMA_VERSION:
         raise InvestigationContractError("investigation_schema_version_mismatch")
+    data.setdefault("artifact_origin", "agent")
+    data.setdefault("operation_result", "succeeded")
+    if data["artifact_origin"] not in {"agent", "controller_fallback"}:
+        raise InvestigationContractError("investigation_artifact_origin_invalid")
+    if data["operation_result"] not in {"succeeded", "failed", "unknown", "not_performed"}:
+        raise InvestigationContractError("investigation_operation_result_invalid")
     allowed_evidence = set(job["evidence_refs"])
     if not set(data["evidence_refs"]).issubset(allowed_evidence):
         raise InvestigationContractError("investigation_evidence_ref_not_allowed")
@@ -417,6 +423,49 @@ def validate_investigation_response(
 
     data["status"] = "complete"
     return data
+
+
+def controller_fallback_investigation_response(
+    context: Mapping[str, Any], *, report_markdown: str, failure_reason: str,
+    checked_evidence_refs: list[str] | None = None,
+) -> dict[str, Any]:
+    """Build a valid, explicitly controller-authored unknown investigation."""
+
+    job = _validate_context(context)
+    available = set(job["evidence_refs"])
+    used_refs = [ref for ref in (checked_evidence_refs or []) if ref in available]
+    response = {
+        **{key: job[key] for key in _CONTEXT_FIELDS},
+        "schema_version": INVESTIGATION_RESPONSE_SCHEMA_VERSION,
+        "stage": "investigation",
+        "summary": (
+            "調査役の通常回答を取得できなかったため、確認範囲と不明点を"
+            "管理側が記録しました。根本原因は未確認です。"
+        ),
+        "facts": [],
+        "investigation_limits": [
+            "調査役の正常な構造化応答を取得できませんでした。",
+            f"通常回答の失敗分類: {failure_reason}。例外の詳細は相関ログを参照してください。",
+        ],
+        "non_incident_observations": [],
+        "verification_candidates": [
+            "次の調査担当は利用可能な証拠参照を読み、未確認項目を確認してください。",
+            "原因が確認できない場合は、操作境界の記録を追加する具体案を計画してください。",
+        ],
+        "missing_evidence": [
+            "調査役の通常回答が得られなかったため、内容のある事実一覧は作成できませんでした。"
+        ],
+        "review_required": True,
+        "report_markdown": report_markdown,
+        "evidence_refs": used_refs,
+        "artifact_origin": "controller_fallback",
+        "operation_result": "failed",
+        "fallback_reason_code": failure_reason,
+        "fallback_artifact_refs": [
+            f"{job['job_id']}/{job['attempt_id']}/stage-handoff.json"
+        ],
+    }
+    return validate_investigation_response(response, context)
 
 
 def render_investigation_markdown(
@@ -594,9 +643,14 @@ def save_attempt_artifact(
 
     job = _validate_context(context)
     allowed_names = {
-        "investigation": {"facts.json", "investigation.md", "result.json"},
+        "investigation": {
+            "facts.json", "investigation.md", "result.json", "stage-handoff.json",
+            "controller-fallback.json",
+        },
         "planning": {
             "plan.md",
+            "stage-handoff.json",
+            "controller-fallback.json",
             "repair-scope.json",
             "requirement-step-case-map.json",
             "result.json",
@@ -604,6 +658,7 @@ def save_attempt_artifact(
             "review.md",
         },
         "repair": {
+            "stage-handoff.json",
             "repair-setup.json",
             "implementation-result.json",
             "patch-assessment.json",
@@ -628,7 +683,17 @@ def save_attempt_artifact(
             "report-publication.json",
         },
     }
-    if stage not in allowed_names or filename not in allowed_names[stage]:
+    versioned_report_name = (
+        stage == "report"
+        and re.fullmatch(
+            r"(?:report-fallback-[a-f0-9]{20}\.html|report-input-fallback-[a-f0-9]{20}\.json|review-input-fallback-[a-f0-9]{20}\.json|review-response-fallback-[a-f0-9]{20}\.json|review-fallback-[a-f0-9]{20}\.json)",
+            filename,
+        )
+        is not None
+    )
+    if stage not in allowed_names or (
+        filename not in allowed_names[stage] and not versioned_report_name
+    ):
         raise InvestigationContractError(f"{stage}_artifact_name_invalid")
     if isinstance(content, str):
         encoded = content.encode("utf-8")

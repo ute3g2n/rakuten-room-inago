@@ -1,0 +1,46 @@
+{
+  "finding": "FC02-R01",
+  "revision_version": "fc02-contract-v2",
+  "observed_at": "2026-10-19T14:05:06.612523+00:00",
+  "files": [
+    {
+      "path": ".codex/agents/common-tester.toml",
+      "sha256": "011e00bf09cce7951d2df52249f251433ecb015ab5bd26ed5c37763dc8740a8a"
+    },
+    {
+      "path": ".agents/skills/common-testing/SKILL.md",
+      "sha256": "d66ffdb05b1b6ae23e5fb8795e2934b0697f83852f1ccff10f64799839967e0d"
+    }
+  ],
+  "checks": [
+    {
+      "operation": "targeted forbidden instruction rg",
+      "exit_code": 1,
+      "expected": "1 means no conflicting wording",
+      "stdout": ""
+    },
+    {
+      "operation": "targeted current policy rg",
+      "exit_code": 0,
+      "stdout": ".agents/skills/common-testing/SKILL.md:16:- 計画指定のcaseと完全nodeをfocused local pytestで検証する。新しく追加した計画内nodeの実在確認が必要な場合だけ、そのnodeに絞った最小collectionを行う。関連code/test版が変わった影響nodeは版と理由を記録して再実行し、変更のない既PASSの確認は重複実行しない。\n.agents/skills/common-testing/SKILL.md:27:- planにないtest node、無関係なcollection、全suite、外部サービス、本番remote、日次処理を実行しない。計画内の新規node確認に必要な最小collectionは上記の範囲で行う。\n.codex/agents/common-tester.toml:11:Write or change only test/fixture files assigned to you; run plan-specified focused local pytest nodes. Use minimal collection only when needed to confirm a newly added planned node; do not run unrelated collection, a nested suite, or a full suite. Never change product code, production or daily DB, credentials, Scheduler, settings, public remote, or posts.\n.codex/agents/common-tester.toml:12:Record exact command, timestamps, expected and actual results, exit, node, versions, initial/final counts, JUnit/console, evidence refs, and cleanup. SKIP/XFAIL/ERROR/NOT_RUN/UNVERIFIED are never PASS. Re-execute an impacted planned node when its relevant code or test version changes, recording the version and reason. Do not repeat an unchanged previously PASS node as duplicate evidence. Test-code independent review is not required, and any test result is evidence rather than a downstream gate.\n"
+    },
+    {
+      "operation": "TOML parse / high / focused new-node collection / unchanged PASS / no test-code review / non-gating outcomes",
+      "result": "passed"
+    },
+    {
+      "operation": "FC02 JSON parse",
+      "result": "passed"
+    },
+    {
+      "operation": "targeted git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "prior_review_hashes_preserved": {
+    "independent-review.md": "9f4fd868b2fbd4671415ccd4314b485f1490f8ead4a5ae25d67abafd16d8fb7a",
+    "independent-review.json": "e2d50d9ec97be3aaffc0a22fc7f580dafac4f5961ad9d79c028d093365ed022d"
+  },
+  "product_tests": "NOT_RUN; instruction-only correction",
+  "builder": "NOT_RUN for this revision; tester role/skill are not requirements-source/builder inputs and generated content was not changed"
+}

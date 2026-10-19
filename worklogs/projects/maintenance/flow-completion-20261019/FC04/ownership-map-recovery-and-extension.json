@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "observed_at_jst": "2026-10-19T23:33:10+09:00",
+  "operation": "restore and extend FC04 owner map before fixed-root repair/adapter edits",
+  "source_snapshot": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map-before-repair-root-adjustment.json",
+  "source_snapshot_sha256": "64e4d1a71aa575d94e3a075433827858125fe67df8e73409625ae667736c3b2e",
+  "known_prior_map_sha256": "58eacc30a68f337fa94603749fe395afbbd35b871e8a2dfc0c9f55999b3cdb2c",
+  "prior_map_observation": "The expected current file-operation-owner-map.json was absent when checked. The FC04 adjustment JSON and immutable prior snapshot were preserved; a new map was reconstructed from the snapshot and explicitly extended before dependent edits.",
+  "reconstructed_map_sha256": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f",
+  "operation_count": 97,
+  "added_boundaries": [
+    "FC04 production_workflow repair fixed-root setup/author",
+    "FC04 ai_adapter plan_session fixed-root writer scope",
+    "FC04 ai_adapter _revalidate_write_roots fixed-root scope",
+    "FC05 fixed-root repair test/review/terminal consumers",
+    "FC05 deployment manager/coordinator fixed-root candidate",
+    "FC05 runtime switcher fixed repository path",
+    "FC05 production deployment execution/configuration",
+    "FC06 report publication fixed-root explicit-file publishing",
+    "FC04 ai_adapter MaintenanceAISession._validate_allowed_outputs fixed-root allowlist",
+    "FC04 _daily_repair_author_prompt fixed-root/substantive unknown instruction",
+    "FC06 run_daily_report_stage fixed-root AI cwd/output containment"
+  ],
+  "production_state_changed": false
+}

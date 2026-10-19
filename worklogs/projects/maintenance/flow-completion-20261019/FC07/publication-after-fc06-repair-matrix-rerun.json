@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07pubmatrerun --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\publication-after-fc06-repair-matrix-rerun.junit.xml",
+  "start_jst": "2026-10-20T00:28:48.2934388+09:00",
+  "end_jst": "2026-10-20T00:28:59.1336280+09:00",
+  "exit": 1,
+  "cases": 6,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\publication-after-fc06-repair-matrix-rerun.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\publication-after-fc06-repair-matrix-rerun.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07pubmatrerun",
+  "status": "FAIL"
+}

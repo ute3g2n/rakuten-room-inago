@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS step_attempt_repair_predecessor_all_or_none;

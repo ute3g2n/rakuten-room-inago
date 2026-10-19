@@ -17,6 +17,11 @@ import uuid
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
+from automation.inago.maintenance.failure_journal import (
+    append_failure_event,
+    bind_operation_correlation,
+    current_code_revision,
+)
 from jsonschema import Draft202012Validator, FormatChecker
 
 from automation.inago.maintenance.paths import _has_reparse_point
@@ -131,6 +136,9 @@ _IDENTITY_FIELDS = {
     "parent_key",
     "role_name",
     "artifact_ref",
+    "correlation_id",
+    "operation_id",
+    "code_revision",
 }
 _EVENT_VALUE_FIELDS = {
     "reason_code",
@@ -206,6 +214,7 @@ class DiagnosticWriteResult:
     reason_code: str | None = None
     bytes_written: int = 0
     path: Path | None = None
+    failure_journal_attempted: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -564,16 +573,97 @@ class MaintenanceDiagnosticTrace:
                     "written", bytes_written=len(encoded), path=target
                 )
         except MaintenanceDiagnosticError as exc:
-            return DiagnosticWriteResult("unavailable", exc.code)
-        except (OSError, RetentionError, SafeFileError, ValueError, TypeError):
-            return DiagnosticWriteResult("unavailable", "trace_write_unavailable")
+            self._record_writer_failure(exc, fields, reason_code=exc.code)
+            return DiagnosticWriteResult(
+                "unavailable", exc.code, failure_journal_attempted=True
+            )
+        except (OSError, RetentionError, SafeFileError, ValueError, TypeError) as exc:
+            self._record_writer_failure(
+                exc, fields, reason_code="trace_write_unavailable"
+            )
+            return DiagnosticWriteResult(
+                "unavailable",
+                "trace_write_unavailable",
+                failure_journal_attempted=True,
+            )
 
-    def require_written(self, **event: object) -> Path:
+    def _record_writer_failure(
+        self,
+        error: BaseException,
+        fields: Mapping[str, object],
+        *,
+        reason_code: str,
+    ) -> None:
+        """Capture the original writer exception without using the failed logger."""
+
+        def safe_text(name: str) -> str | None:
+            value = fields.get(name)
+            return value if isinstance(value, str) else None
+
+        append_failure_event(
+            self.data_root,
+            phase="failed",
+            operation=safe_text("operation_id") or "diagnostic_trace.write",
+            correlation_id=safe_text("correlation_id"),
+            parent_operation=safe_text("parent_operation"),
+            job_id=safe_text("job_id"),
+            source_launch_id=safe_text("source_launch_id"),
+            source_run_id=safe_text("source_run_id"),
+            incident_id=safe_text("incident_id"),
+            invocation_id=safe_text("invocation_id"),
+            stage=safe_text("stage"),
+            attempt_id=safe_text("attempt_id"),
+            reason_code=reason_code,
+            error=error,
+            capture_location="diagnostic_trace.MaintenanceDiagnosticTrace.write",
+            primary_sink="maintenance_diagnostic_trace",
+        )
+
+    def require_written(self, **event: object) -> Path | None:
         result = self.write(**event)  # type: ignore[arg-type]
         if result.status != "written" or result.path is None:
-            raise MaintenanceDiagnosticError(
-                result.reason_code or "trace_write_unavailable"
-            )
+            if not result.failure_journal_attempted:
+                append_failure_event(
+                    self.data_root,
+                    phase="fallback",
+                    operation=str(event.get("operation_id") or "diagnostic_trace.write"),
+                    correlation_id=(
+                        str(event["correlation_id"])
+                        if event.get("correlation_id") is not None
+                        else None
+                    ),
+                    job_id=(str(event["job_id"]) if event.get("job_id") is not None else None),
+                    source_launch_id=(
+                        str(event["source_launch_id"])
+                        if event.get("source_launch_id") is not None
+                        else None
+                    ),
+                    source_run_id=(
+                        str(event["source_run_id"])
+                        if event.get("source_run_id") is not None
+                        else None
+                    ),
+                    incident_id=(
+                        str(event["incident_id"])
+                        if event.get("incident_id") is not None
+                        else None
+                    ),
+                    invocation_id=(
+                        str(event["invocation_id"])
+                        if event.get("invocation_id") is not None
+                        else None
+                    ),
+                    stage=str(event.get("stage") or "unknown"),
+                    attempt_id=(
+                        str(event["attempt_id"])
+                        if event.get("attempt_id") is not None
+                        else None
+                    ),
+                    reason_code=result.reason_code or "trace_write_unavailable",
+                    capture_location="diagnostic_trace.MaintenanceDiagnosticTrace.require_written",
+                    primary_sink="maintenance_diagnostic_trace",
+                )
+            return None
         return result.path
 
     def _now(self) -> datetime:
@@ -835,6 +925,10 @@ def audit_maintenance_stage(
             if trace is None:
                 return function(*args, **kwargs)
             fields = _trace_method_fields(function, args, kwargs)
+            correlation_id = uuid.uuid4().hex
+            fields["correlation_id"] = correlation_id
+            fields["operation_id"] = f"{stage}.{function.__name__}"[:128]
+            fields["code_revision"] = current_code_revision()
             trace.require_written(
                 event=start_event,
                 stage=stage,
@@ -843,7 +937,8 @@ def audit_maintenance_stage(
             )
             started = time.monotonic()
             try:
-                result = function(*args, **kwargs)
+                with bind_operation_correlation(correlation_id, trace.data_root):
+                    result = function(*args, **kwargs)
             except Exception as exc:
                 failure_fields = dict(fields)
                 code = getattr(exc, "code", None) or getattr(exc, "reason_code", None)
@@ -855,6 +950,21 @@ def audit_maintenance_stage(
                 failure_fields["duration_ms"] = max(
                     0, int((time.monotonic() - started) * 1000)
                 )
+                append_failure_event(
+                    trace.data_root,
+                    phase="failed",
+                    operation=f"{stage}.{function.__name__}",
+                    correlation_id=correlation_id,
+                    job_id=(str(fields["job_id"]) if fields.get("job_id") is not None else None),
+                    source_launch_id=(str(fields["source_launch_id"]) if fields.get("source_launch_id") is not None else None),
+                    source_run_id=(str(fields["source_run_id"]) if fields.get("source_run_id") is not None else None),
+                    incident_id=(str(fields["incident_id"]) if fields.get("incident_id") is not None else None),
+                    attempt_id=(str(fields["attempt_id"]) if fields.get("attempt_id") is not None else None),
+                    reason_code=(str(failure_fields["reason_code"]) if failure_fields.get("reason_code") is not None else None),
+                    error=exc,
+                    capture_location=f"{function.__module__}.{function.__qualname__}",
+                    primary_sink="maintenance_workflow",
+                )
                 try:
                     trace.require_written(
                         event="stage_failed",
@@ -863,20 +973,22 @@ def audit_maintenance_stage(
                         **failure_fields,
                     )
                 except MaintenanceDiagnosticError as trace_error:
-                    raise MaintenanceAuditReceiptError(
-                        trace_error.code, operation_returned=False
-                    ) from exc
+                    append_failure_event(
+                        trace.data_root,
+                        phase="fallback",
+                        operation="diagnostic_trace.failure_receipt",
+                        correlation_id=correlation_id,
+                        reason_code=trace_error.code,
+                        error=trace_error,
+                        capture_location="diagnostic_trace.audit_maintenance_stage",
+                        primary_sink="maintenance_diagnostic_trace",
+                    )
                 raise
 
-            def require_completion_receipt(**event: object) -> Path:
-                try:
-                    return trace.require_written(**event)
-                except MaintenanceDiagnosticError as trace_error:
-                    raise MaintenanceAuditReceiptError(
-                        trace_error.code,
-                        operation_returned=True,
-                        operation_result=result,
-                    ) from trace_error
+            def require_completion_receipt(**event: object) -> Path | None:
+                event.setdefault("correlation_id", correlation_id)
+                event.setdefault("operation_id", f"{stage}.{function.__name__}"[:128])
+                return trace.require_written(**event)
 
             event_fields = dict(fields)
             event_fields["duration_ms"] = max(

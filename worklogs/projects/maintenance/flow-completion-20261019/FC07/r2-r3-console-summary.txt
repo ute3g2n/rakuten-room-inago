@@ -1,0 +1,21 @@
+Focused FC07 console summaries. JUnit XML is the machine-readable authoritative output.
+
+2026-10-20 01:05:21+09:00
+F1 initial exact node: one failed; assertion showed two extra reporter/reviewer calls because the fixture did not inject the initial author failure. See r2-f1-second-review-binding.junit.xml.
+F2 initial exact node: one failed; fallback returned unknown because the fixture omitted attempts_root and got maintenance_write_root_invalid. See r2-f2-missing-identity.junit.xml and the synthetic failure-journal event under tmp-r2-f2.
+F3 exact reader: . [100%], 1 passed in 0.45s. See r2-f3-reference-reader.junit.xml.
+F3 completed-result reopen: . [100%], 1 passed in 0.40s. See r2-f3-completed-reopen.junit.xml.
+transport_failure: . [100%], 1 passed in 0.98s. See r2-transport-publication.junit.xml.
+
+2026-10-20 01:06:13+09:00 (fixture-corrected focused reruns)
+F1 second fallback review binding: . [100%], 1 passed in 0.98s. See r2-f1-second-review-binding-fixture2.junit.xml.
+F2 missing-identity persistence: . [100%], 1 passed in 0.76s. See r2-f2-missing-identity-fixture2.junit.xml.
+
+2026-10-20 01:08:42+09:00
+R3-F1 rejected fallback restore: . [100%], 1 passed in 0.42s. See r3-f1-rejected-pending-resume.junit.xml.
+R3-F1 changes_requested fallback restore: . [100%], 1 passed in 0.42s. See r3-f1-changes-requested-pending-resume.junit.xml.
+
+2026-10-20 01:11:23+09:00
+Post-R3-F1 exact F3 result.report_input restore regression: . [100%], 1 passed in 0.39s. See r3-f3-exact-input-restore-regression.junit.xml.
+
+All invocations used `.venv-inago\Scripts\python.exe -B -m pytest -q` with one exact node, a unique local `--basetemp`, and a unique `--junitxml`. No production store, worker, queue, public remote, or actual 10/17 job was accessed.

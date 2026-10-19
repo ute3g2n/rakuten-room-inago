@@ -190,6 +190,16 @@
           "maximum": 2147483647
         }
       },
+    "operation_trace": {
+      "type": "object",
+      "properties": {
+        "correlation_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "operation": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "phase": {"enum": ["begin", "end", "failed", "fallback", "interruption_observed"]}
+      },
+      "required": ["correlation_id", "operation", "phase"],
+      "additionalProperties": false
+    },
       "additionalProperties": false
     },
     "retry_summary": {

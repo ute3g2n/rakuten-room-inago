@@ -1,0 +1,1 @@
+pytest exit=1; 1 failed; 0 passed; full console captured in command result/attached JUnit. The failure was the test assertion that publication receives a content-bearing fallback, not an exception escaping the test.

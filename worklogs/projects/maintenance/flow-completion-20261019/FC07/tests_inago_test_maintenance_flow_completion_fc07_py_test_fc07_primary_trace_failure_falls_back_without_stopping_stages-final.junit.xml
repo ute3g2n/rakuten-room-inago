@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.350" timestamp="2026-10-20T00:23:49.895691+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_primary_trace_failure_falls_back_without_stopping_stages" time="0.113"><failure message="AssertionError: assert False&#10; +  where False = is_file()&#10; +    where is_file = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-2/test_fc07_primary_trace_failur0/maintenance/failure-journal.jsonl').is_file">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-2/test_fc07_primary_trace_failur0')
+
+    def test_fc07_primary_trace_failure_falls_back_without_stopping_stages(tmp_path: Path):
+        store, launch, check, queue, lease = _context(
+            tmp_path, primary_trace_failure=True
+        )
+        calls: list[str] = []
+    
+        def runner(stage_name: str):
+            def run(_context):
+                calls.append(stage_name)
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {name: runner(name) for name in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+    
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+        assert outcome.status == "complete"
+        spool = tmp_path / "maintenance" / "failure-journal.jsonl"
+&gt;       assert spool.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/f07-002347-2/test_fc07_primary_trace_failur0/maintenance/failure-journal.jsonl').is_file
+
+tests_inago\test_maintenance_flow_completion_fc07.py:178: AssertionError</failure></testcase></testsuite></testsuites>

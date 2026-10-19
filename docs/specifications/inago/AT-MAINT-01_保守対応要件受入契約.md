@@ -1,6 +1,6 @@
 # AT-MAINT-01 保守対応要件・受入契約
 
-正本：要件定義書HTML 2.49 §27.17。対象：MR-001～029 / MA-001～029。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
+正本：要件定義書HTML 2.50 §27.17～27.18。対象：MR-001～029 / MA-001～029。これは新しい日次不具合対応基盤の補足受入契約であり、既存IR-001～028・AT-001～028・AT-S/AT-A/AT-TRACE/AT-OBS契約を置換しない。計画ケースC01～C67、LC01～LC06、運用受入OP01～OP04との対応は要件正本と実行計画M §10・§11に従う。
 
 ## 共通受入規則
 
@@ -24,7 +24,7 @@
 
 ## U05管理DB・状態実装の対応
 
-管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U21 schema v9、現行コードschema v13）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とは別fileにする。U05/U12の最大review巡回数、active-job枠、release gate、lease/process identityを再開条件にする契約はU23で撤廃した。resume_countとreview履歴は監査値。Migration 013はfull-regressionの実測outcomeをPASS/FAIL/SKIP/ERROR/NOT_RUNのまま保存し、全PASSを後続工程の条件にしない。repair review schemaは`approved/changes_requested/rejected/unavailable`を受け入れ、各statusを結果として保存する。現行CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,resume-worker,release-gate,start-job,finish-job}`。2026-10-19時点のproduction DBはschema v12で、schema v13への更新はU23 deploymentで行う。
+管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U21 schema v9、現行コードschema v15）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とは別fileにする。U05/U12の最大review巡回数、active-job枠、release gate、lease/process identityを再開条件にする契約はU23で撤廃した。resume_countとreview履歴は監査値。Migration 013はfull-regressionの実測outcomeをPASS/FAIL/SKIP/ERROR/NOT_RUNのまま保存し、全PASSを後続工程の条件にしない。repair review schemaは`approved/changes_requested/rejected/unavailable`を受け入れ、各statusを結果として保存する。現行CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,resume-worker,release-gate,start-job,finish-job}`。2026-10-19時点のproduction DBはschema v12で、schema v13への更新はU23 deploymentで行う。
 
 U05の当初受入ではstep承認、active job枠、release gate、review 3巡上限、handoff leaseを要求したが、U23本人指示でjobの起動・再開を止める上限・gate・他job/lease条件を撤廃した。現在は対象job/launch IDを選べば再queueでき、resume_countとreview回数は上限なしの監査値。工程の記録ではresult versionとartifact参照を保持する。U05時点のproduction DB未変更は当時の状態であり、後続U21/U23の適用記録は実行計画/実行記録を参照する。
 
@@ -32,9 +32,9 @@ U05の当初受入ではstep承認、active job枠、release gate、review 3巡�
 
 U07 migrationはmanagement DBをschema v1からv2へ進め、`job_input_manifest`、`maintenance_ai_session`、`maintenance_ai_observation`を加える。job_idで対象jobを選ぶ。`incident_id`/`source_launch_id`/nullable `source_run_id`/`target_date`の欠落・不一致・曖昧さ・nullness不一致はunknownとして記録し、値を推測で補わない。対象jobと作業対象が分かる場合は、これらの欠測を理由にagentを起動前に止めない。manifestとsession設定は記録可能な範囲で保存し、観測はappend-onlyとする。
 
-親Aのroleはgpt-6.1-sol/high/default/Fast disabled、親Bのroleはgpt-6-luna/max/Fastを指定する。role TOMLのdeveloper instructions、設定digest、requested model/effort/tier、基本sandbox modeは記録する。role設定の欠落・不正やmodel/effort/tierの未観測・不一致はfallback可能な設定で起動し、担当の起動条件にしない。Fastはservice_tier="fast"とfeatures.fast_mode=trueで要求する。per-folder access/readOnlyAccess/readableRoots/writableRootsがないことは拒否理由にしない。観測イベントに設定値がない場合はconfigured_unverifiedとし、未観測・不一致を記録するだけで後続stageを止めない。
+親Aのroleはgpt-6.1-sol/high、親Bのroleはgpt-6-luna/highを採用設定候補とし、tier実値は別に観測する。role TOMLのdeveloper instructions、設定digest、requested model/effort/tier、基本sandbox modeは記録する。role設定の欠落・不正やmodel/effort/tierの未観測・不一致はfallback可能な設定で起動し、担当の起動条件にしない。tierの未観測を推測でfast/priorityの対応済みにせず、利用可能な環境既定値を記録する。per-folder access/readOnlyAccess/readableRoots/writableRootsがないことは拒否理由にしない。観測イベントに設定値がない場合はconfigured_unverifiedとし、未観測・不一致を記録するだけで後続stageを止めない。
 
-調査/review roleはreadOnly mode、親Bの実装/試験roleは専用managed worktree cwdでworkspaceWrite modeを使う。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。app-serverへ渡すStructured Outputs schemaは対応subsetへ整形する。固定値はenum等で制約し、objectは全propertyをrequiredにして`additionalProperties:false`を指定する。各turnの返却JSONはhostが元のDraft 2020-12 JSON Schemaで完全検証し、manifestの5項目identityが完全一致することを確認する。server側の構造化出力だけでは完全一致を確定しない。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。親BのGit commandでは継承された`safe.directory`設定をprocess環境内でリセットし、対象jobの検証済みworktreeだけを追加する。他のGit環境設定は維持し、global/system Git設定ファイルやOS ACLは変更しない。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
+調査/review roleはreadOnly mode、親Bの実装/試験roleも唯一の固定workspace C:/project/rakuten-room-inagoで担当file/hunkのみ変更する。CLIのsandboxにper-folder rootsは設定しない。roleのallowed_outputsは作業指示・返却schemaの所有契約であり、OS/CLIのfolder ACLではない。app-serverへ渡すStructured Outputs schemaは対応subsetへ整形する。固定値はenum等で制約し、objectは全propertyをrequiredにして`additionalProperties:false`を指定する。各turnの返却JSONはhostが元のDraft 2020-12 JSON Schemaで完全検証し、manifestの5項目identityが完全一致することを確認する。server側の構造化出力だけでは完全一致を確定しない。host/controllerは管理DBから実行中step attemptを読み、job/source runとの一致を検証する。出力rootは`attempts/<job_id>/<attempt_id>`、worktree rootは`worktrees/<job_id>`に固定し、別job/attemptのrootを拒否する。設定済みrootからjob/attempt directoryまでの各path componentにreparse point（symlink/junctionを含む）がなく、解決後もroot配下であることを起動計画時・turn前・保存時に再検証する。これはCLIのfolder ACLを設定する要件ではなく、hostがroot外へのpath aliasを拒否するための確認である。allowed_outputsはAIの直接書込権限ではなく、親Bの実装/試験roleはmanaged worktree相対、それ以外は当該attempt output相対の安全なパスだけを受け付ける。Windowsで無効な文字、末尾ドット/空白、予約デバイス名、正規化後に衝突するpathは拒否する。host/controllerは`maintenance-ai-response-v1` envelopeにidentity、attempt_id、role/config digest、allowed_outputs、thread/turn、観測状態、検証済みresponseを束ね、当該attempt output rootへ新規JSONとして原子的に保存し、path/hashを返す。親BのGit commandでは継承された`safe.directory`設定をprocess環境内でリセットし、対象jobの検証済みworktreeだけを追加する。他のGit環境設定は維持し、global/system Git設定ファイルやOS ACLは変更しない。Bはhandoff/release前にworktree diffを宣言済みownerと照合し、範囲外変更を未承認として次へ渡さない。sandbox全面解除や日次T02への権限流用はしない。親セッション実接続のLC01/LC02はU18で一度確認し、U07の隔離試験を実モデル適用済みと数えない。app-server transport JSONLのfield/pathと日次L02との分離は[AT-TRACE-01](AT-TRACE-01_共通トレース契約.md)に定義する。
 
 Windowsのhost-created managed worktreeでは、app-serverのcommand runnerが親プロセスのGit環境変数を子commandへ引き継がない場合がある。Gitが所有者SIDの不一致を報告したときだけ、controller-bound attemptの正確なworktree rootを`git -c safe.directory=<worktree root>`で該当commandに指定する。これはそのGit invocationだけの設定であり、`--global`、wildcard、Git設定ファイル、OS ACLは変更しない。
 
@@ -206,11 +206,11 @@ U23 migration `010_historical_job_resume_events.sql`はhistorical jobの再開�
 
 ## U21 reportの公開・job/incident終端・再開
 
-report公開は利用可能なreportとtarget情報で試みる。review approved、deployment済み、全inputの承認状態を公開条件にしない。statusや欠測はreportに記録する。公開結果は`attempts/<job_id>/<attempt_id>/report-publication.json`に保存し、report path/hash、target commit、source code commit、publication commit/base、remote/branch、観測時刻を記録する。credentialやHTML本文はこの公開結果へ含めない。公開は報告書HTMLだけを通常pushする。公開操作が実行できない場合は未公開理由を記録し、stage全体を停止させない。
+report公開は利用可能なreportとtarget情報で試みる。review approved、deployment済み、全inputの承認状態を公開条件にしない。statusや欠測はreportに記録する。公開結果は`attempts/<job_id>/<attempt_id>/report-publication.json`に保存し、report path/hash、target commit、source code commit、publication commit/base、remote/branch、観測時刻を記録する。credentialやHTML本文はこの公開結果へ含めない。公開は報告書HTMLだけを通常pushする。公開操作が実行できない場合は具体的なreason codeを保ち、例外連鎖・捕捉位置・相関ID・入力/成果物参照をfailure journalと工程handoffへ記録する。将来のstage resultとしてblockedを返さず、unknownまたはfailedで終端照合と後続処理を続ける。
 
-push後・publication artifact保存前に停止した場合は、利用可能なremote historyを見て既存publicationを再利用する。不一致や対象不明で公開操作を再開できない場合はその操作だけ未公開として記録し、report結果は保存して他の工程を止めない。report publicationの可否と障害解消状態を混同せず、それぞれの実測statusを保存する。job/worker queueの終端statusは全stageを試行した結果として記録し、stageのapproved/readiness/release gateを終端条件にしない。
+push後・publication artifact保存前に停止した場合は、利用可能なremote historyを見て既存publicationを再利用する。不一致や対象不明で公開操作を再開できない場合はその操作だけ未公開として記録し、汎用理由へ置換せず具体的reason codeを保持する。report結果は保存して他の工程を止めない。report publicationの可否と障害解消状態を混同せず、それぞれの実測statusを保存する。job/worker queueの終端statusは全stageを試行した結果として記録し、stageのapproved/readiness/release gateを終端条件にしない。
 
-U23の現行終端対応は次のとおり。`report.status=complete`だけをjob `complete`・incident `resolved`・Worker成功として記録する。`pending`はartifactを保持してjobを`blocked`（`report_status_pending`）、incidentを`in_progress`、workflowを`waiting`として記録し、Workerは`maintenance_incomplete`を返す。`blocked`はartifactを保持してjob/incidentを`blocked`（job reason `report_status_blocked`）とし、Workerは`maintenance_incomplete`を返す。すでにcompleteのjobへpending/blockedの報告を訂正する場合も、この2 reasonに限りjobをblockedへ訂正する。いずれのstatusも次工程や報告のgateにしない。
+FC02の現行対応は工程の引継ぎ完了、個別操作の成否、公開、workflow完遂とincident解消を別に記録する。内容ある通常/fallback成果を保存して次担当を実起動し、旧pending/blockedを将来stageへ伝播しない。必須成果・公開版・終端read-backが揃った場合だけフロー完遂とし、原因や回復が不明ならincident_resolutionをunknown/unresolvedのまま保つ。公開未達なら原因と同一job再開位置を残して公開・終端整合操作を続ける。
 
 ## U23.08 日次障害の診断・計装
 
@@ -221,3 +221,37 @@ failure logはrollbackと業務failure resultの組立後にbest-effortで出力
 ## U02の確認範囲
 
 U02では本契約と要件対応を静的に確認し、HTML正本を再生成する。アプリテスト・実モデル適用・実Scheduler変更・本番日次・10/17障害の原因調査は対象外。実装と実運用の合否は、それぞれ計画上の後続STEP/LC/OPで証拠を得る。
+
+## FC02 全工程完遂・失敗追跡の現行契約（2026-10-19）
+
+要件正本HTML 2.50 §27.18と承認実行計画1.2のFC-R01～10/FC-A01～10を局所対応として追加する。既存MR/MAを新規承認IDへ置換しない。旧U05～U23のblocked/approval/worktree/incident resolved結合は旧仕様履歴であり、現行は次の契約を使う。
+
+- `stage_progress=pending/running/completed`、`operation_result=succeeded/failed/not_performed`、`content_result=confirmed/unknown/partial/no_change`、`artifact_origin=agent/controller_fallback`を分離する。新規stageにblockedを返さず、raw旧履歴は改変しない。
+- 全stageは内容ある成果/handoffを保存し次専門担当を実起動する。FAIL/unknown/review/test/readiness/release/receipt/lease/回数/実設定観測で後続を止めない。個別操作不能だけ理由付き未実施とする。
+- `workflow_completion`、公開結果と版、`incident_resolution`、元daily結果は別に保持する。原因/業務回復unknownのままflow完遂可能だが、公開・必須成果永続登録・終端read-backなしでcompleteにしない。job completeからincident resolvedを推論しない。
+- 全失敗はoperation、cause/context連鎖と安全なstack frames、発生/捕捉位置、code revision、相関ID、input/output refsへ結ぶ。例外本文・SQL/値・秘密/個人情報は除外する。通常logger失敗は独立fallback spoolへ保存して本処理を続け、復帰時に追記照合する。begin-only中断と全sink喪失区間は検出時にunknown/abnormal_endを追記する。
+- 通常/最小HTMLとも実reporterと独立reviewerを起動し、指摘は原作者が修正する。本文は平易に、技術記号は付録へ置く。公開版/hash/review/commit/remote/DB/finished_atを同一jobで照合する。テストコードの独立reviewは行わない。
+- 固定workspace `C:/project/rakuten-room-inago`、10/17同一job/launch/null run、10/19除外、全role effort highを維持する。model/tier実観測欠測を起動gateにしない。FC02作成時点ではschema13がFC01実測、014はsource追加予定で本番未適用だった。FC02は文書とrole設定だけを同期し、製品成功/受入PASSとはしない。
+
+詳細field・責務・case・所有は `worklogs/projects/maintenance/flow-completion-20261019/FC02/` のcontract-decision、stage-output-matrix、schema-change-list、file-operation-owner-map、requirement-step-case-mapを参照する。FC03～06は実装と同じSTEPで本文/schema/skills/図の変更を同期する。
+
+## FC03 実装済みの失敗記録・再開契約
+
+保守stageは相関ID、親operation、job/launch/run/incident/attempt、operation、開始/終了/失敗、実行版、例外class連鎖、コード位置、入力/成果物参照を記録する。例外本文、SQL/値、投稿、認証情報、個人情報は記録しない。通常診断ログの書込失敗は元処理を止めず、DBが使えない場合も通常loggerに依存しない独立journalへ記録する。次の起動ではjournalの未完beginを中断観測として追記し、fallback記録を管理DBへ冪等に照合する。source_run_idはnullを含め入力値を維持する。実装は管理DB schema 14の新規append-only event表と014 migration sourceを追加した段階で、本番適用は後続STEPで行う。
+
+
+### FC04 調査・計画・実装の成果引継ぎ
+
+調査担当の実行失敗や空・不正応答、証拠不足でも、確認できた事実と調べた範囲、不明な点、次の確認を含む9章の調査成果を保存して計画担当を実起動する。controllerが代替文書を作った場合は担当AIの成果と区別する。計画担当は原因修正または次回の原因特定に役立つ記録追加の具体策を出し、両方ができない場合も変更しなかった理由を平易なHTMLにする手順を残す。調査や計画の失敗を将来stageのblocked結果にせず、必須対象が識別できる限り後続を続ける。修正担当は固定されたリポジトリroot内で作業し、別checkout/worktreeを作らない。
+
+### FC05 試験・レビュー・反映と終端の継続
+
+修正候補や試験入力が不足しても、試験結果は `NOT_RUN` と理由を成果物へ保存する。試験が実行できなかった事実を、レビュー担当の起動条件にしない。レビュー担当は利用できる差分または不足を示す成果を確認し、確認不能ならその理由を記録する。反映操作も同様に、現行版の確認または未実施理由を残して報告工程へ渡す。公開・工程完遂・障害解消は別々に記録し、原因や業務回復が不明ならincidentを解決済みにしない。
+
+## FC06: reportの内容と継続
+本文だけで「何が起きた/調べた/変えた/不明/次」を理解できる平易な日本語を使い、内部値は参考付録へ置く。reporter失敗時は最小HTMLを同一job/attemptへ保存し、実report reviewerへ渡す。review所見は作者が反映し、review不能でも未承認を正直に残して公開を試す。公開完了とincident解決を分ける。
+## FC09 schema v15のソース・適用確認
+
+現行コードはmigration 014でappend-only operation event表を追加し、migration 015でrepair predecessorがない場合を許すためall-or-none insert triggerだけを削除する。immutable-pin triggerは維持する。隔離DBではschema v14からv15へ更新し、pinなしrepair attemptを作れることを確認する。FC09のproduction適用では固定workspace内の既存DBを公式CLIで移行し、backup、`quick_check`、version・migration記録・両triggerをread-backする。
+
+2026-10-20の適用前 read-only確認ではproduction DBはschema v13で`quick_check=ok`、migration 001～013が記録されていた。対象jobは同一job・launch、`source_run_id=null`、status running、resume_count 8だった。この値は移行前観測であり、適用後の結果はFC09実行記録に記録する。FC01のschema13観測やFC03のschema14 source追加時点を現在状態として読み替えない。

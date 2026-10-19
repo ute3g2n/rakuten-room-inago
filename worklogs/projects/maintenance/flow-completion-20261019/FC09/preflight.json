@@ -1,0 +1,106 @@
+{
+  "record": "FC09 current pre-apply observation",
+  "observed_at": "2026-10-20T01:45:35+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "git": {
+    "branch": "main",
+    "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "upstream": "origin/main"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "runtime": {
+    "database": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "quick_check": "ok",
+    "application_id": 1229866829,
+    "user_version": 13,
+    "schema_migrations": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "job_readback": {
+      "status": "running",
+      "resume_count": 8,
+      "source_run_id": null
+    },
+    "config_path": "rakuten-room-inago/runtime/config/settings.json",
+    "config_sha256": "ccbd9c2af0c7118ff3c6f683e2e6e1c0c5149aebcda6b0320f2d562c4db680d8",
+    "switch_state": {
+      "status": "active",
+      "active_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+      "active_root": "C:/project/rakuten-room-inago",
+      "pending": null
+    },
+    "maintenance_cli_processes": [],
+    "worker_dispatch_excluded_dates": [
+      "2026-10-19"
+    ],
+    "queue_or_scheduler_write": "none"
+  },
+  "commands": [
+    {
+      "command": "python -m automation.inago.maintenance.cli --data-root rakuten-room-inago/runtime preflight --environment production --config rakuten-room-inago/runtime/config/settings.json",
+      "exit_code": 1,
+      "stdout": "{\"reason_code\":\"maintenance_schema_version_mismatch\",\"status\":\"blocked\"}",
+      "interpretation": "Pre-migration schema observation only; no future stage result or downstream gate."
+    },
+    {
+      "command": "python -m automation.inago.maintenance.cli --data-root rakuten-room-inago/runtime status",
+      "exit_code": 1,
+      "stdout": "{\"reason_code\":\"database_schema_unrecognized\",\"status\":\"error\"}",
+      "interpretation": "Expected read-only CLI cannot interpret schema 13 using source schema 15; continue with formal approved migration path."
+    },
+    {
+      "command": "SQLite read-only PRAGMA quick_check, application_id, user_version; schema_migration and target job query",
+      "exit_code": 0,
+      "result": "quick_check=ok; user_version=13; migrations 1-13; target job running/resume_count=8/source_run_id=null"
+    }
+  ],
+  "no_production_mutation": true,
+  "continuation_observation": {
+    "observed_at": "2026-10-20T01:51:46+09:00",
+    "read_mode": "SQLite URI mode=ro",
+    "job_identity_chain": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "job_status": "running",
+      "resume_count": 8,
+      "check_status": "abnormal",
+      "check_reason_code": "historical_daily_failure_observed",
+      "manifest_identity_matches": true,
+      "daily_launch_rows": 0,
+      "target_launch_worker_queue_rows": 0
+    },
+    "unrelated_excluded_queue": {
+      "target_date": "2026-10-19",
+      "count": 1,
+      "status": "queued",
+      "processed": false
+    },
+    "supported_resume_interface": "worker --once --source-launch-id historical-9e7f0c175cc4c874c955a5dab29c4427; no separate resume command exists",
+    "read_only_historical_loader": {
+      "result": "not_performed",
+      "reason": "Source schema 15 refuses production schema 13 until official migration; no write was attempted."
+    },
+    "production_mutation": false
+  }
+}

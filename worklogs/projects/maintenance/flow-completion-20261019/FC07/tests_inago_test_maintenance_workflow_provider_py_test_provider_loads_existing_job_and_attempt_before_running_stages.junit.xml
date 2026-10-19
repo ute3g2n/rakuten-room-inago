@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.638" timestamp="2026-10-20T00:18:35.750419+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_provider_loads_existing_job_and_attempt_before_running_stages" time="0.351"><failure message="AssertionError: assert 'unknown' == 'blocked'&#10;  &#10;  - blocked&#10;  + unknown">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-20261020-001833/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages/test_provider_loads_existing_j0')
+
+    def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path):
+        store = make_store(tmp_path)
+        launch_id = "launch-u21-0301"
+        incident_id = create_incident(store, launch_id=launch_id)
+        create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id="release-u21-0301",
+        )
+        check = store.get_daily_check_by_launch(launch_id)
+        assert check is not None
+        launch = DailyLaunchRecord(
+            source_launch_id=launch_id,
+            target_date="2026-10-17",
+            owner_pid=9401,
+            started_at=BASE_TIME.isoformat(),
+            status="complete",
+            child_pid=9402,
+            source_run_id=None,
+            exit_code=4,
+            completed_at=BASE_TIME.isoformat(),
+            result_json=None,
+            owner_start_time=BASE_TIME.isoformat(),
+            child_start_time=BASE_TIME.isoformat(),
+        )
+        queue = WorkerQueueRecord(
+            queue_id="queue-u21-0301",
+            source_launch_id=launch_id,
+            worker_job_id="worker-u21-0301",
+            target_date="2026-10-17",
+            status="queued",
+            check_id=check.check_id,
+            claim_owner_id=None,
+            claim_generation=None,
+            claimed_at=None,
+            completed_at=None,
+            reason_code=None,
+            created_at=BASE_TIME.isoformat(),
+            updated_at=BASE_TIME.isoformat(),
+        )
+        lease = store.acquire_lease(
+            lease_key="maintenance:provider-test",
+            owner_id="provider-test",
+            owner_pid=9403,
+            owner_start_time=BASE_TIME.isoformat(),
+            now=BASE_TIME,
+            ttl_seconds=90,
+        )
+        store.begin_step_attempt(
+            job_id="job-release-u21-0301",
+            step_key="maintenance_investigation",
+            sequence=1,
+            lease=lease,
+            started_at=BASE_TIME,
+        )
+    
+        stage_calls = []
+    
+        def runner(stage_name):
+            def run(context):
+                stage_calls.append(stage_name)
+                if stage_name == "investigation":
+                    assert context.resume_state.job is not None
+                    assert context.resume_state.job.job_id == "job-release-u21-0301"
+                    attempt = context.resume_state.latest_attempts_by_sequence[1]
+                    assert attempt.step_key == "maintenance_investigation"
+                    assert attempt.status == "running"
+                if stage_name == "report":
+                    return WorkflowStageResult(
+                        status="blocked", reason_code="report_inputs_unavailable"
+                    )
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        provider = MaintenanceWorkflowProvider(
+            store,
+            {stage: runner(stage) for stage in WORKFLOW_STAGE_ORDER},
+        )
+        outcome = provider(launch, check, queue, lease, threading.Event())
+    
+&gt;       assert outcome.status == "blocked"
+E       AssertionError: assert 'unknown' == 'blocked'
+E         
+E         - blocked
+E         + unknown
+
+tests_inago\test_maintenance_workflow_provider.py:146: AssertionError</failure></testcase></testsuite></testsuites>

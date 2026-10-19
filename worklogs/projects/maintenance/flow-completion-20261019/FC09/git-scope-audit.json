@@ -1,0 +1,2051 @@
+{
+  "schema_version": "task-owned-git-scope-audit-v1",
+  "observed_at_jst": "2026-10-20T01:57:05+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "branch": "main",
+  "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "tracking": "origin/main",
+  "baseline_worktree": "clean at task handoff",
+  "stash_inventory": "1 existing stash entry observed and preserved; no stash operation was run",
+  "counts_excluding_this_audit_file": {
+    "staged": 0,
+    "unstaged_tracked": 71,
+    "untracked": 334,
+    "total": 405
+  },
+  "scope": "All listed paths are task-owned FC01-FC09 changes since the clean handoff. No unrelated path was observed. Ignored pytest scratch was kept separately and is not staged.",
+  "excluded_preserved_path": "非公開作業データ/FC09-cleanup/20261020",
+  "excluded_preserved_inventory": {
+    "directories": 40,
+    "files": 2426,
+    "bytes": 24646534
+  },
+  "audit_file_self_reference": "This audit file is intentionally excluded from its own per-file hash list.",
+  "entries": [
+    {
+      "path": ".agents/skills/common-execution-planning/SKILL.md",
+      "git_status": " M",
+      "sha256": "911fd9447b9d939ad9af42b80e0978aa074e9f9e1a3acb18a2210e1663257b6e"
+    },
+    {
+      "path": ".agents/skills/common-execution-planning/references/contracts.md",
+      "git_status": " M",
+      "sha256": "c18d93782792e384b420afe9b76285bdcef4b885bff35288aeecf7a809ae58a4"
+    },
+    {
+      "path": ".agents/skills/common-implementation/SKILL.md",
+      "git_status": " M",
+      "sha256": "cbbbfe7b9c08ec5c3c2bee964f43cdcdff4801b4da547c76ac8fc0d56ab75871"
+    },
+    {
+      "path": ".agents/skills/common-implementation/references/contracts.md",
+      "git_status": " M",
+      "sha256": "6190e72e7d37a0c3ac4b90ffb2c690c5b4db66c6f6e0c8d2422f0dd0dd3b2806"
+    },
+    {
+      "path": ".agents/skills/common-review/SKILL.md",
+      "git_status": " M",
+      "sha256": "e1e40cee683d4822fd2ebb848b97f317a1a17311e3bfea04882ee5039121feff"
+    },
+    {
+      "path": ".agents/skills/common-review/references/contracts.md",
+      "git_status": " M",
+      "sha256": "a003a88988568866af5e9eade12bbd24b8cf202d0f5b9a3b8f8f654aa3e73c38"
+    },
+    {
+      "path": ".agents/skills/common-testing/SKILL.md",
+      "git_status": " M",
+      "sha256": "427361eeafcc89aa6782ff11375a0a333a9bf3fdd2324d0998274e558b19ff18"
+    },
+    {
+      "path": ".agents/skills/common-testing/references/contracts.md",
+      "git_status": " M",
+      "sha256": "ccf211460ede712c7b7fa66aea0a252fa633ef2ad943bc582ab728c1b8d2e70f"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-investigation/SKILL.md",
+      "git_status": " M",
+      "sha256": "bd56d28ef355c968205e420b44990275ca3682c0fd63cf4cd4547a48aab43172"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+      "git_status": " M",
+      "sha256": "0330bec98c0083a818a448c127de0318897595d115e86365f0c96c5c019441e1"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-report/SKILL.md",
+      "git_status": " M",
+      "sha256": "f8b2221c4d4bc262215c088c9200faaf1bef4b5331078f76003fa7f440807d19"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-report/references/contracts.md",
+      "git_status": " M",
+      "sha256": "cb2a4a1c0cee6a652981fd28c3175f8fd9d1a00d197b3e468952742eca0921d6"
+    },
+    {
+      "path": ".codex/agents/common-execution-plan-reviewer.toml",
+      "git_status": " M",
+      "sha256": "c3d1526d279172fc6b91baa7f3974a8d1fefca7b7bf746625be5ac393040236d"
+    },
+    {
+      "path": ".codex/agents/common-execution-planner.toml",
+      "git_status": " M",
+      "sha256": "41e288add0af5300fd7c1d24033364ffb22a16f6169cf64ff3131a4407d592ef"
+    },
+    {
+      "path": ".codex/agents/common-implementer.toml",
+      "git_status": " M",
+      "sha256": "3dfea859e36835688c789250c80236a86bd81a4fe88a07a2c74764e0d7aa78e2"
+    },
+    {
+      "path": ".codex/agents/common-reviewer.toml",
+      "git_status": " M",
+      "sha256": "583efaadd630aa649c97e19b2969c2cb0e42c5ee5a32f6a855266b10f82897e0"
+    },
+    {
+      "path": ".codex/agents/common-tester.toml",
+      "git_status": " M",
+      "sha256": "5d1a64e624cfd5381b9143594dbfbe653d242848b5fe1478ef6e445f428a3c87"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+      "git_status": " M",
+      "sha256": "07570907b5fadf0216c2a4be5f74bdac3009edad68818a78a1363376bff301a6"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-investigator.toml",
+      "git_status": " M",
+      "sha256": "6fa8e4739da3b7c7adbf9003eaeea5a4061164fea1d3fd596497b598e5653e5f"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-report-reviewer.toml",
+      "git_status": " M",
+      "sha256": "afb9d33a5cee9bac07f9995e4a2c1d6ee23d17f6190278e59626535f1f913ad7"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-reporter.toml",
+      "git_status": " M",
+      "sha256": "0b54967948794fca8664747d79ba9a86c358226aa932c05313004c60718b74ba"
+    },
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "git_status": " M",
+      "sha256": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac"
+    },
+    {
+      "path": "automation/inago/maintenance/cli.py",
+      "git_status": " M",
+      "sha256": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441"
+    },
+    {
+      "path": "automation/inago/maintenance/code_revision.py",
+      "git_status": "??",
+      "sha256": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f"
+    },
+    {
+      "path": "automation/inago/maintenance/controller.py",
+      "git_status": " M",
+      "sha256": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0"
+    },
+    {
+      "path": "automation/inago/maintenance/deployment.py",
+      "git_status": " M",
+      "sha256": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443"
+    },
+    {
+      "path": "automation/inago/maintenance/diagnostic_trace.py",
+      "git_status": " M",
+      "sha256": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2"
+    },
+    {
+      "path": "automation/inago/maintenance/failure_journal.py",
+      "git_status": "??",
+      "sha256": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c"
+    },
+    {
+      "path": "automation/inago/maintenance/investigation.py",
+      "git_status": " M",
+      "sha256": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2"
+    },
+    {
+      "path": "automation/inago/maintenance/paths.py",
+      "git_status": " M",
+      "sha256": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72"
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "git_status": " M",
+      "sha256": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e"
+    },
+    {
+      "path": "automation/inago/maintenance/report_fallback.py",
+      "git_status": "??",
+      "sha256": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36"
+    },
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "git_status": " M",
+      "sha256": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a"
+    },
+    {
+      "path": "automation/inago/maintenance/runtime_switcher.py",
+      "git_status": " M",
+      "sha256": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b"
+    },
+    {
+      "path": "automation/inago/maintenance/safe_file.py",
+      "git_status": " M",
+      "sha256": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac"
+    },
+    {
+      "path": "automation/inago/maintenance/settings.py",
+      "git_status": " M",
+      "sha256": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+      "git_status": "??",
+      "sha256": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+      "git_status": "??",
+      "sha256": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6"
+    },
+    {
+      "path": "automation/inago/maintenance/stage_handoff.py",
+      "git_status": "??",
+      "sha256": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a"
+    },
+    {
+      "path": "automation/inago/maintenance/store.py",
+      "git_status": " M",
+      "sha256": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6"
+    },
+    {
+      "path": "automation/inago/maintenance/worker.py",
+      "git_status": " M",
+      "sha256": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_provider.py",
+      "git_status": " M",
+      "sha256": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_reconciliation.py",
+      "git_status": "??",
+      "sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-check-response.schema.json",
+      "git_status": " M",
+      "sha256": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-check-result.schema.json",
+      "git_status": " M",
+      "sha256": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "git_status": " M",
+      "sha256": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "git_status": " M",
+      "sha256": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+      "git_status": " M",
+      "sha256": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-evidence.schema.json",
+      "git_status": " M",
+      "sha256": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-investigation-response.schema.json",
+      "git_status": " M",
+      "sha256": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "git_status": " M",
+      "sha256": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "git_status": " M",
+      "sha256": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "git_status": " M",
+      "sha256": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "git_status": " M",
+      "sha256": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "git_status": " M",
+      "sha256": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-response.schema.json",
+      "git_status": " M",
+      "sha256": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-result.schema.json",
+      "git_status": " M",
+      "sha256": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-review.schema.json",
+      "git_status": " M",
+      "sha256": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-settings.schema.json",
+      "git_status": " M",
+      "sha256": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+      "git_status": "??",
+      "sha256": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92"
+    },
+    {
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "git_status": " M",
+      "sha256": "0893bc1e3a466f92ac0b3c13db0a43a2958a8967d9c2cbc316dcb3e297deca5e"
+    },
+    {
+      "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "git_status": " M",
+      "sha256": "76276a148e5b896cdf959e221ea9420b410d41da7915f8849d717b5ac5a7cdf7"
+    },
+    {
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "git_status": " M",
+      "sha256": "df93054e85e54c77208b6560aaefff7ba8acdc0423700159425fc28117bd1d19"
+    },
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "git_status": " M",
+      "sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492"
+    },
+    {
+      "path": "docs/specifications/inago/保守運用設定仕様.md",
+      "git_status": " M",
+      "sha256": "a49430fd62410498c1f2223eb4b2d5966dbd8c71719db454f06045bbf8176558"
+    },
+    {
+      "path": "docs/specifications/inago/図解/F12.svg",
+      "git_status": " M",
+      "sha256": "dd06f987d502a52f079cfba81a14cb4e3cee1130312fa54be8d60de0be538aee"
+    },
+    {
+      "path": "docs/specifications/inago/要件データ辞書.md",
+      "git_status": " M",
+      "sha256": "48ac356b2a2667ac32d23f351140cc25e1af4fbebed0e8a424bc80b08a0c3be8"
+    },
+    {
+      "path": "docs/specifications/inago/要件追跡表.md",
+      "git_status": " M",
+      "sha256": "0a27f59ae3679319f1532aad52afda5652c79d720911e86240d75d8fa85f20c3"
+    },
+    {
+      "path": "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+      "git_status": " M",
+      "sha256": "0b292b48d5ed2a664528a1162b70893ca7d369a72ae43c658bad26bbf167fe81"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合修正計画_ひな形.md",
+      "git_status": " M",
+      "sha256": "cd374683761fac076258503ff76c35897a6ae31db1d8dff555a2e8818184d01d"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+      "git_status": " M",
+      "sha256": "f2189271d0f85f5c0be4968ed4f62adba7c8552689b26b31336a2d0ed42fba3f"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合調査レポート_ひな形.md",
+      "git_status": " M",
+      "sha256": "d91dcb764b37dd416041576cc01f2a2b319726bb458d19ccfa042800f6ddb212"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "git_status": " M",
+      "sha256": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e"
+    },
+    {
+      "path": "tests_inago/test_maintenance_flow_completion_fc07.py",
+      "git_status": "??",
+      "sha256": "9b699befdd997bba50f215da1f4c8a2da96eac6225bb08285a7e373b0e9a952e"
+    },
+    {
+      "path": "tests_inago/test_maintenance_integration.py",
+      "git_status": " M",
+      "sha256": "73256df62074beafd06570948ca26eecfa086348dfea11aa4c803f53400dba1d"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "git_status": " M",
+      "sha256": "2409533dd3083b44653e908bdbcf7814be249f7b2e8a469a021db3e10ee1c880"
+    },
+    {
+      "path": "tests_inago/test_maintenance_store.py",
+      "git_status": " M",
+      "sha256": "c97fcc6552dde017bad278af1af5d0f7e9cd8dcf91d3a33c3a3f1e1c3b2573c3"
+    },
+    {
+      "path": "tests_inago/test_maintenance_workflow_provider.py",
+      "git_status": " M",
+      "sha256": "7dbd5e89816f1baee0d432bbc57d92f71c2c70704b3a44ad7ba98bcffc51137e"
+    },
+    {
+      "path": "tools/docs/inago-requirements/flow-descriptions.mjs",
+      "git_status": " M",
+      "sha256": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289"
+    },
+    {
+      "path": "tools/docs/inago-requirements/task-flows.mjs",
+      "git_status": " M",
+      "sha256": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/baseline.md",
+      "git_status": "??",
+      "sha256": "415ea67fd6c4f47282be5d6b71b021a57b702ab26003ca5595a01323126fe556"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/cli-discovery.md",
+      "git_status": "??",
+      "sha256": "c16f4930c44cc1005f2eba394ae369154cd999fad52d32fe2b35603080018e63"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/failure-path-map.md",
+      "git_status": "??",
+      "sha256": "27eb90c06dcd60eda33c12100fb7306990774c734393283b8fa6317e8fffe993"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/follow-up-review.json",
+      "git_status": "??",
+      "sha256": "eca4341ad8be8ae8b7c0c09ed8c7c3455ebcd83942f50f28d1a0636901a90eba"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/follow-up-review.md",
+      "git_status": "??",
+      "sha256": "30dc54d68ef3654b82d4b27a4ca3359149c24174e2761f6749b3e31b8f0c426d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/handoff.json",
+      "git_status": "??",
+      "sha256": "b0c469bbb925f956f9e68c53692136d3599e40a4f3acf37de30cf8058c605572"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/independent-review.json",
+      "git_status": "??",
+      "sha256": "4dcf16040a4b2251ff0dee46b551abca559a10b254c96f094a222588c6d5d1bb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/independent-review.md",
+      "git_status": "??",
+      "sha256": "7935bc5162a1f5d19eb90dbff3e741232320c7cf8f19162211de6e7fe221f893"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/instrumentation-backlog.md",
+      "git_status": "??",
+      "sha256": "a653b02d4e40c157b6ee22759ff4829e846282557e963bd42bb409d5b3300fb2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC01/ownership.md",
+      "git_status": "??",
+      "sha256": "e91ccc0ff92326f86ea5da3f2e6b97f7747a2cef022a9ead480234ffe57e4eef"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/contract-decision.md",
+      "git_status": "??",
+      "sha256": "589c050ff0b7501baa56c43d3ad42046859b8a0358747b1f094125ad93244138"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/execute_contract_sync.py",
+      "git_status": "??",
+      "sha256": "19f2fa39123311d6069cf49904466f354b5a61d96ae82642b1a1b312f86c7641"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/execution-record.md",
+      "git_status": "??",
+      "sha256": "3b5961cbbb6dd3abcd3870d27740731390d5b4935e3893b4044a039a063367c9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/file-operation-owner-map.json",
+      "git_status": "??",
+      "sha256": "58eacc30a68f337fa94603749fe395afbbd35b871e8a2dfc0c9f55999b3cdb2c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/follow-up-review.json",
+      "git_status": "??",
+      "sha256": "86db2d7b87590cf88b2e332d9321cfc451a2b4c921ff248eb964790d6d770cfa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/follow-up-review.md",
+      "git_status": "??",
+      "sha256": "b93b7841ae0267b172cb22b9bde6c7f990a6dc89d46e5507ac2a463df1c2f2b6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/handoff-v1.json",
+      "git_status": "??",
+      "sha256": "35a32c1af426d97728f8d9fed98872dd632fdff2cece58f765a309395415885c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/handoff.json",
+      "git_status": "??",
+      "sha256": "8578a7cca0f42a065ffe311d53dea20cb0208b972c7ea18f460cc59b090c8a46"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/independent-review.json",
+      "git_status": "??",
+      "sha256": "e2d50d9ec97be3aaffc0a22fc7f580dafac4f5961ad9d79c028d093365ed022d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/independent-review.md",
+      "git_status": "??",
+      "sha256": "9f4fd868b2fbd4671415ccd4314b485f1490f8ead4a5ae25d67abafd16d8fb7a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/instrumentation-allocation.md",
+      "git_status": "??",
+      "sha256": "2a1d19d0eb479bf2885ea2a54d2d3a1fd4ed3fb96ef58c4eff22fda343aab03b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks-v1.json",
+      "git_status": "??",
+      "sha256": "24efb055a7c04fd94028a97b4758060d5ce070c306607c7ca5d63f8ba8b4938f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/machine-checks.json",
+      "git_status": "??",
+      "sha256": "52366f3863fa8f0223e7ccef55115190b511833450bb0a600fcd07b09ebc717f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+      "git_status": "??",
+      "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/requirement-step-case-map.json",
+      "git_status": "??",
+      "sha256": "7ce956c75cf0662fb65e13382c6d69203285691ff626e0fc135d26d1b19a101b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/result-v1.json",
+      "git_status": "??",
+      "sha256": "883d9eeab3361e736c201ffd95869810acc312f29ad28169b2d7b0bbf2e2207d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/result.json",
+      "git_status": "??",
+      "sha256": "30421fd60f9d7bc499bf24a17449308ab3aa8a100de9bf79b0f672fbc36bb425"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/revision-fc02-r01.json",
+      "git_status": "??",
+      "sha256": "d86950ec0e15879239fb734e9e9b17409bffe3d2d31b7a7356365bc1645cac4c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/revision-fc02-r01.md",
+      "git_status": "??",
+      "sha256": "b8f05eaf983bf06f73b35e96a24e1acdd7b5beeb460a6c4848ccd7ba4937127d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/role-high-sync-result-v1.json",
+      "git_status": "??",
+      "sha256": "df81f1d7c162960147f22766fb2f85e7cb68f0e6660c95d90e2e6c2f0e8ba469"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/role-high-sync-result.json",
+      "git_status": "??",
+      "sha256": "7e1ad7200632c6d89e4edb273f66f7be1fa2bf9a0dd0ed3f1dbe5ad9bfe8c9fb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/schema-change-list.md",
+      "git_status": "??",
+      "sha256": "85823096d55984bede4f459805fff152d20469bb6e104e6ea04851c8d3d8eb18"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/stage-output-matrix.md",
+      "git_status": "??",
+      "sha256": "465f18c953f2865cae25468241d16aaf8bbea4ff858a80daba4a43bdf322bb36"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/synchronization-evidence-v1.json",
+      "git_status": "??",
+      "sha256": "1ad19444021840f25c8acb37eec8f51eef52bf674045184bcff6f52c63feaddf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/synchronization-evidence.json",
+      "git_status": "??",
+      "sha256": "42d013317b6fa597b96954dba7f608886be38fcd942f93ac6e66e3823a62d2e8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/write-intent.json",
+      "git_status": "??",
+      "sha256": "fa171a16378ce1de6f4bfffbbc28e943b6262d94f3857cba9aee67dfe2fc383a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/checks.json",
+      "git_status": "??",
+      "sha256": "dbc041502911e8e9c2800c1b306a316e62323c45d417bd841d40fdc0ace6b8f6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/execution-record.md",
+      "git_status": "??",
+      "sha256": "a5591f3b9b294c71d4138c1d76ed44956ef04f706ed466b672cd065d48729bfa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/failure-matrix.md",
+      "git_status": "??",
+      "sha256": "3c507a880ea34d072d7c879808a742e59f0a058282343a4a497a9d189986edd7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/fc08-f2-f3-correction.json",
+      "git_status": "??",
+      "sha256": "ae53b9e2891b18052e047facceea9a0dfb24b8e898316e62989a303281966f76"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/handoff.json",
+      "git_status": "??",
+      "sha256": "4a8ca90f803908b1ad7b4d9a29220ca59578f11ce79ecdeb56bb16568be00a2f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/implementation-result.json",
+      "git_status": "??",
+      "sha256": "dd58575bba2d1adf2f97b1ccd9c9758961a407780b69bbcd7d840f348c714f72"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/reference-sanitizer-follow-up.json",
+      "git_status": "??",
+      "sha256": "afe379d554de7c74b27f25573e6b28717dbdbc020c3495292285972b9569320e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/review-followup.json",
+      "git_status": "??",
+      "sha256": "3d3e69e02476dd8d5471b1d931825a1ee3260e863803b772b15a1eb13ab8dcd5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/source-hashes.json",
+      "git_status": "??",
+      "sha256": "4fd9bc530b8e0af3c38a25a786e066b3c85f6b8d5094d6c2a59b28cc55b1a94a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/supplemental-schema-validation.json",
+      "git_status": "??",
+      "sha256": "272e84a4367b0d5c4f4d345b21c326be0682199b21337198b4c36a6cf53330f0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC03/synthetic-event-examples.json",
+      "git_status": "??",
+      "sha256": "54cbcc49bf98b1af7cccf16e437ea27fa6901b077932f1d96b63bb4ac26595b7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/command-attempts.json",
+      "git_status": "??",
+      "sha256": "9ae03744667d5c5672638a6e29eed44930d52680f88882ba4dbcb95bf5d72bbd"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map-before-controller-adjustment.json",
+      "git_status": "??",
+      "sha256": "a45d563c02fa7a0f7fb8ce77a227fa1c9ad69f90c63909fdc000dae6a81455c7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map-before-repair-root-adjustment.json",
+      "git_status": "??",
+      "sha256": "64e4d1a71aa575d94e3a075433827858125fe67df8e73409625ae667736c3b2e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+      "git_status": "??",
+      "sha256": "62ed96b0ec6236e26817cd10c509041b3089ca09ac48d0a8ef225b0d4186d01a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/handoff.json",
+      "git_status": "??",
+      "sha256": "bbfb31182b48643a430d80bddea778f16f7bee0afa882d10a92cd380ff27f198"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/implementation-result.json",
+      "git_status": "??",
+      "sha256": "d2b1927e4a30b91be2d131b99c4492b76595c07ef48fe3465295b4d711cb198d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/ownership-adjustment-repair-root.json",
+      "git_status": "??",
+      "sha256": "e4660d3e1a6519de4e905fd9557bcc8826b2b47aa5607e811760046468cf0c73"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/ownership-adjustment.json",
+      "git_status": "??",
+      "sha256": "800143342f9da30e9dca9e1eec69c131ac70628c89db1ade6d139fb8eb81dcba"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/ownership-map-recovery-and-extension.json",
+      "git_status": "??",
+      "sha256": "824f29dbd8927b870b0d8ca62b1a5dcab7eb807075eedd401a556f4164174d08"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC04/result.json",
+      "git_status": "??",
+      "sha256": "9297368b2d6390a0eaa2d03da7cbd958601940dfd71012107d23daf0856072a3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/diff-summary.md",
+      "git_status": "??",
+      "sha256": "54106d7b440eae6d9dba2866cc181778e1facde3ad62764f66a8d6b122f3f4f7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/handoff.json",
+      "git_status": "??",
+      "sha256": "1391243704c7be4f631b540823e5c752211eead769315b60c4c9f8960a3346ee"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/implementation-result.json",
+      "git_status": "??",
+      "sha256": "0f3c606815a28391ea362005f143fcfd2519381fa2cd1f0d539097203cabe35b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/ownership-adjustment-controller-store.json",
+      "git_status": "??",
+      "sha256": "90502ed6ee919317c0e3f0d8825aecc3f6ec3d4f9e4b5c328b242c9f33e4bb56"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/ownership-adjustment-pin-path.json",
+      "git_status": "??",
+      "sha256": "fac3756614c8c6449e8d3ea9d9b37c73837ac6b06ea17e93d1352efc2e7e408f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/ownership-adjustment-worker-reviewer.json",
+      "git_status": "??",
+      "sha256": "735232b561df1be536403a069127bd8a111794c420c9d418a19b228ee356e96f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/result.json",
+      "git_status": "??",
+      "sha256": "0f3c606815a28391ea362005f143fcfd2519381fa2cd1f0d539097203cabe35b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/review-followup-FC08-F1.json",
+      "git_status": "??",
+      "sha256": "5087887b80d97c8047f837a2626e386d23a7fac2d829cad0c587f8afb37bbc90"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/source-hashes.json",
+      "git_status": "??",
+      "sha256": "b38ebbf986bfcb3b36764375f5d0f378a56bee4e58a6afd0634a817229d137bc"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC05/static-checks.json",
+      "git_status": "??",
+      "sha256": "c7016d91930034ab204ab81bd5ca5feb1a1ebe40c1bb46138ddb73c67dfe9a05"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/diff-summary.md",
+      "git_status": "??",
+      "sha256": "b6db12f88f9f257acd4f9d9d2d32b8ded42a337bd6a20dbb93d810877f037c47"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html",
+      "git_status": "??",
+      "sha256": "751bafa96778e878e3cea113b4d9e64c6758fa83f983ce4b6815af7bde881059"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html",
+      "git_status": "??",
+      "sha256": "514db4f1fd61b03201f231074c4a871cf669df0a30765d676ec49f235eb10ff8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html",
+      "git_status": "??",
+      "sha256": "31ecb4e0d115b3fd82cfa789e5cf3862a5e126f1e0a663d91e3336eeeeb2c8d4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html",
+      "git_status": "??",
+      "sha256": "1171f80698567fe6ae19b041944d7d4f19b9f01846e15e9d6272cd68facdd66b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+      "git_status": "??",
+      "sha256": "de9180302e02731c1ef1cd4d5576dae245fc121aae08f394f503e9b6b331e583"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-review-target.json",
+      "git_status": "??",
+      "sha256": "5152e89598c1a8e69e74ba032d11d513bf12160e427a40412f6e928aca702add"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md",
+      "git_status": "??",
+      "sha256": "3a5533a326f0a6f5ece4a5760870e46b4265663c0c488e9971bc170aedb9264f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md",
+      "git_status": "??",
+      "sha256": "8127bc404f435df21b7bf365df5469f94730b9dca0b796a760201683c3b8420f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/handoff.json",
+      "git_status": "??",
+      "sha256": "b1416dd21546729498d7bda32d2ddfe3ca3b1279b60baa2d0ea006fbaafc5624"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md",
+      "git_status": "??",
+      "sha256": "fec338764411c8100e429ffffdd1b33928724cd4f7fdde87e7c1670e67d9a745"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/publication-handoff.json",
+      "git_status": "??",
+      "sha256": "12ac7658c5216400f68946666e638645069ce6f050eeea13b7ccf84793638c39"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/r3-status-combinations.md",
+      "git_status": "??",
+      "sha256": "d9b351a4ecf169c717da0ba113b48c8e0bf0b098ca29b2d48e48c17509e6c555"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md",
+      "git_status": "??",
+      "sha256": "34cf0a6f1f355c771b3b138d30c1c009363a28b385dad882079e8e8891b80a24"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/result.json",
+      "git_status": "??",
+      "sha256": "f4e2e25de72964144dfb348ac9f3c87ca42b0885d2fbb848143afe3c0e6e702a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/source-hashes.json",
+      "git_status": "??",
+      "sha256": "3db6addeb3fd4fea7ac50d87b5b0b1e24d81470be01b5b7ef72ce90f36983e61"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC06/static-checks.json",
+      "git_status": "??",
+      "sha256": "4321f7958dc8279b16b776e14cb693301110e9807294c3d109ee976f2de2e212"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/case-registry.json",
+      "git_status": "??",
+      "sha256": "0b291dc04d322a139e0215337aaf33efd859161e6429e8aac93a25d983686280"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/diff-check.json",
+      "git_status": "??",
+      "sha256": "5d376d44fa34ac32b972875d0d94e46ef2c5015cbfa8eecbfa60f3fe969b2075"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/execution-record.json",
+      "git_status": "??",
+      "sha256": "e4c1b7cb80dcfdbb53fb7d81f81e297c9a00e37467b3c61d7610ca989a4709cf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/existing-node-results.json",
+      "git_status": "??",
+      "sha256": "b03c6607e1f91f479af6bde91c0353f01fd9ef7fe6114a8dd47dd4032798190f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-final-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "c75eb1542e7949d2bff09311ec2d666b77a4360439f99ae7aaa851878cd8e10a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-final.junit.xml",
+      "git_status": "??",
+      "sha256": "c008c8611a161e641bb6a37c1128bc75b4530909caea2802509755d5f63375e9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "0a26129c3145381b793a8861d01f665e3ec5510b65c7f5546150d71c1c181b6c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r3.junit.xml",
+      "git_status": "??",
+      "sha256": "97cda61b0608e2ea6ab4cbd05ed9e67229a03f19e40fd9aec0aa1cff5db730c4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r4.junit.xml",
+      "git_status": "??",
+      "sha256": "2745a005e9eb9d31f9db5073e44eec72501d44d79f839514890d1c7dfb74ec71"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r5.junit.xml",
+      "git_status": "??",
+      "sha256": "71e62a0adfadfb9e9e439c9313af76016c97042588051a5bb0f16d59f0f66ac3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r6.junit.xml",
+      "git_status": "??",
+      "sha256": "50a63570ee5e6e1233e33fdb6d89bc3ac7a03e9ed48449feeeb833bf6fc27352"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r7.junit.xml",
+      "git_status": "??",
+      "sha256": "d1fdaedef3cc415b9021134a4fdf37be294d868737d8b18e1f9af890488bbfed"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-r8.junit.xml",
+      "git_status": "??",
+      "sha256": "0505bc5b63827381508afc0305f40fa5f6b146f9e298e7b08a3be3919ccdb820"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume.junit.xml",
+      "git_status": "??",
+      "sha256": "d81af4bef60b4fce7eeedeca1bed0f70a790d3f15dabf2d33c74162832806197"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-f3-final-results.json",
+      "git_status": "??",
+      "sha256": "d53d618ce15c425ca73096695fcac6cec9d2e1e5706d7562c5acf4316d289cab"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-handoff-final-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "6e300d03fdf8e10b0c959f8d6a50a07514f66ee297b1ab5f978d02bdc3d851bf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-handoff-final.junit.xml",
+      "git_status": "??",
+      "sha256": "4ff5b12346ee4dda50eec38edf7029963727ac4d3c1efa7fe9c3e5333174ea5d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-handoff.junit.xml",
+      "git_status": "??",
+      "sha256": "810ad532b3bf8ad606e2561fed5ce1fa26a113119ec1771a2ab79c75815c87bf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-public-final-r3.junit.xml",
+      "git_status": "??",
+      "sha256": "410171443971225704f19e0288713787c6ee759d58d57dcb4a7e15641a5bbf93"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-public-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "6784de50efd342dfbe72ec343591acb3fc0ad63f6d1b923be4a31a44d71f6504"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-public.junit.xml",
+      "git_status": "??",
+      "sha256": "4c8a1ae9c8fa8c475c46ac1cf042778bf2c6b7a570ac37140c887490f85a1de8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-publication-regression-final-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "67f96a7f5efb4571ba421662086f05e444c6b4cdfcdbe28f3ead366eb55cd4a8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-publication-regression-final.junit.xml",
+      "git_status": "??",
+      "sha256": "cb9c2ad4669d706f733dfb5edf3e2013bfa7eacefd714a87f67290e7348f9e7a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-capture-failure.junit.xml",
+      "git_status": "??",
+      "sha256": "0156aff51a894fe6ecfd4041e36fe3e607ba9d5d5326c7b0ac4021fc08b57189"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-fingerprint.junit.xml",
+      "git_status": "??",
+      "sha256": "042747d3913dff2e8a22ea07a0c55bd4129dd0255ba1ffce9c05df12e52d99cd"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-shared-revision.junit.xml",
+      "git_status": "??",
+      "sha256": "5957ba6d6f1b5027bb9ac5a60d8f72d0f77c58e1211b22e841992430333fa9ea"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f3-attempt-binding-null.junit.xml",
+      "git_status": "??",
+      "sha256": "4fa97f4ad0f91f88cfb8ed2cdf228c022d73c639a8d2792fa339792656b8f3a0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f3-attempt-binding-valid-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "6eb5b4c4b38f680965f5fe3223b1f1089fb9617f0e3163275fca318a856f991a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f3-attempt-binding-valid.junit.xml",
+      "git_status": "??",
+      "sha256": "efd0bc8fe4cafdb5e616713b0762d50c85db6aa8cda5025051175d3e17b7b252"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-additional-results.json",
+      "git_status": "??",
+      "sha256": "16591a69b4d421c3c9570a9c77fe1c31a347387f076223e0a47119d8c68771b4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-coverage-summary.md",
+      "git_status": "??",
+      "sha256": "96af66fc659fb4b28c073bef1b0b59226f8cc78da6c19a934a9b24a48d64467a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-extra-0.console.txt",
+      "git_status": "??",
+      "sha256": "db80ef13e92e5f4207aae7adf10abb9db0cc7dfaccd870dc2654e9a9a25ec009"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-extra-0.junit.xml",
+      "git_status": "??",
+      "sha256": "d658c429e5588d3191646a1707f2b3446614d64e6c7bacbb8cfc1bc3e5e6a850"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-extra-1.console.txt",
+      "git_status": "??",
+      "sha256": "8a2fe32bc4912d00ba8588ab4847c33af9a07ae4d38ca97c44ec4665a6569b3d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-extra-1.junit.xml",
+      "git_status": "??",
+      "sha256": "605aa57097b784c4c019ab3ec401ab611dbaca999a27e0f1a62ba9f15c81877c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-extra-results.json",
+      "git_status": "??",
+      "sha256": "baf1a8ad9d03a40237748d3311debae78722ca3e441714280d7143ebe01a9c1c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-process-0.console.txt",
+      "git_status": "??",
+      "sha256": "8fe1a5ebe3bef9e75708f4835e8b369440d1a5a7b0bad4ed8a81513c7b8d4fc5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-process-0.junit.xml",
+      "git_status": "??",
+      "sha256": "e482b0d9d93ed7d3254da8a3da8c5af10dfc90fd64c136c3d7dea2043b0ad19b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-process-1.console.txt",
+      "git_status": "??",
+      "sha256": "1c33f29d50a9cccf3404f06e6cb975a0ed3f161c7625d898d7f06a27183fdde3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-process-1.junit.xml",
+      "git_status": "??",
+      "sha256": "4f0c5c41a2b6796eae629a1f61b926d924b567b53f2f5a1800b351298013085d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-process-results.json",
+      "git_status": "??",
+      "sha256": "c44bdd06f346aecb10d94a6869d9bbe59ee100876fbe52424ee9622b319940bf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct01-all-stage-legacy-status-final.console.txt",
+      "git_status": "??",
+      "sha256": "acfd5e18300f2a2255fef5161f98cc0721c2816bcabaa6c3feaa1cd076452989"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct01-all-stage-legacy-status-final.json",
+      "git_status": "??",
+      "sha256": "c6241d700dd6f3d89c15ea410b932a439637d31d9ad651520a6f98fdd8fe14df"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct01-all-stage-legacy-status-final.junit.xml",
+      "git_status": "??",
+      "sha256": "0c6f6feb8ed87b83e18bc1237c8d41fd0bf0b2b698467734fbc40aef8cb4736f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct02-timeout-malformed.junit.xml",
+      "git_status": "??",
+      "sha256": "f1f835444897c363c4d35645e979480a3f61242acf8415b16061b87ed376f4b8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final-rerun.console.txt",
+      "git_status": "??",
+      "sha256": "8fe1a5ebe3bef9e75708f4835e8b369440d1a5a7b0bad4ed8a81513c7b8d4fc5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final-rerun.json",
+      "git_status": "??",
+      "sha256": "06ada9122d1e6e218b2abb19d3baa739c0097b49da30939ee6f574138d11b190"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final-rerun.junit.xml",
+      "git_status": "??",
+      "sha256": "eb1ab4e01d42e1227ced122af836b969dee36d18dc2dbd81e2c33eb9364f078d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final.console.txt",
+      "git_status": "??",
+      "sha256": "0cdb00412fb316aced0fe06a57b39f58e5c2045d00ebcde020849352b341088d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final.json",
+      "git_status": "??",
+      "sha256": "3b1390842628144692554e80e49fba891b49166efc4107d5c283d881a97e6308"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct03-planner-fallback-final.junit.xml",
+      "git_status": "??",
+      "sha256": "861bbe2254dd231383a4b0f93a57cb4b85060243caa71928c4cc77aa15eb64b5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct05-all-sinks-recovery.junit.xml",
+      "git_status": "??",
+      "sha256": "56c478f7540bb8fc9a26cf967cb65aeeb1ca6afd4a7a37b29e3f76f447dcc95b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-final.junit.xml",
+      "git_status": "??",
+      "sha256": "db5541a3300f40ee40823feed5da184a621f70c6ea25c4e369139f1c79e300c2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "42afa5ed77db21c23bc74a7ce2ced8c9673792ee9a5afd59df6946ae42d628a6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight-followup2.junit.xml",
+      "git_status": "??",
+      "sha256": "bef1e49fe37e3636358b25e1dbc28891f2d10d9a57b85dd6fb93b706806bc6fe"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct06-review-preflight.junit.xml",
+      "git_status": "??",
+      "sha256": "f412e1cf3fcd74a3f3519e23cc41b20f8869cc83618ec21c159b3ca0003bcdd0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct07-publication-after-fc06.junit.xml",
+      "git_status": "??",
+      "sha256": "40009afa589e38e2321c416a6e5a25e4fdc0657357fedd26d1790d3a33f9f322"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-after-fc06-fix-followup.console.txt",
+      "git_status": "??",
+      "sha256": "b85a166d3458fb50a3ea4e9e48b51ef487dc18d1345482cad734663e4efee977"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-after-fc06-fix-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "73e9f240dd04ae3a6def0f8bc7ce96ab1be533ed1085674ca980cd0a0b6b76b6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-after-fc06-fix.console.txt",
+      "git_status": "??",
+      "sha256": "41249450532b01e52eb92313ce7023a6c97a0d0a8317b091d052cc5d9e67c1b7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-after-fc06-fix.junit.xml",
+      "git_status": "??",
+      "sha256": "cd2597617625e417ecbddf396dcd11e9d6aab9141558384b2446f9e8ad0bbead"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-author-fallback-after-fc06-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "09c7a8c00247d1027af052daab2b75752438e1588a95bb9c4ea7eb7fca7354dc"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-author-fallback-after-fc06.junit.xml",
+      "git_status": "??",
+      "sha256": "9e440bee61535d3f75bd75581d9218384ea4e5e4ff4563499a2c21bd9b51164a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-debug.console.txt",
+      "git_status": "??",
+      "sha256": "25ce945e855c2674acf711935c4115e5d3be62f46cec38cfbf49a35ce612f992"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-debug.junit.xml",
+      "git_status": "??",
+      "sha256": "47810b801470028390300c8a13899565c39b09f89cc00da40a84513b991f0b06"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-debug2.console.txt",
+      "git_status": "??",
+      "sha256": "a945b1df2ec9e30a497171fe1c28b66c74d27363b4cece4a9fc0b52537b010bc"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-debug2.junit.xml",
+      "git_status": "??",
+      "sha256": "cde23260257f41cc8ae3ec8771a7faf8f70cf206bb43108bbbbd7a6f3014c837"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-fallback-review-revision1.console.txt",
+      "git_status": "??",
+      "sha256": "c4503a668a3a44a1856c7ab18a59920d50fa59d60bc435554e7bf0f553ba6bcd"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-fallback-review-revision1.junit.xml",
+      "git_status": "??",
+      "sha256": "e14b6653e1c5b917c4efbc6f7b07d758cb3b188dc7845ea0a2eac9a2ea4bf4be"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-fallback-review-revision2.console.txt",
+      "git_status": "??",
+      "sha256": "604ad87756724bb897894ca29e6ad257b51a1992e5d2148e7faeeec1d9f5d182"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-fallback-review-revision2.junit.xml",
+      "git_status": "??",
+      "sha256": "ad7ebd2fadab275a42a51e888a038b62076db2a5a28333c7151d46d272d35d75"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-invalid-reporter.console.txt",
+      "git_status": "??",
+      "sha256": "379cd6558a6c2f1b9cc1e088ef721afb8d5d17950fc9081fb9cba2460a027775"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-invalid-reporter.json",
+      "git_status": "??",
+      "sha256": "20d9fdb0e2f87e20af903f41c72a01cafc70007458185127bbdb543e282a2385"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-invalid-reporter.junit.xml",
+      "git_status": "??",
+      "sha256": "c0ffe620c817efdbd29e801762d7e47b9052f1e5e01240cab287134e1e204927"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-real-report-role-loop-final.console.txt",
+      "git_status": "??",
+      "sha256": "2defcd10aeb395e9c335cb95ecfd02a220bac563d13582b06a12dd05019598fb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-real-report-role-loop-final.junit.xml",
+      "git_status": "??",
+      "sha256": "84bea8a64373258be8c606225daffef4963eb2067874964c9be40ac95a2b2287"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-real-report-role-loop.junit.xml",
+      "git_status": "??",
+      "sha256": "9078d6d86ce1edbf15030a47a8ac8df7e5c35de8e78eff4ea8aa144f3283ff63"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-debug3.console.txt",
+      "git_status": "??",
+      "sha256": "3405637d923448eaca77bc5377be99d31f92dfab61ce75390ee554a23df91c64"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-debug3.junit.xml",
+      "git_status": "??",
+      "sha256": "650b8d206cfa72ca118556c9739bec86baf0230316986ae583b1962cd01c527e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-first.console.txt",
+      "git_status": "??",
+      "sha256": "9e4d260f587d03b2e44cc2faa3b5e50163411a52ac0cdecf26c08bff8e1c998f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-first.junit.xml",
+      "git_status": "??",
+      "sha256": "a17ddc830743bc6487612b63c5a455217cbaa83161b8118238ebc8a54421795a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-rerun.console.txt",
+      "git_status": "??",
+      "sha256": "50f4be78a02057ef0799fe5064ea20c1349e3f697f2fc9e804fe315dbb2d4522"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-revision-rerun.junit.xml",
+      "git_status": "??",
+      "sha256": "f522f929d2794adc7d3e84500d3f1aca6f5209f58746dd11b1d84dd00cfa0253"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fallback-fixture-change.console.txt",
+      "git_status": "??",
+      "sha256": "e2d80bebebb0a802eefa4b65f7108ff05a97fa187d3204e75dd15dff03e40e50"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fallback-fixture-change.junit.xml",
+      "git_status": "??",
+      "sha256": "7ec888bbc3bbe5066eabe2f0d5a3ff1b42cc3d3ba2ebb1a275f62d8fce57863b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final-console-summary.txt",
+      "git_status": "??",
+      "sha256": "5feb3aedb46c8b880fc7ef4c95678a1729eeeed94b50f249f399b8820b162ef0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final-observation.json",
+      "git_status": "??",
+      "sha256": "d3b03743f183c7dbe4d3f431a59c431ca7a469254f18df4537baf4acc045601a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final.junit.xml",
+      "git_status": "??",
+      "sha256": "ccee95b3d26490925985cd6f9010136e60dfceda93a10fec9158c2f8d7fb60fb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final2.junit.xml",
+      "git_status": "??",
+      "sha256": "7587d970ce13fe3bb057687c7ce88850042c1b539c3f80920ca8b950060c36d1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final3.console.txt",
+      "git_status": "??",
+      "sha256": "c2efc77733e83c87059d716ec73f6c5a3eb6da5a7002cd17fda523508338b056"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final3.junit.xml",
+      "git_status": "??",
+      "sha256": "1dc8b3566b1278c8b23802e20fb37dc740066b8bc7ebd3305abe3a99f674be26"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.console.txt",
+      "git_status": "??",
+      "sha256": "48a9c63ef9d290a9cd7ac361e6c80943eafde56fef9baa6358858baa47c8d718"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.junit.xml",
+      "git_status": "??",
+      "sha256": "95deeac4eba17752fb9fe92d6bf0af2ebc88e927e2810d29896f09eae76a8f9b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct09-html-final.console.txt",
+      "git_status": "??",
+      "sha256": "c650684da631a53569764f5af8f60c3e0d0a19a4321a45fbbac8d3f55d3a7118"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct09-html-final.json",
+      "git_status": "??",
+      "sha256": "e19be472afff728a71feffdcbc4bdc3cb80ea45ff069b79ff6a290b9f1583313"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct09-html-final.junit.xml",
+      "git_status": "??",
+      "sha256": "f9c594cb57d72855cceaa6e29fae1799695446e4aa6268cc9ce9b09e4b9f9c40"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct10-process-artifact-resume.junit.xml",
+      "git_status": "??",
+      "sha256": "29cd7ce3c85179997d9c5cf7533331e3176d9af439565c4b3551526bdd578f15"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct10-sqlite-artifact-before-db.console.txt",
+      "git_status": "??",
+      "sha256": "27a82b190ce9b281d25270a59cd462b8f87587d5abe515318eaf61f79339dbb2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct10-sqlite-artifact-before-db.junit.xml",
+      "git_status": "??",
+      "sha256": "243fa10ad99639adb8968f4e96127cc8f7c2ff3b3b12dc69afeed1a23779688d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct13-static-check.json",
+      "git_status": "??",
+      "sha256": "d03a5166adbaa919bde2a70df352881cd20b67b92929a0c85769b29c54e54daa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/followup-results.json",
+      "git_status": "??",
+      "sha256": "e9ed6247c86b088c85a24831f5896b2279e2d58162355ff6a0a88ae62bf86853"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/followup2-results.json",
+      "git_status": "??",
+      "sha256": "93054108b9743768cd4ce2e01cec4b09bf08076664f2e04e369d081720b27476"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/followup3-results.json",
+      "git_status": "??",
+      "sha256": "8f8e4d577cc64c1b476b20ce8514cf4c5f4150fd3db03f8d3a4547a65729fa8a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/handoff.json",
+      "git_status": "??",
+      "sha256": "7ac14f7498952577e1f6d74c5d6422d827897b939ac0a332e67133fc8d91a613"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r2.md",
+      "git_status": "??",
+      "sha256": "2827443cb8fdf314ff260042385baac1324dec966dd2f0b427b6354f74d59f28"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r3.md",
+      "git_status": "??",
+      "sha256": "095b33891177ab49cf23f37914125a4f76ff2815ef854fab81d197266e50f713"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r4.md",
+      "git_status": "??",
+      "sha256": "d7a361022af7a1f1983be1a500d57d2d8adb6b8c52c8b63e0b47b7ae606899e9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r5.md",
+      "git_status": "??",
+      "sha256": "9b9927da3518c08a51e80a60ea9f4a71c847b1abf58896071e0e3ee63ad877d7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md",
+      "git_status": "??",
+      "sha256": "4304a8c5d05658b8c6fd3850f3f05d990b94240e1aece722c5e67bc97b3ea984"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r7.md",
+      "git_status": "??",
+      "sha256": "e4651be7968209d91cd013a80453fd3192c48756270f8aac50b91593b4e5c40c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review.md",
+      "git_status": "??",
+      "sha256": "4fd1bd3e0e292a3c27887fcfc3fe42740327ffadf099c3d27c64049984accb57"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-review.md",
+      "git_status": "??",
+      "sha256": "025d8e9640362271fb3ddc26ed0594edbb3ff9fc8ab8551f4415d33347cbe9d6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/new-cases-results.json",
+      "git_status": "??",
+      "sha256": "a9b55c805fe574038eb3dee81c41aa881e5ea38b885de013c5477d7bae491643"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-0.console.txt",
+      "git_status": "??",
+      "sha256": "5fbd5461cb479c37985d847cead99d76df862af4ce1cee94dff095ebda517dc2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-0.junit.xml",
+      "git_status": "??",
+      "sha256": "999aa860eca5ad7322159d860898ca82a9b89adf1904796beba498fc7aaa723a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-1.console.txt",
+      "git_status": "??",
+      "sha256": "a627885f4b9efaac136d48977c38ccc0cf413d2b07f0c2dca5d54f69518b7604"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-1.junit.xml",
+      "git_status": "??",
+      "sha256": "1ca1bc6e4d00291edbb6f202a556cca5e17189505eb3827ad1e779924d142d6d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun.console.txt",
+      "git_status": "??",
+      "sha256": "d3e75b2df948802086e49b8f2a5bcda375c1ae5871334574b5af73357352f5f0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun.json",
+      "git_status": "??",
+      "sha256": "198b33202a3c7b10f3eedc45c04b03f7839651bbacbebf57326eba51b1609fb1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun.junit.xml",
+      "git_status": "??",
+      "sha256": "dd943a76da7de158cd02a770686a66eeb0453124e8cbc9c807a23a425ab42a10"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun2.console.txt",
+      "git_status": "??",
+      "sha256": "9e07e4c44a6171011060311c63c47cbaa68458540c70b158d67bf2738dee6291"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun2.json",
+      "git_status": "??",
+      "sha256": "a7f9374c814e08798156db82723fa93d014feaa29ea10679d16e13650aec9dfd"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-rerun2.junit.xml",
+      "git_status": "??",
+      "sha256": "11059f5192c583c7ed6df6bf14f2fbb416688c4f7a675f12bd89c6b3ef34fc26"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/pathref-final-results.json",
+      "git_status": "??",
+      "sha256": "15fe77135187287aa5dc0173f6c6dcef11e9836d5980e6e4ad1633772ac3340e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix-rerun.console.txt",
+      "git_status": "??",
+      "sha256": "50d4acb47e432542c6a5c052e4c1648a372c16c2cfb1b5909335c4897c59e248"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix-rerun.json",
+      "git_status": "??",
+      "sha256": "b43f4d8b6d6be42e2f566749c466df85b89d676a24c5dd4da87d9473429c3c32"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix-rerun.junit.xml",
+      "git_status": "??",
+      "sha256": "d8fe59fc5c19b2adbc6113770bf4cd97b5f37bf36eebb2599a2f5ae0a8ee782b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix.console.txt",
+      "git_status": "??",
+      "sha256": "ea6813f5a275f7020b18e3524adafb9906660b1ad776b1c92609295ea7bc05aa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix.json",
+      "git_status": "??",
+      "sha256": "8c9e6c66b4809e1036d401240de9a7f2bb42bb4a56506b17486a9ab3f7ea5106"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair-matrix.junit.xml",
+      "git_status": "??",
+      "sha256": "ad4dcfe7e83ea2d5dedf8a2581b1473fd539bf8403c4ac52a1af45d393fbb7e4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair.console.txt",
+      "git_status": "??",
+      "sha256": "ee6af3072856037fcfdfa1b737d6a2e01eff14fffa2ef8e564a25740937d132c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair.json",
+      "git_status": "??",
+      "sha256": "3454c90c27534f24621df42ca47ea742ee18a6f6cdde4ea516f8ff9dbe5e3d94"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/publication-after-fc06-repair.junit.xml",
+      "git_status": "??",
+      "sha256": "3570e45de5d40598c618b1bb9e4aa2c8084b5efa7211e27fda6c5fd175593aa6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f1-second-review-binding-fixture2.junit.xml",
+      "git_status": "??",
+      "sha256": "48da108a97a304733aa1318ee6ff7c2dc4bfd5ee9769cbcac8d86d13d88979c8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f1-second-review-binding.junit.xml",
+      "git_status": "??",
+      "sha256": "423ce9bd234c2c37109f60d11f578963e8b6f845c821b41f504d92bfdd7e031c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f2-missing-identity-fixture2.junit.xml",
+      "git_status": "??",
+      "sha256": "2f6dd0496a981f5d3f4466d3321042fcb66058319cc6ab635b88a4a6951c5ae8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f2-missing-identity.junit.xml",
+      "git_status": "??",
+      "sha256": "be39361b99981b55529f2e1f5d708da209e3ccf86fc1d20cfd2844f42d5c1ee4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f3-completed-reopen.junit.xml",
+      "git_status": "??",
+      "sha256": "93bc3c4b1680a9f71e3581193aad6408c5c87bc9dda56b6cb25a9000c9cf4c3e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-f3-reference-reader.junit.xml",
+      "git_status": "??",
+      "sha256": "06817ff55e7c10f5d1c94029c10a3088851ef0cb94d169cdce50f2a42891900a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-focused-results.json",
+      "git_status": "??",
+      "sha256": "a46e7641d0ddbaf9a269fb1d4045e9908a7be92919d688921e3bbe9e438f3343"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-r3-console-summary.txt",
+      "git_status": "??",
+      "sha256": "9453eb018497054e67c62d9bc5a0eeb0a7242b3058dc3eb9e6c46d13f11026a8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r2-transport-publication.junit.xml",
+      "git_status": "??",
+      "sha256": "43ac9e31237b395cd2e15dd8fe1d409d9ea9bab53934043b9e8d132816723cf0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml",
+      "git_status": "??",
+      "sha256": "757ec86c9adbee6f78023660a11a6a887e150a79a28805e1421d698e4dcb2f31"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml",
+      "git_status": "??",
+      "sha256": "5ddfbd43b479e7f958fd987494fdbcacbeb326a8d886df9750abd99b9baf69a1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f3-exact-input-restore-regression.junit.xml",
+      "git_status": "??",
+      "sha256": "1d097f4d8a371b2bd3c5dd4fa10009e4954b127d9f6b697c2a103de34d5eb22c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-focused-results.json",
+      "git_status": "??",
+      "sha256": "7e23161aa73d24b61fe62537d44a630f1d679ebbbd2139c25a82f4ec1057e818"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/result.md",
+      "git_status": "??",
+      "sha256": "bd6a61652a95e1b40175a55bcbbb029908cfc65cca5a795a4f97e53ea04d823b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/shortpath-results.json",
+      "git_status": "??",
+      "sha256": "83029a51f9debf4ee16c3a687d9bf349775dc1e9d82dacdd6df57d6590046d31"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_daily_fix_trace_py_test_n29.console.txt",
+      "git_status": "??",
+      "sha256": "27ea47b652a8a2ca94d4850498e30d6bd2717feb2f322153c8c3e57c11d93b50"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_daily_fix_trace_py_test_n29.junit.xml",
+      "git_status": "??",
+      "sha256": "743c3439659df138e2356c54ac5968868b5c7bde4a05368f32f1a4c799d7d640"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_ai_py_test_c26_transport_log_failure_still_interrupts_and_closes.console.txt",
+      "git_status": "??",
+      "sha256": "d8c86ff2390d5c0b0a3bcad71d7128e77c8592a4448e5ac2e0d3986f26a080d9"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_ai_py_test_c26_transport_log_failure_still_interrupts_and_closes.junit.xml",
+      "git_status": "??",
+      "sha256": "fe319360056af62d61e6371cb7d9be71a2fae96ac598fa1be49b6c308ab7b926"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_fallback_report_and_october_19_exclusion_are_preserved-final.console.txt",
+      "git_status": "??",
+      "sha256": "a627885f4b9efaac136d48977c38ccc0cf413d2b07f0c2dca5d54f69518b7604"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_fallback_report_and_october_19_exclusion_are_preserved-final.junit.xml",
+      "git_status": "??",
+      "sha256": "23afb20e903d3095ed4b55204b742a1b215454dde73df7219e46ffe6954c5d5f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-final.console.txt",
+      "git_status": "??",
+      "sha256": "dc0b603e3f96ce261a8186dd6686b622399129333e1e4845a7545c30b81d31d6"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-final.junit.xml",
+      "git_status": "??",
+      "sha256": "01413524fa87f61ee62d235c5bb0d8d023372c332a65a5974d0adb9e81280947"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-repaired.console.txt",
+      "git_status": "??",
+      "sha256": "8fe1a5ebe3bef9e75708f4835e8b369440d1a5a7b0bad4ed8a81513c7b8d4fc5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-repaired.junit.xml",
+      "git_status": "??",
+      "sha256": "aa617813c469167f4f1f3fc32c472e636cd932a3fca72012f9f758acfcff359b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-final.console.txt",
+      "git_status": "??",
+      "sha256": "4dc8d9eb66a03722b04c507754768dcd30254a18ee546fdcb3d7248da83e64a7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-final.junit.xml",
+      "git_status": "??",
+      "sha256": "d39a0442a90684e33850730ecac59f7a5528c0cc00092586996ecd7128b04e49"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-repaired.console.txt",
+      "git_status": "??",
+      "sha256": "6c9294c723e8b4f0071bc1ed44f3dc172e3f96f376c22867366595be33b8d48c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-repaired.junit.xml",
+      "git_status": "??",
+      "sha256": "922271e3f694f456ce52a3f052cb044ac2e3e8dc6ce191814a9c06cdf1e7e897"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage-final.console.txt",
+      "git_status": "??",
+      "sha256": "7f6d519dddac7c970d1c7b26682663798ac193ad2a7371bc6ea56e821543489f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage-final.junit.xml",
+      "git_status": "??",
+      "sha256": "e9a2d0c07b74adaa1c9394887168e72d176022b467e307b23f4a9ada3b0cabc8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup.console.txt",
+      "git_status": "??",
+      "sha256": "50d2c46106736fed4c56b47ae8aac1f31a7e5d1a332f0897e1165197b0a25a61"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "81cc2f5e8e4bc126628e05cca8e7599dda0c86bac52185bf1bce46668c67587a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup2.console.txt",
+      "git_status": "??",
+      "sha256": "ec41a9c62faeab45f98f688f74abd79d6defb43afe927d8d12972bc92d7e493a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup2.junit.xml",
+      "git_status": "??",
+      "sha256": "adca12da6825bef97726c5a34739d2a66901a84335e74ed7871c3ae518e4723b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup3.console.txt",
+      "git_status": "??",
+      "sha256": "1b6d285e9bf8c2d7876becb3febd98832a4a060079ff2e22611ccc00af141ee5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-followup3.junit.xml",
+      "git_status": "??",
+      "sha256": "36ffb8375a2e56e0ebfcd3e8fa9f2da5a67dd4d4a180a1eff32d611022bb45be"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-shortpath.console.txt",
+      "git_status": "??",
+      "sha256": "18d7ed42ae2657f5e655109e8219c4de53db53651e2cb8b297569b3b68056dcb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable-shortpath.junit.xml",
+      "git_status": "??",
+      "sha256": "c27e5c128aeb68ae514914e4eda07de809a258edc36d8c02439a0ef747b41087"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable.console.txt",
+      "git_status": "??",
+      "sha256": "df1cb10bf987da8db5ad0d82b37e0d6907336f2cada5cd593ff82e39353c7758"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable.junit.xml",
+      "git_status": "??",
+      "sha256": "51328a5ae3d196c7966d555c763e7622f722e41b1ebbfc3bf9f4094486c95308"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_workflow_block_status_does_not_block_worker_path.console.txt",
+      "git_status": "??",
+      "sha256": "a400013adaef1edbdeb0866d15281fc947f89450579b7b431bbc26c4235145ee"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_integration_py_test_workflow_block_status_does_not_block_worker_path.junit.xml",
+      "git_status": "??",
+      "sha256": "716f3440a4753ae28df89d26324f043751784ddb550c9546244f69696a7d4763"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_planning_py_test_c31_review_status_does_not_gate_next_action.console.txt",
+      "git_status": "??",
+      "sha256": "b371e4954dbad35d1ac3b3508e0dd068842256a1d9ca9418766a2d22898bd108"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_planning_py_test_c31_review_status_does_not_gate_next_action.junit.xml",
+      "git_status": "??",
+      "sha256": "888ef541e6ef338cb6aaf796477c79c136e71982e7c36a0d9c72b63ca5d1ea8e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-final.console.txt",
+      "git_status": "??",
+      "sha256": "ab0860ccffb8d17f0f6a49db0e4300fb2aa0212d2681ca236dbca9fad98e321d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-final.junit.xml",
+      "git_status": "??",
+      "sha256": "d0a2e8db8212d5416c6b1076fa045e274e383979d2c6f6a85bc7161f775b8246"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup.console.txt",
+      "git_status": "??",
+      "sha256": "242e3cbfc6dea73079660328d6e0f01a4617269bfdfa5a51ab1b31a5fc71aff4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "0ea8f62d7fc5921a1be8e078fac8f7681773d5cc0955fbb80e841e51da4d237c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup2.console.txt",
+      "git_status": "??",
+      "sha256": "cc66ea8da42c89513a071ea8f5a8c060aebe9282797beb54174daee08b2ead2d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup2.junit.xml",
+      "git_status": "??",
+      "sha256": "3cf33a59d6ddf6629709d4073e5ad79c24e9a5ee9329a655e3b79d53bf73ce12"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup3.console.txt",
+      "git_status": "??",
+      "sha256": "9c3f9d70da373ca318bcd17f9f4e0fcb27661b12a8cf01bf8944ef5b913df245"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-followup3.junit.xml",
+      "git_status": "??",
+      "sha256": "d13756333788de90e3c4a64fce1400cf4f5cca758a97629b2cbf99480c6fa7fa"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-shortpath.console.txt",
+      "git_status": "??",
+      "sha256": "c0955007a0db2defec05ac5c0a4b1eabc821b98b1c0746ce8993a9529692b2fe"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-shortpath.junit.xml",
+      "git_status": "??",
+      "sha256": "29fa853f432660d5b20ab642a2c16fb937ff185e265939a2530c4f5710c62379"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save.console.txt",
+      "git_status": "??",
+      "sha256": "38e57a3810fc0e031e4332307f6a99c3a36537d2629f46a50941d1a618a2695b"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save.junit.xml",
+      "git_status": "??",
+      "sha256": "628a28578a6710beab7c2322fa37908c36f5c27bf5ce5f384c87964b26182889"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_report_stage_falls_back_and_invokes_author_runner.console.txt",
+      "git_status": "??",
+      "sha256": "4b5c292f1c5d1b8a55b35a5cbaf582ec92c0a4dbb4679f6aa1d8ced87ffd132d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_report_publication_stage_py_test_report_stage_falls_back_and_invokes_author_runner.junit.xml",
+      "git_status": "??",
+      "sha256": "32f8b4b37bb2743a4aac3753e1b81019274d80fba39b67d2f889192dcf36c518"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_later_step_can_start_with_missing_predecessor_sequence.console.txt",
+      "git_status": "??",
+      "sha256": "a400013adaef1edbdeb0866d15281fc947f89450579b7b431bbc26c4235145ee"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_later_step_can_start_with_missing_predecessor_sequence.junit.xml",
+      "git_status": "??",
+      "sha256": "5a32ba61e4ad1ed55fba900e9d39a0277a49c9b1cfa9af1c16b4389fed97d2b1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_resume_count_does_not_limit_restarts.console.txt",
+      "git_status": "??",
+      "sha256": "8d2febae70ba94a0e3c00ab086bdf3c5fbbd9204b4f068ff9c5e876ced905ea4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_resume_count_does_not_limit_restarts.junit.xml",
+      "git_status": "??",
+      "sha256": "892bc4fbfa40be87d63864f0f424360e72588e8f363060c9e2fffd3c6223fb0e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_terminal_job_closes_running_attempt.console.txt",
+      "git_status": "??",
+      "sha256": "e595c9dd5a9edc1722d0f72303c939afef026f4ec243dac3267b63461a9fa194"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_c07_terminal_job_closes_running_attempt.junit.xml",
+      "git_status": "??",
+      "sha256": "24d02a4907f8391cb25bf4e463d3a40cc0e88f10eecb871918d55e7382caf774"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_job_completion_updates_incident_and_recovers_idempotently.console.txt",
+      "git_status": "??",
+      "sha256": "cac8f2444c91387fbd4c6b3dfeebcac4afaf6000faff0f8746230c740f460d7a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_job_completion_updates_incident_and_recovers_idempotently.junit.xml",
+      "git_status": "??",
+      "sha256": "a56add6742dd25e2a19218eef3e43db429fef25821963de1a54c41587b232d65"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_report_nonpass_can_correct_a_previously_completed_job.console.txt",
+      "git_status": "??",
+      "sha256": "5e886fec2990560c547d47282918f5de3d27944894ff456b682e29a097688730"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_report_nonpass_can_correct_a_previously_completed_job.junit.xml",
+      "git_status": "??",
+      "sha256": "dbbe576ac2ae37b4c6f269e9f11ded7c4e34f9d73b0a12c9cc3e7531b7224d5a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident-followup.console.txt",
+      "git_status": "??",
+      "sha256": "18d7ed42ae2657f5e655109e8219c4de53db53651e2cb8b297569b3b68056dcb"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_store_py_test_report_nonpass_can_resume_the_same_job_without_resolving_incident-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "d24b6dc5b83f8df70bc130faacf8bf83ca4cc2be01c4efa9f084b8c7ba2cd968"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage-followup.console.txt",
+      "git_status": "??",
+      "sha256": "1b6d285e9bf8c2d7876becb3febd98832a4a060079ff2e22611ccc00af141ee5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "b55b98f16fe8bf1dae756d9af383c5f38bf6369d1aa878da66f8bcd744391cb8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage.console.txt",
+      "git_status": "??",
+      "sha256": "ab37d9744db30c0659e002c7971d15d8f4aa5f2958f781c5374aa1c054c2a3de"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_completed_job_resume_runs_only_report_stage.junit.xml",
+      "git_status": "??",
+      "sha256": "38d98ad8c21bdcf4151db71e0f2e988b1bdffd3edfba6f533526c26d9a50b6f2"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages-followup.console.txt",
+      "git_status": "??",
+      "sha256": "be95d3efbd114c091262ab73a1ecafd2cd6fbd6cd68261b942e1f74c72f397a7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages-followup.junit.xml",
+      "git_status": "??",
+      "sha256": "4c13ef4b1b81cc961a4b7591e8c63acc5dda42711cd85dea7f9314d8de80eeb4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages.console.txt",
+      "git_status": "??",
+      "sha256": "a38a290cef8f6a742a69bc0357ea7c8d6d1d6e6be1f9fe13e0ab465e113daf86"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages.junit.xml",
+      "git_status": "??",
+      "sha256": "1838bbf345ff2974ec288a3a26238fb26a4d77583e4de002758508a3da9e15d8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC07/trace-repaired-results.json",
+      "git_status": "??",
+      "sha256": "417a5792d474825c240d0a74cf6985ee13e2923f284c3d3e5d08081fe69e5579"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/fc08-f1-followup-handoff.json",
+      "git_status": "??",
+      "sha256": "76d611f6f78e2780b109a3f4399f51931076f0bf3f9429fe5b2071ed878aa9d8"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/review-followup-r1.json",
+      "git_status": "??",
+      "sha256": "d690ed3e0d3fbec77a7fc16e750309c4e8302ed045705389249a404c7ef27529"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/review-followup-r1.md",
+      "git_status": "??",
+      "sha256": "94563a8ec6a3adf71e9e16fdda48b12947abb6377cd8d15f8012b37cc219c510"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/review.json",
+      "git_status": "??",
+      "sha256": "20d935396d19282daabcabe6868425cfc9f44e6198b6c56c50f79a4ec7df097a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC08/review.md",
+      "git_status": "??",
+      "sha256": "5b462077d752070a2ada4ff9f363a4f76be136bb7cb42273636465d1d2d8cf51"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/document-sync.json",
+      "git_status": "??",
+      "sha256": "837e8665dbca4a194ef611398192fc3c4ba7a814b4b0e699a3db27bb88f4c112"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/execution-record.json",
+      "git_status": "??",
+      "sha256": "02f207ccbd6445d632e2835c2f17f7c69372544181d3e61b63ac0572edf50992"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition-results.json",
+      "git_status": "??",
+      "sha256": "0ac71770ca9154fdd58849a0a7809f9cf2632445cc9cf9ef43d8065ad5957b5e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.console.txt",
+      "git_status": "??",
+      "sha256": "4b5c292f1c5d1b8a55b35a5cbaf582ec92c0a4dbb4679f6aa1d8ced87ffd132d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.junit.xml",
+      "git_status": "??",
+      "sha256": "d4c16c929df8be3db2b883ac0a1c515341036b3914d6b7e48e74bd2d555207ec"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/fc09-schema15-before-fix.junit.xml",
+      "git_status": "??",
+      "sha256": "86918381b0af45c39e695af31912d591b5e62479aa227ded4f186de49cb7a8a0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review-followup-r1.json",
+      "git_status": "??",
+      "sha256": "965507f3beb9f640994ce369182f2576973e9555251fe3d2c519eff70ac52d30"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review-followup-r1.md",
+      "git_status": "??",
+      "sha256": "012622ba1cedb794a38cf918be5e59ac40274a704c50fbd7a7c611f41bfec38f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review.json",
+      "git_status": "??",
+      "sha256": "008062a2d8d7394a8d6137fc01f4b9a7b0719b0628e9b13344fa91e921480db1"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review.md",
+      "git_status": "??",
+      "sha256": "167c67f5cbf28bcc23644df493fd50f8b3e026e2198333df1a68de21604afe46"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/operation-failures.json",
+      "git_status": "??",
+      "sha256": "24dd946327ac0f5b9d0a70927169c7f113846fdeb13495238c71fb8ceae006be"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/preflight.json",
+      "git_status": "??",
+      "sha256": "4ea590cdd9871ebafcc1d110e7bd44e9d0ea9fb8bdb139b1d30b09710a7acb42"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/product-review-target.json",
+      "git_status": "??",
+      "sha256": "8843f1b084edbcf0950447e8a2c0d2b1af04a1bc9c22539952fbb8d571957d53"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume-r2.console.txt",
+      "git_status": "??",
+      "sha256": "af72f9af53f341c18558318bcd9ad366deb7ec4e4430a8c24519faf83f1e8260"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "83072851767da5d627ec96dc15c8adbfd6dbd0b06e3d337501d9a1e5d0b6ec7d"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume.console.txt",
+      "git_status": "??",
+      "sha256": "3c1d73b885f10faba530abe642aea7adb81e863c146d8029803adea02600c254"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/publication-crash-resume.junit.xml",
+      "git_status": "??",
+      "sha256": "e65bb160a99ccee65c2eb31506e29a7c0509af8216d2e1b8ef023ed0a91ccfb3"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-migration-red.junit.xml",
+      "git_status": "??",
+      "sha256": "eb550ed6b4a7e4425b690163f0bfb187864b8f94429ec1defc7b4aaaa011e737"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade-r2.console.txt",
+      "git_status": "??",
+      "sha256": "ac06e9859ec73e81c7b04ccec0f3ddf6cb2bd309a00a256f206f9ab5068a4dca"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade-r2.junit.xml",
+      "git_status": "??",
+      "sha256": "dd6271feaaca85f7d9a7ef032a9dfca21425c6224c0f79e5bacef456e1dcfad4"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade.console.txt",
+      "git_status": "??",
+      "sha256": "4b815bf07e48a03df23c6012e5ff743ebb8cc36e5a95e6e4bc190e50a49eabdd"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/schema-15-upgrade.junit.xml",
+      "git_status": "??",
+      "sha256": "6bd203aae620f0774d8c6537a0431adc0627a365280258a850b40742a7316226"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/test-results.json",
+      "git_status": "??",
+      "sha256": "c191a075f0bc3d19a83e1f536bace43f17dd73d7b2c78d41ebe21d69de3b1e0d"
+    }
+  ]
+}

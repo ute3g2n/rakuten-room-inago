@@ -1,0 +1,31 @@
+{
+  "schema_version": "fc06-publication-handoff-v1",
+  "step": "FC06",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "code_path": "fixed repository root only; publication uses a disposable GIT_INDEX_FILE and commit-tree; no git worktree add/checkout",
+  "normal_report_path": "reporter -> validate/render -> same attempt report-input.json/report.html/review-input.json/review.json/result.json -> independent reviewer -> reporter revision loop -> publication",
+  "fallback_path": "normal report outcome/exception -> failure journal -> build_fallback_report -> same formal report attempt -> independent reviewer real invocation -> findings incorporated and re-reviewed -> review unavailable recorded truthfully if invocation fails -> publication attempted",
+  "publication_recovery": "remote report commit is searched by unique commit message and exact path/hash; after push-before-sidecar interruption, same job reuses remote commit and saves publication sidecar/readback",
+  "completion_semantics": "A published report with unavailable review can complete the workflow operation while incident_resolution remains unknown/in_progress; report approval and incident resolution are not inferred.",
+  "not_performed": [
+    "pytest/fault injection (FC07)",
+    "actual role session invocation and production report (FC10)",
+    "DB apply or production database operation",
+    "Git commit/push",
+    "browser/print rendering"
+  ],
+  "next_actions": [
+    "FC07 run focused reporter/reviewer/fallback/publication interruption cases",
+    "FC08 independent product code review and return findings",
+    "FC10 launch the report roles and publish real HTML for the same immutable job identity"
+  ],
+  "owner_map_sha256": "85ce946bf95648dc418cc5f470c29e79dc189f85399c4c41018ef20a36f959ce",
+  "review_unavailable_contract": "result.stage_status=review_unavailable, report_status=pending, review.status=unavailable; this is not an approval. Terminal readback accepts it only with a matching published report artifact and remote hash.",
+  "actual_role_invocation": "NOT_PERFORMED in FC06 by stage assignment; FC10 must invoke the actual reporter and independent reviewer for the same immutable job."
+}

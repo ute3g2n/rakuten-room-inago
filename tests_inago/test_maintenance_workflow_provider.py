@@ -143,13 +143,142 @@ def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path)
     )
     outcome = provider(launch, check, queue, lease, threading.Event())
 
-    assert outcome.status == "blocked"
+    assert outcome.status == "unknown"
     assert outcome.check_id == check.check_id
     assert outcome.reason_code == "report_inputs_unavailable"
     assert stage_calls == list(WORKFLOW_STAGE_ORDER)
 
 
-def test_completed_job_resume_runs_only_report_stage():
+def test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report(
+    tmp_path, monkeypatch
+):
+    store = make_store(tmp_path)
+    launch_id = "launch-u21-unbound"
+    incident_id = create_incident(store, launch_id=launch_id)
+    create_ready_release(
+        store,
+        incident_id=incident_id,
+        release_id="release-u21-unbound",
+    )
+    check = store.get_daily_check_by_launch(launch_id)
+    assert check is not None
+    launch = DailyLaunchRecord(
+        source_launch_id=launch_id,
+        target_date="2026-10-17",
+        owner_pid=9501,
+        started_at=BASE_TIME.isoformat(),
+        status="complete",
+        child_pid=9502,
+        source_run_id=None,
+        exit_code=4,
+        completed_at=BASE_TIME.isoformat(),
+        result_json=None,
+        owner_start_time=BASE_TIME.isoformat(),
+        child_start_time=BASE_TIME.isoformat(),
+    )
+    mismatched_queue = WorkerQueueRecord(
+        queue_id="queue-u21-unbound-mismatch",
+        source_launch_id="different-launch-u21-unbound",
+        worker_job_id="job-release-u21-unbound",
+        target_date="2026-10-17",
+        status="queued",
+        check_id=check.check_id,
+        claim_owner_id=None,
+        claim_generation=None,
+        claimed_at=None,
+        completed_at=None,
+        reason_code=None,
+        created_at=BASE_TIME.isoformat(),
+        updated_at=BASE_TIME.isoformat(),
+    )
+    lease = store.acquire_lease(
+        lease_key="maintenance:provider-unbound-test",
+        owner_id="provider-unbound-test",
+        owner_pid=9503,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME,
+        ttl_seconds=90,
+    )
+    before_jobs = store.list_workflow_jobs_for_launch(
+        source_launch_id=launch_id,
+        source_run_id=None,
+        target_date="2026-10-17",
+    )
+    report_contexts = []
+
+    def report_runner(context):
+        report_contexts.append(context)
+        return WorkflowStageResult(status="complete")
+
+    def forbidden_job_lookup(**kwargs):
+        raise AssertionError("mismatched invocation must not look up jobs")
+
+    def forbidden_stage_persist(**kwargs):
+        raise AssertionError("unbound stage result must not mutate a job")
+
+    monkeypatch.setattr(store, "list_workflow_jobs_for_launch", forbidden_job_lookup)
+    monkeypatch.setattr(store, "record_workflow_stage_observation", forbidden_stage_persist)
+    provider = MaintenanceWorkflowProvider(
+        store,
+        {"report": report_runner},
+    )
+
+    outcome = provider(launch, check, mismatched_queue, lease, threading.Event())
+
+    assert outcome.status == "unknown"
+    assert outcome.reason_code == "maintenance_workflow_identity_invalid"
+    assert len(report_contexts) == 1
+    context = report_contexts[0]
+    assert context.resume_state.job is None
+    assert context.resume_state.attempts == ()
+    assert context.queue.worker_job_id == ""
+    assert context.queue.queue_id == ""
+    assert report_contexts[0].state["workflow_stage_outcomes"]["report"][
+        "operation_result"
+    ] == "succeeded"
+    assert mismatched_queue.source_launch_id == "different-launch-u21-unbound"
+
+    handoff_root = store.database_path.parent.parent / "workflow-handoffs" / "unbound"
+    invocation_dirs = list(handoff_root.iterdir())
+    assert len(invocation_dirs) == 1
+    invocation_dir = invocation_dirs[0]
+    from automation.inago.maintenance.paths import (
+        resolve_maintenance_failure_journal_path,
+    )
+
+    journal_path = resolve_maintenance_failure_journal_path(
+        store.database_path.parent.parent
+    )
+    failure_events = [
+        json.loads(line)
+        for line in journal_path.read_text(encoding="utf-8").splitlines()
+    ]
+    precondition_events = [
+        event
+        for event in failure_events
+        if event["operation"] == "workflow.invocation.identity_precondition"
+    ]
+    assert len(precondition_events) == 1
+    assert precondition_events[0]["invocation_id"] == invocation_dir.name
+    assert precondition_events[0]["job_id"] is None
+    assert precondition_events[0]["reason_code"] == "maintenance_workflow_identity_invalid"
+    for stage_name in WORKFLOW_STAGE_ORDER:
+        handoff_path = invocation_dir / f"{stage_name}.json"
+        assert handoff_path.is_file(), stage_name
+        payload = json.loads(handoff_path.read_text(encoding="utf-8"))
+        assert payload["identity"]["job_id"] is None
+        assert payload["stage_progress"] == "handed_off"
+        if stage_name != "report":
+            assert payload["operation_result"] == "not_performed"
+    monkeypatch.undo()
+    assert store.list_workflow_jobs_for_launch(
+        source_launch_id=launch_id,
+        source_run_id=None,
+        target_date="2026-10-17",
+    ) == before_jobs
+
+
+def test_completed_job_resume_runs_only_report_stage(tmp_path):
     launch_id = "launch-u21-complete-resume"
     run_id = "run-u21-complete-resume"
     target_date = "2026-10-18"
@@ -211,6 +340,14 @@ def test_completed_job_resume_runs_only_report_stage():
     )
 
     class Store:
+        database_path = tmp_path / "runtime" / "maintenance" / "state.sqlite"
+
+        def reconcile_open_operation_events(self):
+            return None
+
+        def record_operation_event(self, _event):
+            return None
+
         def list_workflow_jobs_for_launch(self, **_kwargs):
             return (job,)
 

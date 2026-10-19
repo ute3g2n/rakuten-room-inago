@@ -1,0 +1,241 @@
+{
+  "case": "FCT13",
+  "measurement": "FC07 read-only partial static check",
+  "start": "2026-10-20T00:38:27.378223+09:00",
+  "end": "2026-10-20T00:38:27.387357+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "branch": "main",
+  "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "role_toml_count": 9,
+  "roles": [
+    {
+      "path": ".codex/agents/common-execution-planner.toml",
+      "sha256": "41e288add0af5300fd7c1d24033364ffb22a16f6169cf64ff3131a4407d592ef",
+      "name": "common-execution-planner",
+      "model": "gpt-6.1-sol",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/common-execution-plan-reviewer.toml",
+      "sha256": "c3d1526d279172fc6b91baa7f3974a8d1fefca7b7bf746625be5ac393040236d",
+      "name": "common-execution-plan-reviewer",
+      "model": "gpt-6.1-sol",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-investigator.toml",
+      "sha256": "6fa8e4739da3b7c7adbf9003eaeea5a4061164fea1d3fd596497b598e5653e5f",
+      "name": "rr-inago-incident-investigator",
+      "model": "gpt-6.1-sol",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+      "sha256": "07570907b5fadf0216c2a4be5f74bdac3009edad68818a78a1363376bff301a6",
+      "name": "rr-inago-incident-investigation-reviewer",
+      "model": "gpt-6.1-sol",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/common-implementer.toml",
+      "sha256": "3dfea859e36835688c789250c80236a86bd81a4fe88a07a2c74764e0d7aa78e2",
+      "name": "common-implementer",
+      "model": "gpt-6-luna",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/common-tester.toml",
+      "sha256": "5d1a64e624cfd5381b9143594dbfbe653d242848b5fe1478ef6e445f428a3c87",
+      "name": "common-tester",
+      "model": "gpt-6-luna",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/common-reviewer.toml",
+      "sha256": "583efaadd630aa649c97e19b2969c2cb0e42c5ee5a32f6a855266b10f82897e0",
+      "name": "common-reviewer",
+      "model": "gpt-6-luna",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-reporter.toml",
+      "sha256": "26f29602989bca8e93b7bb36b23aa7558d20d11716c4943f2bc29b49d6156fa1",
+      "name": "rr-inago-incident-reporter",
+      "model": "gpt-6-luna",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-report-reviewer.toml",
+      "sha256": "49ae8c5a8dc7c440f5c2d8c3543b722872d9122584e961b4e283856ea26d83fa",
+      "name": "rr-inago-incident-report-reviewer",
+      "model": "gpt-6-luna",
+      "model_reasoning_effort": "high",
+      "developer_instructions_present": true
+    }
+  ],
+  "maintenance_schema_count": 24,
+  "schemas_json_parse_all_pass": true,
+  "schemas": [
+    {
+      "path": "automation/inago/schemas/maintenance-check-response.schema.json",
+      "sha256": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-check-result.schema.json",
+      "sha256": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "sha256": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "sha256": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+      "sha256": "4e9f57e67fe66c249567a0bf37f2b6eae81dcad2d46737274ca9bb470b3fd2a5",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-evidence.schema.json",
+      "sha256": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-investigation-response.schema.json",
+      "sha256": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-investigation-review.schema.json",
+      "sha256": "ebaedb82370118f5127c0324b2cd1d432d81cc1d0c6aaa7d4c193fc008c05cf0",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-planning-response.schema.json",
+      "sha256": "a6f22abc0d6de0651ebe79c94eb264b97ac9be657b4e730f5ec8204db4bae483",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-planning-review.schema.json",
+      "sha256": "18ca020220f9ca6a947e48b0589f2e34200f843f54d0d035d134d84fb3133ed3",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-handoff.schema.json",
+      "sha256": "94e47d47bc2158fd06ece92154489934ceb339d5ea630829025b0d3ffe04e096",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-patch-assessment.schema.json",
+      "sha256": "9bf3f1212aad24c969216457438c4be41985cd0ef01101c4c997d740a9b03cdb",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-patch.schema.json",
+      "sha256": "6c144eebf26b38cdc235b06fbc54f19f4018e459a05b6062a3d306819838c457",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-result.schema.json",
+      "sha256": "7f91c3001c484cdceab7d93b772c47e939eed4de200e7e315daa0cbc40e7bb75",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "sha256": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "sha256": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "sha256": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "sha256": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "sha256": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-response.schema.json",
+      "sha256": "3c6e8933539d9994ebdc244fb1849b4a389fbc8f25116162e5d33301e203d001",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-result.schema.json",
+      "sha256": "c36aa1a07e39a9eb06c8c8715120a2fb4566e0b0434282850877380b9f8bc208",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-report-review.schema.json",
+      "sha256": "a68f11d3b6447a5a5c77dfff9a90d86c47ef429488e9cea9b1b9de37ca583f28",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-settings.schema.json",
+      "sha256": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53",
+      "json_parse": "PASS"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+      "sha256": "526f0ce6ce4534ac243a5761534d66b79a72c1baa7f19205239fdda988b0b6c7",
+      "json_parse": "PASS"
+    }
+  ],
+  "active_skill_count": 5,
+  "skills_exist_nonempty_all": true,
+  "skills": [
+    {
+      "path": ".agents/skills/common-execution-planning/SKILL.md",
+      "sha256": "911fd9447b9d939ad9af42b80e0978aa074e9f9e1a3acb18a2210e1663257b6e",
+      "exists_nonempty": true
+    },
+    {
+      "path": ".agents/skills/common-implementation/SKILL.md",
+      "sha256": "cbbbfe7b9c08ec5c3c2bee964f43cdcdff4801b4da547c76ac8fc0d56ab75871",
+      "exists_nonempty": true
+    },
+    {
+      "path": ".agents/skills/common-review/SKILL.md",
+      "sha256": "e1e40cee683d4822fd2ebb848b97f317a1a17311e3bfea04882ee5039121feff",
+      "exists_nonempty": true
+    },
+    {
+      "path": ".agents/skills/common-testing/SKILL.md",
+      "sha256": "427361eeafcc89aa6782ff11375a0a333a9bf3fdd2324d0998274e558b19ff18",
+      "exists_nonempty": true
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-report/SKILL.md",
+      "sha256": "bebf39ed82ec54b7211547b73bee41a239ad5be2d5306fbf717d7609973c50e9",
+      "exists_nonempty": true
+    }
+  ],
+  "execution_plan_fc07_execution_row_count": 1,
+  "requirements_builder_run": false,
+  "full_semantic_contract_scan": false,
+  "result": "partial_pass; static schema JSON parse, role TOML parse/effort, selected active skill presence and plan record measured; full FCT13 build/reconciliation remains FC09"
+}

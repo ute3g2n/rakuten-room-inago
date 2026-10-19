@@ -13,11 +13,12 @@
     "cancellation_confirmation_timeout_seconds",
     "request_retry_limit",
     "diagnostic_log_retention_days",
-    "diagnostic_log_max_file_bytes"
+    "diagnostic_log_max_file_bytes",
+    "diagnostic_failure_journal_filename"
   ],
   "properties": {
     "schema_version": { "const": 1 },
-    "settings_version": { "enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5"] },
+    "settings_version": { "enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6"] },
     "timezone": { "const": "Asia/Tokyo" },
     "code_fix_concurrency": {
       "type": "integer",
@@ -41,6 +42,7 @@
     },
     "diagnostic_log_retention_days": { "const": 90 },
     "diagnostic_log_max_file_bytes": { "const": 4194304 },
+    "diagnostic_failure_journal_filename": { "const": "events.jsonl" },
     "diagnostic_log_max_files_per_day": {
       "type": "integer",
       "deprecated": true,
@@ -58,6 +60,22 @@
     {
       "if": {
         "properties": { "settings_version": { "const": "1.5" } },
+        "required": ["settings_version"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            { "required": ["code_fix_concurrency"] },
+            { "required": ["review_round_limit"] },
+            { "required": ["job_resume_limit"] },
+            { "required": ["diagnostic_log_max_files_per_day"] }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "settings_version": { "const": "1.6" } },
         "required": ["settings_version"]
       },
       "then": {

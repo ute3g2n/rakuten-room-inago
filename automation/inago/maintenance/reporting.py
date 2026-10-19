@@ -8,8 +8,10 @@ from datetime import date, datetime, timedelta
 import hashlib
 import html
 import json
+import os
 import re
 import subprocess
+import tempfile
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -464,7 +466,7 @@ def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
             f'<td>{_e(item["expected"])}</td>'
             f'<td>{_e(item["actual"])}<br><strong>影響:</strong> {_e(item["impact"])}</td>'
             f'<td>{_e(item["recovery"])}</td>'
-            f'<td><a href="{href}">{_e(item["evidence_ref"])}</a></td>'
+            f'<td><a href="{href}">根拠を確認</a></td>'
             "</tr>"
         )
     return "\n".join(rows)
@@ -492,7 +494,7 @@ def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
             "<h4>変更後の動作</h4>"
             f"<p>{_e(item['changed_behavior'])}</p>"
             "<h4>確認範囲と根拠</h4>"
-            f'<p>{_e(item["confirmation_scope"])} · <a href="{href}">{href}</a></p>'
+            f'<p>{_e(item["confirmation_scope"])} · <a href="{href}">確認記録を見る</a></p>'
             "</article>"
         )
     return "\n".join(rows)
@@ -502,12 +504,12 @@ def _render_check_rows(
     checks: Sequence[Mapping[str, Any]], sources: Mapping[str, Any]
 ) -> str:
     status_names = {
-        "passed": ("passed", "PASS"),
+        "passed": ("passed", "確認済み"),
         "failed": ("failed", "失敗"),
         "blocked": ("blocked", "停止"),
         "not_run": ("pending", "未実施"),
-        "skipped": ("pending", "SKIP"),
-        "error": ("failed", "ERROR"),
+        "skipped": ("pending", "未実施"),
+        "error": ("failed", "確認できず"),
         "deployed": ("passed", "反映済み"),
         "pending": ("pending", "保留"),
         "rolled_back": ("blocked", "復旧済み・未反映"),
@@ -521,10 +523,10 @@ def _render_check_rows(
         css, label = status_names[item["status"]]
         rows.append(
             "<tr>"
-            f"<td>{_e(item['stage'])}</td><td>{_e(item['version'])}</td>"
+            f"<td>{_e(item['stage'])}</td><td>参考記録に記載</td>"
             f"<td>{_e(item['expected'])}</td><td>{_e(item['actual'])}</td>"
             f'<td><span class="status {css}">{label}</span></td>'
-            f'<td><a href="{_e(item["evidence_ref"])}">{_e(item["evidence_ref"])}</a></td>'
+            f'<td><a href="{_e(item["evidence_ref"])}">確認記録を見る</a></td>'
             "</tr>"
         )
     source_rows = (
@@ -557,9 +559,9 @@ def _render_check_rows(
         css, label = status_names[status]
         rows.append(
             "<tr>"
-            f"<td>{_e(stage)}</td><td>{_e(version)}</td><td>{_e(expected)}</td>"
+            f"<td>{_e(stage)}</td><td>参考記録に記載</td><td>{_e(expected)}</td>"
             f'<td>{_e(actual)}</td><td><span class="status {css}">{label}</span></td>'
-            f'<td><a href="{_e(href)}">{_e(href)}</a></td></tr>'
+            f'<td><a href="{_e(href)}">確認記録を見る</a></td></tr>'
         )
     return "\n".join(rows)
 
@@ -849,6 +851,46 @@ def _git(repo: Path, *args: str) -> str:
     return completed.stdout.strip()
 
 
+def _git_with_index(repo: Path, index_path: Path, *args: str) -> str:
+    environment = dict(os.environ)
+    environment["GIT_INDEX_FILE"] = str(index_path)
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo), "-c", "core.quotepath=false", *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=environment,
+        )
+    except OSError as exc:
+        raise ReportContractError("report_git_unavailable") from exc
+    if completed.returncode != 0:
+        raise ReportContractError("report_git_operation_failed")
+    return completed.stdout.strip()
+
+
+def _git_paths_with_index(repo: Path, index_path: Path, *args: str) -> list[str]:
+    environment = dict(os.environ)
+    environment["GIT_INDEX_FILE"] = str(index_path)
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo), "-c", "core.quotepath=false", *args],
+            check=False,
+            capture_output=True,
+            env=environment,
+        )
+    except OSError as exc:
+        raise ReportContractError("report_git_unavailable") from exc
+    if completed.returncode != 0:
+        raise ReportContractError("report_git_operation_failed")
+    return [
+        item.decode("utf-8", errors="strict")
+        for item in completed.stdout.split(b"\x00")
+        if item
+    ]
+
+
 def _git_paths(repo: Path, *args: str) -> list[str]:
     try:
         completed = subprocess.run(
@@ -1037,11 +1079,11 @@ def publish_reviewed_report(
     target_branch: str,
     commit_message: str,
 ) -> ReportPublication:
-    """Commit and push a report with its recorded review, reusing a published commit.
+    """Push one reviewed report without creating a checkout or changing the index.
 
-    Production callers use a dedicated detached managed worktree. A retry can
-    therefore inspect the remote history for the unique report commit and
-    recover after either commit or push completed before its result was saved.
+    A temporary Git index builds a commit containing only the report. A retry
+    inspects remote history and recovers after a successful push whose local
+    publication sidecar was not yet saved.
     """
 
     try:
@@ -1128,9 +1170,6 @@ def publish_reviewed_report(
         raise ReportContractError("report_file_unavailable") from exc
     if hashlib.sha256(content).hexdigest() != reviewed["reviewed_sha256"]:
         raise ReportContractError("report_review_output_mismatch")
-    if _git_paths(repo, "diff", "--cached", "--name-only", "-z"):
-        raise ReportContractError("report_preexisting_staged_changes")
-
     remote_head = _remote_report_head(repo, remote_name, target_branch)
     if remote_head is not None:
         published = _find_report_publication(
@@ -1158,87 +1197,46 @@ def publish_reviewed_report(
                 target_branch=target_branch,
             )
 
-    local_publication = _find_report_publication(
-        repo,
-        head=head,
-        report_path=report_path,
-        commit_message=commit_message,
-        expected_target_commit=expected,
-        source_code_commit=code_commit,
-        reviewed_sha256=reviewed["reviewed_sha256"],
-    )
-    if local_publication is not None:
-        commit, base = local_publication
-        if remote_head is not None and not _is_ancestor(repo, remote_head, commit):
-            raise ReportContractError("report_remote_diverged")
-        _git(repo, "push", remote_name, f"{commit}:refs/heads/{target_branch}")
-        verified_head = _remote_report_head(repo, remote_name, target_branch)
-        if (
-            verified_head is None
-            or not _is_ancestor(repo, commit, verified_head)
-            or _git_content_sha256(repo, f"{verified_head}:{report_path}")
-            != reviewed["reviewed_sha256"]
-        ):
-            raise ReportContractError("report_push_unverified")
-        return ReportPublication(
-            commit=commit,
-            base_commit=base,
-            code_commit=code_commit,
-            remote_name=remote_name,
-            target_branch=target_branch,
-        )
-
-    if remote_head is not None and remote_head != head:
-        raise ReportContractError(
-            "report_remote_ahead"
-            if _is_ancestor(repo, head, remote_head)
-            else "report_remote_diverged"
-        )
-    if not _is_ancestor(repo, expected, head) or not _is_ancestor(
-        repo, code_commit, head
+    publication_parent = remote_head or head
+    if not _is_ancestor(repo, expected, publication_parent) or not _is_ancestor(
+        repo, code_commit, publication_parent
     ):
         raise ReportContractError("report_base_or_code_version_not_current")
-    if _git_paths(repo, "diff", "--name-only", "-z", expected, head, "--", report_path):
+    if _git_paths(
+        repo, "diff", "--name-only", "-z", expected, publication_parent, "--", report_path
+    ):
         raise ReportContractError("report_path_conflict")
     existing_report = _git_paths(
-        repo, "ls-tree", "-r", "--name-only", "-z", head, "--", report_path
+        repo, "ls-tree", "-r", "--name-only", "-z", publication_parent, "--", report_path
     )
     if existing_report:
         raise ReportContractError("report_path_conflict")
     spec = f":(literal){report_path}"
-    committed = False
+    temp_index: Path | None = None
     try:
-        _git(repo, "add", "--", spec)
-        staged = _git_paths(repo, "diff", "--cached", "--name-only", "-z")
+        with tempfile.NamedTemporaryFile(prefix="inago-report-index-", delete=False) as stream:
+            temp_index = Path(stream.name)
+        _git_with_index(repo, temp_index, "read-tree", publication_parent)
+        _git_with_index(repo, temp_index, "add", "--", spec)
+        staged = _git_paths_with_index(
+            repo, temp_index, "diff", "--cached", "--name-only", "-z"
+        )
         if staged != [report_path]:
             raise ReportContractError("report_staged_scope_invalid")
-        if _git_content_sha256(repo, f":{report_path}") != reviewed["reviewed_sha256"]:
+        if hashlib.sha256(content).hexdigest() != reviewed["reviewed_sha256"]:
             raise ReportContractError("report_review_output_mismatch")
-        _git(repo, "diff", "--cached", "--check")
-        _git(repo, "commit", "-m", commit_message)
-        committed = True
-        commit = _resolve_commit(repo, _git(repo, "rev-parse", "HEAD"))
-        parents = _git(repo, "rev-list", "--parents", "-n", "1", commit).split()
-        if len(parents) != 2 or parents[1] != head:
-            raise ReportContractError("report_commit_base_changed")
-        changed = _git_paths(
-            repo,
-            "diff-tree",
-            "--no-commit-id",
-            "--name-only",
-            "-z",
-            "-r",
-            commit,
+        tree = _git_with_index(repo, temp_index, "write-tree")
+        commit = _git(
+            repo, "commit-tree", tree, "-p", publication_parent, "-m", commit_message
         )
-        if changed != [report_path]:
-            raise ReportContractError("report_commit_scope_invalid")
-        if (
-            _git_content_sha256(repo, f"{commit}:{report_path}")
-            != reviewed["reviewed_sha256"]
-        ):
-            raise ReportContractError("report_review_output_mismatch")
-        if remote_head is not None and not _is_ancestor(repo, remote_head, commit):
-            raise ReportContractError("report_push_not_fast_forward")
+        _report_publication_commit(
+            repo,
+            commit=commit,
+            report_path=report_path,
+            expected_target_commit=expected,
+            source_code_commit=code_commit,
+            reviewed_sha256=reviewed["reviewed_sha256"],
+        )
         _git(repo, "push", remote_name, f"{commit}:refs/heads/{target_branch}")
         verified_head = _remote_report_head(repo, remote_name, target_branch)
         if (
@@ -1249,24 +1247,19 @@ def publish_reviewed_report(
         ):
             raise ReportContractError("report_push_unverified")
     except ReportContractError:
-        if not committed:
-            subprocess.run(
-                ["git", "-C", str(repo), "restore", "--staged", "--", spec],
-                check=False,
-                capture_output=True,
-            )
         raise
     except Exception as exc:
-        if not committed:
-            subprocess.run(
-                ["git", "-C", str(repo), "restore", "--staged", "--", spec],
-                check=False,
-                capture_output=True,
-            )
         raise ReportContractError("report_publish_failed") from exc
+    finally:
+        if temp_index is not None:
+            try:
+                temp_index.unlink(missing_ok=True)
+                temp_index.with_suffix(temp_index.suffix + ".lock").unlink(missing_ok=True)
+            except OSError:
+                pass
     return ReportPublication(
         commit=commit,
-        base_commit=head,
+        base_commit=publication_parent,
         code_commit=code_commit,
         remote_name=remote_name,
         target_branch=target_branch,

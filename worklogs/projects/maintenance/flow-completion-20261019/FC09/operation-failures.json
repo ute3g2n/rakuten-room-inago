@@ -1,0 +1,92 @@
+{
+  "record": "FC09 internal operation failures and corrections",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "events": [
+    {
+      "operation": "git upstream read",
+      "failure": "PowerShell parsed the unquoted @{u} rev-parse argument as a hashtable and returned a parser error.",
+      "correction": "Quote the Git refspec as a literal argument; observed upstream origin/main.",
+      "state_change": false
+    },
+    {
+      "operation": "initial production preflight config selection",
+      "failure": "The first config path was runtime/settings.json; it does not exist and CLI returned production_config_unavailable.",
+      "correction": "Use the observed runtime/config/settings.json path and verify only its SHA-256 (never emit values).",
+      "state_change": false
+    },
+    {
+      "operation": "production schema row inspection",
+      "failure": "Initial query selected schema_migration.name, which does not exist; SQLite returned no such column: name.",
+      "correction": "Read table columns, then select version, applied_at, description; migration rows 1-13 observed.",
+      "state_change": false
+    },
+    {
+      "operation": "runtime switch state projection",
+      "failure": "A flat PowerShell projection of active_commit/active_root displayed null because those fields are nested under active.",
+      "correction": "Read the complete safe state object; active commit 22d68761cc47e089bfc2ed59dc9eadc4e69126ee and fixed root confirmed.",
+      "state_change": false
+    },
+    {
+      "operation": "schema-15 focused test",
+      "failure": "Initial test compared SELECT 1 result (1,) with (15,), causing an assertion failure after schema migration.",
+      "correction": "Parent corrected expected tuple to (1,); the same exact node passed on rerun. Both runs remain in test-results.json.",
+      "state_change": false
+    },
+    {
+      "operation": "specification text update",
+      "failure": "First patch context did not match a complete long paragraph. A subsequent byte-replacement draft used an incorrect punctuation marker and stopped before writing.",
+      "correction": "Inspect exact source text, make one exact current-schema replacement, append FC09 sections once, run official requirements builder and review generated output.",
+      "state_change": false
+    },
+    {
+      "operation": "pre-deploy CLI preflight",
+      "failure": "Current source schema v15 and production database schema v13 differ; CLI returns maintenance_schema_version_mismatch. status returns database_schema_unrecognized.",
+      "correction": "Treat these as observations; after independent code review and owned commit/push, back up and apply migrations through the official CLI, then read back.",
+      "state_change": false
+    },
+    {
+      "operation": "CLI resume command discovery",
+      "failure": "Tried the nonexistent `resume` command while checking the official invocation; CLI rejected it as an invalid command and performed no operation.",
+      "correction": "Read the command list and use the supported `resume-worker --source-launch-id` and `worker --once --source-launch-id` interfaces after confirming exact same-job identity and production preconditions.",
+      "state_change": false
+    },
+    {
+      "operation": "historical schema source lookup",
+      "failure": "Guessed a migration filename `013_historical_job_input_manifest.sql` that is not present; no schema or database operation ran.",
+      "correction": "List the actual SQL migrations and inspect the current store API and migration 010; historical input uses the registered `job_input_manifest` table.",
+      "state_change": false
+    },
+    {
+      "operation": "historical input read-only loader preflight",
+      "failure": "Current source schema v15 rejected the pre-migration production schema v13 as database_schema_unrecognized before the loader could read history; no transaction or write ran.",
+      "correction": "Apply migrations through the official CLI only after the verified SQLite backup and approved code commit, then rerun the same source_launch_id/job_id verification before worker dispatch.",
+      "state_change": false
+    },
+    {
+      "operation": "maintenance retention implementation lookup",
+      "failure": "Initially looked for a separate maintenance/retention.py module, but retention is implemented in diagnostic_trace.py; the attempted file read made no changes.",
+      "correction": "Follow the actual CLI import and inspect run_maintenance_retention, prune_expired_diagnostic_logs, recover_orphan_evidence_stages, and expire_evidence_copies before the official command; the user’s historical source files are outside those copy-retention targets.",
+      "state_change": false
+    },
+    {
+      "operation": "role effort inventory command quoting",
+      "failure": "PowerShell evaluated the unquoted embedded regex double quotes and attempted to run `max` as a command; no files changed.",
+      "correction": "Quote the regular expression as a PowerShell single-quoted literal; the nine workflow role TOML files now read as `model_reasoning_effort = high`.",
+      "state_change": false
+    },
+    {
+      "operation": "document synchronization hash refresh",
+      "failure": "The first refresh script compared a WindowsPath backslash-form path with forward-slash manifest entries and raised StopIteration before writing the JSON.",
+      "correction": "Compare with Path.as_posix(), refresh the recorded hashes and builder bytes, and preserve the previous builder observation in rerun_history.",
+      "state_change": false
+    }
+  ],
+  "no_secret_or_raw_exception_message_saved": true
+}

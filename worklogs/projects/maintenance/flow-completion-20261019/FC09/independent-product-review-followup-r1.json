@@ -1,0 +1,277 @@
+{
+  "schema_version": "common-review-result-v1",
+  "reviewer_id": "common-reviewer-fc09-followup",
+  "scope_type": "plan_step",
+  "scope_id": "FC09-followup-r1",
+  "reviewed_at": "2026-10-19T16:55:59Z",
+  "status": "approved",
+  "reviewed_version": "c50687d9ccf1ddbe7a7963b3ac16b008e44615d752e276034d196a1620bf1213",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "scope": {
+    "target_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC09/product-review-target.json",
+    "target_manifest_sha256": "c50687d9ccf1ddbe7a7963b3ac16b008e44615d752e276034d196a1620bf1213",
+    "target_manifest_file_sha256": "8843f1b084edbcf0950447e8a2c0d2b1af04a1bc9c22539952fbb8d571957d53",
+    "source_file_count": 39,
+    "all_source_hashes_match": true,
+    "source_hash_results": {
+      "automation/inago/maintenance/ai_adapter.py": {
+        "expected": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac",
+        "actual": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac",
+        "match": true
+      },
+      "automation/inago/maintenance/cli.py": {
+        "expected": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441",
+        "actual": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441",
+        "match": true
+      },
+      "automation/inago/maintenance/code_revision.py": {
+        "expected": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+        "actual": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+        "match": true
+      },
+      "automation/inago/maintenance/controller.py": {
+        "expected": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0",
+        "actual": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0",
+        "match": true
+      },
+      "automation/inago/maintenance/deployment.py": {
+        "expected": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443",
+        "actual": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443",
+        "match": true
+      },
+      "automation/inago/maintenance/diagnostic_trace.py": {
+        "expected": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2",
+        "actual": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2",
+        "match": true
+      },
+      "automation/inago/maintenance/failure_journal.py": {
+        "expected": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c",
+        "actual": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c",
+        "match": true
+      },
+      "automation/inago/maintenance/investigation.py": {
+        "expected": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "actual": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+        "match": true
+      },
+      "automation/inago/maintenance/paths.py": {
+        "expected": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72",
+        "actual": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72",
+        "match": true
+      },
+      "automation/inago/maintenance/production_workflow.py": {
+        "expected": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+        "actual": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+        "match": true
+      },
+      "automation/inago/maintenance/report_fallback.py": {
+        "expected": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "actual": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+        "match": true
+      },
+      "automation/inago/maintenance/reporting.py": {
+        "expected": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+        "actual": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+        "match": true
+      },
+      "automation/inago/maintenance/runtime_switcher.py": {
+        "expected": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b",
+        "actual": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b",
+        "match": true
+      },
+      "automation/inago/maintenance/safe_file.py": {
+        "expected": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac",
+        "actual": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac",
+        "match": true
+      },
+      "automation/inago/maintenance/settings.py": {
+        "expected": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215",
+        "actual": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215",
+        "match": true
+      },
+      "automation/inago/maintenance/sql/014_flow_completion_trace.sql": {
+        "expected": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e",
+        "actual": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e",
+        "match": true
+      },
+      "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql": {
+        "expected": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6",
+        "actual": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6",
+        "match": true
+      },
+      "automation/inago/maintenance/stage_handoff.py": {
+        "expected": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+        "actual": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+        "match": true
+      },
+      "automation/inago/maintenance/store.py": {
+        "expected": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6",
+        "actual": "0b1ae392f57d321e9e1c6561bf0386f14e35bed7dd1a6078e95b660aff2d27a6",
+        "match": true
+      },
+      "automation/inago/maintenance/worker.py": {
+        "expected": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a",
+        "actual": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a",
+        "match": true
+      },
+      "automation/inago/maintenance/workflow_provider.py": {
+        "expected": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0",
+        "actual": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0",
+        "match": true
+      },
+      "automation/inago/maintenance/workflow_reconciliation.py": {
+        "expected": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+        "actual": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-check-response.schema.json": {
+        "expected": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f",
+        "actual": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-check-result.schema.json": {
+        "expected": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b",
+        "actual": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-deployment-candidate.schema.json": {
+        "expected": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4",
+        "actual": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-deployment-result.schema.json": {
+        "expected": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15",
+        "actual": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-diagnostic-event.schema.json": {
+        "expected": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa",
+        "actual": "b3d5d6b3158476b36694525c45ce5771a3965856a47c9404de05bd070e44f5aa",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-evidence.schema.json": {
+        "expected": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b",
+        "actual": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-investigation-response.schema.json": {
+        "expected": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff",
+        "actual": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-repair-review-claim.schema.json": {
+        "expected": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0",
+        "actual": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-repair-review-target.schema.json": {
+        "expected": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0",
+        "actual": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-repair-review.schema.json": {
+        "expected": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90",
+        "actual": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-repair-test-evidence.schema.json": {
+        "expected": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed",
+        "actual": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-repair-test-ledger.schema.json": {
+        "expected": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620",
+        "actual": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-report-response.schema.json": {
+        "expected": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+        "actual": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-report-result.schema.json": {
+        "expected": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+        "actual": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-report-review.schema.json": {
+        "expected": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+        "actual": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-settings.schema.json": {
+        "expected": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53",
+        "actual": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53",
+        "match": true
+      },
+      "automation/inago/schemas/maintenance-stage-handoff.schema.json": {
+        "expected": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92",
+        "actual": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92",
+        "match": true
+      }
+    },
+    "branch": "main",
+    "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "tests_source_reviewed": false,
+    "test_execution_evidence_inspected": true,
+    "production_database_or_job_touched": false
+  },
+  "plan_and_evidence": {
+    "plan_version": "1.2",
+    "plan_current_sha256": "7f306659f6d7d159fec563ba1aafaaf709901c31eb3fb2be719c904c7fa695eb",
+    "f1_results": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition-results.json",
+    "f1_results_sha256": "0ac71770ca9154fdd58849a0a7809f9cf2632445cc9cf9ef43d8065ad5957b5e",
+    "owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+    "limitations": [
+      "Reviewer did not run pytest and did not read test source.",
+      "The single focused follow-up test uses temporary SQLite and a synthetic identity; no production job or queue was accessed.",
+      "The test evidence proves the configured report runner callback was invoked; it does not prove a production AI reporter, public HTML publication, or real job binding on the invalid-identity path.",
+      "No production database/job/queue/scheduler/public remote operations were performed by this reviewer."
+    ]
+  },
+  "prior_finding_resolution": {
+    "id": "FC09-F1",
+    "status": "resolved",
+    "evidence": "workflow_provider now captures invocation id and code revision, appends a correlated identity_precondition failure event with job_id=null, sanitizes queue/check/resume identity, writes eight unbound stage handoffs, runs the configured report stage callback once, and returns unknown with maintenance_workflow_identity_invalid. No job lookup, attempt insertion, or job/queue write occurs on this unbound path."
+  },
+  "test_execution_evidence": {
+    "source_results_sha256": "0ac71770ca9154fdd58849a0a7809f9cf2632445cc9cf9ef43d8065ad5957b5e",
+    "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -m pytest tests_inago/test_maintenance_workflow_provider.py::test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report -q --basetemp $base --junitxml=\"$out/f1-identity-precondition.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/f1-identity-precondition.console.txt\"; exit $LASTEXITCODE",
+    "exit_code": 0,
+    "reported_result": "PASS; 1 passed in 0.60s",
+    "junit": {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.junit.xml",
+      "expected_sha256": "d4c16c929df8be3db2b883ac0a1c515341036b3914d6b7e48e74bd2d555207ec",
+      "actual_sha256": "d4c16c929df8be3db2b883ac0a1c515341036b3914d6b7e48e74bd2d555207ec",
+      "case_count": 1,
+      "failure_error_skip_count": 0,
+      "status": "PASS"
+    },
+    "console": {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.console.txt",
+      "expected_sha256": "4b5c292f1c5d1b8a55b35a5cbaf582ec92c0a4dbb4679f6aa1d8ced87ffd132d",
+      "actual_sha256": "4b5c292f1c5d1b8a55b35a5cbaf582ec92c0a4dbb4679f6aa1d8ced87ffd132d",
+      "hash_match": true
+    }
+  },
+  "scope_assessment": {
+    "precondition_unbound_flow": "All eight stage handoffs are persisted under an unbound invocation namespace, with job_id/incident_id null, source launch/date/run from launch, operation status not_performed except report callback result, and reason maintenance_workflow_identity_invalid. The failure event is correlated to the same invocation and has no unsafe job id.",
+    "job_queue_safety": "Does not lookup jobs or persist step attempts/stage observations. Safe queue has blank queue_id and worker_job_id. It does not mutate the original queue or an unrelated job.",
+    "report_stage": "The unbound loop invokes configured report callable exactly once. Production runner wiring calls run_daily_report_stage, fallback attempt, and publication wrapper; missing job identity is retained as unknown and cannot be bound to a job artifact/publication. Execution evidence does not prove an actual production report artifact or AI author call on this invalid-identity route.",
+    "future_stage_blocked": "Unbound failure handoffs use unknown/not_performed; WorkerWorkflowOutcome is unknown, no future stage result is blocked. The explicit target-date pre-dispatch exclusion remains before unbound handling and is intentionally retained for 2026-10-19.",
+    "excluded_date": "worker.py still defines WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"}); provider checks it before any unbound/report work.",
+    "correlation": "Invocation id and one failure correlation id bind the operation event; each of the eight handoffs has its stage correlation id and shared source code revision.",
+    "privacy": "Failure journal stores safe reason, class/cause class, stack frames and allowlisted identifiers. Unbound handoffs omit job and incident IDs and do not echo mismatched queue identity. Product code passes a sanitized check/queue to report callback.",
+    "limitations": "Synthetic test shows configured report callback invocation, not actual report AI/publication. No production identity can be attached safely when provider preconditions disagree."
+  },
+  "findings": [],
+  "next_action": "FC09-F1 is resolved for this source manifest. Continue FC10/FC11; this approval does not establish real 10/17 job completion, production publication, or incident resolution."
+}

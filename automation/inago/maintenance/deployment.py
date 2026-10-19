@@ -462,66 +462,18 @@ class ManagedWorktreeManager:
             r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", release_id
         ):
             raise DeploymentError("release_id_invalid")
+        # This is a one-person fixed-root system. The release candidate is the
+        # already tested commit in the configured repository; opening a second
+        # checkout would violate the operator's fixed-workspace rule.
+        _ = release_id
         pinned_commit = _commit(self.repository, commit)
-        key = hashlib.sha256(release_id.encode("utf-8")).hexdigest()
-        path = self.worktree_root / key
-        registry_root = self.worktree_root / "owners"
-        manifest = registry_root / f"{key}.json"
-        self.worktree_root.mkdir(parents=True, exist_ok=True)
-        registry_root.mkdir(parents=True, exist_ok=True)
-        if _has_reparse_point(self.worktree_root) or _has_reparse_point(registry_root):
-            raise DeploymentError("worktree_root_reparse_point")
-        if manifest.exists():
-            owner = self._read_owner(manifest)
-            expected = {
-                "schema_version": _WORKTREE_OWNER_SCHEMA,
-                "release_id": release_id,
-                "repository": str(self.repository),
-                "path": str(path),
-                "commit": pinned_commit,
-            }
-            if owner != expected:
-                raise DeploymentError("worktree_owner_mismatch")
-            if not path.is_dir():
-                raise DeploymentError("managed_worktree_missing")
-            actual_root = _repository_root(path)
-            if actual_root != path.resolve(strict=True):
-                raise DeploymentError("managed_worktree_path_mismatch")
-            actual_commit = _commit(
-                actual_root, _text(_git(actual_root, "rev-parse", "HEAD"))
-            )
-            if actual_commit != pinned_commit:
-                raise DeploymentError("managed_worktree_commit_mismatch")
-            if _status(actual_root):
-                raise DeploymentError("managed_worktree_dirty")
-            return actual_root
-        if path.exists():
-            raise DeploymentError("worktree_ownership_unverified")
-        if manifest.exists():
-            raise DeploymentError("worktree_registry_conflict")
-        _git(
-            self.repository,
-            "worktree",
-            "add",
-            "--detach",
-            str(path),
-            pinned_commit,
-            failure_code="managed_worktree_create_failed",
-        )
-        owner = {
-            "schema_version": _WORKTREE_OWNER_SCHEMA,
-            "release_id": release_id,
-            "repository": str(self.repository),
-            "path": str(path),
-            "commit": pinned_commit,
-        }
-        try:
-            with manifest.open("x", encoding="utf-8", newline="\n") as stream:
-                json.dump(owner, stream, ensure_ascii=False, sort_keys=True)
-                stream.write("\n")
-        except OSError as exc:
-            raise DeploymentError("worktree_owner_record_failed") from exc
-        return path.resolve(strict=True)
+        actual_root = _repository_root(self.repository)
+        actual_commit = _commit(actual_root, _text(_git(actual_root, "rev-parse", "HEAD")))
+        if actual_commit != pinned_commit:
+            raise DeploymentError("fixed_repository_commit_mismatch")
+        if _status(actual_root):
+            raise DeploymentError("fixed_repository_dirty")
+        return actual_root
 
     @staticmethod
     def _read_owner(path: Path) -> dict[str, object]:
@@ -1272,18 +1224,22 @@ class DeploymentCoordinator:
                     else observed_active
                 )
                 if previous_active is None:
-                    if observed_active != base:
+                    if observed_active not in {base, tested}:
                         return block_or_keep_pending(
                             deployment_id=deployment_id,
                             pushed=None,
                             active=observed_active,
                             reason="active_commit_base_mismatch",
                         )
+                    # The fixed repository may already be on the reviewed
+                    # commit when this local workflow resumes. Preserve the
+                    # recorded deployed base as the prior release in that case.
+                    bound_previous = base if observed_active == tested else observed_active
                     try:
                         bound = self.store.bind_deployment_previous_active(
                             deployment_id=deployment_id,
                             lease=lease,
-                            previous_active_commit=observed_active,
+                            previous_active_commit=bound_previous,
                             recorded_at=self._now(),
                         )
                     except MaintenanceStoreError as exc:

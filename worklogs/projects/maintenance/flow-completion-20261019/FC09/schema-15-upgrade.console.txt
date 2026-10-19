@@ -1,0 +1,42 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger ____
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/node1/test_schema_15_upgrade_drops_o0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F277E7AD50>
+
+    def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
+        tmp_path, monkeypatch
+    ):
+        target_schema_version = maintenance_store_module.SCHEMA_VERSION
+        assert target_schema_version == 15
+    
+        # Recreate the currently deployed schema 14 without touching production.
+        monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 14)
+        store = make_store(tmp_path)
+        with sqlite3.connect(store.database_path) as connection:
+            assert connection.execute("PRAGMA user_version").fetchone() == (14,)
+            assert connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+                "AND name='step_attempt_repair_predecessor_all_or_none'"
+            ).fetchone() == (1,)
+    
+        # The next normal initialize must run the registered migration 015.
+        monkeypatch.setattr(
+            maintenance_store_module, "SCHEMA_VERSION", target_schema_version
+        )
+        assert store.initialize() == target_schema_version
+        with sqlite3.connect(store.database_path) as connection:
+            assert connection.execute("PRAGMA user_version").fetchone() == (15,)
+>           assert connection.execute(
+                "SELECT 1 FROM schema_migration WHERE version = 15"
+            ).fetchone() == (15,)
+E           assert (1,) == (15,)
+E             
+E             At index 0 diff: 1 != 15
+E             Use -v to get more diff
+
+tests_inago\test_maintenance_store.py:1191: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_store.py::test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger
+1 failed in 0.44s

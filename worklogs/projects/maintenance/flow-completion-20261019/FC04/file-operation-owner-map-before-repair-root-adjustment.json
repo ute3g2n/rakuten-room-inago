@@ -1,0 +1,3054 @@
+{
+  "schema_version": "fc02-file-operation-owner-map-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "order": [
+    "FC02",
+    "FC03",
+    "FC04",
+    "FC05",
+    "FC06",
+    "FC07",
+    "FC08",
+    "FC09",
+    "FC10",
+    "FC11"
+  ],
+  "shared_file_rule": "sequential ownership, preserve predecessor diff; function/hunk boundary wins over stale line after edits",
+  "fc10_implementation": "Use FC03 candidate exact diff/version for same-job validation, product review, official apply and new trace. If genuinely uncovered operation is found, controller appends exact file/hunk here before edit; do not duplicate daily SQLite trace.",
+  "operations": [
+    {
+      "file": "automation/inago/maintenance/diagnostic_trace.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def require_written",
+        "baseline_line": 571,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "non-gating trace writes, safe cause/capture, independent fallback and recovery",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/workflow_provider.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class MaintenanceWorkflowProvider",
+        "baseline_line": 44,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "outer invocation/operation correlation, observation persistence failure journal",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/ai_adapter.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "PARENT_SETTINGS",
+        "baseline_line": 49,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "parent B max→high; actual launch/transport/timeout/empty/parse failure correlation",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/safe_file.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def publish_file_beneath",
+        "baseline_line": 59,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "artifact write/hash/replace failure and intent recovery correlation",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/paths.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def resolve_maintenance_database_path",
+        "baseline_line": 34,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "fixed workspace journal path resolution, no inferred identity",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/settings.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class MaintenanceSettings:",
+        "baseline_line": 22,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "trace fallback configuration and compatibility without new gate",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/controller.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class MaintenanceController:",
+        "baseline_line": 421,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "trace begin/catch/final per controller operation; retain prior edits for FC04/05",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/store.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class MaintenanceStore",
+        "baseline_line": 236,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "append-only operation events and persistence read-back; FC05 later lifecycle",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/production_workflow.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def run_daily_planning_author_stage",
+        "baseline_line": 3813,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "check/evidence/investigation/planning/repair handoff and actual launch; remove approval gates",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/investigation.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def validate_investigation_response",
+        "baseline_line": 378,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "unknown/AI failure output with substantive handoff",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/planning.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def validate_planning_response",
+        "baseline_line": 767,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "available-input instrumentation plan and no review prerequisite",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/repair.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class RepairController:",
+        "baseline_line": 425,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "useful instrumentation or reasoned no-change; FC05 later test/review connection",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/deployment.py",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def push_candidate_commit",
+        "baseline_line": 857,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "candidate/no-change/failure deployment evaluation and ledger/active version observation",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/runtime_switcher.py",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "class TaskSchedulerRuntimeSwitcher:",
+        "baseline_line": 28,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "apply/read-back/failure records without status gate",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/worker.py",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "WORKER_DISPATCH_EXCLUDED_DATES",
+        "baseline_line": 31,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "workflow/incident separation and true terminal/exit; preserve exact 10/19 exclusion",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/cli.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def main",
+        "baseline_line": 551,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "remove trace receipt gates; FC05 terminal/CLI outcome continuation",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/reporting.py",
+      "existence": "existing",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "def prepare_incident_report",
+        "baseline_line": 627,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "plain normal/minimal HTML, reviewer/author revision/publication exact version",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT08",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/failure_journal.py",
+      "existence": "planned_new",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "new module",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "independent fallback sink and recovered-event reconciliation",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT05",
+        "FCT08",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/stage_handoff.py",
+      "existence": "planned_new",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "new module",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "meaningful fallback envelope; next agent consumes exact version",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT05",
+        "FCT08",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/workflow_reconciliation.py",
+      "existence": "planned_new",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "new module",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "abandoned attempt reconciliation and terminal/publication/incident separation",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT05",
+        "FCT08",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/report_fallback.py",
+      "existence": "planned_new",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "new module",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "deterministic plain minimum HTML with normal review/publication",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT05",
+        "FCT08",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+      "existence": "planned_new",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "new additive migration",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "schema13→14 append-only event/handoff/lifecycle fields; FC05 sequential coordination",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT05",
+        "FCT10",
+        "FCT12"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/daily_pipeline.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "read",
+      "boundary": {
+        "symbol_or_hunk": "existing SQLite/capture instrumentation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "inspect and reuse existing daily classification/constraint/transaction/proposed-persisted/capture; no duplicate edits planned",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT12"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/orchestrator.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "read",
+      "boundary": {
+        "symbol_or_hunk": "existing SQLite/capture instrumentation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "inspect and reuse existing daily classification/constraint/transaction/proposed-persisted/capture; no duplicate edits planned",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT12"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/trace.py",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "read",
+      "boundary": {
+        "symbol_or_hunk": "existing SQLite/capture instrumentation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "inspect and reuse existing daily classification/constraint/transaction/proposed-persisted/capture; no duplicate edits planned",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT12"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 18,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-check-result.schema.json",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 23,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-check-response.schema.json",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 7,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-evidence.schema.json",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 16,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-settings.schema.json",
+      "existence": "existing",
+      "owner": "FC03",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 18,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 3,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-investigation-response.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 11,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-investigation-review.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 7,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-planning-response.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 15,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-planning-review.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-result.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-patch.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-patch-assessment.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-handoff.schema.json",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+      "existence": "planned_new",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 6,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 21,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-report-response.schema.json",
+      "existence": "existing",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 19,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-report-review.schema.json",
+      "existence": "existing",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 8,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/schemas/maintenance-report-result.schema.json",
+      "existence": "existing",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "properties",
+        "baseline_line": 8,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "additive stage/operation/progress/quality separation; legacy raw enum reader retained",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT02",
+        "FCT03",
+        "FCT06",
+        "FCT08",
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/common-execution-planner.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/common-execution-plan-reviewer.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/rr-inago-incident-investigator.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/common-implementer.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/common-tester.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/common-reviewer.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/rr-inago-incident-reporter.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".codex/agents/rr-inago-incident-report-reviewer.toml",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "model_reasoning_effort; developer_instructions effort/high and final future-stage handoff paragraph; tester/reviewer/implementer fixed workspace; reporter/reviewer terminal separation",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Synchronize active role high/fixed workspace/no future blocked and flow-vs-incident contracts; preserve unrelated role prose",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/rr-inago-incident-investigation/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/rr-inago-incident-investigation/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-execution-planning/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-execution-planning/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-implementation/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "SKILL.md work section fixed-root Git instruction; implementation allowed hunk boundary; testing high/current-version focused policy",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Remove active managed-worktree/current-checkout prohibition and max/frozen-PASS policy, use fixed-root owner hunks and focused current-version verification",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-implementation/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-testing/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "SKILL.md work section fixed-root Git instruction; implementation allowed hunk boundary; testing high/current-version focused policy",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Remove active managed-worktree/current-checkout prohibition and max/frozen-PASS policy, use fixed-root owner hunks and focused current-version verification",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-testing/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-review/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "SKILL.md work section fixed-root Git instruction; implementation allowed hunk boundary; testing high/current-version focused policy",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "Remove active managed-worktree/current-checkout prohibition and max/frozen-PASS policy, use fixed-root owner hunks and focused current-version verification",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/common-review/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/rr-inago-incident-report/SKILL.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": ".agents/skills/rr-inago-incident-report/references/contracts.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/要件データ辞書.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/要件追跡表.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/保守運用設定仕様.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "tools/docs/inago-requirements/flow-descriptions.mjs",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "tools/docs/inago-requirements/task-flows.mjs",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/specifications/inago/図解/F12.svg",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "existence": "existing",
+      "owner": "FC02",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "FC02 contract / high / F12 hunk",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "contract synchronization only; subsequent steps amend their behavior in sequence",
+      "execution_order": 2,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC02/; same-job formal attempt refs in FC10",
+      "reviewer": "independent plan reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/production_workflow.py",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "test/review/deployment/terminal runners",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "actual tester/reviewer/deployment operation on diff/no-change/fallback; no gates",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT04",
+        "FCT06",
+        "FCT07",
+        "FCT10"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/production_workflow.py",
+      "existence": "existing",
+      "owner": "FC06",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "report/review/revision/publication runners",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "normal and fallback report author/reviewer/revision/publish exact version",
+      "execution_order": 6,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC06/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT08",
+        "FCT09",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/controller.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "stage handoff / terminal lifecycle",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "sequential edit after FC03: handoff dispatch or immutable raw-history reconciliation",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/store.py",
+      "existence": "existing",
+      "owner": "FC05",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "stage handoff / terminal lifecycle",
+        "baseline_line": null,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "sequential edit after FC03: handoff dispatch or immutable raw-history reconciliation",
+      "execution_order": 5,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC05/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    },
+    {
+      "file": "automation/inago/maintenance/workflow_provider.py",
+      "existence": "existing",
+      "owner": "FC04",
+      "access": "write",
+      "boundary": {
+        "symbol_or_hunk": "MaintenanceWorkflowProvider.__call__: stage_order loop, result normalization, outcome persistence",
+        "baseline_line": 240,
+        "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+      },
+      "operation": "sequential after FC03 correlation: do not emit future blocked stage results; normalize missing/exception/invalid runner outcomes into substantive failed or unknown content and continue every later stage, preserving raw historical observations",
+      "execution_order": 4,
+      "output": "worklogs/projects/maintenance/flow-completion-20261019/FC04/; same-job formal attempt refs in FC10",
+      "reviewer": "FC08 independent product reviewer",
+      "evidence": [
+        "FC01/failure-path-map.md",
+        "FC01/instrumentation-backlog.md",
+        "FC03/failure-matrix.md"
+      ],
+      "cases": [
+        "FCT01",
+        "FCT03",
+        "FCT04",
+        "FCT10",
+        "FCT11"
+      ],
+      "in_step_sync": [
+        "requirements-source HTML + builder output",
+        "AT-MAINT-01",
+        "AT-TRACE-01",
+        "dictionary",
+        "traceability",
+        "trace log list",
+        "relevant skill/role",
+        "F12 where changed"
+      ]
+    }
+  ],
+  "scope_extensions": [
+    {
+      "file": "tools/docs/inago-requirements/flow-descriptions.mjs",
+      "boundary": "F12 maintenance controller/store S-node current terminal semantics",
+      "controller_message": "approved minimal extension"
+    },
+    {
+      "files": [
+        ".codex/agents/common-execution-planner.toml",
+        ".codex/agents/common-execution-plan-reviewer.toml",
+        ".codex/agents/rr-inago-incident-investigator.toml",
+        ".codex/agents/rr-inago-incident-investigation-reviewer.toml",
+        ".codex/agents/common-implementer.toml",
+        ".codex/agents/common-tester.toml",
+        ".codex/agents/common-reviewer.toml",
+        ".codex/agents/rr-inago-incident-reporter.toml",
+        ".codex/agents/rr-inago-incident-report-reviewer.toml"
+      ],
+      "controller_message": "approved strictly scoped active-role synchronization",
+      "reason": "remove active max/worktree/blocked and report-complete→incident-resolved contradictions"
+    },
+    {
+      "files": [
+        ".agents/skills/common-implementation/SKILL.md",
+        ".agents/skills/common-testing/SKILL.md",
+        ".agents/skills/common-review/SKILL.md",
+        ".codex/agents/rr-inago-incident-reporter.toml"
+      ],
+      "controller_message": "parent static spot-check requested direct removal before independent review",
+      "reason": "active worktree instructions and reporter leftover blocked mapping contradicted appended contract"
+    }
+  ],
+  "revisions": [
+    {
+      "finding": "FC02-R01",
+      "owner": "FC02 planner",
+      "files": [
+        ".codex/agents/common-tester.toml",
+        ".agents/skills/common-testing/SKILL.md"
+      ],
+      "boundary": [
+        "common-tester developer_instructions planned nodes / collection / PASS repeat sentences",
+        "common-testing SKILL work first bullet and prohibited test operation sentence"
+      ],
+      "reason": "direct removal of conflicting freeze/blanket collect restrictions",
+      "after_sha256": {
+        ".codex/agents/common-tester.toml": "011e00bf09cce7951d2df52249f251433ecb015ab5bd26ed5c37763dc8740a8a",
+        ".agents/skills/common-testing/SKILL.md": "d66ffdb05b1b6ae23e5fb8795e2934b0697f83852f1ccff10f64799839967e0d"
+      },
+      "evidence": "FC02/revision-fc02-r01.json",
+      "reviewer": "independent fc02_review follow-up"
+    }
+  ]
+}

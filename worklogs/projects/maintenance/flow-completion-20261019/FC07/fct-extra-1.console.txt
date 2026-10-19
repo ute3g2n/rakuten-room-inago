@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff ___
+
+    def test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff():
+        identity = {
+            "job_id": JOB_ID,
+            "incident_id": INCIDENT_ID,
+            "source_launch_id": LAUNCH_ID,
+            "source_run_id": None,
+            "target_date": TARGET_DATE,
+        }
+        plan = render_instrumentation_plan(
+            limits=["�����𔻒f�ł���ڍׂȗ�O�L�^���c���Ă��܂���B"],
+            owner_paths=["automation/inago/maintenance/workflow_provider.py"],
+        )
+        assert "workflow_provider.py" in plan
+>       assert "�v��" in plan
+E       AssertionError: assert '�v��' in '# �����s�����̎��s�v��\n\n1. ��Q�����̏C���́A���������낤�܂Ŏ��{���Ȃ��B\n2. �����EAI�ďo���E�������؁E���ʕ��ۑ��EDB�o�^�E���p���̊e���E�ŁA���얼�A����ID�A��O�̎�ނƔ����ӏ��A����/�o�͎Q�Ƃ��L�^����B\n3...�p�Ɠ���job�̐V�L�^�����Ɋm�F����B\n\n�m�F����:\n- �����𔻒f�ł���ڍׂȗ�O�L�^���c���Ă��܂���B\n\n�Ώ۔͈�:\n- automation/inago/maintenance/workflow_provider.py'
+
+tests_inago\test_maintenance_flow_completion_fc07.py:217: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff
+1 failed in 0.24s

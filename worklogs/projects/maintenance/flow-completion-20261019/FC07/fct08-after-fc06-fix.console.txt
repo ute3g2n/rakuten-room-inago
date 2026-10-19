@@ -1,0 +1,517 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_fc07_report_role_review_revision_or_failure_reaches_publication[changes_requested_then_approved] _
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1515/test_fc07_report_role_review_r0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019B36B35370>
+reviewer_mode = 'changes_requested_then_approved'
+
+    @pytest.mark.parametrize("reviewer_mode", ["changes_requested_then_approved", "transport_failure"])
+    def test_fc07_report_role_review_revision_or_failure_reaches_publication(
+        tmp_path: Path, monkeypatch, reviewer_mode: str
+    ):
+        from copy import deepcopy
+    
+        from tests_inago.test_maintenance_report import _report_response
+    
+        source_launch_id = f"launch-fc07-{reviewer_mode}"
+        target_date = "2026-10-17"
+        store = make_store(tmp_path)
+        incident_id = create_incident(store, launch_id=source_launch_id)
+        release = create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id=f"release-fc07-{reviewer_mode}",
+            base_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+            result_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+        )
+        store.bind_job_input_manifest(
+            incident_id=incident_id,
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+            job_id=release.job_id,
+            created_at=BASE_TIME,
+        )
+        job = store.list_workflow_jobs_for_launch(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+            job_id=release.job_id,
+        )[0]
+        lease = store.acquire_lease(
+            lease_key=f"maintenance:{job.job_id}",
+            owner_id="fc07-report-role-test",
+            owner_pid=1,
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        identity = {
+            "incident_id": incident_id,
+            "source_launch_id": source_launch_id,
+            "source_run_id": None,
+            "target_date": target_date,
+            "job_id": job.job_id,
+        }
+        context = MaintenanceWorkflowContext(
+            launch=SimpleNamespace(
+                source_launch_id=source_launch_id,
+                source_run_id=None,
+                target_date=target_date,
+            ),
+            check=SimpleNamespace(check_id=f"check-{reviewer_mode}"),
+            queue=SimpleNamespace(queue_id=f"queue-{reviewer_mode}"),
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=job, attempts=()),
+            state={
+                "job": job,
+                "precheck_identity": {
+                    **identity,
+                    "input_refs": [
+                        f"daily-launch/{source_launch_id}",
+                        f"daily-result-observation/{source_launch_id}",
+                    ],
+                    "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+                },
+            },
+        )
+        runtime_root = store.database_path.parent.parent
+        (store.database_path.parent / "worktrees").mkdir(parents=True)
+        reports: dict[str, dict[str, object]] = {}
+        review_inputs: list[dict[str, object]] = []
+        author_inputs: list[dict[str, object]] = []
+        role_calls: list[str] = []
+        turn_number = 0
+    
+        monkeypatch.setattr(
+            production_workflow,
+            "_daily_report_source_documents",
+            lambda **_kwargs: {},
+        )
+        original_author_prompt = production_workflow._daily_report_prompt
+        original_reviewer_prompt = production_workflow._daily_report_review_prompt
+    
+        def author_prompt(**kwargs):
+            author_inputs.append(deepcopy(kwargs["report_input"]))
+            return original_author_prompt(**kwargs)
+    
+        def reviewer_prompt(**kwargs):
+            review_inputs.append(deepcopy(kwargs["review_input"]))
+            return original_reviewer_prompt(**kwargs)
+    
+        monkeypatch.setattr(production_workflow, "_daily_report_prompt", author_prompt)
+        monkeypatch.setattr(production_workflow, "_daily_report_review_prompt", reviewer_prompt)
+    
+        class FakeSession:
+            def __init__(self, role: str, attempt_id: str, role_hash: str, allowed: tuple[str, ...]):
+                self.role = role
+                self.attempt_id = attempt_id
+                self.role_hash = role_hash
+                self.allowed = allowed
+    
+            def run_turn(self, *_args, **_kwargs):
+                nonlocal turn_number
+                turn_number += 1
+                role_calls.append(self.role)
+                turn_id = f"fc07-turn-{turn_number}"
+                thread_id = f"fc07-thread-{turn_number}"
+                if self.role == production_workflow._REPORT_AUTHOR_ROLE:
+                    report_input = author_inputs[-1]
+                    report = deepcopy(_report_response())
+                    report["identity"] = identity
+                    report["result_version"] = report_input["result_version"]
+                    report["created_at_jst"] = report_input["created_at_jst"]
+                    report["title"] = f"�������|�[�g��{len(author_inputs)}"
+                    report["summary"] = f"�������|�[�g�{����{len(author_inputs)}"
+                    response = {**identity, "report": report}
+                else:
+                    if reviewer_mode == "transport_failure":
+                        raise production_workflow.MaintenanceAIBlockedError(
+                            "synthetic_reviewer_transport_unavailable"
+                        )
+                    review_input = review_inputs[-1]
+                    review_round = len(review_inputs)
+                    response = {
+                        **identity,
+                        "review": {
+                            "schema_version": "maintenance-report-review-v1",
+                            "reviewer_id": production_workflow._REPORT_REVIEWER_ROLE,
+                            "reviewed_version": review_input["result_version"],
+                            "reviewed_sha256": review_input["html_sha256"],
+                            "status": "changes_requested" if review_round == 1 else "approved",
+                            "reviewed_at": "2026-10-20T00:00:00+09:00",
+                            "findings": (
+                                [{"severity": "medium", "location": "�{��", "finding": "�m�F�ł������e����̉����Ă��������B"}]
+                                if review_round == 1
+                                else []
+                            ),
+                        },
+                    }
+                envelope = {
+                    "schema_version": "maintenance-ai-response-v1",
+                    "identity": identity,
+                    "attempt_id": self.attempt_id,
+                    "owner": {
+                        "parent_key": production_workflow._REPORT_PARENT_KEY,
+                        "role_name": self.role,
+                    },
+                    "allowed_outputs": list(self.allowed),
+                    "thread_id": thread_id,
+                    "turn_id": turn_id,
+                    "response": response,
+                }
+                path = f"{job.job_id}/{self.attempt_id}/synthetic-{self.role}.json"
+                reports[(self.attempt_id, self.role)] = {
+                    "path": path,
+                    "sha256": "a" * 64,
+                    "envelope": envelope,
+                }
+                return SimpleNamespace(
+                    turn=SimpleNamespace(turn_id=turn_id, thread_id=thread_id)
+                )
+    
+            def close(self):
+                return None
+    
+        class FakeAdapter:
+            def __init__(self, *_args, **_kwargs):
+                pass
+    
+            def plan_session(self, **kwargs):
+                return SimpleNamespace(
+                    role_name=kwargs["role_name"],
+                    attempt_id=kwargs["attempt_id"],
+                    role_config_sha256="f" * 64,
+                    cwd=kwargs["cwd"],
+                )
+    
+            def create_session(self, plan):
+                allowed = (
+                    production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS
+                    if plan.role_name == production_workflow._REPORT_AUTHOR_ROLE
+                    else production_workflow._REPORT_REVIEW_ALLOWED_OUTPUTS
+                )
+                return FakeSession(
+                    plan.role_name, plan.attempt_id, plan.role_config_sha256, allowed
+                )
+    
+        def envelopes(*, attempt_id: str, role_name: str, **_kwargs):
+            saved = reports.get((attempt_id, role_name))
+            if saved is None:
+                return []
+            return [(saved["path"], saved["sha256"], saved["envelope"])]
+    
+        monkeypatch.setattr(production_workflow, "MaintenanceAIAdapter", FakeAdapter)
+        monkeypatch.setattr(production_workflow, "_daily_report_ai_envelopes", envelopes)
+        publication_calls: list[dict[str, object]] = []
+    
+        def publish(context_arg, _controller, _store, **kwargs):
+            publication_calls.append(
+                {
+                    "identity": context_arg.state.get("precheck_identity"),
+                    "report": context_arg.state.get("report_result"),
+                    "kwargs": kwargs,
+                }
+            )
+            return WorkflowStageResult(status="complete")
+    
+        monkeypatch.setattr(production_workflow, "run_daily_report_publication_stage", publish)
+        provider = production_workflow.build_production_workflow_provider(store)
+        result = provider._stage_runners["report"](context)
+    
+        assert result.status == "complete"
+        assert len(publication_calls) == 1
+        assert publication_calls[0]["identity"]["job_id"] == job.job_id
+        assert role_calls, {
+            key: context.state.get(key)
+            for key in (
+                "report_preparation_observation",
+                "report_source_snapshot",
+                "report_source_artifacts",
+                "report_fallback_observation",
+                "report_result",
+            )
+        }
+        if reviewer_mode == "changes_requested_then_approved":
+>           assert role_calls == [
+                production_workflow._REPORT_AUTHOR_ROLE,
+                production_workflow._REPORT_REVIEWER_ROLE,
+                production_workflow._REPORT_AUTHOR_ROLE,
+                production_workflow._REPORT_REVIEWER_ROLE,
+            ], {
+                "role_calls": role_calls,
+                "report_fallback_observation": context.state.get("report_fallback_observation"),
+                "report_result": context.state.get("report_result"),
+            }
+E           AssertionError: {'role_calls': ['rr-inago-incident-reporter'], 'report_fallback_observation': {'status': 'unknown', 'reason_code': 'report_fallback_persist_failed'}, 'report_result': None}
+E           assert ['rr-inago-incident-reporter'] == ['rr-inago-in...ort-reviewer']
+E             
+E             Right contains 3 more items, first extra item: 'rr-inago-incident-report-reviewer'
+E             Use -v to get more diff
+
+tests_inago\test_maintenance_report_publication_stage.py:777: AssertionError
+_ test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure] _
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1515/test_fc07_report_role_review_r1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019B36FF3F50>
+reviewer_mode = 'transport_failure'
+
+    @pytest.mark.parametrize("reviewer_mode", ["changes_requested_then_approved", "transport_failure"])
+    def test_fc07_report_role_review_revision_or_failure_reaches_publication(
+        tmp_path: Path, monkeypatch, reviewer_mode: str
+    ):
+        from copy import deepcopy
+    
+        from tests_inago.test_maintenance_report import _report_response
+    
+        source_launch_id = f"launch-fc07-{reviewer_mode}"
+        target_date = "2026-10-17"
+        store = make_store(tmp_path)
+        incident_id = create_incident(store, launch_id=source_launch_id)
+        release = create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id=f"release-fc07-{reviewer_mode}",
+            base_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+            result_commit=_git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD"),
+        )
+        store.bind_job_input_manifest(
+            incident_id=incident_id,
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+            job_id=release.job_id,
+            created_at=BASE_TIME,
+        )
+        job = store.list_workflow_jobs_for_launch(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date=target_date,
+            job_id=release.job_id,
+        )[0]
+        lease = store.acquire_lease(
+            lease_key=f"maintenance:{job.job_id}",
+            owner_id="fc07-report-role-test",
+            owner_pid=1,
+            owner_start_time=BASE_TIME,
+            now=BASE_TIME,
+        )
+        identity = {
+            "incident_id": incident_id,
+            "source_launch_id": source_launch_id,
+            "source_run_id": None,
+            "target_date": target_date,
+            "job_id": job.job_id,
+        }
+        context = MaintenanceWorkflowContext(
+            launch=SimpleNamespace(
+                source_launch_id=source_launch_id,
+                source_run_id=None,
+                target_date=target_date,
+            ),
+            check=SimpleNamespace(check_id=f"check-{reviewer_mode}"),
+            queue=SimpleNamespace(queue_id=f"queue-{reviewer_mode}"),
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=job, attempts=()),
+            state={
+                "job": job,
+                "precheck_identity": {
+                    **identity,
+                    "input_refs": [
+                        f"daily-launch/{source_launch_id}",
+                        f"daily-result-observation/{source_launch_id}",
+                    ],
+                    "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+                },
+            },
+        )
+        runtime_root = store.database_path.parent.parent
+        (store.database_path.parent / "worktrees").mkdir(parents=True)
+        reports: dict[str, dict[str, object]] = {}
+        review_inputs: list[dict[str, object]] = []
+        author_inputs: list[dict[str, object]] = []
+        role_calls: list[str] = []
+        turn_number = 0
+    
+        monkeypatch.setattr(
+            production_workflow,
+            "_daily_report_source_documents",
+            lambda **_kwargs: {},
+        )
+        original_author_prompt = production_workflow._daily_report_prompt
+        original_reviewer_prompt = production_workflow._daily_report_review_prompt
+    
+        def author_prompt(**kwargs):
+            author_inputs.append(deepcopy(kwargs["report_input"]))
+            return original_author_prompt(**kwargs)
+    
+        def reviewer_prompt(**kwargs):
+            review_inputs.append(deepcopy(kwargs["review_input"]))
+            return original_reviewer_prompt(**kwargs)
+    
+        monkeypatch.setattr(production_workflow, "_daily_report_prompt", author_prompt)
+        monkeypatch.setattr(production_workflow, "_daily_report_review_prompt", reviewer_prompt)
+    
+        class FakeSession:
+            def __init__(self, role: str, attempt_id: str, role_hash: str, allowed: tuple[str, ...]):
+                self.role = role
+                self.attempt_id = attempt_id
+                self.role_hash = role_hash
+                self.allowed = allowed
+    
+            def run_turn(self, *_args, **_kwargs):
+                nonlocal turn_number
+                turn_number += 1
+                role_calls.append(self.role)
+                turn_id = f"fc07-turn-{turn_number}"
+                thread_id = f"fc07-thread-{turn_number}"
+                if self.role == production_workflow._REPORT_AUTHOR_ROLE:
+                    report_input = author_inputs[-1]
+                    report = deepcopy(_report_response())
+                    report["identity"] = identity
+                    report["result_version"] = report_input["result_version"]
+                    report["created_at_jst"] = report_input["created_at_jst"]
+                    report["title"] = f"�������|�[�g��{len(author_inputs)}"
+                    report["summary"] = f"�������|�[�g�{����{len(author_inputs)}"
+                    response = {**identity, "report": report}
+                else:
+                    if reviewer_mode == "transport_failure":
+                        raise production_workflow.MaintenanceAIBlockedError(
+                            "synthetic_reviewer_transport_unavailable"
+                        )
+                    review_input = review_inputs[-1]
+                    review_round = len(review_inputs)
+                    response = {
+                        **identity,
+                        "review": {
+                            "schema_version": "maintenance-report-review-v1",
+                            "reviewer_id": production_workflow._REPORT_REVIEWER_ROLE,
+                            "reviewed_version": review_input["result_version"],
+                            "reviewed_sha256": review_input["html_sha256"],
+                            "status": "changes_requested" if review_round == 1 else "approved",
+                            "reviewed_at": "2026-10-20T00:00:00+09:00",
+                            "findings": (
+                                [{"severity": "medium", "location": "�{��", "finding": "�m�F�ł������e����̉����Ă��������B"}]
+                                if review_round == 1
+                                else []
+                            ),
+                        },
+                    }
+                envelope = {
+                    "schema_version": "maintenance-ai-response-v1",
+                    "identity": identity,
+                    "attempt_id": self.attempt_id,
+                    "owner": {
+                        "parent_key": production_workflow._REPORT_PARENT_KEY,
+                        "role_name": self.role,
+                    },
+                    "allowed_outputs": list(self.allowed),
+                    "thread_id": thread_id,
+                    "turn_id": turn_id,
+                    "response": response,
+                }
+                path = f"{job.job_id}/{self.attempt_id}/synthetic-{self.role}.json"
+                reports[(self.attempt_id, self.role)] = {
+                    "path": path,
+                    "sha256": "a" * 64,
+                    "envelope": envelope,
+                }
+                return SimpleNamespace(
+                    turn=SimpleNamespace(turn_id=turn_id, thread_id=thread_id)
+                )
+    
+            def close(self):
+                return None
+    
+        class FakeAdapter:
+            def __init__(self, *_args, **_kwargs):
+                pass
+    
+            def plan_session(self, **kwargs):
+                return SimpleNamespace(
+                    role_name=kwargs["role_name"],
+                    attempt_id=kwargs["attempt_id"],
+                    role_config_sha256="f" * 64,
+                    cwd=kwargs["cwd"],
+                )
+    
+            def create_session(self, plan):
+                allowed = (
+                    production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS
+                    if plan.role_name == production_workflow._REPORT_AUTHOR_ROLE
+                    else production_workflow._REPORT_REVIEW_ALLOWED_OUTPUTS
+                )
+                return FakeSession(
+                    plan.role_name, plan.attempt_id, plan.role_config_sha256, allowed
+                )
+    
+        def envelopes(*, attempt_id: str, role_name: str, **_kwargs):
+            saved = reports.get((attempt_id, role_name))
+            if saved is None:
+                return []
+            return [(saved["path"], saved["sha256"], saved["envelope"])]
+    
+        monkeypatch.setattr(production_workflow, "MaintenanceAIAdapter", FakeAdapter)
+        monkeypatch.setattr(production_workflow, "_daily_report_ai_envelopes", envelopes)
+        publication_calls: list[dict[str, object]] = []
+    
+        def publish(context_arg, _controller, _store, **kwargs):
+            publication_calls.append(
+                {
+                    "identity": context_arg.state.get("precheck_identity"),
+                    "report": context_arg.state.get("report_result"),
+                    "kwargs": kwargs,
+                }
+            )
+            return WorkflowStageResult(status="complete")
+    
+        monkeypatch.setattr(production_workflow, "run_daily_report_publication_stage", publish)
+        provider = production_workflow.build_production_workflow_provider(store)
+        result = provider._stage_runners["report"](context)
+    
+        assert result.status == "complete"
+        assert len(publication_calls) == 1
+        assert publication_calls[0]["identity"]["job_id"] == job.job_id
+        assert role_calls, {
+            key: context.state.get(key)
+            for key in (
+                "report_preparation_observation",
+                "report_source_snapshot",
+                "report_source_artifacts",
+                "report_fallback_observation",
+                "report_result",
+            )
+        }
+        if reviewer_mode == "changes_requested_then_approved":
+            assert role_calls == [
+                production_workflow._REPORT_AUTHOR_ROLE,
+                production_workflow._REPORT_REVIEWER_ROLE,
+                production_workflow._REPORT_AUTHOR_ROLE,
+                production_workflow._REPORT_REVIEWER_ROLE,
+            ], {
+                "role_calls": role_calls,
+                "report_fallback_observation": context.state.get("report_fallback_observation"),
+                "report_result": context.state.get("report_result"),
+            }
+            assert len(author_inputs) == 2
+            assert author_inputs[1]["prior_review_findings"]
+            assert author_inputs[0]["result_version"] != author_inputs[1]["result_version"]
+            assert review_inputs[0]["html_sha256"] != review_inputs[1]["html_sha256"]
+            assert publication_calls[0]["report"]["review"]["status"] == "approved"
+        else:
+>           assert role_calls == [
+                production_workflow._REPORT_AUTHOR_ROLE,
+                production_workflow._REPORT_REVIEWER_ROLE,
+            ]
+E           AssertionError: assert ['rr-inago-incident-reporter'] == ['rr-inago-in...ort-reviewer']
+E             
+E             Right contains one more item: 'rr-inago-incident-report-reviewer'
+E             Use -v to get more diff
+
+tests_inago\test_maintenance_report_publication_stage.py:793: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[changes_requested_then_approved]
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[transport_failure]
+2 failed in 1.18s

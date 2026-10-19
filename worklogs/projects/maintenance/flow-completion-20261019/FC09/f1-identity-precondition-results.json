@@ -1,0 +1,75 @@
+{
+  "stage": "FC09-F1 follow-up",
+  "workspace": "C:/project/rakuten-room-inago",
+  "observed_at_jst": "2026-10-20T01:53:27+09:00",
+  "source_hashes_verified_before_run": {
+    "automation/inago/maintenance/workflow_provider.py": {
+      "expected": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0",
+      "actual": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0",
+      "match": true
+    },
+    "tests_inago/test_maintenance_workflow_provider.py": {
+      "expected": "7dbd5e89816f1baee0d432bbc57d92f71c2c70704b3a44ad7ba98bcffc51137e",
+      "actual": "7dbd5e89816f1baee0d432bbc57d92f71c2c70704b3a44ad7ba98bcffc51137e",
+      "match": true
+    }
+  },
+  "run": {
+    "node": "tests_inago/test_maintenance_workflow_provider.py::test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report",
+    "command": "$env:PYTHONUTF8='1'; $base='非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup'; $out='worklogs/projects/maintenance/flow-completion-20261019/FC09'; New-Item -ItemType Directory -Force -Path $base,$out | Out-Null; & .venv-inago\\Scripts\\python.exe -m pytest tests_inago/test_maintenance_workflow_provider.py::test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report -q --basetemp $base --junitxml=\"$out/f1-identity-precondition.junit.xml\" 2>&1 | Tee-Object -FilePath \"$out/f1-identity-precondition.console.txt\"; exit $LASTEXITCODE",
+    "start_time_jst": "2026-10-20T01:53:19+09:00",
+    "pytest_timestamp_jst": "2026-10-20T01:53:23.282559+09:00",
+    "exit_code": 0,
+    "outcome": "PASS; 1 passed in 0.60s",
+    "initial_result": "This focused follow-up had no prior run in FC09. SHA comparison passed before the single pytest execution; no recovery/retry was needed.",
+    "junit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.junit.xml",
+    "junit_sha256": "d4c16c929df8be3db2b883ac0a1c515341036b3914d6b7e48e74bd2d555207ec",
+    "console": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition.console.txt",
+    "console_sha256": "4b5c292f1c5d1b8a55b35a5cbaf582ec92c0a4dbb4679f6aa1d8ced87ffd132d"
+  },
+  "fixture_identity": {
+    "job_id": "job-release-u21-unbound",
+    "incident_id": "fd95161e-969e-484e-ae6f-bdf1b8260b30",
+    "source_launch_id": "launch-u21-unbound",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "mismatched_queue_source_launch_id": "different-launch-u21-unbound",
+    "mismatched_queue_worker_job_id": "job-release-u21-unbound",
+    "use": "temporary SQLite fixture only; no production job was accessed"
+  },
+  "observed_behavior": {
+    "provider_outcome": "unknown / maintenance_workflow_identity_invalid",
+    "job_lookup_attempted": false,
+    "job_stage_persistence_attempted": false,
+    "failure_event": "one identity_precondition event linked to the invocation directory; event job_id is null",
+    "handoffs": "all eight stage handoff JSON files exist under the unbound invocation; job_id is null and stage_progress is handed_off",
+    "report_runner": "invoked exactly once with resume_state.job=null and attempts=empty; report operation result succeeded",
+    "queue_sanitization": "report context queue_id and worker_job_id are empty, while original mismatched queue source_launch_id remains unchanged",
+    "temporary_database_readback": {
+      "schema_version": 15,
+      "maintenance_jobs": 1,
+      "daily_checks": 1,
+      "step_attempts": 0,
+      "incidents": 1,
+      "matching_manifest": "none",
+      "note": "read-only post-test counts; job was seeded as synthetic queued data before provider invocation"
+    },
+    "artifact_refs": [
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/check_incident.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/evidence.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/investigation.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/job.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/planning.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/repair.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/report.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/workflow-handoffs/unbound/workflow-16dfcd6832b74394a6d5b57a191cb2f2/deployment.json",
+      "非公開作業データ/イナゴ実装試験/flow-completion-20261019/FC09/f1-followup/test_identity_precondition_mis0/data/maintenance/failure-journal/events.jsonl"
+    ]
+  },
+  "scope": {
+    "requested_pytest_nodes_run": 1,
+    "product_or_test_files_changed": false,
+    "production_database_daily_worker_scheduler_queue_or_history_touched": false,
+    "git_config_changed": false
+  }
+}

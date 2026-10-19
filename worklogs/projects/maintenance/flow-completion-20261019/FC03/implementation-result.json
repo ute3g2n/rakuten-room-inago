@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "stage": "FC03",
+  "status": "implementation_artifacts_ready_verification_incomplete",
+  "workspace": "C:/project/rakuten-room-inago",
+  "plan": {
+    "version": "1.2",
+    "source_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "working_copy_sha256_after_FC03_row_update": "38951f32b24bcd0f3341ade80610656a5a2bea4e0ec5ac460dfa6ec3afb4aa4c",
+    "runtime_code_revision": "unknown: no deployed revision observed during FC03"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "execution": {
+    "base_branch": "main",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "tracking_remote": "origin/main",
+    "effort": "high",
+    "model_tier_observed": "unknown",
+    "started_at_jst": "unknown exact seconds; first durable checkpoint refreshed 2026-10-19 23:13 JST",
+    "finished_at_jst": "2026-10-19 23:15 JST",
+    "supplemental_update_at_jst": "2026-10-19 23:18 JST"
+  },
+  "change_summary": [
+    "Introduced independent append-only JSONL fallback with safe exception class/cause/frame capture, direct stderr last resort, same-event replay, and begin-only interruption observation.",
+    "Added schema 14 operation-event table and append/delete denial triggers; wired DB event insertion and startup reconciliation without touching production database.",
+    "Made diagnostic trace writer failure best-effort, added operation correlation fields and capture for controller, AI transport/timeout/empty response, and safe-file boundaries.",
+    "Updated assigned schemas, maintenance trace requirements, settings contract, requirements source and generated HTML/F12, requirement dictionary/traceability, operations log, and implementation skill.",
+    "No raw historical records, Scheduler/queue, Daily, credentials, or production database were changed. WORKER_DISPATCH_EXCLUDED_DATES was not edited."
+  ],
+  "requirements_mapping": [
+    {
+      "requirement": "FC-R02 / FC-A02",
+      "plan_facts": [
+        "F01",
+        "F02",
+        "F03",
+        "F04"
+      ],
+      "implementation": [
+        "diagnostic_trace.py best-effort sink",
+        "failure_journal.py independent append/replay",
+        "store operation event schema 14",
+        "AI and safe-file capture"
+      ],
+      "evidence": [
+        "failure-matrix.md",
+        "synthetic-event-examples.json"
+      ]
+    },
+    {
+      "requirement": "FC-R04 / FC-A04",
+      "plan_facts": [
+        "F01",
+        "F04",
+        "F07",
+        "F08"
+      ],
+      "implementation": [
+        "operation correlation and safe exception frames",
+        "writer failure path and recovery reconciliation"
+      ],
+      "evidence": [
+        "failure-matrix.md",
+        "execution-record.md"
+      ],
+      "acceptance": "not demonstrated; planned fault-injection cases remain assigned to FC07"
+    },
+    {
+      "requirement": "FC-R09 / FC-A09",
+      "plan_facts": [
+        "F01",
+        "F07",
+        "F08"
+      ],
+      "implementation": [
+        "no production/queue/Daily/Scheduler operation in FC03",
+        "identity and null run preserved in handoff artifacts"
+      ],
+      "evidence": [
+        "execution-record.md",
+        "handoff.json"
+      ],
+      "production boundary": "FC03 did not read or write production state"
+    },
+    {
+      "requirement": "FC-R10 / FC-A10",
+      "implementation": [
+        "schema/spec/dictionary/traceability/log/skill/diagram synchronization and generated requirements HTML"
+      ],
+      "evidence": [
+        "execution-record.md",
+        "checks.json"
+      ]
+    }
+  ],
+  "changed_files": [
+    "automation/inago/maintenance/ai_adapter.py",
+    "automation/inago/maintenance/diagnostic_trace.py",
+    "automation/inago/maintenance/failure_journal.py",
+    "automation/inago/maintenance/paths.py",
+    "automation/inago/maintenance/safe_file.py",
+    "automation/inago/maintenance/settings.py",
+    "automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+    "automation/inago/maintenance/store.py",
+    "automation/inago/maintenance/workflow_provider.py",
+    "automation/inago/schemas/maintenance-check-response.schema.json",
+    "automation/inago/schemas/maintenance-check-result.schema.json",
+    "automation/inago/schemas/maintenance-diagnostic-event.schema.json",
+    "automation/inago/schemas/maintenance-evidence.schema.json",
+    "automation/inago/schemas/maintenance-settings.schema.json",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/specifications/inago/図解/F12.svg",
+    "docs/specifications/inago/要件データ辞書.md",
+    "docs/specifications/inago/要件追跡表.md",
+    "tools/docs/inago-requirements/task-flows.mjs",
+    ".agents/skills/common-implementation/SKILL.md",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/execution-record.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/failure-matrix.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/synthetic-event-examples.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/handoff.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/supplemental-schema-validation.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/review-followup.json",
+    ".agents/skills/common-implementation/references/contracts.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/reference-sanitizer-follow-up.json",
+    "automation/inago/maintenance/code_revision.py",
+    "automation/inago/maintenance/stage_handoff.py",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/fc08-f2-f3-correction.json"
+  ],
+  "checks": [
+    {
+      "name": "py_compile 9 maintenance modules",
+      "result": "PASS",
+      "exit_code": 0,
+      "meaning": "syntax/bytecode compilation only"
+    },
+    {
+      "name": "built-in JSON parse 23 maintenance schemas",
+      "result": "PASS",
+      "exit_code": 0,
+      "meaning": "JSON syntax only, not JSON Schema semantics"
+    },
+    {
+      "name": "migration 014 in-memory SQLite DDL smoke",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "maintenance_operation_event",
+        "maintenance_operation_event_no_delete",
+        "maintenance_operation_event_no_update"
+      ]
+    },
+    {
+      "name": "requirements source builder",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": {
+        "version": "2.50",
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "bytes": 4063247
+      }
+    },
+    {
+      "name": "FC03 review-follow-up builder retry",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": {
+        "version": "2.50",
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "bytes": 4066177
+      },
+      "prior_attempt": "UNKNOWN open F12.svg errno -4094; ACL allowed Modify; no lock proven; same command retry succeeded after FC04 paused shared writes"
+    },
+    {
+      "name": "review follow-up syntax and migration smoke",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "py_compile diagnostic_trace/failure_journal/store",
+        "migration 014 has exception_errno and append-only triggers"
+      ]
+    },
+    {
+      "name": "FC03 artifact JSON parse and source hash parity",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "seven FC03 JSON artifacts parse",
+        "25 source hashes verified, mismatches 0"
+      ]
+    },
+    {
+      "name": "git diff --check",
+      "result": "PASS",
+      "exit_code": 0,
+      "notes": "line-ending normalization warnings only"
+    },
+    {
+      "name": "JSON Schema semantic validation",
+      "result": "PASS",
+      "runtime": ".venv-inago/Scripts/python.exe",
+      "package": "jsonschema 4.26.0",
+      "operation": "validator_for(schema).check_schema(schema) over 23 maintenance schemas",
+      "observed_at_jst": "2026-10-19 23:16 (minute precision; exact second not retained)",
+      "exit_code": 0,
+      "output": "valid_json_schemas=23",
+      "evidence": "supplemental-schema-validation.json"
+    },
+    {
+      "name": "FCT02/FCT05/FCT10/FCT12 fault injection and pytest",
+      "result": "NOT_RUN",
+      "reason": "FC03 implementation stage instruction assigns those exact runtime nodes to FC07 tester; no testcase run is claimed here"
+    },
+    {
+      "name": "independent product review",
+      "result": "NOT_RUN",
+      "reason": "assigned to FC08"
+    },
+    {
+      "name": "production migration/code apply and same-job resume",
+      "result": "NOT_RUN",
+      "reason": "assigned to FC09/FC10; FC03 made no production write"
+    },
+    {
+      "exit_code": 0,
+      "name": "FC07 reference sanitization follow-up static checks",
+      "result": "PASS",
+      "runtime_behavior": "NOT_RUN; FC07 tester owns focused publication failure rerun",
+      "observed": [
+        "failure_journal.py py_compile",
+        "four source-structure assertions",
+        "git diff --check"
+      ]
+    },
+    {
+      "runtime": "NOT_RUN; FC07 owns focused tests",
+      "result": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "py_compile four maintenance modules",
+        "five source assertions",
+        "two schema JSON parse",
+        "git diff --check"
+      ],
+      "name": "FC08 F2/F3 corrective static checks"
+    }
+  ],
+  "unresolved_risks": [
+    "No fault-injection runtime evidence yet for DB, trace, fallback, artifact, AI, or interrupted-process recovery paths.",
+    "FC08 independent product review may find implementation defects; findings must return to the implementation owner for correction.",
+    "Migration 014 and code are repository source only; active production schema and runtime revision remain unknown until FC09 read-back/apply.",
+    "If diagnostic trace, fallback journal, and stderr are all unavailable simultaneously, the lost interval can only be marked unknown after a later recovery.",
+    "Full-path coverage across every lower-level database/artifact/log operation still requires FC07 review against owner map and test matrix.",
+    "FC07 found reference-path loss in failure journal; sanitizer correction is static-checked only and awaits FC07 focused runtime rerun.",
+    "Conservative relative-reference allowlist may omit safe refs with unsupported characters; no path is reinterpreted as identity.",
+    "FC08 F2/F3 corrections await FC07 runtime checks and FC08 independent re-review.",
+    "Invocation fingerprint source-set capture consistency and stage attempt attribution have static checks only; no operational acceptance is claimed."
+  ],
+  "ai_adapter_configuration": {
+    "PARENT_SETTINGS_B": [
+      "gpt-6-luna",
+      "high",
+      "priority",
+      true
+    ],
+    "command_service_tier": "priority",
+    "service_tier_actual_observation": "unknown; no AI runtime call/observation was performed in FC03",
+    "ai_adapter_sha256": "adc67bfb54e2afd7df4398e464da82aaff02277ead9a0fe259b4ece083a283e9",
+    "correction": "Preserved the prior selected priority tier; only reasoning effort changed to high. Fast mode remains the pre-existing true setting."
+  },
+  "review_followup": {
+    "artifact": "review-followup.json",
+    "findings_addressed": [
+      "trace writer error details with no generic-only duplicate",
+      "replay DB exception itself journaled",
+      "timestamp ties broken by SQLite append rowid"
+    ],
+    "fault_injection": "NOT_RUN; FC07 owns FCT05/FCT10 execution",
+    "workflow_provider_py": "not modified",
+    "current_source_hashes": "source-hashes.json"
+  },
+  "git": {
+    "commit": null,
+    "push": null,
+    "reason": "FC11/controller owns final selective staging and Git publication; no commit or push in FC03."
+  },
+  "reference_sanitizer_followup": "worklogs/projects/maintenance/flow-completion-20261019/FC03/reference-sanitizer-follow-up.json",
+  "fc08_f2_f3_correction": "fc08-f2-f3-correction.json"
+}

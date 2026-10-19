@@ -1,0 +1,100 @@
+{
+  "stage": "FC03 supplemental implementation correction",
+  "observed_at_jst": "2026-10-20 00:32 JST",
+  "identity": {
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427"
+  },
+  "finding": {
+    "identity_fields": "all reported correct per FC07; not modified",
+    "source": "FC07 publication failure parameter",
+    "raw_reference": "evidence/u21/input.json",
+    "cause": "failure_journal.append_failure_event applied identifier-only _safe_id to reference paths",
+    "observed": "input_refs contained null instead of evidence/u21/input.json"
+  },
+  "correction": {
+    "retains_safe_relative": "evidence/u21/input.json",
+    "identity_path_coercion": "not allowed",
+    "file": "automation/inago/maintenance/failure_journal.py",
+    "helpers": [
+      "_safe_id remains identifier-only",
+      "_safe_reference independently validates IDs or conservative private-root-relative POSIX refs",
+      "_safe_references omits invalid values rather than emitting null slots"
+    ],
+    "rejects": [
+      "absolute POSIX/drive/UNC paths",
+      "backslash paths",
+      "empty, dot, dot-dot path components",
+      "colon/URI-like and non-allowlisted characters",
+      "secret/password/credential/cookie/token/API-key/access-key/private-key/environment-file markers"
+    ]
+  },
+  "synchronization": {
+    "plan_change": "FC03 row only",
+    "files": [
+      "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "docs/specifications/inago/要件データ辞書.md",
+      ".agents/skills/common-implementation/references/contracts.md",
+      "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md"
+    ]
+  },
+  "static_checks": [
+    {
+      "exit_code": 0,
+      "command": ".venv-inago/Scripts/python.exe -m py_compile automation/inago/maintenance/failure_journal.py",
+      "result": "PASS",
+      "observed": "syntax compilation only; no pytest/runtime functions invoked"
+    },
+    {
+      "exit_code": 0,
+      "command": "PowerShell source inspection assertions for helper separation, path rejection, sensitive marker filtering, and omit-invalid behavior",
+      "result": "PASS",
+      "observed": "four static assertions true"
+    },
+    {
+      "exit_code": 0,
+      "command": "git diff --check",
+      "result": "PASS",
+      "observed": "CRLF normalization warnings only"
+    }
+  ],
+  "runtime_verification": {
+    "owner": "FC07 tester",
+    "result": "NOT_RUN",
+    "next_action": "rerun only the publication failure parameter that supplies evidence/u21/input.json and confirm persisted input_refs contains that exact relative ref"
+  },
+  "unresolved": [
+    "No runtime behavior has been exercised in this supplemental author pass.",
+    "Safety sanitizer is conservative and may omit refs containing characters outside the allowlist.",
+    "Parent/root cause of the original 10/17 incident remains unknown and this change does not claim a repair."
+  ],
+  "source_sha256": [
+    {
+      "sha256": "8cf6b7d438a0c4c64f465f07c3083aa7e9a16efef1584d3ae0ce917793addfe7",
+      "path": "automation/inago/maintenance/failure_journal.py"
+    },
+    {
+      "sha256": "a9300d1e2a438d49f4702a7948128a3c35d9f78c70c42a027deca8f1419e1949",
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+    },
+    {
+      "sha256": "0ebb7834bb0e462ca17b5b02b100c6c12f17707c3daacd4046294fcf938a8eb4",
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md"
+    },
+    {
+      "sha256": "e3361c555b55afe36ef77dc05c0dc0b0ffe03adebee2150a7689f44dae007d26",
+      "path": "docs/specifications/inago/要件データ辞書.md"
+    },
+    {
+      "sha256": "6e09384245d0b647da6f1117823623705e2ae5719622eca2866f55ba8f4d1753",
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md"
+    },
+    {
+      "sha256": "e7fd415becab812822581f148225e91698a05516fc9bd83dad8a0a2299796940",
+      "path": ".agents/skills/common-implementation/references/contracts.md"
+    }
+  ]
+}

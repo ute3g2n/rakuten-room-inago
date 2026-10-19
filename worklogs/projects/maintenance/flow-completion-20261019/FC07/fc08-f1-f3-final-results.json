@@ -1,0 +1,125 @@
+{
+  "stage": "FC07",
+  "purpose": "Focused synthetic verification of FC08-F1 terminal-finalization ownership and FC08-F2/F3 invocation revision and attempt binding.",
+  "observed_at_jst": "2026-10-20T01:28:21+09:00",
+  "workspace": "C:/project/rakuten-room-inago",
+  "target_identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "test_usage": "identity contract only; production job was not opened or modified"
+  },
+  "test_policy": {
+    "synthetic_fixture_only": true,
+    "temporary_sqlite_only": true,
+    "temporary_git_repository_and_bare_remote_only": true,
+    "production_database_daily_scheduler_worker_queue_history_or_public_remote_touched": false,
+    "same_production_job_used": false,
+    "global_git_config_changed": false,
+    "excluded_date_fixture": "2026-10-19 unchanged; no queue/history was processed"
+  },
+  "source_sha256_at_final_runs": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "2409533dd3083b44653e908bdbcf7814be249f7b2e8a469a021db3e10ee1c880",
+    "tests_inago/test_maintenance_flow_completion_fc07.py": "9b699befdd997bba50f215da1f4c8a2da96eac6225bb08285a7e373b0e9a952e",
+    "automation/inago/maintenance/code_revision.py": "f1e059e9d2e0ac00522814c1a5674923c6c9418eecce1112ee82a1cc5538188f",
+    "automation/inago/maintenance/failure_journal.py": "5c47bc169ef0d101668a3f0951d3f352ef14c3e155e871021d16243d9fb8577c",
+    "automation/inago/maintenance/stage_handoff.py": "6663f21448741d9f4b9dc353ef7c456b903d9ff6a13143a53695c4882074e69a",
+    "automation/inago/maintenance/workflow_provider.py": "5632732f424cbd632b2585ad8a4deee8ae8c93b8db0dd4b619533de7b236788e",
+    "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "automation/inago/maintenance/workflow_reconciliation.py": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+    "automation/inago/schemas/maintenance-stage-handoff.schema.json": "ed472a6471c920ffe700178d8bb8e81e3b93d58caa8987e4f69f9baaf0613f92"
+  },
+  "runs": [
+    {
+      "case": "FC08-F1 process crash after public publication and sidecar, before terminal reconciliation",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes --basetemp .pytest-tmp-fc08-f1-success-final-r2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-crash-resume-final-r2.junit.xml",
+      "expected": "child stops after durable publication; job remains nonterminal; same synthetic identity resumes; public report, sidecar, result, report HTML, deployment and all eight stage handoffs/observations are read back; sole reconciliation finalizer completes job while incident remains in_progress",
+      "actual": "PASS; 1 passed, exit 0. Crash and resume use the same temporary SQLite job identity. Reconciliation verifies all eight stage records and outputs plus local bare-remote HTML readback before exactly one finalizer call. Final job is complete and incident remains in_progress.",
+      "junit": "fc08-f1-crash-resume-final-r2.junit.xml",
+      "timestamp_jst": "2026-10-20T01:27:47+09:00",
+      "cleanup": "pytest basetemp retained under .pytest-tmp-fc08-f1-success-final-r2 for evidence; no persistent or production data changed"
+    },
+    {
+      "case": "FC08-F1 missing stage handoff cannot finalize complete",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_terminal_reconciliation_never_completes_with_missing_evidence[stage_handoff]",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc08_terminal_reconciliation_never_completes_with_missing_evidence[stage_handoff]' --basetemp .pytest-tmp-fc08-f1-handoff-final-r2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-handoff-final-r2.junit.xml",
+      "expected": "missing required handoff prevents complete finalization and does not resolve incident",
+      "actual": "PASS; 1 passed, exit 0. Missing evidence is recorded as incomplete and the fixture does not become complete.",
+      "junit": "fc08-f1-missing-handoff-final-r2.junit.xml",
+      "timestamp_jst": "2026-10-20T01:27:48+09:00"
+    },
+    {
+      "case": "FC08-F1 missing public report readback cannot finalize complete",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc08_terminal_reconciliation_never_completes_with_missing_evidence[public_report]",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc08_terminal_reconciliation_never_completes_with_missing_evidence[public_report]' --basetemp .pytest-tmp-fc08-f1-public-final-r3 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-missing-public-final-r3.junit.xml",
+      "expected": "public remote readback missing content prevents complete finalization",
+      "actual": "PASS; 1 passed, exit 0. The fixture deletes the published file from a clone of the temporary bare remote; reconciliation observes the absent public report and leaves job incomplete.",
+      "junit": "fc08-f1-missing-public-final-r3.junit.xml",
+      "timestamp_jst": "2026-10-20T01:27:48+09:00"
+    },
+    {
+      "case": "FC08-F1 report-publication retry matrix regression after finalization ownership moved to reconciler",
+      "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp .pytest-tmp-fc08-f1-publication-regression-final-r2 --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f1-publication-regression-final-r2.junit.xml",
+      "expected": "all six local-remote identity/target/push/sidecar retry parameters preserve publication evidence without finalizing job or incident in the publication stage",
+      "actual": "PASS; 6 passed, exit 0. Publication returns without finalizer calls; fixture job remains running until reconciliation.",
+      "junit": "fc08-f1-publication-regression-final-r2.junit.xml",
+      "timestamp_jst": "2026-10-20T01:28:12+09:00",
+      "initial_failure": "The first run on the changed product returned six FAIL because the existing test asserted controller.finalized was empty and then indexed controller.finalized[-1]. The test had a stale assertion from the old publication-finalizer contract. Only that contradictory assertion block was removed; the exact node was rerun and passed 6/6.",
+      "cleanup": "temporary repositories/remotes and pytest basetemp retained for evidence; no shared/public remote was used"
+    },
+    {
+      "case": "FC08-F2 source fingerprint changes when a maintenance source changes in isolated copy",
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_invocation_revision_fingerprint_changes_with_maintenance_source",
+      "expected": "copy source tree, change one copied maintenance source, and observe different invocation fingerprint without editing repository product files",
+      "actual": "PASS; 1 passed, exit 0",
+      "junit": "fc08-f2-fingerprint.junit.xml",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_invocation_revision_fingerprint_changes_with_maintenance_source --basetemp .pytest-tmp-fc08-f2-fingerprint --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-fingerprint.junit.xml"
+    },
+    {
+      "case": "FC08-F2 a single captured revision is shared by invocation failure event and stage handoffs",
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_invocation_revision_is_shared_by_event_and_stage_handoff",
+      "expected": "inject stage error; event and all eight handoffs preserve same immutable invocation revision and correlation; later stage runners execute",
+      "actual": "PASS; 1 passed, exit 0",
+      "junit": "fc08-f2-shared-revision.junit.xml",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_invocation_revision_is_shared_by_event_and_stage_handoff --basetemp .pytest-tmp-fc08-f2-shared-revision --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-shared-revision.junit.xml"
+    },
+    {
+      "case": "FC08-F2 capture failure is unknown, correlated, concrete, and does not block later stages",
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_revision_capture_failure_records_unknown_and_continues",
+      "expected": "capture error records unknown revision, concrete reason, exception cause and safe failed source ref; later runners and handoffs continue",
+      "actual": "PASS; 1 passed, exit 0",
+      "junit": "fc08-f2-capture-failure.junit.xml",
+      "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_revision_capture_failure_records_unknown_and_continues --basetemp .pytest-tmp-fc08-f2-capture-failure --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/fc08-f2-capture-failure.junit.xml"
+    },
+    {
+      "case": "FC08-F3 sequence-3 deployment candidate/recovery attempt and sequence-4 report attempt stay correctly associated",
+      "nodes": [
+        "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_attempt_binding_keeps_deployment_repair_and_report_sequence_four[complete-repair]",
+        "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_attempt_binding_keeps_deployment_repair_and_report_sequence_four[running-None]"
+      ],
+      "expected": "validated sequence-3 maintenance_repair attempt or null is used by deployment; report event/handoff uses actual maintenance_report sequence-4 attempt, never decoy",
+      "actual": "PASS; each independently run node passed 1 case, exit 0",
+      "junit": [
+        "fc08-f3-attempt-binding-valid-r2.junit.xml",
+        "fc08-f3-attempt-binding-null.junit.xml"
+      ],
+      "initial_failure": "The first valid-repair fixture failed because the test read attempt_id from handoff.identity; schema stores attempt_id at handoff top level. Test-only assertion was corrected and the focused node passed."
+    }
+  ],
+  "initial_fixture_failures_retained": [
+    "F1 earlier JUnit files fc08-f1-crash-resume-r2 through r7 preserve setup iterations: JobStartResult.job_id field mismatch; repair predecessor pin requirement; report schema status mismatch; child publication failure from fixture schema; Git text conversion made hash assertion invalid; handoff root was derived from wrong DB parent. Final fixture corrections are evidenced by the final crash/restart PASS.",
+    "F1 missing-public initial JUnit files preserve the untracked-file removal setup failure; final version deletes the file through a clone and push to the temporary bare remote and passes.",
+    "F1 publication matrix initial six failures are preserved in fc08-f1-publication-regression-final.junit.xml; the failing assertion contradicted the new stage ownership and was removed as a test-only correction before the final 6/6 run.",
+    "F3 first valid-repair assertion failure is preserved in fc08-f3-attempt-binding-valid.junit.xml; corrected test reads the schema top-level attempt_id and final focused node passes."
+  ],
+  "acceptance": {
+    "these_focused_cases": "PASS as synthetic local measurements",
+    "overall_FC07": "partial; case-registry retains remaining partial coverage",
+    "production_same_job_or_publication": "not tested here; remains assigned to FC10/FC11",
+    "incident_root_cause": "unknown; no claim of repair"
+  }
+}

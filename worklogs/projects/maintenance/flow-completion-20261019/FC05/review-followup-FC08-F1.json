@@ -1,0 +1,25 @@
+{
+  "schema_version": "fc05-review-followup-v1",
+  "finding_id": "FC08-F1",
+  "status": "source_fix_complete_static_verified",
+  "source_file": "automation/inago/maintenance/workflow_reconciliation.py",
+  "source_sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+  "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "coverage": [
+    "all_stage_observations_present",
+    "stage_observation_identity_matches",
+    "all_content_handoffs_read_back",
+    "formal_attempt_outputs_read_back",
+    "deployment_output_read_back",
+    "report_complete_observation",
+    "report_result_html_publication_sidecar_and_remote_readback"
+  ],
+  "incident_status": "always_in_progress",
+  "publication_stage_terminal_write": "removed in FC06 source; source inspection confirms none",
+  "behavioral_test": "not run; FC07 assigned",
+  "test_handoff": "worklogs/projects/maintenance/flow-completion-20261019/FC08/fc08-f1-followup-handoff.json",
+  "limitations": [
+    "No DB, publication, Git remote, worker, or same-job operation run.",
+    "Static assertions do not substitute for FC07 focused failure-injection and FCT10 rerun."
+  ]
+}

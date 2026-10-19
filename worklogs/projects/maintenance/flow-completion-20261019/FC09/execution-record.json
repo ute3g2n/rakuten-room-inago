@@ -1,0 +1,124 @@
+{
+  "schema_version": "flow-completion-step-execution-v1",
+  "step": "FC09",
+  "status": "in_progress",
+  "workspace": "C:/project/rakuten-room-inago",
+  "plan": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "version": "1.2",
+    "original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "current_sha256_at_record": "135a687bbb585f587a5a00a827cdbdbe7dc218b8d2cf6f5b447534feefe9394e"
+  },
+  "git": {
+    "branch": "main",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "tracking": "origin/main",
+    "task_changes_present": true,
+    "task_commit": null,
+    "push_destination": null,
+    "pre_commit_scope_audit": "worklogs/projects/maintenance/flow-completion-20261019/FC09/git-scope-audit.json",
+    "cached_before_commit": 0,
+    "uncached_tracked_before_commit": 71,
+    "untracked_before_commit": 334,
+    "existing_stash_entries": 1,
+    "stash_preserved": true
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "review": {
+    "initial_review_status": "changes_requested",
+    "initial_review": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review.json",
+    "initial_finding": "FC09-F1: invocation identity precondition failure returned before correlated evidence, stage handoffs, and downstream report startup.",
+    "owner_scope_extension": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+    "followup_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC09/product-review-target.json",
+    "followup_manifest_sha256": "c50687d9ccf1ddbe7a7963b3ac16b008e44615d752e276034d196a1620bf1213",
+    "followup_review": "worklogs/projects/maintenance/flow-completion-20261019/FC09/independent-product-review-followup-r1.json",
+    "followup_review_status": "approved",
+    "followup_review_scope_sha256": "c50687d9ccf1ddbe7a7963b3ac16b008e44615d752e276034d196a1620bf1213",
+    "followup_review_source_file_count": 39,
+    "followup_review_source_hash_mismatches": 0,
+    "followup_findings_unresolved": 0,
+    "followup_review_limitation": "The approved review covered product code only and inspected a temporary SQLite callback-start regression. It did not run tests or operate the production database, AI report publication, or remote."
+  },
+  "implementation_followup": {
+    "finding": "FC09-F1",
+    "files": [
+      "automation/inago/maintenance/workflow_provider.py",
+      "tests_inago/test_maintenance_workflow_provider.py"
+    ],
+    "behavior": "Identity precondition mismatch is isolated from the supplied job and queue, writes a correlated failure observation and eight unbound stage handoffs, starts the report runner with an empty job/attempt context, and returns unknown. The 2026-10-19 exclusion remains before dispatch and is unchanged.",
+    "source_sha256": {
+      "automation/inago/maintenance/workflow_provider.py": "f9dbfaca6424a448c8cefdaebd9e0857d5184e36c9a8528b8d15937a106b9bc0",
+      "tests_inago/test_maintenance_workflow_provider.py": "7dbd5e89816f1baee0d432bbc57d92f71c2c70704b3a44ad7ba98bcffc51137e"
+    },
+    "implemented_by": "FC03 implementer, follow-up at root instruction",
+    "TDD": {
+      "red_observation": "After correcting the test fixture's missing required DailyLaunchRecord.result_json field, the focused node reproduced the product defect: blocked was returned instead of unknown.",
+      "green_command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_workflow_provider.py::test_identity_precondition_mismatch_hands_off_every_stage_and_starts_report -q",
+      "green_result": "1 passed",
+      "independent_tester_result": "1 passed after both expected source hashes matched",
+      "independent_test_artifact": "worklogs/projects/maintenance/flow-completion-20261019/FC09/f1-identity-precondition-results.json"
+    }
+  },
+  "production_before_apply": {
+    "database": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "quick_check": "ok",
+    "schema_version": 13,
+    "job_status": "running",
+    "resume_count": 8,
+    "source_run_id": null,
+    "target_identity_chain_matches": true,
+    "target_launch_rows": 0,
+    "target_worker_queue_rows": 0,
+    "excluded_2026_10_19_queue": {
+      "count": 1,
+      "status": "queued",
+      "processed": false
+    },
+    "database_backup": false,
+    "migration_014_015": false,
+    "runtime_code_activation": false,
+    "same_job_worker_resume": false,
+    "production_mutation": false
+  },
+  "scratch_preservation": {
+    "moved_to_ignored_path": "非公開作業データ/FC09-cleanup/20261020",
+    "directories": 40,
+    "files": 2426,
+    "bytes": 24646534,
+    "preservation_check": "destination file counts and byte totals matched; no scratch data deleted"
+  },
+  "documentation_sync": {
+    "builder_command": "node tools/docs/inago-requirements/build.mjs",
+    "exit_code": 0,
+    "requirements_version": "2.50",
+    "chapters": 28,
+    "figures": 39,
+    "reference_documents": 26,
+    "output_bytes": 4129581,
+    "requirements_html_sha256": "ea49f9fdffde5af028fa60d56f77555efc74ce3847da9afe705a5b303bf25492",
+    "record": "worklogs/projects/maintenance/flow-completion-20261019/FC09/document-sync.json"
+  },
+  "pre_commit_machine_checks": {
+    "focused_identity_precondition_node": "PASS 1/1 by implementation and independently by tester, exact source hashes recorded",
+    "maintenance_python_compile": "PASS",
+    "maintenance_schema_json_parse": "PASS 24 files",
+    "agent_role_toml_parse": "PASS 15 files",
+    "requirements_javascript_syntax": "PASS for build.mjs, document-source.mjs, flow-descriptions.mjs, task-flows.mjs",
+    "requirements_builder": "PASS; output evidence in document-sync.json",
+    "git_diff_check": "PASS, only CRLF/LF warnings",
+    "product_review": "APPROVED for exact 39-file manifest; reviewer did not execute tests"
+  },
+  "operation_failures": "worklogs/projects/maintenance/flow-completion-20261019/FC09/operation-failures.json",
+  "next_resume_position": "Audit ownership, staged/cached/uncached scope, secret scan, and focused machine checks; commit/push only this task's files. Then backup the production SQLite database with the SQLite online backup API, apply schema 14/15 through the official initialize CLI, verify the historical loader's exact source_launch_id/job identity, activate the pushed runtime code, and run the explicit worker once for the same 10/17 source_launch_id. Continue FC10/FC11 after any individual operation result with documented handoffs and the same job.",
+  "acceptance": {
+    "FC_A01_to_A10": "not_yet_measured_on_production_same_job",
+    "flow_completion": false,
+    "completion_claim_allowed": false
+  }
+}

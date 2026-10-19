@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07plan-final-rerun --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct03-planner-fallback-final-rerun.junit.xml",
+  "start_jst": "2026-10-20T00:29:49.2507159+09:00",
+  "end_jst": "2026-10-20T00:29:49.9621111+09:00",
+  "exit": 0,
+  "cases": 1,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct03-planner-fallback-final-rerun.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct03-planner-fallback-final-rerun.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07plan-final-rerun",
+  "status": "PASS"
+}

@@ -283,7 +283,7 @@ def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
         cwd=tmp_path,
     )
 
-    blocked = run_worker_once(
+    result = run_worker_once(
         store,
         now=BASE_TIME + timedelta(minutes=3),
         owner_id="worker-blocked-c59",
@@ -293,42 +293,15 @@ def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
         source_launch_id=launch.launch_id,
     )
     queue = store.get_worker_queue(launch.launch_id)
-    assert blocked.status == "blocked"
-    assert blocked.reason_code == "maintenance_workflow_provider_unavailable"
+    assert result.status == "maintenance_incomplete"
+    assert result.maintenance_resolution_status == "unknown"
+    assert result.reason_code == "maintenance_workflow_failed"
     assert queue is not None
-    assert queue.status == "blocked"
-    assert queue.reason_code == "maintenance_workflow_provider_unavailable"
-    assert queue.check_id is None
+    assert queue.status == "complete"
+    assert queue.reason_code is None
+    assert queue.check_id == result.check_id
     events = store.list_worker_queue_events(queue.queue_id)
-    assert [event.event_type for event in events] == ["blocked"]
-    assert events[0].check_id == blocked.check_id
-
-    data_root = tmp_path / "data"
-    ensure_settings_file(data_root / "maintenance" / "settings.json")
-    common_args = [
-        "--data-root",
-        str(data_root),
-        "--daily-database",
-        str(tmp_path / "daily-runtime" / "state.sqlite"),
-        "resume-worker",
-        "--source-launch-id",
-        launch.launch_id,
-    ]
-    assert (
-        maintenance_cli_main(
-            common_args
-        )
-        == 0
-    )
-    capsys.readouterr()
-    resumed = store.get_worker_queue(launch.launch_id)
-    assert resumed is not None
-
-    assert resumed.status == "queued"
-    assert resumed.reason_code is None
-    events = store.list_worker_queue_events(queue.queue_id)
-    assert [event.event_type for event in events] == ["blocked", "resumed"]
-    assert events[1].reason_code == "maintenance_workflow_provider_unavailable"
+    assert all(event.event_type != "blocked" for event in events)
 
 
 def test_workflow_block_status_does_not_block_worker_path(tmp_path):

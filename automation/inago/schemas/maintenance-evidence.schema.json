@@ -480,6 +480,10 @@
         "$ref": "#/$defs/event"
       }
     },
+    "operation_trace": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/operationTrace"}
+    },
     "redaction": {
       "type": "object",
       "required": [
@@ -1831,6 +1835,22 @@
         "not_listed",
         "partial"
       ]
+    },
+    "operationTrace": {
+      "type": "object",
+      "required": ["correlation_id", "operation", "phase"],
+      "properties": {
+        "correlation_id": {"$ref": "#/$defs/safeId"},
+        "operation": {"$ref": "#/$defs/safeId"},
+        "phase": {"enum": ["begin", "end", "failed", "fallback", "interruption_observed"]},
+        "code_revision": {"$ref": "#/$defs/safeId"},
+        "job_id": {"$ref": "#/$defs/safeId"},
+        "source_launch_id": {"$ref": "#/$defs/safeId"},
+        "source_run_id": {"oneOf": [{"$ref": "#/$defs/safeId"}, {"type": "null"}]},
+        "attempt_id": {"$ref": "#/$defs/safeId"},
+        "artifact_ref": {"$ref": "#/$defs/safeId"}
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

@@ -1,0 +1,97 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_provider_loads_existing_job_and_attempt_before_running_stages ______
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-20261020-001833/tests_inago_test_maintenance_workflow_provider_py_test_provider_loads_existing_job_and_attempt_before_running_stages/test_provider_loads_existing_j0')
+
+    def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path):
+        store = make_store(tmp_path)
+        launch_id = "launch-u21-0301"
+        incident_id = create_incident(store, launch_id=launch_id)
+        create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id="release-u21-0301",
+        )
+        check = store.get_daily_check_by_launch(launch_id)
+        assert check is not None
+        launch = DailyLaunchRecord(
+            source_launch_id=launch_id,
+            target_date="2026-10-17",
+            owner_pid=9401,
+            started_at=BASE_TIME.isoformat(),
+            status="complete",
+            child_pid=9402,
+            source_run_id=None,
+            exit_code=4,
+            completed_at=BASE_TIME.isoformat(),
+            result_json=None,
+            owner_start_time=BASE_TIME.isoformat(),
+            child_start_time=BASE_TIME.isoformat(),
+        )
+        queue = WorkerQueueRecord(
+            queue_id="queue-u21-0301",
+            source_launch_id=launch_id,
+            worker_job_id="worker-u21-0301",
+            target_date="2026-10-17",
+            status="queued",
+            check_id=check.check_id,
+            claim_owner_id=None,
+            claim_generation=None,
+            claimed_at=None,
+            completed_at=None,
+            reason_code=None,
+            created_at=BASE_TIME.isoformat(),
+            updated_at=BASE_TIME.isoformat(),
+        )
+        lease = store.acquire_lease(
+            lease_key="maintenance:provider-test",
+            owner_id="provider-test",
+            owner_pid=9403,
+            owner_start_time=BASE_TIME.isoformat(),
+            now=BASE_TIME,
+            ttl_seconds=90,
+        )
+        store.begin_step_attempt(
+            job_id="job-release-u21-0301",
+            step_key="maintenance_investigation",
+            sequence=1,
+            lease=lease,
+            started_at=BASE_TIME,
+        )
+    
+        stage_calls = []
+    
+        def runner(stage_name):
+            def run(context):
+                stage_calls.append(stage_name)
+                if stage_name == "investigation":
+                    assert context.resume_state.job is not None
+                    assert context.resume_state.job.job_id == "job-release-u21-0301"
+                    attempt = context.resume_state.latest_attempts_by_sequence[1]
+                    assert attempt.step_key == "maintenance_investigation"
+                    assert attempt.status == "running"
+                if stage_name == "report":
+                    return WorkflowStageResult(
+                        status="blocked", reason_code="report_inputs_unavailable"
+                    )
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        provider = MaintenanceWorkflowProvider(
+            store,
+            {stage: runner(stage) for stage in WORKFLOW_STAGE_ORDER},
+        )
+        outcome = provider(launch, check, queue, lease, threading.Event())
+    
+>       assert outcome.status == "blocked"
+E       AssertionError: assert 'unknown' == 'blocked'
+E         
+E         - blocked
+E         + unknown
+
+tests_inago\test_maintenance_workflow_provider.py:146: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_workflow_provider.py::test_provider_loads_existing_job_and_attempt_before_running_stages
+1 failed in 0.68s

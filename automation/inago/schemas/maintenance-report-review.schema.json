@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rakuten-room-inago.local/schemas/maintenance-report-review.schema.json",
   "title": "Maintenance incident report review",
+  "description": "本文の理解しやすさ、区分・期待/実際・影響/回復・変更・試験範囲・根拠リンク、known/unknownの境界、合成例の見える表示、review/publicationとworkflow/incident状態の分離を確認する。指摘があれば場所と具体的な修正内容を記録し、承認結果を合成してはならない。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "reviewer_id", "reviewed_version", "reviewed_sha256", "status", "reviewed_at", "findings"],

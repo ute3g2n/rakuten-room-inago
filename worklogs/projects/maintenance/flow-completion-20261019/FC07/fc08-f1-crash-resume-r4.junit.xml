@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.866" timestamp="2026-10-20T01:23:31.303515+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes" time="1.502"><failure message="AssertionError: assert 48 == 47&#10; +  where 48 = &lt;SpawnProcess name='SpawnProcess-1' pid=64372 parent=29920 stopped exitcode=48&gt;.exitcode">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f1-success-r4/test_fc08_publication_crash_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020A0B01A990&gt;
+
+    def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
+        tmp_path: Path, monkeypatch
+    ):
+        fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+        original_store = fixture["store"]
+&gt;       _fc08_crash_after_publish(fixture)
+
+tests_inago\test_maintenance_report_publication_stage.py:452: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fixture = {'store': &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x0000020A0B01A7E0&gt;, 'lease': LeaseToken(leas...9b296ae4138a73fe2a88a066d5', started_at='2026-10-17T04:00:00.000000Z', finished_at='2026-10-17T04:00:00.000000Z'), ...}
+exit_code = 47
+
+    def _fc08_crash_after_publish(fixture: dict[str, object], exit_code: int = 47):
+        child = multiprocessing.get_context("spawn").Process(
+            target=_fc08_publish_then_crash,
+            args=(
+                str(fixture["store"].database_path.parent.parent),
+                str(fixture["daily_database_path"]),
+                str(fixture["repository"]),
+                "origin",
+                "main",
+                fixture["identity"],
+                fixture["job"],
+                fixture["report_attempt"],
+                fixture["lease"],
+                fixture["base_commit"],
+                exit_code,
+            ),
+        )
+        child.start()
+        child.join(timeout=30)
+        if child.is_alive():
+            child.terminate()
+            child.join(timeout=5)
+            pytest.fail("FC08 synthetic publication child did not exit")
+&gt;       assert child.exitcode == exit_code
+E       AssertionError: assert 48 == 47
+E        +  where 48 = &lt;SpawnProcess name='SpawnProcess-1' pid=64372 parent=29920 stopped exitcode=48&gt;.exitcode
+
+tests_inago\test_maintenance_report_publication_stage.py:444: AssertionError</failure></testcase></testsuite></testsuites>

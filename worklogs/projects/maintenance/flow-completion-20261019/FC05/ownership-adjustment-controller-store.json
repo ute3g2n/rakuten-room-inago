@@ -1,0 +1,27 @@
+{
+  "schema_version": "fc05-ownership-adjustment-v1",
+  "step": "FC05",
+  "previous_owner_map_sha256": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f",
+  "updated_owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+  "updated_owner_map_sha256": "945df2ea80079a3d2370e722cae6969853df043deb628b46c362e003899843ce",
+  "reason": "FC05 implementer found that repair-attempt creation still depends on a persisted planning result and predecessor pins. Those controller/store functions were omitted from the owner map although FC05 requires future stages to run after unknown, failure, or review outcomes.",
+  "assigned_operations": [
+    {
+      "file": "automation/inago/maintenance/controller.py",
+      "boundary": "MaintenanceController.begin_repair_attempt; MaintenanceController._get_approved_planning_investigation_attempt",
+      "owner": "FC05",
+      "execution_order": 5,
+      "change_goal": "Remove plan status/review/version availability as a start gate for planning and repair continuation, while preserving available identity and artifact references as observations."
+    },
+    {
+      "file": "automation/inago/maintenance/store.py",
+      "boundary": "MaintenanceStore.begin_step_attempt repair predecessor-pin requirement and insert validation",
+      "owner": "FC05",
+      "execution_order": 5,
+      "change_goal": "Permit a repair attempt when substantive fallback output exists but a predecessor pin cannot be established; keep any available pins immutable and verifiable without making them a downstream gate."
+    }
+  ],
+  "production_state_changed": false,
+  "database_or_queue_operation_performed": false,
+  "next": "FC05 implementer may edit only the added exact boundaries plus its original FC05 assignments; continue all independent work and update the FC05 result and handoff with this map revision."
+}

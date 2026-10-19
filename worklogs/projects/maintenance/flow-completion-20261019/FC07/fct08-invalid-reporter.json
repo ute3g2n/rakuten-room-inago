@@ -1,0 +1,12 @@
+{
+  "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_empty_or_malformed_reporter_response_keeps_fallback_and_next_handoff",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_empty_or_malformed_reporter_response_keeps_fallback_and_next_handoff --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07invalidreport --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct08-invalid-reporter.junit.xml",
+  "start_jst": "2026-10-20T00:27:55.2504189+09:00",
+  "end_jst": "2026-10-20T00:27:56.0614860+09:00",
+  "exit": 0,
+  "cases": 3,
+  "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct08-invalid-reporter.junit.xml",
+  "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\fct08-invalid-reporter.console.txt",
+  "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07invalidreport",
+  "status": "PASS"
+}

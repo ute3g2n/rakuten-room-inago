@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.485" timestamp="2026-10-20T01:23:05.548333+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes" time="0.121"><failure message="AttributeError: 'JobStartResult' object has no attribute 'job'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f1-success/test_fc08_publication_crash_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002475C4396A0&gt;
+
+    def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
+        tmp_path: Path, monkeypatch
+    ):
+&gt;       fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_report_publication_stage.py:432: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f1-success/test_fc08_publication_crash_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002475C4396A0&gt;
+
+    def _fc08_seed_terminal_fixture(tmp_path: Path, monkeypatch):
+        job_id = "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+        launch_id = "historical-9e7f0c175cc4c874c955a5dab29c4427"
+        incident_id = "352492da-ac58-4680-b1fd-fe5f24000229"
+        target_date = "2026-10-17"
+        identity = {
+            "job_id": job_id,
+            "incident_id": incident_id,
+            "source_launch_id": launch_id,
+            "source_run_id": None,
+            "target_date": target_date,
+        }
+        store = make_store(tmp_path)
+        connection = store._connect()
+        try:
+            connection.execute(
+                "INSERT INTO incident "
+                "(incident_id, dedupe_key, component, event_code, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, 'open', ?, ?)",
+                (
+                    incident_id,
+                    "fc08:synthetic:terminal-readback",
+                    "daily_pipeline",
+                    "daily_error",
+                    BASE_TIME.isoformat(),
+                    BASE_TIME.isoformat(),
+                ),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        daily = store.record_daily_check(
+            source_launch_id=launch_id,
+            source_run_id=None,
+            target_date=target_date,
+            check_status="abnormal",
+            observed_at=BASE_TIME.isoformat(),
+            reason_code="daily_error",
+            incident={
+                "dedupe_key": "fc08:synthetic:terminal-readback",
+                "component": "daily_pipeline",
+                "event_code": "daily_error",
+            },
+        )
+        assert daily.incident_id == incident_id
+        release_id = job_id.removeprefix("job-")
+        job_start = create_ready_release(
+            store,
+            incident_id=incident_id,
+            release_id=release_id,
+            base_commit="a" * 40,
+            result_commit="b" * 40,
+            result_version="fc08-terminal-fixture-v1",
+        )
+&gt;       assert job_start.job.job_id == job_id
+               ^^^^^^^^^^^^^
+E       AttributeError: 'JobStartResult' object has no attribute 'job'
+
+tests_inago\test_maintenance_report_publication_stage.py:218: AttributeError</failure></testcase></testsuite></testsuites>

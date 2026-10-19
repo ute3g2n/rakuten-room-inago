@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日次作業の不具合対応について</title>
+<style>body{font-family:system-ui,sans-serif;line-height:1.8;max-width:920px;margin:2rem auto;padding:0 1rem;color:#17202a}h1,h2{line-height:1.4}section{margin:1.5rem 0}.note{background:#f1f5f9;padding:1rem;border-radius:.5rem}.synthetic{border:2px solid #7c2d12;background:#fff7ed;padding:.8rem;font-weight:700}pre,code{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{max-width:none;margin:0}}</style>
+</head><body><main>
+<h1>日次作業の不具合対応について</h1>
+<p class="synthetic">合成したシナリオ例です。実際の2026年10月17日の調査結果ではありません。</p>
+<p>対象日: 2026-10-17。<strong>出来事の区分:</strong> 試験で確認。<strong>内容:</strong> 通常の報告書作成の失敗です。元の日次障害の分類とは別の出来事です。</p>
+<section><h2>何が起きたか</h2><p>10月17日の不具合について、通常の報告書作成が失敗し、短い代わりの報告を用意する合成例です。</p><p><strong>期待:</strong> 使える日次記録を説明する報告書を作り、別担当の確認と公開を試します。</p><p><strong>実際:</strong> 通常の報告書を作る機能が失敗しました。この短い報告には、開始記録が見つかったこと、終了記録が見つからないこと、通常形式を作れなかったことを載せています。</p></section>
+<section><h2>影響と回復</h2><p><strong>影響:</strong> 通常形式の報告書は作成できませんでした。元の日次処理が利用者へ与えた影響は、別の根拠がないため不明です。</p><p><strong>回復:</strong> 短い報告を作成したという合成例です。別担当による確認と公開は、まだ行っていません。</p></section>
+<section><h2>何を調べ、何を変えたか</h2><p><strong>確認した範囲:</strong> 通常形式の報告作成の失敗、短い報告の作成、参照できた処理開始の記録が確認済みという設定です。</p><p><strong>変更:</strong> 元の日次処理の製品コードは変えていません。確認できた事実を短い報告ページにまとめました。</p><p><strong>試験の範囲:</strong> 試験用の記録を使い、通常の報告書作成が失敗して短い報告を作った説明例です。製品試験ではありません。</p></section>
+<section><h2>確認した記録</h2><p>記録の種類: 試験用に作った合成記録</p><ul><li><a href="#evidence-1">報告工程の実装</a></li><li><a href="#evidence-2">代替報告の作成処理</a></li></ul></section>
+<section><h2>分かっていないこと</h2><ul><li>日次処理の原因、終了状態、利用者影響、業務上の回復は未確認です。</li></ul></section>
+<section><h2>レビューと公開</h2><p>この例の想定では、別の担当者による確認はまだ行われていません。 この合成例では別担当の確認を行っていません。</p><p>この例の想定では、まだ公開していません。</p></section>
+<section><h2>工程の完了と元の不具合</h2><p><strong>自動対応の工程:</strong> この例の想定では、工程全体の終了登録前です。</p><p><strong>元の不具合:</strong> 元の不具合が直ったかは、このシナリオでも未確認です。</p></section>
+<section><h2>次に行うこと</h2><p>この短い報告を別担当に確認してもらい、その後の公開結果を別記録で確かめます。</p></section>
+<details class="note" open><summary>参考付録：内部記録と根拠の参照先</summary><ul><li id="evidence-1"><strong>報告工程の実装</strong>: <code>automation/inago/maintenance/production_workflow.py</code></li><li id="evidence-2"><strong>代替報告の作成処理</strong>: <code>automation/inago/maintenance/report_fallback.py</code></li></ul><p>確認できなかった対象情報: なし</p><pre>このHTMLは表示例です。実際の調査結果ではありません。</pre></details>
+</main></body></html>

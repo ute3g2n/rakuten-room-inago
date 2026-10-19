@@ -1,0 +1,56 @@
+{
+  "schema_version": "fc04-implementation-result-v1",
+  "step": "FC04",
+  "result": "implementation_changes_ready_pending_runtime_stages",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "plan": {
+    "version": "1.2",
+    "sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "owner_map_sha256": "60abd966aa2c1cc4f0e2920e6f6799d7f7a81ba50da1a379f38cf2189b8dd57f",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
+  },
+  "scope": {
+    "workspace": "C:/project/rakuten-room-inago",
+    "branch_observed": "main",
+    "head_observed_before_fc04": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "worker_dispatch_excluded_dates_preserved": ["2026-10-19"],
+    "source_run_id_invented": false,
+    "daily_started": false,
+    "queue_or_history_processed": false,
+    "new_job_or_run_created": false,
+    "other_workspace_used": false
+  },
+  "summary": [
+    "Added content-bearing investigation and planning fallback handoffs, with agent/controller provenance separated.",
+    "Restricted repair author workspace and writer allowlists to the fixed project root while preserving existing changes.",
+    "Normalized future provider stage outcomes so blocked/waiting/missing/throwing/invalid runners produce substantive unknown/failed/not_performed handoffs and later stages continue.",
+    "Added correlated operation failure and store observation failure records, including exception chain/frame and fallback journal references.",
+    "Synchronized the requirements source and generated HTML, acceptance/trace contracts, dictionary, traceability, operations log list, settings, relevant skills/roles/templates, and F12 source/generated diagram.",
+    "Recorded two failed command-construction attempts and their successful recovery in command-attempts.json; neither failed attempt changed repository files."
+  ],
+  "checks": [
+    {"name": "python -m py_compile", "result": "passed", "scope": ["ai_adapter.py", "stage_handoff.py", "investigation.py", "planning.py", "repair.py", "production_workflow.py", "workflow_provider.py"]},
+    {"name": "JSON schema parse", "result": "passed", "count": 2, "scope": ["maintenance-investigation-response.schema.json", "maintenance-stage-handoff.schema.json"]},
+    {"name": "TOML parse", "result": "passed", "count": 5, "scope": ["FC04-synchronized role files"]},
+    {"name": "requirements HTML builder", "result": "passed", "exit_code": 0, "version": "2.50", "chapters": 28, "figures": 39, "reference_documents": 26, "bytes": 4079618},
+    {"name": "git diff --check", "result": "passed", "exit_code": 0, "notes": "Git reported existing CRLF-to-LF warnings for two files; no whitespace error."}
+  ],
+  "not_run": [
+    {"operation": "pytest and focused fault injection", "reason": "Assigned to FC07; no tests were run by FC04."},
+    {"operation": "independent product code review", "reason": "Assigned to FC08."},
+    {"operation": "production schema/code apply and same-job stage execution", "reason": "Assigned to FC09/FC10; no production DB, worker, Daily, queue, or history operation was performed."},
+    {"operation": "investigation/planner production attempt launch", "reason": "This FC04 local implementation assignment did not create or fabricate attempt IDs; same-job runtime launch remains for the controller-owned execution stage."},
+    {"operation": "commit/push", "reason": "Parent controller owns final selective staging and Git publication; this subtask did not commit or push."}
+  ],
+  "unresolved": [
+    "Root cause and incident resolution remain unknown until the same-job runtime investigation and report complete.",
+    "Runtime validation, fault injection, independent review, production read-back, same-job completion, and final report publication are unverified."
+  ],
+  "resume_at": "FC07 focused fault injection and FC08 independent product review, then FC09 apply/read-back and FC10 same-job resume; preserve identity exactly."
+}

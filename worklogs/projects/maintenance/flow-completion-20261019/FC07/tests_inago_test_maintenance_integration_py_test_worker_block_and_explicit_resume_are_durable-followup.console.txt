@@ -1,0 +1,51 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_worker_block_and_explicit_resume_are_durable ______________
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-followup-20261020-002053/tests_inago_test_maintenance_integration_py_test_worker_block_and_explicit_resume_are_durable/test_worker_block_and_explicit0')
+capsys = <_pytest.capture.CaptureFixture object at 0x00000266C892D520>
+
+    def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
+        store = make_store(tmp_path)
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9321)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"ExampleError"}',
+                stderr=b"",
+                pid=9321,
+            )
+    
+        launch = run_daily_launch(
+            store,
+            data_root=tmp_path / "runtime",
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+    
+        result = run_worker_once(
+            store,
+            now=BASE_TIME + timedelta(minutes=3),
+            owner_id="worker-blocked-c59",
+            owner_pid=9322,
+            owner_start_time=(BASE_TIME + timedelta(minutes=3)).isoformat(),
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            source_launch_id=launch.launch_id,
+        )
+        queue = store.get_worker_queue(launch.launch_id)
+        assert result.status == "maintenance_incomplete"
+        assert result.maintenance_resolution_status == "unknown"
+>       assert result.reason_code == "maintenance_workflow_provider_unavailable"
+E       AssertionError: assert 'maintenance_workflow_failed' == 'maintenance_...r_unavailable'
+E         
+E         - maintenance_workflow_provider_unavailable
+E         + maintenance_workflow_failed
+
+tests_inago\test_maintenance_integration.py:298: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable
+1 failed in 0.50s

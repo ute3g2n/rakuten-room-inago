@@ -1,0 +1,82 @@
+{
+  "schema_version": "fc05-source-hashes-v1",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "branch": "main",
+  "base_head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "plan_original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "plan_current_sha256": "a6a855a2e22234b014d9c3a55a72dc73f4c4390358ad5c63f71c65195adbeed3",
+  "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "assigned_changed_files": [
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "sha256": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac"
+    },
+    {
+      "path": "automation/inago/maintenance/cli.py",
+      "sha256": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441"
+    },
+    {
+      "path": "automation/inago/maintenance/controller.py",
+      "sha256": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0"
+    },
+    {
+      "path": "automation/inago/maintenance/deployment.py",
+      "sha256": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443"
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e"
+    },
+    {
+      "path": "automation/inago/maintenance/runtime_switcher.py",
+      "sha256": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+      "sha256": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6"
+    },
+    {
+      "path": "automation/inago/maintenance/store.py",
+      "sha256": "d8e4bfe7e73610dce64018314dd83c25d653632286373ee13e837e77ee5a5ba5"
+    },
+    {
+      "path": "automation/inago/maintenance/worker.py",
+      "sha256": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a"
+    },
+    {
+      "path": "automation/inago/maintenance/workflow_reconciliation.py",
+      "sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-candidate.schema.json",
+      "sha256": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-deployment-result.schema.json",
+      "sha256": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-claim.schema.json",
+      "sha256": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review-target.schema.json",
+      "sha256": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-review.schema.json",
+      "sha256": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-evidence.schema.json",
+      "sha256": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed"
+    },
+    {
+      "path": "automation/inago/schemas/maintenance-repair-test-ledger.schema.json",
+      "sha256": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620"
+    }
+  ]
+}

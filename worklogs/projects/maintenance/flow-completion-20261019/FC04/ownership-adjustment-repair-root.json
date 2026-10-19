@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "controller_adjustment": "FC04-repair-fixed-root",
+  "observed_at_jst": "2026-10-19T23:23:20+09:00",
+  "reason": "FC04 source inspection found the repair author path calls _ensure_repair_worktree and uses its separate checkout. User expressly prohibited any alternate workspace/worktree/checkout, so this helper path must be changed to use only the fixed repository root without creating or switching workspace.",
+  "exact_boundary": "automation/inago/maintenance/production_workflow.py :: _ensure_repair_worktree line 4250; prepare_daily_repair_stage line 8965; run_daily_repair_author_stage workspace selection line 9643 @ 51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "owner": "FC04, sequential, preserve prior FC01-FC03 changes",
+  "previous_owner_map_sha256": "64e4d1a71aa575d94e3a075433827858125fe67df8e73409625ae667736c3b2e",
+  "updated_owner_map_sha256": "58eacc30a68f337fa94603749fe395afbbd35b871e8a2dfc0c9f55999b3cdb2c",
+  "previous_map_snapshot": "file-operation-owner-map-before-repair-root-adjustment.json",
+  "expected_acceptance": [
+    "FCT09",
+    "FCT12",
+    "FCT13"
+  ],
+  "production_state_changed": false
+}

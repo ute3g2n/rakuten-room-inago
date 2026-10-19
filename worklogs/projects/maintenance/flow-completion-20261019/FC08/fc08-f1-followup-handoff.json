@@ -1,0 +1,57 @@
+{
+  "schema_version": "fc08-f1-implementation-followup-v1",
+  "finding_id": "FC08-F1",
+  "severity": "high",
+  "status": "fixed_in_source_static_verified_behavioral_test_pending",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "implementation": {
+    "reconciliation_file": "automation/inago/maintenance/workflow_reconciliation.py",
+    "reconciliation_sha256": "525f26e777c46650c65742cfd11eafd106919e10b73f030401e61d023a6d6d28",
+    "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+    "terminal_verification": [
+      "all_stage_observations_present",
+      "stage_observation_identity_matches",
+      "all_content_handoffs_read_back",
+      "formal_attempt_outputs_read_back",
+      "deployment_output_read_back",
+      "report_complete_observation",
+      "report_result_html_publication_sidecar_and_remote_readback"
+    ],
+    "verification_mapping": {
+      "report_complete_observation": "report stage status is complete",
+      "all_stage_observations_present": "8 stage names present in latest invocation",
+      "all_content_handoffs_read_back": "all 8 stage files parsed and bind exact identity",
+      "report_result_html_publication_sidecar_and_remote_readback": "report result and HTML hash read back, publication sidecar binds attempt/result/path/hash, current remote branch contains publication commit and public HTML hash matches",
+      "deployment_output_read_back": "deployment-result or identity-matching deployment-not-performed output exists",
+      "stage_observation_identity_matches": "each observation matches manifest launch/run/date",
+      "formal_attempt_outputs_read_back": "investigation/planning/repair attempts and output hashes read from attempt storage"
+    },
+    "finalizer": "reconcile_workflow_terminal only; finalizer call sites are after terminal_verification decision; both pass incident_status=in_progress",
+    "publisher": "FC06 source has publication sidecar persistence only; no finalize_job or incident resolved write found in production_workflow.py"
+  },
+  "static_checks": [
+    "python -m py_compile automation/inago/maintenance/workflow_reconciliation.py: PASS",
+    "AST/source assertion: exactly two finalize_job calls in reconciler (normal + failed-artifact compensation), all incident_status=in_progress: PASS",
+    "verification key coverage assertion, including deployment and report publication/readback: PASS",
+    "source decision assertion: workflow_complete=all(terminal_verification.values()), false public readback cannot yield complete: PASS",
+    "production_workflow.py source assertion: no finalize_job or incident_status=resolved: PASS",
+    "git diff --check: PASS; existing CRLF warnings only"
+  ],
+  "behavioral_tests": [
+    "Focused test: report publication saves sidecar but never calls MaintenanceStore.finalize_job or changes incident status, including report review approved.",
+    "Focused complete-path test: create the exact 8 matching stage observations and content handoffs, matching investigation/planning/repair output refs, deployment-result, report result and HTML, publication sidecar, and remote readback; assert the reconciler is the only terminal writer and finalizes once after all readers complete with incident_status=in_progress.",
+    "Failure-injection matrix: individually omit/mismatch each observation, handoff, required attempt/output hash, deployment result/not-performed artifact, report sidecar, report result/HTML, remote branch head, and public HTML hash; assert no complete finalization and preserve exact incomplete reason/evidence refs.",
+    "Crash window test: terminate after publication sidecar save but before reconcile; assert job is not complete and incident is not resolved, then resume the same job_id/source_launch_id/source_run_id=null and complete verification.",
+    "Terminal artifact persistence tests: interrupt between pending checkpoint and DB finalization; then fail final terminal artifact save and verify compensation leaves failed/in_progress state and never a durable complete claim."
+  ],
+  "test_status": "NOT_RUN_BY_IMPLEMENTER; FC07 tester owns focused cases after both FC06 publication and FC05 reconciliation changes",
+  "next_owner": "FC07 tester: implement/run the focused behavioral cases above; retain all prior FC08 review evidence and report each exact readback/finalize call",
+  "plan_current_sha256": "a6a855a2e22234b014d9c3a55a72dc73f4c4390358ad5c63f71c65195adbeed3",
+  "fix_result": "F1 is addressed in FC06 publication code and FC05 terminal reconciliation source; static-only verification passed, behavioral tests remain with FC07."
+}

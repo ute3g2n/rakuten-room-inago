@@ -1,6 +1,6 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.49、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～029、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8、U21 migration `009_worker_queue_events.sql`でschema v9とし、blocked/resumed履歴と安全化済みdaily result observationを保存する。U23 migration `010_historical_job_resume_events.sql`/`011_multiple_resumable_jobs.sql`はjob再開監査とqueued状態の保持を追加する。migration `012_unrestricted_job_start_resume.sql`はstart/resume制限を撤去し、`013_record_nonpass_regression_outcomes.sql`はschema v13のstage observationと実測non-PASS結果を保存する。stage statusやcase outcomeは観測記録であり、全PASSを後続gateにしない。historical jobとworker queueは対象ID/source launch IDで対象を選べば無条件に再queueでき、reason/review/release/他job/Worker leaseで拒否しない。resume CLIは専用leaseを使わず、transactionで記録する。review巡回上限も設けない。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
+正本：要件定義書HTML 2.50、§8・§27.6～27.18・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～029、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8、U21 migration `009_worker_queue_events.sql`でschema v9とし、blocked/resumed履歴と安全化済みdaily result observationを保存する。U23 migration `010_historical_job_resume_events.sql`/`011_multiple_resumable_jobs.sql`はjob再開監査とqueued状態の保持を追加する。migration `012_unrestricted_job_start_resume.sql`はstart/resume制限を撤去し、`013_record_nonpass_regression_outcomes.sql`はschema v13のstage observationと実測non-PASS結果を保存する。stage statusやcase outcomeは観測記録であり、全PASSを後続gateにしない。historical jobとworker queueは対象ID/source launch IDで対象を選べば無条件に再queueでき、reason/review/release/他job/Worker leaseで拒否しない。resume CLIは専用leaseを使わず、transactionで記録する。review巡回上限も設けない。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
 
 ## U23 現行実行方針
 
@@ -279,4 +279,45 @@ U21のreport providerは利用可能なresult/review情報、incident/job/attemp
 
 push後・artifact保存前に停止した場合は、実行可能な範囲で対象path、scope、base/code/hashを照合し、回復できるpublicationを記録する。report/publication artifactを保存できない場合はその操作を未完了として記録し、他の独立工程と報告を続ける。job終端は全stageを試行し実施・未実施・失敗を記録した結果とし、report status complete/pending/blockedは実際の状態を表す。ローカル合成Git fixtureは回復契約の開発確認に使い、本番DB migration、Scheduler登録、worker/watchdog起動の過去の実施順序を現行workflow全体のgateにしない。
 
-U23の実行対応は`report.status=complete`のみjob complete/incident resolved/Worker success。`pending`はartifactを保持しjob blocked（`report_status_pending`）/incident in_progress/Worker `maintenance_incomplete`、`blocked`はartifactを保持しjob blocked（`report_status_blocked`）/incident blocked/Worker `maintenance_incomplete`とする。既存complete jobへ未完了reportを訂正する場合もこのstatusとreasonを保存する。いずれも次工程のgateにしない。
+FC02の現行対応は工程の引継ぎ完了、個別操作の成否、公開、workflow完遂とincident解消を別に記録する。内容ある通常/fallback成果を保存して次担当を実起動し、旧pending/blockedを将来stageへ伝播しない。必須成果・公開版・終端read-backが揃った場合だけフロー完遂とし、原因や回復が不明ならincident_resolutionをunknown/unresolvedのまま保つ。公開未達なら原因と同一job再開位置を残して公開・終端整合操作を続ける。
+
+## FC02 全工程完遂・失敗追跡の現行契約（2026-10-19）
+
+要件正本HTML 2.50 §27.18と承認実行計画1.2のFC-R01～10/FC-A01～10を局所対応として追加する。既存MR/MAを新規承認IDへ置換しない。旧U05～U23のblocked/approval/worktree/incident resolved結合は旧仕様履歴であり、現行は次の契約を使う。
+
+- `stage_progress=pending/running/completed`、`operation_result=succeeded/failed/not_performed`、`content_result=confirmed/unknown/partial/no_change`、`artifact_origin=agent/controller_fallback`を分離する。新規stageにblockedを返さず、raw旧履歴は改変しない。
+- 全stageは内容ある成果/handoffを保存し次専門担当を実起動する。FAIL/unknown/review/test/readiness/release/receipt/lease/回数/実設定観測で後続を止めない。個別操作不能だけ理由付き未実施とする。
+- `workflow_completion`、公開結果と版、`incident_resolution`、元daily結果は別に保持する。原因/業務回復unknownのままflow完遂可能だが、公開・必須成果永続登録・終端read-backなしでcompleteにしない。job completeからincident resolvedを推論しない。
+- 全失敗はoperation、cause/context連鎖と安全なstack frames、発生/捕捉位置、code revision、相関ID、input/output refsへ結ぶ。例外本文・SQL/値・秘密/個人情報は除外する。通常logger失敗は独立fallback spoolへ保存して本処理を続け、復帰時に追記照合する。begin-only中断と全sink喪失区間は検出時にunknown/abnormal_endを追記する。
+- 通常/最小HTMLとも実reporterと独立reviewerを起動し、指摘は原作者が修正する。本文は平易に、技術記号は付録へ置く。公開版/hash/review/commit/remote/DB/finished_atを同一jobで照合する。テストコードの独立reviewは行わない。
+- 固定workspace `C:/project/rakuten-room-inago`、10/17同一job/launch/null run、10/19除外、全role effort highを維持する。model/tier実観測欠測を起動gateにしない。FC02作成時点ではschema13がFC01実測、014はsource追加予定で本番未適用だった。FC02は文書とrole設定だけを同期し、製品成功/受入PASSとはしない。
+
+詳細field・責務・case・所有は `worklogs/projects/maintenance/flow-completion-20261019/FC02/` のcontract-decision、stage-output-matrix、schema-change-list、file-operation-owner-map、requirement-step-case-mapを参照する。FC03～06は実装と同じSTEPで本文/schema/skills/図の変更を同期する。
+
+## FC03 maintenance operation追跡
+
+maintenanceの各stage開始・終了・例外・保存失敗は相関IDとoperation名を持つ。診断JSONLのallowlistへ`correlation_id`、`operation_id`、`code_revision`を追加する。例外はclass連鎖とファイル名・行・関数だけを取り、message/SQL/値は保存しない。JSONLへ書けない場合はmaintenance専用の独立failure journalへ記録し、journal自体が使えない場合だけ短いsafe markerをstderrへ出す。復帰時の照合で、終端eventのないbeginを過去の終了時刻や原因を推測せず中断観測として追記する。
+
+## FC03 実装範囲と再開時の記録
+
+保守JSONLの保存失敗はstage操作を失敗に変換せず、`maintenance/failure-journal/events.jsonl`へ別経路で退避する。DBのoperation eventとjournalの両方に相関ID、親操作、対象identity、phase、code revision、safe exception chain/frames、数値errno（存在する場合）、capture位置、参照を結ぶ。一次trace writerが例外を捕捉した境界で詳細をjournalへ一度記録し、呼出側は重複するgeneric-only eventを追加しない。起動時はfallback eventをDBへ再照合し、DB再照合自身が失敗した時も、元correlation IDと失敗exception chain/errno/frameを独立journalへ追記する。終端なしbeginは過去の終了値・原因を推測せず`interruption_observed`として追記する。DB eventのlatest順は`observed_at`、同時刻ならSQLite append順の`rowid`で決め、ミリ秒timestamp tieによる誤ったopen判定を避ける。journal保存失敗自身は短いstderr markerを試すが、その最終出力も失敗した未記録区間はunknownとして残す。
+
+failure journalの`input_refs`と`artifact_refs`は識別子とpath参照を別々に扱う。安全な識別子は既存のID形式で保持し、path参照はprivate rootからの相対POSIX形式だけを表示用に保持する。絶対path、バックスラッシュ、空・`.`・`..`のpath要素、制御/記号文字、secret・password・credential・cookie・token・private key・環境file等を含む参照は落とす。pathをjob/incident/attempt等のidentity fieldへ変換せず、参照値が不正または危険な場合は値を記録しない。
+
+各workflow invocationはstage実行前に、実行中のmaintenance Python/SQL、maintenance JSON Schema、worker、workflow、日次処理境界のsource bytesから一つの不変fingerprintを作る。manifestにはファイルごとのSHA-256、workerの除外日と結果schema版、workflowのstage順、各schemaに宣言されたschema版を含める。同じinvocationのoperation event、failure journal、stage handoffは同じaggregate hashを使い、補助logger/handoff module単体のhashで実行版を代用しない。読取、parse、manifest作成に失敗した場合は版を`unknown`にし、失敗eventへ具体的なreason code・例外class/cause/frame・capture位置を、handoffへ`code_revision_reason`を記録する。取得失敗は後続stageを止めない。
+
+## FC04 stage handoffの相関
+
+調査・計画・修正のstage handoffは同じworkflow invocationとstage correlationへ結び、正式identity、入力参照、stage progress、内容結果、個別operation結果、作成元（agentまたはcontroller fallback）、安全な例外連鎖、未知、次の担当・操作、成果参照を保存する。AI担当の起動・応答・成果保存に失敗した場合は失敗操作とcontroller fallback作成を別々に記録し、後続担当の起動を継続する。実行できなかった操作は`not_performed`と理由を記録し、future stage resultに`blocked`を返さない。
+
+### FC05 欠損入力時の担当継続
+
+試験・review・反映の入力欠損は、stageを終了させず `not_performed` または `unknown` とその具体的理由を記録する。次担当が調査できるよう、何の操作を試みたか、入力と成果物の参照、例外の型と原因連鎖、発生位置・捕捉位置、実行版、相関ID、次の行動を残す。review/試験statusを後続起動gateへ転用しない。
+
+## FC06 report trace追加
+通常reporter・renderer・reviewer・指摘改訂・HTML保存・publication Git操作・remote readback・publication sidecar保存を別operation名で相関記録する。失敗は例外class/cause chain、捕捉位置、実行版、job/attempt/input/output参照を付ける。push後sidecar保存前の中断はremote report pathとhashを同一job再開時に照合する。
+## FC09 schema v15の追跡と適用記録
+
+migration 014は保守operation eventをappend-onlyで保存する。migration 015は、任意のrepair predecessor pinを3列すべてNULLで保存できるようall-or-none insert triggerだけを取り除き、既存pinの変更を拒むimmutable triggerを残す。`SCHEMA_VERSION=15`は両migrationを順に適用する。隔離DBのv14→v15移行・pinなしattempt作成はFC09 focused nodeで確認する。
+
+2026-10-20の本番移行前観測はschema v13、`quick_check=ok`、migration 001～013。正式適用後はFC09の実行記録に移行結果、backupとread-back、対象job identity/status、operation eventの実記録を追記する。旧raw stage blockedはそのまま観測履歴として保持し、将来のstage結果には使わない。

@@ -1,0 +1,66 @@
+{
+  "schema_version": "fc06-source-hashes-v3",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+  "files": {
+    "automation/inago/maintenance/reporting.py": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+    "automation/inago/maintenance/production_workflow.py": "d4cc046d4f5b9c866f3de170fa3de13ca09697c5efd548e739f08c1e603c087e",
+    "automation/inago/maintenance/workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c",
+    "automation/inago/maintenance/report_fallback.py": "6d467b78c0d1a1f822374e838fb976e43193bf80b58d24ce68591bc1f282caa6",
+    "automation/inago/schemas/maintenance-report-response.schema.json": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+    "automation/inago/schemas/maintenance-report-review.schema.json": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+    "automation/inago/schemas/maintenance-report-result.schema.json": "c36aa1a07e39a9eb06c8c8715120a2fb4566e0b0434282850877380b9f8bc208",
+    "docs/standards/イナゴ日次不具合レポート作成ルール.md": "0b292b48d5ed2a664528a1162b70893ca7d369a72ae43c658bad26bbf167fe81",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html": "f2189271d0f85f5c0be4968ed4f62adba7c8552689b26b31336a2d0ed42fba3f",
+    ".agents/skills/rr-inago-incident-report/SKILL.md": "f8b2221c4d4bc262215c088c9200faaf1bef4b5331078f76003fa7f440807d19",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "cb2a4a1c0cee6a652981fd28c3175f8fd9d1a00d197b3e468952742eca0921d6",
+    ".codex/agents/rr-inago-incident-reporter.toml": "0b54967948794fca8664747d79ba9a86c358226aa932c05313004c60718b74ba",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml": "afb9d33a5cee9bac07f9995e4a2c1d6ee23d17f6190278e59626535f1f913ad7",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "0561d2cd9e61552008d799b180af0480cd39b86c59bf3c9bcedfcf5f92b173c8",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "751943f42cd66897d1a4a3500401d94d592b25cf8dd80b956d75b8ccf5415af8",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md": "0ebb7834bb0e462ca17b5b02b100c6c12f17707c3daacd4046294fcf938a8eb4",
+    "docs/specifications/inago/要件データ辞書.md": "e3361c555b55afe36ef77dc05c0dc0b0ffe03adebee2150a7689f44dae007d26",
+    "docs/specifications/inago/要件追跡表.md": "421b8f109ccd00ef821f803df25f71eb8b03f7207ece673bc41803bc370739ac",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md": "a9300d1e2a438d49f4702a7948128a3c35d9f78c70c42a027deca8f1419e1949",
+    "docs/specifications/inago/保守運用設定仕様.md": "a3ac74781837d241cdff6ef53133049377d12de21051ce3e7f12e98cd2033ea1",
+    "tools/docs/inago-requirements/task-flows.mjs": "b16b6022f5ba8369a0b3136f7ee3c9640fcaa7cce6c6241270b7d44210164ec2",
+    "tools/docs/inago-requirements/flow-descriptions.mjs": "4b175068cdbab3a32e076b6add32abf0600155ed30bb494e5d2ab446ec690289",
+    "docs/specifications/inago/図解/F12.svg": "dd06f987d502a52f079cfba81a14cb4e3cee1130312fa54be8d60de0be538aee",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md": "c503f5506de8758f8875b407f95e968daeb228d8d6fd2b9156ee38fb464e6346"
+  },
+  "examples": {
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常.html": "394e4e324fe5a56da9b3d0f1f79e8ac48aba854932b1c86ab83d89cd0487680f",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/全項目不明.html": "a02e44b2bf52201b6ef00d57f71b68f5b443808ca828007a2977b86f7e761287",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/変更なし.html": "199b551dbb91c17fa8ad495ee4ee18e50107af3825508bb3fe89bddf591a1db6",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/examples/通常renderer失敗.html": "1df6b61a0ccdfd3f5f5b66e8d785f700795512858e30bbf9ff3c3b8f0758c9c4"
+  },
+  "evidence": {
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/readability-review.md": "34cf0a6f1f355c771b3b138d30c1c009363a28b385dad882079e8e8891b80a24",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/publication-handoff.json": "12ac7658c5216400f68946666e638645069ce6f050eeea13b7ccf84793638c39",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/static-checks.json": "c6f5880ba23d5dd2e52255081172955de8200e2688c36c5025373ddd81d6defd",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/diff-summary.md": "b6db12f88f9f257acd4f9d9d2d32b8ded42a337bd6a20dbb93d810877f037c47",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-publication-failure.md": "8127bc404f435df21b7bf365df5469f94730b9dca0b796a760201683c3b8420f",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json": "de9180302e02731c1ef1cd4d5576dae245fc121aae08f394f503e9b6b331e583",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/html-review-findings.md": "fec338764411c8100e429ffffdd1b33928724cd4f7fdde87e7c1670e67d9a745",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-review-target.json": "5152e89598c1a8e69e74ba032d11d513bf12160e427a40412f6e928aca702add",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/followup-fct08-report-defects.md": "3a5533a326f0a6f5ece4a5760870e46b4265663c0c488e9971bc170aedb9264f",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/result.json": "cc85ded4db56d08b3c64d5a1287b61f04d184f4e939c881e1b3608b10fef04a4",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/handoff.json": "6dcd220b79ee5f00dc332271592e5e60c8dad56780f724595de794baabccbd77",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct08-transport-after-fc06-final4.junit.xml": "95deeac4eba17752fb9fe92d6bf0af2ebc88e927e2810d29896f09eae76a8f9b",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r2.md": "2827443cb8fdf314ff260042385baac1324dec966dd2f0b427b6354f74d59f28",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC06/r3-status-combinations.md": "d9b351a4ecf169c717da0ba113b48c8e0bf0b098ca29b2d48e48c17509e6c555",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml": "5ddfbd43b479e7f958fd987494fdbcacbeb326a8d886df9750abd99b9baf69a1",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml": "757ec86c9adbee6f78023660a11a6a887e150a79a28805e1421d698e4dcb2f31",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md": "4304a8c5d05658b8c6fd3850f3f05d990b94240e1aece722c5e67bc97b3ea984"
+  },
+  "source_files": {
+    "automation/inago/maintenance/workflow_reconciliation.py": "71305d148569f017a83a24c9bbfb5782af48f91be7e21829b3e73ce782f6d72e",
+    "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2"
+  }
+}

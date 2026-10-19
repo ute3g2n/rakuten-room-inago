@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-10-19T13:59:28.277649+00:00",
+  "checks": [
+    {
+      "operation": "9 active role TOMLs/high/no future-blocked/fixed workspace",
+      "result": "passed",
+      "count": 9
+    },
+    {
+      "operation": "12 active skill/contracts direct contradiction removal",
+      "result": "passed",
+      "count": 12
+    },
+    {
+      "operation": "canonical 2.50/F12 XML and 11 unrelated SVGs byte-preserved",
+      "result": "passed"
+    },
+    {
+      "operation": "approved input SHA / identity-null / requirement-fact-step-case coverage",
+      "result": "passed",
+      "requirements": 10,
+      "facts": 10,
+      "steps": 11,
+      "cases": 13
+    },
+    {
+      "operation": "FC02 JSON parse",
+      "result": "passed",
+      "count": 8
+    },
+    {
+      "operation": "git diff --check",
+      "result": "passed",
+      "exit_code": 0
+    }
+  ],
+  "product_tests": "NOT_RUN; static document/config checks only"
+}

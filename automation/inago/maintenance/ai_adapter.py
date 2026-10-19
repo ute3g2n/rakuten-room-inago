@@ -22,6 +22,7 @@ from jsonschema.exceptions import SchemaError, ValidationError
 from automation.inago.app_server import AppServerSession, AppServerTurn
 from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.diagnostic_trace import audit_maintenance_stage
+from automation.inago.maintenance.failure_journal import append_failure_event
 from automation.inago.maintenance.paths import _has_reparse_point
 from automation.inago.maintenance.store import (
     AIParentSessionRecord,
@@ -48,10 +49,11 @@ PARENT_ROLES: dict[str, tuple[str, ...]] = {
 
 PARENT_SETTINGS: dict[str, tuple[str, str, str, bool]] = {
     "A": ("gpt-6.1-sol", "high", "default", False),
-    "B": ("gpt-6-luna", "max", "priority", True),
+    "B": ("gpt-6-luna", "high", "priority", True),
 }
 
 _WORKTREE_WRITERS = {"common-implementer", "common-tester"}
+_FIXED_ROOT_READONLY_REVIEWERS = {"common-reviewer"}
 _AGENT_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,127}$")
 _WINDOWS_RESERVED_DEVICE_NAME = re.compile(
     r"^(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³])(?:\..*)?$",
@@ -390,7 +392,7 @@ class MaintenanceAIAdapter:
             *self.base_command,
             "--strict-config",
             "-c",
-            'service_tier="fast"',
+            'service_tier="priority"',
             "-c",
             "features.fast_mode=true",
         )
@@ -433,21 +435,34 @@ class MaintenanceAIAdapter:
         )
         _default_model, _default_effort, tier, fast_mode = PARENT_SETTINGS[parent_key]
         attempts_root = _directory(self.attempts_root, "write_root_out_of_scope")
-        worktrees_root = _directory(self.worktrees_root, "write_root_out_of_scope")
+        fixed_root_readonly_reviewer = (
+            parent_key == "B" and role_name in _FIXED_ROOT_READONLY_REVIEWERS
+        )
+        worktrees_root = (
+            self.project_root
+            if fixed_root_readonly_reviewer
+            else _directory(self.worktrees_root, "write_root_out_of_scope")
+        )
         expected_attempt_root = attempts_root / manifest.job_id / attempt.attempt_id
         expected_worktree = worktrees_root / manifest.job_id
         if _absolute_path(attempt_output_root) != expected_attempt_root:
             raise MaintenanceAIBlockedError("write_root_out_of_scope")
-        if _absolute_path(worktree_root) != expected_worktree:
-            raise MaintenanceAIBlockedError("write_root_out_of_scope")
         attempt_root = _directory_under_root(
             expected_attempt_root, attempts_root, "write_root_out_of_scope"
         )
-        worktree = _directory_under_root(
-            expected_worktree, worktrees_root, "write_root_out_of_scope"
-        )
+        fixed_root_writer = parent_key == "B" and role_name in _WORKTREE_WRITERS
+        if fixed_root_writer or fixed_root_readonly_reviewer:
+            if _absolute_path(worktree_root) != self.project_root:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+            worktree = _directory(self.project_root, "write_root_out_of_scope")
+        else:
+            if _absolute_path(worktree_root) != expected_worktree:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+            worktree = _directory_under_root(
+                expected_worktree, worktrees_root, "write_root_out_of_scope"
+            )
         working_directory = _directory(Path(cwd), "cwd_out_of_scope")
-        if parent_key == "B" and role_name in _WORKTREE_WRITERS:
+        if fixed_root_writer or fixed_root_readonly_reviewer:
             permitted_cwd = (worktree,)
         elif parent_key == "A":
             permitted_cwd = (self.project_root, attempt_root)
@@ -697,13 +712,52 @@ class MaintenanceAISession:
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
         turn_cwd = self._validate_turn_cwd(cwd)
-        turn = self.app_server.run_turn(
-            prompt,
-            server_schema,
-            cwd=turn_cwd,
-            deadline=deadline,
-            cancel_event=cancel_event,
-        )
+        try:
+            turn = self.app_server.run_turn(
+                prompt,
+                server_schema,
+                cwd=turn_cwd,
+                deadline=deadline,
+                cancel_event=cancel_event,
+            )
+        except TimeoutError as exc:
+            append_failure_event(
+                self.controller._store.database_path.parent.parent,
+                phase="failed",
+                operation="ai_transport.run_turn",
+                job_id=self.plan.manifest.job_id,
+                source_launch_id=self.plan.manifest.source_launch_id,
+                source_run_id=self.plan.manifest.source_run_id,
+                incident_id=self.plan.manifest.incident_id,
+                invocation_id=self.plan.attempt_id,
+                stage="model",
+                attempt_id=self.plan.attempt_id,
+                reason_code="ai_transport_timeout",
+                error=exc,
+                capture_location="ai_adapter.MaintenanceAISession.run_turn",
+                input_refs=(self.plan.session_key,),
+                primary_sink="app_server_transport",
+            )
+            raise MaintenanceAIBlockedError("ai_transport_timeout") from exc
+        except Exception as exc:
+            append_failure_event(
+                self.controller._store.database_path.parent.parent,
+                phase="failed",
+                operation="ai_transport.run_turn",
+                job_id=self.plan.manifest.job_id,
+                source_launch_id=self.plan.manifest.source_launch_id,
+                source_run_id=self.plan.manifest.source_run_id,
+                incident_id=self.plan.manifest.incident_id,
+                invocation_id=self.plan.attempt_id,
+                stage="model",
+                attempt_id=self.plan.attempt_id,
+                reason_code="ai_transport_failed",
+                error=exc,
+                capture_location="ai_adapter.MaintenanceAISession.run_turn",
+                input_refs=(self.plan.session_key,),
+                primary_sink="app_server_transport",
+            )
+            raise MaintenanceAIBlockedError("ai_transport_failed") from exc
         observed = {
             "model": turn.observed_model,
             "effort": turn.observed_effort,
@@ -737,8 +791,24 @@ class MaintenanceAISession:
                 reason_code=reason,
                 observed_at=datetime.now(timezone.utc),
             )
-        except MaintenanceStoreError:
-            pass
+        except MaintenanceStoreError as exc:
+            append_failure_event(
+                self.controller._store.database_path.parent.parent,
+                phase="fallback",
+                operation="ai_session_observation.persist",
+                job_id=self.plan.manifest.job_id,
+                source_launch_id=self.plan.manifest.source_launch_id,
+                source_run_id=self.plan.manifest.source_run_id,
+                incident_id=self.plan.manifest.incident_id,
+                invocation_id=self.plan.attempt_id,
+                stage="model",
+                attempt_id=self.plan.attempt_id,
+                reason_code=exc.code,
+                error=exc,
+                capture_location="ai_adapter.MaintenanceAISession.run_turn",
+                input_refs=(self.plan.session_key,),
+                primary_sink="maintenance_ai_observation",
+            )
 
         response = self._validate_response(turn.final_text, validator)
         output_path, output_sha256 = self._persist_response(
@@ -774,20 +844,38 @@ class MaintenanceAISession:
             allowed_outputs, Sequence
         ):
             raise MaintenanceAIBlockedError("allowed_outputs_invalid")
-        owner_root_base, owner_root, owner_code = (
-            (
-                self.plan.worktrees_root,
-                self.plan.worktree_root,
-                "allowed_outputs_invalid",
-            )
-            if self.plan.role_name in _WORKTREE_WRITERS
-            else (
-                self.plan.attempts_root,
-                self.plan.attempt_output_root,
-                "allowed_outputs_invalid",
-            )
+        fixed_root_writer = (
+            self.plan.parent_key == "B"
+            and self.plan.role_name in _WORKTREE_WRITERS
         )
-        owner_root = _directory_under_root(owner_root, owner_root_base, owner_code)
+        fixed_root_readonly_reviewer = (
+            self.plan.parent_key == "B"
+            and self.plan.role_name in _FIXED_ROOT_READONLY_REVIEWERS
+        )
+        if fixed_root_writer:
+            owner_root = _directory(
+                self.plan.worktree_root, "allowed_outputs_invalid"
+            )
+            if owner_root != self.plan.cwd:
+                raise MaintenanceAIBlockedError("allowed_outputs_invalid")
+        elif self.plan.role_name in _WORKTREE_WRITERS:
+            owner_root = _directory_under_root(
+                self.plan.worktree_root,
+                self.plan.worktrees_root,
+                "allowed_outputs_invalid",
+            )
+        elif fixed_root_readonly_reviewer:
+            worktree_root = _directory(
+                self.plan.worktree_root, "write_root_out_of_scope"
+            )
+            if worktree_root != self.plan.cwd:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+        else:
+            owner_root = _directory_under_root(
+                self.plan.attempt_output_root,
+                self.plan.attempts_root,
+                "allowed_outputs_invalid",
+            )
         normalized: list[str] = []
         seen: set[str] = set()
         for value in allowed_outputs:
@@ -837,6 +925,10 @@ class MaintenanceAISession:
         def reject_constant(_value: str):
             raise ValueError("non-finite JSON number")
 
+        if not isinstance(final_text, str) or not final_text.strip():
+            raise MaintenanceAIBlockedError("response_empty") from ValueError(
+                "empty model response"
+            )
         try:
             response = json.loads(final_text, parse_constant=reject_constant)
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -943,11 +1035,22 @@ class MaintenanceAISession:
             self.plan.attempts_root,
             "write_root_out_of_scope",
         )
-        worktree_root = _directory_under_root(
-            self.plan.worktree_root,
-            self.plan.worktrees_root,
-            "write_root_out_of_scope",
+        fixed_root_writer = (
+            self.plan.parent_key == "B"
+            and self.plan.role_name in _WORKTREE_WRITERS
         )
+        if fixed_root_writer:
+            worktree_root = _directory(
+                self.plan.worktree_root, "write_root_out_of_scope"
+            )
+            if worktree_root != self.plan.cwd:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+        else:
+            worktree_root = _directory_under_root(
+                self.plan.worktree_root,
+                self.plan.worktrees_root,
+                "write_root_out_of_scope",
+            )
         if (
             attempt_root != self.plan.attempt_output_root
             or worktree_root != self.plan.worktree_root

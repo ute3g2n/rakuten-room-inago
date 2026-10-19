@@ -9,6 +9,7 @@ from typing import Any
 
 from automation.inago.maintenance.paths import _has_reparse_point
 
+FAILURE_JOURNAL_FILENAME = "events.jsonl"
 
 class MaintenanceSettingsError(ValueError):
     """A safe error code for absent or invalid maintenance settings."""
@@ -23,7 +24,7 @@ class MaintenanceSettings:
     """Approved settings for maintenance jobs; these do not configure daily runs."""
 
     schema_version: int = 1
-    settings_version: str = "1.5"
+    settings_version: str = "1.6"
     timezone: str = "Asia/Tokyo"
     lease_heartbeat_seconds: int = 30
     watchdog_interval_seconds: int = 60
@@ -32,6 +33,7 @@ class MaintenanceSettings:
     request_retry_limit: int = 2
     diagnostic_log_retention_days: int = 90
     diagnostic_log_max_file_bytes: int = 4 * 1024 * 1024
+    diagnostic_failure_journal_filename: str = FAILURE_JOURNAL_FILENAME
 
 
 _DEFAULT_SETTINGS = MaintenanceSettings()
@@ -40,7 +42,8 @@ _LEGACY_CODE_FIX_CONCURRENCY_KEY = "code_fix_concurrency"
 _LEGACY_LOG_FILE_COUNT_KEY = "diagnostic_log_max_files_per_day"
 _LEGACY_JOB_RESUME_LIMIT_KEY = "job_resume_limit"
 _LEGACY_REVIEW_ROUND_LIMIT_KEY = "review_round_limit"
-_LEGACY_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3", "1.4"}
+_LEGACY_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3", "1.4", "1.5"}
+_LEGACY_CONCURRENCY_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3", "1.4"}
 _LEGACY_LIMIT_SETTINGS_VERSIONS = {"1.0", "1.1", "1.2", "1.3"}
 _MAX_SETTINGS_BYTES = 16 * 1024
 
@@ -62,7 +65,11 @@ def validate_settings_document(value: object) -> MaintenanceSettings:
         isinstance(settings_version, str)
         and settings_version in _LEGACY_SETTINGS_VERSIONS
     )
-    if is_legacy_version and _LEGACY_CODE_FIX_CONCURRENCY_KEY not in normalized:
+    if (
+        isinstance(settings_version, str)
+        and settings_version in _LEGACY_CONCURRENCY_SETTINGS_VERSIONS
+        and _LEGACY_CODE_FIX_CONCURRENCY_KEY not in normalized
+    ):
         raise MaintenanceSettingsError("settings_schema_invalid")
     for legacy_key in (
         _LEGACY_CODE_FIX_CONCURRENCY_KEY,
@@ -74,7 +81,8 @@ def validate_settings_document(value: object) -> MaintenanceSettings:
             continue
         legacy_value = normalized.pop(legacy_key)
         accepted_legacy_version = (
-            is_legacy_version
+            isinstance(settings_version, str)
+            and settings_version in _LEGACY_CONCURRENCY_SETTINGS_VERSIONS
             if legacy_key == _LEGACY_CODE_FIX_CONCURRENCY_KEY
             else isinstance(settings_version, str)
             and settings_version in _LEGACY_LIMIT_SETTINGS_VERSIONS
@@ -83,6 +91,10 @@ def validate_settings_document(value: object) -> MaintenanceSettings:
             raise MaintenanceSettingsError("settings_schema_invalid")
     if is_legacy_version:
         normalized["settings_version"] = _DEFAULT_SETTINGS.settings_version
+        if "diagnostic_failure_journal_filename" not in normalized:
+            normalized["diagnostic_failure_journal_filename"] = (
+                _DEFAULT_SETTINGS.diagnostic_failure_journal_filename
+            )
     if set(normalized) != _SETTING_KEYS:
         raise MaintenanceSettingsError("settings_schema_invalid")
     expected = default_settings_document()

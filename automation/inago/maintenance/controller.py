@@ -553,45 +553,48 @@ class MaintenanceController:
     ) -> StepAttemptResult:
         """Start sequence 3 from the latest persisted plan regardless of review status."""
 
+        plan_attempt = None
+        plan_result = None
         try:
-            plan_attempt = self._store.get_latest_step_attempt(
+            candidate = self._store.get_latest_step_attempt(
                 job_id=job_id,
                 sequence=2,
             )
             manifest = self._store.get_job_input_manifest(job_id=job_id)
             if (
-                plan_attempt.step_key != "maintenance_planning"
-                or plan_attempt.result_version is None
-                or plan_attempt.output_path is None
-                or plan_attempt.output_sha256 is None
+                candidate.step_key == "maintenance_planning"
+                and candidate.result_version is not None
+                and candidate.output_path is not None
+                and candidate.output_sha256 is not None
             ):
-                raise RepairContractError("repair_plan_not_approved")
-            raw_result = self._store.read_attempt_artifact(
-                attempts_root=attempts_root,
-                relative_path=plan_attempt.output_path,
-                expected_sha256=plan_attempt.output_sha256,
-            )
-            result = json.loads(raw_result)
-            if (
-                not isinstance(result, dict)
-                or result.get("schema_version") != "maintenance-planning-result-v1"
-                or result.get("identity") != manifest.identity()
-                or result.get("attempt_id") != plan_attempt.attempt_id
-                or result.get("result_version") != plan_attempt.result_version
-                or result.get("base_commit")
-                != self._store.get_job_base_commit(job_id=job_id)
-            ):
-                raise RepairContractError("repair_plan_not_approved")
-        except RepairContractError:
-            raise
+                raw_result = self._store.read_attempt_artifact(
+                    attempts_root=attempts_root,
+                    relative_path=candidate.output_path,
+                    expected_sha256=candidate.output_sha256,
+                )
+                decoded = json.loads(raw_result)
+                if (
+                    isinstance(decoded, dict)
+                    and decoded.get("schema_version") == "maintenance-planning-result-v1"
+                    and decoded.get("identity") == manifest.identity()
+                    and decoded.get("attempt_id") == candidate.attempt_id
+                    and decoded.get("result_version") == candidate.result_version
+                    and decoded.get("base_commit")
+                    == self._store.get_job_base_commit(job_id=job_id)
+                ):
+                    plan_attempt = candidate
+                    plan_result = decoded
         except (
             MaintenanceStoreError,
             UnicodeDecodeError,
             json.JSONDecodeError,
             TypeError,
             ValueError,
-        ) as exc:
-            raise RepairContractError("repair_plan_unavailable") from exc
+        ):
+            # Keep the repair stage runnable when earlier planning evidence is
+            # absent or malformed. The reason is recorded by the stage handoff.
+            plan_attempt = None
+            plan_result = None
 
         return self._store.begin_step_attempt(
             job_id=job_id,
@@ -599,9 +602,15 @@ class MaintenanceController:
             sequence=3,
             lease=lease,
             started_at=started_at,
-            repair_predecessor_attempt_id=plan_attempt.attempt_id,
-            repair_predecessor_result_version=plan_attempt.result_version,
-            repair_predecessor_output_sha256=plan_attempt.output_sha256,
+            repair_predecessor_attempt_id=(
+                plan_attempt.attempt_id if plan_attempt is not None else None
+            ),
+            repair_predecessor_result_version=(
+                plan_attempt.result_version if plan_attempt is not None else None
+            ),
+            repair_predecessor_output_sha256=(
+                plan_attempt.output_sha256 if plan_attempt is not None else None
+            ),
         )
 
     @audit_maintenance_stage("test")
@@ -622,6 +631,8 @@ class MaintenanceController:
             ):
                 raise RepairContractError("repair_attempt_identity_invalid")
             pin = self._store.get_repair_step_predecessor(attempt_id=attempt.attempt_id)
+            if not all(pin.get(key) for key in ("attempt_id", "result_version", "output_sha256")):
+                raise RepairContractError("repair_predecessor_evidence_not_performed")
             plan_attempt = self._store.get_step_attempt(pin["attempt_id"])
             if plan_attempt.output_path is None:
                 raise RepairContractError("repair_plan_not_approved")
@@ -741,6 +752,11 @@ class MaintenanceController:
             predecessor_pin = self._store.get_repair_step_predecessor(
                 attempt_id=attempt.attempt_id
             )
+            if not all(
+                predecessor_pin.get(key)
+                for key in ("attempt_id", "result_version", "output_sha256")
+            ):
+                raise RepairContractError("repair_predecessor_evidence_not_performed")
             plan_attempt = self._store.get_step_attempt(predecessor_pin["attempt_id"])
             if (
                 plan_attempt.step_key != "maintenance_planning"
@@ -1261,6 +1277,23 @@ class MaintenanceController:
             store_review_status=store_review_status,
             next_action=next_action,
         )
+        # A normal structured response and a controller recovery response both
+        # enter the same review/handoff path, but their operation outcome stays
+        # explicit in the durable result. The fallback is not attributed to the
+        # investigator and an unsuccessful agent turn is not relabelled success.
+        result_document["artifact_origin"] = validated.get("artifact_origin", "agent")
+        result_document["operation_result"] = validated.get(
+            "operation_result", "succeeded"
+        )
+        if validated.get("artifact_origin") == "controller_fallback":
+            result_document["fallback_artifact_refs"] = list(
+                validated.get("fallback_artifact_refs", [])
+            )
+        if validated.get("artifact_origin") == "controller_fallback":
+            result_document["fallback_summary"] = validated["summary"]
+            result_document["fallback_reason_code"] = validated.get(
+                "fallback_reason_code"
+            )
         result_json = (
             json.dumps(
                 result_document,
@@ -1401,20 +1434,13 @@ class MaintenanceController:
             investigation_attempt.step_key != "maintenance_investigation"
             or investigation_attempt.attempt_id
             != context.get("investigation_attempt_id")
-            or investigation_attempt.status
-            not in {"complete", "handoff_accepted", "blocked"}
-            or investigation_attempt.result_version is None
-            or investigation_attempt.output_path is None
         ):
             raise PlanningContractError("planning_investigation_unavailable")
         if (
-            review_record is not None
-            and review_record["reviewed_version"]
-            != investigation_attempt.result_version
-        ):
-            raise PlanningContractError("planning_investigation_version_mismatch")
-        if investigation_attempt.result_version != context.get(
-            "investigation_result_version"
+            investigation_attempt.result_version is not None
+            and context.get("investigation_result_version") is not None
+            and investigation_attempt.result_version
+            != context.get("investigation_result_version")
         ):
             raise PlanningContractError("planning_investigation_version_mismatch")
         return investigation_attempt

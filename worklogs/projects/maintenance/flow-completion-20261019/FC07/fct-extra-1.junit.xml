@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.198" timestamp="2026-10-20T00:26:19.920553+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff" time="0.001"><failure message="AssertionError: assert '計装' in '# 原因不明時の実行計画\n\n1. 障害原因の修正は、根拠がそろうまで実施しない。\n2. 調査・AI呼出し・応答検証・成果物保存・DB登録・引継ぎの各境界で、操作名、相関ID、例外の種類と発生箇所、入力/出力参照を記録する。\n3...用と同一jobの新記録を順に確認する。\n\n確認制限:\n- 原因を判断できる詳細な例外記録が残っていません。\n\n対象範囲:\n- automation/inago/maintenance/workflow_provider.py'">def test_fc07_unknown_cause_produces_actionable_plan_and_controller_handoff():
+        identity = {
+            "job_id": JOB_ID,
+            "incident_id": INCIDENT_ID,
+            "source_launch_id": LAUNCH_ID,
+            "source_run_id": None,
+            "target_date": TARGET_DATE,
+        }
+        plan = render_instrumentation_plan(
+            limits=["原因を判断できる詳細な例外記録が残っていません。"],
+            owner_paths=["automation/inago/maintenance/workflow_provider.py"],
+        )
+        assert "workflow_provider.py" in plan
+&gt;       assert "計装" in plan
+E       AssertionError: assert '計装' in '# 原因不明時の実行計画\n\n1. 障害原因の修正は、根拠がそろうまで実施しない。\n2. 調査・AI呼出し・応答検証・成果物保存・DB登録・引継ぎの各境界で、操作名、相関ID、例外の種類と発生箇所、入力/出力参照を記録する。\n3...用と同一jobの新記録を順に確認する。\n\n確認制限:\n- 原因を判断できる詳細な例外記録が残っていません。\n\n対象範囲:\n- automation/inago/maintenance/workflow_provider.py'
+
+tests_inago\test_maintenance_flow_completion_fc07.py:217: AssertionError</failure></testcase></testsuite></testsuites>

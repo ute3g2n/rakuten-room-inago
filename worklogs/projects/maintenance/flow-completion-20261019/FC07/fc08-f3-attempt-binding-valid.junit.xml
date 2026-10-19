@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.429" timestamp="2026-10-20T01:26:18.657046+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_attempt_binding_keeps_deployment_repair_and_report_sequence_four[complete-repair]" time="0.128"><failure message="KeyError: 'attempt_id'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp-fc08-f3-repair-valid/test_fc07_attempt_binding_keep0')
+repair_status = 'complete', expected_deployment_attempt = 'repair'
+
+    @pytest.mark.parametrize(
+        ("repair_status", "expected_deployment_attempt"),
+        [("complete", "repair"), ("running", None)],
+    )
+    def test_fc07_attempt_binding_keeps_deployment_repair_and_report_sequence_four(
+        tmp_path: Path,
+        repair_status: str,
+        expected_deployment_attempt: str | None,
+    ):
+        repair = StepAttemptRecord(
+            attempt_id="attempt-fc07-repair-seq3",
+            job_id=JOB_ID,
+            step_key="maintenance_repair",
+            sequence=3,
+            attempt_no=2,
+            source_run_id=None,
+            status=repair_status,
+            result_version="repair-v2",
+            output_path=f"{JOB_ID}/attempt-fc07-repair-seq3/result.json",
+            output_sha256="a" * 64,
+            started_at="2026-10-20T00:00:00Z",
+            finished_at=("2026-10-20T00:01:00Z" if repair_status == "complete" else None),
+        )
+        report = StepAttemptRecord(
+            attempt_id="attempt-fc07-report-seq4",
+            job_id=JOB_ID,
+            step_key="maintenance_report",
+            sequence=4,
+            attempt_no=3,
+            source_run_id=None,
+            status="complete",
+            result_version="report-v3",
+            output_path=f"{JOB_ID}/attempt-fc07-report-seq4/result.json",
+            output_sha256="b" * 64,
+            started_at="2026-10-20T00:02:00Z",
+            finished_at="2026-10-20T00:03:00Z",
+        )
+        decoy_sequence_four = StepAttemptRecord(
+            attempt_id="attempt-fc07-other-seq4",
+            job_id=JOB_ID,
+            step_key="maintenance_repair",
+            sequence=4,
+            attempt_no=4,
+            source_run_id=None,
+            status="complete",
+            result_version="decoy-v4",
+            output_path=f"{JOB_ID}/attempt-fc07-other-seq4/result.json",
+            output_sha256="c" * 64,
+            started_at="2026-10-20T00:04:00Z",
+            finished_at="2026-10-20T00:05:00Z",
+        )
+    
+        class AttemptStore(_WorkflowStore):
+            def list_step_attempts(self, *, job_id):
+                assert job_id == JOB_ID
+                return (repair, report, decoy_sequence_four)
+    
+        store = AttemptStore(tmp_path)
+        launch = SimpleNamespace(
+            source_launch_id=LAUNCH_ID,
+            source_run_id=None,
+            target_date=TARGET_DATE,
+            historical_input=None,
+        )
+        check = SimpleNamespace(
+            check_id="check-fc07-attempt-binding",
+            source_launch_id=LAUNCH_ID,
+            source_run_id=None,
+            target_date=TARGET_DATE,
+        )
+        queue = WorkerQueueRecord(
+            queue_id="queue-fc07-attempt-binding",
+            source_launch_id=LAUNCH_ID,
+            worker_job_id=JOB_ID,
+            target_date=TARGET_DATE,
+            status="queued",
+            check_id=check.check_id,
+            claim_owner_id=None,
+            claim_generation=None,
+            claimed_at=None,
+            completed_at=None,
+            reason_code=None,
+            created_at="2026-10-20T00:00:00Z",
+            updated_at="2026-10-20T00:00:00Z",
+        )
+        lease = LeaseToken("maintenance:fc07-attempt-binding", "worker-fc07", 1)
+        calls = []
+    
+        def make_runner(stage_name: str):
+            def run(context: MaintenanceWorkflowContext):
+                calls.append(stage_name)
+                if stage_name == "deployment":
+                    raise RuntimeError("synthetic deployment attempt trace")
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {stage: make_runner(stage) for stage in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+        assert outcome.status == "complete"
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+        invocation_id = store.observations[0]["invocation_id"]
+        deployment_event = next(
+            event
+            for event in store.events
+            if event.get("stage") == "deployment" and event.get("phase") == "begin"
+        )
+        report_event = next(
+            event
+            for event in store.events
+            if event.get("stage") == "report" and event.get("phase") == "begin"
+        )
+        assert deployment_event["attempt_id"] == (
+            repair.attempt_id if expected_deployment_attempt == "repair" else None
+        )
+        assert report_event["attempt_id"] == report.attempt_id
+        deployment_handoff = json.loads(
+            (
+                tmp_path
+                / "workflow-handoffs"
+                / JOB_ID
+                / invocation_id
+                / "deployment.json"
+            ).read_text(encoding="utf-8")
+        )
+        report_handoff = json.loads(
+            (
+                tmp_path
+                / "workflow-handoffs"
+                / JOB_ID
+                / invocation_id
+                / "report.json"
+            ).read_text(encoding="utf-8")
+        )
+&gt;       assert deployment_handoff["identity"]["attempt_id"] == deployment_event["attempt_id"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'attempt_id'
+
+tests_inago\test_maintenance_flow_completion_fc07.py:1121: KeyError</failure></testcase></testsuite></testsuites>

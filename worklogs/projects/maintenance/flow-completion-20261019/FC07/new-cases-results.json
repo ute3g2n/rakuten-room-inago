@@ -1,0 +1,62 @@
+[
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-1 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage-final.junit.xml",
+    "start_jst": "2026-10-20T00:23:47.9439476+09:00",
+    "end_jst": "2026-10-20T00:23:49.2791223+09:00",
+    "exit": 0,
+    "pytest_count": 8,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage-final.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_stage_failure_keeps_handoff_and_runs_every_later_stage-final.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-1",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_primary_trace_failure_falls_back_without_stopping_stages",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_primary_trace_failure_falls_back_without_stopping_stages --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-2 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-final.junit.xml",
+    "start_jst": "2026-10-20T00:23:49.3103309+09:00",
+    "end_jst": "2026-10-20T00:23:50.3832977+09:00",
+    "exit": 1,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-final.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_primary_trace_failure_falls_back_without_stopping_stages-final.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-2",
+    "status": "FAIL"
+  },
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_nested_failure_is_correlated_redacted_and_replayed",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_nested_failure_is_correlated_redacted_and_replayed --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-3 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-final.junit.xml",
+    "start_jst": "2026-10-20T00:23:50.3949501+09:00",
+    "end_jst": "2026-10-20T00:23:51.4247200+09:00",
+    "exit": 1,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-final.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_nested_failure_is_correlated_redacted_and_replayed-final.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-3",
+    "status": "FAIL"
+  },
+  {
+    "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-4 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_fallback_report_and_october_19_exclusion_are_preserved-final.junit.xml",
+    "start_jst": "2026-10-20T00:23:51.4354004+09:00",
+    "end_jst": "2026-10-20T00:23:52.3859987+09:00",
+    "exit": 0,
+    "pytest_count": 1,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_fallback_report_and_october_19_exclusion_are_preserved-final.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_flow_completion_fc07_py_test_fc07_fallback_report_and_october_19_exclusion_are_preserved-final.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-4",
+    "status": "PASS"
+  },
+  {
+    "node": "tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save",
+    "command": "\".venv-inago\\Scripts\\python.exe\" -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --basetemp C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-5 --junitxml=worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-final.junit.xml",
+    "start_jst": "2026-10-20T00:23:52.3955897+09:00",
+    "end_jst": "2026-10-20T00:23:55.8298075+09:00",
+    "exit": 1,
+    "pytest_count": 3,
+    "junit": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-final.junit.xml",
+    "console": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC07\\tests_inago_test_maintenance_report_publication_stage_py_test_publication_stage_recovers_after_push_before_artifact_save-final.console.txt",
+    "basetemp": "C:\\Users\\ute3g\\AppData\\Local\\Temp\\f07-002347-5",
+    "status": "FAIL"
+  }
+]

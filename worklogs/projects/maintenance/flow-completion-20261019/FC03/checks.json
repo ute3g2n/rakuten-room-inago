@@ -1,0 +1,234 @@
+{
+  "stage": "FC03",
+  "checked_at_jst": "2026-10-20 01:23 JST",
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "checks": [
+    {
+      "command": "python -m py_compile <nine listed maintenance modules>",
+      "status": "PASS",
+      "exit_code": 0,
+      "details": "Syntax/bytecode compilation only; no test functions invoked."
+    },
+    {
+      "command": "python built-in json.load on automation/inago/schemas/maintenance-*.schema.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 23,
+      "details": "JSON syntax only; semantic JSON Schema validation not established."
+    },
+    {
+      "command": "sqlite3 in-memory executescripts automation/inago/maintenance/sql/014_flow_completion_trace.sql",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "maintenance_operation_event table",
+        "maintenance_operation_event_no_delete trigger",
+        "maintenance_operation_event_no_update trigger"
+      ],
+      "details": "No repository runtime DB or production database was opened."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": {
+        "output": "docs/specifications/inago/イナゴスキル要件定義書.html",
+        "version": "2.50",
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "bytes": 4063247
+      },
+      "prior_failure": "First attempt exited 1 with Unsupported Markdown table because the FC03 dictionary addition had no table header/separator and FC03 traceability row was outside a table. Both source blocks were repaired and the same build then exited 0."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "exit_code": 0,
+      "details": "CRLF to LF normalization warnings only."
+    },
+    {
+      "command": "rg WORKER_DISPATCH_EXCLUDED_DATES automation/inago/maintenance/worker.py and identity fields in FC03 records",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": "worker.py line 31 remains frozenset({\"2026-10-19\"}); synthetic and handoff artifacts retain source_run_id null and exact job/launch identity.",
+      "details": "Static source/artifact check only; production queue/history untouched."
+    },
+    {
+      "command": "python JSON parse for FC03 implementation-result/handoff/synthetic-event-examples artifacts",
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "JSON Schema semantic validation",
+      "status": "PASS",
+      "runtime": ".venv-inago/Scripts/python.exe",
+      "runtime_package": "jsonschema 4.26.0",
+      "operation": "validator_for(schema).check_schema(schema) for every automation/inago/schemas/maintenance-*.schema.json",
+      "observed_at_jst": "2026-10-19 23:16 (minute precision; exact second not retained by controller)",
+      "exit_code": 0,
+      "output": "valid_json_schemas=23",
+      "details": "Root controller ran this during FC04 continuation. The default Python interpreter lacks jsonschema; the repository venv provides it."
+    },
+    {
+      "command": "Static inspection of automation/inago/maintenance/ai_adapter.py Parent B settings and command tier",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": "PARENT_SETTINGS['B'] == ('gpt-6-luna', 'high', 'priority', True); _command includes service_tier=\"priority\" and features.fast_mode=true",
+      "actual_service_tier_observation": "unknown; no runtime AI call was made"
+    },
+    {
+      "command": "python -m py_compile automation/inago/maintenance/diagnostic_trace.py automation/inago/maintenance/failure_journal.py automation/inago/maintenance/store.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed_at_jst": "2026-10-19 23:18",
+      "details": "Syntax/bytecode compilation only; no testcase executed."
+    },
+    {
+      "command": "In-memory SQLite executescripts on automation/inago/maintenance/sql/014_flow_completion_trace.sql, then PRAGMA table_info and trigger catalog read",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": [
+        "exception_errno column present",
+        "maintenance_operation_event_no_delete",
+        "maintenance_operation_event_no_update"
+      ],
+      "details": "No production/runtime database was opened."
+    },
+    {
+      "command": "node tools/docs/inago-requirements/build.mjs after FC03 review follow-up",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": {
+        "version": "2.50",
+        "chapters": 28,
+        "figures": 39,
+        "reference_documents": 26,
+        "bytes": 4066177
+      },
+      "prior_failure": "One preceding attempt exited 1 at task-flows.mjs:74 writeFlowAssets while opening docs/specifications/inago/図解/F12.svg; errno -4094, code UNKNOWN, syscall open. File/directory ACL allowed Modify; lock was not proven. One retry after FC04 paused shared writes succeeded. Full stack/triage is in review-followup.json."
+    },
+    {
+      "command": "git diff --check after FC03 review follow-up",
+      "status": "PASS",
+      "exit_code": 0,
+      "details": "CRLF to LF warnings only."
+    },
+    {
+      "command": "FC03 follow-up review paths and diagnostics",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "review-followup.json",
+      "details": "Static source inspection confirms exception-boundary journal capture, replay failure capture, and timestamp/rowid tie breaker; does not claim runtime fault-injection."
+    },
+    {
+      "command": "JSON parse all seven FC03 JSON artifacts",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed_at_jst": "2026-10-19 23:19"
+    },
+    {
+      "command": "Compare all entries in FC03/source-hashes.json against current source bytes",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed": "source_hashes_verified=25 mismatches=0",
+      "observed_at_jst": "2026-10-19 23:19"
+    },
+    {
+      "command": "Post-follow-up py_compile and migration DDL verification after formatting cleanup",
+      "status": "PASS",
+      "exit_code": 0,
+      "observed_at_jst": "2026-10-19 23:19",
+      "observed": [
+        "py_compile diagnostic_trace/failure_journal/store",
+        "exception_errno column present",
+        "2 append-only triggers"
+      ]
+    },
+    {
+      "command": "FCT02/FCT05/FCT10/FCT12 pytest and fault injection",
+      "status": "NOT_RUN",
+      "reason": "The FC03 implementation-stage assignment reserves exact testcase execution to FC07 common-tester; no test outcome is claimed here."
+    },
+    {
+      "command": "independent product review / production apply / same-job runtime resume",
+      "status": "NOT_RUN",
+      "reason": "These are later planned FC08/FC09/FC10 operations."
+    },
+    {
+      "exit_code": 0,
+      "command": ".venv-inago/Scripts/python.exe -m py_compile automation/inago/maintenance/failure_journal.py",
+      "status": "PASS",
+      "details": "Syntax compilation only; no test function or workflow runtime invoked."
+    },
+    {
+      "exit_code": 0,
+      "command": "static source assertions for reference sanitizer",
+      "status": "PASS",
+      "details": "Static source inspection only.",
+      "observed": [
+        "ID sanitizer remains separate",
+        "absolute/traversal/backslash paths rejected",
+        "sensitive markers filtered",
+        "invalid refs omitted rather than null"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "command": "git diff --check",
+      "status": "PASS",
+      "details": "Line-ending normalization warnings only."
+    },
+    {
+      "command": "FC07 publication failure parameter runtime rerun",
+      "status": "NOT_RUN",
+      "reason": "tester owns runtime failure injection; exact next action in reference-sanitizer-follow-up.json"
+    },
+    {
+      "status": "PASS",
+      "command": ".venv-inago/Scripts/python.exe -m py_compile code_revision.py failure_journal.py stage_handoff.py workflow_provider.py",
+      "exit_code": 0,
+      "details": "Syntax compilation only; no test function invoked."
+    },
+    {
+      "status": "PASS",
+      "command": "PowerShell static source assertions for fingerprint and attempt attribution",
+      "exit_code": 0,
+      "observed": "5/5 assertions"
+    },
+    {
+      "status": "PASS",
+      "command": "PowerShell JSON parse of maintenance-diagnostic-event and maintenance-stage-handoff schemas",
+      "exit_code": 0,
+      "observed": "both schema JSON documents parsed"
+    },
+    {
+      "status": "PASS",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "details": "Line-ending normalization warnings only."
+    },
+    {
+      "status": "NOT_RUN",
+      "command": "FC07 focused fingerprint and attempt attribution runtime nodes",
+      "reason": "FC07 tester owns runtime cases; requested nodes are in fc08-f2-f3-correction.json"
+    }
+  ],
+  "source_hashes_ref": "source-hashes.json",
+  "supplemental_validation_ref": "supplemental-schema-validation.json",
+  "review_followup_ref": "review-followup.json",
+  "ai_adapter_settings": {
+    "PARENT_SETTINGS_B": [
+      "gpt-6-luna",
+      "high",
+      "priority",
+      true
+    ],
+    "service_tier_observed": false
+  }
+}

@@ -4,50 +4,203 @@
   "title": "Maintenance repair review target",
   "type": "object",
   "properties": {
-    "schema_version": {"const": "maintenance-repair-review-target-v1"},
-    "attestation_source": {"const": "local_pytest"},
-    "identity": {"$ref": "#/$defs/identity"},
-    "job_id": {"$ref": "#/$defs/id"},
-    "attempt_id": {"$ref": "#/$defs/id"},
-    "result_version": {"$ref": "#/$defs/id"},
-    "code_sha256": {"$ref": "#/$defs/sha256"},
-    "full_regression_receipt_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
-    "full_regression_receipt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "schema_version": {
+      "const": "maintenance-repair-review-target-v1"
+    },
+    "attestation_source": {
+      "const": "local_pytest"
+    },
+    "identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "job_id": {
+      "$ref": "#/$defs/id"
+    },
+    "attempt_id": {
+      "$ref": "#/$defs/id"
+    },
+    "result_version": {
+      "$ref": "#/$defs/id"
+    },
+    "code_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "full_regression_receipt_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "full_regression_receipt_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "output": {
       "type": "object",
       "properties": {
-        "patch_assessment": {"$ref": "#/$defs/artifact"},
-        "test_ledger": {"$ref": "#/$defs/artifact"}
+        "patch_assessment": {
+          "$ref": "#/$defs/artifact"
+        },
+        "test_ledger": {
+          "$ref": "#/$defs/artifact"
+        }
       },
-      "required": ["patch_assessment", "test_ledger"],
+      "required": [
+        "patch_assessment",
+        "test_ledger"
+      ],
       "additionalProperties": false
+    },
+    "stage_result": {
+      "$ref": "#/$defs/stage_result"
     }
   },
   "$defs": {
-    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
-    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "identity": {
       "type": "object",
       "properties": {
-        "incident_id": {"type": "string", "minLength": 1},
-        "source_launch_id": {"type": "string", "minLength": 1},
-        "source_run_id": {"type": ["string", "null"]},
-        "target_date": {"type": "string", "format": "date"},
-        "job_id": {"type": "string", "minLength": 1}
+        "incident_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_launch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["incident_id", "source_launch_id", "source_run_id", "target_date", "job_id"],
+      "required": [
+        "incident_id",
+        "source_launch_id",
+        "source_run_id",
+        "target_date",
+        "job_id"
+      ],
       "additionalProperties": false
     },
     "artifact": {
       "type": "object",
       "properties": {
-        "path": {"type": "string", "minLength": 1},
-        "sha256": {"$ref": "#/$defs/sha256"}
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       },
-      "required": ["path", "sha256"],
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "stage_result": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "failed",
+            "unknown",
+            "not_performed"
+          ]
+        },
+        "operation_result": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "unknown",
+            "not_performed"
+          ]
+        },
+        "workflow_completion": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "incident_resolution": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "unknown"
+          ]
+        },
+        "raw_status_observation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+        },
+        "artifact_origin": {
+          "enum": [
+            "agent",
+            "controller_fallback"
+          ]
+        },
+        "output_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "operation_result",
+        "workflow_completion",
+        "incident_resolution",
+        "artifact_origin",
+        "output_refs"
+      ],
       "additionalProperties": false
     }
   },
-  "required": ["schema_version", "attestation_source", "identity", "job_id", "attempt_id", "result_version", "code_sha256", "full_regression_receipt_id", "full_regression_receipt_sha256", "output"],
+  "required": [
+    "schema_version",
+    "attestation_source",
+    "identity",
+    "job_id",
+    "attempt_id",
+    "result_version",
+    "code_sha256",
+    "full_regression_receipt_id",
+    "full_regression_receipt_sha256",
+    "output"
+  ],
   "additionalProperties": false
 }

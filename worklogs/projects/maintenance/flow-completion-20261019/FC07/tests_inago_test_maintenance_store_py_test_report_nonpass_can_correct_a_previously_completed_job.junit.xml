@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.746" timestamp="2026-10-20T00:18:39.810401+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_store" name="test_report_nonpass_can_correct_a_previously_completed_job[report_status_pending-in_progress]" time="0.161"><failure message="automation.inago.maintenance.store.MaintenanceStoreError: job_already_finalized">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-20261020-001833/tests_inago_test_maintenance_store_py_test_report_nonpass_can_correct_a_previously_completed_job/test_report_nonpass_can_correc0')
+reason_code = 'report_status_pending', incident_status = 'in_progress'
+
+    @pytest.mark.parametrize(
+        ("reason_code", "incident_status"),
+        [
+            ("report_status_pending", "in_progress"),
+            ("report_status_blocked", "blocked"),
+        ],
+    )
+    def test_report_nonpass_can_correct_a_previously_completed_job(
+        tmp_path, reason_code, incident_status
+    ):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+        job = create_ready_release(store, incident_id=incident_id)
+        lease = store.acquire_lease(
+            lease_key="maintenance:worker",
+            owner_id="report-worker",
+            owner_pid=9123,
+            owner_start_time=BASE_TIME.isoformat(),
+            now=BASE_TIME,
+            ttl_seconds=60,
+        )
+    
+        store.finalize_job(
+            job_id=job.job_id,
+            final_status="complete",
+            lease=lease,
+            finalized_at=BASE_TIME + timedelta(seconds=1),
+            incident_status="resolved",
+        )
+&gt;       corrected = store.finalize_job(
+            job_id=job.job_id,
+            final_status="blocked",
+            lease=lease,
+            finalized_at=BASE_TIME + timedelta(seconds=2),
+            reason_code=reason_code,
+            incident_status=incident_status,
+        )
+
+tests_inago\test_maintenance_store.py:461: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x000001DF73C901A0&gt;
+job_id = 'job-release-1', final_status = 'blocked'
+lease = LeaseToken(lease_key='maintenance:worker', owner_id='report-worker', generation=1)
+finalized_at = datetime.datetime(2026, 10, 17, 4, 0, 2, tzinfo=datetime.timezone.utc)
+reason_code = 'report_status_pending', incident_status = 'in_progress'
+
+    def finalize_job(
+        self,
+        *,
+        job_id: str,
+        final_status: str,
+        lease: LeaseToken,
+        finalized_at: datetime | str,
+        reason_code: str | None = None,
+        incident_status: str | None = None,
+    ) -&gt; JobFinalizeResult:
+        """Finish a job while preserving stage and review outcomes as observations."""
+    
+        job = _safe_id(job_id, "job_id_invalid")
+        if final_status not in _JOB_TERMINAL_STATUSES:
+            raise MaintenanceStoreError("job_final_status_invalid")
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "reason_code_invalid")
+        if final_status != "complete" and reason_code is None:
+            raise MaintenanceStoreError("job_terminal_reason_required")
+        allowed_incident_statuses = {"in_progress", "resolved", "blocked"}
+        if (
+            incident_status is not None
+            and incident_status not in allowed_incident_statuses
+        ):
+            raise MaintenanceStoreError("job_incident_status_invalid")
+        when = _timestamp(finalized_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM maintenance_job WHERE job_id = ?", (job,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("job_not_found")
+            if row["status"] in _JOB_TERMINAL_STATUSES:
+                if (
+                    row["status"] == final_status
+                    and row["terminal_reason_code"] == reason_code
+                ):
+                    if incident_status is not None:
+                        incident = connection.execute(
+                            "SELECT status FROM incident WHERE incident_id = ?",
+                            (row["incident_id"],),
+                        ).fetchone()
+                        if incident is None:
+                            raise MaintenanceStoreError("incident_not_found")
+                        current_incident_status = str(incident["status"])
+                        if current_incident_status != incident_status:
+                            connection.execute(
+                                "UPDATE incident SET status = ?, updated_at = ? "
+                                "WHERE incident_id = ?",
+                                (incident_status, when, row["incident_id"]),
+                            )
+                    return JobFinalizeResult(
+                        job,
+                        str(row["status"]),
+                        str(row["finished_at"]),
+                        row["terminal_reason_code"],
+                    )
+&gt;               raise MaintenanceStoreError("job_already_finalized")
+E               automation.inago.maintenance.store.MaintenanceStoreError: job_already_finalized
+
+automation\inago\maintenance\store.py:6261: MaintenanceStoreError</failure></testcase><testcase classname="tests_inago.test_maintenance_store" name="test_report_nonpass_can_correct_a_previously_completed_job[report_status_blocked-blocked]" time="0.124"><failure message="automation.inago.maintenance.store.MaintenanceStoreError: job_already_finalized">tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/fc07-20261020-001833/tests_inago_test_maintenance_store_py_test_report_nonpass_can_correct_a_previously_completed_job/test_report_nonpass_can_correc1')
+reason_code = 'report_status_blocked', incident_status = 'blocked'
+
+    @pytest.mark.parametrize(
+        ("reason_code", "incident_status"),
+        [
+            ("report_status_pending", "in_progress"),
+            ("report_status_blocked", "blocked"),
+        ],
+    )
+    def test_report_nonpass_can_correct_a_previously_completed_job(
+        tmp_path, reason_code, incident_status
+    ):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+        job = create_ready_release(store, incident_id=incident_id)
+        lease = store.acquire_lease(
+            lease_key="maintenance:worker",
+            owner_id="report-worker",
+            owner_pid=9123,
+            owner_start_time=BASE_TIME.isoformat(),
+            now=BASE_TIME,
+            ttl_seconds=60,
+        )
+    
+        store.finalize_job(
+            job_id=job.job_id,
+            final_status="complete",
+            lease=lease,
+            finalized_at=BASE_TIME + timedelta(seconds=1),
+            incident_status="resolved",
+        )
+&gt;       corrected = store.finalize_job(
+            job_id=job.job_id,
+            final_status="blocked",
+            lease=lease,
+            finalized_at=BASE_TIME + timedelta(seconds=2),
+            reason_code=reason_code,
+            incident_status=incident_status,
+        )
+
+tests_inago\test_maintenance_store.py:461: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x000001DF73CD49B0&gt;
+job_id = 'job-release-1', final_status = 'blocked'
+lease = LeaseToken(lease_key='maintenance:worker', owner_id='report-worker', generation=1)
+finalized_at = datetime.datetime(2026, 10, 17, 4, 0, 2, tzinfo=datetime.timezone.utc)
+reason_code = 'report_status_blocked', incident_status = 'blocked'
+
+    def finalize_job(
+        self,
+        *,
+        job_id: str,
+        final_status: str,
+        lease: LeaseToken,
+        finalized_at: datetime | str,
+        reason_code: str | None = None,
+        incident_status: str | None = None,
+    ) -&gt; JobFinalizeResult:
+        """Finish a job while preserving stage and review outcomes as observations."""
+    
+        job = _safe_id(job_id, "job_id_invalid")
+        if final_status not in _JOB_TERMINAL_STATUSES:
+            raise MaintenanceStoreError("job_final_status_invalid")
+        if reason_code is not None:
+            reason_code = _safe_code(reason_code, "reason_code_invalid")
+        if final_status != "complete" and reason_code is None:
+            raise MaintenanceStoreError("job_terminal_reason_required")
+        allowed_incident_statuses = {"in_progress", "resolved", "blocked"}
+        if (
+            incident_status is not None
+            and incident_status not in allowed_incident_statuses
+        ):
+            raise MaintenanceStoreError("job_incident_status_invalid")
+        when = _timestamp(finalized_at)
+        with self._transaction() as connection:
+            self._assert_lease(connection, lease, when)
+            row = connection.execute(
+                "SELECT * FROM maintenance_job WHERE job_id = ?", (job,)
+            ).fetchone()
+            if row is None:
+                raise MaintenanceStoreError("job_not_found")
+            if row["status"] in _JOB_TERMINAL_STATUSES:
+                if (
+                    row["status"] == final_status
+                    and row["terminal_reason_code"] == reason_code
+                ):
+                    if incident_status is not None:
+                        incident = connection.execute(
+                            "SELECT status FROM incident WHERE incident_id = ?",
+                            (row["incident_id"],),
+                        ).fetchone()
+                        if incident is None:
+                            raise MaintenanceStoreError("incident_not_found")
+                        current_incident_status = str(incident["status"])
+                        if current_incident_status != incident_status:
+                            connection.execute(
+                                "UPDATE incident SET status = ?, updated_at = ? "
+                                "WHERE incident_id = ?",
+                                (incident_status, when, row["incident_id"]),
+                            )
+                    return JobFinalizeResult(
+                        job,
+                        str(row["status"]),
+                        str(row["finished_at"]),
+                        row["terminal_reason_code"],
+                    )
+&gt;               raise MaintenanceStoreError("job_already_finalized")
+E               automation.inago.maintenance.store.MaintenanceStoreError: job_already_finalized
+
+automation\inago\maintenance\store.py:6261: MaintenanceStoreError</failure></testcase></testsuite></testsuites>

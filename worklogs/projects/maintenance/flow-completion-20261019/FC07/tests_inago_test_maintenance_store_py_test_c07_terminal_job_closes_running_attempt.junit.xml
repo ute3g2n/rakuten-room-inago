@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.277" timestamp="2026-10-20T00:18:41.143946+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_store" name="test_c07_terminal_job_closes_running_attempt" time="0.130" /></testsuite></testsuites>

@@ -1,0 +1,15 @@
+{
+  "stage": "FC03",
+  "evidence_origin": "root controller during FC04 continuation; supplemental result received after FC03 handoff",
+  "observed_at_jst": "2026-10-19 23:16",
+  "time_precision": "minute; exact second not retained in the forwarded result",
+  "command_runtime": "C:/project/rakuten-room-inago/.venv-inago/Scripts/python.exe",
+  "validator_package": "jsonschema 4.26.0",
+  "operation": "validator_for(schema).check_schema(schema) for each automation/inago/schemas/maintenance-*.schema.json",
+  "count": 23,
+  "exit_code": 0,
+  "stdout": "valid_json_schemas=23",
+  "result": "PASS",
+  "scope": "JSON Schema definition validation. This does not execute product tests or FCT02/FCT05/FCT10/FCT12 fault injection.",
+  "environment_correction": "The default Python interpreter lacks jsonschema; the repository venv has it. Earlier wording that the selected runtime lacked the package is corrected."
+}

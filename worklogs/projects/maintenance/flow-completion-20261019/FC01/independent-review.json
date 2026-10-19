@@ -1,0 +1,65 @@
+{
+  "schema": "maintenance-fc01-independent-review-v1",
+  "reviewer_id": "/root/fc01_review",
+  "reasoning_effort": "high",
+  "scope_type": "execution-step-evidence",
+  "scope_id": "FC01",
+  "reviewed_version": {
+    "plan_version": "1.2",
+    "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "artifacts": {
+      "baseline.md": "c7d776fee9bbea3e79fbc3b37f1970ad8b30ec0bcd019135d436a3a672194306",
+      "failure-path-map.md": "9049dd672f093d8e881b4928ec36c0acc81df77799272b1f61890943aaf42295",
+      "ownership.md": "e91ccc0ff92326f86ea5da3f2e6b97f7747a2cef022a9ead480234ffe57e4eef",
+      "instrumentation-backlog.md": "2198858511d8a4f4b54454709ec1a48bf24a6fe5d6f596218fdabb11456ea3bd",
+      "handoff.json": "b0c469bbb925f956f9e68c53692136d3599e40a4f3acf37de30cf8058c605572"
+    }
+  },
+  "reviewed_at": "2026-10-19T13:47:09Z",
+  "status": "changes_requested",
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "findings": [
+    {
+      "id": "FC01-R01",
+      "severity": "low",
+      "location": "worklogs/projects/maintenance/flow-completion-20261019/FC01/baseline.md:42",
+      "problem": "Latest invocation is described as only investigation complete, but check_incident, evidence and job are also complete.",
+      "evidence": ["failure-path-map.md:9", "Read-only SELECT of maintenance_workflow_stage_observation for workflow-0b3e8042053547f88986f13a7398c86d"],
+      "requested_change": "Correct the sentence to match all eight historical stage observations; preserve DB and raw history.",
+      "plan_items": ["FC01.2", "FC01.7", "FC01.11", "FC-R01", "FC-R07", "FCT01", "FCT11"]
+    },
+    {
+      "id": "FC01-R02",
+      "severity": "medium",
+      "locations": ["worklogs/projects/maintenance/flow-completion-20261019/FC01/failure-path-map.md:32", "worklogs/projects/maintenance/flow-completion-20261019/FC01/instrumentation-backlog.md:5"],
+      "problem": "Existing daily instrumentation lacks the required file/function/line and implementation-versus-application evidence mapping; current repository and runtime commits differ.",
+      "evidence": ["automation/inago/daily_pipeline.py:765", "automation/inago/daily_pipeline.py:871", "automation/inago/daily_pipeline.py:1064", "automation/inago/orchestrator.py:714", "automation/inago/trace.py:417"],
+      "requested_change": "Add a concise operation/field/source-version mapping and version-bound deployment evidence, or mark the application scope unknown. Pass the distinction to FC02 without rerunning production operations.",
+      "plan_items": ["FC01.7", "FC01.8", "FC01.11", "FC-R02", "FC-R04", "FCT02", "FCT12"]
+    }
+  ],
+  "checks": {
+    "five_required_outputs_substantive": true,
+    "immutable_identity_preserved": true,
+    "source_run_null_preserved": true,
+    "unknown_cause_not_claimed_fixed": true,
+    "historical_blocked_preserved": true,
+    "actionable_instrumentation_candidates_present": true,
+    "current_vs_historical_generally_distinguished": true,
+    "db_read_only_reconciliation": {"job_status": "running", "resume_count": 8, "step_attempt_count": 11, "stage_observation_count": 16, "handoff_artifact_count": 1},
+    "product_or_production_mutation_by_reviewer": false
+  },
+  "handoff": {
+    "next_step": "FC02",
+    "review_status_gates_next_step": false,
+    "instruction": "Continue FC02 immediately with available artifacts and findings. Preserve uncertainty and fix author-owned evidence without introducing a replacement gate."
+  },
+  "later_acceptance_satisfied_by_this_review": false,
+  "limitations": ["FC01 evidence review only; not a re-review of all plan sections or product code", "No focused implementation tests or production apply/resume were run by this reviewer", "No original incident recovery, final report publication or job terminal completion is certified"]
+}

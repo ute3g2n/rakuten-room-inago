@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "stage": "FC03",
+  "outcome": "implementation_artifacts_ready_verification_incomplete",
+  "workspace": "C:/project/rakuten-room-inago",
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "input_versions": {
+    "approved_plan_version": "1.2",
+    "approved_plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "working_copy_sha256_after_FC03_row_update": "cc336db946ac3a846414ab78c1e7e4478bbde8ca7dd21e6f07404ed438019fa6",
+    "base_branch": "main",
+    "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "tracking": "origin/main",
+    "FC02 owner map": "worklogs/projects/maintenance/flow-completion-20261019/FC02/file-operation-owner-map.json"
+  },
+  "produced_artifacts": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/implementation-result.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/execution-record.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/failure-matrix.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/synthetic-event-examples.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/checks.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/source-hashes.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/supplemental-schema-validation.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/review-followup.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/reference-sanitizer-follow-up.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC03/fc08-f2-f3-correction.json"
+  ],
+  "implementation": [
+    "FC03-owned correlation and operation events, diagnostic writer best-effort handling, safe fallback journal, replay/reconciliation, AI and safe-file capture, schema 14/migration 014, and assigned contracts/docs are present in the working tree.",
+    "AI adapter Parent B settings now keep service_tier=priority and fast_mode=true while setting effort=high; actual runtime tier remains unobserved.",
+    "The exact changed-file list is in implementation-result.json. Parent-owned and concurrent FC02 paths are excluded.",
+    "No raw history, production database, queue, worker schedule, Daily flow, credentials, or live job were changed. The October 19 exclusion constant was not modified."
+  ],
+  "verification": {
+    "passed": [
+      "py_compile 9 modules",
+      "follow-up py_compile diagnostic_trace/failure_journal/store",
+      "built-in JSON parse 23 maintenance schemas",
+      "JSON Schema check_schema for 23 schemas using repo venv/jsonschema 4.26.0 (controller evidence, exit 0)",
+      "in-memory migration 014 DDL smoke including exception_errno",
+      "requirements HTML build retry 2.50 / 28 chapters / 39 figures / 26 references",
+      "git diff --check",
+      "ai_adapter Parent B static tier/effort verification",
+      "seven FC03 JSON artifacts parse and all 25 source hash entries match"
+    ],
+    "not_run": [
+      "FCT02 new fault-injection node and tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes impact confirmation",
+      "FCT05 new writer-failure node and tests_inago/test_daily_fix_trace.py::test_n29 impact confirmation",
+      "FCT10 planned store/workflow/integration resume nodes including timestamp tie",
+      "FCT12 planned static/fixture identity, exclusion, and secret checks",
+      "FC08 independent product review",
+      "production migration/code apply"
+    ]
+  },
+  "concrete_next_actions": [
+    "FC07 tester: create/register the planned new FCT02/FCT05/FCT10/FCT12 nodes, check their exact source-tree node paths before execution, run only those and named impact nodes from the plan, inject each listed failure in synthetic fixtures, capture expected/actual/calls/database/event refs/secret scan, and return failures without treating them as gates.",
+    "FC08 independent product reviewer: review the exact FC03 product diff and FC07 evidence; verify privacy-safe cause/frames, call paths, transaction/error handling, append-only migration behavior, recovery idempotency, and all operation ownership boundaries. Return findings to implementation owner.",
+    "FC09: after review/fix follow-through, read current production schema/runtime first, apply migration/code only through authorized plan operation, and record exact deployed SHA/read-back. Do not infer deployed state from the source migration.",
+    "FC10: resume only the same historical job/launch with source_run_id null; measure newly emitted FC03 events and recovery while preserving the 2026-10-19 dispatch exclusion. No synthetic run or Daily invocation.",
+    "If FC07/FC08 finds a defect, fix the exact product file and rerun only affected focused nodes; update this result/handoff and plan §14 FC03 row with target version and new hashes."
+  ],
+  "restart_position": "FC07 tester focused cases; FC03 product review/fix follow-through remains available after FC07/FC08. FC03 does not declare FC-A02 or FC-A04 passed.",
+  "git": {
+    "commit": null,
+    "push": null,
+    "owner": "FC11/controller"
+  },
+  "reference_sanitizer_followup": {
+    "status": "implementation correction complete; runtime check pending",
+    "artifact": "reference-sanitizer-follow-up.json",
+    "testing": "FC07 must rerun only the publication failure parameter that supplies evidence/u21/input.json and confirm persistence.",
+    "correction": "Separate safe reference sanitizer preserves relative refs and drops unsafe values without identity coercion."
+  },
+  "fc08_f2_f3_correction": {
+    "status": "implementation static checks complete; FC07 runtime and FC08 re-review pending",
+    "artifact": "fc08-f2-f3-correction.json",
+    "owner_map_sha256": "df43283c6e2875d8df4d76609bea49d1136fe38e6a549e23932467f43fb2d066",
+    "next_actions": [
+      "FC07 run two fingerprint cases and two attempt-association cases",
+      "FC08 independently review exact source hashes"
+    ]
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "stage": "FC07",
+  "purpose": "Focused regression evidence for independent HTML review r3 finding R3-F1.",
+  "plan_version": "1.2",
+  "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "workspace": "C:/project/rakuten-room-inago",
+  "target_identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "use": "production job untouched; isolated tests use different synthetic identities"
+  },
+  "review_target": {
+    "prior_review": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r3.md",
+    "prior_manifest_sha256": "50918af4703c85161358359b0b4b63eccc181291e90d08bded61d59887e82960",
+    "prior_status": "changes_requested",
+    "finding": "Completed fallback results with review.status=rejected or changes_requested and report_status=pending must restore truthfully and remain eligible for publication without promoting the review to approved.",
+    "fix_manifest": "worklogs/projects/maintenance/flow-completion-20261019/FC06/fc07-html-followup-target.json",
+    "fix_manifest_sha256": "261aa9d333707060fcc81b894c36d67ff450abecb0daedf9f54442ba186a287",
+    "post_test_plan_sync_manifest_sha256": "02b3d3b91764e2d3ba15e2f01225602dcbca0e0862540b028ffd7e8d601cb0c3",
+    "post_test_plan_sync_manifest_note": "This later manifest includes the finalized plan §14 hash. The focused tests ran against the earlier 261aa9d test target; product source hashes were unchanged. The tests did not include or independently verify the plan source.",
+    "new_manifest_independent_review": "pending; prior changes_requested is not approval for this new target"
+  },
+  "source_sha256": {
+    "automation/inago/maintenance/production_workflow.py": "481b4623c8a0a9b5aa100fa41d20abc521c9427c8ca96663ced2be989de4a273",
+    "automation/inago/maintenance/workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c",
+    "tests_inago/test_maintenance_report_publication_stage.py": "4617cef1bde4f052005bbe65df2819076e66e700055a7e39084bb33caa1e3b15"
+  },
+  "execution": {
+    "interpreter": ".venv-inago/Scripts/python.exe",
+    "common_flags": "-B -m pytest -q <exact node> --basetemp <attempt-specific local temp> --junitxml=<unique FC07 result>",
+    "environment": "temporary initialized MaintenanceStore database and attempt files; no production DB, Daily, Scheduler, worker, public remote or live AI",
+    "commands": [
+      {
+        "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[rejected]",
+        "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[rejected]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r3-rejected --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-rejected-pending-resume.junit.xml",
+        "jst": "2026-10-20 01:08:42+09:00",
+        "expected": "Completed fallback review status rejected is preserved with report_status=pending and can restore for the next publish action; it is never promoted to approved.",
+        "actual": "1 passed. Same synthetic job+attempt restored; review status remained rejected, report_status pending, stage_status reviewed, next_action publish; output path and reviewed hash remained bound.",
+        "exit_code": 0,
+        "junit": "r3-f1-rejected-pending-resume.junit.xml"
+      },
+      {
+        "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[changes_requested]",
+        "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q 'tests_inago/test_maintenance_report_publication_stage.py::test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publish[changes_requested]' --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r3-changes-requested --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f1-changes-requested-pending-resume.junit.xml",
+        "jst": "2026-10-20 01:08:42+09:00",
+        "expected": "Completed fallback review status changes_requested with no findings is preserved with report_status=pending and remains eligible for publication without status promotion.",
+        "actual": "1 passed. Same synthetic job+attempt restored; review status remained changes_requested, report_status pending, stage_status reviewed, next_action publish; output path and reviewed hash remained bound.",
+        "exit_code": 0,
+        "junit": "r3-f1-changes-requested-pending-resume.junit.xml"
+      },
+      {
+        "node": "tests_inago/test_maintenance_report_publication_stage.py::test_fc07_reopening_completed_fallback_uses_result_bound_input",
+        "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report_publication_stage.py::test_fc07_reopening_completed_fallback_uses_result_bound_input --basetemp worklogs/projects/maintenance/flow-completion-20261019/FC07/tmp-r3-f3-reopen-regression --junitxml=worklogs/projects/maintenance/flow-completion-20261019/FC07/r3-f3-exact-input-restore-regression.junit.xml",
+        "jst": "2026-10-20 01:12 (JUnit timestamp is authoritative)",
+        "expected": "Rerun the exact result.report_input reference/hash restore case because FC06 changed the completed-fallback restore branch for R3-F1.",
+        "actual": "1 passed against the post-R3-F1 product source hashes; exact fallback input path/hash/schema and same-attempt binding remain valid.",
+        "exit_code": 0,
+        "junit": "r3-f3-exact-input-restore-regression.junit.xml"
+      }
+    ]
+  },
+  "limits": {
+    "completed_job_and_attempt": "Synthetic resume-state records paired with actual temporary attempt artifact files; no production or persistent job was opened.",
+    "publication": "The restore result contains next_action=publish and pending report state; this FC07 case does not push to a remote. Local/publication and same-job production behavior are separate planned stages.",
+    "review": "No approval of the updated HTML target is inferred from code tests; FCT09 remains changes_requested until a new exact manifest receives independent review."
+  }
+}

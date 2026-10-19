@@ -395,7 +395,14 @@ def _run(
         return (
             0
             if result.status
-            in {"dispatch_complete", "maintenance_complete", "idle", "waiting", "busy"}
+            in {
+                "dispatch_complete",
+                "maintenance_complete",
+                "maintenance_incomplete",
+                "idle",
+                "waiting",
+                "busy",
+            }
             else 3
         )
     if args.command == "resume-worker":

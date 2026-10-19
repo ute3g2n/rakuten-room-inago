@@ -8,6 +8,7 @@ from datetime import timedelta
 
 import pytest
 
+from automation.inago.maintenance import store as maintenance_store_module
 from automation.inago.maintenance.store import (
     IdempotencyConflictError,
     LeaseBusyError,
@@ -429,19 +430,19 @@ def test_job_completion_updates_incident_and_recovers_idempotently(tmp_path):
         )
 
 
-@pytest.mark.parametrize(
-    ("reason_code", "incident_status"),
-    [
-        ("report_status_pending", "in_progress"),
-        ("report_status_blocked", "blocked"),
-    ],
-)
-def test_report_nonpass_can_correct_a_previously_completed_job(
-    tmp_path, reason_code, incident_status
-):
+def test_report_nonpass_can_resume_the_same_job_without_resolving_incident(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
     job = create_ready_release(store, incident_id=incident_id)
+    source_launch_id = "launch-1"
+    store.bind_job_input_manifest(
+        incident_id=incident_id,
+        source_launch_id=source_launch_id,
+        source_run_id=None,
+        target_date="2026-10-17",
+        job_id=job.job_id,
+        created_at=BASE_TIME,
+    )
     lease = store.acquire_lease(
         lease_key="maintenance:worker",
         owner_id="report-worker",
@@ -456,27 +457,39 @@ def test_report_nonpass_can_correct_a_previously_completed_job(
         final_status="complete",
         lease=lease,
         finalized_at=BASE_TIME + timedelta(seconds=1),
-        incident_status="resolved",
+        incident_status="in_progress",
     )
-    corrected = store.finalize_job(
+    resumed = store.resume_maintenance_job(
         job_id=job.job_id,
-        final_status="blocked",
-        lease=lease,
-        finalized_at=BASE_TIME + timedelta(seconds=2),
-        reason_code=reason_code,
-        incident_status=incident_status,
+        source_launch_id=source_launch_id,
+        resumed_at=BASE_TIME + timedelta(seconds=2),
     )
+    assert resumed.job_id == job.job_id
+    assert resumed.source_launch_id == source_launch_id
+    assert resumed.resume_count == 1
 
-    assert corrected.status == "blocked"
-    assert corrected.reason_code == reason_code
+    retried = store.finalize_job(
+        job_id=job.job_id,
+        final_status="failed",
+        lease=lease,
+        finalized_at=BASE_TIME + timedelta(seconds=3),
+        reason_code="report_status_pending",
+        incident_status="in_progress",
+    )
+    assert retried.status == "failed"
+    assert retried.reason_code == "report_status_pending"
     with sqlite3.connect(store.database_path) as connection:
         assert connection.execute(
             "SELECT status, terminal_reason_code FROM maintenance_job WHERE job_id = ?",
             (job.job_id,),
-        ).fetchone() == ("blocked", reason_code)
+        ).fetchone() == ("failed", "report_status_pending")
+        assert connection.execute(
+            "SELECT resume_count FROM maintenance_job WHERE job_id = ?",
+            (job.job_id,),
+        ).fetchone() == (1,)
         assert connection.execute(
             "SELECT status FROM incident WHERE incident_id = ?", (incident_id,)
-        ).fetchone() == (incident_status,)
+        ).fetchone() == ("in_progress",)
 
 
 def test_c07_terminal_job_closes_running_attempt(tmp_path):
@@ -1150,3 +1163,66 @@ def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
     assert repeated.resume_count == 1
     assert len(store.list_job_resume_events(job_id=job.job_id)) == 1
     assert active_worker_lease.owner_id == "worker-for-other-job"
+
+
+def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
+    tmp_path, monkeypatch
+):
+    target_schema_version = maintenance_store_module.SCHEMA_VERSION
+    assert target_schema_version == 15
+
+    # Recreate the currently deployed schema 14 without touching production.
+    monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 14)
+    store = make_store(tmp_path)
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone() == (14,)
+        assert connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+            "AND name='step_attempt_repair_predecessor_all_or_none'"
+        ).fetchone() == (1,)
+
+    # The next normal initialize must run the registered migration 015.
+    monkeypatch.setattr(
+        maintenance_store_module, "SCHEMA_VERSION", target_schema_version
+    )
+    assert store.initialize() == target_schema_version
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone() == (15,)
+        assert connection.execute(
+            "SELECT 1 FROM schema_migration WHERE version = 15"
+        ).fetchone() == (1,)
+        assert connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+            "AND name='step_attempt_repair_predecessor_all_or_none'"
+        ).fetchone() is None
+        assert connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+            "AND name='step_attempt_repair_predecessor_immutable'"
+        ).fetchone() == (1,)
+
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    lease = store.acquire_lease(
+        lease_key="maintenance-worker",
+        owner_id="fc09-no-predecessor",
+        owner_pid=4199,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME,
+        ttl_seconds=30,
+    )
+    repair_attempt = store.begin_step_attempt(
+        job_id=job.job_id,
+        step_key="maintenance_repair",
+        sequence=3,
+        lease=lease,
+        started_at=BASE_TIME,
+    )
+    assert repair_attempt.status == "running"
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute(
+            "SELECT repair_predecessor_attempt_id, "
+            "repair_predecessor_result_version, "
+            "repair_predecessor_output_sha256 FROM step_attempt "
+            "WHERE attempt_id = ?",
+            (repair_attempt.attempt_id,),
+        ).fetchone() == (None, None, None)

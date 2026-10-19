@@ -1,0 +1,195 @@
+{
+  "schema_version": "common-review-result-v1",
+  "reviewer_id": "common-reviewer-fc08",
+  "scope_type": "plan_step",
+  "scope_id": "FC08",
+  "reviewed_version": "fc08-product-2c42b5ff228e721c239d0b4c9e576405fa653affc62a75fdbad78dadecda972f",
+  "reviewed_at": "2026-10-20T01:14:53+09:00",
+  "status": "changes_requested",
+  "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "review_scope": {
+    "included_product_file_count": 38,
+    "included_prefixes": [
+      "automation/inago/maintenance/",
+      "automation/inago/schemas/"
+    ],
+    "test_source_reviewed": false,
+    "production_database_or_job_touched": false,
+    "branch": "main",
+    "head": "51cfc7503775a25af731c8f4bcf727c94f10a595",
+    "source_hash_manifest_sha256": "2c42b5ff228e721c239d0b4c9e576405fa653affc62a75fdbad78dadecda972f",
+    "source_file_sha256": {
+      "automation/inago/maintenance/ai_adapter.py": "8c1908808a43e6702e3ef919a7e2cd08303bf3493526ddb88b1fcb9c01748dac",
+      "automation/inago/maintenance/cli.py": "e274d1d1191a18c22b95cb882693dd506497c959bd641a0196c0d51b85471441",
+      "automation/inago/maintenance/controller.py": "7de17f4fed7ed776fd7275bcc56e0f8cce220a320ab38374af2de5c6480dbba0",
+      "automation/inago/maintenance/deployment.py": "b331b9d8c618d8109ec2e97e82d288d19634ebfd7052491fa7271d4c33d03443",
+      "automation/inago/maintenance/diagnostic_trace.py": "1dfcd62f572e04fe6c81087b9cea7bd89b814b810805bef8c5e7d9ed68b466e2",
+      "automation/inago/maintenance/failure_journal.py": "8cf6b7d438a0c4c64f465f07c3083aa7e9a16efef1584d3ae0ce917793addfe7",
+      "automation/inago/maintenance/investigation.py": "4627c45b4068975c32cbdf3b4c80183e39d73efa03e06773137fd12a93543bc2",
+      "automation/inago/maintenance/paths.py": "8a0d61216b025a2f634a53e9fa0b3875def37ef60405b2cff64581aaa5a7fc72",
+      "automation/inago/maintenance/production_workflow.py": "481b4623c8a0a9b5aa100fa41d20abc521c9427c8ca96663ced2be989de4a273",
+      "automation/inago/maintenance/report_fallback.py": "7141e3bfc1d11d60d925132c1e4c834dae0fab045ff429dbf3a086151bd4bf36",
+      "automation/inago/maintenance/reporting.py": "2ea844e3e3c8ff128ca56326ea2e6c83e5fb8ebcc4076bccf3f0f83c2f062a2a",
+      "automation/inago/maintenance/runtime_switcher.py": "85779f9c5b2614c23564664743ecb18fe96443c0bdb504c2a3ab47d7cba70d0b",
+      "automation/inago/maintenance/safe_file.py": "ebacb2b2ab5ff14b7dd5474a227a6ba9593f4ae67ac094a56c05c4b43cba77ac",
+      "automation/inago/maintenance/settings.py": "8ba81e6b977311335b679897430098b7943852088f5ab05913862c3874f2d215",
+      "automation/inago/maintenance/sql/014_flow_completion_trace.sql": "2e59a651576a5e5e3d838a888e4d61672243c93fabca5bcb8fe6716c22b4266e",
+      "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql": "3d0db6356063f98c81f57c34a04e2ec70d03dd60c888c3638e5572bb8836f9a6",
+      "automation/inago/maintenance/stage_handoff.py": "a91cef1ec8357974cd031990bc3d73f6bc67025393aedb1ec545c3842565b962",
+      "automation/inago/maintenance/store.py": "d8e4bfe7e73610dce64018314dd83c25d653632286373ee13e837e77ee5a5ba5",
+      "automation/inago/maintenance/worker.py": "3d8c0cb2d611479b2b255719f5e1ec3c96123530c228672a52ac8fcf1046a21a",
+      "automation/inago/maintenance/workflow_provider.py": "001565f03bfacc494563de1f28a285bf41a45f55d3d65a445e6cfbc40ba09adb",
+      "automation/inago/maintenance/workflow_reconciliation.py": "fad8b8038b235c23ce8a07e228ff215c497a60d8ffb640d40c22f16738fa111c",
+      "automation/inago/schemas/maintenance-check-response.schema.json": "6a2a02bbf83fb2adc99673901ad401f30255127d51a041972c98be03d416773f",
+      "automation/inago/schemas/maintenance-check-result.schema.json": "d72a3d87fdfe522b7978494fcd131cfc76bd72a0efb392d4a475b87061f1363b",
+      "automation/inago/schemas/maintenance-deployment-candidate.schema.json": "bba0fbb7c5c547d54a933cb5538874646bac4e19a2d50ed1b16bda005e2e47a4",
+      "automation/inago/schemas/maintenance-deployment-result.schema.json": "cb87e4c5360b4caf293f609b9564b7022b52a4f99de65f339875713dfc0deb15",
+      "automation/inago/schemas/maintenance-diagnostic-event.schema.json": "4e9f57e67fe66c249567a0bf37f2b6eae81dcad2d46737274ca9bb470b3fd2a5",
+      "automation/inago/schemas/maintenance-evidence.schema.json": "d832783f3c2bd3286a3745b33762d420a5faaceef69322354b3382c5ade3f12b",
+      "automation/inago/schemas/maintenance-investigation-response.schema.json": "747ab46f17537646b6bb06273a2f000dd7e36c3b9e4c38c1fdcdde3e42b4f6ff",
+      "automation/inago/schemas/maintenance-repair-review-claim.schema.json": "2c22313d48da6acd006e49c75e68822f00adec7c29f7d864b5b9b5a9a32b26f0",
+      "automation/inago/schemas/maintenance-repair-review-target.schema.json": "c08e8c9010f8c4bead1ab35305cfa2213f5656e355304339a0fabafd09dd4ee0",
+      "automation/inago/schemas/maintenance-repair-review.schema.json": "419b67bcba10ee679199fdcdead360fa2838d46eaa9a72ee2d48993012024f90",
+      "automation/inago/schemas/maintenance-repair-test-evidence.schema.json": "2610b944860ee724e2c742483fc7387b318aab6e028f0e1060d7b314ee0e6eed",
+      "automation/inago/schemas/maintenance-repair-test-ledger.schema.json": "c447ef4b49d167b42b2b9bf7fd240b8ca07a765f2da0715860dd74ab40ebf620",
+      "automation/inago/schemas/maintenance-report-response.schema.json": "a13b9ef1df59d25b965e2872534149fc8969d7db81cadc6e07f8cc29676e6abe",
+      "automation/inago/schemas/maintenance-report-result.schema.json": "09832dde2d20afb017ad12d321e6b226b3ce80ae5da988e5bd1a6287c49811ad",
+      "automation/inago/schemas/maintenance-report-review.schema.json": "ca18513600f9ddb6923e3191fdadedb015de7cea351a4f241661e049ffc7bbb7",
+      "automation/inago/schemas/maintenance-settings.schema.json": "b768a237ffac93f5dc813628d90819a30d05c359fcb37e4ec79e00fd6ca4cf53",
+      "automation/inago/schemas/maintenance-stage-handoff.schema.json": "526f0ce6ce4534ac243a5761534d66b79a72c1baa7f19205239fdda988b0b6c7"
+    }
+  },
+  "plan_and_evidence": {
+    "plan_version": "1.2",
+    "plan_original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+    "plan_current_sha256": "d27eaa2e1df0569747eb51717d3bf3000b2500bc53ebb82e95892ea5b71bf2ba",
+    "owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+    "html_review": "worklogs/projects/maintenance/flow-completion-20261019/FC07/html-independent-followup-review-r6.md",
+    "fc07_results": "worklogs/projects/maintenance/flow-completion-20261019/FC07/fct-additional-results.json",
+    "limits": [
+      "FC07 cases are synthetic/temp DB/local bare Git; none substitutes for real 10/17 same-job completion.",
+      "FCT10 public publication readback after process crash is recorded not measured.",
+      "FCT13 and FC-A01..10 remain acceptance observations for later controller stages, not inferred PASS.",
+      "No pytest was run as part of this read-only product review."
+    ]
+  },
+  "findings": [
+    {
+      "id": "FC08-F1",
+      "severity": "high",
+      "locations": [
+        {
+          "lines": "10387-10402",
+          "symbols": [
+            "run_daily_report_publication_stage"
+          ],
+          "file": "automation/inago/maintenance/production_workflow.py"
+        },
+        {
+          "lines": "437-585",
+          "symbols": [
+            "reconcile_workflow_terminal"
+          ],
+          "file": "automation/inago/maintenance/workflow_reconciliation.py"
+        }
+      ],
+      "plan_refs": [
+        "FC-R01/FC-A01",
+        "FC-R07/FC-A07",
+        "FC-R08/FC-A08",
+        "FCT10"
+      ],
+      "issue": "The publication stage calls controller.finalize_job(final_status=\"complete\") before the worker returns and before reconcile_workflow_terminal has checked all eight handoffs, stage observations, required attempt outputs, deployment result, report sidecar, and remote readback. A process exit in this interval leaves a durable complete job before those checks have passed. The same call sets incident_status to resolved whenever report_status is complete, but that status only reflects the report/review outcome and does not establish that the original daily incident was fixed. The normal worker path later attempts to overwrite incident status to in_progress, but an interruption before that later reconciliation leaves the unsupported resolved value persisted.",
+      "evidence": "Source inspection: production_workflow.py:10387-10402 finalizes and selects resolved from report_status; workflow_reconciliation.py:437-535 performs terminal checks only after the publication runner; workflow_reconciliation.py:539-545 separately finalizes after those checks with incident_status=in_progress. FC07 FCT10 covers child exit before DB terminal/output registration and process restart, but fct-additional-results.json says public publication readback after child-process crash was not measured; it does not cover this finalize-before-reconciliation window.",
+      "requested_fix": "Persist publication result here without marking the job terminal or incident resolved. Let reconcile_workflow_terminal be the sole writer of job terminal status after all evidence checks, and keep incident_status in_progress (or unknown in a separate field) regardless of report review status.",
+      "test_evidence": [
+        "FC07 fct10-sqlite-artifact-before-db.junit.xml: PASS for crash after report.html save but before attempt/terminal registration; this does not exercise the early finalize window.",
+        "FC07 FCT10 public publication crash/readback: not measured."
+      ]
+    },
+    {
+      "id": "FC08-F2",
+      "severity": "medium",
+      "locations": [
+        {
+          "lines": "69-77",
+          "symbols": [
+            "current_code_revision"
+          ],
+          "file": "automation/inago/maintenance/failure_journal.py"
+        },
+        {
+          "lines": "78-90",
+          "symbols": [
+            "make_stage_handoff"
+          ],
+          "file": "automation/inago/maintenance/stage_handoff.py"
+        }
+      ],
+      "plan_refs": [
+        "FC-R02/FC-A02",
+        "FC-R04/FC-A04",
+        "FC-R10/FC-A10",
+        "FCT02",
+        "FCT05",
+        "FCT10"
+      ],
+      "issue": "The required execution-version field does not identify the maintenance code version by default. current_code_revision returns MAINTENANCE_CODE_REVISION only if an external environment variable happens to be set; otherwise it hashes failure_journal.py alone. Stage handoffs separately hash stage_handoff.py alone. No other product code sets MAINTENANCE_CODE_REVISION. After changing production_workflow.py, worker.py, or a schema while these helper modules stay unchanged, a failure event/handoff can therefore carry the same value and cannot be tied to the code that actually ran.",
+      "evidence": "Source inspection: failure_journal.py:69-77; stage_handoff.py:78-90; repository-wide search found no setter for MAINTENANCE_CODE_REVISION outside current_code_revision. FC07 fct-additional-results.json confirms tests exercised correlation/cause/capture and recovery but does not claim an execution-version mutation test.",
+      "requested_fix": "At invocation startup capture the actual running source revision, including uncommitted deployed source identity where applicable, and pass that immutable revision through operation events and handoffs. If it cannot be determined, store unknown with the reason rather than a helper-module hash that looks like a complete version.",
+      "test_evidence": [
+        "FC07 FCT02 nested-error and FCT05 journal recovery cases passed for correlation/cause/safe refs; tested source hash binding to the running full product revision was not measured."
+      ]
+    },
+    {
+      "id": "FC08-F3",
+      "severity": "medium",
+      "locations": [
+        {
+          "lines": "530-560",
+          "symbols": [
+            "__call__ current_stage_attempt/sequence map"
+          ],
+          "file": "automation/inago/maintenance/workflow_provider.py"
+        },
+        {
+          "lines": "58-89",
+          "symbols": [
+            "make_stage_handoff attempt_id"
+          ],
+          "file": "automation/inago/maintenance/stage_handoff.py"
+        },
+        {
+          "lines": "9008-9018",
+          "symbols": [
+            "run_daily_report_stage maintenance_report sequence=4"
+          ],
+          "file": "automation/inago/maintenance/production_workflow.py"
+        }
+      ],
+      "plan_refs": [
+        "FC-R02/FC-A02",
+        "FC-R03/FC-A03",
+        "FC-R10/FC-A10",
+        "FCT01",
+        "FCT10"
+      ],
+      "issue": "The provider maps deployment to attempt sequence 4 and report to sequence 5, while the actual maintenance_report attempt is sequence 4 (and the report stage creates it with sequence=4). There is no deployment_attempt in the stage implementation. During a same-job retry where an earlier report attempt exists, deployment begin/failure operation events and its fallback handoff can therefore use the prior report attempt_id. The report stage begins with no sequence-5 attempt reference. This makes operation-to-attempt trace attribution incorrect precisely on resume paths.",
+      "evidence": "Source inspection: workflow_provider.py:530-560 sequence map; production_workflow.py:9008-9018 starts maintenance_report sequence 4; stage_handoff.py:58-89 takes the supplied attempt_id without verifying step ownership. FC07 tests exercise stage order and synthetic resume but do not assert deployment attempt attribution against an existing report attempt.",
+      "requested_fix": "Bind deployment events to the attempt_id carried by the validated deployment candidate/repair attempt (or leave null if deployment has no attempt), and map report to its actual report attempt explicitly. Add a focused same-job fixture with an existing sequence-4 report attempt and assert deployment events/handoff never point at it.",
+      "test_evidence": [
+        "FC07 FCT01 legacy blocked matrix passed for runner continuation and handoff content; attempt-id ownership binding was not measured.",
+        "FC07 FCT10 process/SQLite recovery tests passed, but do not assert this stage-attempt mapping."
+      ]
+    }
+  ],
+  "next_action": "Return these concrete findings to the product owner for correction and affected focused verification. Continue FC09/FC10 regardless of review status; do not treat this review as a downstream gate."
+}

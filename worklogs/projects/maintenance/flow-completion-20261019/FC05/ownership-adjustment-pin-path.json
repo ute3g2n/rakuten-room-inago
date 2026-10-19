@@ -1,0 +1,45 @@
+{
+  "schema_version": "fc05-ownership-adjustment-v2",
+  "step": "FC05",
+  "previous_owner_map_sha256": "945df2ea80079a3d2370e722cae6969853df043deb628b46c362e003899843ce",
+  "updated_owner_map": "worklogs/projects/maintenance/flow-completion-20261019/FC04/file-operation-owner-map.json",
+  "updated_owner_map_sha256": "d185b61f647e7bc075c15e5b9afa5a8a5fb3e6f0e0408b2d8637083129bad11d",
+  "reason": "The FC05 implementer confirmed that missing repair predecessor evidence was rejected by the controller, store, and migration 005 insert trigger. This would prevent the planned content-bearing no-candidate test/review path after fallback or evidence loss.",
+  "unused_migration_check": {
+    "command": "Get-ChildItem automation/inago/maintenance/sql -File",
+    "result": "Migrations 001 through 014 exist; 015 is the next unused source migration.",
+    "production_database_modified": false
+  },
+  "assigned_operations": [
+    {
+      "file": "automation/inago/maintenance/controller.py",
+      "boundaries": [
+        "MaintenanceController.prepare_repair_campaign",
+        "MaintenanceController.complete_repair_attempt"
+      ],
+      "owner": "FC05",
+      "execution_order": 5,
+      "change_goal": "A missing pin/test artifact must create an explicit no-candidate or not-performed result, then allow reviewer and reporter invocation; never treat missing evidence as approval or PASS."
+    },
+    {
+      "file": "automation/inago/maintenance/store.py",
+      "boundaries": [
+        "MaintenanceStore.get_repair_step_predecessor",
+        "MaintenanceStore.create_or_load_repair_campaign predecessor pin validation"
+      ],
+      "owner": "FC05",
+      "execution_order": 5,
+      "change_goal": "Represent missing predecessor as evidence and allow a no-candidate test result for the valid attempt; missing tests remain not performed, never PASS."
+    },
+    {
+      "file": "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
+      "boundary": "DROP TRIGGER step_attempt_repair_predecessor_all_or_none only",
+      "owner": "FC05",
+      "execution_order": 5,
+      "change_goal": "Permit optional repair predecessor pins. Retain step_attempt_repair_predecessor_immutable and all other triggers."
+    }
+  ],
+  "production_state_changed": false,
+  "database_or_queue_operation_performed": false,
+  "next": "FC05 implementer may edit only the exact appended boundaries and original FC05 assignments; update FC05 result/handoff to the latest owner-map SHA."
+}
