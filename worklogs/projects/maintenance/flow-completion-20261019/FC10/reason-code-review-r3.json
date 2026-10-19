@@ -1,0 +1,29 @@
+{
+  "schema_version": "fc10-product-review-result-v1",
+  "reviewed_at_utc": "2026-10-19T20:16:26Z",
+  "reviewer": "/root/fc08_product_review",
+  "verdict": "approved",
+  "findings": [],
+  "scope": {
+    "automation/inago/maintenance/failure_journal.py": "16c10c333911893858a9ca5a49d2923c8400d38c4a8a89bf6119047da36af878",
+    "automation/inago/maintenance/store.py": "49059b86ea663c3fe1c14db1c46aaded9ab9e7e551d8577df669930d31edb072",
+    "automation/inago/maintenance/production_workflow.py": "0a6b2c366a16f8fa1670b4fd65f12fd0a11878026158bf19a2ff69f3fa9836aa",
+    "automation/inago/maintenance/reporting.py": "8ce1501225dd4d65ae9eb6d4d4fb26c5da003b8153c5ae15f590e96a1901d6e2",
+    "automation/inago/maintenance/investigation.py": "4a87ad981c4d30070be8700024d6235e3d2bae7a70a484f672e4672c78bd412f",
+    "automation/inago/maintenance/sql/016_operation_failure_details.sql": "20f0c3ae9d23080801453cf65b1ddd7ec3155e49cb40aedbd9e589f07cda9073"
+  },
+  "review_notes": [
+    "Exception reason-code sanitizer matches the persisted store grammar exactly: ^[a-z][a-z0-9_.-]{0,63}$.",
+    "Provider error identifiers continue to accept uppercase and colon under the broader provider identifier sanitizer.",
+    "The reviewer did not inspect or run tests and did not edit files."
+  ],
+  "reviewer_hash_confirmation": {
+    "confirmed_at": "2026-10-20 JST",
+    "confirmed_by": "/root/fc08_product_review",
+    "previous_saved_value": "63-character transcription error",
+    "correct_value": "49059b86ea663c3fe1c14db1c46aaded9ab9e7e551d8577df669930d31edb072",
+    "approved_source_unchanged": true,
+    "other_five_reviewed_hashes_unchanged": true,
+    "tests_or_edits_by_reviewer": false
+  }
+}

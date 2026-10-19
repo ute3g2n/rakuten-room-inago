@@ -36,6 +36,8 @@
     th, td { padding: .6rem .7rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
     th { background: var(--soft); }
     .checklist li { margin: .3rem 0; }
+    .evidence-links { display: inline-flex; flex-wrap: wrap; gap: .35rem .75rem; }
+    .evidence-references li { margin: .45rem 0; scroll-margin-top: 1rem; }
     @media print {
       body { background: white; font-size: 11pt; }
       main { width: 100%; margin: 0; padding: 0; box-shadow: none; }
@@ -134,7 +136,12 @@
       <li>計画: {{plan_version}} · <a href="{{plan_href}}">修正計画</a></li>
       <li id="evidence-index">証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
     </ul>
-    <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めない。非公開証拠はアクセス制御された参照で示す。</p>
+    <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めません。元の資料本文は転載せず、参照した種類と公開ページで確認できない範囲を示します。</p>
+    <h3>確認に使った資料</h3>
+    <p>各項目のリンクを開くと、この報告で参照した資料の種類と、公開ページに含めていない範囲を確認できます。</p>
+    <ul class="evidence-references">
+      {{evidence_reference_rows}}
+    </ul>
   </section>
   <details class="muted">
     <summary>参考付録：確認用の内部記録</summary>
@@ -146,6 +153,7 @@
       <li>報告担当: {{reporter_id}} · コードレビュー: {{review_status}} · {{reviewed_version}}</li>
       <li>停止理由の記録: {{stop_reason}}</li>
       <li>作業時の状態と副作用: {{status_label}} · {{side_effects}}</li>
+      {{evidence_reference_details}}
     </ul>
   </details>
 </main>

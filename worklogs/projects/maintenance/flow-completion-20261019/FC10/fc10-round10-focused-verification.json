@@ -1,0 +1,27 @@
+{
+  "schema_version": "fc10-focused-verification-v1",
+  "recorded_at_utc": "2026-10-19T20:16:26Z",
+  "tree": {
+    "branch": "main",
+    "head_before_record_only_edits": "0461535dc0b6b8f3de18e495da900148016c7614"
+  },
+  "command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_nested_failure_is_correlated_redacted_and_replayed tests_inago/test_maintenance_report_publication_stage.py::test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save --tb=short -q",
+  "exit_code": 0,
+  "result": "18 passed in 37.64s",
+  "evidence_capture": "functions.exec command response; no synthetic JUnit file was created",
+  "additional_checks": [
+    {
+      "command": ".venv-inago/Scripts/python.exe -m py_compile automation/inago/maintenance/failure_journal.py tests_inago/test_maintenance_flow_completion_fc07.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "notes": "Only CRLF-to-LF informational warnings for three existing modified files."
+    }
+  ],
+  "review_ref": "FC10/reason-code-review-r3.json",
+  "limitations": [
+    "Focused synthetic tests do not prove official production application or same-job completion."
+  ]
+}

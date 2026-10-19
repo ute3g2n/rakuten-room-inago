@@ -1,0 +1,244 @@
+{
+  "schema_version": "fc10-precommit-ownership-review-r6",
+  "created_at_utc": "2026-10-19T20:18:37Z",
+  "repository": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "head": "0461535dc0b6b8f3de18e495da900148016c7614",
+  "tracking": "origin/main",
+  "tracking_head": "0461535dc0b6b8f3de18e495da900148016c7614",
+  "cached_count": 0,
+  "tracked_modified_count": 21,
+  "untracked_count_at_capture": 7,
+  "tracked_modified_paths": [
+    ".agents/skills/rr-inago-incident-report/SKILL.md",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md",
+    ".codex/agents/rr-inago-incident-report-reviewer.toml",
+    ".codex/agents/rr-inago-incident-reporter.toml",
+    "automation/inago/maintenance/failure_journal.py",
+    "automation/inago/maintenance/investigation.py",
+    "automation/inago/maintenance/production_workflow.py",
+    "automation/inago/maintenance/reporting.py",
+    "automation/inago/maintenance/store.py",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/specifications/inago/イナゴスキル要件定義書.html",
+    "docs/specifications/inago/保守運用設定仕様.md",
+    "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+    "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "tests_inago/test_maintenance_flow_completion_fc07.py",
+    "tests_inago/test_maintenance_report.py",
+    "tests_inago/test_maintenance_report_publication_stage.py",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json"
+  ],
+  "untracked_paths_at_capture": [
+    "automation/inago/maintenance/sql/016_operation_failure_details.sql",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round10-focused-verification.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r6.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r6.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/reason-code-review-r3.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/reason-code-review-r3.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-current-preflight-readback.json"
+  ],
+  "task_owned_paths_at_capture": 28,
+  "ownership_statement": "Every captured path is task-owned as confirmed against the approved FC01-FC11 plan. No unrelated user modification was observed. The JSON lists itself but excludes its own size/hash to avoid a self-reference.",
+  "files": [
+    {
+      "path": ".agents/skills/rr-inago-incident-report/SKILL.md",
+      "state": "tracked_modified",
+      "size_bytes": 8878,
+      "sha256": "59f945a8b6d61803033353a443179435ae2a2f7b5ff293661575af49fe0ba4e2"
+    },
+    {
+      "path": ".agents/skills/rr-inago-incident-report/references/contracts.md",
+      "state": "tracked_modified",
+      "size_bytes": 10499,
+      "sha256": "06e521e39d0c0a9598fb558167d0ca66aece932e2cf7d761f283dcc683c5d30c"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-report-reviewer.toml",
+      "state": "tracked_modified",
+      "size_bytes": 5119,
+      "sha256": "aafc6ff5e4f11abaee7f8e21701898e225beba489f87339a1ca22b381175590a"
+    },
+    {
+      "path": ".codex/agents/rr-inago-incident-reporter.toml",
+      "state": "tracked_modified",
+      "size_bytes": 6581,
+      "sha256": "d3225cfab90dc6627f9525fab5e007e4dc1e1f4d5d02cd5c71370c41d02049d9"
+    },
+    {
+      "path": "automation/inago/maintenance/failure_journal.py",
+      "state": "tracked_modified",
+      "size_bytes": 25522,
+      "sha256": "16c10c333911893858a9ca5a49d2923c8400d38c4a8a89bf6119047da36af878"
+    },
+    {
+      "path": "automation/inago/maintenance/investigation.py",
+      "state": "tracked_modified",
+      "size_bytes": 31843,
+      "sha256": "4a87ad981c4d30070be8700024d6235e3d2bae7a70a484f672e4672c78bd412f"
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "state": "tracked_modified",
+      "size_bytes": 567364,
+      "sha256": "0a6b2c366a16f8fa1670b4fd65f12fd0a11878026158bf19a2ff69f3fa9836aa"
+    },
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "state": "tracked_modified",
+      "size_bytes": 59983,
+      "sha256": "8ce1501225dd4d65ae9eb6d4d4fb26c5da003b8153c5ae15f590e96a1901d6e2"
+    },
+    {
+      "path": "automation/inago/maintenance/store.py",
+      "state": "tracked_modified",
+      "size_bytes": 374199,
+      "sha256": "49059b86ea663c3fe1c14db1c46aaded9ab9e7e551d8577df669930d31edb072"
+    },
+    {
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "state": "tracked_modified",
+      "size_bytes": 74293,
+      "sha256": "b31750f458dc3dab5bef24eb7fb2b58d69346e4dbd83d3312b26ea759973b7d8"
+    },
+    {
+      "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "state": "tracked_modified",
+      "size_bytes": 66739,
+      "sha256": "3662f64c4ff86a6859fcc43b28ed736524eec6ce7c190a2161dcf75911c69379"
+    },
+    {
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "state": "tracked_modified",
+      "size_bytes": 80012,
+      "sha256": "08ee55416cbf68a912a7ac42b9982f2691641e801289c16cf6122575ebe1bb87"
+    },
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "state": "tracked_modified",
+      "size_bytes": 4170415,
+      "sha256": "dcbd9e3aced449982ace0e74c0179e75d9a95349746e360218ea271d48ea7490"
+    },
+    {
+      "path": "docs/specifications/inago/保守運用設定仕様.md",
+      "state": "tracked_modified",
+      "size_bytes": 30002,
+      "sha256": "27c55aecfb20bacfb433306495e62b98304b2eb36809767ecc35e6ca5ee31ea0"
+    },
+    {
+      "path": "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+      "state": "tracked_modified",
+      "size_bytes": 12838,
+      "sha256": "11e995a23d498b578f3822c67baddf915ea4015cd03a693a6dcb88ff8bf7828c"
+    },
+    {
+      "path": "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+      "state": "tracked_modified",
+      "size_bytes": 8340,
+      "sha256": "5479d2cd6f06456ef0a6e40ddd227f3276cedec142c321885dbb7451eaed0f17"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "state": "tracked_modified",
+      "size_bytes": 292996,
+      "sha256": "0c77dc0de5b995f68724ea208f93f666a834fb5cafc07020c05bb340be6f396e"
+    },
+    {
+      "path": "tests_inago/test_maintenance_flow_completion_fc07.py",
+      "state": "tracked_modified",
+      "size_bytes": 44684,
+      "sha256": "692cad8065974c51fa15da070bcea85456b8aedac12a32b2599cdf3ff9872677"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report.py",
+      "state": "tracked_modified",
+      "size_bytes": 26297,
+      "sha256": "9318c767788f9c151928485ddc67969156da4c725afb8413f2efce1baaff89aa"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "state": "tracked_modified",
+      "size_bytes": 143609,
+      "sha256": "5577b2ed35c56213dddc559f1d57d89d75ca68003b8f3636b374ecdd889a3815"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/controller-read-operation-failures.json",
+      "state": "tracked_modified",
+      "size_bytes": 44792,
+      "sha256": "c2d62d4d67da840f16fad59a9afac3ed52e1cc94296e164cb332f8ee008dfd93"
+    },
+    {
+      "path": "automation/inago/maintenance/sql/016_operation_failure_details.sql",
+      "state": "untracked",
+      "size_bytes": 218,
+      "sha256": "20f0c3ae9d23080801453cf65b1ddd7ec3155e49cb40aedbd9e589f07cda9073"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/fc10-round10-focused-verification.json",
+      "state": "untracked",
+      "size_bytes": 1502,
+      "sha256": "276c5dd06bc67810689b066e409111eff21d43fa52995f13a92426ca5de52dec"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r6.json",
+      "state": "untracked_self",
+      "size_and_hash": "excluded_to_avoid_self_reference"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/precommit-ownership-review-r6.md",
+      "state": "untracked",
+      "size_bytes": 1538,
+      "sha256": "46b76998275edbc2242dd5b9ad7a6bcc436068fdddc9343846c8ac518b22356c"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/reason-code-review-r3.json",
+      "state": "untracked",
+      "size_bytes": 1684,
+      "sha256": "73f414934543a571e058688e936d1d974e005a2eb9ca700d5ab9052a88178578"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/reason-code-review-r3.md",
+      "state": "untracked",
+      "size_bytes": 1174,
+      "sha256": "b07f06fee0df5c6341b2df1369314ddcbe985248d820c8903343014465f94e96"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC10/same-job-current-preflight-readback.json",
+      "state": "untracked",
+      "size_bytes": 1687,
+      "sha256": "85680d0dc3e822bb3b5d9431374d9b9ca257bb4a388317ec071a5c6266092a64"
+    }
+  ],
+  "added_line_and_untracked_scan": {
+    "added_lines_scanned": 1717,
+    "pattern_counts": {
+      "private_key_header": 0,
+      "github_token": 0,
+      "openai_token": 0,
+      "aws_access_key": 0,
+      "slack_token": 0,
+      "email": 2,
+      "profile_path": 0
+    },
+    "synthetic_example_invalid_addresses": 2,
+    "non_synthetic_email_hits": [],
+    "verdict": "no credential/key/token/profile-path or personal-email match; address-shaped matches are synthetic @example.invalid test identities"
+  },
+  "machine_checks": {
+    "py_compile_changed_python": {
+      "exit_code": 0,
+      "file_count": 8
+    },
+    "git_diff_check": {
+      "exit_code": 0,
+      "line_ending_warnings_only": true
+    }
+  },
+  "raw_evidence_privacy": "Raw profile-bearing pytest originals are excluded from tracked candidates and remain byte-preserved in the ignored fixed-root runtime path recorded in private-raw-evidence-location-map.json.",
+  "initial_inventory_failure": "Git quoted a non-ASCII path and the first parser treated it literally; recorded with recovery in controller-read-operation-failures.json. No file was written by the failed attempt.",
+  "self_hash_excluded": true,
+  "review_hash_correction": "The initial saved store.py SHA was malformed (63 chars); the independent reviewer confirmed the exact current 64-character SHA and unchanged approved source. The corrected review JSON and plan entry are included in this inventory."
+}

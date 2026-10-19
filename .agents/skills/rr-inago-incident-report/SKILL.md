@@ -18,6 +18,7 @@ management stage=reportで、利用可能な調査・計画・試験・反映記
 - 当日事実、調査で判明した不足、試験で見つかったリスク、作業場所の合格、本番反映、次回日次確認を別々に示す。
 - 報告書作成担当は報告内容の所有者である。reviewerの指摘が入力されたら、根拠で確認できる範囲でreport responseの内容を修正し、hostに再描画させる。hostがHTMLを描画・保存する契約は、担当が内容を直せないという意味ではない。
 - 最終HTML内の`href="#..."`は、同じHTML内に同じ`id`を持つ要素がちょうど1つあることを確認する。事象一覧と根拠欄のリンク先を一致させる。
+- 根拠として使った資料は、本文に読める種類名を表示し、本文から一意のアンカーへ移動できる一覧にする。元資料本文や内部の生ログを転載せず、技術参照pathは参考付録に置く。
 - 未確認、保留、欠測を明示し、本文・商品名・個人情報・秘密・生データを公開出力へ複製しない。
 - 根本原因がunknownでも報告を中断しない。trace/log追加だけを行った場合も、確認できた成果、原因未特定の事実、追加計装の目的、試験/レビュー/反映状況を記載してreport作成/公開まで続ける。計装を根本修正や原因判明として表現しない。
 - U23.08 safe diagnosticのSQLite `error_name`/`constraint_label`はエラー分類、`failure_module`/`failure_function`/`failure_line`/`code_sha256`はpipeline内の捕捉位置を表す。callbackの根本原因や発生行を証明する値として説明しない。提案run IDと永続run ID、trace requested/persistedも別に記す。raw exception、SQL、params、秘密、個人情報を本文へ複写しない。
@@ -44,7 +45,7 @@ handoffはidentity、schema_version、invocation/stage/attempt/operationとparen
 
 工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
 
-各失敗は操作名、例外classと安全化したcause chain/stack frames、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
+各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・hash・相対pathのみに限定し、自由文を含めない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
 reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 

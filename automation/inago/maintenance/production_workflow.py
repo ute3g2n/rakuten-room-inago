@@ -94,6 +94,8 @@ from automation.inago.maintenance.reporting import (
     prepare_incident_report,
     publish_reviewed_report,
     validate_report_review,
+    _remote_report_head,
+    _report_blob_sha256,
     _validate_sources as _validate_report_sources,
 )
 from automation.inago.maintenance.report_fallback import build_fallback_report
@@ -8933,6 +8935,12 @@ def _persist_minimal_daily_report(
                         break
                     revision_attempted = True
                     review_round_number += 1
+                    author_outputs: list[tuple[str, str, dict[str, Any]]] = []
+                    matching_author_outputs: list[
+                        tuple[str, str, dict[str, Any]]
+                    ] = []
+                    author_turn = None
+                    author_output_trace_ref: str | None = None
                     try:
                         revision_input = {**input_document, "result_version": "fallback-revision-" + hashlib.sha256((html_sha256 + "\n".join(revision_findings)).encode("utf-8")).hexdigest()[:20], "created_at_jst": created_at, "prior_findings": revision_findings, "reviewed_html_path": html_path, "reviewed_html_sha256": html_sha256}
                         author_plan = adapter.plan_session(parent_key=_REPORT_PARENT_KEY, role_name=_REPORT_AUTHOR_ROLE, job_id=job.job_id, attempt_id=current.attempt_id, identity=storage_identity, cwd=project_root, attempt_output_root=output_root, worktree_root=worktrees_root / job.job_id)
@@ -8951,13 +8959,91 @@ def _persist_minimal_daily_report(
                             == author_turn.turn.thread_id
                         ]
                         if len(matching_author_outputs) != 1:
+                            trace_candidates = []
+                            for output_ref, output_sha256, envelope in author_outputs:
+                                response = envelope.get("response")
+                                report = (
+                                    response.get("report")
+                                    if isinstance(response, dict)
+                                    else None
+                                )
+                                trace_candidates.append(
+                                    {
+                                        "path": output_ref,
+                                        "sha256": output_sha256,
+                                        "turn_id": envelope.get("turn_id"),
+                                        "thread_id": envelope.get("thread_id"),
+                                        "result_version": (
+                                            report.get("result_version")
+                                            if isinstance(report, dict)
+                                            else None
+                                        ),
+                                        "created_at_jst": (
+                                            report.get("created_at_jst")
+                                            if isinstance(report, dict)
+                                            else None
+                                        ),
+                                    }
+                                )
+                            author_output_trace = {
+                                "schema_version": "maintenance-report-author-match-trace-v1",
+                                "identity": storage_identity,
+                                "attempt_id": current.attempt_id,
+                                "operation": "workflow.report.fallback_author_revision.match_persisted_output",
+                                "expected_turn_id": author_turn.turn.turn_id,
+                                "expected_thread_id": author_turn.turn.thread_id,
+                                "eligible_output_count": len(author_outputs),
+                                "matching_output_count": len(matching_author_outputs),
+                                "candidates": trace_candidates,
+                            }
+                            trace_bytes = (
+                                json.dumps(
+                                    author_output_trace,
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                    separators=(",", ":"),
+                                )
+                                + "\n"
+                            )
+                            author_output_trace_ref, _ = save_attempt_artifact(
+                                output_root,
+                                attempts_root,
+                                artifact_context,
+                                filename="report-revision-author-match-trace.json",
+                                content=trace_bytes,
+                                stage="report",
+                            )
                             raise ReportContractError("report_revision_author_output_missing_or_mismatched")
                         revised = matching_author_outputs[0][2].get("response", {}).get("report")
                         if not isinstance(revised, dict) or revised.get("result_version") != revision_input["result_version"] or revised.get("created_at_jst") != created_at:
                             raise ReportContractError("report_revision_author_response_invalid")
                         from automation.inago.maintenance.reporting import prepare_incident_report
                         report_context = {**identity, "attempt_id": current.attempt_id, "attempt": current.attempt_no, "base_commit": base_commit, "input_refs": input_refs, "evidence_refs": evidence_refs, "allowed_outputs": [f"{job.job_id}/{current.attempt_id}/report.html", f"{job.job_id}/{current.attempt_id}/result.json"]}
-                        revised_artifacts = prepare_incident_report(report_context, workflow.state.get("report_source_snapshot", {}), revised, template_path=project_root / "docs" / "templates" / "incidents" / "日次不具合対応レポート_ひな形.html")
+                        internal_evidence_refs = [
+                            input_path,
+                            html_path,
+                            f"{job.job_id}/{current.attempt_id}/{response_name}",
+                        ]
+                        prior_report_input = output_root / "report-input.json"
+                        if (
+                            prior_report_input.is_file()
+                            and not prior_report_input.is_symlink()
+                            and not _has_reparse_point(prior_report_input)
+                        ):
+                            internal_evidence_refs.append(
+                                f"{job.job_id}/{current.attempt_id}/report-input.json"
+                            )
+                        revised_artifacts = prepare_incident_report(
+                            report_context,
+                            workflow.state.get("report_source_snapshot", {}),
+                            revised,
+                            template_path=project_root
+                            / "docs"
+                            / "templates"
+                            / "incidents"
+                            / "日次不具合対応レポート_ひな形.html",
+                            internal_evidence_refs=internal_evidence_refs,
+                        )
                         revised_name = "report-fallback-" + revised_artifacts.html_sha256[:20] + ".html"
                         html_path, html_sha256 = save_attempt_artifact(output_root, attempts_root, artifact_context, filename=revised_name, content=revised_artifacts.html, stage="report")
                         fallback = type(fallback)(revised_artifacts.html, html_sha256, revision_input["result_version"])
@@ -8966,7 +9052,83 @@ def _persist_minimal_daily_report(
                     except Exception as author_exc:
                         from automation.inago.maintenance.failure_journal import append_failure_event
                         reviewer_failure = "report_revision_author_failed"
-                        append_failure_event(store.database_path.parent.parent, phase="failed", operation="workflow.report.fallback_author_revision", correlation_id=workflow.launch.source_launch_id, parent_operation=failure_reason, job_id=job.job_id, incident_id=identity.get("incident_id"), source_launch_id=workflow.launch.source_launch_id, source_run_id=workflow.launch.source_run_id, stage="report", reason_code=getattr(author_exc, "code", type(author_exc).__name__), error=author_exc, capture_location="_persist_minimal_daily_report.author_revision", input_refs=(html_path, response_name), primary_sink="maintenance_store")
+                        append_failure_event(
+                            store.database_path.parent.parent,
+                            phase="failed",
+                            operation="workflow.report.fallback_author_revision",
+                            correlation_id=workflow.launch.source_launch_id,
+                            parent_operation=failure_reason,
+                            job_id=job.job_id,
+                            incident_id=identity.get("incident_id"),
+                            source_launch_id=workflow.launch.source_launch_id,
+                            source_run_id=workflow.launch.source_run_id,
+                            stage="report",
+                            attempt_id=current.attempt_id,
+                            reason_code=getattr(author_exc, "code", "report_revision_author_failed"),
+                            error=author_exc,
+                            capture_location="_persist_minimal_daily_report.author_revision",
+                            input_refs=tuple(
+                                item
+                                for item in (
+                                    html_path,
+                                    response_name,
+                                    (
+                                        f"turn:{author_turn.turn.turn_id}"
+                                        if author_turn is not None
+                                        else None
+                                    ),
+                                    (
+                                        f"thread:{author_turn.turn.thread_id}"
+                                        if author_turn is not None
+                                        else None
+                                    ),
+                                )
+                                if isinstance(item, str)
+                            ),
+                            artifact_refs=tuple(
+                                [
+                                    output[0]
+                                    for output in author_outputs
+                                    if isinstance(output[0], str)
+                                ]
+                                + (
+                                    [author_output_trace_ref]
+                                    if author_output_trace_ref is not None
+                                    else []
+                                )
+                            ),
+                            primary_sink="maintenance_store",
+                            operation_context={
+                                "eligible_output_count": len(author_outputs),
+                                "matching_output_count": len(matching_author_outputs),
+                                "expected_turn_id": (
+                                    author_turn.turn.turn_id
+                                    if author_turn is not None
+                                    else "not_started"
+                                ),
+                                "expected_thread_id": (
+                                    author_turn.turn.thread_id
+                                    if author_turn is not None
+                                    else "not_started"
+                                ),
+                                "candidate_turn_ids": [
+                                    output[2].get("turn_id") for output in author_outputs
+                                ],
+                                "candidate_thread_ids": [
+                                    output[2].get("thread_id") for output in author_outputs
+                                ],
+                                "revision_input_sha256": hashlib.sha256(
+                                    json.dumps(
+                                        revision_input,
+                                        ensure_ascii=False,
+                                        sort_keys=True,
+                                        separators=(",", ":"),
+                                    ).encode("utf-8")
+                                ).hexdigest()
+                                if "revision_input" in locals()
+                                else "not_created",
+                            },
+                        )
                         fallback = build_fallback_report(identity=identity, operation=operation, outcome=outcome + " 別担当の指摘を受けましたが、修正結果を作れませんでした。", unknowns=["別担当の指摘への修正は完了していません。", "元の日次処理の原因と影響は未確定です。"], next_action="同じjobの記録と指摘を確認し、修正・再確認を続けます。", technical_reference=technical_reference, revision_findings=revision_findings, **{**fallback_content, "review_status": "別担当の指摘を受けました。修正担当の実行に失敗したため、承認とは扱っていません。", "publication_status": "修正未完了の事実報告として公開を続けます。", "workflow_status": "未解決事項を記録し、公開と終了記録を続けます。"})
                         html_name = "report-fallback-" + fallback.sha256[:20] + ".html"
                         html_path, html_sha256 = save_attempt_artifact(output_root, attempts_root, artifact_context, filename=html_name, content=fallback.html, stage="report")
@@ -9673,6 +9835,7 @@ def run_daily_report_stage(
                 / "templates"
                 / "incidents"
                 / "日次不具合対応レポート_ひな形.html",
+                internal_evidence_refs=[report_input_path],
             )
             html_path, html_sha256 = save_attempt_artifact(
                 output_root,
@@ -10343,6 +10506,24 @@ def _daily_report_target_head(
     return fetched
 
 
+def _daily_report_remote_report_state(
+    repository: Path,
+    *,
+    report_path: str,
+    remote_name: str,
+    target_branch: str,
+) -> tuple[str | None, str | None]:
+    """Read the target report from the fetched remote tree, independent of disk."""
+
+    remote_head = _remote_report_head(repository, remote_name, target_branch)
+    remote_sha256 = (
+        _report_blob_sha256(repository, remote_head, report_path)
+        if remote_head is not None
+        else None
+    )
+    return remote_head, remote_sha256
+
+
 def _daily_report_publication_worktree(
     *,
     repository: Path,
@@ -10367,6 +10548,164 @@ def _daily_report_publication_worktree(
     return repository
 
 
+def _daily_report_replaceable_fallback_sha256(
+    *,
+    repository: Path,
+    store: MaintenanceStore,
+    job: MaintenanceJobRecord,
+    current_attempt: StepAttemptRecord,
+    identity: dict[str, Any],
+    report_path: str,
+    existing_sha256: str,
+    remote_name: str,
+    target_branch: str,
+) -> str | None:
+    """Prove an old public blob came from this job's unreviewed fallback."""
+
+    if re.fullmatch(r"[a-f0-9]{64}", existing_sha256) is None:
+        return None
+    try:
+        remote_head = _daily_report_target_head(
+            repository, remote_name=remote_name, target_branch=target_branch
+        )
+    except ReportContractError:
+        return None
+    attempts_root = store.database_path.parent / "attempts"
+    for previous in reversed(store.list_step_attempts(job_id=job.job_id)):
+        if (
+            previous.attempt_id == current_attempt.attempt_id
+            or previous.sequence != 4
+            or previous.step_key != "maintenance_report"
+            or previous.status != "complete"
+            or previous.source_run_id is not None
+            or not isinstance(previous.output_path, str)
+            or not isinstance(previous.output_sha256, str)
+            or not isinstance(previous.result_version, str)
+        ):
+            continue
+        try:
+            prior_result = _daily_report_read_json(
+                attempts_root=attempts_root,
+                relative_path=previous.output_path,
+                store=store,
+                expected_sha256=previous.output_sha256,
+            )
+            prior_review = prior_result.get("review")
+            prior_review_record = store.get_step_attempt_review(
+                attempt_id=previous.attempt_id
+            )
+            prior_output = prior_result.get("output")
+            publication = _daily_report_read_json(
+                attempts_root=attempts_root,
+                relative_path=PurePosixPath(
+                    job.job_id, previous.attempt_id, "report-publication.json"
+                ).as_posix(),
+                store=store,
+            )
+        except (ReportContractError, MaintenanceStoreError):
+            continue
+        if (
+            prior_result.get("identity") != identity
+            or prior_result.get("attempt_id") != previous.attempt_id
+            or prior_result.get("result_version") != previous.result_version
+            or prior_result.get("stage_status") != "review_unavailable"
+            or prior_result.get("report_origin") != "controller_fallback"
+            or prior_result.get("report_status") != "pending"
+            or prior_result.get("next_action") != "publish"
+            or not isinstance(prior_output, dict)
+            or prior_output.get("sha256") != existing_sha256
+            or not isinstance(prior_output.get("path"), str)
+            or not isinstance(prior_review, dict)
+            or prior_review.get("reviewed_version") != previous.result_version
+            or prior_review.get("reviewed_sha256") != prior_output.get("sha256")
+            or not _daily_report_publication_review_binding_valid(
+                prior_review,
+                result_document=prior_result,
+                review_record=prior_review_record,
+                attempt=previous,
+            )
+        ):
+            continue
+        required_publication_fields = {
+            "schema_version",
+            "identity",
+            "attempt_id",
+            "result_version",
+            "result_sha256",
+            "report_path",
+            "report_sha256",
+            "expected_target_commit",
+            "source_code_commit",
+            "publication_commit",
+            "publication_base_commit",
+            "remote_name",
+            "target_branch",
+            "observed_at_jst",
+        }
+        prior_publication_commit = publication.get("publication_commit")
+        if (
+            set(publication) != required_publication_fields
+            or publication.get("schema_version") != "maintenance-report-publication-v1"
+            or publication.get("identity") != identity
+            or publication.get("attempt_id") != previous.attempt_id
+            or publication.get("result_version") != previous.result_version
+            or publication.get("result_sha256") != previous.output_sha256
+            or publication.get("report_path") != report_path
+            or publication.get("report_sha256") != existing_sha256
+            or publication.get("remote_name") != remote_name
+            or publication.get("target_branch") != target_branch
+            or not isinstance(prior_publication_commit, str)
+            or re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", prior_publication_commit) is None
+        ):
+            continue
+        try:
+            prior_html = _daily_report_read_bytes(
+                attempts_root=attempts_root,
+                relative_path=prior_output["path"],
+                store=store,
+                expected_sha256=existing_sha256,
+            )
+        except ReportContractError:
+            continue
+        if hashlib.sha256(prior_html).hexdigest() != existing_sha256:
+            continue
+        ancestor = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "merge-base",
+                "--is-ancestor",
+                prior_publication_commit,
+                remote_head,
+            ],
+            check=False,
+            capture_output=True,
+            timeout=60,
+        )
+        if ancestor.returncode != 0:
+            continue
+        prior_blob = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "cat-file",
+                "blob",
+                f"{prior_publication_commit}:{report_path}",
+            ],
+            check=False,
+            capture_output=True,
+            timeout=60,
+        )
+        if (
+            prior_blob.returncode == 0
+            and hashlib.sha256(prior_blob.stdout).hexdigest() == existing_sha256
+        ):
+            return existing_sha256
+    return None
+
+
 def run_daily_report_publication_stage(
     workflow: MaintenanceWorkflowContext,
     controller: MaintenanceController,
@@ -10381,6 +10720,10 @@ def run_daily_report_publication_stage(
     """Attempt publication of the available report and persist its Git result."""
 
     operation = "workflow.report.publication.guard_acquire"
+    failure_context: dict[str, object] = {
+        "remote_name": remote_name,
+        "target_branch": target_branch,
+    }
     if workflow.cancel_event.is_set():
         return WorkflowStageResult(
             status="waiting", reason_code="maintenance_workflow_cancelled"
@@ -10525,6 +10868,14 @@ def run_daily_report_publication_stage(
         report_path = (
             f"reports/incidents/{workflow.launch.target_date}/job-{job_key}.html"
         )
+        failure_context.update(
+            {
+                "report_path": report_path,
+                "report_sha256": html_sha256,
+                "expected_target_commit": base_commit,
+                "source_code_commit": source_code_commit,
+            }
+        )
         operation = "workflow.report.publication.prepare_target"
         worktree = _daily_report_publication_worktree(
             repository=repository,
@@ -10534,27 +10885,37 @@ def run_daily_report_publication_stage(
             remote_name=remote_name,
             target_branch=target_branch,
         )
-        report_parent = _ensure_directories_beneath(
-            worktree, "reports", "incidents", workflow.launch.target_date
+        expected_existing_sha256 = None
+        remote_target_head, remote_existing_sha256 = (
+            _daily_report_remote_report_state(
+                worktree,
+                report_path=report_path,
+                remote_name=remote_name,
+                target_branch=target_branch,
+            )
         )
-        report_file = report_parent / PurePosixPath(report_path).name
-        if report_file.exists():
-            if _has_reparse_point(report_file) or not report_file.is_file():
-                raise ReportContractError("report_publication_path_invalid")
-            with open_file_beneath(worktree, report_path, "rb") as stream:
-                existing_html = stream.read(8 * 1024 * 1024 + 1)
-            if existing_html != html:
+        failure_context["remote_target_head"] = remote_target_head
+        if remote_existing_sha256 is not None:
+            failure_context["remote_existing_report_sha256"] = (
+                remote_existing_sha256
+            )
+        if remote_existing_sha256 is not None and remote_existing_sha256 != html_sha256:
+            expected_existing_sha256 = _daily_report_replaceable_fallback_sha256(
+                repository=worktree,
+                store=store,
+                job=job,
+                current_attempt=attempt,
+                identity=manifest_identity,
+                report_path=report_path,
+                existing_sha256=remote_existing_sha256,
+                remote_name=remote_name,
+                target_branch=target_branch,
+            )
+            if expected_existing_sha256 is None:
+                failure_context["existing_report_replaceable"] = False
                 raise ReportContractError("report_publication_path_conflict")
-        else:
-            try:
-                with open_file_beneath(worktree, report_path, "xb") as stream:
-                    stream.write(html)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-            except FileExistsError:
-                with open_file_beneath(worktree, report_path, "rb") as stream:
-                    if stream.read(8 * 1024 * 1024 + 1) != html:
-                        raise ReportContractError("report_publication_path_conflict")
+            failure_context["existing_report_replaceable"] = True
+            failure_context["expected_existing_sha256"] = expected_existing_sha256
         attempts_root = store.database_path.parent / "attempts"
         publication_path = PurePosixPath(
             job.job_id, attempt.attempt_id, "report-publication.json"
@@ -10631,6 +10992,8 @@ def run_daily_report_publication_stage(
             remote_name=remote_name,
             target_branch=target_branch,
             commit_message=f"maintenance report {job_key} {attempt.result_version}",
+            report_bytes=html,
+            expected_existing_sha256=expected_existing_sha256,
         )
         publication_document = {
             "schema_version": "maintenance-report-publication-v1",
@@ -10719,6 +11082,7 @@ def run_daily_report_publication_stage(
             operation=operation,
             reason_code=reason,
             error=exc,
+            operation_context=failure_context,
         )
     finally:
         exclusion_guard.release()
@@ -10731,6 +11095,7 @@ def _daily_report_publication_failure(
     operation: str,
     reason_code: str,
     error: BaseException | None = None,
+    operation_context: dict[str, object] | None = None,
 ) -> WorkflowStageResult:
     """Record a correlated publication failure and return a continuing result."""
 
@@ -10782,6 +11147,7 @@ def _daily_report_publication_failure(
             input_refs=input_refs,
             artifact_refs=artifact_refs,
             primary_sink="report_publication",
+            operation_context=operation_context,
         )
     except Exception as journal_error:
         # The failure journal has an independent spool. If both sinks fail,
@@ -10805,6 +11171,10 @@ def _daily_report_publication_failure(
                 capture_location="_daily_report_publication_failure",
                 artifact_refs=artifact_refs,
                 primary_sink="failure_journal",
+                operation_context={
+                    "failed_operation": operation,
+                    "original_reason_code": reason_code,
+                },
             )
         except Exception:
             pass

@@ -13,6 +13,8 @@ from types import SimpleNamespace
 import pytest
 
 from automation.inago.maintenance.failure_journal import (
+    _exception_reason_codes,
+    _safe_provider_error_identifier,
     append_failure_event,
     reconcile_open_operations,
     replay_failure_journal,
@@ -719,6 +721,16 @@ def test_fc07_nested_failure_is_correlated_redacted_and_replayed(tmp_path: Path)
         except OSError as cause:
             raise RuntimeError("outer synthetic failure") from cause
     except RuntimeError as error:
+        error.code = "synthetic_outer_failure"
+        error.reason_code = "provider:429"
+        error.__cause__.code = "HTTP_429"
+        error.__cause__.reason_code = "synthetic_nested_cause"
+        assert _safe_provider_error_identifier("HTTP_429") == "HTTP_429"
+        assert _safe_provider_error_identifier("provider:429") == "provider:429"
+        assert _exception_reason_codes(error) == [
+            "synthetic_outer_failure",
+            "synthetic_nested_cause",
+        ]
         result = append_failure_event(
             tmp_path,
             phase="failed",
@@ -748,6 +760,13 @@ def test_fc07_nested_failure_is_correlated_redacted_and_replayed(tmp_path: Path)
                 "credentials.json",
             ),
             primary_sink="maintenance_operation_event",
+            operation_context={
+                "expected_turn_id": "turn:fc07-expected",
+                "matched_output_count": 0,
+                "candidate_refs": ["job-fc07/attempt-fc07/response.json"],
+                "raw_message": "SYNTHETIC_PRIVATE_SECRET",
+                "api_key": "SYNTHETIC_PRIVATE_SECRET",
+            },
         )
 
     assert result["status"] == "written"
@@ -761,6 +780,15 @@ def test_fc07_nested_failure_is_correlated_redacted_and_replayed(tmp_path: Path)
     assert row["capture_location"] == "test_maintenance_flow_completion_fc07"
     assert row["input_refs"] == ["evidence/u21/input.json"]
     assert row["artifact_refs"] == ["attempts/fc07/output.json"]
+    assert row["exception_reason_codes"] == [
+        "synthetic_outer_failure",
+        "synthetic_nested_cause",
+    ]
+    assert row["operation_context"] == {
+        "candidate_refs": ["job-fc07/attempt-fc07/response.json"],
+        "expected_turn_id": "turn:fc07-expected",
+        "matched_output_count": 0,
+    }
     assert None not in row["input_refs"] + row["artifact_refs"]
 
     assert reconcile_open_operations(tmp_path)["reconciled"] == 0
@@ -776,6 +804,26 @@ def test_fc07_nested_failure_is_correlated_redacted_and_replayed(tmp_path: Path)
     assert replay_result["replayed"] == 1
     assert replay.events[0]["correlation_id"] == "fc07-correlation"
     assert replay.events[0]["fallback_status"] == "replayed_from_fallback"
+    assert replay.events[0]["exception_reason_codes"] == row["exception_reason_codes"]
+    assert replay.events[0]["operation_context"] == row["operation_context"]
+    database_store = make_store(tmp_path / "database-replay")
+    persisted = replay_failure_journal(tmp_path, database_store)
+    assert persisted["replayed"] == 1
+    connection = database_store._connect()
+    try:
+        database_event = connection.execute(
+            "SELECT exception_reason_codes_json, operation_context_json "
+            "FROM maintenance_operation_event WHERE correlation_id = ?",
+            ("fc07-correlation",),
+        ).fetchone()
+    finally:
+        connection.close()
+    assert json.loads(database_event["exception_reason_codes_json"]) == row[
+        "exception_reason_codes"
+    ]
+    assert json.loads(database_event["operation_context_json"]) == row[
+        "operation_context"
+    ]
 
 
 def test_fc07_fallback_report_and_october_19_exclusion_are_preserved():

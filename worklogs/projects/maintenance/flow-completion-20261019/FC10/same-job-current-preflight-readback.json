@@ -1,0 +1,46 @@
+{
+  "schema_version": "fc10-same-job-preflight-readback-v1",
+  "read_at_utc": "2026-10-19T20:16:26Z",
+  "database": {
+    "path": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "mode": "ro",
+    "quick_check": "ok",
+    "user_version": 15
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "job": {
+    "resume_count": 15,
+    "status": "failed",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete",
+    "finished_at": "2026-10-19T19:42:06.941269Z"
+  },
+  "latest_resume_event": {
+    "resume_event_id": "0e153d0a9d3a474f87c941897989d843",
+    "resume_count": 15,
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "reason_code": "workflow_terminal_observations_incomplete",
+    "resumed_at": "2026-10-19T19:40:55.694559Z"
+  },
+  "latest_stage_observation": {
+    "invocation_id": "workflow-66e9965b07324cfab3f1777fc5c27f88",
+    "stage_name": "report",
+    "status": "unknown",
+    "reason_code": "report_publication_path_conflict",
+    "observed_at": "2026-10-19T19:42:06.861156Z"
+  },
+  "scope_guards": {
+    "worker_dispatch_excluded_dates": [
+      "2026-10-19"
+    ],
+    "daily_run_created": false,
+    "source_run_id_changed": false,
+    "new_job_created": false
+  },
+  "next_action": "Commit and push only task-owned changes, apply through TaskSchedulerRuntimeSwitcher on the fixed workspace, confirm schema 16, then resume the same job and exact source_launch_id (next resume count 16)."
+}

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import threading
 import traceback
 import uuid
@@ -34,6 +35,8 @@ _LOCKS_GUARD = threading.Lock()
 _SAFE_ID_CHARS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
 )
+_SAFE_CODE_CHARS = _SAFE_ID_CHARS | {"_"}
+_SAFE_REASON_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 _CURRENT_CORRELATION: ContextVar[str | None] = ContextVar(
     "maintenance_operation_correlation", default=None
 )
@@ -85,6 +88,41 @@ def _safe_id(value: object, limit: int = 128) -> str | None:
     return value
 
 
+def _safe_operation_context_key(value: object, limit: int = 64) -> str | None:
+    """Accept bounded snake_case keys without widening persisted ID fields."""
+
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > limit
+        or not value[0].isascii()
+        or not value[0].isalnum()
+        or any(character not in _SAFE_CODE_CHARS for character in value)
+    ):
+        return None
+    return value
+
+
+def _safe_error_identifier(value: object, limit: int = 128) -> str | None:
+    """Accept code identifiers with underscores while retaining privacy filters."""
+
+    safe = _safe_operation_context_key(value, limit)
+    if safe is None:
+        return None
+    folded = safe.casefold()
+    if any(marker in folded for marker in _PROVIDER_ERROR_SENSITIVE_MARKERS):
+        return None
+    return safe
+
+
+def _safe_reason_code(value: object) -> str | None:
+    """Match the maintenance store's persisted reason-code grammar exactly."""
+
+    if not isinstance(value, str) or _SAFE_REASON_CODE_PATTERN.fullmatch(value) is None:
+        return None
+    return value
+
+
 def _store_safe_capture_location(value: object) -> object:
     """Keep legacy private-symbol locations acceptable to the DB ID validator."""
 
@@ -109,16 +147,13 @@ _PROVIDER_ERROR_SENSITIVE_MARKERS = (
     "privatekey",
     "private_key",
 )
+_OPERATION_CONTEXT_DENIED_KEYS = frozenset(
+    {"body", "content", "error", "message", "prompt", "raw", "response", "text"}
+)
 
 
 def _safe_provider_error_identifier(value: object) -> str | None:
-    safe = _safe_id(value, 128)
-    if safe is None:
-        return None
-    folded = safe.casefold()
-    if any(marker in folded for marker in _PROVIDER_ERROR_SENSITIVE_MARKERS):
-        return None
-    return safe
+    return _safe_error_identifier(value, 128)
 
 
 _SENSITIVE_REFERENCE_MARKERS = (
@@ -176,6 +211,76 @@ def _safe_references(values: tuple[str, ...], limit: int = 16) -> list[str]:
         if safe is not None:
             refs.append(safe)
     return refs
+
+
+def _safe_operation_context(value: Mapping[str, object] | None) -> dict[str, object]:
+    """Keep small, structured identifiers and counts; omit free-form messages."""
+
+    if not isinstance(value, Mapping):
+        return {}
+    node_budget = [64]
+
+    def clean(item: object, depth: int) -> object:
+        node_budget[0] -= 1
+        if node_budget[0] < 0 or depth > 3:
+            return None
+        if item is None or type(item) is bool:
+            return item
+        if type(item) is int and -1_000_000_000 <= item <= 1_000_000_000:
+            return item
+        if isinstance(item, str):
+            safe = _safe_reference(item, limit=256)
+            return safe
+        if isinstance(item, (list, tuple)):
+            return [
+                cleaned
+                for child in item[:16]
+                if (cleaned := clean(child, depth + 1)) is not None
+            ]
+        if isinstance(item, Mapping):
+            result: dict[str, object] = {}
+            for key, child in list(item.items())[:24]:
+                safe_key = _safe_operation_context_key(key, 64)
+                if (
+                    safe_key is None
+                    or safe_key.casefold() in _OPERATION_CONTEXT_DENIED_KEYS
+                    or _safe_provider_error_identifier(safe_key) is None
+                ):
+                    continue
+                cleaned = clean(child, depth + 1)
+                if cleaned is not None:
+                    result[safe_key] = cleaned
+            return result
+        return None
+
+    context = clean(value, 0)
+    if not isinstance(context, dict):
+        return {}
+    try:
+        encoded = json.dumps(context, ensure_ascii=True, separators=(",", ":"))
+    except (TypeError, ValueError):
+        return {}
+    return context if len(encoded) <= 8192 else {}
+
+
+def _exception_reason_codes(error: BaseException | None) -> list[str]:
+    codes: list[str] = []
+    seen: set[int] = set()
+    current = error
+    while current is not None and id(current) not in seen and len(seen) < 8:
+        seen.add(id(current))
+        for name in ("code", "reason_code"):
+            value = _safe_reason_code(getattr(current, name, None))
+            if (
+                value is not None
+                and _safe_provider_error_identifier(value) is not None
+                and value not in codes
+            ):
+                codes.append(value)
+                if len(codes) >= 8:
+                    return codes
+        current = current.__cause__ or current.__context__
+    return codes
 
 
 def _exception_details(error: BaseException | None) -> tuple[list[str], list[dict[str, object]]]:
@@ -368,6 +473,7 @@ def append_failure_event(
     provider_error_type: object = None,
     provider_error_code: object = None,
     provider_error_param: object = None,
+    operation_context: Mapping[str, object] | None = None,
 ) -> Mapping[str, object]:
     """Append one event; only identifiers, exception classes and code frames persist."""
 
@@ -398,12 +504,14 @@ def append_failure_event(
         "provider_error_code": _safe_provider_error_identifier(provider_error_code),
         "provider_error_param": _safe_provider_error_identifier(provider_error_param),
         "exception_chain": classes,
+        "exception_reason_codes": _exception_reason_codes(error),
         "exception_errno": _exception_errno(error),
         "stack_frames": frames,
         "capture_location": _safe_id(capture_location, 192),
         "input_refs": _safe_references(input_refs),
         "artifact_refs": _safe_references(artifact_refs),
         "primary_sink": _safe_id(primary_sink, 32),
+        "operation_context": _safe_operation_context(operation_context),
         "process_id": os.getpid(),
     }
     try:
@@ -547,6 +655,8 @@ def replay_failure_journal(data_root: str | Path, store: object) -> Mapping[str,
         seen_event_ids.add(event_id)
         event = dict(row)
         event.setdefault("exception_chain", [])
+        event.setdefault("exception_reason_codes", [])
+        event.setdefault("operation_context", {})
         event.setdefault("stack_frames", [])
         event.setdefault("input_refs", [])
         event.setdefault("artifact_refs", [])

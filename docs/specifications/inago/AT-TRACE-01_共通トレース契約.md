@@ -329,3 +329,11 @@ migration 014は保守operation eventをappend-onlyで保存する。migration 0
 hostはworkflowごとに一意な`invocation_id`を採番し、同じ値を保存先pathだけでなくhandoff payloadにも入れる。handoff schemaはこのfieldを必須とし、terminal照合時はpayload内の値を現在invocationと比較する。pathの配置だけでは現行invocationの証明にならない。AIが返すstage本文にはhostの相関fieldを生成させず、controllerが実行コンテキストから設定する。
 
 deploymentの終端証明は登録schema、現在のjob/attempt、repair candidate、repair handoffの保存内容/hash、formal release recordを相互照合する。任意のJSONにstatus等の値が並ぶだけでは反映成功として扱わない。個別stageが失敗・未実施の時はcurrent-invocation handoffを使えるが、reportの公開commit/hash/read-backと必須成果のterminal read-backは別に確認する。
+
+## FC10 maintenance operation failure detail（schema v16）
+
+Migration `016_operation_failure_details.sql`はappend-only `maintenance_operation_event`へ`exception_reason_codes_json`と`operation_context_json`を追加する。primary reasonに加え、例外cause chainにある安全な`code`/`reason_code`を順に保持する。operation contextには、照合数、期待/実際のturn・thread ID、成果SHA、対象Git path/commit等の識別子・数値・相対artifact参照だけを保存し、例外message・prompt/response本文・SQL値・認証情報・商品/投稿情報は保存しない。contextは深さ/件数/bytesを制限してsanitizeし、許可されない値は落とす。failure journalのJSONLからDBへreplayする時も両fieldを維持し、legacy eventには空配列/空objectを補う。failure journalへの書込が失敗しても元処理を止めず、独立spoolへ保存する。
+
+report author応答とpersist済みAI envelopeのturn/thread照合が失敗した場合、操作名・期待ID・一致数・安全なcandidate path/hash/turn/threadを含むattempt内diagnostic artifactを保存し、failure eventはその参照を持つ。公開pathに既存HTMLがある場合は、同一jobの前回unreviewed controller fallback result、DB review record、publication sidecar、remote上の同一commitとHTML hashが一致した時だけ、そのexact prior hashをreplace対象として渡す。レビュー済み新HTMLは作業tree/indexを変更せず、一時Git indexから一ファイルcommitでpushする。
+
+隔離DBではmigration 015→016、nested reason code、privacy-safe contextの保存/replayを確認する。正式runtime適用と同一jobから生成される新しいfailure eventは、その実測をFC10/FC11 execution recordへ記録する。

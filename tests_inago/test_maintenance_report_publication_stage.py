@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import threading
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -1690,6 +1691,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         assert remote_commit_before_retry == code_commit
         assert remote_commit_after_retry != code_commit
     assert not guard.held
+    assert not (repository / "reports").exists()
     publication_record = json.loads(
         (attempt_root / "report-publication.json").read_text(encoding="utf-8")
     )
@@ -1710,6 +1712,272 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         )
         == f"reports/incidents/{identity['target_date']}/job-{hashlib.sha256(job_id.encode()).hexdigest()[:20]}.html"
     )
+
+
+def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement(
+    tmp_path: Path,
+):
+    from automation.inago.maintenance.production_workflow import (
+        _daily_report_replaceable_fallback_sha256,
+    )
+
+    runtime_root = tmp_path / "runtime"
+    attempts_root = runtime_root / "attempts"
+    job_id = "job-fc10-report-replacement"
+    previous_id = "attempt-fc10-unreviewed-fallback"
+    current_id = "attempt-fc10-reviewed-report"
+    identity = {
+        "incident_id": "incident-fc10-report-replacement",
+        "source_launch_id": "launch-fc10-report-replacement",
+        "source_run_id": None,
+        "target_date": "2026-10-17",
+        "job_id": job_id,
+    }
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    _git(repository, "init", "--initial-branch=main")
+    _git(repository, "config", "user.name", "FC10 Replacement Fixture")
+    _git(repository, "config", "user.email", "fc10-replacement@example.invalid")
+    (repository / "code.py").write_text("VALUE = 1\n", encoding="utf-8")
+    _git(repository, "add", "code.py")
+    _git(repository, "commit", "-m", "synthetic released code")
+    code_commit = _git(repository, "rev-parse", "HEAD")
+    remote = tmp_path / "remote.git"
+    subprocess.run(
+        ["git", "init", "--bare", "--initial-branch=main", str(remote)],
+        check=True,
+        capture_output=True,
+    )
+    _git(repository, "remote", "add", "origin", str(remote))
+
+    report_path = (
+        f"reports/incidents/{identity['target_date']}/job-"
+        f"{hashlib.sha256(job_id.encode()).hexdigest()[:20]}.html"
+    )
+    public_html = b"<!doctype html><html><body>pending fallback</body></html>\n"
+    public_sha256 = hashlib.sha256(public_html).hexdigest()
+    public_file = repository.joinpath(*report_path.split("/"))
+    public_file.parent.mkdir(parents=True)
+    public_file.write_bytes(public_html)
+    _git(repository, "add", report_path)
+    _git(repository, "commit", "-m", "publish fallback")
+    _git(repository, "push", "--set-upstream", "origin", "main")
+    publication_commit = _git(repository, "rev-parse", "HEAD")
+    publication_base = _git(repository, "rev-parse", "HEAD^")
+
+    review = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": "controller-fallback-review-unavailable",
+        "reviewed_version": "fallback-fc10-v1",
+        "reviewed_sha256": public_sha256,
+        "status": "unavailable",
+        "reviewed_at": "2026-10-20T11:05:00+09:00",
+        "findings": [],
+    }
+    prior_html_path = f"{job_id}/{previous_id}/report.html"
+    result = {
+        "schema_version": "maintenance-report-result-v1",
+        "identity": identity,
+        "attempt_id": previous_id,
+        "result_version": "fallback-fc10-v1",
+        "stage_status": "review_unavailable",
+        "report_origin": "controller_fallback",
+        "report_status": "pending",
+        "next_action": "publish",
+        "review": review,
+        "output": {"path": prior_html_path, "sha256": public_sha256},
+    }
+    result_bytes = json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
+    result_path = attempts_root / job_id / previous_id / "result.json"
+    result_path.parent.mkdir(parents=True)
+    result_path.write_bytes(result_bytes)
+    (result_path.parent / "report.html").write_bytes(public_html)
+    result_sha256 = hashlib.sha256(result_bytes).hexdigest()
+    publication = {
+        "schema_version": "maintenance-report-publication-v1",
+        "identity": identity,
+        "attempt_id": previous_id,
+        "result_version": "fallback-fc10-v1",
+        "result_sha256": result_sha256,
+        "report_path": report_path,
+        "report_sha256": public_sha256,
+        "expected_target_commit": publication_base,
+        "source_code_commit": code_commit,
+        "publication_commit": publication_commit,
+        "publication_base_commit": publication_base,
+        "remote_name": "origin",
+        "target_branch": "main",
+        "observed_at_jst": "2026-10-20T11:06:00+09:00",
+    }
+    (result_path.parent / "report-publication.json").write_text(
+        json.dumps(publication, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    previous = StepAttemptRecord(
+        previous_id,
+        job_id,
+        "maintenance_report",
+        4,
+        1,
+        None,
+        "complete",
+        "fallback-fc10-v1",
+        f"{job_id}/{previous_id}/result.json",
+        result_sha256,
+        "2026-10-20T11:00:00+09:00",
+        "2026-10-20T11:01:00+09:00",
+    )
+    current = StepAttemptRecord(
+        current_id,
+        job_id,
+        "maintenance_report",
+        4,
+        2,
+        None,
+        "complete",
+        "reviewed-fc10-v2",
+        f"{job_id}/{current_id}/result.json",
+        "1" * 64,
+        "2026-10-20T11:02:00+09:00",
+        "2026-10-20T11:03:00+09:00",
+    )
+    job = MaintenanceJobRecord(
+        job_id,
+        identity["incident_id"],
+        "release-fc10-report-replacement",
+        None,
+        "release-fc10-v1",
+        0,
+        "running",
+        "2026-10-20T10:00:00+09:00",
+        "2026-10-20T10:00:00+09:00",
+        None,
+        None,
+    )
+
+    attempts = [previous, current]
+    review_record = {
+        "reviewer_id": review["reviewer_id"],
+        "reviewed_version": review["reviewed_version"],
+        "status": review["status"],
+        "reviewed_at": review["reviewed_at"],
+    }
+
+    class Store:
+        database_path = runtime_root / "maintenance.sqlite"
+
+        def list_step_attempts(self, *, job_id: str):
+            assert job_id == job.job_id
+            return tuple(attempts)
+
+        def get_step_attempt_review(self, *, attempt_id: str):
+            assert attempt_id == previous_id
+            return dict(review_record)
+
+        def read_attempt_artifact(
+            self, *, attempts_root: Path, relative_path: str, expected_sha256: str
+        ) -> bytes:
+            raw = attempts_root.joinpath(*relative_path.split("/")).read_bytes()
+            assert hashlib.sha256(raw).hexdigest() == expected_sha256
+            return raw
+
+    authorized = _daily_report_replaceable_fallback_sha256(
+        repository=repository,
+        store=Store(),
+        job=job,
+        current_attempt=current,
+        identity=identity,
+        report_path=report_path,
+        existing_sha256=public_sha256,
+        remote_name="origin",
+        target_branch="main",
+    )
+    assert authorized == public_sha256
+    public_file.unlink()
+    assert _daily_report_replaceable_fallback_sha256(
+        repository=repository,
+        store=Store(),
+        job=job,
+        current_attempt=current,
+        identity=identity,
+        report_path=report_path,
+        existing_sha256=public_sha256,
+        remote_name="origin",
+        target_branch="main",
+    ) == public_sha256
+    remote_head, remote_sha256 = production_workflow._daily_report_remote_report_state(
+        repository,
+        report_path=report_path,
+        remote_name="origin",
+        target_branch="main",
+    )
+    assert remote_head == publication_commit
+    assert remote_sha256 == public_sha256
+    assert _daily_report_replaceable_fallback_sha256(
+        repository=repository,
+        store=Store(),
+        job=job,
+        current_attempt=current,
+        identity={**identity, "target_date": "2026-10-19"},
+        report_path=report_path,
+        existing_sha256=public_sha256,
+        remote_name="origin",
+        target_branch="main",
+    ) is None
+
+    publication_path = result_path.parent / "report-publication.json"
+    original_result = result_path.read_bytes()
+    original_publication = publication_path.read_bytes()
+    for field, bad_value in (
+        ("reviewed_version", "another-version"),
+        ("reviewed_sha256", "f" * 64),
+    ):
+        bad_review = {**review, field: bad_value}
+        bad_result = {**result, "review": bad_review}
+        bad_result_bytes = json.dumps(
+            bad_result, sort_keys=True, separators=(",", ":")
+        ).encode()
+        result_path.write_bytes(bad_result_bytes)
+        bad_publication = {
+            **publication,
+            "result_sha256": hashlib.sha256(bad_result_bytes).hexdigest(),
+        }
+        publication_path.write_text(
+            json.dumps(bad_publication, sort_keys=True, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        attempts[0] = replace(
+            previous, output_sha256=hashlib.sha256(bad_result_bytes).hexdigest()
+        )
+        review_record.update(
+            {
+                "reviewed_version": bad_value
+                if field == "reviewed_version"
+                else review["reviewed_version"],
+                "reviewed_sha256": bad_value
+                if field == "reviewed_sha256"
+                else review["reviewed_sha256"],
+            }
+        )
+        assert _daily_report_replaceable_fallback_sha256(
+            repository=repository,
+            store=Store(),
+            job=job,
+            current_attempt=current,
+            identity=identity,
+            report_path=report_path,
+            existing_sha256=public_sha256,
+            remote_name="origin",
+            target_branch="main",
+        ) is None
+        review_record.update(
+            {
+                "reviewed_version": review["reviewed_version"],
+                "reviewed_sha256": review["reviewed_sha256"],
+            }
+        )
+    result_path.write_bytes(original_result)
+    publication_path.write_bytes(original_publication)
 
 
 def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monkeypatch):
@@ -1961,6 +2229,7 @@ def test_fc10_fallback_review_round_uses_persisted_review_history(
         "transport_failure",
         "fallback_review_changes_requested_then_approved",
         "fallback_revision_selects_current_turn_among_multiple_author_envelopes",
+        "fallback_revision_turn_mismatch_is_traced_and_continues",
         "fallback_second_review_findings_remain_bound_to_reviewed_version",
     ],
 )
@@ -2137,6 +2406,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 if (
                     reviewer_mode in {
                         "fallback_review_changes_requested_then_approved",
+                        "fallback_revision_turn_mismatch_is_traced_and_continues",
                         "fallback_second_review_findings_remain_bound_to_reviewed_version",
                     }
                     and len(author_inputs) == 1
@@ -2227,7 +2497,22 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 "response": response,
             }
             path = f"{job.job_id}/{self.attempt_id}/synthetic-{self.role}.json"
-            reports.setdefault((self.attempt_id, self.role), []).append({
+            saved_outputs = reports.setdefault((self.attempt_id, self.role), [])
+            if (
+                reviewer_mode
+                == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+                and self.role == production_workflow._REPORT_AUTHOR_ROLE
+                and len(author_inputs) == 2
+            ):
+                stale_envelope = deepcopy(envelope)
+                stale_envelope["turn_id"] = "fc07-turn-from-earlier-call"
+                stale_path = (
+                    f"{job.job_id}/{self.attempt_id}/synthetic-stale-author.json"
+                )
+                saved_outputs.append(
+                    {"path": stale_path, "sha256": "b" * 64, "envelope": stale_envelope}
+                )
+            saved_outputs.append({
                 "path": path,
                 "sha256": "a" * 64,
                 "envelope": envelope,
@@ -2303,6 +2588,17 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 )
             ]
         saved = reports.get((attempt_id, role_name), [])
+        if (
+            reviewer_mode == "fallback_revision_turn_mismatch_is_traced_and_continues"
+            and role_name == production_workflow._REPORT_AUTHOR_ROLE
+            and len(author_inputs) == 2
+            and saved
+        ):
+            mismatched = deepcopy(saved[-1]["envelope"])
+            mismatched["turn_id"] = "fc07-turn-from-another-call"
+            return [
+                (saved[-1]["path"], saved[-1]["sha256"], mismatched)
+            ]
         return [
             (item["path"], item["sha256"], item["envelope"])
             for item in saved
@@ -2398,7 +2694,15 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             reviewer_mode
             == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
         ):
-            assert len(reports[(first_attempt_id, production_workflow._REPORT_AUTHOR_ROLE)]) == 2
+            revision_attempt_id = author_attempt_ids[-1]
+            revision_outputs = reports[
+                (revision_attempt_id, production_workflow._REPORT_AUTHOR_ROLE)
+            ]
+            assert len(revision_outputs) == 2
+            assert revision_outputs[0]["envelope"]["turn_id"] == (
+                "fc07-turn-from-earlier-call"
+            )
+            assert revision_outputs[1]["envelope"]["turn_id"] == "fc07-turn-3"
             assert reports[(first_attempt_id, production_workflow._REPORT_AUTHOR_ROLE)][0]["envelope"]["response"]["report"]["issues"][0]["evidence_ref"] == "not-an-allowed-evidence-reference"
         first_review_envelope = reviewer_responses[0]
         first_review = first_review_envelope["response"]["review"]
@@ -2408,14 +2712,25 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             f"{first_review['findings'][0]['location']}: "
             f"{first_review['findings'][0]['finding']}"
         )
-        assert author_inputs[1]["prior_findings"] == [expected_finding]
+        if (
+            reviewer_mode
+            == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+        ):
+            assert author_inputs[1]["prior_review_findings"] == first_review["findings"]
+        else:
+            assert author_inputs[1]["prior_findings"] == [expected_finding]
         assert len(review_inputs) == 2
         assert review_inputs[0]["result_version"] != review_inputs[1]["result_version"]
         assert review_inputs[0]["html_path"] != review_inputs[1]["html_path"]
         assert review_inputs[0]["html_sha256"] != review_inputs[1]["html_sha256"]
         published_report = publication_calls[0]["report"]
         assert isinstance(published_report, dict)
-        assert published_report["report_status"] == "complete"
+        assert published_report["report_status"] == (
+            "pending"
+            if reviewer_mode
+            == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+            else "complete"
+        )
         assert published_report["review"]["status"] == "approved"
         assert published_report["review"]["reviewed_version"] == review_inputs[1]["result_version"]
         assert published_report["review"]["reviewed_sha256"] == review_inputs[1]["html_sha256"]
@@ -2461,6 +2776,42 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert prior_review["review"]["reviewed_version"] == second_review["result_version"]
         assert prior_review["review"]["reviewed_sha256"] == second_review["html_sha256"]
         assert prior_review["review"]["findings"][0]["finding"] == "版2の確認事項を具体化してください。"
+    elif reviewer_mode == "fallback_revision_turn_mismatch_is_traced_and_continues":
+        assert role_calls == [
+            production_workflow._REPORT_AUTHOR_ROLE,
+            production_workflow._REPORT_REVIEWER_ROLE,
+            production_workflow._REPORT_AUTHOR_ROLE,
+        ]
+        assert context.state["report_result"]["stage_status"] == "review_unavailable"
+        attempt_root = (
+            store.database_path.parent
+            / "attempts"
+            / job.job_id
+            / context.state["report_attempt"].attempt_id
+        )
+        trace_path = attempt_root / "report-revision-author-match-trace.json"
+        trace = json.loads(trace_path.read_text(encoding="utf-8"))
+        assert trace["operation"] == (
+            "workflow.report.fallback_author_revision.match_persisted_output"
+        )
+        assert trace["eligible_output_count"] == 1
+        assert trace["matching_output_count"] == 0
+        assert trace["candidates"][0]["turn_id"] == "fc07-turn-from-another-call"
+        assert "合成レポート本文版2" not in trace_path.read_text(encoding="utf-8")
+        journal = resolve_maintenance_failure_journal_path(runtime_root)
+        events = [
+            json.loads(line)
+            for line in journal.read_text(encoding="utf-8").splitlines()
+        ]
+        event = next(
+            item
+            for item in events
+            if item.get("operation")
+            == "workflow.report.fallback_author_revision"
+        )
+        assert event["operation_context"]["eligible_output_count"] == 1
+        assert event["operation_context"]["matching_output_count"] == 0
+        assert trace_path.relative_to(runtime_root / "maintenance" / "attempts").as_posix() in event["artifact_refs"]
     else:
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,

@@ -26,7 +26,7 @@ from automation.inago.maintenance.paths import (
 )
 
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 APPLICATION_ID = 0x494E474D  # INGM
 _MIGRATIONS = {
     2: (
@@ -81,6 +81,10 @@ _MIGRATIONS = {
     15: (
         "015_repair_predecessor_pin_optional.sql",
         "allow repair continuation when predecessor evidence is unavailable",
+    ),
+    16: (
+        "016_operation_failure_details.sql",
+        "retain safe operation context and nested reason codes in failure traces",
     ),
 }
 # Migration 12 rebuilds maintenance_job, a parent table referenced by several
@@ -6421,22 +6425,45 @@ class MaintenanceStore:
         for name in ("exception_chain", "stack_frames", "input_refs", "artifact_refs"):
             if not isinstance(event.get(name, []), list):
                 raise MaintenanceStoreError("operation_event_invalid")
+        exception_reason_codes = event.get("exception_reason_codes", [])
+        operation_context = event.get("operation_context", {})
+        if (
+            not isinstance(exception_reason_codes, list)
+            or any(
+                not isinstance(value, str)
+                or _CODE_PATTERN.fullmatch(value) is None
+                for value in exception_reason_codes
+            )
+            or not isinstance(operation_context, Mapping)
+        ):
+            raise MaintenanceStoreError("operation_event_invalid")
         try:
             exception_chain = json.dumps(event.get("exception_chain", []), separators=(",", ":"))
+            exception_reason_codes_json = json.dumps(
+                exception_reason_codes, separators=(",", ":")
+            )
+            operation_context_json = json.dumps(
+                operation_context,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                sort_keys=True,
+            )
             stack_frames = json.dumps(event.get("stack_frames", []), separators=(",", ":"))
             input_refs = json.dumps(event.get("input_refs", []), separators=(",", ":"))
             artifact_refs = json.dumps(event.get("artifact_refs", []), separators=(",", ":"))
         except (TypeError, ValueError) as exc:
             raise MaintenanceStoreError("operation_event_invalid") from exc
+        if len(operation_context_json) > 8192:
+            raise MaintenanceStoreError("operation_context_too_large")
         with self._transaction() as connection:
             connection.execute(
                 "INSERT OR IGNORE INTO maintenance_operation_event "
                 "(event_id, correlation_id, parent_operation, job_id, source_launch_id, "
                 "source_run_id, incident_id, invocation_id, stage, attempt_id, operation, "
                 "phase, observed_at, code_revision, reason_code, exception_chain_json, exception_errno, "
-                "stack_frames_json, capture_location, input_refs_json, artifact_refs_json, "
+                "exception_reason_codes_json, operation_context_json, stack_frames_json, capture_location, input_refs_json, artifact_refs_json, "
                 "primary_sink, fallback_status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_id,
                     correlation_id,
@@ -6455,6 +6482,8 @@ class MaintenanceStore:
                     reason,
                     exception_chain,
                     exception_errno,
+                    exception_reason_codes_json,
+                    operation_context_json,
                     stack_frames,
                     optional_id("capture_location"),
                     input_refs,

@@ -224,6 +224,57 @@ def test_c44_contract():
     assert '"stage_status":"ready_for_review"' in report.result_json
 
 
+def test_report_evidence_markdown_links_render_as_visible_reference_index():
+    response = _report_response()
+    response["issues"][0]["evidence_ref"] = (
+        f"[元の証拠一覧]({_EVIDENCE})、"
+        "[試験結果](evidence/U16/tests.xml)"
+    )
+    report = _prepared_report(response)
+
+    assert 'href="#report-evidence-1">元の証拠一覧を見る</a>' in report.html
+    assert 'href="#report-evidence-2">試験記録を見る</a>' in report.html
+    assert 'id="report-evidence-1"' in report.html
+    assert 'id="report-evidence-2"' in report.html
+    assert "元の資料本文はこの公開ページに含めていません" in report.html
+    assert report.html.index('id="report-evidence-1"') < report.html.index(
+        "参考付録：確認用の内部記録"
+    )
+    assert 'href="[元の証拠一覧]' not in report.html
+
+
+def test_report_internal_evidence_ref_must_be_same_job_attempt_and_is_visible():
+    response = _report_response()
+    internal_ref = (
+        "job-20261017-001/attempt-U16-001/report-input.json"
+    )
+    response["issues"][0]["evidence_ref"] = f"[作成入力]({internal_ref})"
+    root = Path(__file__).resolve().parents[1]
+    report = prepare_incident_report(
+        _job_context(),
+        _source_snapshot(),
+        response,
+        template_path=root / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+        internal_evidence_refs=[internal_ref],
+    )
+
+    assert 'href="#report-evidence-1">報告の作成に使った入力を見る</a>' in report.html
+    assert 'id="report-evidence-1"' in report.html
+    assert "報告の作成に使った入力" in report.html
+    assert internal_ref in report.html
+
+    with pytest.raises(ReportContractError, match="report_internal_evidence_ref_invalid"):
+        prepare_incident_report(
+            _job_context(),
+            _source_snapshot(),
+            response,
+            template_path=root / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+            internal_evidence_refs=[
+                "job-other/attempt-U16-001/report-input.json"
+            ],
+        )
+
+
 def test_c45_contract():
     report = _prepared_report()
     assert (
@@ -373,6 +424,127 @@ def test_c46_contract(tmp_path: Path):
         )
 
 
+def test_reviewed_report_can_replace_only_the_exact_previous_blob(tmp_path: Path):
+    bare = tmp_path / "replacement-remote.git"
+    repo = tmp_path / "replacement-repo"
+    subprocess.run(
+        ["git", "init", "--bare", "--initial-branch=main", str(bare)],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", str(repo)],
+        check=True,
+        capture_output=True,
+    )
+    _git(repo, "config", "user.name", "Report Replacement Fixture")
+    _git(repo, "config", "user.email", "replacement-fixture@example.invalid")
+    (repo / "source.py").write_text("release = 'reviewed'\n", encoding="utf-8")
+    _git(repo, "add", "source.py")
+    _git(repo, "commit", "-m", "source release")
+    code_commit = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "remote", "add", "origin", str(bare))
+
+    report_path = "reports/incidents/2026-10-17/job-synthetic.html"
+    report_file = repo.joinpath(*report_path.split("/"))
+    report_file.parent.mkdir(parents=True)
+    old_report = b"<!doctype html><html><body>unreviewed fallback</body></html>\n"
+    report_file.write_bytes(old_report)
+    _git(repo, "add", report_path)
+    _git(repo, "commit", "-m", "publish unreviewed fallback")
+    _git(repo, "push", "--set-upstream", "origin", "main")
+    expected = _git(repo, "rev-parse", "HEAD")
+    old_sha = hashlib.sha256(old_report).hexdigest()
+
+    reviewed_html = b"<!doctype html><html><body>approved final report</body></html>\n"
+    reviewed_sha = hashlib.sha256(reviewed_html).hexdigest()
+    review = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": "report-reviewer",
+        "reviewed_version": "report-v2",
+        "reviewed_sha256": reviewed_sha,
+        "status": "approved",
+        "reviewed_at": "2026-10-20T11:05:00+09:00",
+        "findings": [],
+    }
+
+    with pytest.raises(ReportContractError, match="report_path_conflict"):
+        publish_reviewed_report(
+            repo,
+            report_path=report_path,
+            expected_target_commit=expected,
+            source_code_commit=code_commit,
+            result_version="report-v2",
+            review_document=review,
+            author_id="report-writer",
+            remote_name="origin",
+            target_branch="main",
+            commit_message="docs: replace without prior hash",
+            report_bytes=reviewed_html,
+        )
+
+    with pytest.raises(ReportContractError, match="report_existing_content_mismatch"):
+        publish_reviewed_report(
+            repo,
+            report_path=report_path,
+            expected_target_commit=expected,
+            source_code_commit=code_commit,
+            result_version="report-v2",
+            review_document=review,
+            author_id="report-writer",
+            remote_name="origin",
+            target_branch="main",
+            commit_message="docs: replace wrong prior hash",
+            report_bytes=reviewed_html,
+            expected_existing_sha256="0" * 64,
+        )
+
+    published = publish_reviewed_report(
+        repo,
+        report_path=report_path,
+        expected_target_commit=expected,
+        source_code_commit=code_commit,
+        result_version="report-v2",
+        review_document=review,
+        author_id="report-writer",
+        remote_name="origin",
+        target_branch="main",
+        commit_message="docs: replace unreviewed fallback",
+        report_bytes=reviewed_html,
+        expected_existing_sha256=old_sha,
+    )
+    assert report_file.read_bytes() == old_report
+    assert subprocess.run(
+        ["git", "-C", str(repo), "show", f"{published.commit}:{report_path}"],
+        check=True,
+        capture_output=True,
+    ).stdout == reviewed_html
+    assert _git(repo, "rev-parse", f"{published.commit}^") == expected
+    assert _git(
+        repo,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-only",
+        "-r",
+        published.commit,
+    ) == report_path
+    resumed = publish_reviewed_report(
+        repo,
+        report_path=report_path,
+        expected_target_commit=expected,
+        source_code_commit=code_commit,
+        result_version="report-v2",
+        review_document=review,
+        author_id="report-writer",
+        remote_name="origin",
+        target_branch="main",
+        commit_message="docs: replace unreviewed fallback",
+        report_bytes=reviewed_html,
+        expected_existing_sha256=old_sha,
+    )
+    assert resumed == published
+
+
 def test_report_review_must_bind_author_version_and_hash():
     report = _prepared_report()
     html_hash = report.html_sha256
@@ -517,7 +689,8 @@ def test_verified_next_day_requires_jst_date_evidence_and_complete_template(
         job, sources, response, template_path=template_path
     )
     assert '"report_status":"complete"' in completed.result_json
-    assert f'href="{next_day_ref}"' in completed.html
+    assert 'href="#report-evidence-' in completed.html
+    assert f"<code>{next_day_ref}</code>" in completed.html
 
     incomplete_template = tmp_path / "incomplete.html"
     incomplete_template.write_text(

@@ -578,6 +578,33 @@
       "recovery_artifact_refs": [
         "FC10/private-raw-evidence-location-map.json"
       ]
+    },
+    {
+      "operation": "read_current_historical_job_identity_preflight_r1",
+      "attempted_reference": "maintenance_job.source_launch_id and maintenance_job.target_date",
+      "failure_class": "sqlite3.OperationalError",
+      "reason": "The schema 15 maintenance_job table does not contain source_launch_id or target_date; the SELECT stopped with no such column: source_launch_id.",
+      "capture_location": "controller read-only SQLite mode=ro query against maintenance_job",
+      "side_effect": "none; SQLite connection used mode=ro",
+      "recovery": "Inspected PRAGMA table_info. Read source_launch_id from maintenance_job_resume_event and target_date/source_run_id from maintenance_workflow_stage_observation; confirmed resume_count 15, failed terminal, and report_publication_path_conflict in same job."
+    },
+    {
+      "operation": "discover_resume_entrypoint_broad_search_r1",
+      "attempted_reference": "README.md plus recursive docs and automation search",
+      "failure_class": "rg exit 1 with missing README.md; output exceeded intended scope",
+      "reason": "The current repository has no root README.md. Recursive search also returned an oversized generated HTML match, so this search was not a reliable bounded discovery operation.",
+      "capture_location": "controller read-only PowerShell rg command",
+      "side_effect": "none; read-only search",
+      "recovery": "Read the exact CLI parser/dispatch in automation/inago/maintenance/cli.py and official fixed-root switcher API in automation/inago/maintenance/runtime_switcher.py. Confirmed resume-worker requires --source-launch-id and --job-id for this historical job."
+    },
+    {
+      "operation": "build_precommit_ownership_inventory_r1",
+      "attempted_reference": "Git porcelain-v2 text path for Japanese documentation filename",
+      "failure_class": "OSError Invalid argument",
+      "reason": "The first inventory parser consumed Git quoted/escaped path text literally, so Path.read_bytes received a filename containing escape characters that did not exist.",
+      "capture_location": "controller Python precommit inventory script",
+      "side_effect": "none; inventory reads only and did not write an audit file before failing",
+      "recovery": "Re-read status with git status --porcelain=v2 -z and parsed NUL-delimited raw UTF-8 paths. The subsequent inventory resolves every listed path and hashes it."
     }
   ]
 }

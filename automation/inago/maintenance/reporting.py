@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import hashlib
@@ -63,6 +64,9 @@ _SENSITIVE_PATTERNS = (
     ),
     re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
 )
+_MARKDOWN_EVIDENCE_LINK = re.compile(r"\[([^\]\r\n]{1,160})\]\(([^()\s]{1,512})\)")
+_REFERENCE_SEPARATOR_ONLY = re.compile(r"^[\s,，、。;；:：|・]+$")
+_REFERENCE_NOTE_WORDS = re.compile(r"(?:記録|資料|証拠|確認|取得|参照|source|evidence|記載)", re.I)
 
 
 class ReportContractError(ValueError):
@@ -397,10 +401,143 @@ def _report_status(sources: Mapping[str, Any]) -> str:
     return "complete"
 
 
-def _validate_response(response: object, job: Mapping[str, Any]) -> dict[str, Any]:
+def _evidence_display_label(reference: str) -> str:
+    name = PurePosixPath(reference).name.casefold()
+    if name in {"manifest.json", "source-evidence.json", "source.json"}:
+        return "元の証拠一覧"
+    if name == "result.json":
+        return "保存された工程結果"
+    if name == "observation.json":
+        return "対象日の観測記録"
+    if name == "production-cli.filtered.json":
+        return "本番CLIの記録"
+    if name == "scheduler.filtered.json":
+        return "タスク実行記録"
+    if name == "read-aggregate.json":
+        return "日次結果の集計記録"
+    if name == "e0-manifest.json":
+        return "入力資料一覧"
+    if name in {"report-input.json", "report-input-fallback.json"} or name.startswith(
+        "report-input-fallback-"
+    ):
+        return "報告の作成に使った入力"
+    if name.startswith("report-fallback-") and name.endswith(".html"):
+        return "レビュー対象の報告案"
+    if name.startswith("review-response-fallback-") and name.endswith(".json"):
+        return "レビュー指摘の記録"
+    if "investigation" in name or name == "調査.md":
+        return "調査結果"
+    if "plan" in name or name == "計画.md":
+        return "実行計画"
+    if "test" in name or name.endswith(".xml"):
+        return "試験記録"
+    if "deploy" in name or "publication" in name:
+        return "反映記録"
+    if "index" in name:
+        return "確認できた資料一覧"
+    if name.endswith(".md"):
+        return "工程の記録"
+    return "関連する確認記録"
+
+
+def _report_evidence_links(
+    value: object,
+    *,
+    allowed_refs: set[str],
+    fallback_ref: str,
+) -> list[dict[str, str]]:
+    if not isinstance(value, str) or not value or len(value) > 512:
+        raise ReportContractError("report_evidence_ref_not_allowed")
+    if value in allowed_refs:
+        return [{"href": value, "label": _evidence_display_label(value)}]
+
+    try:
+        direct_reference = _safe_href(value)
+    except ReportContractError:
+        if not _MARKDOWN_EVIDENCE_LINK.search(value):
+            raise
+    else:
+        if direct_reference in allowed_refs:
+            return [
+                {
+                    "href": direct_reference,
+                    "label": _evidence_display_label(direct_reference),
+                }
+            ]
+
+    matches = list(_MARKDOWN_EVIDENCE_LINK.finditer(value))
+    if matches:
+        remainder = _MARKDOWN_EVIDENCE_LINK.sub("", value)
+        if remainder and not _REFERENCE_SEPARATOR_ONLY.fullmatch(remainder):
+            raise ReportContractError("report_evidence_ref_not_allowed")
+        links: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for match in matches:
+            target = match.group(2)
+            try:
+                target = _safe_href(target)
+            except ReportContractError as exc:
+                raise ReportContractError("report_evidence_ref_not_allowed") from exc
+            if target not in allowed_refs:
+                raise ReportContractError("report_evidence_ref_not_allowed")
+            if target not in seen:
+                seen.add(target)
+                links.append(
+                    {"href": target, "label": _evidence_display_label(target)}
+                )
+        if links:
+            return links
+
+    # Some authors describe why there is no direct source link in this field.
+    # Bind that limitation to the supplied evidence index instead of publishing
+    # the free-form string as though it were a valid path.
+    if (
+        _REFERENCE_NOTE_WORDS.search(value)
+        and fallback_ref in allowed_refs
+        and not any(marker in value for marker in ("/", "\\", "[", "]", "(", ")"))
+    ):
+        return [{"href": fallback_ref, "label": _evidence_display_label(fallback_ref)}]
+    raise ReportContractError("report_evidence_ref_not_allowed")
+
+
+def _validate_internal_evidence_refs(
+    value: Sequence[str] | None, *, job: Mapping[str, Any]
+) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise ReportContractError("report_internal_evidence_ref_invalid")
+    refs: list[str] = []
+    for reference in value:
+        try:
+            safe = _safe_href(reference)
+        except ReportContractError as exc:
+            raise ReportContractError("report_internal_evidence_ref_invalid") from exc
+        parts = PurePosixPath(safe).parts
+        if (
+            len(parts) != 3
+            or parts[0] != job["job_id"]
+            or parts[1] != job["attempt_id"]
+            or safe in refs
+            or "%" in safe
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", parts[2])
+            is None
+        ):
+            raise ReportContractError("report_internal_evidence_ref_invalid")
+        refs.append(safe)
+    return refs
+
+
+def _validate_response(
+    response: object,
+    job: Mapping[str, Any],
+    *,
+    additional_allowed_refs: Sequence[str] = (),
+    fallback_evidence_ref: str,
+) -> dict[str, Any]:
     if not isinstance(response, Mapping):
         raise ReportContractError("report_response_invalid")
-    data = dict(response)
+    data = deepcopy(dict(response))
     try:
         _schema_validator("maintenance-report-response.schema.json").validate(data)
     except ValidationError as exc:
@@ -420,15 +557,23 @@ def _validate_response(response: object, job: Mapping[str, Any]) -> dict[str, An
     if data["schema_version"] != REPORT_RESPONSE_SCHEMA_VERSION:
         raise ReportContractError("report_response_version_invalid")
     _validate_jst(data["created_at_jst"])
-    refs = set(job["evidence_refs"])
+    refs = set(job["evidence_refs"]) | set(job["input_refs"]) | set(
+        additional_allowed_refs
+    )
     for item in data["issues"]:
-        item["evidence_ref"] = _safe_href(item["evidence_ref"])
-        if item["evidence_ref"] not in refs:
-            raise ReportContractError("report_evidence_ref_not_allowed")
+        item["_evidence_links"] = _report_evidence_links(
+            item["evidence_ref"],
+            allowed_refs=refs,
+            fallback_ref=fallback_evidence_ref,
+        )
+        item["evidence_ref"] = item["_evidence_links"][0]["href"]
     for item in data["checks"]:
-        item["evidence_ref"] = _safe_href(item["evidence_ref"])
-        if item["evidence_ref"] not in refs:
-            raise ReportContractError("report_evidence_ref_not_allowed")
+        item["_evidence_links"] = _report_evidence_links(
+            item["evidence_ref"],
+            allowed_refs=refs,
+            fallback_ref=fallback_evidence_ref,
+        )
+        item["evidence_ref"] = item["_evidence_links"][0]["href"]
     text_values: list[str] = [data["title"], data["summary"], data["flow_tree"]]
     for item in data["issues"]:
         text_values.extend(
@@ -470,10 +615,105 @@ def _e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+def _report_evidence_index(
+    response: Mapping[str, Any], sources: Mapping[str, Any]
+) -> dict[str, dict[str, str]]:
+    references: dict[str, dict[str, str]] = {}
+
+    def add(reference: object, preferred_label: str | None = None) -> None:
+        if not isinstance(reference, str) or not reference:
+            return
+        if reference not in references:
+            references[reference] = {
+                "anchor_id": f"report-evidence-{len(references) + 1}",
+                "label": preferred_label or _evidence_display_label(reference),
+            }
+
+    for key in ("issues", "checks"):
+        items = response.get(key, [])
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            links = item.get("_evidence_links", [])
+            if not isinstance(links, list):
+                continue
+            for link in links:
+                if isinstance(link, dict):
+                    add(link.get("href"))
+
+    add(sources["investigation"]["href"], "調査結果")
+    add(sources["plan"]["href"], "実行計画")
+    add(sources["tests"]["evidence_href"], "試験記録")
+    add(sources["deployment"]["evidence_href"], "反映記録")
+    add(
+        sources["next_day"]["evidence_href"] or sources["evidence_index_href"],
+        "次回確認の記録",
+    )
+    add(sources["evidence_index_href"], "確認できた資料一覧")
+
+    for key in ("issues", "checks"):
+        items = response.get(key, [])
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            links = item.get("_evidence_links", [])
+            if not isinstance(links, list):
+                continue
+            item["_evidence_links"] = [
+                {
+                    **link,
+                    **references[link["href"]],
+                }
+                for link in links
+                if isinstance(link, dict)
+                and isinstance(link.get("href"), str)
+                and link["href"] in references
+            ]
+    return references
+
+
+def _render_evidence_links(item: Mapping[str, Any]) -> str:
+    links = item.get("_evidence_links")
+    if not isinstance(links, list):
+        return ""
+    return "<span class=\"evidence-links\">" + " · ".join(
+        f'<a href="#{_e(link["anchor_id"])}">{_e(link["label"])}を見る</a>'
+        for link in links
+        if isinstance(link, dict)
+        and isinstance(link.get("anchor_id"), str)
+        and isinstance(link.get("label"), str)
+    ) + "</span>"
+
+
+def _render_evidence_reference_rows(
+    references: Mapping[str, Mapping[str, str]]
+) -> str:
+    return "\n".join(
+        "<li id=\"{anchor}\"><strong>{label}</strong>。元の資料本文はこの公開ページに含めていません。</li>".format(
+            anchor=_e(details["anchor_id"]), label=_e(details["label"])
+        )
+        for details in references.values()
+    )
+
+
+def _render_evidence_reference_details(
+    references: Mapping[str, Mapping[str, str]]
+) -> str:
+    return "\n".join(
+        "<li><strong>{label}</strong>: <code>{reference}</code></li>".format(
+            label=_e(details["label"]), reference=_e(reference)
+        )
+        for reference, details in references.items()
+    )
+
+
 def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
     rows = []
     for index, item in enumerate(issues, start=1):
-        href = _e(item["evidence_ref"])
         rows.append(
             "<tr>"
             f'<td><a href="#issue-{index}">{_e(item["phase"])}</a></td>'
@@ -481,7 +721,7 @@ def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
             f'<td>{_e(item["expected"])}</td>'
             f'<td>{_e(item["actual"])}<br><strong>影響:</strong> {_e(item["impact"])}</td>'
             f'<td>{_e(item["recovery"])}</td>'
-            f'<td><a href="{href}">根拠を確認</a></td>'
+            f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
         )
     return "\n".join(rows)
@@ -490,7 +730,6 @@ def _render_issue_rows(issues: Sequence[Mapping[str, Any]]) -> str:
 def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
     rows = []
     for index, item in enumerate(issues, start=1):
-        href = _e(item["evidence_ref"])
         issue_class = {
             "observed": "actual",
             "investigation": "investigation",
@@ -509,14 +748,16 @@ def _render_issue_details(issues: Sequence[Mapping[str, Any]]) -> str:
             "<h4>変更後の動作</h4>"
             f"<p>{_e(item['changed_behavior'])}</p>"
             "<h4>確認範囲と根拠</h4>"
-            f'<p>{_e(item["confirmation_scope"])} · <a href="{href}">確認記録を見る</a></p>'
+            f'<p>{_e(item["confirmation_scope"])} · {_render_evidence_links(item)}</p>'
             "</article>"
         )
     return "\n".join(rows)
 
 
 def _render_check_rows(
-    checks: Sequence[Mapping[str, Any]], sources: Mapping[str, Any]
+    checks: Sequence[Mapping[str, Any]],
+    sources: Mapping[str, Any],
+    evidence_references: Mapping[str, Mapping[str, str]],
 ) -> str:
     status_names = {
         "passed": ("passed", "確認済み"),
@@ -541,7 +782,7 @@ def _render_check_rows(
             f"<td>{_e(item['stage'])}</td><td>参考記録に記載</td>"
             f"<td>{_e(item['expected'])}</td><td>{_e(item['actual'])}</td>"
             f'<td><span class="status {css}">{label}</span></td>'
-            f'<td><a href="{_e(item["evidence_ref"])}">確認記録を見る</a></td>'
+            f"<td>{_render_evidence_links(item)}</td>"
             "</tr>"
         )
     source_rows = (
@@ -576,7 +817,8 @@ def _render_check_rows(
             "<tr>"
             f"<td>{_e(stage)}</td><td>参考記録に記載</td><td>{_e(expected)}</td>"
             f'<td>{_e(actual)}</td><td><span class="status {css}">{label}</span></td>'
-            f'<td><a href="{_e(href)}">確認記録を見る</a></td></tr>'
+            f'<td><a href="#{_e(evidence_references[href]["anchor_id"])}">'
+            f'{_e(evidence_references[href]["label"])}を見る</a></td></tr>'
         )
     return "\n".join(rows)
 
@@ -594,6 +836,7 @@ def _render_html(
     status: str,
 ) -> str:
     recovery = response["recovery"]
+    evidence_references = _report_evidence_index(response, sources)
     unknowns = "\n".join(f"・{item}" for item in recovery["unknowns"]) or "なし"
     replacements = {
         "{{incident_id}}": _e(job["incident_id"]),
@@ -608,20 +851,34 @@ def _render_html(
         "{{status_label}}": _STATUS_LABELS[status],
         "{{issue_rows}}": _render_issue_rows(response["issues"]),
         "{{issue_details}}": _render_issue_details(response["issues"]),
-        "{{check_rows}}": _render_check_rows(response["checks"], sources),
+        "{{check_rows}}": _render_check_rows(
+            response["checks"], sources, evidence_references
+        ),
         "{{flow_tree}}": _e(response["flow_tree"]),
         "{{unknowns}}": _e(unknowns),
         "{{stop_reason}}": _e(recovery["stop_reason"] or "なし"),
         "{{resume_condition}}": _e(recovery["resume_condition"]),
         "{{side_effects}}": _e(recovery["side_effects"]),
         "{{investigation_version}}": _e(sources["investigation"]["result_version"]),
-        "{{investigation_href}}": _e(sources["investigation"]["href"]),
+        "{{investigation_href}}": _e(
+            "#" + evidence_references[sources["investigation"]["href"]]["anchor_id"]
+        ),
         "{{plan_version}}": _e(sources["plan"]["result_version"]),
-        "{{plan_href}}": _e(sources["plan"]["href"]),
+        "{{plan_href}}": _e(
+            "#" + evidence_references[sources["plan"]["href"]]["anchor_id"]
+        ),
         "{{base_commit}}": _e(sources["implementation"]["base_commit"]),
         "{{result_commit_or_null}}": _e(sources["implementation"]["result_commit"]),
-        "{{evidence_index_href}}": _e(sources["evidence_index_href"]),
+        "{{evidence_index_href}}": _e(
+            "#" + evidence_references[sources["evidence_index_href"]]["anchor_id"]
+        ),
         "{{evidence_index_label}}": _e(sources["evidence_index_label"]),
+        "{{evidence_reference_rows}}": _render_evidence_reference_rows(
+            evidence_references
+        ),
+        "{{evidence_reference_details}}": _render_evidence_reference_details(
+            evidence_references
+        ),
         "{{reporter_id}}": "報告担当",
         "{{reviewed_version}}": _e(sources["implementation"]["result_commit"]),
         "{{review_status}}": "承認済み（プロダクトコード）",
@@ -647,6 +904,7 @@ def prepare_incident_report(
     response: object,
     *,
     template_path: str | Path,
+    internal_evidence_refs: Sequence[str] | None = None,
 ) -> ReportStageArtifacts:
     """Render one report from available, identity-bound sources.
 
@@ -658,8 +916,16 @@ def prepare_incident_report(
         job = _validate_context(job_context)
     except InvestigationContractError as exc:
         raise ReportContractError(exc.code) from exc
+    validated_internal_refs = _validate_internal_evidence_refs(
+        internal_evidence_refs, job=job
+    )
     sources = _validate_sources(job, source_snapshot)
-    report = _validate_response(response, job)
+    report = _validate_response(
+        response,
+        job,
+        additional_allowed_refs=validated_internal_refs,
+        fallback_evidence_ref=sources["evidence_index_href"],
+    )
     try:
         template_file = Path(template_path).resolve(strict=True)
         _assert_no_reparse_components(template_file)
@@ -1000,12 +1266,53 @@ def _remote_report_head(repo: Path, remote_name: str, target_branch: str) -> str
     return observed
 
 
+def _report_blob_sha256(repo: Path, commit: str, report_path: str) -> str | None:
+    """Return the exact target blob digest at a commit, if the path exists."""
+
+    existing = _git_paths(
+        repo,
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "-z",
+        commit,
+        "--",
+        f":(literal){report_path}",
+    )
+    if not existing:
+        return None
+    if existing != [report_path]:
+        raise ReportContractError("report_path_conflict")
+    return _git_content_sha256(repo, f"{commit}:{report_path}")
+
+
+def _git_blob_from_bytes(repo: Path, content: bytes) -> str:
+    """Write bytes to the object database without touching the index or worktree."""
+
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo), "hash-object", "-w", "--stdin"],
+            check=False,
+            capture_output=True,
+            input=content,
+        )
+    except OSError as exc:
+        raise ReportContractError("report_git_unavailable") from exc
+    if completed.returncode != 0:
+        raise ReportContractError("report_git_operation_failed")
+    value = completed.stdout.decode("ascii", errors="strict").strip()
+    if re.fullmatch(r"[a-fA-F0-9]{40}|[a-fA-F0-9]{64}", value) is None:
+        raise ReportContractError("report_git_blob_unavailable")
+    return value
+
+
 def _report_publication_commit(
     repo: Path,
     *,
     commit: str,
     report_path: str,
     expected_target_commit: str,
+    expected_existing_sha256: str | None,
     source_code_commit: str,
     reviewed_sha256: str,
 ) -> tuple[str, str]:
@@ -1022,10 +1329,12 @@ def _report_publication_commit(
         repo, code_commit, parent
     ):
         raise ReportContractError("report_base_or_code_version_not_current")
-    if _git_paths(
-        repo, "diff", "--name-only", "-z", expected, parent, "--", report_path
-    ):
-        raise ReportContractError("report_path_conflict")
+    existing_sha256 = _report_blob_sha256(repo, parent, report_path)
+    if expected_existing_sha256 is None:
+        if existing_sha256 is not None:
+            raise ReportContractError("report_path_conflict")
+    elif existing_sha256 != expected_existing_sha256:
+        raise ReportContractError("report_existing_content_mismatch")
     changed = _git_paths(
         repo,
         "diff-tree",
@@ -1049,6 +1358,7 @@ def _find_report_publication(
     report_path: str,
     commit_message: str,
     expected_target_commit: str,
+    expected_existing_sha256: str | None,
     source_code_commit: str,
     reviewed_sha256: str,
 ) -> tuple[str, str] | None:
@@ -1076,6 +1386,7 @@ def _find_report_publication(
         commit=exact[0],
         report_path=report_path,
         expected_target_commit=expected_target_commit,
+        expected_existing_sha256=expected_existing_sha256,
         source_code_commit=source_code_commit,
         reviewed_sha256=reviewed_sha256,
     )
@@ -1093,6 +1404,8 @@ def publish_reviewed_report(
     remote_name: str,
     target_branch: str,
     commit_message: str,
+    report_bytes: bytes | None = None,
+    expected_existing_sha256: str | None = None,
 ) -> ReportPublication:
     """Push one reviewed report without creating a checkout or changing the index.
 
@@ -1122,6 +1435,15 @@ def publish_reviewed_report(
         or not report_path.startswith("reports/incidents/")
     ):
         raise ReportContractError("report_path_invalid")
+    if expected_existing_sha256 is not None and (
+        not isinstance(expected_existing_sha256, str)
+        or _SHA256_PATTERN.fullmatch(expected_existing_sha256) is None
+    ):
+        raise ReportContractError("report_existing_content_mismatch")
+    if report_bytes is not None and (
+        not isinstance(report_bytes, bytes) or len(report_bytes) > 8 * 1024 * 1024
+    ):
+        raise ReportContractError("report_file_unavailable")
     if (
         not isinstance(commit_message, str)
         or not commit_message.strip()
@@ -1171,18 +1493,21 @@ def publish_reviewed_report(
     head = _resolve_commit(repo, _git(repo, "rev-parse", "HEAD"))
     expected = _resolve_commit(repo, expected_target_commit)
     code_commit = _resolve_commit(repo, source_code_commit)
-    path = repo.joinpath(*relative.parts)
-    try:
-        _assert_no_reparse_components(path)
-        resolved_path = path.resolve(strict=True)
-        resolved_path.relative_to(repo)
-        if not resolved_path.is_file():
-            raise ReportContractError("report_file_unavailable")
-        content = resolved_path.read_bytes()
-    except ReportContractError:
-        raise
-    except (OSError, RuntimeError, ValueError, InvestigationContractError) as exc:
-        raise ReportContractError("report_file_unavailable") from exc
+    if report_bytes is not None:
+        content = report_bytes
+    else:
+        path = repo.joinpath(*relative.parts)
+        try:
+            _assert_no_reparse_components(path)
+            resolved_path = path.resolve(strict=True)
+            resolved_path.relative_to(repo)
+            if not resolved_path.is_file():
+                raise ReportContractError("report_file_unavailable")
+            content = resolved_path.read_bytes()
+        except ReportContractError:
+            raise
+        except (OSError, RuntimeError, ValueError, InvestigationContractError) as exc:
+            raise ReportContractError("report_file_unavailable") from exc
     if hashlib.sha256(content).hexdigest() != reviewed["reviewed_sha256"]:
         raise ReportContractError("report_review_output_mismatch")
     remote_head = _remote_report_head(repo, remote_name, target_branch)
@@ -1193,6 +1518,7 @@ def publish_reviewed_report(
             report_path=report_path,
             commit_message=commit_message,
             expected_target_commit=expected,
+            expected_existing_sha256=expected_existing_sha256,
             source_code_commit=code_commit,
             reviewed_sha256=reviewed["reviewed_sha256"],
         )
@@ -1217,22 +1543,21 @@ def publish_reviewed_report(
         repo, code_commit, publication_parent
     ):
         raise ReportContractError("report_base_or_code_version_not_current")
-    if _git_paths(
-        repo, "diff", "--name-only", "-z", expected, publication_parent, "--", report_path
-    ):
-        raise ReportContractError("report_path_conflict")
-    existing_report = _git_paths(
-        repo, "ls-tree", "-r", "--name-only", "-z", publication_parent, "--", report_path
-    )
-    if existing_report:
-        raise ReportContractError("report_path_conflict")
-    spec = f":(literal){report_path}"
+    existing_sha256 = _report_blob_sha256(repo, publication_parent, report_path)
+    if expected_existing_sha256 is None:
+        if existing_sha256 is not None:
+            raise ReportContractError("report_path_conflict")
+    elif existing_sha256 != expected_existing_sha256:
+        raise ReportContractError("report_existing_content_mismatch")
     temp_index: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(prefix="inago-report-index-", delete=False) as stream:
             temp_index = Path(stream.name)
         _git_with_index(repo, temp_index, "read-tree", publication_parent)
-        _git_with_index(repo, temp_index, "add", "--", spec)
+        blob = _git_blob_from_bytes(repo, content)
+        _git_with_index(
+            repo, temp_index, "update-index", "--add", "--cacheinfo", "100644", blob, report_path
+        )
         staged = _git_paths_with_index(
             repo, temp_index, "diff", "--cached", "--name-only", "-z"
         )
@@ -1249,6 +1574,7 @@ def publish_reviewed_report(
             commit=commit,
             report_path=report_path,
             expected_target_commit=expected,
+            expected_existing_sha256=expected_existing_sha256,
             source_code_commit=code_commit,
             reviewed_sha256=reviewed["reviewed_sha256"],
         )

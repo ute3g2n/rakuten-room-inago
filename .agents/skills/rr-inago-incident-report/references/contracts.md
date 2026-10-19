@@ -41,7 +41,7 @@ handoffはidentity、schema_version、invocation/stage/attempt/operationとparen
 
 工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
 
-各失敗は操作名、例外classと安全化したcause chain/stack frames、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
+各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・hash・相対pathだけを許し、自由文を保存しない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
 reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
@@ -51,7 +51,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 
 通常HTMLを作れない時も平易な短いHTMLをcontrollerが作り、同じ正式job/attempt identity、入力参照、HTML hash、review対象版、result sidecarへ保存する。HTML本文は日常語の5項目で書き、内部ID/status/reason/hash/版は参考付録だけに置く。独立reviewerを実起動し、指摘はreporterが直して新しい版をレビューへ渡す。review不能時はstatus=unavailableと理由を保存し、approvedを捏造しない。その状態でも公開処理を試みる。target/identity不一致、push、sidecar保存などの公開操作失敗は具体的reason、例外連鎖、捕捉位置、相関ID、入力/成果物参照をfailure journalとhandoffへ保存し、元のreason付きunknown/failedで終端照合を続ける。公開後の保存が中断した場合は、同じjobを再開した時にremoteのreport pathとhashを読み直してpublication sidecarを復元する。report公開成功はincident解決の根拠ではない。元のcause/recoveryがunknownならincidentは未解決のままにする。公開commitは一時Git indexでHTML一ファイルだけから構成し、作業treeや既存indexを変更しない。別worktree/checkoutは作らない。
 
-各事象の本文は、区分・期待・実際・影響・回復・変更・試験分類/範囲・根拠参照をそろえる。確認済み事実と不明を、実際に確認した資料の範囲に沿って分ける。「不明はない」「review指摘なし」は、根拠がある場合だけ記載する。review/publicationはHTML作成時点と後続の記録を区別し、workflow完了とincident解決も別々に記載する。合成例は最初の本文より前に見える位置で合成例と明記し、例のreview/publication状態を実行結果と混同させない。根拠リンク先を折りたたみ内へ隠さず、リンク後に根拠本文が読める状態にする。
+各事象の本文は、区分・期待・実際・影響・回復・変更・試験分類/範囲・根拠参照をそろえる。確認済み事実と不明を、実際に確認した資料の範囲に沿って分ける。「不明はない」「review指摘なし」は、根拠がある場合だけ記載する。review/publicationはHTML作成時点と後続の記録を区別し、workflow完了とincident解決も別々に記載する。合成例は最初の本文より前に見える位置で合成例と明記し、例のreview/publication状態を実行結果と混同させない。本文には、確認に使った資料の読める種類名と固有のリンク先一覧を表示し、根拠本文を折りたたみ内へ隠さない。リンク後に根拠本文が読める状態にする。
 
 ### FC10 host-owned invocationと公開証拠
 

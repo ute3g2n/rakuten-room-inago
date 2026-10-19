@@ -25,7 +25,7 @@
 
 ## U05管理DB・状態実装の対応
 
-管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U21 schema v9、現行コードschema v15）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とは別fileにする。U05/U12の最大review巡回数、active-job枠、release gate、lease/process identityを再開条件にする契約はU23で撤廃した。resume_countとreview履歴は監査値。Migration 013はfull-regressionの実測outcomeをPASS/FAIL/SKIP/ERROR/NOT_RUNのまま保存し、全PASSを後続工程の条件にしない。repair review schemaは`approved/changes_requested/rejected/unavailable`を受け入れ、各statusを結果として保存する。現行CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,resume-worker,release-gate,start-job,finish-job}`。2026-10-19時点のproduction DBはschema v12で、schema v13への更新はU23 deploymentで行う。
+管理DBは`D/maintenance/state.sqlite`（初期SQLite schema v1、U21 schema v9、現行コードschema v16）、専用設定は`D/maintenance/settings.json`（settings schema v1）とし、日次`D/state.sqlite`とは別fileにする。U05/U12の最大review巡回数、active-job枠、release gate、lease/process identityを再開条件にする契約はU23で撤廃した。resume_countとreview履歴は監査値。Migration 013はfull-regressionの実測outcomeをPASS/FAIL/SKIP/ERROR/NOT_RUNのまま保存し、全PASSを後続工程の条件にしない。repair review schemaは`approved/changes_requested/rejected/unavailable`を受け入れ、各statusを結果として保存する。現行CLIは`python -m automation.inago.maintenance.cli --data-root D [--daily-database PATH] {init,status,probe-ai,enqueue-historical,worker,watchdog,resume-worker,release-gate,start-job,finish-job}`。2026-10-19時点のproduction DBはschema v12で、schema v13への更新はU23 deploymentで行う。
 
 U05の当初受入ではstep承認、active job枠、release gate、review 3巡上限、handoff leaseを要求したが、U23本人指示でjobの起動・再開を止める上限・gate・他job/lease条件を撤廃した。現在は対象job/launch IDを選べば再queueでき、resume_countとreview回数は上限なしの監査値。工程の記録ではresult versionとartifact参照を保持する。U05時点のproduction DB未変更は当時の状態であり、後続U21/U23の適用記録は実行計画/実行記録を参照する。
 
@@ -256,6 +256,10 @@ U02では本契約と要件対応を静的に確認し、HTML正本を再生成�
 ## FC09 schema v15のソース・適用確認
 
 現行コードはmigration 014でappend-only operation event表を追加し、migration 015でrepair predecessorがない場合を許すためall-or-none insert triggerだけを削除する。immutable-pin triggerは維持する。隔離DBではschema v14からv15へ更新し、pinなしrepair attemptを作れることを確認する。FC09のproduction適用では固定workspace内の既存DBを公式CLIで移行し、backup、`quick_check`、version・migration記録・両triggerをread-backする。
+
+## FC10 schema v16 failure detail
+
+Migration 016はappend-only operation eventに安全化済み例外reason code連鎖と小さなoperation contextを追加する。contextは件数、ID、SHA-256、相対pathのように原因を特定する値を持てるが、自由文・例外本文・SQL値・秘密・個人情報を保持しない。fallback journal replayでも両fieldを保つ。隔離DBでmigration、nested reason code、contextの保存/replayとredactionを確認し、正式DBはbackupと公式CLI migration/read-backを行う。通常worker/launcher/watchdogの自動migrationは禁止のままとする。
 
 2026-10-20の適用前 read-only確認ではproduction DBはschema v13で`quick_check=ok`、migration 001～013が記録されていた。対象jobは同一job・launch、`source_run_id=null`、status running、resume_count 8だった。この値は移行前観測であり、適用後の結果はFC09実行記録に記録する。FC01のschema13観測やFC03のschema14 source追加時点を現在状態として読み替えない。
 

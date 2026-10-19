@@ -681,6 +681,7 @@ def save_attempt_artifact(
             "review.md",
             "result.json",
             "report-publication.json",
+            "report-revision-author-match-trace.json",
         },
     }
     versioned_report_name = (
