@@ -1,0 +1,50 @@
+{
+  "operation": "official TaskSchedulerRuntimeSwitcher.activate then confirm_active",
+  "repository": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "target_commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+  "before_active_commit": "525ad3fa8d2d1acdb6e2909d011e988be2deceff",
+  "after_active_commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+  "after_active_root": "C:\\project\\rakuten-room-inago",
+  "healthy": true,
+  "state": {
+    "active": {
+      "commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+      "root": "C:\\project\\rakuten-room-inago"
+    },
+    "pending": null,
+    "schema_version": "maintenance-runtime-switch-v1",
+    "status": "active"
+  },
+  "tasks": [
+    {
+      "name": "RakutenRoomInagoDaily",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoWorker",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoWatchdog",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    },
+    {
+      "name": "RakutenRoomInagoHumanApi",
+      "state": "Ready",
+      "enabled": true,
+      "working_directory": "C:\\project\\rakuten-room-inago"
+    }
+  ],
+  "database": {
+    "user_version": 15,
+    "quick_check": "ok"
+  },
+  "status": "complete"
+}

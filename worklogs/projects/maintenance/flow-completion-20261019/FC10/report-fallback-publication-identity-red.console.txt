@@ -1,0 +1,17 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_fc10_fallback_review_round_uses_persisted_review_history ________
+tests_inago\test_maintenance_report_publication_stage.py:1728: in test_fc10_fallback_review_round_uses_persisted_review_history
+    assert workflow.state["precheck_identity"] == store.get_job_input_manifest(
+E   AssertionError: assert {'incident_id...6-10-17', ...} == {'incident_id...6-10-17', ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Left contains 4 more items:
+E     {'attempt_id': 'attempt-precheck-fallback-review-round',
+E      'base_commit': '70fca6ac8708ab74551bf55abb089dd32843d884',
+E      'evidence_refs': ['historical-input/2026-10-17/evidence.json'],
+E      'input_refs': ['historical-intake/2026-10-17/input.json']}
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc10_fallback_review_round_uses_persisted_review_history
+1 failed in 0.92s

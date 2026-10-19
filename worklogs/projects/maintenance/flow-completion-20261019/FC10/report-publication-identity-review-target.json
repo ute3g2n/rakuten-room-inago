@@ -1,0 +1,25 @@
+{
+  "schema_version": "fc10-report-publication-identity-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "ad6a6895c482cb33bf3b34fa7fd4dc4832f19e46337a2f52ec71cb6ed50026b3"
+  },
+  "test_sources_not_for_independent_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "757665e03e38f7847c69f650d6332c3971d327b2782702099809927eac1437b3"
+  },
+  "local_evidence": {
+    "fallback_red_console_sha256": "089532fc51b5cfa2445492d7f3505e9ab6cb7b6efedb44c6958bff54536e6e15",
+    "fallback_stage_red_console_sha256": "b8a592dfd9ff1556619af938d45c05a7560016a39c526c95a3e64a89b13f8e92",
+    "focused_green_console_sha256": "65f1545de4d528fc501b03693530ceaf649c9df60f88b35d69adcaba527141c8",
+    "full_module_green_console_sha256": "5c567960806835cb88f3ebab43844fe06943d476a33a5f8ff222d02dd9725358"
+  },
+  "finding_context": "Resume 12 created a complete, hash-bound fallback report attempt and result whose identity matched job_input_manifest.identity(), yet publication rejected precheck_identity because the historical workflow context also contained attempt_id, base_commit, input_refs, and evidence_refs. The report/publication boundary must use the exact manifest identity while preserving the other context in dedicated state fields.",
+  "summary": "Fresh, read-only product review of the production changes that normalize report workflow identity to the exact validated job_input_manifest.identity() before fallback persistence, normal report processing, completed-fallback recovery, and report resume recovery. Verify that input/evidence references remain in their dedicated fields, malformed identity still fails safely, and publication identity checks remain strict. The test source hash is integrity-only: do not read or review test code. Do not edit files or run tests."
+}

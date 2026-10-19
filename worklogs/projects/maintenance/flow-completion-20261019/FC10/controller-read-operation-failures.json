@@ -84,6 +84,74 @@
       "capture_location": "test_fc10_fallback_review_round_uses_persisted_review_history",
       "side_effect": "none; isolated pytest temporary directory only",
       "recovery": "Created the fixture attempts directory. Then observed a genuine review_round_mismatch red failure with the old code and a pass with the corrected code."
+    },
+    {
+      "operation": "read_resume_12_report_result_artifact",
+      "attempted_reference": "attempts/<job_id>/<job_id>/<attempt_id>/result.json",
+      "failure_class": "FileNotFoundError",
+      "reason": "The artifact output_path already begins with job_id; the read script added the job_id directory twice.",
+      "capture_location": "controller read-only Python artifact lookup",
+      "side_effect": "none; read-only path lookup",
+      "recovery": "Resolved output_path beneath attempts_root directly and verified the stored result and HTML SHA-256 values."
+    },
+    {
+      "operation": "search_report_identity_assignments",
+      "attempted_reference": "rg expression with unescaped PowerShell/regex bracket grouping",
+      "failure_class": "ripgrep regex parse error",
+      "reason": "A malformed grouped expression had an unclosed parenthesis.",
+      "capture_location": "controller read-only rg command",
+      "side_effect": "none; read-only search",
+      "recovery": "Searched using a simpler literal function-name and identity-field expression."
+    },
+    {
+      "operation": "invoke_default_python_pytest_without_project_environment",
+      "attempted_reference": "python -m pytest tests_inago/test_maintenance_report_publication_stage.py::test_fc10_completed_normal_report_restore_keeps_refs_outside_identity",
+      "failure_class": "ModuleNotFoundError",
+      "reason": "The default Python 3.12 interpreter does not have pytest installed; this is an environment selection failure, not a product test result.",
+      "capture_location": "controller PowerShell exec command",
+      "side_effect": "none; test collection did not start and no product/runtime data changed",
+      "recovery": "Used the repository project environment .venv-inago\\Scripts\\python.exe; the focused test then ran and produced an intentional red for missing restored report_input_refs, followed by green after the product fix.",
+      "recorded_at_utc": "2026-10-19T18:44:04Z"
+    },
+    {
+      "operation": "read_resume_12_failure_event_from_operation_event_table",
+      "attempted_reference": "maintenance_operation_event event for report_publication_identity_mismatch",
+      "failure_class": "TypeError",
+      "reason": "The readback script assumed a row existed in maintenance_operation_event and converted None to dict; this failure was in the diagnostic script, not the job.",
+      "capture_location": "controller read-only Python/SQLite snapshot script",
+      "side_effect": "none; read-only SQLite connection",
+      "recovery": "Read the correlated event from failure-journal/events.jsonl instead and reconstructed the resume 12 publication failure from the job attempt artifacts and stage observations.",
+      "recorded_at_utc": "2026-10-19T18:44:04Z"
+    },
+    {
+      "operation": "read_branch_tracking_ref_with_unquoted_at_braces",
+      "attempted_reference": "git rev-parse --abbrev-ref --symbolic-full-name @{u}",
+      "failure_class": "PowerShell ParserError",
+      "reason": "PowerShell interpreted the unquoted @{u} Git argument as the start of a hashtable, so the status command did not reach Git.",
+      "capture_location": "controller PowerShell exec parser",
+      "side_effect": "none; Git status queries were not executed in that command",
+      "recovery": "Quote the Git symbolic ref argument as '@{u}' and re-run the read-only branch/status checks.",
+      "recorded_at_utc": "2026-10-19T18:45:27Z"
+    },
+    {
+      "operation": "read_staged_files_from_git_quoted_name_output",
+      "attempted_reference": "git diff --cached --name-only decoded as text then used as a Path",
+      "failure_class": "OSError [Errno 22] Invalid argument",
+      "reason": "Git quotes non-ASCII plan filenames by default, so the quoted octal text was treated as a literal path by the read-only scanner.",
+      "capture_location": "controller read-only Python secret-scan script",
+      "side_effect": "none; no file was opened or changed",
+      "recovery": "Scanned the entire staged unified diff as bytes instead of opening quoted path names; no likely credential, private-key, or token pattern was found.",
+      "recorded_at_utc": "2026-10-19T18:46:47Z"
+    },
+    {
+      "operation": "full_staged_diff_check_on_raw_pytest_evidence",
+      "attempted_reference": "git diff --cached --check across all staged paths",
+      "failure_class": "git diff --check whitespace finding",
+      "reason": "Four preserved pytest console/JUnit captures contain the runner’s padded `E     ` status line with trailing spaces; the output is captured from the failing tests and those original evidence hashes are referenced by the immutable first-review target.",
+      "capture_location": "git diff --cached --check",
+      "side_effect": "none; read-only check",
+      "recovery": "Retained the original evidence bytes. The scoped git diff --cached --check using Git exclude pathspecs for **/*.console.txt and **/*.junit.xml exited 0 for all code, plan, JSON and narrative records. The only full-check findings were those four raw test-output padding lines.",
+      "recorded_at_utc": "2026-10-19T18:46:47Z"
     }
   ]
 }

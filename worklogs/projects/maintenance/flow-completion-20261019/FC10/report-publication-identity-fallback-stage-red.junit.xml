@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.979" timestamp="2026-10-20T03:38:21.082096+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_report_publication_stage" name="test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_second_review_findings_remain_bound_to_reviewed_version]" time="0.685"><failure message="AssertionError: assert {'incident_id...6-10-17', ...} == {'incident_id...6-10-17', ...}&#10;  &#10;  Omitting 5 identical items, use -vv to show&#10;  Left contains 4 more items:&#10;  {'attempt_id': 'attempt-precheck-fallback_second_review_findings_remain_bound_to_reviewed_version',&#10;   'base_commit': '70fca6ac8708ab74551bf55abb089dd32843d884',&#10;   'evidence_refs': ['daily-evidence/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version/index.json'],&#10;   'input_refs': ['daily-launch/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version',&#10;                  'daily-result-observation/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version']}&#10;  Use -v to get more diff">tests_inago\test_maintenance_report_publication_stage.py:2124: in test_fc07_report_role_review_revision_or_failure_reaches_publication
+    assert publication_calls[0]["identity"] == identity
+E   AssertionError: assert {'incident_id...6-10-17', ...} == {'incident_id...6-10-17', ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Left contains 4 more items:
+E     {'attempt_id': 'attempt-precheck-fallback_second_review_findings_remain_bound_to_reviewed_version',
+E      'base_commit': '70fca6ac8708ab74551bf55abb089dd32843d884',
+E      'evidence_refs': ['daily-evidence/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version/index.json'],
+E      'input_refs': ['daily-launch/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version',
+E                     'daily-result-observation/launch-fc07-fallback_second_review_findings_remain_bound_to_reviewed_version']}
+E     Use -v to get more diff</failure></testcase></testsuite></testsuites>

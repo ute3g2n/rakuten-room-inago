@@ -8601,6 +8601,7 @@ def _persist_minimal_daily_report(
             for key, expected in expected_identity.items()
         ):
             raise ReportContractError("report_fallback_identity_mismatch")
+        workflow.state["precheck_identity"] = identity
         missing_identity_fields = [
             key for key in expected_identity
             if key not in identity or (key != "source_run_id" and not identity.get(key))
@@ -9128,6 +9129,7 @@ def run_daily_report_stage(
             for key, expected in expected_identity.items()
         ):
             raise ReportContractError("report_identity_mismatch")
+        workflow.state["precheck_identity"] = identity
         attempts_root = store.database_path.parent / "attempts"
         output_root_parent = store.database_path.parent
         worktrees_root = store.database_path.parent / "worktrees"
@@ -10069,7 +10071,7 @@ def _restore_completed_daily_report_context(
                 raise ReportContractError("report_fallback_review_status_invalid")
             workflow.state.update({
                 "job": job,
-                "precheck_identity": {**identity, "input_refs": report_input["input_refs"], "evidence_refs": report_input["evidence_refs"]},
+                "precheck_identity": identity,
                 "report_attempt": attempt,
                 "report_result": result_document,
                 "report_result_path": attempt.output_path,
@@ -10176,11 +10178,9 @@ def _restore_completed_daily_report_context(
             expected_sha256=candidate_ref["sha256"],
         )
         workflow.state["job"] = job
-        workflow.state["precheck_identity"] = {
-            **identity,
-            "input_refs": input_refs,
-            "evidence_refs": evidence_refs,
-        }
+        workflow.state["precheck_identity"] = identity
+        workflow.state["report_input_refs"] = input_refs
+        workflow.state["report_evidence_refs"] = evidence_refs
         workflow.state["deployment_candidate"] = candidate_document
         workflow.state["deployment_candidate_path"] = candidate_ref["path"]
         workflow.state["deployment_candidate_sha256"] = candidate_ref["sha256"]

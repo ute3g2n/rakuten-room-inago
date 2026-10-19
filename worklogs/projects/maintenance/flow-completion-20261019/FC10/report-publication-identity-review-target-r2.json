@@ -1,0 +1,42 @@
+{
+  "schema_version": "fc10-report-publication-identity-target-v2",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "949ae4e9ab61a62e66f9fabd983eff9d0efe820f4623429bab759291a37fb4f2"
+  },
+  "test_sources_integrity_only_not_for_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "1fafc77f1c398f7b23b63dcf8fbcb29f9f3f7ae8a42341497b8903a5927f34e0"
+  },
+  "local_evidence": {
+    "publication_identity_full_module_green_console_sha256": "dfe6cc8b94034593be9d3b3a42a242269126a46c23bf9cfd2758775322f19e2f",
+    "publication_identity_full_module_green_junit_sha256": "f42e4755b7ce3ff4fcfa01482848ffa86a8d2def06b99beabf334b9fe8c667c3",
+    "normal_restore_references_focused_green_console_sha256": "db4ce22a81508ccb886f409bf6d5791df57d3810dd37302d8c4c62e5f45a28a3",
+    "normal_restore_references_focused_green_junit_sha256": "9d2dda6280a6fbe6afa33720a1dd8c5b7896679bf0fb2b226d031782f74f7b19"
+  },
+  "prior_review": {
+    "manifest": "report-publication-identity-review-target.json",
+    "manifest_sha256": "1fbbfdeae48c2a78c8b5111532dc61c47b17c09bfcc503c238d0d320b1558ebb",
+    "verdict": "changes_requested",
+    "finding": "normal completed-report resume validated input_refs/evidence_refs but did not restore them into dedicated workflow state fields after canonical identity normalization"
+  },
+  "review_scope": [
+    "Verify the prior finding is resolved in the normal report-resume branch of _restore_completed_daily_report_context by writing validated input_refs and evidence_refs to dedicated state fields alongside exact manifest.identity().",
+    "Verify completed-fallback, fallback-save, normal report, and recovery branches keep references separate from manifest identity.",
+    "Verify publication identity checks remain strict and malformed/mismatched identity is rejected before normalization.",
+    "Review only product source; test source hash is integrity-only and test contents must not be read or reviewed."
+  ],
+  "review_constraints": {
+    "read_tests": false,
+    "run_tests": false,
+    "edit_files": false,
+    "production_operations": false
+  },
+  "created_at_utc": "2026-10-19T18:44:04Z"
+}

@@ -4213,6 +4213,31 @@
         "tests_inago/test_maintenance_report_publication_stage.py: reproduce a fifth fallback attempt with four prior completed attempts and no saved review; assert fallback is durably completed and eligible for publication"
       ],
       "reason": "The 10/17 same-job report attempt 5 had zero persisted report reviews. The fallback passed attempt_no 5 as review_round while the store correctly required the next persisted review number 1, leaving the substantive fallback unpublished and the same job incomplete."
+    },
+    {
+      "finding": "FC10 fallback publication canonical identity",
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": [
+        "_persist_minimal_daily_report and run_daily_report_stage: after validating the job_input_manifest, keep precheck_identity as the exact manifest.identity(); preserve attempt/base/input/evidence context in their existing dedicated fields",
+        "run_daily_report_stage completed-fallback and recovery branches: restore the exact manifest.identity() before handing the report to publication",
+        "tests_inago/test_maintenance_report_publication_stage.py: start with historical precheck identity containing attempt/base/input/evidence context, then assert the fallback reaches publication with exact manifest identity and keeps input/evidence references separately"
+      ],
+      "reason": "Resume 12 durably completed report attempt 6 and saved a hash-bound fallback report, but the publication guard compared the precheck context (which includes historical attempt/base/input/evidence fields) to the exact job_input_manifest identity. The report’s own identity and attempt bindings matched; stale workflow context caused report_publication_identity_mismatch before publication."
+    },
+    {
+      "finding": "FC10 normal report resume preserves canonical identity references",
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "boundary": [
+        "_restore_completed_daily_report_context normal maintenance-report-input-v1 branch: after validating the input artifact and canonical manifest identity, restore validated input_refs/evidence_refs to report_input_refs/report_evidence_refs beside exact precheck_identity.",
+        "test_maintenance_report_publication_stage.py: normal completed-report recovery retains validated refs in dedicated fields and leaves them out of precheck_identity."
+      ],
+      "reason": "Independent product review of the first canonical-identity fix found that normal completed-report recovery normalized precheck_identity but dropped the recovered references from the dedicated state fields used by partial-input recovery."
     }
   ]
 }

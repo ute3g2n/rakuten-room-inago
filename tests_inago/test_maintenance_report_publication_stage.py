@@ -1694,9 +1694,13 @@ def test_fc10_fallback_review_round_uses_persisted_review_history(
         resume_state=WorkflowResumeState(job=job, attempts=()),
         state={
             "job": job,
-            "precheck_identity": store.get_job_input_manifest(
-                job_id=job.job_id
-            ).identity(),
+            "precheck_identity": {
+                **store.get_job_input_manifest(job_id=job.job_id).identity(),
+                "attempt_id": "attempt-precheck-fallback-review-round",
+                "base_commit": base_commit,
+                "input_refs": ["historical-intake/2026-10-17/input.json"],
+                "evidence_refs": ["historical-input/2026-10-17/evidence.json"],
+            },
             "report_base_commit": base_commit,
             "report_source_snapshot": {
                 "implementation": {"result_commit": base_commit},
@@ -1721,7 +1725,16 @@ def test_fc10_fallback_review_round_uses_persisted_review_history(
     completed = workflow.state["report_attempt"]
     assert completed.attempt_no == 5
     assert completed.status == "complete"
+    assert workflow.state["precheck_identity"] == store.get_job_input_manifest(
+        job_id=job.job_id
+    ).identity()
     assert workflow.state["report_result"]["review"]["status"] == "unavailable"
+    assert workflow.state["report_input_refs"] == [
+        "historical-input/2026-10-17/observation.json"
+    ]
+    assert workflow.state["report_evidence_refs"] == [
+        "historical-input/2026-10-17/source-evidence.json"
+    ]
     saved_review = store.get_step_attempt_review(attempt_id=completed.attempt_id)
     assert saved_review is not None
     assert saved_review["status"] == "unavailable"
@@ -1801,6 +1814,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             "job": job,
             "precheck_identity": {
                 **identity,
+                "attempt_id": f"attempt-precheck-{reviewer_mode}",
+                "base_commit": _git(
+                    Path(__file__).resolve().parents[1], "rev-parse", "HEAD"
+                ),
                 "input_refs": [
                     f"daily-launch/{source_launch_id}",
                     f"daily-result-observation/{source_launch_id}",
@@ -2110,6 +2127,9 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
     assert result.status == "complete"
     assert len(publication_calls) == 1
     assert publication_calls[0]["identity"]["job_id"] == job.job_id
+    assert publication_calls[0]["identity"] == identity
+    assert context.state["report_input_refs"]
+    assert context.state["report_evidence_refs"]
     assert role_calls, {
         key: context.state.get(key)
         for key in (
@@ -2910,3 +2930,167 @@ def test_fc07_completed_fallback_preserves_nonapproved_review_for_pending_publis
     assert workflow.state["report_attempt"].job_id == job_id
     assert workflow.state["report_attempt"].attempt_id == attempt_id
     assert workflow.state["report_html_path"] == html_path
+
+
+def test_fc10_completed_normal_report_restore_keeps_refs_outside_identity(
+    tmp_path: Path, monkeypatch
+):
+    job_id = "job-fc10-normal-resume-refs"
+    attempt_id = "attempt-fc10-normal-resume-refs"
+    identity = {
+        "incident_id": "incident-fc10-normal-resume-refs",
+        "source_launch_id": "launch-fc10-normal-resume-refs",
+        "source_run_id": None,
+        "target_date": "2026-10-17",
+        "job_id": job_id,
+    }
+    input_refs = ["daily-launch/launch-fc10-normal-resume-refs", "historical-intake/2026-10-17/input.json"]
+    evidence_refs = ["historical-input/2026-10-17/evidence.json"]
+    base_commit = "a" * 40
+    source_snapshot = {
+        "investigation": {"result_version": "investigation-v1"},
+        "plan": {"result_version": "plan-v1"},
+        "implementation": {"result_commit": base_commit},
+        "tests": {"result_version": "tests-v1"},
+        "deployment": {"status": "applied"},
+        "next_day": {"status": "unknown"},
+    }
+    source_artifacts = {
+        "deployment_candidate": {"path": f"{job_id}/{attempt_id}/candidate.json", "sha256": "b" * 64},
+        "evidence_index": {"path": f"{job_id}/{attempt_id}/evidence-index.json", "sha256": "c" * 64},
+    }
+    source_documents = {"deployment_candidate": {"candidate": "verified"}}
+    stable_source = {
+        "identity": identity,
+        "base_commit": base_commit,
+        "source_snapshot": source_snapshot,
+        "source_artifacts": source_artifacts,
+        "input_refs": input_refs,
+        "evidence_refs": evidence_refs,
+    }
+    source_sha256 = hashlib.sha256(
+        json.dumps(
+            stable_source,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    result_version = f"report-{source_sha256[:24]}-r1"
+    report_input = {
+        "schema_version": "maintenance-report-input-v1",
+        "identity": identity,
+        "attempt_id": attempt_id,
+        "source_sha256": source_sha256,
+        "result_version": result_version,
+        "created_at_jst": "2026-10-20T10:00:00+09:00",
+        "report_round": 1,
+        "base_commit": base_commit,
+        "source_snapshot": source_snapshot,
+        "source_artifacts": source_artifacts,
+        "source_documents": source_documents,
+        "input_refs": input_refs,
+        "evidence_refs": evidence_refs,
+        "prior_review_findings": [],
+    }
+    review_document = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": production_workflow._REPORT_REVIEWER_ROLE,
+        "reviewed_version": result_version,
+        "reviewed_sha256": "d" * 64,
+        "status": "approved",
+        "reviewed_at": "2026-10-20T10:01:00+09:00",
+        "findings": [],
+    }
+    result_document = {
+        "identity": identity,
+        "attempt_id": attempt_id,
+        "result_version": result_version,
+        "stage_status": "reviewed",
+        "review": review_document,
+        "output": {"path": f"{job_id}/{attempt_id}/report.html", "sha256": "d" * 64},
+        "source_versions": {
+            "investigation": "investigation-v1",
+            "plan": "plan-v1",
+            "implementation": base_commit,
+            "tests": "tests-v1",
+            "deployment_status": "applied",
+            "next_day_status": "unknown",
+        },
+    }
+    attempt = SimpleNamespace(
+        job_id=job_id,
+        attempt_id=attempt_id,
+        step_key="maintenance_report",
+        sequence=4,
+        attempt_no=1,
+        status="complete",
+        result_version=result_version,
+        output_path=f"{job_id}/{attempt_id}/result.json",
+        output_sha256="e" * 64,
+    )
+    job = SimpleNamespace(job_id=job_id, incident_id=identity["incident_id"], status="complete")
+    store = make_store(tmp_path)
+    monkeypatch.setattr(
+        store,
+        "get_job_input_manifest",
+        lambda **_kwargs: SimpleNamespace(identity=lambda: dict(identity)),
+    )
+    monkeypatch.setattr(
+        store,
+        "get_step_attempt_review",
+        lambda **_kwargs: {
+            "reviewer_id": production_workflow._REPORT_REVIEWER_ROLE,
+            "reviewed_version": result_version,
+            "status": "approved",
+        },
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_read_json",
+        lambda **kwargs: (
+            result_document
+            if kwargs["relative_path"] == attempt.output_path
+            else {"candidate": "verified"}
+        ),
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_attempt_input",
+        lambda **_kwargs: report_input,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_source_documents",
+        lambda **_kwargs: source_documents,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_validate_report_sources",
+        lambda _context, snapshot: snapshot,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "validate_report_review",
+        lambda review, **_kwargs: review,
+    )
+    monkeypatch.setattr(
+        production_workflow, "_daily_report_reviewer_id_valid", lambda _review: True
+    )
+    workflow = SimpleNamespace(
+        resume_state=SimpleNamespace(job=job, attempts=(attempt,)),
+        launch=SimpleNamespace(
+            source_launch_id=identity["source_launch_id"],
+            source_run_id=None,
+            target_date=identity["target_date"],
+        ),
+        state={"precheck_identity": {**identity, "input_refs": input_refs, "evidence_refs": evidence_refs}},
+    )
+
+    restored = production_workflow._restore_completed_daily_report_context(workflow, store)
+
+    assert restored.status == "complete"
+    assert workflow.state["precheck_identity"] == identity
+    assert workflow.state["report_input_refs"] == input_refs
+    assert workflow.state["report_evidence_refs"] == evidence_refs

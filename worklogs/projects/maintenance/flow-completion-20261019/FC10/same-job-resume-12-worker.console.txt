@@ -1,0 +1,2 @@
+{"check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b", "duplicate": false, "maintenance_resolution_status": "unknown", "queue_id": null, "reason_code": "report_publication_identity_mismatch", "schema_version": "maintenance-worker-result-v3", "scope": "maintenance_workflow", "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427", "status": "maintenance_incomplete", "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427"}
+worker_exit_code=0

@@ -1,0 +1,191 @@
+{
+  "schema_version": "fc10-same-job-resume-readback-v1",
+  "official_active_commit": "70fca6ac8708ab74551bf55abb089dd32843d884",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "resume_command_result": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "resume_count": 12,
+    "resume_event_id": "cd2e2b43cce046fa810ddf0e60114879",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "queued"
+  },
+  "worker_result": {
+    "check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b",
+    "duplicate": false,
+    "maintenance_resolution_status": "unknown",
+    "queue_id": null,
+    "reason_code": "report_publication_identity_mismatch",
+    "schema_version": "maintenance-worker-result-v3",
+    "scope": "maintenance_workflow",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "maintenance_incomplete",
+    "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  },
+  "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+  "job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "status": "failed",
+    "resume_count": 12,
+    "updated_at": "2026-10-19T18:36:34.526468Z",
+    "finished_at": "2026-10-19T18:36:34.526468Z",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "stage_observations": [
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "check_incident",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:35:07.169577Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "evidence",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:35:07.211863Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "job",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:35:07.250228Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "investigation",
+      "status": "complete",
+      "reason_code": null,
+      "observed_at": "2026-10-19T18:35:07.281509Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "planning",
+      "status": "unknown",
+      "reason_code": "ai_transport_failed",
+      "observed_at": "2026-10-19T18:35:10.420329Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "repair",
+      "status": "unknown",
+      "reason_code": "repair_attempt_not_actionable",
+      "observed_at": "2026-10-19T18:35:10.476086Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "deployment",
+      "status": "unknown",
+      "reason_code": "deployment_candidate_unavailable",
+      "observed_at": "2026-10-19T18:35:10.540394Z"
+    },
+    {
+      "invocation_id": "workflow-7bffb23e08b04d9094660f5eb1c7879a",
+      "stage_name": "report",
+      "status": "unknown",
+      "reason_code": "report_publication_identity_mismatch",
+      "observed_at": "2026-10-19T18:36:34.429080Z"
+    }
+  ],
+  "latest_report_attempt": {
+    "attempt_id": "a4d986bd-f0dc-4391-9328-6dc3f08f120c",
+    "attempt_no": 6,
+    "status": "complete",
+    "result_version": "fallback-2b5b57c2917ae0cec205",
+    "output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/a4d986bd-f0dc-4391-9328-6dc3f08f120c/result.json",
+    "output_sha256": "629f63c4e0db803e5dc27bf31bbf81d4f048b7675451b6acf341c1646dc88362",
+    "started_at": "2026-10-19T18:35:10.620982Z",
+    "finished_at": "2026-10-19T18:36:34.391577Z"
+  },
+  "report_artifact_readback": {
+    "result_identity": {
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    },
+    "attempt_id_matches": true,
+    "result_version_matches": true,
+    "result_sha256_matches": true,
+    "stage_status": "review_unavailable",
+    "review_status": "unavailable",
+    "output": {
+      "path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/a4d986bd-f0dc-4391-9328-6dc3f08f120c/report-fallback-2b5b57c2917ae0cec205.html",
+      "sha256": "2b5b57c2917ae0cec205b6060ac286e717709a92a4c3acfaf4709ebe4d36bd01"
+    },
+    "html_sha256_matches": true
+  },
+  "publication_failure_event": {
+    "event_id": "1d12b5ffbea14e0b9726ebf0d6cef121",
+    "observed_at": "2026-10-19T18:36:34.414+00:00",
+    "operation": "workflow.report.publication.validate_identity",
+    "stage": "report",
+    "attempt_id": "a4d986bd-f0dc-4391-9328-6dc3f08f120c",
+    "reason_code": "report_publication_identity_mismatch",
+    "capture_location": "run_daily_report_publication_stage",
+    "exception_chain": [
+      "ReportContractError"
+    ],
+    "stack_frames": [
+      {
+        "file": "production_workflow.py",
+        "function": "run_daily_report_publication_stage",
+        "line": 10433
+      }
+    ],
+    "input_refs": [
+      "evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json",
+      "historical-input/2026-10-17/e0-manifest.json",
+      "historical-input/2026-10-17/observation.json",
+      "historical-input/2026-10-17/production-cli.filtered.json",
+      "historical-input/2026-10-17/read-aggregate.json",
+      "historical-input/2026-10-17/scheduler.filtered.json",
+      "historical-input/2026-10-17/source-evidence.json",
+      "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json"
+    ],
+    "artifact_refs": [
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/a4d986bd-f0dc-4391-9328-6dc3f08f120c/result.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/a4d986bd-f0dc-4391-9328-6dc3f08f120c/report-fallback-2b5b57c2917ae0cec205.html"
+    ]
+  },
+  "database": {
+    "user_version": 15,
+    "quick_check": "ok"
+  },
+  "october_19_worker_queue": {
+    "row_count": 1,
+    "rows": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "worker_job_id": "worker-2a0f6cdfb9a4479f8f9c1b9244303e04",
+        "target_date": "2026-10-19",
+        "status": "queued",
+        "created_at": "2026-10-19T04:00:03.226334Z",
+        "updated_at": "2026-10-19T04:00:03.226334Z",
+        "reason_code": null
+      }
+    ],
+    "canonical_sha256": "6dd1f61e6f0bda267ae4df91fcf562401b999c35da79802ba8b377c04669133e"
+  },
+  "october_19_worker_queue_events": {
+    "row_count": 0,
+    "rows": [],
+    "canonical_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "pre_run_comparison": "Resume 11 readback had one queued 2026-10-19 row and zero worker queue events. After resume 12, that same row remains queued and there are still zero events.",
+  "publication": "No report publication or successful terminal registration was observed."
+}
