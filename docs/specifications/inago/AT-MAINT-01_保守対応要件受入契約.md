@@ -255,6 +255,7 @@ U02では本契約と要件対応を静的に確認し、HTML正本を再生成�
 本文だけで「何が起きた/調べた/変えた/不明/次」を理解できる平易な日本語を使い、内部値は参考付録へ置く。reporter失敗時は最小HTMLを同一job/attemptへ保存し、実report reviewerへ渡す。review所見は作者が反映し、review不能でも未承認を正直に残して公開を試す。公開完了とincident解決を分ける。
 
 source snapshotの調査・計画・コードreviewは、各sourceのstatusを対応させて表示し、固定文言で承認を補わない。未作成資料は本文の資料一覧へ誤ってリンクしない。リンク名は資料の役割と形式に合わせる。停止理由のnull/欠測は未確認とし、理由がなかったと断定しない。本文のreport statusは`complete`または`pending`とし、失敗・未確認はその理由と平易な表示で残す。工程tree、生status、reason code、内部ID、版キー、hashは技術付録へ置く。rendererはAI作成本文に状態コード等が含まれる時も本文へそのまま出さない。
+`report_status`は元資料が示す調査・試験・反映の完了状態、`stage_status`と`review.status`はHTML文章レビューの状態として独立に扱う。たとえば`report_status=pending`と`review.status=approved`は両立し、reviewの承認で元資料の完了状態を`complete`へ昇格させない。終端の公開読戻しもこの二つを独立に照合する。レビュー不能の場合は、現行の公開契約と同じくcontroller fallback・pending・`next_action=publish`・専用reviewer ID・unavailable statusを全て確認する。
 工程表の対象版欄が参考付録を指す場合、source工程の版とreport response内の全check工程名・版を付録に含める。
 ## FC09 schema v15のソース・適用確認
 

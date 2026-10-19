@@ -1,0 +1,59 @@
+{
+  "schema_version": "fc10-terminal-status-reconciliation-verification-v1",
+  "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+  "source_run_id": null,
+  "target_date": "2026-10-17",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "base_commit": "e17cf65f2fcca5c14ad28eb51b033b8ad996bd9d",
+  "pre_fix_terminal": {
+    "invocation_id": "workflow-b15b811f26054614af3d91cb2ce25a35",
+    "resume_count": 20,
+    "job_status": "failed",
+    "job_reason": "workflow_terminal_observations_incomplete",
+    "report_readback_reason": "report_result_identity_or_status_mismatch",
+    "report_review_status": "approved",
+    "report_source_status": "pending",
+    "published_report_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650"
+  },
+  "tdd_red": "New terminal reconciliation test failed before the fix with workflow_completion=incomplete and report_result_identity_or_status_mismatch.",
+  "targeted_regressions": {
+    "cases": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "review_revision_cases": {
+    "cases": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "focused_modules": {
+    "command": ".venv-inago\\Scripts\\python.exe -B -m pytest tests_inago/test_maintenance_report.py tests_inago/test_maintenance_report_publication_stage.py -q",
+    "exit_code": 0,
+    "passed": 61,
+    "failed": 0,
+    "duration_seconds": 87.09
+  },
+  "independent_product_review": {
+    "reviewer": "fc08_product_review",
+    "verdict": "APPROVE",
+    "findings": 0,
+    "workflow_reconciliation_sha256": "9a2653dfcbc88c71b02e8bb1b1439cec075fabe7805ca57eecb4262caedb58d0",
+    "production_workflow_sha256": "9956d1a464ccbd5d62720daa86b37a8a6a7742089e18cdb2b425058d22d9c29c",
+    "test_code_reviewed": false
+  },
+  "other_checks": {
+    "python_compile": "passed",
+    "report_role_toml_parse": "passed",
+    "requirements_builder": "passed: v2.56; 28 chapters; 39 figures; 26 references",
+    "git_diff_check": "passed with existing CRLF/LF normalization warnings"
+  },
+  "not_yet_done": [
+    "Commit and push current task-owned code and synchronization changes",
+    "Apply and confirm the pushed code with TaskSchedulerRuntimeSwitcher in the fixed root",
+    "Resume the exact same job at resume 21",
+    "Verify live report review, public HTML readback, and same-job terminal completion"
+  ],
+  "acceptance": "not_met_until_same_job_terminal_and_publication_readbacks_pass"
+}

@@ -9156,7 +9156,9 @@ def _persist_minimal_daily_report(
             "attempt_id": current.attempt_id,
             "result_version": result_version,
             "created_at_jst": created_at,
-            "report_status": "complete" if review_document["status"] == "approved" else "pending",
+            # Fallback reports do not establish the underlying investigation,
+            # test, or deployment state, even when their wording is approved.
+            "report_status": "pending",
             "stage_status": "reviewed" if review_document["status"] != "unavailable" else "review_unavailable",
             "review": review_document,
             "output": {"path": html_path, "sha256": html_sha256},
@@ -10244,11 +10246,8 @@ def _restore_completed_daily_report_context(
                 review_status = fallback_review.get("status")
                 report_status = result_document.get("report_status")
                 valid_reviewed_result = (
-                    (review_status == "approved" and report_status == "complete")
-                    or (
-                        review_status in {"changes_requested", "rejected"}
-                        and report_status == "pending"
-                    )
+                    report_status == "pending"
+                    and review_status in {"approved", "changes_requested", "rejected"}
                 )
                 if not valid_reviewed_result:
                     raise ReportContractError("report_fallback_review_status_invalid")

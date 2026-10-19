@@ -468,6 +468,37 @@ def _fc08_crash_after_publish(fixture: dict[str, object], exit_code: int = 47):
     assert child.exitcode == exit_code
 
 
+def _fc08_rewrite_published_result(fixture, **updates):
+    store = fixture["store"]
+    attempt = fixture["report_attempt"]
+    attempts_root = store.database_path.parent / "attempts"
+    result_path = attempts_root / attempt.output_path
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    result.update(updates)
+    result_bytes = (
+        json.dumps(result, ensure_ascii=False, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    result_path.write_bytes(result_bytes)
+    result_sha256 = hashlib.sha256(result_bytes).hexdigest()
+    connection = store._connect()
+    try:
+        connection.execute(
+            "UPDATE step_attempt SET output_sha256 = ? WHERE attempt_id = ?",
+            (result_sha256, attempt.attempt_id),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    publication_path = result_path.parent / "report-publication.json"
+    publication = json.loads(publication_path.read_text(encoding="utf-8"))
+    publication["result_sha256"] = result_sha256
+    publication_path.write_text(
+        json.dumps(publication, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return result, result_sha256
+
+
 def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
     tmp_path: Path, monkeypatch
 ):
@@ -587,6 +618,116 @@ def test_fc08_publication_crash_resumes_same_job_and_only_reconciler_finalizes(
         (fixture["identity"]["incident_id"],),
     ).fetchone()
     assert incident_row["status"] == "in_progress"
+
+
+def test_fc10_terminal_accepts_pending_report_with_approved_html_review(
+    tmp_path: Path, monkeypatch
+):
+    fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+    _fc08_crash_after_publish(fixture)
+    result, result_sha256 = _fc08_rewrite_published_result(
+        fixture, report_status="pending"
+    )
+    assert result["report_status"] == "pending"
+    assert result["review"]["status"] == "approved"
+
+    # Report completeness describes the incident evidence; review approval
+    # describes the HTML wording. They are independent and may differ.
+    store = fixture["store"]
+    reopened = MaintenanceStore(
+        store.database_path.parent.parent,
+        daily_database_path=fixture["daily_database_path"],
+    )
+    reopened.initialize()
+    lease = reopened.acquire_lease(
+        lease_key=f"maintenance:{fixture['identity']['job_id']}",
+        owner_id="fc10-pending-approved-terminal-reconciler",
+        owner_pid=os.getpid(),
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        workflow_reconciliation_module,
+        "__file__",
+        str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+    )
+
+    terminal = reconcile_workflow_terminal(
+        reopened,
+        job_id=fixture["identity"]["job_id"],
+        lease=lease,
+        expected_identity=fixture["identity"],
+    )
+
+    assert terminal["workflow_completion"] == "complete", json.dumps(
+        {
+            "reason_code": terminal["reason_code"],
+            "report_publication_readback_reason": terminal[
+                "report_publication_readback_reason"
+            ],
+        },
+        sort_keys=True,
+    )
+    assert terminal["report_publication_readback"]["result_sha256"] == result_sha256
+    final_job = reopened.list_workflow_jobs_for_launch(
+        source_launch_id=fixture["identity"]["source_launch_id"],
+        source_run_id=None,
+        target_date=fixture["identity"]["target_date"],
+        job_id=fixture["identity"]["job_id"],
+    )[0]
+    assert final_job.status == "complete"
+    incident_row = reopened._connect().execute(
+        "SELECT status FROM incident WHERE incident_id = ?",
+        (fixture["identity"]["incident_id"],),
+    ).fetchone()
+    assert incident_row["status"] == "in_progress"
+
+
+def test_fc10_terminal_rejects_unavailable_review_without_controller_fallback(
+    tmp_path: Path, monkeypatch
+):
+    fixture = _fc08_seed_terminal_fixture(tmp_path, monkeypatch)
+    _fc08_crash_after_publish(fixture)
+    result_document, _ = _fc08_rewrite_published_result(
+        fixture,
+        report_status="complete",
+        stage_status="review_unavailable",
+        review={
+            **fixture["report_review"],
+            "reviewer_id": "rr-inago-incident-report-reviewer",
+            "status": "unavailable",
+        },
+    )
+    assert result_document["review"]["status"] == "unavailable"
+    reopened = MaintenanceStore(
+        fixture["store"].database_path.parent.parent,
+        daily_database_path=fixture["daily_database_path"],
+    )
+    reopened.initialize()
+    lease = reopened.acquire_lease(
+        lease_key=f"maintenance:{fixture['identity']['job_id']}",
+        owner_id="fc10-invalid-unavailable-terminal-reconciler",
+        owner_pid=os.getpid(),
+        owner_start_time=BASE_TIME,
+        now=BASE_TIME,
+    )
+    monkeypatch.setattr(
+        workflow_reconciliation_module,
+        "__file__",
+        str(fixture["repository"] / "automation/inago/maintenance/workflow_reconciliation.py"),
+    )
+
+    terminal = reconcile_workflow_terminal(
+        reopened,
+        job_id=fixture["identity"]["job_id"],
+        lease=lease,
+        expected_identity=fixture["identity"],
+    )
+
+    assert terminal["workflow_completion"] == "incomplete"
+    assert terminal["report_publication_readback_reason"] == (
+        "report_result_identity_or_status_mismatch"
+    )
 
 
 def test_fc10_terminal_reads_handoff_accepted_attempt_as_completed_output(
@@ -2731,8 +2872,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert isinstance(published_report, dict)
         assert published_report["report_status"] == (
             "pending"
-            if reviewer_mode
-            == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+            if reviewer_mode in {
+                "fallback_review_changes_requested_then_approved",
+                "fallback_revision_selects_current_turn_among_multiple_author_envelopes",
+            }
             else "complete"
         )
         assert published_report["review"]["status"] == "approved"
@@ -2762,7 +2905,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         published_report = publication_calls[0]["report"]
         assert isinstance(published_report, dict)
         assert published_report["review"]["status"] == "approved"
-        assert published_report["report_status"] == "complete"
+        assert published_report["report_status"] == "pending"
         assert published_report["review"]["reviewed_version"] == review_inputs[2]["result_version"]
         assert published_report["review"]["reviewed_sha256"] == review_inputs[2]["html_sha256"]
         assert published_report["output"]["path"] == review_inputs[2]["html_path"]
@@ -2782,6 +2925,8 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert "指摘を本文へ反映しました" not in review_inputs[-1]["html"]
         published_report = publication_calls[0]["report"]
         assert isinstance(published_report, dict)
+        assert published_report["report_origin"] == "controller_fallback"
+        assert published_report["report_status"] == "pending"
         assert published_report["review"]["status"] == "approved"
         assert published_report["review"]["reviewed_version"] == review_inputs[-1]["result_version"]
         assert published_report["review"]["reviewed_sha256"] == review_inputs[-1]["html_sha256"]

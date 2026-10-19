@@ -375,21 +375,17 @@ def _published_report_readback(
         or not isinstance(result.get("review"), dict)
         or (
             result.get("stage_status") == "reviewed"
-            and (
-                not (
-                    result.get("report_status") == "complete"
-                    and result["review"].get("status") == "approved"
-                )
-                and not (
-                    result.get("report_status") == "pending"
-                    and result["review"].get("status") in {"changes_requested", "rejected"}
-                )
-            )
+            and result["review"].get("status")
+            not in {"approved", "changes_requested", "rejected"}
         )
         or (
             result.get("stage_status") == "review_unavailable"
             and (
-                result.get("report_status") != "pending"
+                result.get("report_origin") != "controller_fallback"
+                or result.get("report_status") != "pending"
+                or result.get("next_action") != "publish"
+                or result["review"].get("reviewer_id")
+                != "controller-fallback-review-unavailable"
                 or result["review"].get("status") != "unavailable"
             )
         )

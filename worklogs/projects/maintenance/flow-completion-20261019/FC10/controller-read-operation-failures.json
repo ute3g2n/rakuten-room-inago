@@ -773,6 +773,63 @@
       "capture_location": "Codex app read_thread tool response",
       "side_effect": "none; no thread or repository state changed",
       "recovery": "Repeated the read with turnLimit 10 and extracted the exact r9 and r10 structured reviewer outputs and findings."
+    },
+    {
+      "operation": "synchronize_report_status_contract_across_multiple_files",
+      "failure_class": "Patch context mismatch",
+      "reason": "An initial multi-file patch expected an older reporter-role line and did not match the current TOML content. The patch was rejected before applying any hunks.",
+      "capture_location": "apply_patch response",
+      "side_effect": "none; the failed patch made no file changes",
+      "recovery": "Read the exact current lines, split the changes into smaller file-specific patches, and verified the original reporter instructions remained present."
+    },
+    {
+      "operation": "locate_report_status_contract_references",
+      "failure_class": "Ripgrep regex parse error",
+      "reason": "A bracketed search expression was malformed after PowerShell and regex escaping, so ripgrep returned no usable matches.",
+      "capture_location": "controller read-only rg invocation",
+      "side_effect": "none; read-only search",
+      "recovery": "Repeated the search with Select-String on explicit files and verified the relevant contract lines."
+    },
+    {
+      "operation": "update_fallback_status_test_expectations",
+      "failure_class": "Patch context mismatch",
+      "reason": "The test assertion had changed since the prepared patch context, so that patch was rejected before writing.",
+      "capture_location": "apply_patch response",
+      "side_effect": "none; the failed patch made no file changes",
+      "recovery": "Read the current parametrized assertion block and applied a smaller patch to the exact fallback cases."
+    },
+    {
+      "operation": "focused_report_modules_before_fallback_expectation_update",
+      "failure_class": "Pytest assertion failures",
+      "reason": "The first full run after product changes reported 59 passed and 2 failed. Both failures were stale tests expecting a controller-fallback report to become complete when its wording reviewer approved it. Under the corrected contract, underlying source evidence remains pending even when wording is approved.",
+      "capture_location": "pytest tests_inago/test_maintenance_report.py tests_inago/test_maintenance_report_publication_stage.py -q",
+      "side_effect": "none; isolated local test fixtures only",
+      "recovery": "Updated the fallback changes-requested-then-approved, multiple-findings-then-approved, and current-turn mismatch expectations to pending; four focused review-revision cases passed, then the complete focused modules passed 61/61."
+    },
+    {
+      "operation": "inspect_runtime_switcher_and_resume_cli_source",
+      "recorded_at_utc": "2026-10-19T21:58:53Z",
+      "failure_class": "JavaScript syntax error in tool orchestration",
+      "reason": "The functions.exec wrapper omitted a closing parenthesis while constructing a parallel read-only inspection. Parsing failed before any nested command was started.",
+      "capture_location": "functions.exec isolate parser",
+      "side_effect": "none; no filesystem command ran",
+      "recovery": "Corrected the Promise.allSettled call and read the runtime switcher, production root resolver, and resume-worker API successfully."
+    },
+    {
+      "operation": "scan_task_changes_for_secret_patterns_and_classify_git_paths",
+      "failure_class": "UnicodeDecodeError and inspection script AttributeError",
+      "reason": "Python subprocess capture used the host cp932 default to decode Git's UTF-8 diff, causing reader-thread decode errors and a null captured stdout; the script then raised AttributeError when parsing that absent output.",
+      "capture_location": "read-only Python ownership/secret-scan wrapper",
+      "side_effect": "none; only git status, diff, and file reads were attempted",
+      "recovery": "Rerun the same inventory and scan with explicit UTF-8 decoding and replacement for malformed subprocess bytes, then verify all reported paths and scan counts."
+    },
+    {
+      "operation": "verify_staged_path_ownership_exact_match",
+      "failure_class": "Inspection assertion failure from Git quoted Unicode paths",
+      "reason": "The read-only script compared an expected set of Unicode paths with git diff --cached --name-only output, which core.quotePath rendered as quoted octal escapes. The comparison failed even though Git staged the intended 17 paths.",
+      "capture_location": "read-only staged-inventory Python assertion",
+      "side_effect": "none; the script did not stage, unstage, or modify any file",
+      "recovery": "Repeat the path comparison with NUL-delimited Git output and explicit UTF-8 decoding, which disables path quoting, then complete the staged-only secret scan."
     }
   ]
 }

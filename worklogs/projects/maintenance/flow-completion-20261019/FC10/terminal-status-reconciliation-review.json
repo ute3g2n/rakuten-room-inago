@@ -1,0 +1,17 @@
+{
+  "schema_version": "fc10-terminal-status-reconciliation-product-review-v1",
+  "reviewer": "fc08_product_review",
+  "verdict": "APPROVE",
+  "findings": [],
+  "initial_review": {
+    "verdict": "CHANGES_REQUESTED",
+    "finding": "The unavailable-review branch needed to require the exact controller fallback origin, pending source status, publish action, fixed reviewer identity, and unavailable review status.",
+    "resolution": "Applied the exact publication binding and added a negative terminal regression case."
+  },
+  "targets": {
+    "automation/inago/maintenance/workflow_reconciliation.py": "9a2653dfcbc88c71b02e8bb1b1439cec075fabe7805ca57eecb4262caedb58d0",
+    "automation/inago/maintenance/production_workflow.py": "9956d1a464ccbd5d62720daa86b37a8a6a7742089e18cdb2b425058d22d9c29c"
+  },
+  "review_scope": "Product code and surrounding control flow only; tests were not read or executed by the reviewer.",
+  "review_result": "Reviewed source report completeness and HTML review disposition as independent facts. Confirmed that unavailable-review terminal readback requires the exact fallback publication binding."
+}
