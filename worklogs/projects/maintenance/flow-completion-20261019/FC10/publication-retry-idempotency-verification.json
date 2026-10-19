@@ -1,0 +1,111 @@
+{
+  "schema_version": "fc10-publication-retry-idempotency-verification-v1",
+  "recorded_at_utc": "2026-10-19T22:14:56Z",
+  "base": {
+    "branch": "main",
+    "head": "0a841e3e1b7c3e9a8b2a39ba4a0f72b5cbe0eb9a",
+    "tracking": "origin/main"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "attempt_id": "248743c6-c710-4ef3-af53-9336fbe2e3c1"
+  },
+  "runtime_observation": {
+    "database": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "access": "read-only",
+    "quick_check": "ok",
+    "user_version": 16,
+    "job_resume_count": 21,
+    "job_status": "failed",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete",
+    "latest_resume_source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "worker_queue_2026_10_19": {
+      "queued": 1
+    },
+    "daily_launch_for_source_launch_id": 0,
+    "side_effects": "No job, daily run, queue item, or source run was created or changed by these inspections."
+  },
+  "failure_reproduction": {
+    "runtime_event_id": "9a9560eb3f6b4ea8b24b426cde23a8da",
+    "invocation_id": "workflow-6cc9a7fdd24b4789affb54939aa1ed06",
+    "correlation_id": "workflow-6cc9a7fdd24b4789affb54939aa1ed06",
+    "operation": "workflow.report.publication.push_remote",
+    "reason_code": "report_path_conflict",
+    "exception_chain": [
+      "ReportContractError"
+    ],
+    "capture_location": "run_daily_report_publication_stage",
+    "stack_frames": [
+      {
+        "file": "production_workflow.py",
+        "function": "run_daily_report_publication_stage",
+        "line": 10970
+      },
+      {
+        "file": "reporting.py",
+        "function": "publish_reviewed_report",
+        "line": 1772
+      },
+      {
+        "file": "reporting.py",
+        "function": "_find_report_publication",
+        "line": 1641
+      },
+      {
+        "file": "reporting.py",
+        "function": "_report_publication_commit",
+        "line": 1592
+      }
+    ],
+    "input_refs": [
+      "job attempt result.json",
+      "job attempt report.html",
+      "report-publication.json"
+    ],
+    "report_path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+    "reviewed_html_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "observed_remote_report_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "old_controller_fallback_parent_blob_sha256": "ccbc1b6872ac533ff965d2dc03b75aabd1a30550d0dba77f3fe0172f2d3035b2",
+    "cause": "Retry passed expected_existing_sha256=None although the exact reviewed HTML had already replaced this same-job fallback at the public path. Exact commit recovery compared against the wrong parent blob and raised report_path_conflict."
+  },
+  "change": {
+    "production_file": "automation/inago/maintenance/production_workflow.py",
+    "production_sha256": "06e792b49cf10fbc4148ce972f3f7498fcbdaadc912775996be2fdcb15265d88",
+    "test_file": "tests_inago/test_maintenance_report_publication_stage.py",
+    "test_sha256": "d5d7da35bf113b9d665e07cbf6f85e8c332050f0b6a514a7909e57e28e6ec5e9",
+    "behavior": "Recover the original report parent blob from the validated same-attempt publication sidecar; if that sidecar was not saved, discover only one exact current attempt commit scoped to the report path. Existing publisher checks still validate commit, parent, scope, ancestry, and reviewed HTML hash; ambiguous matches fail closed."
+  },
+  "focused_verification": {
+    "command": ".venv-inago\\Scripts\\python.exe -B -m pytest -q tests_inago/test_maintenance_report.py tests_inago/test_maintenance_report_publication_stage.py",
+    "exit_code": 0,
+    "passed": 61,
+    "failed": 0,
+    "duration_seconds": 115.4,
+    "scope": "The two focused report/publication modules only; no unrelated suite.",
+    "initial_red": "Before the product fix, retry after push/sidecar-save interruption reproduced report_path_conflict in the synthetic local Git remote.",
+    "test_fixture_recovery": [
+      "Initial fixture still assumed the remote branch head equaled the source code commit after seeding the earlier fallback; corrected to assert the seeded fallback publication commit.",
+      "After the fix, fixture still asserted the reports directory did not exist; corrected to assert the tracked test worktree is clean. Neither fixture issue changed the product or production runtime."
+    ],
+    "static_checks": {
+      "py_compile_production_workflow": "passed",
+      "worker_exclusion_exact_value": "passed: frozenset({\"2026-10-19\"})",
+      "git_diff_check": "passed; line-ending normalization warning only"
+    }
+  },
+  "independent_product_review": {
+    "reviewer": "fc08_product_review",
+    "verdict": "APPROVE",
+    "findings": 0,
+    "reviewed_product_sha256": "06e792b49cf10fbc4148ce972f3f7498fcbdaadc912775996be2fdcb15265d88",
+    "scope": "production_workflow.py and surrounding control flow; reviewer did not inspect/run tests and performed no production operation."
+  },
+  "next_action": "Selectively stage owned code/test/records, push to origin/main, apply and read back through TaskSchedulerRuntimeSwitcher, then resume only this same job/launch and explicitly run its historical Worker. Final report review/publication/terminal acceptance remains unachieved.",
+  "plan_source": {
+    "path": "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+    "original_v1_2_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": "fc10-publication-retry-idempotency-product-review-v1",
+  "recorded_at_utc": "2026-10-19T22:14:56Z",
+  "reviewer": "fc08_product_review",
+  "verdict": "APPROVE",
+  "findings": [],
+  "targets": {
+    "automation/inago/maintenance/production_workflow.py": "06e792b49cf10fbc4148ce972f3f7498fcbdaadc912775996be2fdcb15265d88"
+  },
+  "scope": "Independent read-only review of production publication retry logic and surrounding control flow. Tests were not read or run by the reviewer.",
+  "review_result": "Validated sidecar identity and hash binding, exact remote commit matching when the sidecar is absent, report-path scoping, ambiguity rejection, fallback replacement evidence, and continued strict publisher validation of commit parent/scope/ancestry/reviewed digest.",
+  "production_operation_performed": false
+}

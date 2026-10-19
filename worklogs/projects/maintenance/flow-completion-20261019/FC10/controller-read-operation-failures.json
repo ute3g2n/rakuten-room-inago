@@ -830,6 +830,42 @@
       "capture_location": "read-only staged-inventory Python assertion",
       "side_effect": "none; the script did not stage, unstage, or modify any file",
       "recovery": "Repeat the path comparison with NUL-delimited Git output and explicit UTF-8 decoding, which disables path quoting, then complete the staged-only secret scan."
+    },
+    {
+      "operation": "publication_retry_fixture_remote_baseline_assertion",
+      "recorded_at_utc": "2026-10-19T22:14:56Z",
+      "failure_class": "ExpectedAssertionFailure",
+      "reason": "The new synthetic fixture seeded a prior fallback publication, but the first expected remote branch head still pointed to the source code commit. The assertion failed before exercising publication retry behavior.",
+      "capture_location": "pytest test_publication_stage_recovers_after_push_before_artifact_save, initial fixture setup",
+      "side_effect": "none outside a temporary local Git fixture; no production files, remote, DB, queue, or job changed",
+      "recovery": "Updated the fixture expectation to the just-created prior fallback publication commit; the next pre-fix execution reached and reproduced report_path_conflict."
+    },
+    {
+      "operation": "publication_retry_regression_red_before_product_fix",
+      "recorded_at_utc": "2026-10-19T22:14:56Z",
+      "failure_class": "ExpectedAssertionFailure from reproduced ReportContractError",
+      "reason": "After a successful earlier publication replaced the synthetic controller fallback, retry after simulated push/sidecar interruption passed no expected parent blob. The exact-publication validator raised ReportContractError(report_path_conflict).",
+      "capture_location": "pytest test_publication_stage_recovers_after_push_before_artifact_save, sidecar-save and push interruption parameters",
+      "side_effect": "synthetic repository and local bare remote only; no production DB or remote branch changed",
+      "recovery": "Implemented parent blob recovery from the validated same-attempt sidecar, plus exact-commit parent recovery for the push-before-sidecar case; preserved strict publisher checks."
+    },
+    {
+      "operation": "publication_retry_fixture_worktree_clean_assertion",
+      "recorded_at_utc": "2026-10-19T22:14:56Z",
+      "failure_class": "AssertionError in synthetic test fixture",
+      "reason": "The revised test correctly seeded a prior report file but retained an assertion that the repository reports directory should not exist. The publication code had succeeded; the assertion described the old empty-fixture shape.",
+      "capture_location": "pytest test_publication_stage_recovers_after_push_before_artifact_save, post-recovery assertions",
+      "side_effect": "none outside the temporary synthetic repository; no production state changed",
+      "recovery": "Changed the assertion to verify the test repository has no tracked/untracked changes after the retry; reran both focused modules and obtained 61 passed."
+    },
+    {
+      "operation": "verify_original_plan_sha_against_current_git_head",
+      "recorded_at_utc": "2026-10-19T22:17:00Z",
+      "failure_class": "InspectionAssertionFailure",
+      "reason": "The read-only audit incorrectly compared the plan creation-time SHA with the current plan file at HEAD, which already includes execution-record updates. That current file is expected to have a different hash; the assertion did not establish that the original plan source was altered.",
+      "capture_location": "read-only ownership audit Python hash assertion",
+      "side_effect": "none; no file, index, runtime, or database was changed by the failed audit assertion",
+      "recovery": "Verified the immutable creation-time copy at worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md; its SHA-256 is exactly e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381. Treat the current plan as an execution log that has intentionally accrued additions."
     }
   ]
 }

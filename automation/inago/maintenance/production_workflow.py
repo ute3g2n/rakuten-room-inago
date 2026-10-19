@@ -10510,6 +10510,45 @@ def _daily_report_remote_report_state(
     return remote_head, remote_sha256
 
 
+def _daily_report_publication_parent_blob_sha256(
+    repository: Path,
+    *,
+    remote_head: str | None,
+    report_path: str,
+    commit_message: str,
+) -> str | None:
+    """Recover the prior report blob from an already-pushed exact publication."""
+
+    if remote_head is None:
+        return None
+    matches = _daily_report_git(
+        repository,
+        "log",
+        "--format=%H",
+        "--fixed-strings",
+        f"--grep={commit_message}",
+        remote_head,
+        "--",
+        report_path,
+    ).splitlines()
+    exact = [
+        commit
+        for commit in matches
+        if _daily_report_git(repository, "show", "-s", "--format=%s", commit)
+        == commit_message
+    ]
+    if len(exact) > 1:
+        raise ReportContractError("report_publication_commit_ambiguous")
+    if not exact:
+        return None
+    parents = _daily_report_git(
+        repository, "rev-list", "--parents", "-n", "1", exact[0]
+    ).split()
+    if len(parents) != 2:
+        raise ReportContractError("report_commit_scope_invalid")
+    return _report_blob_sha256(repository, parents[1], report_path)
+
+
 def _daily_report_publication_worktree(
     *,
     repository: Path,
@@ -10964,6 +11003,34 @@ def run_daily_report_publication_stage(
                 )
             ):
                 raise ReportContractError("report_publication_artifact_conflict")
+            if remote_existing_sha256 == html_sha256:
+                # A successful earlier publication may have replaced an
+                # unreviewed fallback at this path. On retry, the live blob is
+                # the reviewed HTML, while idempotent commit recovery must
+                # validate the blob that existed before that publication.
+                # The bound sidecar supplies that commit's parent; the
+                # publisher still verifies the exact commit, parent, scope,
+                # ancestry, and reviewed digest before accepting it.
+                expected_existing_sha256 = _report_blob_sha256(
+                    worktree,
+                    existing_publication["publication_base_commit"],
+                    report_path,
+                )
+        elif remote_existing_sha256 == html_sha256:
+            # The report commit may have reached the remote before saving its
+            # publication sidecar. Recover only the exact current attempt's
+            # commit; publish_reviewed_report validates that commit's parent,
+            # scope, ancestry, and reviewed digest before accepting it.
+            expected_existing_sha256 = (
+                _daily_report_publication_parent_blob_sha256(
+                    worktree,
+                    remote_head=remote_target_head,
+                    report_path=report_path,
+                    commit_message=(
+                        f"maintenance report {job_key} {attempt.result_version}"
+                    ),
+                )
+            )
         # The helper validates the target against the live remote and keeps a
         # precise reason such as report_target_branch_mismatch.
         operation = "workflow.report.publication.push_remote"

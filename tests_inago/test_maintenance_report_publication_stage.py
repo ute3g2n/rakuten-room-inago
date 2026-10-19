@@ -1522,6 +1522,83 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     }
     html_path = f"{job_id}/{attempt_id}/report.html"
     deployment_path = f"{job_id}/{attempt_id}/deployment-result.json"
+    job_key = hashlib.sha256(job_id.encode("utf-8")).hexdigest()[:20]
+    report_path = (
+        f"reports/incidents/{identity['target_date']}/job-{job_key}.html"
+    )
+    previous_id = "attempt-u21-unreviewed-fallback"
+    previous_html = b"<!doctype html><html><body>older fallback</body></html>\n"
+    previous_sha256 = hashlib.sha256(previous_html).hexdigest()
+    previous_root = attempts_root / job_id / previous_id
+    previous_root.mkdir(parents=True)
+    previous_html_path = f"{job_id}/{previous_id}/report.html"
+    (previous_root / "report.html").write_bytes(previous_html)
+    previous_review = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": "controller-fallback-review-unavailable",
+        "reviewed_version": "fallback-u21-v1",
+        "reviewed_sha256": previous_sha256,
+        "status": "unavailable",
+        "reviewed_at": "2026-10-19T02:59:00+09:00",
+        "findings": [],
+    }
+    previous_result = {
+        "schema_version": "maintenance-report-result-v1",
+        "identity": identity,
+        "attempt_id": previous_id,
+        "result_version": "fallback-u21-v1",
+        "report_status": "pending",
+        "stage_status": "review_unavailable",
+        "report_origin": "controller_fallback",
+        "review": previous_review,
+        "output": {"path": previous_html_path, "sha256": previous_sha256},
+        "next_action": "publish",
+    }
+    previous_result_bytes = (
+        json.dumps(
+            previous_result,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    (previous_root / "result.json").write_bytes(previous_result_bytes)
+    previous_result_sha256 = hashlib.sha256(previous_result_bytes).hexdigest()
+    previous_report_file = repository.joinpath(*report_path.split("/"))
+    previous_report_file.parent.mkdir(parents=True)
+    previous_report_file.write_bytes(previous_html)
+    _git(repository, "add", report_path)
+    _git(repository, "commit", "-m", "synthetic prior fallback report")
+    _git(repository, "push", "origin", "main")
+    previous_publication_commit = _git(repository, "rev-parse", "HEAD")
+    previous_publication_base = _git(repository, "rev-parse", "HEAD^")
+    previous_publication = {
+        "schema_version": "maintenance-report-publication-v1",
+        "identity": identity,
+        "attempt_id": previous_id,
+        "result_version": "fallback-u21-v1",
+        "result_sha256": previous_result_sha256,
+        "report_path": report_path,
+        "report_sha256": previous_sha256,
+        "expected_target_commit": previous_publication_base,
+        "source_code_commit": code_commit,
+        "publication_commit": previous_publication_commit,
+        "publication_base_commit": previous_publication_base,
+        "remote_name": "origin",
+        "target_branch": "main",
+        "observed_at_jst": "2026-10-19T03:00:00+09:00",
+    }
+    (previous_root / "report-publication.json").write_text(
+        json.dumps(
+            previous_publication,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        encoding="utf-8",
+    )
     html = b"<!doctype html><html><body>approved report</body></html>\n"
     html_sha256 = hashlib.sha256(html).hexdigest()
     review = {
@@ -1614,7 +1691,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         job_id=job_id,
         step_key="maintenance_report",
         sequence=4,
-        attempt_no=1,
+        attempt_no=2,
         source_run_id=None,
         status="complete",
         result_version="report-u21-v1",
@@ -1622,6 +1699,20 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         output_sha256=hashlib.sha256(result_bytes).hexdigest(),
         started_at="2026-10-19T03:00:00+09:00",
         finished_at="2026-10-19T03:00:00+09:00",
+    )
+    previous_attempt = StepAttemptRecord(
+        attempt_id=previous_id,
+        job_id=job_id,
+        step_key="maintenance_report",
+        sequence=4,
+        attempt_no=1,
+        source_run_id=None,
+        status="complete",
+        result_version="fallback-u21-v1",
+        output_path=f"{job_id}/{previous_id}/result.json",
+        output_sha256=previous_result_sha256,
+        started_at="2026-10-19T02:58:00+09:00",
+        finished_at="2026-10-19T02:59:00+09:00",
     )
 
     class Manifest:
@@ -1636,12 +1727,22 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
             return Manifest()
 
         def get_step_attempt_review(self, *, attempt_id: str):
+            if attempt_id == previous_id:
+                return {
+                    "status": "unavailable",
+                    "reviewed_version": "fallback-u21-v1",
+                    "reviewer_id": "controller-fallback-review-unavailable",
+                }
             assert attempt_id == attempt_id_expected
             return {
                 "status": review_status,
                 "reviewed_version": "report-u21-v1",
                 "reviewer_id": reviewer_id,
             }
+
+        def list_step_attempts(self, *, job_id: str):
+            assert job_id == identity["job_id"]
+            return [previous_attempt, attempt]
 
         def read_attempt_artifact(
             self, *, attempts_root: Path, relative_path: str, expected_sha256: str
@@ -1757,7 +1858,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     assert rejected.status == "unknown"
     assert rejected.reason_code == "report_publication_identity_mismatch"
     assert not guard.held
-    assert _git(remote, "rev-parse", "refs/heads/main") == code_commit
+    assert _git(remote, "rev-parse", "refs/heads/main") == previous_publication_commit
     workflow.state["precheck_identity"] = identity
 
     target_mismatch = run_daily_report_publication_stage(
@@ -1771,7 +1872,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     )
     assert target_mismatch.status == "unknown"
     assert target_mismatch.reason_code == "report_target_branch_mismatch"
-    assert _git(remote, "rev-parse", "refs/heads/main") == code_commit
+    assert _git(remote, "rev-parse", "refs/heads/main") == previous_publication_commit
 
     first = run_daily_report_publication_stage(
         workflow,
@@ -1833,10 +1934,10 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     if failure_point == "sidecar":
         assert remote_commit_after_retry == remote_commit_before_retry
     else:
-        assert remote_commit_before_retry == code_commit
-        assert remote_commit_after_retry != code_commit
+        assert remote_commit_before_retry == previous_publication_commit
+        assert remote_commit_after_retry != previous_publication_commit
     assert not guard.held
-    assert not (repository / "reports").exists()
+    assert _git(repository, "status", "--short") == ""
     publication_record = json.loads(
         (attempt_root / "report-publication.json").read_text(encoding="utf-8")
     )
@@ -1857,6 +1958,18 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         )
         == f"reports/incidents/{identity['target_date']}/job-{hashlib.sha256(job_id.encode()).hexdigest()[:20]}.html"
     )
+    repeated = run_daily_report_publication_stage(
+        workflow,
+        controller,
+        store,
+        repository=repository,
+        remote_name="origin",
+        target_branch="main",
+        exclusion_guard=guard,
+    )
+    assert repeated.status == expected_status
+    assert _git(remote, "rev-parse", "refs/heads/main") == remote_commit_after_retry
+    assert not guard.held
 
 
 def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement(
