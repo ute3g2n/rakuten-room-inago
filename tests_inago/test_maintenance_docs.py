@@ -70,11 +70,12 @@ def test_c60_contract():
         assert "maintenance/logs" in document
         assert "90" in document
     assert "4 MiB" in settings
-    assert "20ファイル" in settings
+    assert "JSONL ファイル数 | 上限なし" in settings
     assert "maintenance/logs/<実行日>/<maintenance_id>.jsonl" in outputs
     assert "L02とは別" in outputs
     assert "retention_expires_at" in trace_contract
-    assert "daily_file_quota" in trace_contract
+    assert "ファイル数上限は設けない" in trace_contract
+    assert "daily_file_quota" not in trace_contract
 
     review_policy = "テストコード自体は独立レビューしない"
     debug_policy = "テストコードのバグが実行やデバッグ中に判明した場合"

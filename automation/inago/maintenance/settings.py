@@ -35,11 +35,13 @@ class MaintenanceSettings:
     job_resume_limit: int = 3
     diagnostic_log_retention_days: int = 90
     diagnostic_log_max_file_bytes: int = 4 * 1024 * 1024
-    diagnostic_log_max_files_per_day: int = 20
 
 
 _DEFAULT_SETTINGS = MaintenanceSettings()
 _SETTING_KEYS = frozenset(asdict(_DEFAULT_SETTINGS))
+_LEGACY_LOG_FILE_COUNT_KEY = "diagnostic_log_max_files_per_day"
+_LEGACY_LOG_FILE_COUNT_VALUE = 20
+_LEGACY_SETTING_KEYS = _SETTING_KEYS | {_LEGACY_LOG_FILE_COUNT_KEY}
 _MAX_SETTINGS_BYTES = 16 * 1024
 
 
@@ -52,14 +54,24 @@ def default_settings_document() -> dict[str, Any]:
 def validate_settings_document(value: object) -> MaintenanceSettings:
     """Accept only the exact implemented schema and approved initial values."""
 
-    if not isinstance(value, dict) or set(value) != _SETTING_KEYS:
+    if not isinstance(value, dict):
+        raise MaintenanceSettingsError("settings_schema_invalid")
+    normalized = dict(value)
+    if set(normalized) == _LEGACY_SETTING_KEYS:
+        legacy_limit = normalized.pop(_LEGACY_LOG_FILE_COUNT_KEY)
+        if (
+            type(legacy_limit) is not int
+            or legacy_limit != _LEGACY_LOG_FILE_COUNT_VALUE
+        ):
+            raise MaintenanceSettingsError("settings_value_unapproved")
+    elif set(normalized) != _SETTING_KEYS:
         raise MaintenanceSettingsError("settings_schema_invalid")
     expected = default_settings_document()
-    if any(type(value[key]) is not type(expected[key]) for key in _SETTING_KEYS):
+    if any(type(normalized[key]) is not type(expected[key]) for key in _SETTING_KEYS):
         raise MaintenanceSettingsError("settings_value_type_invalid")
-    if value != expected:
+    if normalized != expected:
         raise MaintenanceSettingsError("settings_value_unapproved")
-    return MaintenanceSettings(**value)
+    return MaintenanceSettings(**normalized)
 
 
 def load_settings(path: str | Path) -> MaintenanceSettings:

@@ -262,16 +262,15 @@ def test_c18_contract(tmp_path):
         at=expired_at,
     )
     assert expired_log.status == "written"
-    quota_policy = MaintenanceDiagnosticPolicy(
+    segmented_policy = MaintenanceDiagnosticPolicy(
         max_file_bytes=1024,
-        max_files_per_day=2,
         max_event_bytes=1024,
     )
-    quota_writer = MaintenanceDiagnosticTrace(
-        data_root, maintenance_id="quota-log-c18", policy=quota_policy
+    segmented_writer = MaintenanceDiagnosticTrace(
+        data_root, maintenance_id="segmented-log-c18", policy=segmented_policy
     )
-    quota_results = [
-        quota_writer.write(
+    segmented_results = [
+        segmented_writer.write(
             event="stage_started",
             stage="cli",
             status="started",
@@ -280,17 +279,17 @@ def test_c18_contract(tmp_path):
         )
         for index in range(20)
     ]
-    assert any(
-        result.status == "unavailable" and result.reason_code == "daily_file_quota"
-        for result in quota_results
-    )
-    quota_files = list(
+    assert all(result.status == "written" for result in segmented_results)
+    segmented_files = list(
         (data_root / "maintenance" / "logs" / now.date().isoformat()).glob(
-            "quota-log-c18*.jsonl"
+            "segmented-log-c18*.jsonl"
         )
     )
-    assert len(quota_files) == 2
-    assert all(read_diagnostic_events(path, policy=quota_policy) for path in quota_files)
+    assert len(segmented_files) > 2
+    assert all(
+        read_diagnostic_events(path, policy=segmented_policy)
+        for path in segmented_files
+    )
 
     old_log_stage = (
         data_root

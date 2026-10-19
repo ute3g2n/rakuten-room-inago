@@ -1,4 +1,4 @@
-"""Bounded MN04 diagnostics for maintenance workflows, separate from daily L02."""
+"""Per-file bounded MN04 diagnostics, separate from daily L02."""
 
 from __future__ import annotations
 
@@ -32,7 +32,6 @@ JST = ZoneInfo("Asia/Tokyo")
 DIAGNOSTIC_SCHEMA_VERSION = 1
 DEFAULT_RETENTION_DAYS = 90
 DEFAULT_MAX_FILE_BYTES = 4 * 1024 * 1024
-DEFAULT_MAX_FILES_PER_DAY = 20
 DEFAULT_MAX_EVENT_BYTES = 16 * 1024
 ORPHAN_STAGE_MIN_AGE = timedelta(days=1)
 
@@ -149,10 +148,10 @@ _EVENT_VALUE_FIELDS = {
 }
 _ALLOWED_FIELDS = _IDENTITY_FIELDS | _EVENT_VALUE_FIELDS
 _LOG_NAME = re.compile(
-    r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?:\.part-[0-9]{4})?\.jsonl\Z"
+    r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?:\.part-[0-9]{4,})?\.jsonl\Z"
 )
 _LOG_STAGE = re.compile(r"\.maintenance-log-stage-[a-fA-F0-9]{32}\.tmp\Z")
-_ROTATION_SUFFIX = re.compile(r"\.part-[0-9]{4}\Z")
+_ROTATION_SUFFIX = re.compile(r"\.part-[0-9]{4,}\Z")
 _DATE_DIR = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 _EVIDENCE_STAGE = re.compile(r"\.maintenance-evidence-stage-[a-fA-F0-9]{32}\Z")
 _PATH_LOCKS: dict[str, threading.RLock] = {}
@@ -187,14 +186,12 @@ class MaintenanceAuditReceiptError(MaintenanceDiagnosticError):
 class MaintenanceDiagnosticPolicy:
     retention_days: int = DEFAULT_RETENTION_DAYS
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
-    max_files_per_day: int = DEFAULT_MAX_FILES_PER_DAY
     max_event_bytes: int = DEFAULT_MAX_EVENT_BYTES
 
     def __post_init__(self) -> None:
         values = (
             self.retention_days,
             self.max_file_bytes,
-            self.max_files_per_day,
             self.max_event_bytes,
         )
         if any(type(value) is not int or value <= 0 for value in values):
@@ -447,7 +444,7 @@ def _read_log(path: Path, *, max_bytes: int) -> list[dict[str, Any]]:
         raise MaintenanceDiagnosticError("diagnostic_file_incomplete")
     rows: list[dict[str, Any]] = []
     file_stem = path.name.removesuffix(".jsonl")
-    rotation = re.fullmatch(r"(?P<base>.+)\.part-[0-9]{4}", file_stem)
+    rotation = re.fullmatch(r"(?P<base>.+)\.part-[0-9]{4,}", file_stem)
     expected_id = rotation.group("base") if rotation else file_stem
     expected_date = path.parent.name
     for line in raw.splitlines():
@@ -554,7 +551,7 @@ class MaintenanceDiagnosticTrace:
                 )
                 for entry in matching:
                     _read_log(Path(entry.path), max_bytes=self.policy.max_file_bytes)
-                target = self._select_target(day_dir, entries, matching, encoded)
+                target = self._select_target(day_dir, matching, encoded)
                 key = os.path.normcase(str(target.absolute()))
                 if key in self._failed_paths:
                     return DiagnosticWriteResult(
@@ -588,25 +585,25 @@ class MaintenanceDiagnosticTrace:
     def _select_target(
         self,
         day_dir: Path,
-        entries: list[os.DirEntry[str]],
         matching: list[os.DirEntry[str]],
         encoded: bytes,
     ) -> Path:
         if matching:
-            latest = matching[-1]
+            latest = max(matching, key=lambda entry: self._segment_number(entry.name))
             latest_path = Path(latest.path)
             if latest.stat(follow_symlinks=False).st_size + len(encoded) <= (
                 self.policy.max_file_bytes
             ):
                 return latest_path
-        if len(entries) >= self.policy.max_files_per_day:
-            raise MaintenanceDiagnosticError("daily_file_quota")
         if not matching:
             return day_dir / f"{self.maintenance_id}.jsonl"
-        segment = len(matching) + 1
-        if segment > 9999:
-            raise MaintenanceDiagnosticError("daily_file_quota")
+        segment = max(self._segment_number(entry.name) for entry in matching) + 1
         return day_dir / f"{self.maintenance_id}.part-{segment:04d}.jsonl"
+
+    @staticmethod
+    def _segment_number(name: str) -> int:
+        match = re.search(r"\.part-([0-9]{4,})\.jsonl\Z", name)
+        return int(match.group(1)) if match is not None else 0
 
     def _append(self, path: Path, encoded: bytes) -> None:
         if _has_reparse_point(path) or _has_reparse_point(path.parent):

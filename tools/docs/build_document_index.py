@@ -753,6 +753,15 @@ def safe_resolution(
 
     decoded = unquote(parsed.path).replace("\\", "/")
     if (
+        source_path == "automation/inago/maintenance/production_workflow.py"
+        and kind == "program_path"
+        and decoded == "historical-source-evidence.json"
+    ):
+        return {
+            "status": "generated_output",
+            "reason_code": "program_temporary_input",
+        }
+    if (
         source_path.startswith("tests_inago/")
         and kind == "program_path"
         and decoded in {

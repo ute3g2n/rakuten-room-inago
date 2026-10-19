@@ -168,7 +168,7 @@ MN04は保守CLI/各stageの開始・完了・失敗・待機・取消・再開�
 
 schemaは`automation/inago/schemas/maintenance-diagnostic-event.schema.json`。required fieldはschema version、UUID event ID、maintenance ID、JST target date、UTC offset付き時刻、期限、event/stage/status、nullable `source_run_id`。追加できるのはallowlist済みlaunch/incident/job/attempt/step/release/session/role/artifact ID、reason code、error class、指定model/effort/tier/Fast、review/test status、base commit/result version、duration/countだけ。additional fieldを拒否し、prompt/応答本文、商品・投稿本文、URL/query/DOM、認証情報、任意例外本文、秘密、個人情報、絶対path、commandを記録しない。
 
-通常値は90日保持、1ファイル4 MiB、1日20ファイル、1 event 16 KiBまで。追記はstage fileへの書込・flush/fsync後のatomic replaceで確定し、`daily_file_quota`を含む容量/書込/quota失敗では成功を返さず対象stage/releaseを保留する。operation完了後にreceiptだけが失敗した場合は戻り値付きの監査例外で状態照合を要求し、未実行と誤認させない。古いlog stageと中断したevidence stageは所有root内で安全に回収し、元の日次L01/L02や証拠原本を削除しない。証拠コピー期限は原本期限があればその期限、かつ採取から90日を超えない。MN04の保持設定は`automation/inago/schemas/maintenance-settings.schema.json`に固定する。MN05 app-server transport logは独立した既存契約を維持し、このMN04 quotaを適用したとは扱わない。
+通常値は90日保持、1ファイル4 MiB、1 event 16 KiBまでとし、日単位・maintenance ID単位のファイル数上限は設けない。同一maintenance IDのログはファイル容量に応じて連番rotateする。追記はstage fileへの書込・flush/fsync後のatomic replaceで確定し、ファイルサイズ/書込失敗では成功を返さず対象stage/releaseを保留する。operation完了後にreceiptだけが失敗した場合は戻り値付きの監査例外で状態照合を要求し、未実行と誤認させない。古いlog stageと中断したevidence stageは所有root内で安全に回収し、元の日次L01/L02や証拠原本を削除しない。証拠コピー期限は原本期限があればその期限、かつ採取から90日を超えない。MN04の保持設定は`automation/inago/schemas/maintenance-settings.schema.json`に固定する。既存設定に残る`diagnostic_log_max_files_per_day=20`は互換読込のみ行い、動作へ適用しない。MN05 app-server transport logは独立した既存契約を維持し、このMN04の保持設定を適用したとは扱わない。
 ## U08 daily launcher ledger（MN01・schema v3）
 
 日次launcherの起動/完了通知はmaintenance管理SQLite `D/maintenance/state.sqlite`の`daily_launch`と`daily_check`に保存し、日次L01/L02、日次業務DB、MN04 workflow診断JSONLへ混ぜない。`source_launch_id`とJST `target_date`を先にcommitし、起動owner/child PIDとrunning/terminal statusを結ぶ。日次子processがexport、終了保全、共通trace、L01最終記録を含む処理を終えて戻った後でだけ、結果summaryとcheckを同一transactionでterminal化する。terminal launch行はimmutable。checkは通常一度記録する。failed launchに加え、完了結果が再試行異常を明示して`incomplete`となった場合も、同じcheck identityを保ち、後続check stageがincidentを確定した場合だけ一度`abnormal`へ昇格できる。
@@ -193,7 +193,7 @@ U09 migration `004_watchdog_confirmation_queue.sql`は`daily_launch.owner_start_
 
 これは将来実装する保守基盤専用の診断JSONLであり、L02の日次共通traceのschema/path/quotaへ混ぜない。計画保存先は `D/maintenance/logs/<実行日>/<maintenance_id>.jsonl`。正確なschema_version、field enum、atomic append、quota処理はU05/U10で実装に合わせて確定する。予定fieldは `event_id`、`maintenance_id`、`source_launch_id`、nullable `source_run_id`、`target_date`、nullable `incident_id`、`stage`、`attempt`、`phase`、safe `status`/`error_code`、`at`、`requested_model/observed_model`、effort/tier、`base_commit/result_version`、安全な入力/証拠/出力参照、`reviewed_version`、`retention_expires_at`。件数/試行番号は非負整数または正整数の範囲検証を行う。
 
-新規maintenance log retentionは90日、1ファイル4 MiB、1日20ファイルを初期値とし、1ファイル単位で期限管理・rotateする。監査必須eventを保存できない場合は省略を隠さず、stageまたはdeployment/releaseを保留して欠測を記録する。採取証拠の写しは元データの期限を引き継ぎ、元期限がない場合だけ採取後90日を初期値とする。既存L01～L05、O01～O03、A02/A03、M01/M02等の現在の保持規則を変更しない。
+新規maintenance log retentionは90日、1ファイル4 MiBとし、ファイル数上限は設けず1ファイル単位で期限管理・rotateする。監査必須eventを保存できない場合は省略を隠さず、stageまたはdeployment/releaseを保留して欠測を記録する。採取証拠の写しは元データの期限を引き継ぎ、元期限がない場合だけ採取後90日を初期値とする。既存L01～L05、O01～O03、A02/A03、M01/M02等の現在の保持規則を変更しない。
 
 診断記録にprompt、AI応答本文、商品/投稿本文、URL/query/DOM、credential、秘密、自由文exception messageを含めない。primary/cause/cleanupを分け、書込失敗やquota到達はhealthy/successとして再表示しない。maintenance管理DBのcommit済み状態と元日次状態をtraceの成否で上書きしない。
 

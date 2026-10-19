@@ -16,8 +16,7 @@
     "review_round_limit",
     "job_resume_limit",
     "diagnostic_log_retention_days",
-    "diagnostic_log_max_file_bytes",
-    "diagnostic_log_max_files_per_day"
+    "diagnostic_log_max_file_bytes"
   ],
   "properties": {
     "schema_version": { "const": 1 },
@@ -33,7 +32,11 @@
     "job_resume_limit": { "const": 3 },
     "diagnostic_log_retention_days": { "const": 90 },
     "diagnostic_log_max_file_bytes": { "const": 4194304 },
-    "diagnostic_log_max_files_per_day": { "const": 20 }
+    "diagnostic_log_max_files_per_day": {
+      "const": 20,
+      "deprecated": true,
+      "description": "Legacy input accepted for compatibility; ignored by maintenance logging."
+    }
   },
   "additionalProperties": false
 }
