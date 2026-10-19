@@ -760,6 +760,264 @@ def test_fc10_terminal_uses_failed_stage_handoffs_and_keeps_public_report_requir
     assert incident_row["status"] == "in_progress"
 
 
+def test_daily_report_ai_envelopes_returns_all_valid_same_attempt_turns(
+    tmp_path: Path,
+):
+    from copy import deepcopy
+
+    from tests_inago.test_maintenance_report import _IDENTITY, _report_response
+
+    store = make_store(tmp_path)
+    attempts_root = store.database_path.parent / "attempts"
+    identity = deepcopy(_IDENTITY)
+    attempt_id = "attempt-envelope-turns-001"
+    attempt_root = attempts_root / identity["job_id"] / attempt_id
+    attempt_root.mkdir(parents=True)
+
+    report = _report_response()
+    report["identity"] = identity
+    report["result_version"] = "report-envelope-turns-v1"
+    response = {**identity, "report": report}
+    schema = production_workflow._daily_report_ai_response_schema("report")
+    expected_turns = [
+        ("a" * 32, "thread-current", "turn-current"),
+        ("b" * 32, "thread-initial", "turn-initial"),
+    ]
+    for file_id, thread_id, turn_id in expected_turns:
+        envelope = {
+            "schema_version": "maintenance-ai-response-v1",
+            "identity": identity,
+            "attempt_id": attempt_id,
+            "owner": {
+                "parent_key": production_workflow._REPORT_PARENT_KEY,
+                "role_name": production_workflow._REPORT_AUTHOR_ROLE,
+                "role_config_sha256": "f" * 64,
+            },
+            "allowed_outputs": list(production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS),
+            "thread_id": thread_id,
+            "turn_id": turn_id,
+            "response": response,
+        }
+        (attempt_root / f"B--{production_workflow._REPORT_AUTHOR_ROLE}--{file_id}.json").write_text(
+            json.dumps(envelope, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    invalid_envelope = deepcopy(envelope)
+    invalid_envelope["owner"]["role_config_sha256"] = "a" * 64
+    invalid_envelope["thread_id"] = "thread-wrong-config"
+    invalid_envelope["turn_id"] = "turn-wrong-config"
+    (attempt_root / f"B--{production_workflow._REPORT_AUTHOR_ROLE}--{'c' * 32}.json").write_text(
+        json.dumps(invalid_envelope, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    outputs = production_workflow._daily_report_ai_envelopes(
+        store=store,
+        attempts_root=attempts_root,
+        job_id=identity["job_id"],
+        attempt_id=attempt_id,
+        identity=identity,
+        role_name=production_workflow._REPORT_AUTHOR_ROLE,
+        role_config_sha256="f" * 64,
+        allowed_outputs=production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS,
+        response_schema=schema,
+    )
+
+    assert [output[2]["turn_id"] for output in outputs] == [
+        "turn-current",
+        "turn-initial",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("source_attempt_id", "include_duplicate"),
+    [
+        ("attempt-wrapper-ambiguity-001", True),
+        ("attempt-wrapper-prior-source-001", False),
+    ],
+)
+def test_current_report_wrapper_rejects_ambiguous_or_cross_attempt_envelopes(
+    tmp_path: Path, monkeypatch, source_attempt_id: str, include_duplicate: bool
+):
+    from copy import deepcopy
+
+    from tests_inago.test_maintenance_report import _IDENTITY, _report_response
+
+    identity = deepcopy(_IDENTITY)
+    attempt_id = "attempt-wrapper-ambiguity-001"
+    result_version = "report-wrapper-ambiguity-v1"
+    created_at_jst = "2026-10-20T12:00:00+09:00"
+    source_sha256 = "b" * 64
+    input_sha256 = "c" * 64
+    role_name = production_workflow._REPORT_AUTHOR_ROLE
+    response = _report_response()
+    response["identity"] = identity
+    response["result_version"] = result_version
+    response["created_at_jst"] = created_at_jst
+    ai_response = {**identity, "report": response}
+    first_path = f"{identity['job_id']}/{source_attempt_id}/first-envelope.json"
+    first_sha256 = "a" * 64
+    wrapper = {
+        "schema_version": "maintenance-report-ai-result-v1",
+        "identity": identity,
+        "attempt_id": attempt_id,
+        "source_sha256": source_sha256,
+        "result_version": result_version,
+        "input_sha256": input_sha256,
+        "role": role_name,
+        "source_attempt_id": source_attempt_id,
+        "ai_output": {"path": first_path, "sha256": first_sha256},
+        "response": ai_response,
+        "created_at_jst": created_at_jst,
+    }
+    envelope = {
+        "schema_version": "maintenance-ai-response-v1",
+        "identity": identity,
+        "attempt_id": source_attempt_id,
+        "owner": {
+            "parent_key": production_workflow._REPORT_PARENT_KEY,
+            "role_name": role_name,
+            "role_config_sha256": "f" * 64,
+        },
+        "allowed_outputs": list(production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS),
+        "thread_id": "same-input-thread",
+        "turn_id": "same-input-turn",
+        "response": ai_response,
+    }
+    outputs = [(first_path, first_sha256, envelope)]
+    if include_duplicate:
+        outputs.append(
+            (
+                f"{identity['job_id']}/{source_attempt_id}/second-envelope.json",
+                "d" * 64,
+                {**envelope, "thread_id": "later-thread", "turn_id": "later-turn"},
+            )
+        )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_read_json",
+        lambda **_kwargs: wrapper,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_ai_envelopes",
+        lambda **_kwargs: outputs,
+    )
+
+    loaded = production_workflow._daily_report_load_current_ai_wrapper(
+        store=object(),
+        attempts_root=tmp_path,
+        job_id=identity["job_id"],
+        current_attempt_id=attempt_id,
+        identity=identity,
+        source_sha256=source_sha256,
+        result_version=result_version,
+        input_sha256=input_sha256,
+        role_name=role_name,
+        schema_version="maintenance-report-ai-result-v1",
+        filename="report-response.json",
+        allowed_outputs=production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS,
+        role_config_sha256="f" * 64,
+        response_schema=production_workflow._daily_report_ai_response_schema("report"),
+        extra_expected={"created_at_jst": created_at_jst},
+    )
+
+    assert loaded is None
+
+
+def test_current_review_wrapper_rejects_multiple_same_html_envelopes(
+    tmp_path: Path, monkeypatch
+):
+    from copy import deepcopy
+
+    from tests_inago.test_maintenance_report import _IDENTITY
+
+    identity = deepcopy(_IDENTITY)
+    attempt_id = "attempt-review-wrapper-ambiguity-001"
+    result_version = "report-review-wrapper-v1"
+    html_sha256 = "b" * 64
+    source_sha256 = "c" * 64
+    input_sha256 = "d" * 64
+    role_name = production_workflow._REPORT_REVIEWER_ROLE
+    review = {
+        "schema_version": "maintenance-report-review-v1",
+        "reviewer_id": role_name,
+        "reviewed_version": result_version,
+        "reviewed_sha256": html_sha256,
+        "status": "approved",
+        "reviewed_at": "2026-10-20T00:00:00+09:00",
+        "findings": [],
+    }
+    ai_response = {**identity, "review": review}
+    first_path = f"{identity['job_id']}/{attempt_id}/first-review-envelope.json"
+    first_sha256 = "a" * 64
+    wrapper = {
+        "schema_version": "maintenance-report-review-ai-result-v1",
+        "identity": identity,
+        "attempt_id": attempt_id,
+        "source_sha256": source_sha256,
+        "result_version": result_version,
+        "input_sha256": input_sha256,
+        "role": role_name,
+        "source_attempt_id": attempt_id,
+        "ai_output": {"path": first_path, "sha256": first_sha256},
+        "response": ai_response,
+        "html_sha256": html_sha256,
+    }
+    envelope = {
+        "schema_version": "maintenance-ai-response-v1",
+        "identity": identity,
+        "attempt_id": attempt_id,
+        "owner": {
+            "parent_key": production_workflow._REPORT_PARENT_KEY,
+            "role_name": role_name,
+            "role_config_sha256": "f" * 64,
+        },
+        "allowed_outputs": list(production_workflow._REPORT_REVIEW_ALLOWED_OUTPUTS),
+        "thread_id": "same-review-thread",
+        "turn_id": "same-review-turn",
+        "response": ai_response,
+    }
+    outputs = [
+        (first_path, first_sha256, envelope),
+        (
+            f"{identity['job_id']}/{attempt_id}/second-review-envelope.json",
+            "e" * 64,
+            {**envelope, "thread_id": "later-review-thread", "turn_id": "later-review-turn"},
+        ),
+    ]
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_read_json",
+        lambda **_kwargs: wrapper,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_daily_report_ai_envelopes",
+        lambda **_kwargs: outputs,
+    )
+
+    loaded = production_workflow._daily_report_load_current_ai_wrapper(
+        store=object(),
+        attempts_root=tmp_path,
+        job_id=identity["job_id"],
+        current_attempt_id=attempt_id,
+        identity=identity,
+        source_sha256=source_sha256,
+        result_version=result_version,
+        input_sha256=input_sha256,
+        role_name=role_name,
+        schema_version="maintenance-report-review-ai-result-v1",
+        filename="review-response.json",
+        allowed_outputs=production_workflow._REPORT_REVIEW_ALLOWED_OUTPUTS,
+        role_config_sha256="f" * 64,
+        response_schema=production_workflow._daily_report_ai_response_schema("review"),
+        extra_expected={"html_sha256": html_sha256},
+    )
+
+    assert loaded is None
+
+
 @pytest.mark.parametrize(
     "missing_condition",
     ["stage_handoff", "handoff_invocation_mismatch", "public_report"],
@@ -1353,8 +1611,10 @@ def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monke
     [
         "changes_requested_then_approved",
         "resumed_attempt_with_four_findings",
+        "previous_attempt_reviewer_response_is_not_reused",
         "transport_failure",
         "fallback_review_changes_requested_then_approved",
+        "fallback_revision_selects_current_turn_among_multiple_author_envelopes",
         "fallback_second_review_findings_remain_bound_to_reviewed_version",
     ],
 )
@@ -1430,12 +1690,14 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
     )
     runtime_root = store.database_path.parent.parent
     (store.database_path.parent / "worktrees").mkdir(parents=True)
-    reports: dict[str, dict[str, object]] = {}
+    reports: dict[tuple[str, str], list[dict[str, object]]] = {}
     reviewer_responses: list[dict[str, object]] = []
     review_inputs: list[dict[str, object]] = []
     author_inputs: list[dict[str, object]] = []
     author_attempt_ids: list[str] = []
     role_calls: list[str] = []
+    normal_review_inputs: list[dict[str, object]] = []
+    prepared_reports: list[object] = []
     turn_number = 0
 
     monkeypatch.setattr(
@@ -1451,11 +1713,60 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         return original_author_prompt(**kwargs)
 
     def reviewer_prompt(**kwargs):
-        review_inputs.append(deepcopy(kwargs["review_input"]))
+        review_input = deepcopy(kwargs["review_input"])
+        review_inputs.append(review_input)
+        if "fallback_origin" not in review_input:
+            normal_review_inputs.append(review_input)
         return original_reviewer_prompt(**kwargs)
 
     monkeypatch.setattr(production_workflow, "_daily_report_prompt", author_prompt)
     monkeypatch.setattr(production_workflow, "_daily_report_review_prompt", reviewer_prompt)
+
+    previous_reviewer_attempt_id = "attempt-fc07-previous-reviewer"
+    if reviewer_mode == "previous_attempt_reviewer_response_is_not_reused":
+        original_prepare = production_workflow.prepare_incident_report
+        original_attempt_input = production_workflow._daily_report_attempt_input
+        recovery_call_count = 0
+        previous_attempt = SimpleNamespace(
+            attempt_id=previous_reviewer_attempt_id,
+            attempt_no=0,
+            status="interrupted",
+        )
+
+        def prepare_report(*args, **kwargs):
+            prepared = original_prepare(*args, **kwargs)
+            prepared_reports.append(prepared)
+            return prepared
+
+        def attempt_input(**kwargs):
+            if (
+                kwargs.get("filename") == "review-input.json"
+                and kwargs.get("attempt_id") == previous_reviewer_attempt_id
+                and author_inputs
+                and prepared_reports
+            ):
+                current_author_input = author_inputs[-1]
+                return {
+                    "source_sha256": current_author_input["source_sha256"],
+                    "result_version": current_author_input["result_version"],
+                    "html_sha256": prepared_reports[-1].html_sha256,
+                }
+            return original_attempt_input(**kwargs)
+
+        def recovery_attempts(**kwargs):
+            nonlocal recovery_call_count
+            recovery_call_count += 1
+            if recovery_call_count == 1:
+                return []
+            return [previous_attempt]
+
+        monkeypatch.setattr(production_workflow, "prepare_incident_report", prepare_report)
+        monkeypatch.setattr(production_workflow, "_daily_report_attempt_input", attempt_input)
+        monkeypatch.setattr(
+            production_workflow,
+            "_daily_report_recovery_attempts",
+            recovery_attempts,
+        )
 
     class FakeSession:
         def __init__(self, role: str, attempt_id: str, role_hash: str, allowed: tuple[str, ...]):
@@ -1493,6 +1804,12 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 for section in ("issues", "checks"):
                     for item in report[section]:
                         item["evidence_ref"] = report_input["evidence_refs"][0]
+                if (
+                    reviewer_mode
+                    == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+                    and len(author_inputs) == 1
+                ):
+                    report["issues"][0]["evidence_ref"] = "not-an-allowed-evidence-reference"
                 response = {**identity, "report": report}
             else:
                 if reviewer_mode == "transport_failure":
@@ -1560,11 +1877,11 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
                 "response": response,
             }
             path = f"{job.job_id}/{self.attempt_id}/synthetic-{self.role}.json"
-            reports[(self.attempt_id, self.role)] = {
+            reports.setdefault((self.attempt_id, self.role), []).append({
                 "path": path,
                 "sha256": "a" * 64,
                 "envelope": envelope,
-            }
+            })
             if self.role == production_workflow._REPORT_REVIEWER_ROLE:
                 reviewer_responses.append(envelope)
             return SimpleNamespace(
@@ -1598,10 +1915,48 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             )
 
     def envelopes(*, attempt_id: str, role_name: str, **_kwargs):
-        saved = reports.get((attempt_id, role_name))
-        if saved is None:
-            return []
-        return [(saved["path"], saved["sha256"], saved["envelope"])]
+        if (
+            reviewer_mode == "previous_attempt_reviewer_response_is_not_reused"
+            and attempt_id == previous_reviewer_attempt_id
+            and role_name == production_workflow._REPORT_REVIEWER_ROLE
+            and author_inputs
+            and prepared_reports
+        ):
+            review = {
+                "schema_version": "maintenance-report-review-v1",
+                "reviewer_id": production_workflow._REPORT_REVIEWER_ROLE,
+                "reviewed_version": author_inputs[-1]["result_version"],
+                "reviewed_sha256": prepared_reports[-1].html_sha256,
+                "status": "approved",
+                "reviewed_at": "2026-10-20T00:00:00+09:00",
+                "findings": [],
+            }
+            envelope = {
+                "schema_version": "maintenance-ai-response-v1",
+                "identity": identity,
+                "attempt_id": previous_reviewer_attempt_id,
+                "owner": {
+                    "parent_key": production_workflow._REPORT_PARENT_KEY,
+                    "role_name": role_name,
+                    "role_config_sha256": "f" * 64,
+                },
+                "allowed_outputs": list(production_workflow._REPORT_REVIEW_ALLOWED_OUTPUTS),
+                "thread_id": "old-review-thread",
+                "turn_id": "old-review-turn",
+                "response": {**identity, "review": review},
+            }
+            return [
+                (
+                    f"{job.job_id}/{previous_reviewer_attempt_id}/synthetic-review.json",
+                    "e" * 64,
+                    envelope,
+                )
+            ]
+        saved = reports.get((attempt_id, role_name), [])
+        return [
+            (item["path"], item["sha256"], item["envelope"])
+            for item in saved
+        ]
 
     monkeypatch.setattr(production_workflow, "MaintenanceAIAdapter", FakeAdapter)
     monkeypatch.setattr(production_workflow, "_daily_report_ai_envelopes", envelopes)
@@ -1647,6 +2002,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
     if reviewer_mode in {
         "changes_requested_then_approved",
         "resumed_attempt_with_four_findings",
+        "previous_attempt_reviewer_response_is_not_reused",
     }:
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,
@@ -1660,6 +2016,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         }
         assert len(author_inputs) == 2
         assert author_inputs[1]["prior_review_findings"]
+        if reviewer_mode == "previous_attempt_reviewer_response_is_not_reused":
+            assert len(normal_review_inputs) == 2
+            assert normal_review_inputs[0]["result_version"] == author_inputs[0]["result_version"]
+            assert normal_review_inputs[1]["result_version"] == author_inputs[1]["result_version"]
         if reviewer_mode == "resumed_attempt_with_four_findings":
             assert len(author_inputs[1]["prior_review_findings"]) == 4
             assert author_attempt_ids[0] == resumed_attempt_id
@@ -1669,7 +2029,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert author_inputs[0]["result_version"] != author_inputs[1]["result_version"]
         assert review_inputs[0]["html_sha256"] != review_inputs[1]["html_sha256"]
         assert publication_calls[0]["report"]["review"]["status"] == "approved"
-    elif reviewer_mode == "fallback_review_changes_requested_then_approved":
+    elif reviewer_mode in {
+        "fallback_review_changes_requested_then_approved",
+        "fallback_revision_selects_current_turn_among_multiple_author_envelopes",
+    }:
         assert role_calls == [
             production_workflow._REPORT_AUTHOR_ROLE,
             production_workflow._REPORT_REVIEWER_ROLE,
@@ -1678,6 +2041,12 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         ]
         assert len(author_inputs) == 2
         first_attempt_id = author_attempt_ids[0]
+        if (
+            reviewer_mode
+            == "fallback_revision_selects_current_turn_among_multiple_author_envelopes"
+        ):
+            assert len(reports[(first_attempt_id, production_workflow._REPORT_AUTHOR_ROLE)]) == 2
+            assert reports[(first_attempt_id, production_workflow._REPORT_AUTHOR_ROLE)][0]["envelope"]["response"]["report"]["issues"][0]["evidence_ref"] == "not-an-allowed-evidence-reference"
         first_review_envelope = reviewer_responses[0]
         first_review = first_review_envelope["response"]["review"]
         assert first_review["reviewed_version"] == review_inputs[0]["result_version"]

@@ -1,0 +1,110 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+_ test_current_report_wrapper_rejects_ambiguous_or_cross_attempt_envelopes[attempt-wrapper-prior-source-001-False] _
+
+tmp_path = WindowsPath('C:/Users/ute3g/AppData/Local/Temp/pytest-of-ute3g/pytest-1579/test_current_report_wrapper_re1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000210528FBE90>
+source_attempt_id = 'attempt-wrapper-prior-source-001'
+include_duplicate = False
+
+    @pytest.mark.parametrize(
+        ("source_attempt_id", "include_duplicate"),
+        [
+            ("attempt-wrapper-ambiguity-001", True),
+            ("attempt-wrapper-prior-source-001", False),
+        ],
+    )
+    def test_current_report_wrapper_rejects_ambiguous_or_cross_attempt_envelopes(
+        tmp_path: Path, monkeypatch, source_attempt_id: str, include_duplicate: bool
+    ):
+        from copy import deepcopy
+
+        from tests_inago.test_maintenance_report import _IDENTITY, _report_response
+
+        identity = deepcopy(_IDENTITY)
+        attempt_id = "attempt-wrapper-ambiguity-001"
+        result_version = "report-wrapper-ambiguity-v1"
+        created_at_jst = "2026-10-20T12:00:00+09:00"
+        source_sha256 = "b" * 64
+        input_sha256 = "c" * 64
+        role_name = production_workflow._REPORT_AUTHOR_ROLE
+        response = _report_response()
+        response["identity"] = identity
+        response["result_version"] = result_version
+        response["created_at_jst"] = created_at_jst
+        ai_response = {**identity, "report": response}
+        first_path = f"{identity['job_id']}/{source_attempt_id}/first-envelope.json"
+        first_sha256 = "a" * 64
+        wrapper = {
+            "schema_version": "maintenance-report-ai-result-v1",
+            "identity": identity,
+            "attempt_id": attempt_id,
+            "source_sha256": source_sha256,
+            "result_version": result_version,
+            "input_sha256": input_sha256,
+            "role": role_name,
+            "source_attempt_id": source_attempt_id,
+            "ai_output": {"path": first_path, "sha256": first_sha256},
+            "response": ai_response,
+            "created_at_jst": created_at_jst,
+        }
+        envelope = {
+            "schema_version": "maintenance-ai-response-v1",
+            "identity": identity,
+            "attempt_id": source_attempt_id,
+            "owner": {
+                "parent_key": production_workflow._REPORT_PARENT_KEY,
+                "role_name": role_name,
+                "role_config_sha256": "f" * 64,
+            },
+            "allowed_outputs": list(production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS),
+            "thread_id": "same-input-thread",
+            "turn_id": "same-input-turn",
+            "response": ai_response,
+        }
+        outputs = [(first_path, first_sha256, envelope)]
+        if include_duplicate:
+            outputs.append(
+                (
+                    f"{identity['job_id']}/{source_attempt_id}/second-envelope.json",
+                    "d" * 64,
+                    {**envelope, "thread_id": "later-thread", "turn_id": "later-turn"},
+                )
+            )
+        monkeypatch.setattr(
+            production_workflow,
+            "_daily_report_read_json",
+            lambda **_kwargs: wrapper,
+        )
+        monkeypatch.setattr(
+            production_workflow,
+            "_daily_report_ai_envelopes",
+            lambda **_kwargs: outputs,
+        )
+
+        loaded = production_workflow._daily_report_load_current_ai_wrapper(
+            store=object(),
+            attempts_root=tmp_path,
+            job_id=identity["job_id"],
+            current_attempt_id=attempt_id,
+            identity=identity,
+            source_sha256=source_sha256,
+            result_version=result_version,
+            input_sha256=input_sha256,
+            role_name=role_name,
+            schema_version="maintenance-report-ai-result-v1",
+            filename="report-response.json",
+            allowed_outputs=production_workflow._REPORT_AUTHOR_ALLOWED_OUTPUTS,
+            role_config_sha256="f" * 64,
+            response_schema=production_workflow._daily_report_ai_response_schema("report"),
+            extra_expected={"created_at_jst": created_at_jst},
+        )
+
+>       assert loaded is None
+E       AssertionError: assert ({'schema_version': 'maintenance-report-ai-result-v1', 'identity': {'incident_id': 'INC-20261017-001', 'source_launch_...o-incident-reporter', 'role_config_sha256': 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}, ...})) is None
+
+tests_inago\test_maintenance_report_publication_stage.py:925: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_current_report_wrapper_rejects_ambiguous_or_cross_attempt_envelopes[attempt-wrapper-prior-source-001-False]
+1 failed, 1 passed, 29 deselected in 0.46s
+pytest_exit_code=1

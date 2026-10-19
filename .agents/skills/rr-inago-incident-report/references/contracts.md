@@ -25,7 +25,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 
 ## 出力・レビュー・再開
 
-reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerが内容、数値、版、リンク、秘密、HTML構造を読取確認する。reviewerの指摘は改善情報として返し、reporterは自分のresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。
+reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerが内容、数値、版、リンク、秘密、HTML構造を読取確認する。reviewerの指摘は改善情報として返し、reporterは自分のresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。同じformal attempt内のresponse読取は、検証済みの全候補を返す。今回起動したauthor/reviewer turnはthread_idとturn_idの両方が一致する候補だけを一意に選ぶ。再開時の保存済みresponseはreport result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補だけを一意に選ぶ。一致なし・重複一致の場合は担当を起動し直し、以前のresponseやファイル名順を根拠に修正版を拒否しない。
 
 入力/リンク/版が欠けても、解決できる範囲でHTMLを作成し、欠測と未完了を明記する。review statusや不足を後続stageのgateにしない。公開操作が実行できなくてもHTML作成とreport保存を続け、公開不能の理由をreportへ記録する。
 

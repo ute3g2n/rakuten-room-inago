@@ -1,0 +1,12 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_revision_selects_current_turn_among_multiple_author_envelopes] _
+tests_inago\test_maintenance_report_publication_stage.py:1684: in test_fc07_report_role_review_revision_or_failure_reaches_publication
+    assert role_calls == [
+E   AssertionError: assert ['rr-inago-in...ent-reporter'] == ['rr-inago-in...ort-reviewer']
+E
+E     Right contains one more item: 'rr-inago-incident-report-reviewer'
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_report_publication_stage.py::test_fc07_report_role_review_revision_or_failure_reaches_publication[fallback_revision_selects_current_turn_among_multiple_author_envelopes]
+1 failed, 5 deselected in 1.14s

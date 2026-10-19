@@ -99,7 +99,7 @@
         "baseline_line": 49,
         "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
       },
-      "operation": "parent B max\u2192high; actual launch/transport/timeout/empty/parse failure correlation",
+      "operation": "parent B max→high; actual launch/transport/timeout/empty/parse failure correlation",
       "execution_order": 3,
       "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
       "reviewer": "FC08 independent product reviewer",
@@ -786,7 +786,7 @@
         "baseline_line": null,
         "base_commit": "51cfc7503775a25af731c8f4bcf727c94f10a595"
       },
-      "operation": "schema13\u219214 append-only event/handoff/lifecycle fields; FC05 sequential coordination",
+      "operation": "schema13→14 append-only event/handoff/lifecycle fields; FC05 sequential coordination",
       "execution_order": 3,
       "output": "worklogs/projects/maintenance/flow-completion-20261019/FC03/; same-job formal attempt refs in FC10",
       "reviewer": "FC08 independent product reviewer",
@@ -2470,7 +2470,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/AT-MAINT-01_\u4fdd\u5b88\u5bfe\u5fdc\u8981\u4ef6\u53d7\u5165\u5951\u7d04.md",
+      "file": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2502,7 +2502,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/AT-TRACE-01_\u5171\u901a\u30c8\u30ec\u30fc\u30b9\u5951\u7d04.md",
+      "file": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2534,7 +2534,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/\u8981\u4ef6\u30c7\u30fc\u30bf\u8f9e\u66f8.md",
+      "file": "docs/specifications/inago/要件データ辞書.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2566,7 +2566,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/\u8981\u4ef6\u8ffd\u8de1\u8868.md",
+      "file": "docs/specifications/inago/要件追跡表.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2598,7 +2598,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/\u4fdd\u5b88\u904b\u7528\u8a2d\u5b9a\u4ed5\u69d8.md",
+      "file": "docs/specifications/inago/保守運用設定仕様.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2630,7 +2630,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/\u30a4\u30ca\u30b4\u30b9\u30ad\u30eb\u8981\u4ef6\u5b9a\u7fa9\u66f8.html",
+      "file": "docs/specifications/inago/イナゴスキル要件定義書.html",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2726,7 +2726,7 @@
       ]
     },
     {
-      "file": "docs/specifications/inago/\u56f3\u89e3/F12.svg",
+      "file": "docs/specifications/inago/図解/F12.svg",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2758,7 +2758,7 @@
       ]
     },
     {
-      "file": "docs/operations/\u65e5\u6b21\u30bf\u30b9\u30af\u306e\u30c8\u30ec\u30fc\u30b9\u30fb\u30ed\u30b0\u51fa\u529b\u4e00\u89a7.md",
+      "file": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -2790,7 +2790,7 @@
       ]
     },
     {
-      "file": "plans/projects/maintenance/\u81ea\u52d5\u4e0d\u5177\u5408\u5bfe\u5fdc\u30d5\u30ed\u30fc\u5b8c\u9042\u3068\u5168\u5de5\u7a0b\u8ffd\u8de1_\u5b9f\u884c\u8a08\u753b_2026-10-19.md",
+      "file": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
       "existence": "existing",
       "owner": "FC02",
       "access": "write",
@@ -3254,7 +3254,7 @@
       "reviewer": "FC08 independent product reviewer",
       "evidence": [
         "FC02/file-operation-owner-map.json",
-        "docs/standards/\u30a4\u30ca\u30b4\u65e5\u6b21\u4e0d\u5177\u5408\u30ec\u30dd\u30fc\u30c8\u4f5c\u6210\u30eb\u30fc\u30eb.md"
+        "docs/standards/イナゴ日次不具合レポート作成ルール.md"
       ],
       "cases": [
         "FCT08",
@@ -3356,7 +3356,7 @@
       "reviewer": "FC08 independent product reviewer",
       "evidence": [
         "FC02/file-operation-owner-map.json",
-        "docs/standards/\u30a4\u30ca\u30b4\u65e5\u6b21\u4e0d\u5177\u5408\u30ec\u30dd\u30fc\u30c8\u4f5c\u6210\u30eb\u30fc\u30eb.md"
+        "docs/standards/イナゴ日次不具合レポート作成ルール.md"
       ],
       "cases": [
         "FCT08",
@@ -3771,7 +3771,7 @@
         ".codex/agents/rr-inago-incident-report-reviewer.toml"
       ],
       "controller_message": "approved strictly scoped active-role synchronization",
-      "reason": "remove active max/worktree/blocked and report-complete\u2192incident-resolved contradictions"
+      "reason": "remove active max/worktree/blocked and report-complete→incident-resolved contradictions"
     },
     {
       "files": [
@@ -3790,7 +3790,7 @@
         "automation/inago/maintenance/deployment.py",
         "automation/inago/maintenance/runtime_switcher.py"
       ],
-      "controller_message": "approved narrowly scoped no-alternate-workspace compatibility changes required by the user and plan; shared production_workflow.py operations are sequential FC04\u2192FC05\u2192FC06",
+      "controller_message": "approved narrowly scoped no-alternate-workspace compatibility changes required by the user and plan; shared production_workflow.py operations are sequential FC04→FC05→FC06",
       "reason": "The currently invoked repair author path clones and checks out a per-job repository, report publication uses git worktree add, and deployment creates managed worktrees. The plan and explicit user instructions require zero alternate workspaces while still completing the same job."
     },
     {
@@ -3918,13 +3918,13 @@
         "automation/inago/maintenance/store.py",
         "automation/inago/maintenance/sql/015_repair_predecessor_pin_optional.sql",
         "tests_inago/test_maintenance_store.py",
-        "docs/specifications/inago/AT-MAINT-01_\u4fdd\u5b88\u5bfe\u5fdc\u8981\u4ef6\u53d7\u5165\u5951\u7d04.md",
-        "docs/specifications/inago/AT-TRACE-01_\u5171\u901a\u30c8\u30ec\u30fc\u30b9\u5951\u7d04.md",
-        "docs/specifications/inago/\u8981\u4ef6\u30c7\u30fc\u30bf\u8f9e\u66f8.md",
-        "docs/specifications/inago/\u8981\u4ef6\u8ffd\u8de1\u8868.md",
-        "docs/operations/\u65e5\u6b21\u30bf\u30b9\u30af\u306e\u30c8\u30ec\u30fc\u30b9\u30fb\u30ed\u30b0\u51fa\u529b\u4e00\u89a7.md",
-        "docs/specifications/inago/\u4fdd\u5b88\u904b\u7528\u8a2d\u5b9a\u4ed5\u69d8.md",
-        "docs/specifications/inago/\u30a4\u30ca\u30b4\u30b9\u30ad\u30eb\u8981\u4ef6\u5b9a\u7fa9\u66f8.html"
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+        "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+        "docs/specifications/inago/要件データ辞書.md",
+        "docs/specifications/inago/要件追跡表.md",
+        "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+        "docs/specifications/inago/保守運用設定仕様.md",
+        "docs/specifications/inago/イナゴスキル要件定義書.html"
       ],
       "owner": "FC09",
       "boundary": [
@@ -4037,6 +4037,76 @@
       "boundary": "run_daily_report_stage author recovery branch: reuse only current-attempt author envelopes; if the only matching response belongs to a prior attempt, launch reporter in the current formal attempt rather than sending the prior path to the current-attempt writer; focused continuation regression",
       "controller_message": "approved exact FC10 extension after same-job trace showed a prior attempt envelope was selected and then rejected by current-attempt binding",
       "reason": "The current wrapper correctly rejects cross-attempt responses, but the recovery branch passed the prior attempt output when no current-attempt response existed. This converted a recoverable stale response into report_response_attempt_mismatch and prevented the actual reporter from producing a current-attempt result."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "owner": "FC10 controller",
+      "boundary": [
+        "_persist_minimal_daily_report revision author response recovery: select the unique saved envelope whose turn_id and thread_id both equal the revision AuthorTurn; ignore prior author turns in the same formal attempt while retaining attempt/job identity validation.",
+        "tests_inago/test_maintenance_report_publication_stage.py: regression starts with a persisted initial author envelope, forces the normal renderer to reject an evidence reference, then requires a reviewer-requested fallback revision to select only the current author turn and reach a fresh review/publication."
+      ],
+      "controller_message": "approved exact FC10 follow-up after the same-job resume 10 failure journal showed the real revision response was rejected because the current attempt held both the initial author envelope and the later revision envelope.",
+      "reason": "_daily_report_ai_envelopes returns every durable response for the role in an attempt. The fallback revision code incorrectly required the whole list to contain exactly one item, so the valid revision was treated as missing_or_mismatched whenever an initial response had already been recorded. Bind the selection to both IDs returned by the exact revision turn and keep current-attempt validation."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "owner": "FC10 controller",
+      "boundary": [
+        "production_workflow.py: both normal run_daily_report_stage author-turn collection and _persist_minimal_daily_report fallback-revision collection must select exactly one envelope matching that newly completed turn_id and thread_id; retain same attempt/job checks and ignore earlier author turns in the same attempt.",
+        "tests_inago/test_maintenance_report_publication_stage.py: retain every durable author envelope per attempt in the fake adapter; prove a normal reviewer-requested revision and the live-shaped fallback-after-render-failure both select the current author response and deliver that exact revision to the next reviewer/publication."
+      ],
+      "controller_message": "approved exact FC10 extension after scope review found the same all-envelopes-count bug in both the normal report revision branch and the fallback revision branch; the existing role-matrix fixture hid it by overwriting earlier envelopes.",
+      "reason": "A formal attempt can durably contain multiple author turns. The exact-one check is valid only after selection by the turn_id and thread_id returned by the just-completed author call; applying it to every envelope in the attempt discards an otherwise valid revision. The same test correction must stop collapsing earlier envelopes so the regression reflects production persistence."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py",
+        "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+        "docs/specifications/inago/イナゴスキル要件定義書.html",
+        ".agents/skills/rr-inago-incident-report/references/contracts.md"
+      ],
+      "owner": "FC10 controller",
+      "boundary": [
+        "production_workflow.py: _daily_report_ai_envelopes must return all validated envelopes from the exact attempt; audit each consumer to bind reusable author/reviewer envelopes to the exact report result_version, created_at_jst, reviewed_version and reviewed_sha256, while new turns continue to bind to exact thread_id and turn_id.",
+        "tests_inago/test_maintenance_report_publication_stage.py: add a direct regression over the production envelope reader with multiple valid same-attempt files, and retain end-to-end normal and fallback revision selection checks.",
+        "Synchronize the maintenance requirement and incident-report skill contract with all-candidate reading and exact version/hash matching for reuse; regenerate the embedded requirement HTML from its canonical source; do not change report status or introduce a retry gate."
+      ],
+      "controller_message": "approved exact FC10 follow-up after independent product review found that the shared reader still returned only the filename-last envelope before either exact turn filter could inspect the candidates.",
+      "reason": "The helper-level truncation makes the current turn-selection code dependent on filename ordering and can still reject a valid current response. Returning all validated candidates requires every reuse/recovery consumer to select the uniquely matching input version and HTML hash, preventing stale or ambiguous same-attempt responses from being reused."
+    },
+    {
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ],
+      "owner": "FC10 controller",
+      "boundary": [
+        "_daily_report_load_current_ai_wrapper: even when the saved wrapper path/hash resolves, require exactly one validated same-attempt envelope matching the report result_version plus created_at_jst or review reviewed_version plus reviewed_sha256 before reusing it; duplicates trigger a fresh role turn.",
+        "run_daily_report_stage previous-attempt reviewer recovery: do not pass a previous attempt's reviewer envelope to the current attempt wrapper; launch the reviewer in the current attempt when no uniquely bound current-attempt response exists.",
+        "tests: reproduce wrapper reuse with two same-input envelopes and a wrapper pinning one, and reproduce previous-attempt reviewer-only recovery while asserting current-attempt reviewer execution reaches publication."
+      ],
+      "controller_message": "approved exact FC10 follow-up after independent product review r1 identified wrapper-based ambiguity bypass and cross-attempt reviewer reuse that the first all-candidate audit had missed.",
+      "reason": "All-candidate enumeration is safe only when wrapper reuse cannot choose one of multiple same-input responses and no previous-attempt path is saved into a current-attempt wrapper."
+    },
+    {
+        "files": [
+            "automation/inago/maintenance/production_workflow.py",
+            "tests_inago/test_maintenance_report_publication_stage.py"
+        ],
+        "owner": "FC10 controller",
+        "boundary": [
+            "_daily_report_load_current_ai_wrapper: require wrapper.source_attempt_id to equal current_attempt_id before reading or reusing any envelope; keep ai_output.path bound to that same attempt.",
+            "tests_inago/test_maintenance_report_publication_stage.py: a wrapper with current attempt_id but a matching response/path from a prior source_attempt_id must return None and force a current role turn; retain duplicate same-attempt ambiguity coverage."
+        ],
+        "controller_message": "approved exact FC10 follow-up after independent product review r2 identified that a current wrapper could still resolve an otherwise matching envelope from a previous attempt.",
+        "reason": "The loader compared the wrapper to current_attempt_id but used source_attempt_id only to construct the artifact lookup path. A prior-attempt response could therefore be selected and later rejected by the same-attempt save contract, skipping the recoverable current role launch."
     }
   ],
   "fc10_review_followup": [

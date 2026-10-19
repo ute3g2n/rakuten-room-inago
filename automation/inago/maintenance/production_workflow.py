@@ -8159,6 +8159,7 @@ def _daily_report_ai_envelopes(
             or not isinstance(owner, dict)
             or owner.get("parent_key") != _REPORT_PARENT_KEY
             or owner.get("role_name") != role_name
+            or owner.get("role_config_sha256") != role_config_sha256
             or envelope.get("allowed_outputs") != list(allowed_outputs)
             or not isinstance(envelope.get("thread_id"), str)
             or not isinstance(envelope.get("turn_id"), str)
@@ -8174,7 +8175,7 @@ def _daily_report_ai_envelopes(
         found.append((relative, digest, envelope))
     if not found:
         return []
-    return [found[-1]]
+    return found
 
 
 def _daily_report_attempt_context(
@@ -8479,6 +8480,7 @@ def _daily_report_load_current_ai_wrapper(
     if (
         not isinstance(source_attempt_id, str)
         or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", source_attempt_id) is None
+        or source_attempt_id != current_attempt_id
         or not isinstance(ai_ref, dict)
         or set(ai_ref) != {"path", "sha256"}
         or not isinstance(ai_ref.get("path"), str)
@@ -8501,14 +8503,38 @@ def _daily_report_load_current_ai_wrapper(
         )
     except ReportContractError:
         return None
-    matched = [
-        item
-        for item in outputs
-        if item[0] == ai_ref["path"] and item[1] == ai_ref["sha256"]
-    ]
-    if len(matched) != 1 or wrapper.get("response") != matched[0][2].get("response"):
+    if role_name == _REPORT_AUTHOR_ROLE:
+        expected_created_at = (extra_expected or {}).get("created_at_jst")
+        bound_outputs = [
+            item
+            for item in outputs
+            if isinstance(item[2].get("response", {}).get("report"), dict)
+            and item[2]["response"]["report"].get("result_version")
+            == result_version
+            and item[2]["response"]["report"].get("created_at_jst")
+            == expected_created_at
+        ]
+    elif role_name == _REPORT_REVIEWER_ROLE:
+        expected_html_sha256 = (extra_expected or {}).get("html_sha256")
+        bound_outputs = [
+            item
+            for item in outputs
+            if isinstance(item[2].get("response", {}).get("review"), dict)
+            and item[2]["response"]["review"].get("reviewed_version")
+            == result_version
+            and item[2]["response"]["review"].get("reviewed_sha256")
+            == expected_html_sha256
+        ]
+    else:
         return None
-    return wrapper, matched[0]
+    if (
+        len(bound_outputs) != 1
+        or bound_outputs[0][0] != ai_ref["path"]
+        or bound_outputs[0][1] != ai_ref["sha256"]
+        or wrapper.get("response") != bound_outputs[0][2].get("response")
+    ):
+        return None
+    return wrapper, bound_outputs[0]
 
 
 def _daily_report_jst_now() -> str:
@@ -8877,9 +8903,17 @@ def _persist_minimal_daily_report(
                         finally:
                             author_session.close()
                         author_outputs = _daily_report_ai_envelopes(store=store, attempts_root=attempts_root, job_id=job.job_id, attempt_id=current.attempt_id, identity=storage_identity, role_name=_REPORT_AUTHOR_ROLE, role_config_sha256=author_plan.role_config_sha256, allowed_outputs=_REPORT_AUTHOR_ALLOWED_OUTPUTS, response_schema=_daily_report_ai_response_schema("report"))
-                        if len(author_outputs) != 1 or author_outputs[0][2].get("turn_id") != author_turn.turn.turn_id or author_outputs[0][2].get("thread_id") != author_turn.turn.thread_id:
+                        matching_author_outputs = [
+                            output
+                            for output in author_outputs
+                            if output[2].get("turn_id")
+                            == author_turn.turn.turn_id
+                            and output[2].get("thread_id")
+                            == author_turn.turn.thread_id
+                        ]
+                        if len(matching_author_outputs) != 1:
                             raise ReportContractError("report_revision_author_output_missing_or_mismatched")
-                        revised = author_outputs[0][2].get("response", {}).get("report")
+                        revised = matching_author_outputs[0][2].get("response", {}).get("report")
                         if not isinstance(revised, dict) or revised.get("result_version") != revision_input["result_version"] or revised.get("created_at_jst") != created_at:
                             raise ReportContractError("report_revision_author_response_invalid")
                         from automation.inago.maintenance.reporting import prepare_incident_report
@@ -9375,18 +9409,20 @@ def run_daily_report_stage(
                 )
                 if not outputs:
                     continue
-                response = outputs[0][2]["response"]
-                report_response = response.get("report")
-                if (
-                    not isinstance(report_response, dict)
-                    or report_response.get("result_version") != result_version
-                    or report_response.get("created_at_jst")
-                    != previous_input["created_at_jst"]
-                ):
+                matching_outputs = [
+                    output
+                    for output in outputs
+                    if isinstance(output[2].get("response", {}).get("report"), dict)
+                    and output[2]["response"]["report"].get("result_version")
+                    == result_version
+                    and output[2]["response"]["report"].get("created_at_jst")
+                    == previous_input["created_at_jst"]
+                ]
+                if len(matching_outputs) != 1:
                     continue
                 author_recovery = (
                     previous,
-                    outputs[0],
+                    matching_outputs[0],
                     previous_input["created_at_jst"],
                 )
                 break
@@ -9472,7 +9508,16 @@ def run_daily_report_stage(
                 # cannot be found under the current attempt, re-run the author
                 # below instead of passing a cross-attempt path to the current
                 # attempt wrapper.
-                author_raw = current_outputs[0] if current_outputs else None
+                matching_outputs = [
+                    output
+                    for output in current_outputs
+                    if isinstance(output[2].get("response", {}).get("report"), dict)
+                    and output[2]["response"]["report"].get("result_version")
+                    == result_version
+                    and output[2]["response"]["report"].get("created_at_jst")
+                    == created_at_jst
+                ]
+                author_raw = matching_outputs[0] if len(matching_outputs) == 1 else None
             else:
                 current_outputs = _daily_report_ai_envelopes(
                     store=store,
@@ -9485,7 +9530,16 @@ def run_daily_report_stage(
                     allowed_outputs=_REPORT_AUTHOR_ALLOWED_OUTPUTS,
                     response_schema=author_schema,
                 )
-                author_raw = current_outputs[0] if current_outputs else None
+                matching_outputs = [
+                    output
+                    for output in current_outputs
+                    if isinstance(output[2].get("response", {}).get("report"), dict)
+                    and output[2]["response"]["report"].get("result_version")
+                    == result_version
+                    and output[2]["response"]["report"].get("created_at_jst")
+                    == created_at_jst
+                ]
+                author_raw = matching_outputs[0] if len(matching_outputs) == 1 else None
             if author_raw is None:
                 if workflow.cancel_event.is_set():
                     return WorkflowStageResult(
@@ -9518,14 +9572,15 @@ def run_daily_report_stage(
                     allowed_outputs=_REPORT_AUTHOR_ALLOWED_OUTPUTS,
                     response_schema=author_schema,
                 )
-                if len(current_outputs) != 1:
+                matching_outputs = [
+                    output
+                    for output in current_outputs
+                    if output[2].get("turn_id") == turn.turn.turn_id
+                    and output[2].get("thread_id") == turn.turn.thread_id
+                ]
+                if len(matching_outputs) != 1:
                     raise ReportContractError("report_author_output_missing")
-                author_raw = current_outputs[0]
-                if (
-                    author_raw[2].get("turn_id") != turn.turn.turn_id
-                    or author_raw[2].get("thread_id") != turn.turn.thread_id
-                ):
-                    raise ReportContractError("report_author_turn_mismatch")
+                author_raw = matching_outputs[0]
             author_response = author_raw[2]["response"]
             report_response = author_response.get("report")
             if (
@@ -9664,50 +9719,16 @@ def run_daily_report_stage(
                     allowed_outputs=_REPORT_REVIEW_ALLOWED_OUTPUTS,
                     response_schema=reviewer_schema,
                 )
-                reviewer_raw = (
-                    current_review_outputs[0] if current_review_outputs else None
-                )
-            if reviewer_raw is None:
-                for previous in _daily_report_recovery_attempts(
-                    store=store,
-                    attempts=report_attempts,
-                    current_attempt_id=attempt.attempt_id,
-                ):
-                    previous_review_input = _daily_report_attempt_input(
-                        store=store,
-                        attempts_root=attempts_root,
-                        attempt_id=previous.attempt_id,
-                        job_id=job.job_id,
-                        filename="review-input.json",
-                    )
-                    if (
-                        not isinstance(previous_review_input, dict)
-                        or previous_review_input.get("source_sha256") != source_sha256
-                        or previous_review_input.get("result_version") != result_version
-                        or previous_review_input.get("html_sha256") != html_sha256
-                    ):
-                        continue
-                    outputs = _daily_report_ai_envelopes(
-                        store=store,
-                        attempts_root=attempts_root,
-                        job_id=job.job_id,
-                        attempt_id=previous.attempt_id,
-                        identity=identity,
-                        role_name=_REPORT_REVIEWER_ROLE,
-                        role_config_sha256=reviewer_plan.role_config_sha256,
-                        allowed_outputs=_REPORT_REVIEW_ALLOWED_OUTPUTS,
-                        response_schema=reviewer_schema,
-                    )
-                    if outputs:
-                        candidate_review = outputs[0][2]["response"].get("review")
-                        if (
-                            isinstance(candidate_review, dict)
-                            and candidate_review.get("reviewed_version")
-                            == result_version
-                            and candidate_review.get("reviewed_sha256") == html_sha256
-                        ):
-                            reviewer_raw = outputs[0]
-                            break
+                matching_reviews = [
+                    output
+                    for output in current_review_outputs
+                    if isinstance(output[2].get("response", {}).get("review"), dict)
+                    and output[2]["response"]["review"].get("reviewed_version")
+                    == result_version
+                    and output[2]["response"]["review"].get("reviewed_sha256")
+                    == html_sha256
+                ]
+                reviewer_raw = matching_reviews[0] if len(matching_reviews) == 1 else None
             if reviewer_raw is None:
                 if workflow.cancel_event.is_set():
                     return WorkflowStageResult(
@@ -9739,14 +9760,15 @@ def run_daily_report_stage(
                     allowed_outputs=_REPORT_REVIEW_ALLOWED_OUTPUTS,
                     response_schema=reviewer_schema,
                 )
-                if len(current_review_outputs) != 1:
+                matching_reviews = [
+                    output
+                    for output in current_review_outputs
+                    if output[2].get("turn_id") == turn.turn.turn_id
+                    and output[2].get("thread_id") == turn.turn.thread_id
+                ]
+                if len(matching_reviews) != 1:
                     raise ReportContractError("report_reviewer_output_missing")
-                reviewer_raw = current_review_outputs[0]
-                if (
-                    reviewer_raw[2].get("turn_id") != turn.turn.turn_id
-                    or reviewer_raw[2].get("thread_id") != turn.turn.thread_id
-                ):
-                    raise ReportContractError("report_reviewer_turn_mismatch")
+                reviewer_raw = matching_reviews[0]
 
             review_response = reviewer_raw[2]["response"].get("review")
             if not isinstance(review_response, dict):

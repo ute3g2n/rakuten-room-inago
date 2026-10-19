@@ -1,0 +1,31 @@
+{
+  "schema_version": "fc10-report-envelope-turn-selection-review-target-v2",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "52d03320a0e6cb5cc457491263f2c5c13b22ee2a",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "ca7dd2e76dbda55074a5d20cbd12ab47f7c379b297a06cfe174fcb643d945236"
+  },
+  "synchronized_contracts": {
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "e0248ee112d5f37bfed6fed11496710a93c1240b72f8efa75e55ad5f1c0fc2ad",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "44e4cd20bd882fd6ec602fe3d71567c939ab39744c3f283653d7e5feeee3824b",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "74858db6eda95ac835ab6d1c3c768de7c9e723c76e4017921de197c689da22ec"
+  },
+  "test_sources_not_for_independent_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "1925cf2ca69be9c0e58a14b7fc114d67429a450e41b07eb029ef6dd8cf704f49"
+  },
+  "review_r1_followup": {
+    "manifest_sha256": "4f31d93c3c1194d9f627a88372e70138cc1e5789279b07b60c900e948c50710e",
+    "findings": [
+      "The saved current wrapper must not bypass unique input-binding validation when several envelopes match the same report version/time or reviewed version/hash.",
+      "A previous-attempt reviewer envelope cannot be saved into a current-attempt wrapper; execute the reviewer in the current attempt instead."
+    ],
+    "disposition": "Both findings were fixed and covered by current source hash and focused local results."
+  },
+  "summary": "Fresh read-only review of all report envelope reads and reuse paths after r1. Confirm the exact source hash and verify that wrappers enforce unique matching across all current-attempt envelopes, author/reviewer reuse binds to current report version/time or reviewed version/hash, previous-attempt reviewer output is rerun in the current attempt, and new author/reviewer turns bind both thread_id and turn_id. Test code is explicitly excluded."
+}

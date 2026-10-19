@@ -1,0 +1,9 @@
+{
+  "output": "C:\\project\\rakuten-room-inago\\docs\\specifications\\inago\\イナゴスキル要件定義書.html",
+  "version": "2.50",
+  "chapters": 28,
+  "figures": 39,
+  "referenceDocuments": 26,
+  "canonical": "HTML",
+  "bytes": 4158044
+}

@@ -1,0 +1,71 @@
+{
+  "captured_at_jst": "2026-10-20T02:55:10.964480+09:00",
+  "runtime": {
+    "commit": "52d03320a0e6cb5cc457491263f2c5c13b22ee2a",
+    "state": {
+      "active": {
+        "commit": "52d03320a0e6cb5cc457491263f2c5c13b22ee2a",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "healthy": true,
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory_matches_fixed_root": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory_matches_fixed_root": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory_matches_fixed_root": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory_matches_fixed_root": true
+      }
+    ],
+    "user_version": 15,
+    "quick_check": "ok"
+  },
+  "same_job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "resume_count": 9,
+    "status": "failed",
+    "updated_at": "2026-10-19T17:42:24.252009Z",
+    "finished_at": "2026-10-19T17:42:24.252009Z",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "october_19_queue": {
+    "row_count": 1,
+    "sha256": "fa2850f221ef3c695bf50c7f821ad3680d878b19219d0d5725b68ae1c11b45ac",
+    "statuses": {
+      "queued": 1
+    }
+  },
+  "october_19_queue_history": {
+    "row_count": 0,
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "event_types": {}
+  },
+  "runtime_switch_recovery": {
+    "first_confirm_error": "DeploymentError: runtime_switch_state_invalid; stale active SHA 4e037eff4112e90130287a214e5578dd7350034c and pending=null were observed before writing state; no scheduler task or state mutation by that failed call was observed.",
+    "recovery": "Official switcher activate(commit, None) reconciled the fixed-root active code, followed by confirm_active(commit); final state active, pending=null, health true."
+  }
+}

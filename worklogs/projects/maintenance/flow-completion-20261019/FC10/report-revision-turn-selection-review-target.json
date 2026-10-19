@@ -1,0 +1,22 @@
+{
+  "schema_version": "fc10-report-revision-turn-selection-review-target-v1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "base_commit": "52d03320a0e6cb5cc457491263f2c5c13b22ee2a",
+  "product_sources": {
+    "automation/inago/maintenance/production_workflow.py": "743065fcad6bd2fcdf38c420162a330c4f40783b16027ec0e42170f325e97019"
+  },
+  "test_sources_not_for_independent_review": {
+    "tests_inago/test_maintenance_report_publication_stage.py": "3c8c49d25641b01d9f4b5850d885d827e079e5b26a402e40b0343a6391d32ba8"
+  },
+  "synchronized_contracts": {
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md": "3912acb6f3004a2ec393b25e3b32f374a5f958d7007d9e038206ba0c3714dc10",
+    ".agents/skills/rr-inago-incident-report/references/contracts.md": "8ccabda5a20e91da2d2b0e1abb6d44f5c0405259ca16ea4bcc52503dc9a12749"
+  },
+  "summary": "Select exactly one maintenance report author envelope by the thread_id and turn_id returned from the just-completed author turn in both the normal revision and controller-fallback revision branches. Keep attempt/job identity validation; do not reject an in-attempt revision because earlier turns remain durable. Independent review is production product code and contract only; test code is explicitly excluded."
+}

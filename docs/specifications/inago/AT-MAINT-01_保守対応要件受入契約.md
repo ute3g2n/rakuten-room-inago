@@ -127,6 +127,8 @@ report stageのresponseは`maintenance-report-response-v1`、最終結果は`mai
 
 HTMLは操作・期待・実結果・影響・回復・原因確度・変更後動作・確認範囲、工程tree、試験一覧、未確認・未実施事項、根拠リンクを保持する。`complete`、`pending`、`blocked`は事実に合わせて選び、未完了状態を成功に書き換えない。report reviewerのstatus/findingsは改善情報として記録し、report authorはその指摘を受けて修正できる。公開可能な経路がある場合はreview approvedを待たず公開処理を試し、公開不能ならその理由を記録する。いずれの場合も他の後続処理を止めない。
 
+同じformal attemptにreport author/reviewerの複数responseが保存される場合、host readerは同一job/attempt/identity/role/configurationを検証した全response候補を返す。今回起動したauthor/reviewer turnの結果はthread_idとturn_idの両方が一致する候補を一意に選ぶ。再開時に保存済みresponseを再利用する場合は、report result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補を一意に選ぶ。候補がないか複数一致する場合はそのresponseを再利用せず担当を起動し直す。以前のresponseが同じattempt内に存在することやファイル名順だけを理由に今回の修正版を失敗扱いにしない。
+
 U16のC44～C46/C55は合成fixture・一時Git repo/local bare remoteを使う通常のローカルpytestで検証する。検証済みOS sandbox、host-observed review receipt、C34 production HostPytestRunner実測証拠を開発テストの前提・合格条件にしない。テストコードの独立レビューは行わず、デバッグで不具合が判明した場合だけ最小修正する。これらのローカル結果を実運用providerの実証として扱わない。実表示LC04が利用可能なブラウザー経路から確認できない場合は、完成HTMLを用意し未確認として本人の確認へ引き渡す。
 
 ## 受入条件
