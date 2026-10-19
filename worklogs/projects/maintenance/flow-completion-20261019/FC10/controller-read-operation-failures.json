@@ -4,7 +4,7 @@
   "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
   "source_run_id": null,
   "target_date": "2026-10-17",
-  "recorded_at_utc": "2026-10-19T21:25:27.931337Z",
+  "recorded_at_utc": "2026-10-19T21:26:33.325135Z",
   "operations": [
     {
       "operation": "read_same_job_report_attempt_artifacts",
@@ -719,6 +719,14 @@
       "capture_location": "pytest tests_inago/test_maintenance_report.py::test_public_report_rephrases_internal_source_snapshot_term -q",
       "side_effect": "none; fixture-only test",
       "recovery": "Updated both evidence-index rendering paths and the stop-reason placeholder to use _public_text before HTML escaping; the post-change focused suites passed 56 tests."
+    },
+    {
+      "operation": "read_branch_sync_count_with_shell_unquoted_git_revision",
+      "failure_class": "PowerShellParserError",
+      "reason": "The expression HEAD...@{u} was parsed as a PowerShell hashtable expression, and Git received an invalid revision token. The read-only comparison returned no usable result.",
+      "capture_location": "controller exec command parser / git rev-list invocation",
+      "side_effect": "none; no repository state changed",
+      "recovery": "Queried git rev-list --left-right --count HEAD...origin/main explicitly; it returned 1 ahead / 0 behind. Pushed commit 61f2b3420134d9b92cd1451773152e3da0ff8c92 to origin/main successfully, then read back matching local/remote-tracking SHA and clean status."
     }
   ]
 }

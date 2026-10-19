@@ -21,3 +21,9 @@ resume 18でreporterと独立reviewerを起動した。r6〜r9で本文の修正
 本番コードへの適用、同一jobの次回再開、新しい実jobレポートのreview/publication/terminal read-backはまだ行っていない。読取専用確認では同じjobがresume_count 18、status `running`、source_run_id nullで、report開始操作が終了記録なしのまま残っている。作業中に止めたreport workerを正式APIの次回resumeで中断として照合する。次はtask所有差分だけをcommit/pushし、`TaskSchedulerRuntimeSwitcher.activate(commit)`（checkout引数なし）と`confirm_active(commit)`で固定rootへ適用・read-backした後、この同じjob/launchだけを再開する。10/19 queueは処理しない。
 
 この修正は表示とreviewの反復原因を直すもので、元障害を修正した、またはjobが完遂したとは扱わない。
+
+## Git公開
+
+- commit `61f2b3420134d9b92cd1451773152e3da0ff8c92` をbranch `main`から `origin/main`（https://github.com/ute3g2n/rakuten-room-inago.git）へpush成功。
+- push後、HEADとorigin/mainが `61f2b3420134d9b92cd1451773152e3da0ff8c92` で一致し、statusはclean。今回は19 task所有fileのみcommitした。
+- 次は同じcommitを公式runtime switcherで固定rootへ適用し、healthy/active/task read-backを確認してから同一jobだけを再開する。
