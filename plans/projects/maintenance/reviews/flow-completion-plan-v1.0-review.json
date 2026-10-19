@@ -1,0 +1,173 @@
+{
+  "review_status": "changes_requested",
+  "plan_version": "1.0",
+  "review_stage": "independent_execution_plan_review",
+  "reviewer": "/root/flow_completion_plan_review",
+  "reviewed_at_jst": "2026-10-19T22:21:32+09:00",
+  "reviewed_artifact": {
+    "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+    "sha256": "9aa136c57b1a119995c07cec26054bed2695abed5deb9e6b392454c52b063f81"
+  },
+  "identity": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "attempt": null,
+    "base_commit": null,
+    "identity_gaps": [
+      "formal controller review attempt not assigned",
+      "formal controller base_commit not assigned"
+    ]
+  },
+  "execution_settings": {
+    "requested_reasoning_effort": "high",
+    "actual_model": "not_observed",
+    "actual_effort_runtime_observation": "not_observed",
+    "actual_tier": "not_observed",
+    "scope": "read-only plan/source/evidence review; only two assigned review outputs written; no tests or production operations"
+  },
+  "investigation_input": {
+    "version": "u23-08-update-v2",
+    "result_status": "partial",
+    "independent_review_status": "approved",
+    "reviewed_at_jst": "2026-10-19T20:49:37+09:00",
+    "retained_limitations": [
+      "IR-U23-03: historical originals not supplied",
+      "IR-U23-04: original U001-U004 evidence outside investigation reviewer scope",
+      "IR-U23-V2-01: S04 later append is a separate observation boundary",
+      "root cause and business recovery remain unknown"
+    ]
+  },
+  "findings": [
+    {
+      "id": "FCP-01",
+      "severity": "medium",
+      "location": "FC08 item 4 (line 438) and standalone prompt start condition (line 450); compare section 4.2 line 130",
+      "requirement": [
+        "FC-R03",
+        "FC-R05"
+      ],
+      "steps": [
+        "FC08"
+      ],
+      "cases": [
+        "FCT04",
+        "FCT06",
+        "FCT13"
+      ],
+      "finding": "FC08 requires both a product diff and available test evidence before reviewer startup. The plan elsewhere requires actual reviewer startup even when implementation has no diff and requires optional evidence never to delay reviewer startup. If implementation fails before creating a diff or testing produces no evidence, this local condition can omit the independent review role, contrary to the no-stage-skip requirement.",
+      "action": "Start FC08 when the job/stage and the available product result, no-change explanation or fallback artifact are identifiable. Remove diff existence and test-evidence availability as startup prerequisites in both item 4 and the full prompt. For no diff, actually launch the reviewer to verify no reviewable product changes and record that result without fabricating approved; preserve missing evidence as a finding and pass it forward.",
+      "owner": "plan author; execution owner controller/product reviewer",
+      "required_outputs": [
+        "corrected FC08 start condition and standalone prompt",
+        "FCT04/FCT06 startup assertion for no-diff and missing-test-evidence inputs"
+      ],
+      "handoff": "Pass this finding to the author and future FC08 controller. Review status must not gate any next stage."
+    },
+    {
+      "id": "FCP-02",
+      "severity": "medium",
+      "location": "section 3 line 97; FC03 item 6/prompt lines 290/305; FC04 item 6/prompt; FC05 item 6/prompt; FC06 item 6/prompt; FC09 item 6/prompt lines 470/485",
+      "requirement": [
+        "FC-R02",
+        "FC-R04",
+        "FC-R09",
+        "FC-R10"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC09",
+        "FC10"
+      ],
+      "cases": [
+        "FCT02",
+        "FCT05",
+        "FCT11",
+        "FCT13"
+      ],
+      "finding": "The writing scope names necessary maintenance/schema although automation/inago/maintenance/schema does not exist; actual stage JSON schemas are automation/inago/schemas/maintenance-*.schema.json and migrations are automation/inago/maintenance/sql/. Other scopes use unqualified basename lists, necessary schemas/sql, relevant six skills/contracts and production maintenance/schema without a path list. The plan includes necessary daily pipeline/trace boundaries, but none of FC03-FC06 explicitly owns the existing daily_pipeline.py, orchestrator.py and trace.py files. This leaves instrumentation and active-contract changes outside a concrete owner/file handoff until another scope update.",
+      "action": "Use actual repo-relative schema/migration paths in each item 6 and standalone prompt; give FC02 an explicit file/owner table for schema families, planned modules, active skills/contracts/roles and daily diagnostic boundaries. Assign sequential ownership of daily_pipeline.py/orchestrator.py/trace.py where a real gap requires them, or explicitly bind their allocation to FC01/02 with a concrete output table consumed by FC03/FC10. Distinguish production data/schema operations from source directories. Existing user changes stay excluded and the table may be expanded without a new approval gate.",
+      "owner": "plan author and FC01/FC02 controller",
+      "required_outputs": [
+        "actual-path ownership table",
+        "synchronized item 6 and standalone prompts",
+        "baseline/new instrumentation allocation distinguishing already implemented fields"
+      ],
+      "handoff": "Future implementers consume the exact file/operation owner table; source path gaps become findings rather than startup blockers."
+    },
+    {
+      "id": "FCP-03",
+      "severity": "medium",
+      "location": "section 4.4 line 149; section 13 line 831; all eleven standalone prompts; FC09 synchronization sequencing",
+      "requirement": [
+        "FC-R10"
+      ],
+      "steps": [
+        "FC01",
+        "FC02",
+        "FC03",
+        "FC04",
+        "FC05",
+        "FC06",
+        "FC07",
+        "FC08",
+        "FC09",
+        "FC10",
+        "FC11"
+      ],
+      "cases": [
+        "FCT13"
+      ],
+      "finding": "The plan says to use repo .codex/agents high settings as the official path, but current common-implementer/common-tester/common-reviewer/rr-inago-incident-reporter/rr-inago-incident-report-reviewer TOMLs set model_reasoning_effort=max and their developer instructions repeat max. The fallback text only explicitly names session-tool specialist roles with fixed max. Formal repo role synchronization is scheduled at FC09, after the first implementation/testing/review launches. Consequently the stated startup path is inconsistent with the user's maintained high setting.",
+      "action": "Record the current five max role definitions as baseline facts. Before each early role launch, select a worker/default path actually configurable to high with the same specialist prompt when the repo role remains fixed max; explicitly cover repo TOML and embedded developer instructions as well as session-tool roles. Alternatively bring the task-owned high synchronization forward to FC02 before first use. Keep real startup attempts and unknown runtime observations separate, and never treat missing observations as a startup gate. Update every prompt consistently.",
+      "owner": "plan author/controller and role contract owner",
+      "required_outputs": [
+        "correct current-role baseline",
+        "unambiguous high startup route before FC03-FC08",
+        "TOML and embedded prompt synchronization ownership"
+      ],
+      "handoff": "Use the user's high setting for actual launches, carry discrepancies as facts, and continue other stages without model-observation gates."
+    }
+  ],
+  "checks": {
+    "exact_expected_sha256": "match",
+    "sections_0_through_14": "15 present exactly once",
+    "steps": "FC01-FC11 each contain all 14 numbered fields and one standalone full prompt",
+    "cases": "FCT01-FCT13 each contain all 12 numbered fields",
+    "requirement_fact_step_case_owner_output_reviewer_evidence_map": "all local R01-R10/F01-F10/FC01-FC11/FCT01-FCT13 covered; exact file ownership corrections in FCP-02",
+    "existing_complete_pytest_nodes": "14 of 14 definitions found in specified files without running collection or tests",
+    "planned_nodes": "explicitly marked not yet created, not fabricated as current tests",
+    "control_characters": "0 unexpected control characters",
+    "same_job_null_run_and_target_date": "preserved; formal attempt/base gaps retained without substitution",
+    "no_gate_meaningful_fallback_and_consumption": "substantive contracts present, inner/outer role matrix and durable reconciliation planned; FCP-01 startup condition requires correction",
+    "only_implementation_substantive_skip": "specified only when both cause fix and useful instrumentation truly impossible; no fake test/review/deployment success",
+    "known_trace_gaps_mandatory_work": "implementation/focused test/product review/application/new trace required; existing unknown cause is not claimed fixed",
+    "all_failure_boundaries": "nested roles/AI/DB/artifact/logger/process/Git/report/publication and fallback recovery explicitly included",
+    "physical_limits": "all sinks/power loss correctly bounded by last durable begin and unknown interval, no impossible historical-cause guarantee",
+    "same_job_completion": "durable stage artifacts/reviews/publication/terminal required; external reporter HTML alone disallowed; incident resolution separate",
+    "plain_html": "existing report-writing standard mandatory, middle-school-readable narrative and independent five-question reading review, deterministic fallback/revision and sidecar contract present",
+    "fixed_workspace_and_forbidden_effects": "correct: no alternate workspace, Daily manual launch, 10/19 processing, draft regeneration, duplicate job or invented run",
+    "test_scope": "focused ordinary local fixtures/temp DB/local Git; no whole-suite requirement, OS sandbox, host receipt, C34 or test-code review",
+    "production_operations": "not performed",
+    "tests": "not run",
+    "plan_modification": "none"
+  },
+  "observations": [
+    "SQLite constraint classification, transaction begin/commit/rollback/rollback_failed and proposed/persisted run fields already exist at orchestrator.py:719-810,870-956, daily_pipeline.py:765,885,929-930,1064-1074 and trace.py:121-124,472-485. FC01/FC02 must identify an actually unimplemented useful boundary; do not duplicate fields for the sake of a same-job diff or defer foundational trace protection artificially.",
+    "Investigation v2 result is partial while its separate later independent review is approved with three scope/append limitations; plan preserves this distinction.",
+    "settings/language.md is absent at the referenced repo location and was already recorded as unknown. This does not stop the review.",
+    "Existing report-writing rules may be clarified for plain language, not weakened. Actual browser/print unavailable operations stay unverified while report generation/review/publication continue."
+  ],
+  "allowed_outputs": [
+    "plans/projects/maintenance/reviews/flow-completion-plan-v1.0-review.md",
+    "plans/projects/maintenance/reviews/flow-completion-plan-v1.0-review.json"
+  ],
+  "next_stage_policy": "Pass concrete findings to the author for a new version and to the execution controller. approved/changes_requested/rejected/unavailable, missing evidence, unknown causes, FAIL and review/test/readiness/release results or counts never gate a downstream stage. This task is PLAN ONLY; no implementation or production resume is authorized by this review output."
+}

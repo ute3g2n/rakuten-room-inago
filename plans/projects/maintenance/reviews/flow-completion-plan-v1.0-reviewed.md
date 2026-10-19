@@ -1,0 +1,847 @@
+# 自動不具合対応フロー完遂と全工程追跡 実行計画
+
+版：1.0／作成日：2026-10-19 JST／状態：計画作成済み・実装未着手。独立レビュー結果は別review記録を参照。旧計画1.76とは別計画。
+
+この計画の完成は、2026-10-17の同一保守jobが、調査から公開まで自動で全工程の成果を保存して正常に終わり、今回追加するトレース・ログが実際に適用され、その証拠を回収した状態をいう。元の日次障害の原因特定・業務回復は別の結果として扱う。「呼出しを試した」「外側のagentがHTMLを書いた」「過去の試験がPASSだった」だけでは、この計画を達成したことにしない。旧計画U23.08/U24の「各操作を試したので実施完了」という記録は、本書の新受入に対しては未達である。旧記録は歴史として残し、新しい完遂実績へ流用しない。今回は計画作成だけであり、実装・試験・本番再開は行わない。
+
+## 0. 文書版・対象・状態
+
+### 必ず守る本人方針
+
+- 唯一の作業場所は C:/project/rakuten-room-inago。別worktree・checkout・workspaceを作成・選択・利用しない。既存変更・stashを破棄しない。
+- 本人一名のローカルシステムである。堅牢性・防御層そのものを品質目標にしない。自作の承認・status・回数・receipt・lease・sandbox・runtime/model観測等が明示された開始・再開・後続処理を止める場合、根本の制限を除去する。別名の条件や追加承認で置き換えない。
+- 最新指示は従来の「blockedを記録して次を試す」から強化された。今後のstage結果にはblockedを出さず、どのstageも有効な引継ぎ成果物を必ず作り、次担当を実起動する。古いDB・raw agent応答・履歴にあるblockedは歴史事実のまま保持し、遷移条件に使わない。名前だけcompleteに変え、内容なしで渡すことも不可。
+- 原因unknown・証拠不足・FAIL・rejected・changes_requested・unavailable・前段未完了・再開回数・review回数で後続を止めない。レビュー承認と試験成功は評価結果である。完成認定に必要な事実の検証と、後続担当を起動する条件を混同しない。
+- 調査が不明なら「何を確認し、何が分からないか」を含む調査報告を出す。計画は原因修正または有用なトレース・ログ追加を具体化する。双方不能の場合でも、その理由と変更しなかった事実を平易なHTMLへ出す計画を作る。実質的な作業省略を許すのは、その双方ができない実装操作だけ。試験・review・反映・報告・公開の担当工程自体を省かない。
+- reviewerは対象成果物があれば実起動する。合成approved、架空の実装・試験成功・反映成功は作らない。reporterは指摘を受け自分の文章を修正できる。テストコードの独立reviewは不要、独立reviewは製品コードに対して行う。
+- ログファイル数・再開回数・review巡回回数の上限を復活させない。13:00待ちの工程を作らない。本人の明示的な取消しと、電源断・保存装置の全面喪失等の物理的な実行不能は、ソフトウェアの任意gateと区別する。
+- Gitはtask所有file/hunkだけを選択し、差分・秘密・機械確認を見て現在branchのtracking先へcommit/pushする。既存user変更を混ぜず、一括stage、reset --hard、checkout、force push、履歴書換えをしない。
+
+### 不変の対象identity
+
+| 項目 | 値／根拠 |
+|---|---|
+| incident_id | 352492da-ac58-4680-b1fd-fe5f24000229（S04および調査v2の供給値） |
+| 案件の文書フォルダID | INC-20261017-001。DB incident_idと同一文字列ではない |
+| job_id | job-historical-9e7f0c175cc4c874c955a5dab29c4427 |
+| source_launch_id | historical-9e7f0c175cc4c874c955a5dab29c4427 |
+| source_run_id | null。推測・別runで補完しない |
+| target_date | 2026-10-17 JST。実行日に置換しない |
+| 作成時コード基準 | main／8368cd1491fc130fcd5029f71bb40e8a1fa67ba1／tracking origin/main（計画作成時の読取） |
+| 調査入力 | u23-08-update-v2。独立reviewは2026-10-19 20:49:37 JST approved、原歴史snapshot未提供等の限定あり |
+| 現在のformal controller attempt／base_commit | 今回はproject計画作成であり割当なし。過去attempt・HEADから捏造しない |
+
+本書のFC-R/FC-A/FC/FCT/F番号は本書で新規定義する計画内識別子であり、既存の承認済み要件ID・試験IDを装わない。旧MR-001～029、MA、既存C/N番号の意味・版を変えない。実装時に要件正本へ正式な対応を登録する。
+
+### 優先順位・参照
+
+本人の今回指示、本書の全工程成果物・blocked禁止契約、適用AGENTS、既存仕様/skills/旧計画の順に適用する。common-execution-planningのcontracts.mdに残るidentity不足時blocked、unknownのactionをholdに限定する文、旧HTMLひな形のpending/blocked→job blocked/incident resolved結合、旧計画のworktree・xhigh/max・gateは今回要件に従って改訂対象にする。既存のraw事実は修正しない。
+
+参照資料：
+
+- plans/projects/maintenance/文書整理と日次自動不具合対応_実行計画_2026-10-17.md（1.76、第0・1・8節、U23.01～.08、U24/U25）
+- worklogs/projects/maintenance/U22_U23_実行記録.md、U24-final-reconciliation.md
+- plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md および同.result.json／.json
+- plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md／.json
+- plans/incidents/2026/10/INC-20261017-001/test-results/S04-production-readonly-observation.md
+- docs/templates/incidents/日次不具合修正計画_ひな形.md
+- docs/standards/イナゴ日次不具合レポート作成ルール.md
+- docs/templates/incidents/日次不具合対応レポート_ひな形.html
+
+ルートAGENTSとC:/Users/ute3g/.codex/AGENTS.mdを読んだ。参照先settings/language.mdはrepoおよび同.codex配下の想定場所に存在を確認できず、内容unknown。会話と既存文書に従い日本語で記載し、計画作成を遅延しない。
+
+## 1. 目的・完成状態・範囲
+
+### 目的
+
+日次不具合の調査結果が不明でも、自動保守が「調査→計画→実装または実装不能説明→試験→製品review→反映処理→平易な報告→報告review/修正→公開→job終端登録」を完遂する。各失敗を、原因究明に使える具体的な操作・例外・位置・相関情報へ結ぶ。今回既知の記録不足に対する計装は、検討だけで終えず実装・試験・独立製品review・適用まで実施する。
+
+### 客観的な受入（全て実測する。後続起動gateではない）
+
+| 要件／受入 | 完成時に確認する事実 |
+|---|---|
+| FC-R01／FC-A01 同一job完遂 | 同一job・同一launch・null runを保ち、全stageのattempt/成果物/引渡し/時刻がDBへ永続登録され、jobがrunningのまま残らず、正しい終端・終了時刻・フロー結果を持つ。未来stage結果blockedは0件 |
+| FC-R02／FC-A02 全失敗追跡 | 例外・AI transport/timeout・空/不正応答・DB/log/artifact保存失敗・review/反映/公開失敗・プロセス中断の注入ごとに、工程/操作/原因分類/捕捉位置/因果関係/相関ID/成果物が追跡できる。汎用reason一個だけの失敗は0件 |
+| FC-R03／FC-A03 必須成果物 | 調査不明・planner失敗を含む全stageが内容ある正常形の成果物を出す。後段が実際に読み処理した証拠を保存。controllerのfallback作成はagent作成と明確に区別 |
+| FC-R04／FC-A04 計装の実施 | 既知フロー欠陥と有用な次回診断の計装について、新旧差分・対象版・focused実測・独立製品review・適用記録・同一jobで発生した新ログを揃える。今回の既知欠陥を「原因unknownだから何もしない」で省略しない |
+| FC-R05／FC-A05 残存gate除去 | 内部plan approval/出力不足、repair/deployment候補不足、report status、lease/回数等に起因する後続中断を除去。未実施操作と理由を成果物へ残して全担当が動く。対象変更がないreviewは対象なしの確認を行い、approvedにしない |
+| FC-R06／FC-A06 平易な最終HTML | 既存作成ルールの全必須構成を満たす。本文だけで中学生が工程・操作・期待・実結果・影響・対応・未確認を理解できる。内部記号/ID/コードを本文の主語にせず参考付録へ置く。reporterと別reviewerが実行し、指摘反映版の意味と公開版を結ぶ |
+| FC-R07／FC-A07 公開・終端一致 | 同一jobのreport/publication attemptが最終version付きHTML、review対象版、commit/push先を参照し、DB read-backとrepo公開版が一致。外側agentの別経路HTMLを完遂証拠にしない |
+| FC-R08／FC-A08 障害未解決を保持 | flow完遂と元障害解消を別fieldで保存。原因unknown・業務回復unknownのままフロー完遂が可能。incidentを根拠なくresolvedにしない。過去の日次failed、0 run、raw blockedを改変しない |
+| FC-R09／FC-A09 範囲保護 | 10/19 dispatch除外をそのまま維持。同日queue/historyの処理0、重複job受付0、run捏造0、Daily手動0、追生成0、別workspace0。所有外差分の混入0 |
+| FC-R10／FC-A10 文書・運用整合 | 要件/受入/辞書/追跡表/ログ一覧/skills/roles/templateを新契約に同期。全担当effort high、指定/実観測を分ける。適用code SHA・runtime・正式ledgerの一致を実値で確認 |
+
+範囲はmaintenance制御部・stage担当契約・必要な日次診断捕捉境界・報告生成・関連schema/spec/test/文書。元の10/17障害を無理に再現/修復すること、日次の不足下書き生成・投稿・認証変更は範囲外。自然日次がまだ存在しないことを今回同一job完遂の代わりにしないし、待機条件にも使わない。
+
+## 2. 調査からの事実・事象追跡
+
+下表のF番号は本書の局所参照。原調査のF001～F008/U001～U005は元の識別子を維持する。全て過去観測であり現在状態の保証ではない。未知の根本原因に因果を決め付けた修正はせず、確認済みの制御/記録欠陥を直す。
+
+| fact | 事実・限界・原因確度 | evidence | 対応要件/STEP/case |
+|---|---|---|---|
+| F01 | 原調査F001/F002/F005：10/17 CLI IntegrityError、当日run0、source_run_id null、trace not_written等。正確な失敗操作・原因・回復unknown。別観測trace2件とは範囲が異なる | 調査v2第2/8/9章、review v2 IR-U23-03/04。歴史原証拠未再読 | R02/R04/R08；FC01/03/10；FCT02/11/12 |
+| F02 | S04：同一job resume_count8、Worker exit3/maintenance_incomplete。DB job running、planning attempt running/no output。原因unknown。CLI結果とDB状態は別事実 | S04 Official one-shot/Post-Worker、U22_U23ログ20:55以降 | R01/R02/R03/R07；FC01/03/04/05/10；FCT01/03/10/11 |
+| F03 | S04 stage planning_author_turn_failed、repair_plan_not_approved、deployment_candidate_repair_unavailable、report generic maintenance_workflow_stage_failed。report step_attemptなし | S04 Post-Worker | R02/R03/R05；FC01/03/04/05/06；FCT02/03/04/06 |
+| F04 | 現コード検索でprovider/production_workflowにblocked返却が多く残存。diagnostic_traceのrequire_writtenは本処理前/終端のwriter失敗でMaintenanceAuditReceiptErrorをraiseする自作gate。repair_plan_not_approved、report pending/blockedをjob blockedへする箇所、run_reportでstatus!=completeならpublicationを呼ばない箇所、deployment preflight non-completeでreturnする箇所、store final completeとincident resolved寄り制約の結合あり。根本例外詳細の欠落候補。因果の精査はFC01で行う | automation/inago/maintenance/workflow_provider.py、production_workflow.py（作成時HEAD）。検索だけで全動作確認とはしない | R01/R02/R05/R08；FC01～06；FCT01～08 |
+| F05 | v0.9 HTMLは外側reporter作成・独立review・Git公開済み。same jobのreport/publication成功を示さない。利用者は文章が記号中心で理解しにくいと指摘 | U22_U23ログ21:12以降、既存HTML、本人今回指示、作成ルール/ひな形 | R06/R07；FC06/10/11；FCT08/09/11 |
+| F06 | S04 ledger active22d68761cc47e089bfc2ed59dc9eadc4e69126eeと当時のcode5f206cc6d3b81d4695f7d827a04b1afd1fb7f653不一致。現時点も同じかは未再観測 | S04正式ledger欄、U23.07/24記録 | R07/R10；FC01/05/09/10；FCT07/11 |
+| F07 | S04 schema13/quick_check ok、10/19 queue1 queued/event0、除外定数維持。Scheduler Ready/Enabledの当時観測。U25 10/20自然run not_observed | S04、旧計画U23.07/U25、ログ | R09/R10；FC01/07/09/10/11；FCT11/12 |
+| F08 | 過去focused試験と製品独立review approvedは対象版限定。最新改修への証拠流用不可。旧試験の一部はblockedを期待し今回変更対象 | U23.03/04/05・S03記録、現test node定義 | R01/R05/R10；FC07/08/11；FCT01/04/05/13 |
+| F09 | 最新調査v2 review approved。IR-U23-03/04原証拠/指定入力限定、IR-U23-V2-01 S04追記版の時刻境界が残る | reviews/u23-08-investigation-review-v2.md/.json | R03/R04/R08；FC01/04/10；FCT03/11/12 |
+| F10 | 旧HTMLひな形はreport complete→incident resolved、pending/blocked→job blockedと明記。今回要件に不適合。planner contractsにも開始blocked/unknown hold記述残存 | HTMLひな形checks節、common-execution-planning/references/contracts.md | R03/R05/R06/R08/R10；FC02/06/09；FCT08/09/13 |
+
+各行のowner/output/reviewerを第10節で閉じる。原調査13 factsの内訳はF001～F008とU001～U005であり、本書F01～F10と取り違えない。原調査の原因仮説H01/H02は確定しない。
+
+## 3. 現行実装・環境・既知制約
+
+- Python入口は .venv-inago/Scripts/python.exe と automation.inago.maintenance.cli。対象製品はworkflow_provider.py、production_workflow.py、worker.py、controller.py、store.py、diagnostic_trace.py、planning.py、repair.py、reporting.py、deployment.py、runtime_switcher.py、ai_adapter.py、必要な日次pipeline/trace捕捉境界。全て固定workspace内。
+- DB正本は既存production runtimeのmaintenance/state.sqlite。FC01はread-only、FC09以降はbackupと現在schemaを確認して正式API/migrationを使う。schema13は過去観測。次migration番号・新schema版は未確定で、空いている番号/互換範囲を調べて採番し、本書では14を既成事実にしない。
+- Worker/dispatch/resume、check/evidence/job、8項目の外側stageだけでなく、調査author/reviewer、planner/reviewer、repair author/test/product reviewer/completion、deployment preflight/execution、report author/reviewer/revision/publication/finalizationの内部経路、Git/runtime切替、job/incident/attempt終端、trace/DB writerの全return/raise点をinventoryへ固定して対象にする。blockedを単にcompleteへ文字置換する方法は不可。外側for-loopが回るだけの確認は不十分。
+- 既存の手動レポート履歴は過去の成果として残す。新実行で自動生成したartifactとDB attemptから辿れるかを確認する。
+- 実model/effort/tier、runtime接続・DB状態、当該例外のstack/cause、現在process、正式ledger現況はFC01以降で実測。取得できない欄はunknownとし起動を遅らせない。モデル対応を未確認のまま保証しない。
+
+## 4. 技術案・責務・依存
+
+### 4.1 stageの完遂と中身の結果を分ける
+
+以下のfield名は新規設計案でありFC02で既存schemaと照合して確定する。意味は必須。
+
+| 軸 | 意味・例 |
+|---|---|
+| stage_progress | pending/running/completed。新規terminal stage outcomeにblockedを許さない。completedには内容あるhandoffと永続参照が必要 |
+| operation_result | succeeded/failed/not_performed。具体的な操作単位。failedを成功へ変えない |
+| artifact_origin | agent/controller_fallback。fallbackをagent実行成功と称さない |
+| content_result | confirmed/unknown/partial/no_change。調査・計画・実装の実内容 |
+| test_result/review_result/deploy_result/publish_result | PASS/FAIL/NOT_RUN、approved/changes_requested/rejected等の実値、実施なしは対象なし等の具体理由。後続遷移を妨げない |
+| workflow_completion | 同一jobの成果物と最終公開・終端整合の実値。attemptedだけをcompletedにしない |
+| incident_resolution | unknown/unresolved/resolved等を証拠に基づき別保存。元のdaily outcomeは原値を保持 |
+
+新語へ置き換えただけで後続を止める実装は不合格。stageはエラー詳細を含むhand-offを確定し次の担当を呼ぶ。report pending/agent raw blockedが返っても、それをjob blocked/incident resolvedへ直結させない。
+
+### 4.2 全stageの成果物とfallback
+
+| 段階 | 必須内容・通常担当 | agent/操作が失敗した時のcontroller成果と次の行動 |
+|---|---|---|
+| 対象確認・証拠 | 対象identity、読めた証拠一覧、欠測、観測時刻 | 対象は不変入力を用い、読めない証拠ごとに理由を記す。欠測付きbundleを調査担当へ |
+| 調査＋独立review | 事実/不明/仮説/影響、原因確度、次の計装候補とreview実値 | 取得済み事実と「今回調べ切れなかった範囲」のMD/JSON。review対象はその版。起動失敗を記録して計画担当を実起動 |
+| 計画＋独立review | 原因修正と計装を区別、所有file/捕捉操作/期待event/試験/適用/平易HTML作成を具体化 | 決定的な最小計装計画を生成。何も変更不能なら、調べた候補と不能理由・何もしなかったHTMLの内容/検証/公開を含む計画。後続実装/試験/reviewへ |
+| 実装 | 実差分、所有範囲、計装箇所、出力例、変更不能理由 | 原因修正不能でも計装を実施。両方不能の場合だけ実装操作not_performedを出す。差分0を虚偽implementedにしない |
+| 試験 | 変更と成果物の検査、期待/実測/対象版、未実施理由 | 差分0なら調査/計画/引継ぎ/報告データ整合を実際に検査。pytest対象なしの実値を残し空PASSを作らない |
+| 製品review | 実製品diff＋試験証拠への独立所見 | 差分0でも担当を起動し「対象差分なし」を確認、許される範囲で契約・成果を確認。製品review approvedと偽らない |
+| 反映 | 適用する差分または既存版維持の評価、実行先/版/正式ledger read-back | 対象なしなら変更を適用しなかった理由と現用SHAを確認。候補欠落や操作失敗でも結果を報告担当へ渡す |
+| 報告＋独立review/修正 | 中学生が理解できるHTML、実結果/不明、根拠付録 | 通常reporterを実起動し、自動解決可能な失敗は直す。なお失敗ならcontrollerの決定的な最小HTML rendererを使う。reporter/reviewer実行の有無は実値。reviewは実在するfallback版にも実起動し指摘を作者へ返す |
+| 公開・終端 | version付きHTML、commit/push/DB publication結合、終了記録 | 公開失敗もlocal HTML/結果/原因/再開位置を保存し終端整合操作まで進める。公開ができていなければフロー完遂とは報告せず、自動で再実行可能な状態を残す |
+
+### 4.3 追跡と保存の順序
+
+1. 安定したjob/workflow invocation/stage/attempt/operationの相関値を先に割り当てる。新attempt IDはcontrollerの正式採番値を使い、plannerが捏造しない。source_run_id nullはそのまま。
+2. 外側runner呼出し前と内部操作開始前にbeginを保存する。例外分類、error chain、捕捉位置、対象版、最後に成功した操作、経過時間、成果物参照を終端eventへ結ぶ。
+3. try/except/finally相当の共通実行境界と各実操作境界を設け、例外・return・応答parse失敗・writer自体の失敗も終端/result handoffへ収束する。generic reasonしか残らない経路をなくす。
+4. DBと通常JSONLとは失敗点を分けた小さなローカルfallback journalを用意する。通常trace loggerを再帰的に呼ばず、最小標準I/Oで固定workspaceの専用spoolへ保存し、stderrを監視側で採取する経路も結ぶ。ログ容量/件数/再開上限で工程を止めない。
+5. fallbackファイルができた場合は次担当にそのファイルを直接引き渡し、DB復帰時に同じ相関値で再登録する。DB未登録を永続登録済みと偽らない。出力/DBの二重書込途中はintent→artifact確定→DB参照のreconciliationで復旧する。
+6. processが強制終了されfinallyが動かなければ、次回起動時にbeginだけで終わった操作/attemptと保存物を照合し、abnormal_endを「検出時刻」と共に追記する。過去の終了時刻・例外を推測せず、同じjobの未確定箇所から補完して後続を流す。
+7. publicationのpush成功後DB登録前の中断は、remote commit/HTML版をread-backして同じ公開済み成果へ結び直す。重複job・虚偽push・最初からの全再実行をしない。
+
+完全な電源喪失・OS/ディスク全面停止・全保存先同時喪失の瞬間に、ソフトウェアが必ず書けるとは保証しない。最後に耐久保存できたbeginまでを境界として、復帰時に未記録範囲をunknownとして追記・復旧する。この物理的限界を、通常の例外処理や未実装fallbackを放置する理由にはしない。
+
+### 4.4 担当・設定
+
+controllerはstate/保存/fallback/採番/再開/公開結合を所有する。調査・計画・実装・試験・製品review・report・report reviewは既存専門roleを実起動する。作成者と独立reviewerは別agent。全roleのreasoning effortはhigh。repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。設定modelは既存roleの採用値をFC01で確認し、plan調査系gpt-6.1-sol、実装/試験/review/report系gpt-6-lunaを現行設定候補として扱う。実利用可否は起動して観測し、未観測を開始gateにしない。tierは環境既定の実利用値を記録し、fast対応や別tierへの切替を推測しない。起動拒否時は実環境の拒否内容を残して利用可能な設定で再試行し、架空のagent実施結果を作らない。
+
+## 5. 入出力・状態・保存契約
+
+### 5.1 必須handoff envelope（新契約案）
+
+identity、schema_version、workflow invocation、stage、attempt、operation、parent operation、入力版/参照、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin、作者/実行担当とreview対象版、開始/終了・観測時刻、code commit/実行版を持つ。DB/FS片系障害でも最低限の意味ある成果物と次stage呼出しを作る。出力が空・schema不正・path不明の場合、agent rawを非公開保全しcontrollerが正規形へ包む。無効な出力をvalidated/approvedとはしない。
+
+相関情報はjob_id/source_launch_id/source_run_id(null含む)/target_date/incident_id、invocation_id、stage、attempt_id、operation_id、parent_operation_id、event_id/順序、thread/turn/request等の実在するAI識別子、child process exit/termination種別、input/output refs、code revision。欠測はnull+missing_reasonとしrun IDを作らない。
+
+エラーはreason_codeに加えerror_class、operation label、module/function/file/line、安全化したexception chain/stack frames、発生/捕捉箇所の区別、AI request/result種別、elapsed/timeout policy、retryの事実、write sink/エラー分類、最後の成功操作を記す。SQL全文・parameters・商品名・投稿本文・token/cookie・環境secretを保存/公開しない。詳細私的記録は既存許可欄/伏字経路で保存し、公開版は原因分類と参照を出す。分類だけで10/17根本原因を断定しない。
+
+### 5.2 成果物path・所有
+
+計画実行の公開可能な記録rootは worklogs/projects/maintenance/flow-completion-20261019/（以下W）。各FCxx/attempt-実値へinput、作業結果、case証拠、review、handoffを保存する。計画自身の実行履歴は本書第14節に追記する。非公開のraw/一時DB/fixtureは既存の 非公開作業データ/イナゴ実装試験/flow-completion-20261019/（以下T）にcase/attemptで分離する。これらは実行時作成予定であり本書作成時に実在したとしない。
+
+本番のattempt出力はcontrollerが既存runtimeから決定する同一jobのallowed_outputsへ plan.md、requirement-step-case-map.json、result.json、investigation、implementation、tests、review、deployment、report/publication等を保存する。project計画Wと同一jobのattempt正本を混同しない。未指定ならcontrollerの通常attempt rootで採番し、任意の過去attemptに上書きしない。
+
+最終HTMLは reports/incidents/2026/10/INC-20261017-001/ の同一対象日の報告。既存v0.9を歴史snapshotとして保持し、新版のversion付き実体とcurrent入口を結ぶ。次version番号は実行時の現在版を読んで採番し、未確認のv1.0等を既成版として指定しない。プログラムが公開/DB登録し、外側agentが代わりに公開して完遂扱いしない。
+
+### 5.3 job終端とincidentの分離
+
+flow completedは全必須成果の永続登録・公開版との結合・終端read-backが成功した時だけ。原因unknownでもflow完遂は可能。incident_resolutionはunknown/unresolvedを維持でき、daily failedは不変。job complete→incident resolvedの自動変換を撤去する。全成果保存/公開不能の場合はその具体結果とlocal成果を返し、jobを根拠なくcompleteにせず、回復時に同じjobを続けられるようにする。新規stageをblockedへ戻さない。
+
+CLI終了値はフロー完遂の契約と業務結果を分ける。全成果/公開/終端が成立した同一jobは、元障害unknownやreview指摘だけでexit3にしない。物理的に完遂保存ができない場合は実非zeroと原因を返し、完遂成功を偽らない。実コードで番号/互換性を確定し、既存exit3履歴を書き換えない。
+
+## 6. 外部取得・AI・本人表示の契約
+
+- 証拠は既存controller manifestと許可された伏字資料。新規ブラウザー探索・認証回避・実商品生成/投稿・勝手なDB探索を追加しない。生証拠と共有可能な説明を分ける。
+- 全担当を実起動する。対象があるreviewを合成unavailableで置換しない。AIが失敗した時はcontroller fallbackと実行失敗traceを保存し、次担当へ実際に渡す。実行可能な配置/設定不具合は自動修正を試し、外部権限は偽装しない。
+- HTMLは既存の作成ルールを必ず適用し、以下を受入に加える。
+  1. 冒頭で「10月17日に何をしようとして、何ができず、今回どこまで対応したか」を短い日常語で述べる。「自動対応の完了」と「日次障害の解決」を別の短文で伝える。
+  2. 一覧と詳細を作る。各詳細は見出し→発生区分（当日発生/調査で判明/試験で確認）→何が起きたか（工程・操作・期待・実結果・影響・回復）→どう直したか（次回の動き）→原因の確度→確認方法・記録の順。
+  3. 本文の見出し/結論/一覧でFC、S04、job、stage、raw status、SHA、reason_code、記号列を説明の代わりに使わない。「原因を調べる」「作業の計画を作る」「変更を試す」「報告を保存する」等へ言い換える。内部技術情報は意味を付けた末尾の参考付録へ。
+  4. 各未実施は「何を行えなかったか」「なぜか」「その代わりに何を残したか」「今後どう確かめるか」を書く。何もしなかった場合も隠さない。計装を元障害の修復と呼ばない。
+  5. 内部IDや根拠を読まなくても、非専門のreviewerが事象/影響/変更/未確認を説明し直せることを文章reviewで確かめる。機械の文字数・専門語数だけで読解合格にしない。
+  6. 索引・アンカー・リンク・狭幅・印刷を確認。render不能ならその操作だけ未確認として報告し、生成/レビュー/公開を続ける。
+- controller最小HTMLも同じ文章規則で、対象日、分かった事実、分からない原因、各工程の実結果、追加した記録/追加不能理由、未確認、根拠を含む。raw JSONや例外一行だけのHTMLは禁止。
+
+## 7. 時刻・保持・保全・運用値
+
+対象日は2026-10-17 JST固定。実作業/採取/公開/中断検出の時刻は実時計から取り、過去失敗時刻へ遡及しない。試験は明記した固定時計、実環境観測は実時計で記録。UTC/JSTは元値と単位を併記する。
+
+既存maintenanceログ90日・1file4MiB・1event16KiBの採用値を起点とし、eventが大きい時は安全な詳細refへ分離する。ファイル数上限を作らずrotate継続。再開/review回数上限なし。個別transport timeoutは実行結果採取に使い、後続の停止条件にしない。無限に同じ失敗を反復してreportへ進まない構造も不可。担当の実行結果をそのattemptのfallbackで引渡し、必要な追加修正は次attemptへ残す。
+
+本番書込み前はSQLite backup APIによる整合backupとquick_checkを実施。backup失敗は事実とし、可能な非書込/他工程/報告を続ける。確認せず破壊的な復元や元daily DBの直接修正をしない。fallback spoolも既存保持契約へ同期し、消失を隠して期限超過原本の無制限コピーをしない。
+
+## 8. 試験・再開・記録・禁止の共通規則
+
+- 全STEPの初期状態は未着手。進行状態・作業実結果・受入達成度は別々に記録する。実施/試行/未実施/失敗/unknownを成功に換算しない。
+- 通常local pytest、合成fixture、一時DB/local Gitを使い影響範囲だけ確認する。全suite反復、OS sandbox実証、host receipt、C34 host-runner実測を要求しない。テストコードの独立reviewは行わない。
+- 本計画作成時はtest nodeの定義確認だけを行った。試験実行0、最新実装へのPASS0。既存nodeは存在のみ、第10節に列記。新規failure matrixのnodeは未作成であり、実装後に完全node/paramを台帳へ登録する。提案nodeを実在nodeとして扱わない。
+- tests/fixtureに不具合がデバッグで判明した時だけ必要最小限を直し、影響caseを再実行。古いblocked期待は今回製品契約の変更点に限り改訂する。合成fixtureがcontrollerとは違う成功経路を使わないようにする。
+- 初回FAILを保存し、製品修正後は影響caseだけ再実行。以後同じ確認を繰り返さない。全結果は対象commit+未commit差分/時計/input/command/exit/JUnit/trace/DB前後/成果物参照に結ぶ。
+- 実本番はFC09/10だけで扱う。10/17歴史jobを正式resumeし、重複受付しない。10/19 queue/historyは観測以外触れず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持。通常Daily手動、run捏造、追生成なし。
+- 所有者不明の既存差分が見つかったら保全してcommitから外す。code/schema同時編集は担当を順次にして、同じproduction_workflow.pyの並行上書きを避ける。reviewerは読取専用、修正は元実装/report担当。
+- 一つの操作不能は理由つき成果へ必ず記載し、次工程へ渡す。工程やjobをblockedとして放置しない。中断後は既存job/attempt/公開状態と最後の耐久eventから再開し、完成済み成果を失敗扱いに戻したり全工程を最初からやり直したりしない。
+
+## 9. 実行STEP一覧と各STEPの完全prompt
+
+| STEP | 名称 | owner／独立reviewer | 主成果・次工程 |
+|---|---|---|---|
+| FC01 | 現状・失敗経路・不足計装の棚卸し | controller／plan reviewer | baseline/failure map → FC02 |
+| FC02 | 全工程成果物・状態・受入の契約確定 | planner/controller／plan reviewer | schema案・要件対応・計装割当 → FC03 |
+| FC03 | 失敗追跡・保存・中断復旧の実装 | implementer／product reviewer | trace/fallback/reconcile差分 → FC04 |
+| FC04 | 調査・計画・実装の必須成果と実起動 | implementer／product reviewer | semantic handoff/fallback差分 → FC05 |
+| FC05 | 試験・review・反映・終端の継続接続 | implementer／product reviewer | inner gate除去・終端分離差分 → FC06 |
+| FC06 | 平易なHTML・reporter修正・公開結合 | implementer/reporter／product+HTML reviewers | renderer/文章契約/公開差分 → FC07 |
+| FC07 | 対象限定failure matrixとデバッグ | tester/implementer／product reviewer | 期待/実測/全失敗追跡証拠 → FC08 |
+| FC08 | 独立製品reviewと対応 | product reviewer/implementer | review・修正・影響再検証 → FC09 |
+| FC09 | 文書同期・選択Git・本番適用 | controller/doc owner／product reviewer | 正本/role整合・commit・runtime/ledger実測 → FC10 |
+| FC10 | 同一10/17 jobの全自動完遂実証 | controller＋各専門role／各独立reviewer | 全attempt/計装差分適用/最終HTML/終端 → FC11 |
+| FC11 | 受入照合・記録公開・達成判定 | controller／独立照合担当 | 達成/未達を正確に確定し公開 |
+
+### FC01 現状・失敗経路・不足計装の棚卸し
+
+1. **番号・名称・状態**：FC01 現状・失敗経路・不足計装の棚卸し。未着手。
+2. **目的と成立状態**：不明と確認済みを分け、各gate/失敗境界/計装候補をfileとoperationへ結び、先の計装追加対象を空欄にしない。
+3. **要件・受入・原典**：FC-R01/02/04/05/07/09/10、F01～F10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：この新計画と既知jobが特定できた時点。旧計画完了や全証拠は不要。
+5. **入力・版・DB状態**：旧計画1.76・調査v2とreview・S04・U22_U23ログ、実行時HEAD/index/working tree、read-only maintenance DB/Scheduler。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=controller、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はW/FC01/配下のみ。製品/設定/DB/Schedulerは読取のみ。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：git status/cached/uncachedを分離しfile/hunk所有を分類。現job/attempt/成果物/正式ledger/実行先/10/19除外をread-only再観測。外側から内側全stageのstatus/出力前提・例外捕捉・ログwriterを辿り、S04各reasonの実例外と未保存箇所を調べる。既存daily診断の実装/適用範囲を見て不足だけを特定し、同一jobの実装担当が行う有用な計装作業を少なくとも一つ具体的に予約する。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。baseline.md、failure-path-map.md、ownership.md、instrumentation-backlog.md、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT01/02/11/12/13の静的入力、read-only DBとgit照合。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：不明と確認済みを分け、各gate/失敗境界/計装候補をfileとoperationへ結び、先の計装追加対象を空欄にしない。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC02へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC01「現状・失敗経路・不足計装の棚卸し」。担当はcontroller、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はこの新計画と既知jobが特定できた時点。旧計画完了や全証拠は不要。入力は旧計画1.76・調査v2とreview・S04・U22_U23ログ、実行時HEAD/index/working tree、read-only maintenance DB/Scheduler。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業はgit status/cached/uncachedを分離しfile/hunk所有を分類。現job/attempt/成果物/正式ledger/実行先/10/19除外をread-only再観測。外側から内側全stageのstatus/出力前提・例外捕捉・ログwriterを辿り、S04各reasonの実例外と未保存箇所を調べる。既存daily診断の実装/適用範囲を見て不足だけを特定し、同一jobの実装担当が行う有用な計装作業を少なくとも一つ具体的に予約する。書込所有範囲はW/FC01/配下のみ。製品/設定/DB/Schedulerは読取のみ。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC01/ の実行attempt専用領域。成果はbaseline.md、failure-path-map.md、ownership.md、instrumentation-backlog.md、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT01/02/11/12/13の静的入力、read-only DBとgit照合。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は不明と確認済みを分け、各gate/失敗境界/計装候補をfileとoperationへ結び、先の計装追加対象を空欄にしない。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC02へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC02 全工程成果物・状態・受入の契約確定
+
+1. **番号・名称・状態**：FC02 全工程成果物・状態・受入の契約確定。未着手。
+2. **目的と成立状態**：全stageに通常と失敗時の意味ある成果/次担当があり、同一job完遂と原因unknown共存、無差分の実値、全失敗境界の追跡項目が具体化。
+3. **要件・受入・原典**：FC-R01～10、F01～F10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC01の部分成果がある時点。unknown/FAILは開始制限にしない。
+5. **入力・版・DB状態**：本書・baseline/failure map・現schema・報告作成ルール/HTMLひな形・既存role設定。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=planner/controller、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はW/FC02/、本書の実行記録、docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md、AT-TRACE-01_共通トレース契約.md、要件データ辞書.md、要件追跡表.mdの当該契約部分。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：stage完遂/operation結果/incident解消を分離し、新規stage blocked禁止と必須handoffを定義。通常/fallback各成果の必須本文、異常event、保存中断復旧、CLI終了とterminal、公開版参照を確定する。10/17 job内実装で行う計装の具体箇所/出力/試験を割当。既存要件IDと新規局所IDを対応し、modelは採用値を確認、全effort high、tierは実値とunknownを分ける。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。contract-decision.md、stage-output-matrix.md、schema-change-list.md、requirement-step-case-map.json、計装割当とhandoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT01～13の期待/所有/schema案と独立plan review。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：全stageに通常と失敗時の意味ある成果/次担当があり、同一job完遂と原因unknown共存、無差分の実値、全失敗境界の追跡項目が具体化。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC03へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC02「全工程成果物・状態・受入の契約確定」。担当はplanner/controller、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC01の部分成果がある時点。unknown/FAILは開始制限にしない。入力は本書・baseline/failure map・現schema・報告作成ルール/HTMLひな形・既存role設定。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業はstage完遂/operation結果/incident解消を分離し、新規stage blocked禁止と必須handoffを定義。通常/fallback各成果の必須本文、異常event、保存中断復旧、CLI終了とterminal、公開版参照を確定する。10/17 job内実装で行う計装の具体箇所/出力/試験を割当。既存要件IDと新規局所IDを対応し、modelは採用値を確認、全effort high、tierは実値とunknownを分ける。書込所有範囲はW/FC02/、本書の実行記録、docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md、AT-TRACE-01_共通トレース契約.md、要件データ辞書.md、要件追跡表.mdの当該契約部分。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC02/ の実行attempt専用領域。成果はcontract-decision.md、stage-output-matrix.md、schema-change-list.md、requirement-step-case-map.json、計装割当とhandoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT01～13の期待/所有/schema案と独立plan review。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は全stageに通常と失敗時の意味ある成果/次担当があり、同一job完遂と原因unknown共存、無差分の実値、全失敗境界の追跡項目が具体化。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC03へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC03 失敗追跡・保存・中断復旧の実装
+
+1. **番号・名称・状態**：FC03 失敗追跡・保存・中断復旧の実装。未着手。
+2. **目的と成立状態**：全software失敗に相関traceとfallback結果があり通常logger再帰失敗がなく、process中断後同一jobへ復旧できる実装。今回計画段階でPASSは記入しない。
+3. **要件・受入・原典**：FC-R01/02/03/04/09/10、F01～04/07/08。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC02の利用可能契約を受領した時点。plan reviewの判定は開始条件にしない。
+5. **入力・版・DB状態**：FC01 failure map、FC02 schema/trace契約、現code版、合成dataのみ。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-implementer、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はautomation/inago/maintenance/diagnostic_trace.py、workflow_provider.py、controller.py、store.py、ai_adapter.py、safe_file.py、paths.py、必要なmaintenance/schema・sql新migration、W/FC03/。新fileはこれらの責務内で名称を実在確認後登録。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：呼出前begin/終端/finallyとoperation correlationを実装。generic reasonへclass/cause/stack/位置/operation/refsを添える。AI transport/timeout/応答parse/空出力とDB/artifact/trace writer自体の失敗を記録。diagnostic_traceのrequire_written/終端receipt失敗で元処理を止めるdecoratorを、独立fallbackに記録して本処理と後続を続ける契約へ修正。通常loggerに依存しないfallback spoolとstderr採取を結び、DB/FS二重書込み中断、beginのみの異常終了を同一jobでreconcileする。物理全sink喪失は次回unknown記録し、虚偽の原因/終了時刻は作らない。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。製品差分、trace契約実装一覧、event例（合成）、writer failure matrix、implementation-result.json、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT02/05/10/12、構文/JSON/schema/diff確認。独立製品reviewはFC08。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：全software失敗に相関traceとfallback結果があり通常logger再帰失敗がなく、process中断後同一jobへ復旧できる実装。今回計画段階でPASSは記入しない。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC04へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC03「失敗追跡・保存・中断復旧の実装」。担当はcommon-implementer、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC02の利用可能契約を受領した時点。plan reviewの判定は開始条件にしない。入力はFC01 failure map、FC02 schema/trace契約、現code版、合成dataのみ。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は呼出前begin/終端/finallyとoperation correlationを実装。generic reasonへclass/cause/stack/位置/operation/refsを添える。AI transport/timeout/応答parse/空出力とDB/artifact/trace writer自体の失敗を記録。diagnostic_traceのrequire_written/終端receipt失敗で元処理を止めるdecoratorを、独立fallbackに記録して本処理と後続を続ける契約へ修正。通常loggerに依存しないfallback spoolとstderr採取を結び、DB/FS二重書込み中断、beginのみの異常終了を同一jobでreconcileする。物理全sink喪失は次回unknown記録し、虚偽の原因/終了時刻は作らない。書込所有範囲はautomation/inago/maintenance/diagnostic_trace.py、workflow_provider.py、controller.py、store.py、ai_adapter.py、safe_file.py、paths.py、必要なmaintenance/schema・sql新migration、W/FC03/。新fileはこれらの責務内で名称を実在確認後登録。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC03/ の実行attempt専用領域。成果は製品差分、trace契約実装一覧、event例（合成）、writer failure matrix、implementation-result.json、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT02/05/10/12、構文/JSON/schema/diff確認。独立製品reviewはFC08。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は全software失敗に相関traceとfallback結果があり通常logger再帰失敗がなく、process中断後同一jobへ復旧できる実装。今回計画段階でPASSは記入しない。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC04へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC04 調査・計画・実装の必須成果と実起動
+
+1. **番号・名称・状態**：FC04 調査・計画・実装の必須成果と実起動。未着手。
+2. **目的と成立状態**：調査/計画は必ず内容ある成果、実装は差分または両者不能の具体理由、次担当起動がありstage blocked0。既知の計装欠陥は実装不能扱いしない。
+3. **要件・受入・原典**：FC-R01/03/04/05/08/09/10、F01～04/08～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC03の差分/部分成果が利用可能なら開始。試験/review結果はgateにしない。
+5. **入力・版・DB状態**：FC02 stage-output matrix、FC03 tracing、調査/plan/repairの現schemaとrole契約。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-implementer、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はautomation/inago/maintenance/production_workflow.pyの対象確認/証拠/調査/計画/repair author部分、investigation.py、planning.py、repair.py、必要なstage schemas、W/FC04/。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：調査unknown/agent blocked/timeout/空応答でも事実と不明のMD/JSONを確定。plannerは必ず修正または計装の具体計画を出し、不能時も何も変えなかったHTMLの作成手順を出す。repair_plan_not_approvedをplan statusやreview approvalの前提に使わず、有効な通常/partial handoffで実担当を起動。controller fallbackはagent作成と区別し、次担当が読む。原因修正不能時は有用計装を実施し、両者不能の場合だけ実装操作を未実施にする。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。investigation/planning/implementation fallback renderer差分、各stage artifact実例、実起動証拠・handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT03/04/12、partial/unknown schemaと担当起動引数のfixture。製品review FC08。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：調査/計画は必ず内容ある成果、実装は差分または両者不能の具体理由、次担当起動がありstage blocked0。既知の計装欠陥は実装不能扱いしない。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC05へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC04「調査・計画・実装の必須成果と実起動」。担当はcommon-implementer、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC03の差分/部分成果が利用可能なら開始。試験/review結果はgateにしない。入力はFC02 stage-output matrix、FC03 tracing、調査/plan/repairの現schemaとrole契約。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は調査unknown/agent blocked/timeout/空応答でも事実と不明のMD/JSONを確定。plannerは必ず修正または計装の具体計画を出し、不能時も何も変えなかったHTMLの作成手順を出す。repair_plan_not_approvedをplan statusやreview approvalの前提に使わず、有効な通常/partial handoffで実担当を起動。controller fallbackはagent作成と区別し、次担当が読む。原因修正不能時は有用計装を実施し、両者不能の場合だけ実装操作を未実施にする。書込所有範囲はautomation/inago/maintenance/production_workflow.pyの対象確認/証拠/調査/計画/repair author部分、investigation.py、planning.py、repair.py、必要なstage schemas、W/FC04/。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC04/ の実行attempt専用領域。成果はinvestigation/planning/implementation fallback renderer差分、各stage artifact実例、実起動証拠・handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT03/04/12、partial/unknown schemaと担当起動引数のfixture。製品review FC08。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は調査/計画は必ず内容ある成果、実装は差分または両者不能の具体理由、次担当起動がありstage blocked0。既知の計装欠陥は実装不能扱いしない。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC05へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC05 試験・review・反映・終端の継続接続
+
+1. **番号・名称・状態**：FC05 試験・review・反映・終端の継続接続。未着手。
+2. **目的と成立状態**：FAIL/指摘/差分0でも次担当が実処理し、全stage成果を保存。cause unknownでincidentをresolvedにせず、正しい同一job終端が可能。
+3. **要件・受入・原典**：FC-R01/03/05/07/08/09/10、F02～04/06～08。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC04の差分/成果から開始。implemented/approved/PASSである必要なし。
+5. **入力・版・DB状態**：repair/test/review/deploy現経路、FC02 terminal契約、FC03/04、S04 ledger不一致。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-implementer、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はautomation/inago/maintenance/production_workflow.pyのtest/review/repair completion/deployment/終端部分、repair.py、deployment.py、runtime_switcher.py、store.py、worker.py、cli.py、必要なschemas/sql、W/FC05/。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：内側のtest/review/deploy候補/approval/status依存で次を呼ばない経路を除去。差分なしでも各担当を起動し、試験は成果整合、reviewは対象差分の有無、反映は現用確認と未適用理由を実施する。未実施と成功を区別。workflow completeとincident resolvedを切離し、report pending/raw blocked→job blocked/exit3連鎖を撤去。成果保存と終端をreconcileしrunning孤児を残さない。正式ledgerへ実適用SHAを結び、古いSHAへ見せかけない。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。製品差分、各role起動/無差分結果/反映結果の契約、CLI/terminal対応表、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT01/04/06/07/10/11、target-local fixture。独立製品review FC08。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：FAIL/指摘/差分0でも次担当が実処理し、全stage成果を保存。cause unknownでincidentをresolvedにせず、正しい同一job終端が可能。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC06へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC05「試験・review・反映・終端の継続接続」。担当はcommon-implementer、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC04の差分/成果から開始。implemented/approved/PASSである必要なし。入力はrepair/test/review/deploy現経路、FC02 terminal契約、FC03/04、S04 ledger不一致。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は内側のtest/review/deploy候補/approval/status依存で次を呼ばない経路を除去。差分なしでも各担当を起動し、試験は成果整合、reviewは対象差分の有無、反映は現用確認と未適用理由を実施する。未実施と成功を区別。workflow completeとincident resolvedを切離し、report pending/raw blocked→job blocked/exit3連鎖を撤去。成果保存と終端をreconcileしrunning孤児を残さない。正式ledgerへ実適用SHAを結び、古いSHAへ見せかけない。書込所有範囲はautomation/inago/maintenance/production_workflow.pyのtest/review/repair completion/deployment/終端部分、repair.py、deployment.py、runtime_switcher.py、store.py、worker.py、cli.py、必要なschemas/sql、W/FC05/。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC05/ の実行attempt専用領域。成果は製品差分、各role起動/無差分結果/反映結果の契約、CLI/terminal対応表、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT01/04/06/07/10/11、target-local fixture。独立製品review FC08。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件はFAIL/指摘/差分0でも次担当が実処理し、全stage成果を保存。cause unknownでincidentをresolvedにせず、正しい同一job終端が可能。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC06へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC06 平易なHTML・reporter修正・公開結合
+
+1. **番号・名称・状態**：FC06 平易なHTML・reporter修正・公開結合。未着手。
+2. **目的と成立状態**：内部記号を知らず事象と対応を説明できる本文、実reporter/reviewer/修正経路、公開とsame jobの永続結合、fallback全てに根拠と不明。
+3. **要件・受入・原典**：FC-R01/02/03/05/06/07/08/09/10、F02～05/10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC05の実値handoffを受領時。review/test成否を開始条件にしない。
+5. **入力・版・DB状態**：作成ルール、HTMLひな形、現reporting/publication経路、FC02 report契約、旧v0.9とそのreview。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-implementer＋reporter、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はautomation/inago/maintenance/reporting.py、production_workflow.pyのreport/review/revision/publication部分、report関連schemas、docs/standards/イナゴ日次不具合レポート作成ルール.md、docs/templates/incidents/日次不具合対応レポート_ひな形.html、reporter/reviewer skill・roleの当該契約、W/FC06/。本番報告自体はFC10。公開/自己reviewの最終状態はversion付きsidecarへ置き、同じHTMLを公開後も書換え続ける自己参照ループを作らない。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：既存文章規則を具体的なprompt/renderer/review項目に組み込み、本文を日常語で構成。reporterを実起動しreview指摘を本人へ返し書換可能にする。reporter失敗時のcontroller最小HTMLも必須内容を満たす。実reviewをfallback版にも起動し、合成承認しない。version付きHTML/review/code/inputをDB attemptへ結び、push後保存前中断を回復。run_reportのstatus!=complete早期returnをなくし、minimal HTML生成後もpublicationを必ず実行する。公開失敗もlocal成果・理由・次操作を残し終端整合を試す。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。renderer/prompts/template差分、通常/全unknown/変更なし/renderer失敗fallbackのHTML実例、readability-review.md、publication-handoff契約。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT08/09/10、静的リンク/HTML/例示文章の独立review、狭幅/print確認可能な範囲。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：内部記号を知らず事象と対応を説明できる本文、実reporter/reviewer/修正経路、公開とsame jobの永続結合、fallback全てに根拠と不明。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC07へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC06「平易なHTML・reporter修正・公開結合」。担当はcommon-implementer＋reporter、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC05の実値handoffを受領時。review/test成否を開始条件にしない。入力は作成ルール、HTMLひな形、現reporting/publication経路、FC02 report契約、旧v0.9とそのreview。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は既存文章規則を具体的なprompt/renderer/review項目に組み込み、本文を日常語で構成。reporterを実起動しreview指摘を本人へ返し書換可能にする。reporter失敗時のcontroller最小HTMLも必須内容を満たす。実reviewをfallback版にも起動し、合成承認しない。version付きHTML/review/code/inputをDB attemptへ結び、push後保存前中断を回復。run_reportのstatus!=complete早期returnをなくし、minimal HTML生成後もpublicationを必ず実行する。公開失敗もlocal成果・理由・次操作を残し終端整合を試す。書込所有範囲はautomation/inago/maintenance/reporting.py、production_workflow.pyのreport/review/revision/publication部分、report関連schemas、docs/standards/イナゴ日次不具合レポート作成ルール.md、docs/templates/incidents/日次不具合対応レポート_ひな形.html、reporter/reviewer skill・roleの当該契約、W/FC06/。本番報告自体はFC10。公開/自己reviewの最終状態はversion付きsidecarへ置き、同じHTMLを公開後も書換え続ける自己参照ループを作らない。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC06/ の実行attempt専用領域。成果はrenderer/prompts/template差分、通常/全unknown/変更なし/renderer失敗fallbackのHTML実例、readability-review.md、publication-handoff契約。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT08/09/10、静的リンク/HTML/例示文章の独立review、狭幅/print確認可能な範囲。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は内部記号を知らず事象と対応を説明できる本文、実reporter/reviewer/修正経路、公開とsame jobの永続結合、fallback全てに根拠と不明。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC07へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC07 対象限定failure matrixとデバッグ
+
+1. **番号・名称・状態**：FC07 対象限定failure matrixとデバッグ。未着手。
+2. **目的と成立状態**：全要件に実行結果があり、成否を改変せず失敗の追跡と後続到達を測る。受入未達は未達のままFC08へ。
+3. **要件・受入・原典**：FC-R01～10、F01～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC03～06の利用可能差分がある時点。全完成を待たず対象から着手。
+5. **入力・版・DB状態**：全変更差分/版、FCT01～13、定義確認済み既存node。DBはT内のみ。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-tester＋製品修正担当、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込は既存関連tests_inago/test_maintenance_*.pyとtest_daily_fix_trace.pyの影響期待/デバッグ不具合、T/各case/attempt、W/FC07/。新failure注入は同責務のtest/fixtureへ最小追加。製品修正は元担当へ返す。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：既存nodeを新契約へ必要箇所だけ更新し、未作成failure matrixの完全node/paramを登録してから実行。通常local pytestで全stage個別エラーと複数連続失敗、unknown/no-change、writer/DB/artifact/push/中断を検証。期待/実際/exit/trace/DB/成果物を保存。原因を特定して影響caseだけ再実行し、無関係suiteと同じ確認反復を避ける。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。case registry、commands/results/JUnit、失敗注入対応表、初回FAIL/修正後結果、未実施理由、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：第10節FCT01～13。製品レビュー対象からtest codeを除外。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：全要件に実行結果があり、成否を改変せず失敗の追跡と後続到達を測る。受入未達は未達のままFC08へ。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC08へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC07「対象限定failure matrixとデバッグ」。担当はcommon-tester＋製品修正担当、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC03～06の利用可能差分がある時点。全完成を待たず対象から着手。入力は全変更差分/版、FCT01～13、定義確認済み既存node。DBはT内のみ。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は既存nodeを新契約へ必要箇所だけ更新し、未作成failure matrixの完全node/paramを登録してから実行。通常local pytestで全stage個別エラーと複数連続失敗、unknown/no-change、writer/DB/artifact/push/中断を検証。期待/実際/exit/trace/DB/成果物を保存。原因を特定して影響caseだけ再実行し、無関係suiteと同じ確認反復を避ける。書込所有範囲は既存関連tests_inago/test_maintenance_*.pyとtest_daily_fix_trace.pyの影響期待/デバッグ不具合、T/各case/attempt、W/FC07/。新failure注入は同責務のtest/fixtureへ最小追加。製品修正は元担当へ返す。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC07/ の実行attempt専用領域。成果はcase registry、commands/results/JUnit、失敗注入対応表、初回FAIL/修正後結果、未実施理由、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証は第10節FCT01～13。製品レビュー対象からtest codeを除外。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は全要件に実行結果があり、成否を改変せず失敗の追跡と後続到達を測る。受入未達は未達のままFC08へ。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC08へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC08 独立製品reviewと対応
+
+1. **番号・名称・状態**：FC08 独立製品reviewと対応。未着手。
+2. **目的と成立状態**：実reviewが起動し対象版とfindingを追跡。approvedを捏造せず、残課題はFC09/10へ引継ぎ。
+3. **要件・受入・原典**：FC-R01～10、F01～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：製品コード差分と利用可能試験証拠がある時点。全PASS不要。
+5. **入力・版・DB状態**：FC03～07対象diff、schema/契約、実測と原失敗、所有範囲/版。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=common-reviewer＋元implementer、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込はreviewerは製品/仕様/実測を読取のみ、W/FC08/review*.md/.jsonだけ作成。実装修正はFC03～06所有者が担当fileのみ。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：独立reviewerをhighで実起動。外側/内側gate残存、empty fallback、raw reasonのみ、全sink再帰、同一jobでないHTML、incident resolved混同、job running孤児、secret漏れ、report難解さの製品要因を確認。妥当指摘は元担当が修正し影響caseを再実行し、変更版の製品差分を再reviewする。review巡回上限は作らず指摘残存で後続を止めない。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。対象版つきreview MD/JSON、指摘/対応/未解決と影響再測、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：独立product-code-only review。テストコードreviewなし。FCT01～13の該当実測を参照。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：実reviewが起動し対象版とfindingを追跡。approvedを捏造せず、残課題はFC09/10へ引継ぎ。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC09へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC08「独立製品reviewと対応」。担当はcommon-reviewer＋元implementer、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件は製品コード差分と利用可能試験証拠がある時点。全PASS不要。入力はFC03～07対象diff、schema/契約、実測と原失敗、所有範囲/版。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は独立reviewerをhighで実起動。外側/内側gate残存、empty fallback、raw reasonのみ、全sink再帰、同一jobでないHTML、incident resolved混同、job running孤児、secret漏れ、report難解さの製品要因を確認。妥当指摘は元担当が修正し影響caseを再実行し、変更版の製品差分を再reviewする。review巡回上限は作らず指摘残存で後続を止めない。書込所有範囲はreviewerは製品/仕様/実測を読取のみ、W/FC08/review*.md/.jsonだけ作成。実装修正はFC03～06所有者が担当fileのみ。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC08/ の実行attempt専用領域。成果は対象版つきreview MD/JSON、指摘/対応/未解決と影響再測、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証は独立product-code-only review。テストコードreviewなし。FCT01～13の該当実測を参照。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は実reviewが起動し対象版とfindingを追跡。approvedを捏造せず、残課題はFC09/10へ引継ぎ。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC09へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC09 文書同期・選択Git・本番適用
+
+1. **番号・名称・状態**：FC09 文書同期・選択Git・本番適用。未着手。
+2. **目的と成立状態**：文書/roleと実装が一致し、ログ計装が本番に適用された実証あり。失敗は事実を保ちFC10へ。未適用のまま完成とはしない。
+3. **要件・受入・原典**：FC-R01～10、F01～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC08までの利用可能差分/結果があれば開始。review/test/readinessはgateにしない。
+5. **入力・版・DB状態**：現status/diff所有表、FC02契約、FC03～08差分/結果、本番現況、正式ledger/実行先、現要件source/build scripts。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=controller＋文書担当、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込は本書/W、docs/specifications/inago/要件・AT契約・辞書・追跡/ログ出力一覧、tools/docs/inago-requirements既存source、該当6skills/contracts、.codex/agentsの保守role、templates、固定workspace本番maintenance/schemaと正式deployment操作。daily結果DBは読取のみ。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：全stage blocked禁止/成果物/trace/平易HTML/effort highを正本/skills/rolesへ同期し、旧worktree/gate/unknown hold/incident resolved結合を根本から除去。既存builderで要件HTMLを生成。git差分と所有を確認しtask分だけcommit/push。現在schema/backup/実行先を読んで正式APIからmigration/適用し、code SHA/runtime/ledgerの実一致を測る。10/19除外/queue不変、Daily未起動を確認。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。同期文書、builder記録、選択file/hunk・commit/push、migration/backup/runtime/ledger前後、deployment-result.json、handoff.json。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT07/11/12/13、文書構造/JSON/build/diff、適用read-back。必要なproduct変更は独立reviewへ返す。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：文書/roleと実装が一致し、ログ計装が本番に適用された実証あり。失敗は事実を保ちFC10へ。未適用のまま完成とはしない。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC10へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC09「文書同期・選択Git・本番適用」。担当はcontroller＋文書担当、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC08までの利用可能差分/結果があれば開始。review/test/readinessはgateにしない。入力は現status/diff所有表、FC02契約、FC03～08差分/結果、本番現況、正式ledger/実行先、現要件source/build scripts。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は全stage blocked禁止/成果物/trace/平易HTML/effort highを正本/skills/rolesへ同期し、旧worktree/gate/unknown hold/incident resolved結合を根本から除去。既存builderで要件HTMLを生成。git差分と所有を確認しtask分だけcommit/push。現在schema/backup/実行先を読んで正式APIからmigration/適用し、code SHA/runtime/ledgerの実一致を測る。10/19除外/queue不変、Daily未起動を確認。書込所有範囲は本書/W、docs/specifications/inago/要件・AT契約・辞書・追跡/ログ出力一覧、tools/docs/inago-requirements既存source、該当6skills/contracts、.codex/agentsの保守role、templates、固定workspace本番maintenance/schemaと正式deployment操作。daily結果DBは読取のみ。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC09/ の実行attempt専用領域。成果は同期文書、builder記録、選択file/hunk・commit/push、migration/backup/runtime/ledger前後、deployment-result.json、handoff.json。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT07/11/12/13、文書構造/JSON/build/diff、適用read-back。必要なproduct変更は独立reviewへ返す。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件は文書/roleと実装が一致し、ログ計装が本番に適用された実証あり。失敗は事実を保ちFC10へ。未適用のまま完成とはしない。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC10へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC10 同一10/17 jobの全自動完遂実証
+
+1. **番号・名称・状態**：FC10 同一10/17 jobの全自動完遂実証。未着手。
+2. **目的と成立状態**：same jobの全成果永続登録、future blocked0、今回ログ拡張の実適用と証拠、報告公開/terminal一致。原因・回復unknownは許す。単なる試行や外側HTMLで達成判定しない。
+3. **要件・受入・原典**：FC-R01～10、F01～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC09の結果を受領時。適用の個別失敗は自動解決しながら進め、完成認定とは分ける。
+5. **入力・版・DB状態**：不変job identity、最新read-only DB/process/manifest、実適用版、FC01計装予約、全stage契約/台帳。過去attemptはraw保全。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=controller＋全専門role、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込は正式maintenance APIによる同一job/attempt/allowed_outputs、runtime trace/spool、対象案件plans/reports/worklogs、新規計装はjob計画が宣言する製品file/hunkのみ。10/19 queue/historyとDaily DBの変更は禁止。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：最新DB/出力から同一jobを重複受付せず正式resume。前回planning attempt 3df719f6-ef87-4734-8279-9ed14b23eeaaのrunning/no outputを、原結果を成功へ改竄せず中断/未成果物の追記で整合し、新attemptの正式採番から現在のfallback/実担当成果を生成する。新しい未実行操作へ。調査unknownでもplannerが具体的計装計画を生成し、既知の予約済みログ拡張を実装担当が実変更・focused試験・独立製品review・正式反映する。過去外側agentの差分/PASSをsame-job実装実績にしない。全tester/reviewer/deployment/report/review/revision/publicationを実起動し、失敗時は意味あるfallbackを次担当へ渡す。新traceと全artifactを回収し、version付き最終HTMLを同一job自身が公開してDB attempt/publication/終端とread-back照合する。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。same-job stage/attempt/evidence索引、実計装diff/試験/review/適用/新trace、実reporter/reviewer/公開HTMLとcommit、terminal DB read-back、10/19不変確認。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT11実本番観測、FCT01～10の不成立箇所に限定したdebug。通常Daily再実行なし。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：same jobの全成果永続登録、future blocked0、今回ログ拡張の実適用と証拠、報告公開/terminal一致。原因・回復unknownは許す。単なる試行や外側HTMLで達成判定しない。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：FC11へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC10「同一10/17 jobの全自動完遂実証」。担当はcontroller＋全専門role、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC09の結果を受領時。適用の個別失敗は自動解決しながら進め、完成認定とは分ける。入力は不変job identity、最新read-only DB/process/manifest、実適用版、FC01計装予約、全stage契約/台帳。過去attemptはraw保全。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は最新DB/出力から同一jobを重複受付せず正式resume。前回planning attempt 3df719f6-ef87-4734-8279-9ed14b23eeaaのrunning/no outputを、原結果を成功へ改竄せず中断/未成果物の追記で整合し、新attemptの正式採番から現在のfallback/実担当成果を生成する。新しい未実行操作へ。調査unknownでもplannerが具体的計装計画を生成し、既知の予約済みログ拡張を実装担当が実変更・focused試験・独立製品review・正式反映する。過去外側agentの差分/PASSをsame-job実装実績にしない。全tester/reviewer/deployment/report/review/revision/publicationを実起動し、失敗時は意味あるfallbackを次担当へ渡す。新traceと全artifactを回収し、version付き最終HTMLを同一job自身が公開してDB attempt/publication/終端とread-back照合する。書込所有範囲は正式maintenance APIによる同一job/attempt/allowed_outputs、runtime trace/spool、対象案件plans/reports/worklogs、新規計装はjob計画が宣言する製品file/hunkのみ。10/19 queue/historyとDaily DBの変更は禁止。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC10/ の実行attempt専用領域。成果はsame-job stage/attempt/evidence索引、実計装diff/試験/review/適用/新trace、実reporter/reviewer/公開HTMLとcommit、terminal DB read-back、10/19不変確認。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT11実本番観測、FCT01～10の不成立箇所に限定したdebug。通常Daily再実行なし。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件はsame jobの全成果永続登録、future blocked0、今回ログ拡張の実適用と証拠、報告公開/terminal一致。原因・回復unknownは許す。単なる試行や外側HTMLで達成判定しない。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達をFC11へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+### FC11 受入照合・記録公開・達成判定
+
+1. **番号・名称・状態**：FC11 受入照合・記録公開・達成判定。未着手。
+2. **目的と成立状態**：FC-A01～10実測成立時だけ新計画達成。未達は正確に未達。根本原因unknown/業務回復unknownとフロー完遂を分けて説明。
+3. **要件・受入・原典**：FC-R01～10、F01～10。第10節の対応と第2節の原典に結ぶ。既存要件/IDを新規承認済みと称さない。
+4. **先行・開始条件**：FC10の全実値/部分成果があれば開始。失敗や未完遂でも最終報告は行う。
+5. **入力・版・DB状態**：本書FC-A01～10、case台帳、same-job DB/trace/公開版/正式ledger、Git/所有、最終HTMLreview。基準HEAD8368cd1491fc130fcd5029f71bb40e8a1fa67ba1は作成時値で、実行時版と差分を改めて記録する。source_run_id nullを保つ。
+6. **作業場所・所有範囲**：唯一のrootは C:/project/rakuten-room-inago。owner=controller＋独立照合担当、effort=high、model/tierは第4.4節の採用設定と実値/unknownを区別。書込は本書第14節、W/FC11/、案件の公開可能な最終記録/報告修正はreport担当へ。所有外code/元daily履歴は読取。その他はread-only。独立reviewerは作成担当と別。
+7. **実施手順**：各受入を期待/実値/根拠に照合し、特に全artifact・同一job・計装適用・最終公開・terminal一致を独立に確かめる。未達なら対象操作と原因/次の再開位置を記し、可能な修正/同一job継続は行ってから再照合する。物理外部障害でなお不能な操作は未達と明示し、完了宣言しない。選択commit/pushを記録し最終statusを確認する。
+8. **成果物**：W=worklogs/projects/maintenance/flow-completion-20261019/。acceptance-reconciliation.md、要件/fact/STEP/case/owner/output/reviewer/evidence対応最終版、最終報告、Git記録、再開点。入力/出力版、refs、実結果、不明、次操作を含み、本文なしの空成果を不可とする。新moduleが必要なら予定fileとして先に登録し、実在と区別する。
+9. **変更制約**：固定workspace、既存user変更保全、10/19除外、Daily手動/追生成/重複受付禁止。raw履歴を改変しない。実際に書込むfileを先に一覧化し、所有外への必要変更はcontrollerに対象と理由を渡して割当を更新し、他作業を続ける。
+10. **レビュー・検証**：FCT11/12/13、文章review/公開版/DB参照の静的再照合。不要なpytest再実行なし。レビューのstatusを次工程起動のgateにしない。テストコードreviewなし。
+11. **合格条件・証拠**：FC-A01～10実測成立時だけ新計画達成。未達は正確に未達。根本原因unknown/業務回復unknownとフロー完遂を分けて説明。command/JST/入力版/実行版/期待/実結果/exit/件数/証拠ref/review対象/担当/Gitを保存。未達を成功にしない。
+12. **失敗・修正・再開**：通常経路が失敗しても操作の失敗理由と部分成果をcontrollerの有効なhandoffへ保存して次担当を起動。自動修正可能な原因は直す。同じjobと耐久記録から未確定箇所を再開し、回数上限や追加承認を作らない。物理的に全保存不能なら復帰時に未記録範囲をunknownとして追記し、完遂済みとしない。
+13. **引き渡し**：通常自動運用と必要時の同一job再開。自然日次観測は別結果へ今回の成果物版・不明・未達・次操作を渡す。承認済み版だけを渡すという条件を設けない。
+14. **AIエージェントへ渡すprompt全文**：以下。
+
+```text
+作業rootは C:/project/rakuten-room-inago。計画は C:/project/rakuten-room-inago/plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md。対象はFC11「受入照合・記録公開・達成判定」。担当はcontroller＋独立照合担当、reasoning effort high。既存roleの採用modelとtierを実起動して確認し、観測できなければunknownとして記録する。あなた以外も同じrepositoryを使う。既存変更を上書き/破棄せず、別workspace/worktree/checkoutを作成・選択・利用しない。
+開始条件はFC10の全実値/部分成果があれば開始。失敗や未完遂でも最終報告は行う。入力は本書FC-A01～10、case台帳、same-job DB/trace/公開版/正式ledger、Git/所有、最終HTMLreview。作成時基準HEADは8368cd1491fc130fcd5029f71bb40e8a1fa67ba1だが、実行時のcode/input版と差分を測り、過去PASSを最新差分へ流用しない。
+対象はjob_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、source_run_id=null、target_date=2026-10-17、incident_id=352492da-ac58-4680-b1fd-fe5f24000229。別job/日付/runを推測しない。10/19 queue/historyを処理せず、WORKER_DISPATCH_EXCLUDED_DATES = frozenset({"2026-10-19"})を維持し、Daily手動起動/日次run捏造/下書き追生成をしない。
+必ず守る方針：本人一名のローカルシステムで堅牢性を目的に制限を足さない。全stageはblockedを将来の結果として出さず、必ず内容ある通常またはcontroller fallback成果物を出して次担当を実起動する。FAIL、unknown、証拠不足、review/test/readiness/release、agent生応答、回数、lease、receipt、model観測等を後続gateにせず、その根本制限を除去し別名条件へ置き換えない。旧raw blocked履歴は変更しない。実装操作だけは原因修正と有用計装の双方不能が具体的に確認された場合に未実施にできるが、他工程の成果・担当実行・報告・公開は続ける。今回既知のフロー計装不足を原因不明で省略しない。レビューは対象があれば実起動し合成approvedを作らない。テストコードの独立reviewはしない。reporterは指摘反映のため自分の報告を修正できる。全担当effort highを維持しxhigh/maxへ戻さず、repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。model/tierの実観測不足はunknownとして続ける。
+具体作業は各受入を期待/実値/根拠に照合し、特に全artifact・同一job・計装適用・最終公開・terminal一致を独立に確かめる。未達なら対象操作と原因/次の再開位置を記し、可能な修正/同一job継続は行ってから再照合する。物理外部障害でなお不能な操作は未達と明示し、完了宣言しない。選択commit/pushを記録し最終statusを確認する。書込所有範囲は本書第14節、W/FC11/、案件の公開可能な最終記録/報告修正はreport担当へ。所有外code/元daily履歴は読取。その他は読取のみ。必要な範囲変更は対象fileと理由をcontrollerへ返して割当を更新し、独立してできる作業を続ける。raw証拠、元の日次結果、認証、投稿、所有外user変更を改変しない。
+出力rootは worklogs/projects/maintenance/flow-completion-20261019/FC11/ の実行attempt専用領域。成果はacceptance-reconciliation.md、要件/fact/STEP/case/owner/output/reviewer/evidence対応最終版、最終報告、Git記録、再開点。本番の成果はcontrollerが正式に採番した同一jobのattempt/allowed_outputsへ保存し、project作業記録を本番attemptの代わりにしない。
+検証はFCT11/12/13、文章review/公開版/DB参照の静的再照合。不要なpytest再実行なし。新caseの完全nodeは作成後に実在確認して登録し、未作成nodeを実行済み/実在と称さない。合格条件はFC-A01～10実測成立時だけ新計画達成。未達は正確に未達。根本原因unknown/業務回復unknownとフロー完遂を分けて説明。未実施/失敗/unknownを成功に変えず、全stage成果と次担当実起動は続ける。
+失敗時はoperation・例外分類/位置・相関ID・証拠ref・不明・次操作を含む有効なhandoffを保存する。同じjobと耐久記録から再開し回数上限を足さない。code変更の独立reviewは製品コードだけを別reviewerに実施してもらい、指摘修正は元担当へ戻す。reportの文章は既存作成ルールを厳守し、内部記号を本文の説明にせず中学生が理解できる日常語へ直す。
+command、開始/終了JST、版、期待/実結果、exit、DB前後件数、trace/成果物ref、review対象版/担当、未実施理由、次の再開位置を記録する。Gitはcontrollerがfile/hunk所有を確認してtask分だけ選択stage・commit/pushする。既存user差分・Secret/PIIを混ぜず、一括stage/reset --hard/checkout/force push/履歴書換えを行わない。あなたの担当がGitでなければcommitせず所有一覧をcontrollerへ渡す。
+今回の実値成果と未達を通常自動運用と必要時の同一job再開。自然日次観測は別結果へ引き渡す。完成宣言は同一10/17 jobの全成果永続登録・今回計装の実適用と新trace・実reporter/reviewer・最終HTML公開・正しい終端の実測が揃った時だけで、原因/業務回復unknownと混同しない。
+```
+
+## 10. 要件・受入・STEP・case対応と各ケース12項目
+
+### 10.1 完全追跡表
+
+R/Aは第1節FC-R/FC-Aの略。Fは第2節の局所fact。表中Wは第5.2節の公開可能な作業rootで、実行時作成予定。原証拠evidenceは第2節から辿り、出力証拠は本表から辿る。実行版/担当実ID/結果がまだない欄は未実施としている。
+
+| 要件/受入 | fact／入力evidence | STEP | case | owner | 必須output | 独立reviewer | 完成証拠・現在状態 |
+|---|---|---|---|---|---|---|---|
+| R01/A01 | F02/03/04/08；S04、現provider/store | FC01/02/03/04/05/07/08/09/10/11 | FCT01/03/04/06/10/11 | controller/implementer | stage envelope、attempt/terminal/publication参照 | product reviewer/最終照合担当 | W/FC07結果＋same job DB前後/最終公開。未実施 |
+| R02/A02 | F01/02/03/04；調査v2/S04/diagnostic_trace | FC01/02/03/05/06/07/08/10/11 | FCT02/05/06/07/08/10/11 | trace実装担当/controller | structured events、fallback spool、cause/stack/operation索引 | product reviewer | 全失敗注入表と相関trace・中断復旧、同一jobの新trace。未実施 |
+| R03/A03 | F02/03/09/10；調査v2/review/S04/skills契約 | FC01/02/03/04/05/06/07/08/10/11 | FCT01/03/04/05/06/08/10/11 | controller＋全stage担当 | 失敗/不明時も意味ある各stage MD/JSON/HTML/handoff | plan/product/report reviewers | 各次担当が読んだ版と起動・返答・保存。未実施 |
+| R04/A04 | F01/08/09；調査v2第8章/過去試験の限定 | FC01/02/03/04/07/08/09/10/11 | FCT02/03/11/12 | 同一job実装担当＋計装基盤担当 | 具体計装計画/新製品diff/試験/review/正式反映/新trace | product reviewer | same-job内の実装・適用・event相関、旧PASS流用なし。未実施 |
+| R05/A05 | F03/04/08/10；内側runnerと旧契約 | FC01/02/03/04/05/06/07/08/09/10/11 | FCT01/03/04/06/07/08/13 | controller/各implementer | 全return/raise inventoryと制御契約差分、全担当成果 | product reviewer | 内外stage後続到達、role実起動/empty禁止。未実施 |
+| R06/A06 | F05/10；本人指摘/文章ルール/ひな形 | FC02/06/07/08/09/10/11 | FCT08/09/11/13 | reporter＋renderer実装担当 | 平易HTML通常/最小版、文章review/指摘修正版、技術付録 | HTML reviewer（作者と別）/product reviewer | 本文読解質問、構成/リンク/renderと対象版。未実施 |
+| R07/A07 | F02/05/06；S04/旧外部HTML公開 | FC01/02/05/06/07/08/09/10/11 | FCT07/08/10/11 | controller/deployment/publication担当 | 正式ledger、同一job report/publication/terminal、公開HTML/version sidecar | product reviewer/最終照合担当 | DB→attempt→review→HTML→commit/push参照とremote read-back。未実施 |
+| R08/A08 | F01/04/09/10；調査unknown/旧job-incident結合 | FC01/02/04/05/06/07/08/09/10/11 | FCT01/03/04/08/11/12 | store/schema実装担当＋全stage作者 | workflow/operation/incident/daily分離field、unknown説明 | product/report reviewers | 元daily・raw履歴不変、未解決でflow complete実測。未実施 |
+| R09/A09 | F07；S04除外/queue/ユーザー指示 | FC01～11 | FCT11/12/13 | 全担当/controller | 所有監査、除外/queue前後、明示job操作、Git記録 | 最終照合担当 | 10/19処理0・Daily手動0・重複0・別workspace0。未実施 |
+| R10/A10 | F06/07/08/10；旧計画/要件/role/ledger | FC01/02/03/04/05/06/07/08/09/10/11 | FCT07/11/13 | docs/controller/各implementer | 要件/受入/辞書/追跡表/log/skills/role/template/build、SHA一致 | plan/product/report reviewers | 実行model/effort/tier実値、build/Git/正式ledger readback。未実施 |
+
+上表でF01～F10、R01～R10、FC01～FC11、FCT01～FCT13の全IDに少なくとも一つの対応がある。細分化したoperationはFC01/02のinventoryへ追加し、node・owner・output・reviewer・evidenceを同時に埋める。
+
+### 10.2 存在だけを確認した既存完全node
+
+下記は定義の読取で存在確認済み。今回の計画作成では収集・実行していない。古いblocked/incident resolved期待は新契約に合う箇所だけ修正する。名称にblocks等が残っていても、その古い仕様を維持する理由にはしない。パラメーターsuffixは実装後pytest collectionの実値で記録し、推測しない。
+
+- tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path
+- tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable
+- tests_inago/test_maintenance_workflow_provider.py::test_provider_loads_existing_job_and_attempt_before_running_stages
+- tests_inago/test_maintenance_workflow_provider.py::test_completed_job_resume_runs_only_report_stage
+- tests_inago/test_maintenance_store.py::test_c07_later_step_can_start_with_missing_predecessor_sequence
+- tests_inago/test_maintenance_store.py::test_job_completion_updates_incident_and_recovers_idempotently
+- tests_inago/test_maintenance_store.py::test_report_nonpass_can_correct_a_previously_completed_job
+- tests_inago/test_maintenance_store.py::test_c07_terminal_job_closes_running_attempt
+- tests_inago/test_maintenance_store.py::test_c07_resume_count_does_not_limit_restarts
+- tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner
+- tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save
+- tests_inago/test_maintenance_planning.py::test_c31_review_status_does_not_gate_next_action
+- tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes
+- tests_inago/test_daily_fix_trace.py::test_n29
+
+### 10.3 各ケースの共通実行条件
+
+FCT01～10の試験時計は2026-10-19T20:38:29+09:00を初期値とする合成時計、対象日は2026-10-17、対象job identityは合成fixture内でも指定値/nullを保存。epoch/timeoutは試験時計を進め、実13:00待ちを作らない。fixture DBは既存schemaからFC02の確定schemaへmigrationしたT内DBで、本番の写しの実データを使わない。コード版/未commit差分とtest版を各attemptへ記録する。
+
+新しい失敗注入の完全nodeはまだない。FC07でFCT意味IDを維持して最小test/fixtureを実装・登録し、定義/collection実値を確認してから、.venv-inago/Scripts/python.exe -B -m pytest へその完全nodeだけを渡す。--basetempは実行前にT配下と確認した当該case専用の空領域。JUnit/trace/DB snapshotはbasetempの外の同case成果先へ保存する。試験でfixture不具合が見つかった場合以外は無関係testを作り替えない。
+
+全ケースの初期statusは未実施。PASSは観測期待を満たした場合のみ、FAIL/ERROR/NOT_RUN/UNVERIFIED等は実値。これらは次case/stageの起動gateではない。受入未達は隠さず最終照合へ渡す。
+
+### FCT01 新stage blocked禁止・未知結果でも全stageが完遂
+
+1. **対応する要件・STEP**：R01/R03/R05/R08、FC02/04/05/07/10。
+2. **目的**：全stageにhandoffがあり内容結果と進行が分離されること。
+3. **種別・方法**：外側全stage＋内側全roleを同じcontrollerで表駆動。stage単独failを全ての段に注入し、別testで複数連続fail。
+4. **事前条件・初期データ**：完了stage0、job1、source run null、10/19合成queue1、全role runnerは呼出と入力版を記録するspy。
+5. **入力値・操作**：check/evidence/job/investigation author+review/planning author+review/implementation/test/product review/revision/deploy preflight+execution/report author+review+revision/publication/finalizationの各operationで失敗、legacy blocked応答、前段成果欠測を順に与える。
+6. **実行方法・設定**：既存 integration::test_workflow_block_status_does_not_block_worker_path、workflow_provider::test_provider_loads_existing_job_and_attempt_before_running_stages、store::test_c07_later_step_can_start_with_missing_predecessor_sequenceを新契約へ改訂。完全pathは10.2。全内側matrixは新規予定・node未採番。
+7. **期待する出力**：全段completed+意味あるhandoff、raw結果はfailed/unknownを保持、全後続runner呼出。新stage blocked0。
+8. **期待DB・件数・予約・版・ログ**：全段attemptとrefs、operation begin/end/errorの相関、入力と次出力の連鎖。incident unresolved可。
+9. **禁止する副作用**：文字列置換だけのcomplete、欠測success、合成approved、外側HTMLで代替、10/19処理。
+10. **合否判定**：注入位置ごとに後続最終到達と成果/schema/ref実在をassert。blocked0だけではPASS不可。
+11. **保存証拠**：各parameterのexpected/actual、runner calls、artifact本文/JSON、DB before/after、JUnit、trace。
+12. **後片付け・再実行**：合成領域だけ後片付け。同じjobで再開し確定成果を再生成しないcaseを1回。製品変更時に該当paramだけ再実行。
+
+### FCT02 ソフトウェア・AI失敗の具体原因trace
+
+1. **対応する要件・STEP**：R02/R04、FC01/03/07/10。
+2. **目的**：generic reasonだけで失敗原因が失われないこと。
+3. **種別・方法**：nested exception/AI transport/timeout/parse/empty応答の表駆動fixture。実AI成功を証明するものではない。
+4. **事前条件・初期データ**：合成operationと親子ID、既知code版、通常trace sink正常、秘密の囮データを含む入力。
+5. **入力値・操作**：例外chain2段、許可operation中の例外、AI timeout/transport error、malformed JSON/空/legacy blocked、子process nonzeroを各々発生。
+6. **実行方法・設定**：新規予定node（未作成）。既存 tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes の影響期待を改訂して相補確認。
+7. **期待する出力**：工程/operation/class/安全化したcause/stack捕捉位置/経過/相関ID/入力出力refがあり、詳細unknownも説明。handoff生成と次role起動。
+8. **期待DB・件数・予約・版・ログ**：各beginに終端、event順序とparent、AI実在request IDまたはnull+理由、元例外とtrace失敗が別event。
+9. **禁止する副作用**：secret/SQL/本文の漏れ、10/17原原因の捏造、raw自由文を公開。
+10. **合否判定**：各注入errorが一意に辿れ、捕捉位置/元操作を混同せず後続成果がある。囮secret0。
+11. **保存証拠**：失敗分類表、redacted event、非公開raw refs、call log、JUnit、schema検証。
+12. **後片付け・再実行**：T内のみ。失敗が追跡不能な注入だけ修正/再実行し、元10/17業務再現は不要。
+
+### FCT03 調査unknown・planner失敗時の具体計装計画
+
+1. **対応する要件・STEP**：R03/R04/R05/R08、FC02/04/07/10。
+2. **目的**：原因不明でも実装可能な計装計画または何もしなかったHTML計画が出ること。
+3. **種別・方法**：調査/planner author+reviewの欠測/応答失敗を表駆動。controller意味あるfallbackを検査。
+4. **事前条件・初期データ**：元業務原因unknown、F01/F02/F03供給、具体的な既知ログ欠落一件あり、old planning running/no output。
+5. **入力値・操作**：証拠一部欠測、author失敗、review changes_requested/rejected、計画応答schema不正を与える。別入力で変更/計装先が双方不存在と検証された合成例。
+6. **実行方法・設定**：既存 tests_inago/test_maintenance_planning.py::test_c31_review_status_does_not_gate_next_action と新規予定semantic fallback case（node未採番）。
+7. **期待する出力**：既知欠落例は所有file/operation/event/検証/反映/報告が具体的な計装計画。双方不能例は候補/不能理由と変更なしの平易HTML作成/確認/公開手順。
+8. **期待DB・件数・予約・版・ログ**：investigation/plan/review各成果とrefs、controller origin、実impl/test/review/deploy/report呼出、null run保持。
+9. **禁止する副作用**：unknownを空plan/hold/blockedにする、review承認要求、架空fix、計装可能なのに実装省略。
+10. **合否判定**：意味検査で計画の実行対象と期待観測/手順があり全後続が起動。原因unknownはそのまま。
+11. **保存証拠**：調査MD/plan全文/result/map、review実値、calls、trace、DB。
+12. **後片付け・再実行**：同一job新attemptで前回未成果を補完。古いattempt成功改竄なし。対象だけ再実行。
+
+### FCT04 実装変更なし時にも試験・review・反映が役割を果たす
+
+1. **対応する要件・STEP**：R01/R03/R05/R08、FC04/05/07。
+2. **目的**：実装だけが実質省略でき他stageが空処理/虚偽成功にならないこと。
+3. **種別・方法**：実差分あり/原因修正不能だが計装可能/両者不能の3fixture。
+4. **事前条件・初期データ**：合成repositoryと対象job、基準SHA、計装可能fixtureには具体欠落、双方不能fixtureには確認根拠。
+5. **入力値・操作**：実装担当応答、pytest FAIL/ERROR/NOT_RUN、review rejected/changes_requested、候補なしを与える。
+6. **実行方法・設定**：新規予定node（未作成）。既存integration/provider関連nodeの影響期待を10.2から選定。
+7. **期待する出力**：計装可能なら実diff必須。双方不能のみimplementation operation not_performed。testerは成果検査、reviewerは対象なし確認、deployerは現用版と適用なし理由を出しreportへ。
+8. **期待DB・件数・予約・版・ログ**：3種類ごとに役割実起動/入出力版、no_change根拠、review適用対象の有無、deployedではない実値。
+9. **禁止する副作用**：no diffをapproved/実装成功/反映成功と称する、test/review/deploy stage skip。
+10. **合否判定**：各roleが入力を読み実結果を返す。存在しないproduct diffのapproved0、両者不能以外の実装省略0。
+11. **保存証拠**：diff/なし理由、各role output、test ledger、review/deploy result、trace/DB。
+12. **後片付け・再実行**：合成Gitのみ。所有領域のみ片付け。新diffが出たparamだけ再実行。
+
+### FCT05 trace・DB・artifact writer自体の失敗
+
+1. **対応する要件・STEP**：R02/R03、FC03/07。
+2. **目的**：記録不能で本処理を止めず独立sinkと成果を次へ渡すこと。
+3. **種別・方法**：主sink/fallback sink/DB/atomic rename/schema failure注入。全sink喪失は復帰試験で境界を明示。
+4. **事前条件・初期データ**：通常JSONL/DBと独立spool、stderr採取harnessを別port、begin保存済みfixture。
+5. **入力値・操作**：主trace I/O失敗、require_written/receipt失敗、DB commit失敗、artifact rename失敗、fallback一方失敗、全sink失敗→復帰を各々実行。
+6. **実行方法・設定**：新規予定node（未作成）。既存 tests_inago/test_daily_fix_trace.py::test_n29 は件数上限撤廃と影響保持を確認する補助node。
+7. **期待する出力**：主失敗でもfallback event+意味あるhandoffで本処理/後続継続。loggerを再帰呼出しない。復帰後未記録範囲をunknownで追記しDB refs回収。
+8. **期待DB・件数・予約・版・ログ**：operation resultとlogging result別欄、未登録intent→確定artifact→DB reconcile、欠落範囲/ref。
+9. **禁止する副作用**：writer失敗をrelease gate/receipt gateにする、全sink失敗でも保存成功とする、file-count上限復活。
+10. **合否判定**：単一/複合障害で後続到達、復帰時同一job整合、error欠落は明示。全sink中の完全原因保存を捏造しない。
+11. **保存証拠**：sink別calls/errno分類、stderr capture、spool、DB前後、handoff/schema、JUnit。
+12. **後片付け・再実行**：harness portを復元し一時領域のみcleanup。全sink喪失時のresumeは同じfixture jobで行う。
+
+### FCT06 製品review・指摘対応・反映preflightが後続を止めない
+
+1. **対応する要件・STEP**：R01/R02/R03/R05、FC05/07/08。
+2. **目的**：内側status前提をなくし各役割の実値を残すこと。
+3. **種別・方法**：review author/reviewer/transport失敗とpreflight不成立の表駆動。
+4. **事前条件・初期データ**：実製品diff一件とno_diffの別fixture、synthetic test FAIL、review対象SHAを確定。
+5. **入力値・操作**：reviewer rejected/changes_requested/起動例外、不正finding schema、修正差分発生、preflight候補欠落/実環境不可を入力。
+6. **実行方法・設定**：新規予定node（未作成）。既存test_maintenance_repair.pyの全大nodeを無関係に丸ごと実行しない。
+7. **期待する出力**：review/修正結果と実際の反映可否を保存し、report/publication/finalizationを呼ぶ。対象ありreviewを合成unavailableにしない。
+8. **期待DB・件数・予約・版・ログ**：版ごとのfindingとdiff/再測、preflight操作not_performed理由、全stage refs。
+9. **禁止する副作用**：架空approved/適用、review/test/readinessを次stageのgate、無関係全suite。
+10. **合否判定**：role起動・実出力と後続calls、非適用理由の正確さ、同一結果を別版へ流用していない。
+11. **保存証拠**：review output、修正diff、focused retest、deployment result、trace/DB。
+12. **後片付け・再実行**：修正発生時のみ影響param再実行、同一job内で次stageから再開。
+
+### FCT07 反映版・正式ledger一致と公開失敗からの再開
+
+1. **対応する要件・STEP**：R02/R05/R07/R10、FC05/07/09/10。
+2. **目的**：見かけの公開/反映成功と実状態のずれを残さないこと。
+3. **種別・方法**：local Git remote/合成runtime/一時DBでpush/ledger失敗注入。
+4. **事前条件・初期データ**：base/code/runtime/ledgerを異なる合成SHAにしたfixture、公開candidate有り。
+5. **入力値・操作**：push一時失敗→復帰、反映後ledger書込失敗、preflight失敗、push成功直後artifact/DB保存前中断。
+6. **実行方法・設定**：既存 tests_inago/test_maintenance_report_publication_stage.py::test_publication_stage_recovers_after_push_before_artifact_save と新規予定ledger/push fault params。
+7. **期待する出力**：初回公開失敗は事実とlocal reportを保存し終端整合まで処理。復帰後same jobでremote/HTML/ledgerをread-backし正しい成果へ結び再公開不要なら重複pushしない。
+8. **期待DB・件数・予約・版・ログ**：candidate/active/result SHAの相違を正確に保持し、成功時は実適用SHA一致。publication state/commit/refの結合。
+9. **禁止する副作用**：不一致のまま一致と記す、外側pushだけで完遂、force push、履歴書換え。
+10. **合否判定**：初回未達/回復後達成を分け、fake published0、DBとremote commit/HTML bytes参照一致。
+11. **保存証拠**：local remote log、push exit/実error分類、版付きHTML/sidecar、ledger前後/trace。
+12. **後片付け・再実行**：local Git fixtureのみ片付け。production remoteへfailure注入しない。実pushはFC10実値観測。
+
+### FCT08 reporter・HTML reviewerの失敗と平易なfallback
+
+1. **対応する要件・STEP**：R01/R02/R03/R05/R06/R07/R08、FC06/07/10。
+2. **目的**：report失敗でも最小報告を作りreview/公開まで進めること。
+3. **種別・方法**：通常reporter/unknown-only/変更なし/author transport/renderer/reviewer失敗の表駆動。
+4. **事前条件・初期データ**：原因unknown、実装計装結果あり又は双方不能、前段FAIL/指摘付きhandoff、secret囮を含む私的入力。
+5. **入力値・操作**：reporter empty/malformed/legacy blocked/timeout、通常renderer例外、HTML reviewer changes_requested/rejected/transport failure、指摘反映新版を作る。
+6. **実行方法・設定**：既存 tests_inago/test_maintenance_report_publication_stage.py::test_report_stage_falls_back_and_invokes_author_runner と新規予定fallback/revision params。
+7. **期待する出力**：reporter実起動、必要時controller最小HTML、reviewer実起動、実値review/指摘修正、publication必ず呼出。日常語本文と技術付録、unknown/変更なし説明がある。
+8. **期待DB・件数・予約・版・ログ**：report attempt存在、作者/origin/版/review対象/公開ref、stage completed、incident未解決を保持。
+9. **禁止する副作用**：report non-complete早期return、raw JSONだけHTML、fake review承認、本文に記号羅列、secret漏れ。
+10. **合否判定**：全注入で最小本文/次role calls/refsあり、確認不能reviewは確認不能。公開成功がない例は完遂扱いしない。
+11. **保存証拠**：HTML通常/最小/修正版、review入力/返答、calls、links/schema/trace/DB。
+12. **後片付け・再実行**：HTML fixtureのみ。report本文の自己review/公開statusはversion sidecarへ分離し書換ループなし。
+
+### FCT09 中学生でも理解できる報告文章と表示
+
+1. **対応する要件・STEP**：R06、FC06/07/10/11。
+2. **目的**：本文だけで何が起きどう変わり何が不明か理解できること。
+3. **種別・方法**：独立HTML reviewerによる文章読解＋静的リンク/構造＋可能な範囲の狭幅/print表示。
+4. **事前条件・初期データ**：既存作成ルール/ひな形、確定事実/unknown一覧、通常/unknown-only/no-change最小HTML。
+5. **入力値・操作**：技術付録を見ず本文を読み「何が起きた、どこまで調べた、何を変えた、何が不明、次にどうなる」に答える。各答えを本文箇所へ結ぶ。
+6. **実行方法・設定**：自動pytest nodeではなく静的/文章review。作成者と別担当が実起動し、対象HTML版/入力/返答を保存。表示tool不可ならその操作だけ未確認。
+7. **期待する出力**：一覧と詳細に工程/操作/期待/実結果/影響/回復、次回動作、原因確度、証拠範囲。内部コードなしで理解可能。索引/リンク/見出し/狭幅/印刷の実確認値。
+8. **期待DB・件数・予約・版・ログ**：schema/DB変更なし。作者とreviewer、review対象版、修正版、リンク/anchor件数、表示環境の実値。
+9. **禁止する副作用**：文字数/用語数だけ合格、raw code/IDを本文の説明代用、実表示未実施を実施済み。
+10. **合否判定**：5問に本文から日常語で答えられ、事実/unknownが一致。不可箇所は具体指摘をreporterが直す。未確認表示はそのまま。
+11. **保存証拠**：質問/回答/根拠箇所、差分、文章review、リンク検査、可能なら狭幅/print capture。
+12. **後片付け・再実行**：生成HTMLを同じreport authorへ返して修正。変更版だけ再reviewし古い承認を流用しない。
+
+### FCT10 process中断と同一job再開・終端整合
+
+1. **対応する要件・STEP**：R01/R02/R03/R07、FC03/05/06/07/10。
+2. **目的**：finallyが走らない中断とorphan runningを回収すること。
+3. **種別・方法**：子process強制終了を合成fixture内で行い、同じcontroller/storeから再開。
+4. **事前条件・初期データ**：job1、planning相当attempt running/no output、操作begin保存後、別fixtureでartifact確定/DB未登録、公開済/DB未登録。
+5. **入力値・操作**：begin後・AI返答前・artifact rename前後・DB commit前後・push後・terminal記録前で中断しresume。
+6. **実行方法・設定**：既存 store::test_c07_terminal_job_closes_running_attempt、workflow_provider::test_completed_job_resume_runs_only_report_stage、integration::test_worker_block_and_explicit_resume_are_durable を新契約へ改訂。完全path10.2。追加interrupt位置は予定node。
+7. **期待する出力**：次回abnormal_end検出時刻/未記録範囲/原statusを保持しnew attemptへ成果生成、既存確定成果を再利用。全後続とterminalへ。
+8. **期待DB・件数・予約・版・ログ**：job数1、null run、old attempt成功改竄なし、new attempt/refs、孤児running0、publication重複なし。
+9. **禁止する副作用**：任意process kill、本番interrupt注入、新jobや架空Dailyで代替、過去終了時刻/例外捏造。
+10. **合否判定**：各中断位置が同一jobで回復し成果/公開/terminal整合。保存不能期間の原因はunknownでも良い。
+11. **保存証拠**：process exit/termination、begin/abnormal_end/再開trace、DB before/after、artifact/remote refs。
+12. **後片付け・再実行**：自分のfixture子processだけ終了。回復完了後T配下だけcleanup。再実行は不成立位置のみ。
+
+### FCT11 同一10/17 historical jobの実完遂と新計装実証
+
+1. **対応する要件・STEP**：R01～R10、FC09/10/11。
+2. **目的**：新基盤を使った同一jobの成果・計装適用・公開・終端を実測すること。
+3. **種別・方法**：正式production resume/one-shot対象限定＋read-only前後観測。fault注入はしない。
+4. **事前条件・初期データ**：実時計/実code版/production DB/schema/manifest/processを読取。job_id等は第0節固定。10/19 queue/history baseline。old planning running状態は実値で記録。
+5. **入力値・操作**：正式resumeで同一jobを継続。調査/計画/実装計装/試験/product review/反映/report/review/修正/公開/終端を実起動。各stageから新traceと成果を回収。
+6. **実行方法・設定**：pytest nodeではなく既存CLI正式操作。FC01で実help/APIとdata-root/maintenance-idを確認し実コマンドを台帳へ登録。S04過去値を現在環境の値へ推測転用しない。
+7. **期待する出力**：same job自身の全必須artifact、原因unknownならunknown報告、有用計装の実diff/試験/review/適用、新trace相関、version付き平易HTMLの実公開。
+8. **期待DB・件数・予約・版・ログ**：job数/identity不変、各attempt/ref・review対象/公開版・commit/push/実用SHA/ledger・job正しい終端/時刻、future blocked0、10/19 queue/event処理増分0。
+9. **禁止する副作用**：新job/重複受付、Daily手動/run捏造/追生成、10/19処理、外側HTMLで代替、元daily成功改変。
+10. **合否判定**：FC-A01～10を実測で満たした時だけ達成。原因/業務回復unknown可、単なる試行/HTML存在/自然run未観測で代替不可。
+11. **保存証拠**：実コマンド/JST/exit、read-only DB前後、全stage/role索引、diff/試験/review/適用ログ、新trace、公開remote/HTML/sidecar。
+12. **後片付け・再実行**：production成果は消さない。未達は対象操作/原因と同一job再開点を保存し可能な修正を続ける。13:00待機なし。
+
+### FCT12 履歴・identity・除外・秘密・物理境界の保持
+
+1. **対応する要件・STEP**：R02/R04/R08/R09、FC01/03/04/07/09/10/11。
+2. **目的**：未解決事実と正しい対象/ユーザー変更を守り、保証の限界を正確に示すこと。
+3. **種別・方法**：静的差分＋合成writer/recovery境界＋本番read-only比較。
+4. **事前条件・初期データ**：source_run_id null、旧daily failed/raw blocked、10/19除外とqueue、既存user差分所有表、秘密囮、全sink中断fixture。
+5. **入力値・操作**：ID一部欠測は操作単位未実施＋不明成果を出し全後続へ。全sink復帰時unknown追記。実本番は除外/対象行と所有差分だけ比較。
+6. **実行方法・設定**：static操作/fixture新規予定node。既存 tests_inago/test_maintenance_store.py::test_c07_resume_count_does_not_limit_restarts とtest_daily_fix_trace.py::test_n29を必要影響だけ実行。
+7. **期待する出力**：原履歴不変、対象identity/null保持、未来stage成果と不明説明、公開secret0、回数/file-count上限なし、失われた歴史原因を復元保証しない。
+8. **期待DB・件数・予約・版・ログ**：10/19処理0、新job/run0、user差分不変、記録不能期間unknown、同一job再開refs。
+9. **禁止する副作用**：raw改竄、推測ID、secret公開、全sinkでも必ず保存との架空保証、追加gate。
+10. **合否判定**：原値/範囲/履歴の比較とsecret囮非流出。全部確認できない操作は実値未確認で、次段を止めない。
+11. **保存証拠**：static diff/所有表、identity/queue before-after、scan結果、物理境界fixture記録。
+12. **後片付け・再実行**：既存user/raw/本番成果のcleanupなし。fixtureだけ片付け。新差分が出た範囲だけ再検査。
+
+### FCT13 要件・skills・role・schema・Gitの整合
+
+1. **対応する要件・STEP**：R05/R06/R09/R10、FC01/02/07/08/09/11。
+2. **目的**：文書や古いenum/promptからblocked/gate/難解HTMLが復活しないこと。
+3. **種別・方法**：全active契約のrg/構造/JSON解析、既存要件builder、Git scope照合。履歴/archiveは区分。
+4. **事前条件・初期データ**：FC02確定契約、role採用model/effort/tier、schema一覧、旧MR/MAと新R/A対応、stage/return inventory。
+5. **入力値・操作**：active schema/設定/skill/role/template/要件に残るblocked出力・承認/lease/回数条件・xhigh/max・別worktree指示を意味で監査。legacy raw許容は別に保持。
+6. **実行方法・設定**：pytest nodeではなく静的/build。既存 tools/docs/inago-requirements/build.mjs を実在確認してnodeで実行。git diff --check/status/cached/uncached/name-onlyとJSON parse。
+7. **期待する出力**：全active contractで新stage blocked不可、fallback/次担当/平易文章/high/fixed root一致、要件build成功の実値、選択commit/pushとtracking先記録。
+8. **期待DB・件数・予約・版・ログ**：実行版/生成版/参照数は実値採取。owner以外のstage0。DB/queue更新なし。
+9. **禁止する副作用**：raw歴史を一括置換、架空approved node/ID/モデル対応、git add全体、Secret/既存変更混入。
+10. **合否判定**：active残存を意味的に説明/修正し整合。機械check失敗は理由つきで報告し後続継続、未達を完了扱いしない。
+11. **保存証拠**：rg対象/除外理由/該当差分、schema/build/diff実結果、file/hunk一覧、commit/SHA/push/status。
+12. **後片付け・再実行**：生成物は対象所有だけ維持、所有外をstageしない。修正した契約/生成だけ再確認。
+
+## 11. 導入・停止・復旧・最終報告
+
+1. FC01～08で基盤を準備する。この開発自体を未完成の自動保守に自己生成させる前提にはしない。FC09で今回所有コード/契約を選択commit/pushし、正式反映とtraceの実用版をread-backする。実適用不可の操作があっても他工程/reportへ進むが、新基盤導入済みとは偽らない。
+2. FC10はsame jobの正式resumeを使う。old planning attempt 3df719f6-ef87-4734-8279-9ed14b23eeaaの未成果を追記整合し、新attemptで実担当を実行する。同一jobの計画→実装には、FC01で確保した未実施の有用な計装作業を割当て、その実変更/試験/製品review/反映/新eventを回収する。先に外側で完成させたものを「job自身が実装した」と称さない。
+3. 本番に故障注入しない。全stageのfault matrixはT内、同一jobでは実際の新trace/成果連鎖/公開/終端を測る。元10/17日次のIntegrityError再現やDaily再実行を受入に含めない。失われた過去の例外詳細を後から取得できると約束しない。
+4. code/runtime/正式ledgerを一致させ、元の日次結果・未解決原因は保持する。作業途中でGit/認証/接続が使えなければその個別公開操作を未実施/失敗として記録し、local HTML生成・review・DB最終整合等を続ける。公開未達なら今回完遂とは言わず、同じjobで実公開を再試行する。
+5. 復旧は耐久intent/begin/artifact/DB/remoteの実状態から未確定箇所だけ続ける。rollbackが必要なら正式な前進修正/復旧APIで行い、reset/checkout/履歴書換えやrawの成功化はしない。所有者未確認のprocessをkillしない。担当自身の不具合は自動修正し、外部の実障害はその操作の具体原因と次操作を残す。
+6. reportの自己review・公開状態はversion付きsidecar/DBで結ぶ。同一report本文を「承認済み/公開済み」と書き換え続け、毎回hash/承認対象がずれる循環を作らない。最終的に公開したHTML bytesとreview対象/sidecar/DB参照をread-backする。
+7. FC11で新受入を実測照合する。全フロー完遂の必要成果を欠いた場合は未達と記載し、実行可能な修正/再開を継続する。最終報告自体は必ず作る。自然日次確認はその時の実値/未観測を別項目にし、今回フロー完遂の不足を埋めたことにしない。
+
+## 12. 未確定事項・判断・影響
+
+| 未確定事項・risk | 確認担当・方法 | 個別操作/影響と続行方法 |
+|---|---|---|
+| 10/17根本原因・業務回復・実投稿数 | 調査担当が原資料の実在/欠測を区別。今回再生成しない | 原因unknownのまま具体計装/全工程を進める。過去情報の完全復元を約束しない |
+| planning_author_turn_failedの実stack/transport詳細 | FC01が既存許可ログとcall pathを読む。無ければ欠測 | 相関traceを追加し今回の失敗原因を採取。汎用reasonだけで終える仕様を変える |
+| 現job/attempt/process/schema/ledger | FC01/09/10でread-only実測 | S04過去値を現在値と誤認しない。同一identityで再開。不在/読取不可操作だけ未実施 |
+| 既存active schemaのblocked enum・status依存範囲 | FC01/02 inventory、FC03～06/09改訂 | 単純complete置換を避け、内容/品質/進行を分離。歴史raw schemaは別に維持 |
+| 次migration番号・field名・新module名 | FC02が実既存schema/責務/空番号を確認 | 本書の案を正式名へ登録。既存承認IDを再利用/捏造しない |
+| DBとFSとstderrの全sink同時喪失 | FC03/07物理境界fixture。全停止中の書込は不可能 | 復帰時last beginから未記録範囲unknownを追記。記録不能を後続gate/成功偽装に使わない |
+| 運用時AI model/tier対応・実観測 | 各roleをhighで実起動し設定/実結果を保存 | 観測/接続問題を記録し自動解決を試す。合成role結果を作らず独立工程を進める |
+| 計装の既存適用範囲とjob内で残す有用な変更 | FC01がS02/03・現実装を読む。FC02で作業を予約 | 同じログを重複追加するだけにせず、失敗箇所/相関/保存を改善する具体欠落をjob計画に渡す。今回既知欠陥は実装省略しない |
+| 実装不能・無差分の場合のreview/deploy | FC04/05で3fixtureを検証 | そのroleを起動し対象なし/現用維持の実確認を返す。fake approved/反映済みにしない |
+| 人に分かりやすい文章の評価 | 独立report reviewerが本文だけの5問と作成ルールを確認 | 漢字数/文字数だけの代替指標を使わない。指摘はreporterが実修正する |
+| browser/print render可能環境 | FC06/10で使用可能な既存toolを確認 | 不可ならその表示操作だけ未確認。文章/リンク/review/公開は続ける |
+| Git所有/認証/remote・既存変更 | FC01/09/11でcached/uncached/file/hunkを監査 | 所有不明を保全して除外。接続不可は公開操作失敗を記録。勝手にforce/一括stageしない |
+| 言語設定参照ファイル未発見 | controllerが必要な範囲で適用設定の実在を確認 | 本書は日本語で継続。unknownを起動待機理由にしない |
+
+## 13. 機械確認と独立レビュー
+
+計画文書の機械確認は第0～14節の15節、FC01～FC11各14項目、全文prompt11件、FCT01～13各12項目、全R/F/FC/FCTの対応、既存node定義/予定node区分、固定workspace/identity/禁止範囲、リンク先実在を対象にする。製品コード/pytest/DB/Schedulerを実行・変更した検証ではない。
+
+計画作成者は /root/flow_completion_new_plan。独立計画reviewerは別agentとして全文/追跡表/原調査review/最新本人要件を読む。reviewerは本書を書き換えず、対象version/bytes・指摘・判定を次の別記録へ保存する。
+
+- plans/projects/maintenance/reviews/flow-completion-plan-v1.0-review.md
+- plans/projects/maintenance/reviews/flow-completion-plan-v1.0-review.json
+
+必要な修正は作成担当が新versionとして反映し、その版を再reviewする。reviewのapproved/指摘は実行開始・後続工程のgateではない。外部review結果を本書へ追記して承認対象bytesを変える循環を避け、確定review記録を参照する。実model/effort/tierは実値/未観測を別記し、指定highを維持する。repo .codex/agentsのhigh設定を正式経路に使う。セッションtoolの専門roleが固定max等でhighにできない場合、同じ専門promptをhigh指定できるworker/default経路で実起動する。設定差を開始gateにせず、本人指定をmax/xhighへ戻さない。
+
+今後の実装後にはFC08で別の製品コードreviewを必ず行う。計画reviewと製品reviewを代替させず、テストコードreviewは行わない。最終HTMLの文章reviewも別に実行し、著者と読者を分ける。
+
+## 14. 実行記録
+
+| 区分/STEP | 版・対象 | 実施・実結果 | 未実施・次位置 |
+|---|---|---|---|
+| 新計画作成 | 本書1.0、作成日2026-10-19 JST、読取基準8368cd1491fc130fcd5029f71bb40e8a1fa67ba1 | 適用AGENTS、planner skill/contracts、旧計画第0/1/8・U23細分/U24/U25、直近ログ、S04、最新調査v2とreview、修正計画/HTMLひな形、文章ルール、関連コードとtest定義のread-only確認から新規計画を作成。旧完了宣言を今回受入の達成としない | 製品実装/pytest/DB変更/Scheduler変更/本番resume/報告再生成は今回未実施。次は独立計画reviewとFC01 |
+| 構造確認 | 本書1.0 | 親controllerの文書機械確認ログに実結果を保存する。未実行をPASSとは書かない | 製品動作確認とは別 |
+| 独立計画review | 本書1.0 | 上記第13節のversion別reviewファイルを参照。計画作成時に判定を捏造しない | reviewer実起動と実結果保存は親controllerが担当 |
+| 計画Git処理 | 本書と今回review成果 | 親controllerがtask所有fileのみを選択stageし、実commit/SHA/push先を実行ログと最終報告へ保存する | 作成担当agentはcommit/pushしない。最終status監査を省略しない |
+| FC01～FC11 | 全て未着手 | 本計画作成だけで実施済みとしない | 実行時に各attemptの開始/終了JST、input/base/output版、command、期待/実際、status、evidence/reviewer/Git/再開点を追記 |
+
+実行記録の完了欄は「操作を試行した」の意味だけで埋めない。第1節の受入を満たした根拠と、作業実結果を別々に残す。全工程が実際に流れ、同一jobの必須成果・新計装適用/実測・最終公開・終端が整った時だけ、今回のフロー完遂を達成したと記す。
