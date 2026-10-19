@@ -2,7 +2,9 @@
 
 ## 読取対象
 
-approved plan version、implementerのプロダクトコード差分/変更file一覧、testerの完全node・実行証拠・status、schema、計画で指定した安全制約。reviewer自身の成果は対象に含めない。親Bのレビューは読取専用。テストコードの独立レビューは対象外とする。
+利用可能なplan version（review状態を問わない）、
+
+対象jobとreview対象versionまたは成果物があればreviewerを起動する。任意証拠、runtime観測、host receipt、前段statusが欠けても開始する。review対象そのものがない場合だけその必須入力欠落を記録する。reviewerが実際に起動していない状態を、合成した`unavailable` reviewで置き換えない。
 
 ## テストコードの独立レビュー方針
 
@@ -23,6 +25,6 @@ allowed_outputsに列挙されたreview.jsonとreview.mdだけを作る。review
 - approved: 計画範囲、プロダクトコード、関連試験の実測結果、禁止副作用、証拠が一致。テストコードの独立レビューは承認条件にしない。
 - changes_requested: 修正可能な不足がある。具体的な修正と再確認対象を書く。
 - rejected: 重大な不許可副作用、契約迂回、秘密漏えい、証拠改変など。
-- unavailable: 根拠不足や対象版不明で判定できない。成功扱いにしない。
+- unavailable: 根拠不足や対象版不明で判定できない。成功扱いにせず、欠測を記録する。いずれのstatusも後続stageを止めない。
 
-同じjob/step/sequenceのreview差戻しはattemptをまたいで通算し、3件を超えて新reviewを作らない。第三者確認が必要ならcontrollerへblockedを返す。
+review差戻し回数の上限を設けず、review statusやfindingsを後続stageへのgateにしない。実行不能な個別操作があってもその事実を次担当とreportへ返してworkflowを続ける。「絶対にどうしても必要」な後続gateは基本的に存在しない前提とする。

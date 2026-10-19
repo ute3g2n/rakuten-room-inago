@@ -94,12 +94,12 @@ export const expandedFlows = {
   ],
   F12: [
     n('S','maintenance completion / watchdog','完了通知・監視プログラム','日次の実際の終了状態を保守担当へ正確に渡す','日次CLI最終結果、後処理、保全、プロセス終了、起動ID','照合し、記録できる証拠参照と対象日を管理DBへ渡します','保存runがない起動前停止ではrun IDを作らずsource_run_id=nullを保ち、元のfailed結果や欠測を成功扱いにしません'),
-    n('A','rr-inago-incident-investigation','親A・調査担当','正常な結果と調査が必要な事象を分ける','日次結果、許可された証拠索引、既存の未解決案件','指定されたSol/xhigh設定でcheckを行い、確認済みの事実・外部要因・未知を分類します','正常日や根拠のある不足はcheck記録だけで終了し、異常または未解決の未知だけをincidentへ渡します'),
-    n('S','maintenance controller / store','案件管理プログラム','同じ起動・障害に一つの永続状態を与える','source_launch_id、nullable source_run_id、target_date、release gate、既存check/incident','重複を照合し、leaseと対象版を保存してから次のstageを受け付けます','U21 ready前の遡及受付、同一起動の二重check、同一未解決事象の重複incidentを許可せず、既存ユーザー変更を保持します'),
-    n('A','investigation / execution planning','親A・調査/計画担当とreviewer','原因の確度と安全な修正方法を合意する','hash確認済み調査MD/facts/evidence、現行要件、0～14節計画と対応表','調査担当と計画担当は別の依頼を作り、別reviewerが全fact/evidence・要件・STEP・caseを確認します','原因がunknownなら確認または保留だけを計画します。外部待ちは計画と最終説明を残し、承認gateが開くまで次STEPを止めます。source_run_id=nullはnullのまま保ちます'),
-    n('A','common-implementation / testing / review','親B・実装/テスト/レビュー担当','再現可能な不具合を隔離した場所で修正する','合格した計画、managed worktree、匿名化された証拠、所有範囲','Luna/max/Fast設定の別担当が修正・試験し、読み取り専用の別reviewerが差分と証拠を確認します','実装/テスト/レビューの所有を分け、失敗前の証拠と元の日次結果を保ち、合格commit以外を反映しません'),
-    n('S','maintenance deployment','本番反映プログラム','合格した正確な版を安全に本番へ届ける','全必須PASS、独立review、追跡先commit、日次/API稼働状態','排他を確保して通常pushとfast-forwardを行い、active commit・起動設定・healthを照合します','日次開始中、交差変更、push/ff不能、必須証拠不足なら待機し、非交差の既存変更を消しません'),
-    n('A','rr-inago-incident-report','親B・報告担当とreviewer','何が起き、どこまで直り、次に何を観測するか伝える','調査MD、計画MD、試験・review・反映の実測、元件数、次回観測条件','調査MD・計画MD・対応HTMLを作成し、別担当の報告reviewを通します','元のfailedと修正後の状態を分け、未確認を明記し、次の自然な日次で同じ障害が再発したら同一案件へ結びます'),
+    n('A','rr-inago-incident-investigation','親A・調査担当','正常な結果と調査が必要な事象を分ける','日次結果と利用可能な証拠','受け取り、Sol/high設定で調査agentを実起動して確認済みの事実・外部要因・未知を分類します','対象jobと担当stageが分かり必須入力があれば直ちに起動します。任意の証拠・status・receipt・設定観測で起動を遅らせず、未確認事項を記録して後続へ渡します'),
+    n('S','maintenance controller / store','案件管理プログラム','同じ起動・障害の履歴をIDで追跡する','source_launch_id、nullable source_run_id、target_date、check/incidentの記録','管理DBへ記録し、前工程のstatusを次stageの開始条件にしません','U23の現在方針ではrelease/readiness gateで後続stageを止めません。report completeだけがjob complete/incident resolved/Worker成功へ対応し、pending/blockedはartifactを保持して未完了statusを記録します。同一起動・同一事象の確認記録は重複させず、元の日次結果を保持します'),
+    n('A','investigation / execution planning','親A・調査/計画担当とreviewer','確認できた事実と未確認事項を次の作業へ渡す','利用可能な調査MD/facts/evidence、現行要件、0～14節計画と対応表','使って計画agentを実起動し、対象versionまたは成果物があれば別担当reviewerを実起動してreviewを依頼します','必須対象がある担当を直ちに起動します。任意証拠・status・receipt・設定観測・session/cache状態は起動条件にせず、原因unknownや欠測も後続stageへ渡します。source_run_id=nullはnullのまま保ちます'),
+    n('A','common-implementation / testing / review','親B・実装/テスト/レビュー担当','確認できる不具合を利用可能な情報で修正する','利用可能な計画と担当範囲の変更対象・試験対象・review対象version/artifact','使って実装/試験agentを実起動し、通常のローカルpytestと製品コードreviewを依頼します','レビュー対象があれば実reviewerを起動し、未起動を合成unavailableにしません。テストコードは独立reviewしません。失敗・未実施・review所見を次工程へ渡し、PASS/承認を反映条件にしません'),
+    n('S','maintenance deployment','本番反映プログラム','実行可能な修正を反映できる範囲で試み、結果を記録する','利用可能な修正候補と反映対象環境','確認し、実行可能な反映操作を試して実際の反映版と未実施操作を記録します','test/review/readiness statusを後続gateにしません。個別操作を実行できない場合はその理由を記録し、報告へ進みます'),
+    n('A','rr-inago-incident-report','親B・報告担当とreviewer','何が起き、どこまで対応できたか利用者へ伝える','利用可能な調査・計画・試験・review・反映記録と元件数','report担当へ渡してHTMLを作成し、review対象HTML版または成果物があれば別担当reviewerを実起動してreviewを依頼します。review所見があればreport担当が自ら修正します','任意証拠や前段statusで担当の起動を止めず、review未起動を合成unavailableで置き換えません。review承認をreport完了条件にせず、未確認と未実施を明記します'),
   ],
 };
 

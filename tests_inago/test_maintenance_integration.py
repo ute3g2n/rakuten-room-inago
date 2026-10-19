@@ -30,6 +30,7 @@ from tests_inago.maintenance_support import (
 from tests_inago.test_maintenance_deployment import _case, _deploy, _git
 from automation.inago.maintenance.deployment import commit_owned_paths
 from automation.inago.maintenance.worker import (
+    WorkerWorkflowOutcome,
     dispatch_ready_worker,
     run_worker_once,
 )
@@ -328,6 +329,53 @@ def test_worker_block_and_explicit_resume_are_durable(tmp_path, capsys):
     events = store.list_worker_queue_events(queue.queue_id)
     assert [event.event_type for event in events] == ["blocked", "resumed"]
     assert events[1].reason_code == "maintenance_workflow_provider_unavailable"
+
+
+def test_workflow_block_status_does_not_block_worker_path(tmp_path):
+    store = make_store(tmp_path)
+
+    def failed_daily_process(_command, _cwd, on_started):
+        on_started(9331)
+        return DailyProcessResult(
+            returncode=4,
+            stdout=b'{"status":"runtime_error","reason":"ExampleError"}',
+            stderr=b"",
+            pid=9331,
+        )
+
+    launch = run_daily_launch(
+        store,
+        data_root=tmp_path / "runtime",
+        config_path=tmp_path / "config.json",
+        now=BASE_TIME,
+        process_runner=failed_daily_process,
+        command=("synthetic-daily-child",),
+        cwd=tmp_path,
+    )
+
+    def workflow_runner(_launch, check, _queue, _lease, _cancel_event):
+        return WorkerWorkflowOutcome(
+            status="blocked",
+            check_id=check.check_id,
+            reason_code="investigation_inputs_incomplete",
+        )
+
+    result = run_worker_once(
+        store,
+        now=BASE_TIME + timedelta(minutes=3),
+        owner_id="worker-record-blocked-stage",
+        owner_pid=9332,
+        owner_start_time=(BASE_TIME + timedelta(minutes=3)).isoformat(),
+        process_probe=lambda _pid: ProcessObservation("stopped", None),
+        source_launch_id=launch.launch_id,
+        workflow_runner=workflow_runner,
+    )
+
+    queue = store.get_worker_queue(launch.launch_id)
+    assert result.status == "maintenance_incomplete"
+    assert result.maintenance_resolution_status == "blocked"
+    assert result.reason_code == "investigation_inputs_incomplete"
+    assert queue is not None and queue.status == "complete"
 
 
 def test_c54_contract(tmp_path, capsys):

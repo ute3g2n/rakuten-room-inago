@@ -59,16 +59,21 @@ def make_investigation_response(
     cause_confidence: str = "unknown",
     cause_statement: str | None = None,
     fact_evidence_refs: list[str] | None = None,
-    status: str = "complete",
 ) -> dict[str, Any]:
     if fact_evidence_refs is None:
         fact_evidence_refs = ["evidence/trace-001"]
     return {
-        "schema_version": "maintenance-investigation-response-v1",
+        "schema_version": "maintenance-investigation-response-v2",
         **deepcopy(context),
         "stage": "investigation",
-        "status": status,
         "summary": "A synthetic Trends observation needs isolated follow-up.",
+        "report_markdown": "\n".join(
+            [
+                "# Investigation report",
+                *(f"## {number}. Chapter {number}" for number in range(1, 10)),
+                "",
+            ]
+        ),
         "facts": [
             {
                 "fact_id": "fact-001",

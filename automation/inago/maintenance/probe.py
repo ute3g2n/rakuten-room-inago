@@ -23,6 +23,7 @@ from automation.inago.maintenance.ai_adapter import (
     PARENT_SETTINGS,
     MaintenanceAIAdapter,
     MaintenanceAIBlockedError,
+    resolve_codex_executable,
 )
 from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.paths import _has_reparse_point
@@ -1337,7 +1338,7 @@ def run_ai_probe(
             validated_data_root, profile=profile
         )
     repo_root = Path(repository_root or _repository_root()).resolve(strict=True)
-    executable = codex_executable or shutil.which("codex")
+    executable = codex_executable or resolve_codex_executable()
     if not executable:
         raise MaintenanceProbeError("codex_cli_unavailable")
 

@@ -178,6 +178,22 @@ def test_c29_contract(tmp_path):
 
     context = make_context()
     response = make_investigation_response(context)
+    response[
+        "summary"
+    ] = "The recorded daily_status is failed; records=[] were observed."
+    response["report_markdown"] = "\n".join(
+        [
+            "# Investigation report",
+            *(f"## {number}. Chapter {number}" for number in range(1, 10)),
+            f"{context['target_date']} investigation-v1 unknown 未確認 daily_status records=[]",
+            "| daily_status=failed; records=[]; literal \\| cell; markdown \\*word* |",
+            "daily_status=failed; records=[]; literal \\| cell; markdown \\*word*",
+            "",
+        ]
+    )
+    response["facts"][0][
+        "actual"
+    ] = "daily_status=failed; records=[]; literal \\| cell; markdown \\*word*"
 
     validated = validate_investigation_response(response, context)
     markdown = render_investigation_markdown(
@@ -185,7 +201,6 @@ def test_c29_contract(tmp_path):
         context,
         result_version="investigation-v1",
         created_at="2026-10-17T22:30:00+09:00",
-        synthetic_fixture=True,
     )
 
     assert isinstance(markdown, str)
@@ -195,8 +210,20 @@ def test_c29_contract(tmp_path):
     assert "investigation-v1" in markdown
     assert "unknown" in markdown
     assert "未確認" in markdown
+    assert "daily_status" in markdown
+    assert "records=[]" in markdown
+    assert (
+        "| daily_status=failed; records=[]; literal \\| cell; markdown \\*word* |"
+        in markdown
+    )
+    assert (
+        "daily_status=failed; records=[]; literal \\| cell; markdown \\*word*"
+        in markdown
+    )
+    assert "daily&#95;status" not in markdown
+    assert "records=&#91;&#93;" not in markdown
     assert "外部側停止が原因" not in markdown
-    assert "合成fixtureから生成した検証用レポート" in markdown
+    assert "合成fixtureから生成した検証用レポート" not in markdown
     saved_markdown = tmp_path / "investigation.md"
     saved_markdown.write_text(markdown, encoding="utf-8")
     assert saved_markdown.read_text(encoding="utf-8") == markdown
@@ -207,11 +234,12 @@ def test_c29_contract(tmp_path):
         result_version="investigation-v1",
         created_at="2026-10-17T22:30:00+09:00",
     )
-    assert "合成fixtureから生成した検証用レポート" not in real_mode
+    assert real_mode == markdown
 
     # Every fact keeps its full details in the report, including facts beyond
     # the first three event slots.
     four_facts = make_investigation_response(context)
+    four_facts["report_markdown"] += "\nfact-004 Fourth synthetic operation\n"
     fourth = dict(four_facts["facts"][0])
     fourth.update(
         {
@@ -228,7 +256,6 @@ def test_c29_contract(tmp_path):
         context,
         result_version="investigation-v2",
         created_at="2026-10-17T22:30:00+09:00",
-        synthetic_fixture=True,
     )
     assert "fact-004" in four_report
     assert "Fourth synthetic operation" in four_report
@@ -302,61 +329,10 @@ def test_c29_contract(tmp_path):
     with pytest.raises(ValueError):
         validate_investigation_response(missing_schema_version, context)
 
-    # A blocked investigation still saves the facts and nine-chapter report.
-    store, controller, lease, context, attempts_root, output_root = _start_attempt(
-        tmp_path / "blocked"
-    )
-    blocked_response = make_investigation_response(context, status="blocked")
-    blocked_review = make_review_response(
-        context,
-        reviewer_id="independent-reviewer",
-        reviewed_version="investigation-blocked-v1",
-        status="approved",
-    )
-    blocked_outcome = _complete_investigation(
-        controller,
-        context=context,
-        response=blocked_response,
-        attempts_root=attempts_root,
-        output_root=output_root,
-        result_version="investigation-blocked-v1",
-        created_at=BASE_TIME + timedelta(seconds=8),
-        completed_at=BASE_TIME + timedelta(seconds=10),
-        review_started_at=BASE_TIME + timedelta(seconds=9),
-        reviewed_at=BASE_TIME + timedelta(seconds=11),
-        accepted_at=BASE_TIME + timedelta(seconds=12),
-        lease=lease,
-        author_id="implementation-agent",
-        author_execution_id="investigator-turn-001",
-        reviewer_id="independent-reviewer",
-        reviewer_execution_id="review-turn-001",
-        review_runner=lambda _metadata: blocked_review,
-        review_round=1,
-        handoff_root=attempts_root,
-        synthetic_fixture=True,
-    )
-    assert blocked_outcome.investigation_status == "blocked"
-    assert blocked_outcome.next_action == "blocked"
-    assert blocked_outcome.handoff is None
-    assert (output_root / "facts.json").is_file()
-    assert (output_root / "investigation.md").is_file()
-    assert (output_root / "result.json").is_file()
-    assert store.get_step_attempt(attempt_id=context["attempt_id"]).status == "complete"
-    result_document = json.loads(
-        (output_root / "result.json").read_text(encoding="utf-8")
-    )
-    assert result_document["review"]["status"] == "approved"
-    assert result_document["review"]["gate_status"] == "rejected"
-    assert result_document["review"]["reason_code"] == "investigation_blocked"
-    with pytest.raises(MaintenanceStoreError, match="step_predecessor_not_approved"):
-        controller.begin_step_attempt(
-            job_id=context["job_id"],
-            step_key="change_planning",
-            sequence=2,
-            lease=lease,
-            started_at=BASE_TIME + timedelta(seconds=13),
-        )
-    assert _handoff_count(store) == 0
+    invalid_author_status = make_investigation_response(context)
+    invalid_author_status["status"] = "blocked"
+    with pytest.raises(ValueError):
+        validate_investigation_response(invalid_author_status, context)
 
 
 def test_c30_contract():
@@ -499,7 +475,7 @@ def test_c30_contract():
         status="changes_requested",
         findings=["The evidence does not support a causal claim."],
     )
-    blocked = validate_investigation_review(
+    advisory = validate_investigation_review(
         third_round_changes,
         context,
         result_version="investigation-v3",
@@ -509,8 +485,8 @@ def test_c30_contract():
         reviewer_execution_id="review-turn-001",
         review_round=3,
     )
-    assert blocked["handoff_allowed"] is False
-    assert blocked["next_action"] == "revise"
+    assert advisory["handoff_allowed"] is True
+    assert advisory["next_action"] == "handoff"
 
     same_execution = make_review_response(
         context,
@@ -530,19 +506,19 @@ def test_c30_contract():
             reviewer_execution_id="investigator-turn-001",
             review_round=1,
         )
-    with pytest.raises(ValueError):
-        build_investigation_handoff_payload(
-            context,
-            result_version="investigation-v3",
-            reviewed_version="investigation-v3",
-            output_path=output_path,
-            output_sha256=output_sha256,
-            facts_path=facts_path,
-            facts_sha256=facts_sha256,
-            report_path=report_path,
-            report_sha256=report_sha256,
-            review_status="changes_requested",
-        )
+    advisory_handoff = build_investigation_handoff_payload(
+        context,
+        result_version="investigation-v3",
+        reviewed_version="investigation-v3",
+        output_path=output_path,
+        output_sha256=output_sha256,
+        facts_path=facts_path,
+        facts_sha256=facts_sha256,
+        report_path=report_path,
+        report_sha256=report_sha256,
+        review_status="changes_requested",
+    )
+    assert advisory_handoff["reviewed_version"] == "investigation-v3"
 
 
 def test_c30_controller_handoff(tmp_path):
@@ -577,7 +553,6 @@ def test_c30_controller_handoff(tmp_path):
         review_runner=lambda _metadata: review,
         review_round=1,
         handoff_root=attempts_root,
-        synthetic_fixture=True,
     )
     assert outcome.next_action == "handoff"
     assert outcome.handoff is not None and outcome.handoff.accepted is True
@@ -631,7 +606,6 @@ def test_c30_handoff_rejects_artifact_change_after_review(tmp_path):
             review_runner=tampering_reviewer,
             review_round=1,
             handoff_root=attempts_root,
-            synthetic_fixture=True,
         )
     assert store.get_step_attempt(attempt_id=context["attempt_id"]).status == "complete"
     assert _handoff_count(store) == 0
@@ -680,24 +654,23 @@ def test_c30_persists_review_findings_for_retry(tmp_path):
         review_runner=lambda _metadata: review,
         review_round=1,
         handoff_root=attempts_root,
-        synthetic_fixture=True,
     )
-    assert outcome.next_action == "revise"
+    assert outcome.next_action == "handoff"
+    assert outcome.handoff is not None
     assert outcome.review_findings == (finding,)
     result_document = json.loads(
         (output_root / "result.json").read_text(encoding="utf-8")
     )
     assert result_document["review"]["findings"] == [finding]
     assert result_document["review"]["author_execution_id"] == "investigator-turn-001"
-    retry = controller.begin_step_attempt(
+    next_step = controller.begin_step_attempt(
         job_id=context["job_id"],
-        step_key="maintenance_investigation",
-        sequence=1,
+        step_key="maintenance_planning",
+        sequence=2,
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=13),
     )
-    assert retry.status == "running"
-    assert retry.attempt_no == 2
+    assert next_step.status == "running"
 
 
 def test_c30_records_safe_reviewer_failure_code(tmp_path):
@@ -726,7 +699,6 @@ def test_c30_records_safe_reviewer_failure_code(tmp_path):
         ),
         review_round=1,
         handoff_root=attempts_root,
-        synthetic_fixture=True,
     )
     result_text = (output_root / "result.json").read_text(encoding="utf-8")
     result_document = json.loads(result_text)
@@ -734,16 +706,20 @@ def test_c30_records_safe_reviewer_failure_code(tmp_path):
     assert outcome.review_reason_code == "review_runner_failed"
     assert result_document["review"]["reason_code"] == "review_runner_failed"
     assert "private reviewer response text" not in result_text
-    assert _handoff_count(store) == 0
-    assert store.get_step_attempt(attempt_id=context["attempt_id"]).status == "complete"
-    with pytest.raises(MaintenanceStoreError, match="step_predecessor_not_approved"):
-        controller.begin_step_attempt(
-            job_id=context["job_id"],
-            step_key="change_planning",
-            sequence=2,
-            lease=lease,
-            started_at=BASE_TIME + timedelta(seconds=13),
-        )
+    assert outcome.next_action == "handoff"
+    assert _handoff_count(store) == 1
+    assert (
+        store.get_step_attempt(attempt_id=context["attempt_id"]).status
+        == "handoff_accepted"
+    )
+    next_step = controller.begin_step_attempt(
+        job_id=context["job_id"],
+        step_key="maintenance_planning",
+        sequence=2,
+        lease=lease,
+        started_at=BASE_TIME + timedelta(seconds=13),
+    )
+    assert next_step.status == "running"
 
 
 def test_c30_expired_lease_blocks_before_writing_or_reviewing(tmp_path):
@@ -772,7 +748,6 @@ def test_c30_expired_lease_blocks_before_writing_or_reviewing(tmp_path):
             review_runner=lambda metadata: reviewer_calls.append(metadata),
             review_round=1,
             handoff_root=attempts_root,
-            synthetic_fixture=True,
         )
     assert reviewer_calls == []
     assert list(output_root.iterdir()) == []

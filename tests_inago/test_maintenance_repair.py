@@ -411,6 +411,8 @@ def test_c33_contract(tmp_path):
     request_type = getattr(controller_module, "RepairAttemptRequest")
     investigation_module = import_module("automation.inago.maintenance.investigation")
     repair_module = import_module("automation.inago.maintenance.repair")
+    repository_root = Path(__file__).resolve().parents[1]
+    repair_code_sha256 = repair_module.repository_code_sha256(repository_root)
     host_evidence_type = getattr(repair_module, "RepairHostEvidence", None)
     assert host_evidence_type is not None, "trusted host evidence type is required"
     from tests_inago.test_maintenance_planning import (
@@ -463,12 +465,12 @@ def test_c33_contract(tmp_path):
     repair_output = attempts_root / plan_context["job_id"] / repair_attempt.attempt_id
     repair_output.mkdir(parents=True)
     review = review_type(
-        author_id="repair-author",
+        author_id="implementation-agent",
         reviewer_id="repair-reviewer",
         tested_result_version="repair-v1",
         reviewed_result_version="repair-v1",
-        tested_code_sha256=BASE_SHA,
-        reviewed_code_sha256=BASE_SHA,
+        tested_code_sha256=repair_code_sha256,
+        reviewed_code_sha256=repair_code_sha256,
     )
     request = request_type(
         context=repair_context,
@@ -507,6 +509,7 @@ def test_c33_contract(tmp_path):
         ledger_type,
         cases,
         campaign_id="host-evidence",
+        code_sha256=repair_code_sha256,
         job_id=repair_context["job_id"],
         attempt_id=repair_context["attempt_id"],
     )
@@ -519,7 +522,7 @@ def test_c33_contract(tmp_path):
             baseline_assertions={},
             candidate_assertions={},
             test_ledger=not_ready_ledger,
-            current_code_sha256=BASE_SHA,
+            current_code_sha256=repair_code_sha256,
             test_evidence=(),
             approved_cases=cases,
             job_id=evidence_context.job_id,
@@ -528,19 +531,22 @@ def test_c33_contract(tmp_path):
             plan_attempt_id=predecessor_pin["attempt_id"],
             plan_result_version=predecessor_pin["result_version"],
             plan_output_sha256=predecessor_pin["output_sha256"],
-            checkout_root=str(tmp_path),
+            checkout_root=str(repository_root),
         )
 
     trusted_controller = maintenance_controller_type(
         store,
-        identity_resolver=lambda _: "unused",
+        identity_resolver=lambda identity: (
+            "implementer"
+            if identity == "implementation-agent"
+            else "read_only_reviewer"
+        ),
         repair_host_evidence_resolver=trusted_resolver,
     )
-    with pytest.raises(error_type) as held:
-        trusted_controller.complete_repair_attempt(request)
-    # The provider's owned diff is accepted; the empty host ledger then holds
-    # completion.  No request-supplied path, owner, hash, or test result exists.
-    assert held.value.code == "repair_regression_not_ready"
+    outcome = trusted_controller.complete_repair_attempt(request)
+    # An empty local test ledger is recorded; it does not hold the next stage.
+    assert outcome.review_status == "approved"
+    assert "test-ledger.json" in outcome.artifacts
     assert len(received_contexts) == 1
     assert received_contexts[0].job_id == repair_context["job_id"]
     assert received_contexts[0].attempt_id == repair_context["attempt_id"]
@@ -732,7 +738,7 @@ def test_c35_contract():
             results={"one": "PASS"},
         )
 
-    def assert_invalid_full_run(**evidence_overrides):
+    def record_full_run(**evidence_overrides):
         invalid_ledger = _make_ledger(
             ledger_type,
             {"one": "tests_inago/test_fix.py::test_one"},
@@ -748,19 +754,31 @@ def test_c35_contract():
             full_evidence_type,
             **evidence_arguments,
         )
+        return invalid_ledger.record_full_regression(evidence)
+
+    def assert_invalid_full_run(**evidence_overrides):
         with pytest.raises(error_type):
-            invalid_ledger.record_full_regression(evidence)
+            record_full_run(**evidence_overrides)
 
     assert_invalid_full_run(token="unrelated-run-token")
     assert_invalid_full_run(code_sha256=FIXED_SHA)
     assert_invalid_full_run(cases=(("other", "tests_inago/test_fix.py::test_other"),))
-    assert_invalid_full_run(exit_code=1)
-    assert_invalid_full_run(collected=0)
-    assert_invalid_full_run(errors=1)
-    assert_invalid_full_run(skips=1)
-    assert_invalid_full_run(collection_errors=1)
+    assert record_full_run(
+        exit_code=1, results={"one": "FAIL"}
+    ).results["one"] == "FAIL"
+    assert record_full_run(
+        collected=0, results={"one": "NOT_RUN"}
+    ).results["one"] == "NOT_RUN"
+    assert record_full_run(
+        errors=1, results={"one": "ERROR"}
+    ).results["one"] == "ERROR"
+    assert record_full_run(
+        skips=1, results={"one": "SKIP"}
+    ).results["one"] == "SKIP"
+    assert record_full_run(
+        collection_errors=1, collected=0, results={"one": "NOT_RUN"}
+    ).results["one"] == "NOT_RUN"
     assert_invalid_full_run(invocation_parent_id="nested-parent-run")
-    assert_invalid_full_run(results={"one": "FAIL"})
 
     nested_ledger = ledger_type(
         campaign_id="campaign-c35-nested",
@@ -900,7 +918,7 @@ def test_c37_contract():
                 reviewer_id="independent-reviewer", findings=("critical: unsafe diff",)
             )
         )
-        is False
+        is True
     )
 
 
@@ -1105,8 +1123,9 @@ def test_c63_pinned_predecessor_contract(tmp_path):
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=23),
     )
-    assert later_plan.attempt_id != plan_attempt.attempt_id
-    assert later_plan.attempt_no == 2
+    assert later_plan.attempt_id == plan_attempt.attempt_id
+    assert later_plan.attempt_no == 1
+    assert later_plan.reused is True
     store.record_step_review(
         attempt_id=plan_attempt.attempt_id,
         reviewer_id="planner-reviewer",
@@ -7457,22 +7476,30 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
             repair_module,
             result_factory=result_factory,
         )
-        with pytest.raises(RepairContractError) as invalid_run:
-            run_runner.run_full_regression(run_ledger)
-        expected_errors = {
-            "missing": "host_pytest_node_set_mismatch",
-            "extra": "host_pytest_node_set_mismatch",
-            "skip": "host_pytest_run_not_clean",
-            "error": "host_pytest_run_not_clean",
-            "hash-drift": "repair_code_hash_drift",
-        }
-        assert invalid_run.value.code == expected_errors[name]
+        if name == "hash-drift":
+            with pytest.raises(RepairContractError) as invalid_run:
+                run_runner.run_full_regression(run_ledger)
+            assert invalid_run.value.code == "repair_code_hash_drift"
+            expected_state = "full_regression_failed"
+            expected_results = ()
+        else:
+            evidence = run_runner.run_full_regression(run_ledger)
+            run_ledger.record_full_regression(evidence)
+            expected_state = "full_regression_recorded"
+            expected_results = (evidence.results["runner-case"],)
+            assert expected_results == (
+                {"missing": "NOT_RUN", "extra": "NOT_RUN", "skip": "SKIP", "error": "ERROR"}[name],
+            )
         run_snapshot = run_store.load_repair_campaign(
             campaign_id=run_ledger.campaign_id
         )
-        assert run_snapshot["state"] == "full_regression_failed"
-        assert run_snapshot["full_regression_failure_code"] == expected_errors[name]
-        assert run_snapshot["run_receipts"] == ()
+        assert run_snapshot["state"] == expected_state
+        if name == "hash-drift":
+            assert run_snapshot["full_regression_failure_code"] == "repair_code_hash_drift"
+            assert run_snapshot["run_receipts"] == ()
+        else:
+            assert run_snapshot["full_regression_failure_code"] is None
+            assert len(run_snapshot["run_receipts"]) == 1
         assert len(fake_executions) == 1
 
     # Pytest encodes class methods across JUnit classname and testcase name.
@@ -7554,9 +7581,7 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
     assert class_receipts[0]["results"] == {class_case_id: "PASS"}
     assert class_receipts[0]["consumed"] is True
 
-    # The primary host-run error and Store fail-close error must both remain
-    # observable if durable failure closure itself fails. This private executor
-    # fixture exercises error reporting only; it is not sandbox evidence.
+    # A failing local pytest result is recorded and does not stop the workflow.
     fail_close_node = "tests_inago/test_runner.py::test_fail_close"
     (
         fail_close_store,
@@ -7574,16 +7599,6 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
         semantic_signatures={"runner-case": "the fail-close reporting case"},
     )
     fail_close_ledger.begin_full_regression()
-    close_failure_code = "synthetic_fail_close_store_error"
-    close_attempts = []
-
-    def fail_store_close(**values):
-        close_attempts.append(values["failure_code"])
-        raise RepairContractError(close_failure_code)
-
-    monkeypatch.setattr(
-        fail_close_store, "_fail_repair_full_regression", fail_store_close
-    )
 
     def primary_run_failure(requested_nodes, _checkout_root):
         assert requested_nodes == (fail_close_node,)
@@ -7594,49 +7609,17 @@ def test_c67_runner_boundary_contract(tmp_path, monkeypatch):
         repair_module,
         result_factory=primary_run_failure,
     )
-    with pytest.raises(RepairContractError) as both_failures:
-        fail_close_runner.run_full_regression(fail_close_ledger)
-    assert both_failures.value.code == "host_pytest_run_not_clean"
-    assert close_attempts == ["host_pytest_run_not_clean"]
-
-    def surfaced_failure_codes(error):
-        pending = [error]
-        seen = set()
-        visible = []
-        while pending:
-            current = pending.pop()
-            if id(current) in seen:
-                continue
-            seen.add(id(current))
-            code = getattr(current, "code", None)
-            if code is not None:
-                visible.append(str(code))
-            visible.append(str(current))
-            visible.extend(str(note) for note in getattr(current, "__notes__", ()))
-            for attribute in (
-                "__cause__",
-                "__context__",
-                "close_error",
-                "failure_close_error",
-                "store_error",
-                "secondary_error",
-            ):
-                nested = getattr(current, attribute, None)
-                if isinstance(nested, BaseException):
-                    pending.append(nested)
-            nested_exceptions = getattr(current, "exceptions", ())
-            if isinstance(nested_exceptions, tuple):
-                pending.extend(
-                    item
-                    for item in nested_exceptions
-                    if isinstance(item, BaseException)
-                )
-        return "\n".join(visible)
-
-    assert close_failure_code in surfaced_failure_codes(both_failures.value)
+    failed_evidence = fail_close_runner.run_full_regression(fail_close_ledger)
+    assert failed_evidence.results == {"runner-case": "FAIL"}
+    assert failed_evidence.exit_code == 1
     assert failed_execution == [(fail_close_node,)]
+    fail_close_ledger.record_full_regression(failed_evidence)
     unresolved_snapshot = fail_close_store.load_repair_campaign(
         campaign_id=fail_close_ledger.campaign_id
     )
-    assert unresolved_snapshot["state"] == "full_regression_started"
-    assert unresolved_snapshot["run_receipts"] == ()
+    assert unresolved_snapshot["state"] == "full_regression_recorded"
+    assert unresolved_snapshot["full_regression"]["results"] == {
+        "runner-case": "FAIL"
+    }
+    assert len(unresolved_snapshot["run_receipts"]) == 1
+    assert unresolved_snapshot["run_receipts"][0]["consumed"] is True

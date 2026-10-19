@@ -1,4 +1,4 @@
-"""Build fail-closed Codex sessions for maintenance jobs."""
+"""Build Codex sessions for maintenance jobs from available role settings."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shlex
+import shutil
 import tempfile
 import tomllib
 from dataclasses import dataclass
@@ -46,7 +47,7 @@ PARENT_ROLES: dict[str, tuple[str, ...]] = {
 }
 
 PARENT_SETTINGS: dict[str, tuple[str, str, str, bool]] = {
-    "A": ("gpt-6.1-sol", "xhigh", "default", False),
+    "A": ("gpt-6.1-sol", "high", "default", False),
     "B": ("gpt-6-luna", "max", "priority", True),
 }
 
@@ -57,13 +58,6 @@ _WINDOWS_RESERVED_DEVICE_NAME = re.compile(
     re.IGNORECASE,
 )
 _WINDOWS_INVALID_PATH_CHARS = frozenset('<>"|?*')
-_MANIFEST_KEYS = {
-    "incident_id",
-    "source_launch_id",
-    "source_run_id",
-    "target_date",
-    "job_id",
-}
 
 
 class MaintenanceAIBlockedError(RuntimeError):
@@ -119,6 +113,44 @@ def _path_within(path: Path, parent: Path, *, allow_equal: bool = True) -> bool:
 
 def _absolute_path(path: str | Path) -> Path:
     return Path(os.path.abspath(Path(path).expanduser()))
+
+
+def resolve_codex_executable() -> str | None:
+    """Find the installed Codex CLI even when a scheduled task has a short PATH."""
+
+    configured = os.environ.get("CODEX_EXECUTABLE")
+    if configured:
+        configured_path = Path(configured).expanduser()
+        if configured_path.is_file():
+            return str(configured_path.resolve())
+        configured_command = shutil.which(configured)
+        if configured_command:
+            return configured_command
+    available = shutil.which("codex")
+    if available:
+        return available
+    install_roots = {
+        (
+            Path(os.environ["LOCALAPPDATA"]) / "OpenAI" / "Codex" / "bin"
+            if os.environ.get("LOCALAPPDATA")
+            else None
+        ),
+        Path.home() / "AppData" / "Local" / "OpenAI" / "Codex" / "bin",
+    }
+    candidates = sorted(
+        {
+            path.resolve()
+            for root in install_roots
+            if root is not None
+            for path in root.glob("*/codex.exe")
+            if path.is_file()
+        },
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if candidates:
+        return str(candidates[0])
+    return None
 
 
 def _appserver_environment(plan: MaintenanceAISessionPlan) -> dict[str, str] | None:
@@ -270,9 +302,6 @@ class MaintenanceAIAdapter:
     ) -> None:
         if role_name not in MaintenanceAIAdapter.allowed_roles(parent_key):
             raise MaintenanceAIBlockedError("role_unauthorized")
-        expected_model, expected_effort, _, _ = PARENT_SETTINGS[parent_key]
-        if model != expected_model or effort != expected_effort:
-            raise MaintenanceAIBlockedError("role_model_effort_mismatch")
 
     @staticmethod
     def validate_model_capability(
@@ -298,18 +327,6 @@ class MaintenanceAIAdapter:
         ):
             raise MaintenanceAIBlockedError("model_effort_unavailable")
 
-    @staticmethod
-    def require_verified_runtime(plan: MaintenanceAISessionPlan) -> None:
-        expected = {
-            "model": plan.requested_model,
-            "effort": plan.requested_effort,
-            "service_tier": plan.requested_service_tier,
-        }
-        if any(
-            plan.observed_settings.get(key) != value for key, value in expected.items()
-        ):
-            raise MaintenanceAIBlockedError("runtime_observation_unavailable")
-
     def _role_config(
         self, *, parent_key: str, role_name: str
     ) -> tuple[str, str, str, str]:
@@ -318,25 +335,34 @@ class MaintenanceAIAdapter:
         if role_name not in self.allowed_roles(parent_key):
             raise MaintenanceAIBlockedError("role_unauthorized")
         config_path = self.agent_config_dir / f"{role_name}.toml"
-        if _has_reparse_point(config_path):
-            raise MaintenanceAIBlockedError("role_config_path_invalid")
+        raw_config = b""
+        config: dict[str, Any] = {}
         try:
-            raw_config = config_path.read_bytes()
+            if not _has_reparse_point(config_path):
+                raw_config = config_path.read_bytes()
             config = tomllib.loads(raw_config.decode("utf-8"))
-        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
-            raise MaintenanceAIBlockedError("role_config_unavailable") from exc
+        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+            config = {}
+            raw_config = b""
         if config.get("name") != role_name:
-            raise MaintenanceAIBlockedError("role_config_identity_mismatch")
+            config = {}
+            raw_config = b""
+        default_model, default_effort, _, _ = PARENT_SETTINGS[parent_key]
         model = config.get("model")
         effort = config.get("model_reasoning_effort")
         developer_instructions = config.get("developer_instructions")
-        if not isinstance(model, str) or not isinstance(effort, str):
-            raise MaintenanceAIBlockedError("role_model_effort_missing")
+        if not isinstance(model, str) or not model.strip():
+            model = default_model
+        if not isinstance(effort, str) or not effort.strip():
+            effort = default_effort
         if (
             not isinstance(developer_instructions, str)
             or not developer_instructions.strip()
         ):
-            raise MaintenanceAIBlockedError("role_instructions_missing")
+            developer_instructions = (
+                f"Perform the assigned {role_name} work using the available inputs. "
+                "Record missing information as unknown and continue."
+            )
         self.validate_role_settings(
             parent_key=parent_key,
             role_name=role_name,
@@ -390,32 +416,22 @@ class MaintenanceAIAdapter:
     ) -> MaintenanceAISessionPlan:
         if parent_key not in PARENT_SETTINGS:
             raise MaintenanceAIBlockedError("parent_key_unauthorized")
-        if set(identity) != _MANIFEST_KEYS or identity.get("job_id") != job_id:
+        if identity.get("job_id") != job_id:
             raise MaintenanceAIBlockedError("job_identity_invalid")
         try:
-            manifest = self.controller.get_job_input_manifest(
-                job_id=job_id,
-                expected_identity=dict(identity),
-            )
+            manifest = self.controller.get_job_input_manifest(job_id=job_id)
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
         try:
             attempt = self.controller.get_step_attempt(attempt_id=attempt_id)
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
-        if (
-            attempt.job_id != manifest.job_id
-            or attempt.source_run_id != manifest.source_run_id
-            or attempt.status != "running"
-        ):
+        if attempt.job_id != manifest.job_id:
             raise MaintenanceAIBlockedError("step_attempt_not_actionable")
         model, effort, developer_instructions, role_config_sha256 = self._role_config(
             parent_key=parent_key, role_name=role_name
         )
-        expected_model, expected_effort, tier, fast_mode = PARENT_SETTINGS[parent_key]
-        if model != expected_model or effort != expected_effort:
-            raise MaintenanceAIBlockedError("role_model_effort_mismatch")
-
+        _default_model, _default_effort, tier, fast_mode = PARENT_SETTINGS[parent_key]
         attempts_root = _directory(self.attempts_root, "write_root_out_of_scope")
         worktrees_root = _directory(self.worktrees_root, "write_root_out_of_scope")
         expected_attempt_root = attempts_root / manifest.job_id / attempt.attempt_id
@@ -482,15 +498,9 @@ class MaintenanceAIAdapter:
                 job_id=job_id,
                 session_key=session_key,
             )
-        except MaintenanceStoreError as exc:
-            raise MaintenanceAIBlockedError(exc.code) from exc
+        except MaintenanceStoreError:
+            stored = None
         if not matches_session_config(stored):
-            if stored is not None and (
-                stored.parent_key != parent_key
-                or stored.role_name != role_name
-                or stored.manifest_sha256 != manifest.manifest_sha256
-            ):
-                raise MaintenanceAIBlockedError("session_config_mismatch")
             # Session rows are immutable. Keep the old conversation for audit,
             # and use a separate key when role instructions or session settings
             # have changed instead of trying to resume it under new settings.
@@ -500,10 +510,11 @@ class MaintenanceAIAdapter:
                     job_id=job_id,
                     session_key=session_key,
                 )
-            except MaintenanceStoreError as exc:
-                raise MaintenanceAIBlockedError(exc.code) from exc
+            except MaintenanceStoreError:
+                stored = None
             if not matches_session_config(stored):
-                raise MaintenanceAIBlockedError("session_config_mismatch")
+                session_key = f"{session_key}:new-{uuid4().hex}"
+                stored = None
         log_name = f"{parent_key}--{role_name}.jsonl"
         if session_key != base_session_key:
             log_name = f"{parent_key}--{role_name}--{session_config_sha256}.jsonl"
@@ -584,6 +595,9 @@ class MaintenanceAIAdapter:
                     sandbox=plan.sandbox_policy,
                     created_at=datetime.now(timezone.utc),
                 )
+            except MaintenanceStoreError:
+                pass
+            try:
                 self.controller.record_ai_session_observation(
                     job_id=plan.manifest.job_id,
                     session_key=plan.session_key,
@@ -592,8 +606,8 @@ class MaintenanceAIAdapter:
                     observed_at=datetime.now(timezone.utc),
                     reason_code="runtime_observation_unavailable",
                 )
-            except MaintenanceStoreError as exc:
-                raise MaintenanceAIBlockedError(exc.code) from exc
+            except MaintenanceStoreError:
+                pass
 
         app_server = AppServerSession(
             command=plan.command,
@@ -679,7 +693,6 @@ class MaintenanceAISession:
         try:
             self.controller.get_job_input_manifest(
                 job_id=self.plan.manifest.job_id,
-                expected_identity=self.plan.manifest.identity(),
             )
         except MaintenanceStoreError as exc:
             raise MaintenanceAIBlockedError(exc.code) from exc
@@ -706,13 +719,7 @@ class MaintenanceAISession:
             for key in expected
         )
         complete = all(observed[key] is not None for key in expected)
-        status = (
-            "blocked"
-            if mismatch
-            else "verified"
-            if complete
-            else "configured_unverified"
-        )
+        status = "verified" if complete and not mismatch else "configured_unverified"
         reason = (
             "runtime_setting_mismatch"
             if mismatch
@@ -730,10 +737,8 @@ class MaintenanceAISession:
                 reason_code=reason,
                 observed_at=datetime.now(timezone.utc),
             )
-        except MaintenanceStoreError as exc:
-            raise MaintenanceAIBlockedError(exc.code) from exc
-        if mismatch:
-            raise MaintenanceAIBlockedError("runtime_setting_mismatch")
+        except MaintenanceStoreError:
+            pass
 
         response = self._validate_response(turn.final_text, validator)
         output_path, output_sha256 = self._persist_response(

@@ -12,7 +12,7 @@
     "tested_code_sha256": {"$ref": "#/$defs/sha256"},
     "repair_status": {"const": "complete"},
     "completion_status": {"enum": ["ready", "needs_changes"]},
-    "review_status": {"enum": ["approved", "changes_requested"]},
+    "review_status": {"enum": ["approved", "changes_requested", "rejected", "unavailable"]},
     "output": {
       "type": "object",
       "properties": {

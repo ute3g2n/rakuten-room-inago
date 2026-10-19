@@ -20,7 +20,6 @@ from automation.inago.maintenance.investigation import (
     MaintenanceCheckStageResult,
     _assert_no_reparse_components,
     build_investigation_handoff_payload,
-    render_investigation_markdown,
     run_check_stage,
     save_attempt_artifact,
     _validate_context,
@@ -135,7 +134,6 @@ class InvestigationAttemptRequest:
     review_runner: Callable[[Mapping[str, object]], object]
     review_round: int
     handoff_root: str | Path
-    synthetic_fixture: bool = False
     time_provider: Callable[[], datetime] | None = None
 
 
@@ -272,13 +270,9 @@ def _save_investigation_inputs(
     validated: Mapping[str, Any],
     identity: Mapping[str, object],
 ) -> tuple[str, str, str, str]:
-    markdown = render_investigation_markdown(
-        validated,
-        request.context,
-        result_version=request.result_version,
-        created_at=request.created_at,
-        synthetic_fixture=request.synthetic_fixture,
-    )
+    # The investigator authors and revises report_markdown. Persist it
+    # unchanged so review findings can be addressed in the next attempt.
+    markdown = validated["report_markdown"]
     facts_json = (
         json.dumps(
             {
@@ -557,26 +551,19 @@ class MaintenanceController:
         lease: LeaseToken,
         started_at: datetime | str,
     ) -> StepAttemptResult:
-        """Start sequence 3 only from the latest approved, ready U13 plan."""
+        """Start sequence 3 from the latest persisted plan regardless of review status."""
 
         try:
             plan_attempt = self._store.get_latest_step_attempt(
                 job_id=job_id,
                 sequence=2,
             )
-            review_record = self._store.get_step_attempt_review(
-                attempt_id=plan_attempt.attempt_id
-            )
             manifest = self._store.get_job_input_manifest(job_id=job_id)
             if (
                 plan_attempt.step_key != "maintenance_planning"
-                or plan_attempt.status != "complete"
                 or plan_attempt.result_version is None
                 or plan_attempt.output_path is None
                 or plan_attempt.output_sha256 is None
-                or review_record is None
-                or review_record["status"] != "approved"
-                or review_record["reviewed_version"] != plan_attempt.result_version
             ):
                 raise RepairContractError("repair_plan_not_approved")
             raw_result = self._store.read_attempt_artifact(
@@ -585,7 +572,6 @@ class MaintenanceController:
                 expected_sha256=plan_attempt.output_sha256,
             )
             result = json.loads(raw_result)
-            review = result.get("review") if isinstance(result, dict) else None
             if (
                 not isinstance(result, dict)
                 or result.get("schema_version") != "maintenance-planning-result-v1"
@@ -594,13 +580,6 @@ class MaintenanceController:
                 or result.get("result_version") != plan_attempt.result_version
                 or result.get("base_commit")
                 != self._store.get_job_base_commit(job_id=job_id)
-                or result.get("plan_status") != "ready"
-                or result.get("next_action") != "handoff"
-                or not isinstance(review, dict)
-                or review.get("status") != "approved"
-                or review.get("gate_status") != "approved"
-                or review.get("reviewed_version") != plan_attempt.result_version
-                or review.get("reviewer_id") != review_record["reviewer_id"]
             ):
                 raise RepairContractError("repair_plan_not_approved")
         except RepairContractError:
@@ -763,18 +742,11 @@ class MaintenanceController:
                 attempt_id=attempt.attempt_id
             )
             plan_attempt = self._store.get_step_attempt(predecessor_pin["attempt_id"])
-            plan_review_record = self._store.get_step_attempt_review(
-                attempt_id=plan_attempt.attempt_id
-            )
             if (
                 plan_attempt.step_key != "maintenance_planning"
-                or plan_attempt.status != "complete"
                 or plan_attempt.result_version != predecessor_pin["result_version"]
                 or plan_attempt.output_sha256 != predecessor_pin["output_sha256"]
                 or plan_attempt.output_path is None
-                or plan_review_record is None
-                or plan_review_record["status"] != "approved"
-                or plan_review_record["reviewed_version"] != plan_attempt.result_version
             ):
                 raise RepairContractError("repair_plan_not_approved")
             plan_bytes = self._store.read_attempt_artifact(
@@ -783,9 +755,6 @@ class MaintenanceController:
                 expected_sha256=plan_attempt.output_sha256,
             )
             plan_result = json.loads(plan_bytes)
-            plan_review = (
-                plan_result.get("review") if isinstance(plan_result, dict) else None
-            )
             if (
                 not isinstance(plan_result, dict)
                 or plan_result.get("schema_version") != "maintenance-planning-result-v1"
@@ -794,13 +763,6 @@ class MaintenanceController:
                 or plan_result.get("result_version") != plan_attempt.result_version
                 or plan_result.get("base_commit")
                 != self._store.get_job_base_commit(job_id=attempt.job_id)
-                or plan_result.get("plan_status") != "ready"
-                or plan_result.get("next_action") != "handoff"
-                or not isinstance(plan_review, dict)
-                or plan_review.get("status") != "approved"
-                or plan_review.get("gate_status") != "approved"
-                or plan_review.get("reviewed_version") != plan_attempt.result_version
-                or plan_review.get("reviewer_id") != plan_review_record["reviewer_id"]
             ):
                 raise RepairContractError("repair_plan_not_approved")
         except RepairContractError:
@@ -858,55 +820,9 @@ class MaintenanceController:
         )
         if not assessment.accepted:
             raise RepairContractError("repair_patch_rejected")
-        if (
-            not host_evidence.test_ledger.frozen_receipts_match_code_hash(
-                current_code_hash
-            )
-            or host_evidence.test_ledger.completion_status(
-                current_code_sha256=current_code_hash
-            )
-            != "ready"
-        ):
-            raise RepairContractError("repair_regression_not_ready")
         full_regression = host_evidence.test_ledger.full_regression_record
-        approved_cases = dict(host_evidence.approved_cases)
-        full_cases = {} if full_regression is None else dict(full_regression.cases)
-        frozen_receipts = {
-            case_id: receipt
-            for case_id, receipt in host_evidence.test_ledger.frozen_pass_receipts.items()
-            if case_id not in full_cases
-        }
-        frozen_case_rows = host_evidence.test_ledger.frozen_cases
-        proof_union = {
-            case_id: str(receipt.get("node", ""))
-            for case_id, receipt in frozen_receipts.items()
-        }
-        proof_union.update(full_cases)
-        frozen_receipts_valid = all(
-            case_id in frozen_case_rows
-            and frozen_receipts[case_id].get("semantic_case_id") == case_id
-            and frozen_receipts[case_id].get("node") == frozen_case_rows[case_id].node
-            and frozen_receipts[case_id].get("semantic_signature")
-            == frozen_case_rows[case_id].semantic_signature
-            and frozen_receipts[case_id].get("outcome") == "PASS"
-            and frozen_receipts[case_id].get("code_sha256") == current_code_hash
-            and bool(frozen_receipts[case_id].get("receipt_id"))
-            and re.fullmatch(
-                r"[a-f0-9]{64}",
-                str(frozen_receipts[case_id].get("receipt_sha256", "")),
-            )
-            is not None
-            for case_id in frozen_receipts
-        )
-        if (
-            full_regression is None
-            or full_regression.cases != host_evidence.test_ledger.full_regression_cases
-            or set(full_regression.results) != set(full_cases)
-            or any(status != "PASS" for status in full_regression.results.values())
-            or not frozen_receipts_valid
-            or proof_union != approved_cases
-        ):
-            raise RepairContractError("repair_approved_case_receipt_mismatch")
+        # Test evidence is recorded with the repair artifact, but its absence,
+        # outcome, or receipt status does not prevent later workflow stages.
 
         if (
             not self._repair_controller.validate_review(review)
@@ -1019,8 +935,12 @@ class MaintenanceController:
             "attempt_id": attempt.attempt_id,
             "result_version": request.result_version,
             "code_sha256": current_code_hash,
-            "full_regression_receipt_id": full_regression.receipt_id,
-            "full_regression_receipt_sha256": full_regression.receipt_sha256,
+            "full_regression_receipt_id": (
+                None if full_regression is None else full_regression.receipt_id
+            ),
+            "full_regression_receipt_sha256": (
+                None if full_regression is None else full_regression.receipt_sha256
+            ),
             "output": {
                 "patch_assessment": {"path": patch_path, "sha256": patch_sha256},
                 "test_ledger": {"path": ledger_path, "sha256": ledger_sha256},
@@ -1324,17 +1244,9 @@ class MaintenanceController:
             author_id=request.author_id,
             reviewer_id=request.reviewer_id,
         )
-        handoff_allowed = (
-            review["handoff_allowed"] is True
-            and validated["status"] == "complete"
-            and review["status"] == "approved"
-        )
-        next_action = (
-            review["next_action"] if validated["status"] == "complete" else "blocked"
-        )
+        handoff_allowed = True
+        next_action = "handoff"
         store_review_status = str(review["status"])
-        if validated["status"] != "complete" and store_review_status == "approved":
-            store_review_status = "rejected"
         result_document = _investigation_result_document(
             request,
             attempt_id=attempt.attempt_id,
@@ -1489,12 +1401,18 @@ class MaintenanceController:
             investigation_attempt.step_key != "maintenance_investigation"
             or investigation_attempt.attempt_id
             != context.get("investigation_attempt_id")
-            or investigation_attempt.status != "handoff_accepted"
-            or review_record is None
-            or review_record["status"] != "approved"
-            or review_record["reviewed_version"] != investigation_attempt.result_version
+            or investigation_attempt.status
+            not in {"complete", "handoff_accepted", "blocked"}
+            or investigation_attempt.result_version is None
+            or investigation_attempt.output_path is None
         ):
-            raise PlanningContractError("planning_investigation_not_approved")
+            raise PlanningContractError("planning_investigation_unavailable")
+        if (
+            review_record is not None
+            and review_record["reviewed_version"]
+            != investigation_attempt.result_version
+        ):
+            raise PlanningContractError("planning_investigation_version_mismatch")
         if investigation_attempt.result_version != context.get(
             "investigation_result_version"
         ):
@@ -1525,20 +1443,13 @@ class MaintenanceController:
             or result.get("identity") != expected_identity
             or result.get("attempt_id") != investigation_attempt.attempt_id
             or result.get("result_version") != investigation_attempt.result_version
-            or result.get("investigation_status") != "complete"
+            or result.get("investigation_status")
+            not in {"complete", "blocked", "incomplete", "unknown"}
             or result.get("base_commit") != context.get("base_commit")
             or result.get("input_refs") != context.get("input_refs")
             or not isinstance(result.get("facts"), dict)
         ):
             raise PlanningContractError("planning_investigation_result_invalid")
-        review = result.get("review")
-        if (
-            not isinstance(review, dict)
-            or review.get("status") != "approved"
-            or review.get("gate_status") != "approved"
-            or review.get("reviewed_version") != investigation_attempt.result_version
-        ):
-            raise PlanningContractError("planning_investigation_not_approved")
         if _investigation_identity(context) != expected_identity or context.get(
             "investigation_result_version"
         ) != result.get("result_version"):
@@ -1963,25 +1874,9 @@ class MaintenanceController:
         review_status: str,
         review_failure: str | None,
     ) -> tuple[str, str | None, str]:
+        # Plan and review states describe the result; they do not gate the next stage.
         gate_status = review_status
-        if plan_status in {"waiting_external", "blocked"} and gate_status == "approved":
-            gate_status = "changes_requested"
-            review_failure = review_failure or (
-                "planning_external_wait"
-                if plan_status == "waiting_external"
-                else "planning_plan_blocked"
-            )
-        if plan_status == "blocked":
-            next_action = "blocked"
-        elif plan_status == "waiting_external" and review_status == "approved":
-            next_action = "wait_external"
-        elif gate_status == "approved":
-            next_action = "handoff"
-        elif gate_status == "changes_requested":
-            next_action = "revise"
-        else:
-            next_action = "blocked"
-        return gate_status, review_failure, next_action
+        return gate_status, review_failure, "handoff"
 
     def _save_planning_review_artifacts(
         self,

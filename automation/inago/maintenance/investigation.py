@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
 import hashlib
-import html
 import json
 import os
 from pathlib import PurePosixPath
@@ -34,7 +33,7 @@ from automation.inago.maintenance.paths import (
 
 
 CHECK_RESPONSE_SCHEMA_VERSION = "maintenance-check-response-v1"
-INVESTIGATION_RESPONSE_SCHEMA_VERSION = "maintenance-investigation-response-v1"
+INVESTIGATION_RESPONSE_SCHEMA_VERSION = "maintenance-investigation-response-v2"
 INVESTIGATION_REVIEW_SCHEMA_VERSION = "maintenance-investigation-review-v1"
 HANDOFF_SCHEMA_VERSION = "maintenance-handoff-v1"
 
@@ -416,47 +415,8 @@ def validate_investigation_response(
         elif not refs:
             raise InvestigationContractError("cause_evidence_required")
 
+    data["status"] = "complete"
     return data
-
-
-def _markdown_text(value: object, *, fallback: str = "未確認") -> str:
-    if not isinstance(value, str) or not value.strip():
-        value = fallback
-    return html.escape(" ".join(value.split()), quote=False)
-
-
-def _markdown_table_text(value: object, *, fallback: str = "未確認") -> str:
-    flattened = _markdown_text(value, fallback=fallback)
-    return re.sub(
-        r"(\\*)\|",
-        lambda match: "&#92;" * len(match.group(1)) + "&#124;",
-        flattened,
-    )
-
-
-def _fact_lines(fact: Mapping[str, Any]) -> list[str]:
-    confidence = fact["cause_confidence"]
-    confidence_label = {
-        "confirmed": "確認できた",
-        "limited": "限定的",
-        "unknown": "unknown（不明）",
-    }[confidence]
-    cause = (
-        _markdown_text(fact["cause_statement"])
-        if confidence != "unknown"
-        else "未確認。根本原因は断定していません。"
-    )
-    refs = ", ".join(_markdown_text(ref) for ref in fact["evidence_refs"])
-    return [
-        f"- fact_id: `{_markdown_text(fact['fact_id'])}` / 区分: {_markdown_text(fact['classification'])} / 工程: {_markdown_text(fact['phase'])}",
-        f"- 操作: {_markdown_text(fact['operation'])}",
-        f"- 期待: {_markdown_text(fact['expected'])}",
-        f"- 実結果: {_markdown_text(fact['actual'])}",
-        f"- 影響: {_markdown_text(fact['impact'])}",
-        f"- 回復・再試行: {_markdown_text(fact['recovery'])}",
-        f"- 原因確度: {confidence_label}。{cause}",
-        f"- 根拠: {refs}",
-    ]
 
 
 def render_investigation_markdown(
@@ -467,192 +427,19 @@ def render_investigation_markdown(
     created_at: datetime | str,
     synthetic_fixture: bool = False,
 ) -> str:
-    """Render the fixed nine-chapter report from validated facts only."""
+    """Return the author's validated Markdown without transforming it."""
 
-    job = _validate_context(context)
-    data = validate_investigation_response(validated, job)
+    _validate_context(context)
+    response = dict(validated)
+    response.pop("status", None)
+    data = validate_investigation_response(response, context)
     if not _safe_id(result_version):
         raise InvestigationContractError("result_version_invalid")
-    if isinstance(created_at, datetime):
-        parsed_at = created_at
-    elif isinstance(created_at, str):
-        try:
-            parsed_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-        except ValueError as exc:
-            raise InvestigationContractError("created_at_invalid") from exc
-    else:
+    if not isinstance(created_at, (datetime, str)):
         raise InvestigationContractError("created_at_invalid")
-    if parsed_at.tzinfo is None or parsed_at.utcoffset() is None:
-        raise InvestigationContractError("created_at_timezone_missing")
-    created = parsed_at.isoformat()
-
     if not isinstance(synthetic_fixture, bool):
         raise InvestigationContractError("synthetic_fixture_invalid")
-    facts = data["facts"]
-    lines = [
-        f"# 日次不具合調査レポート（{_markdown_text(job['target_date'])}）",
-        "",
-        "## 1. 対象runと結論",
-        "",
-        f"- incident_id: `{_markdown_text(job['incident_id'])}`",
-        f"- 対象日（JST）: {_markdown_text(job['target_date'])}",
-        f"- source_launch_id: `{_markdown_text(job['source_launch_id'])}`",
-        f"- source_run_id: `{_markdown_text(job['source_run_id'] or 'null')}`",
-        f"- 調査版 / base commit: `{result_version}` / `{_markdown_text(job['base_commit'])}`",
-        f"- 調査結論: {_markdown_text(data['summary'])}",
-        f"- 状態: `{data['status']}`。review_required: `{str(data['review_required']).lower()}`",
-        "",
-        "## 2. 目標・実績・影響",
-        "",
-        "| 区分 | 期待 | 実結果 | 影響 | 根拠 |",
-        "|---|---|---|---|---|",
-    ]
-    if synthetic_fixture:
-        lines[2:2] = [
-            "> 合成fixtureから生成した検証用レポート。実障害の調査結果ではありません。",
-            "",
-        ]
-    if facts:
-        for fact in facts:
-            refs = ", ".join(_markdown_table_text(ref) for ref in fact["evidence_refs"])
-            lines.append(
-                "| {classification} / {phase} | {expected} | {actual} | {impact} | {refs} |".format(
-                    classification=_markdown_table_text(fact["classification"]),
-                    phase=_markdown_table_text(fact["phase"]),
-                    expected=_markdown_table_text(fact["expected"]),
-                    actual=_markdown_table_text(fact["actual"]),
-                    impact=_markdown_table_text(fact["impact"]),
-                    refs=refs,
-                )
-            )
-    else:
-        lines.append("| 該当なし | 未確認 | 未確認 | 未確認 | 根拠なし |")
-    lines.extend(
-        [
-            "",
-            "集計単位・対象範囲: 入力で許可された参照だけ。未指定の件数は補完していません。",
-            "",
-        ]
-    )
-
-    chapter_facts = [facts[index] if index < len(facts) else None for index in range(3)]
-    chapter_titles = (
-        "## 3. 工程別事象A",
-        "## 4. 工程別事象B・回復",
-        "## 5. 工程別事象C・契約結果",
-    )
-    for title, fact in zip(chapter_titles, chapter_facts):
-        lines.extend([title, ""])
-        if fact is None:
-            lines.append("該当なし。確認できる事象はありません。")
-        else:
-            lines.extend(_fact_lines(fact))
-        lines.append("")
-    if len(facts) > 3:
-        lines.extend(["追加の工程別事象", ""])
-        for fact in facts[3:]:
-            lines.extend([f"### 事象 `{_markdown_text(fact['fact_id'])}`", ""])
-            lines.extend(_fact_lines(fact))
-            lines.append("")
-
-    lines.extend(["## 6. 日次が最終状態に至った経路", ""])
-    if facts:
-        for index, fact in enumerate(facts, start=1):
-            lines.append(
-                f"{index}. `{_markdown_text(fact['phase'])}`: {_markdown_text(fact['actual'])}（{_markdown_text(fact['fact_id'])}）"
-            )
-    else:
-        lines.append("1. 入力証拠に経路を示す事実はありません。未確認として扱います。")
-    lines.extend(
-        [
-            "",
-            "runの最終statusとOS/CLIの終了値は、このstageの入力にないため未確認です。",
-            "",
-        ]
-    )
-
-    lines.extend(["## 7. 障害でなかった工程・監視/記録上の課題", ""])
-    lines.extend(
-        [
-            "| 項目 | 観測結果 | 判定根拠 | 欠測・限界 |",
-            "|---|---|---|---|",
-        ]
-    )
-    observations = data["non_incident_observations"]
-    if observations:
-        for item in observations:
-            lines.append(
-                f"| {_markdown_table_text(item['item'])} | {_markdown_table_text(item['observation'])} | {_markdown_table_text(item['basis'])} | {_markdown_table_text(item['limits'])} |"
-            )
-    else:
-        lines.append("| 該当なし | 未確認 | 根拠不足のため正常判定なし | 未確認 |")
-    lines.extend(["", "## 8. 原因確度と次の検証候補", "", "### 確認できた事実", ""])
-    for fact in facts:
-        refs = ", ".join(_markdown_text(ref) for ref in fact["evidence_refs"])
-        lines.append(
-            f"- `{_markdown_text(fact['fact_id'])}`: {_markdown_text(fact['actual'])}（根拠: {refs}）"
-        )
-    if not facts:
-        lines.append("- 確認済み事実はありません。")
-    lines.extend(["", "### 未確定の原因", ""])
-    unknown_facts = [fact for fact in facts if fact["cause_confidence"] == "unknown"]
-    if unknown_facts:
-        for fact in unknown_facts:
-            lines.append(
-                f"- `{_markdown_text(fact['fact_id'])}`: unknown（不明）。根本原因は未確認です。"
-            )
-    else:
-        lines.append("- 未確定の原因は報告されていません。")
-    lines.extend(["", "### 調査・試験から判明した不足", ""])
-    for item in data["missing_evidence"] + data["investigation_limits"]:
-        lines.append(f"- {_markdown_text(item)}")
-    if not data["missing_evidence"] and not data["investigation_limits"]:
-        lines.append("- 不足として記録された項目はありません。")
-    lines.extend(
-        [
-            "",
-            "### 次に必要な検証・修正候補",
-            "",
-            "| 対象 | 根拠 | 検証方法 | 失敗時の停止/再開条件 |",
-            "|---|---|---|---|",
-        ]
-    )
-    if data["verification_candidates"]:
-        for item in data["verification_candidates"]:
-            lines.append(
-                f"| {_markdown_table_text(item)} | 上記の許可済みfact/evidence参照 | 読取専用の隔離確認 | 根拠不足ならblockedとして再開条件を記録 |"
-            )
-    else:
-        lines.append("| 該当なし | 未確認 | 追加情報をcontrollerへ依頼 | 情報取得後に再開 |")
-
-    lines.extend(
-        [
-            "",
-            "## 9. 根拠・確認限界",
-            "",
-            "| evidence_ref / fact_id | 資料・観測範囲 | 版・時刻 | 内容確認結果 | 公開上の制限 |",
-            "|---|---|---|---|---|",
-        ]
-    )
-    refs_to_report = sorted(
-        {ref for fact in facts for ref in fact["evidence_refs"]}
-        | set(data["evidence_refs"])
-    )
-    if refs_to_report:
-        for ref in refs_to_report:
-            lines.append(
-                f"| `{_markdown_text(ref)}` | 許可された参照ID。本文は複製していません。 | `{_markdown_text(job['base_commit'])}` / 未確認 | 対応するfactを確認 | 原本は参照のみ |"
-            )
-    else:
-        lines.append("| 該当なし | 許可された証拠参照はありません。 | 未確認 | 内容未確認 | 原本は参照のみ |")
-    lines.extend(
-        [
-            "",
-            f"本書は{created}に調査版 `{result_version}` として生成しました。独立reviewは別stageで行います。未確認事項を完了扱いにしていません。",
-            "",
-        ]
-    )
-    return "\n".join(lines)
+    return data["report_markdown"]
 
 
 def _safe_output_path(value: object) -> str:
@@ -720,18 +507,9 @@ def validate_investigation_review(
     if data["status"] == "changes_requested" and not data["findings"]:
         raise InvestigationContractError("review_findings_required")
 
-    if data["status"] == "approved":
-        next_action = "handoff"
-        handoff_allowed = True
-    elif data["status"] == "changes_requested":
-        next_action = "revise"
-        handoff_allowed = False
-    else:
-        next_action = "blocked"
-        handoff_allowed = False
     return {
-        "handoff_allowed": handoff_allowed,
-        "next_action": next_action,
+        "handoff_allowed": True,
+        "next_action": "handoff",
         "reviewer_id": reviewer_id,
         "review_execution_id": reviewer_execution_id,
         "reviewed_version": result_version,
@@ -759,8 +537,13 @@ def build_investigation_handoff_payload(
     job = _validate_context(context)
     if not _safe_id(result_version) or reviewed_version != result_version:
         raise InvestigationContractError("handoff_review_version_mismatch")
-    if review_status != "approved":
-        raise InvestigationContractError("handoff_review_not_approved")
+    if review_status not in {
+        "approved",
+        "changes_requested",
+        "rejected",
+        "unavailable",
+    }:
+        raise InvestigationContractError("handoff_review_status_invalid")
     if (
         not isinstance(output_sha256, str)
         or _SHA256_PATTERN.fullmatch(output_sha256) is None

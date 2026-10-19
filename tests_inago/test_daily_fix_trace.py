@@ -23,20 +23,19 @@ def _trace_api():
     return importlib.import_module("automation.inago.trace")
 
 
-def _write_cross_process_quota_probe(data_root: str, run_id: str) -> str:
+def _write_cross_process_file_count_probe(data_root: str, run_id: str) -> str:
     trace = _trace_api()
     writer = trace.TraceWriter(
         data_root,
         run_id,
         "2026-01-01",
-        policy=trace.TracePolicy(max_files_per_root=2),
         clock=FakeClock(datetime.fromisoformat("2026-01-01T12:00:00+09:00")),
     )
     event = trace.make_trace_event(
         run_id=run_id,
         target_date="2026-01-01",
         component="orchestrator",
-        operation="cross_process_quota_probe",
+        operation="cross_process_file_count_probe",
         phase="status",
         clock=FakeClock(datetime.fromisoformat("2026-01-01T12:00:00+09:00")),
     )
@@ -305,7 +304,7 @@ def test_n04(tmp_path: Path) -> None:
 
 
 def test_n29(tmp_path: Path, monkeypatch) -> None:
-    """Bound events, bytes and files; expire at 90 days and preserve DB on I/O failure."""
+    """Bound events and bytes, keep file count unbounded, expire and preserve DB on I/O failure."""
 
     trace = _trace_api()
     now = datetime.fromisoformat("2026-01-01T12:00:00+09:00")
@@ -314,7 +313,6 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
     policy = trace.TracePolicy(
         max_events_per_run=5,
         max_bytes_per_run=8192,
-        max_files_per_root=1,
         max_event_bytes=8192,
     )
     writer = trace.TraceWriter(
@@ -357,18 +355,15 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
         database.commit()
         before = database.execute("SELECT id, value FROM daily_fix_sentinel").fetchall()
 
-        # The cap is one JSONL file under this root. Expire the existing file at
-        # the exact 90-day boundary, then verify a new run can own the slot.
+        # Expire the existing file at the exact 90-day boundary.
         before_expiry = trace.expire_trace_events(
             data_root,
             now=now + timedelta(days=89),
-            policy=trace.TracePolicy(max_files_per_root=1),
         )
         assert before_expiry.expired_events == 0
         at_expiry = trace.expire_trace_events(
             data_root,
             now=now + timedelta(days=90),
-            policy=trace.TracePolicy(max_files_per_root=1),
         )
         assert at_expiry.expired_events == 5
         assert at_expiry.removed_files == 1
@@ -377,7 +372,6 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
             data_root,
             "RUN-N29-IOFAIL",
             "2026-01-01",
-            policy=trace.TracePolicy(max_files_per_root=1),
             clock=clock,
         )
         append_calls = 0
@@ -423,7 +417,6 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
             data_root,
             "RUN-N29-IOFAIL",
             "2026-01-01",
-            policy=trace.TracePolicy(max_files_per_root=1),
             clock=clock,
         )
         reopened = reopened_writer.write(
@@ -447,7 +440,6 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
     size_policy = trace.TracePolicy(
         max_events_per_run=100,
         max_bytes_per_run=1800,
-        max_files_per_root=2,
         max_event_bytes=1200,
         suppression_reserve_bytes=1024,
     )
@@ -568,7 +560,7 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
     assert len(trace.read_trace_events(failed_rewrite_writer.path)) == 2
 
     concurrent_root = tmp_path / "concurrent-data"
-    concurrent_policy = trace.TracePolicy(max_files_per_root=2)
+    concurrent_policy = trace.TracePolicy()
     concurrent_writers = [
         trace.TraceWriter(
             concurrent_root,
@@ -586,7 +578,7 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
             run_id=writer.run_id,
             target_date="2026-01-01",
             component="orchestrator",
-            operation="file_quota_race_probe",
+            operation="file_count_race_probe",
             phase="status",
             clock=clock,
         )
@@ -596,21 +588,25 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
         concurrent_results = list(
             pool.map(write_concurrent, range(len(concurrent_writers)))
         )
-    assert concurrent_results.count("written") == 2
-    assert len(list((concurrent_root / "logs" / "traces").rglob("*.jsonl"))) == 2
+    assert concurrent_results.count("written") == len(concurrent_writers)
+    assert len(list((concurrent_root / "logs" / "traces").rglob("*.jsonl"))) == len(
+        concurrent_writers
+    )
 
     cross_process_root = tmp_path / "cross-process-data"
     cross_process_ids = [f"RUN-N29-P{index}" for index in range(8)]
     with ProcessPoolExecutor(max_workers=len(cross_process_ids)) as pool:
         process_results = list(
             pool.map(
-                _write_cross_process_quota_probe,
+                _write_cross_process_file_count_probe,
                 [str(cross_process_root)] * len(cross_process_ids),
                 cross_process_ids,
             )
         )
-    assert process_results.count("written") == 2
-    assert len(list((cross_process_root / "logs" / "traces").rglob("*.jsonl"))) == 2
+    assert process_results.count("written") == len(cross_process_ids)
+    assert len(list((cross_process_root / "logs" / "traces").rglob("*.jsonl"))) == len(
+        cross_process_ids
+    )
 
     compact_policy = trace.TracePolicy(
         max_events_per_run=2,
@@ -657,7 +653,7 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
         <= compact_policy.suppression_reserve_bytes
     )
 
-    file_policy = trace.TracePolicy(max_files_per_root=1)
+    file_policy = trace.TracePolicy()
     first = trace.TraceWriter(
         tmp_path / "file-data",
         "RUN-N29-F1",
@@ -675,7 +671,7 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
     event_fields = dict(
         target_date="2026-01-01",
         component="orchestrator",
-        operation="file_quota_probe",
+        operation="unlimited_file_count_probe",
         phase="status",
         clock=clock,
     )
@@ -685,8 +681,9 @@ def test_n29(tmp_path: Path, monkeypatch) -> None:
     )
     assert (
         second.write(trace.make_trace_event(run_id="RUN-N29-F2", **event_fields)).status
-        == "unavailable"
+        == "written"
     )
+    assert len(list((tmp_path / "file-data" / "logs" / "traces").rglob("*.jsonl"))) == 2
 
 
 def test_n08d_trends_widget_selector_versions_keep_trace_healthy(

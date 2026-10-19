@@ -99,11 +99,11 @@
         "code_sha256": {"$ref": "#/$defs/sha256"},
         "cases": {"type": "array", "items": {"$ref": "#/$defs/case"}, "minItems": 1},
         "results": {"type": "array", "items": {"$ref": "#/$defs/full_result"}},
-        "exit_code": {"const": 0},
-        "collected": {"type": "integer", "minimum": 1},
-        "errors": {"const": 0},
-        "skips": {"const": 0},
-        "collection_errors": {"const": 0},
+        "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
+        "collected": {"type": "integer", "minimum": 0},
+        "errors": {"type": "integer", "minimum": 0},
+        "skips": {"type": "integer", "minimum": 0},
+        "collection_errors": {"type": "integer", "minimum": 0},
         "invocation_parent_id": {"type": "null"}
       },
       "required": ["run_id", "receipt_id", "receipt_sha256", "token", "code_sha256", "cases", "results", "exit_code", "collected", "errors", "skips", "collection_errors", "invocation_parent_id"],
@@ -111,7 +111,7 @@
     },
     "full_result": {
       "type": "object",
-      "properties": {"semantic_case_id": {"$ref": "#/$defs/id"}, "outcome": {"const": "PASS"}},
+      "properties": {"semantic_case_id": {"$ref": "#/$defs/id"}, "outcome": {"enum": ["PASS", "FAIL", "ERROR", "SKIP", "NOT_RUN", "UNVERIFIED"]}},
       "required": ["semantic_case_id", "outcome"],
       "additionalProperties": false
     },

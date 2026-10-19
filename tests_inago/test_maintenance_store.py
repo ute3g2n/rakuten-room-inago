@@ -401,6 +401,56 @@ def test_job_completion_updates_incident_and_recovers_idempotently(tmp_path):
         )
 
 
+@pytest.mark.parametrize(
+    ("reason_code", "incident_status"),
+    [
+        ("report_status_pending", "in_progress"),
+        ("report_status_blocked", "blocked"),
+    ],
+)
+def test_report_nonpass_can_correct_a_previously_completed_job(
+    tmp_path, reason_code, incident_status
+):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    lease = store.acquire_lease(
+        lease_key="maintenance:worker",
+        owner_id="report-worker",
+        owner_pid=9123,
+        owner_start_time=BASE_TIME.isoformat(),
+        now=BASE_TIME,
+        ttl_seconds=60,
+    )
+
+    store.finalize_job(
+        job_id=job.job_id,
+        final_status="complete",
+        lease=lease,
+        finalized_at=BASE_TIME + timedelta(seconds=1),
+        incident_status="resolved",
+    )
+    corrected = store.finalize_job(
+        job_id=job.job_id,
+        final_status="blocked",
+        lease=lease,
+        finalized_at=BASE_TIME + timedelta(seconds=2),
+        reason_code=reason_code,
+        incident_status=incident_status,
+    )
+
+    assert corrected.status == "blocked"
+    assert corrected.reason_code == reason_code
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute(
+            "SELECT status, terminal_reason_code FROM maintenance_job WHERE job_id = ?",
+            (job.job_id,),
+        ).fetchone() == ("blocked", reason_code)
+        assert connection.execute(
+            "SELECT status FROM incident WHERE incident_id = ?", (incident_id,)
+        ).fetchone() == (incident_status,)
+
+
 def test_c07_terminal_job_closes_running_attempt(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)

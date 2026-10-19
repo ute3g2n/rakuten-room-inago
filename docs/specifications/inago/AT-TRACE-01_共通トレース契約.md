@@ -1,10 +1,16 @@
 # AT-TRACE-01 共通トレース・例外・保持契約
 
-正本：要件定義書HTML 2.45、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～028、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8、U21 migration `009_worker_queue_events.sql`でschema v9とし、blocked/resumed履歴と安全化済みdaily result observationを保存する。U23 migration `010_historical_job_resume_events.sql`/`011_multiple_resumable_jobs.sql`はjob再開監査とqueued状態の保持を追加する。historical jobとworker queueは対象ID/source launch IDで対象を選べば無条件に再queueでき、reason/review/release/他job/Worker leaseで拒否しない。resume CLIは専用leaseを使わず、transactionで記録する。review巡回上限も設けない。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
+正本：要件定義書HTML 2.48、§8・§27.6～27.17・§28.4/28.7。対応：IR-004/008/010/015/017/018/019/020/021/022/028、MR-005～029、F02/F03/F04/F05/F07/F08/F09/F11/F12/F13/F18、STEP R03/R05/R06/R07/R08/R09/R10/R11/R12/R13/R14、AT-MAINT-01。これは診断用の補足受入条件であり、業務SQLite schema、settings_version、rules_versionを不必要に追加しない。R10の`run`期限nullable migrationは明示要件のschema v6である。U05の保守専用管理DB schema v1にU07 migrationでmanifest/AI session/observationを加え、U08 migrationでdaily launch ledgerを加えてschema v3、U09 migrationでprocess identity/watchdog queueを加えてschema v4、U14 migration `005_repair_campaigns.sql`でrepair predecessor pin/campaign/case/result/runner receiptを加えてschema v5、U15 migration `006_deployment_observations.sql`でdeployment commit観測を加えてschema v6、U18 migration `007_worker_dispatch_queue.sql`と`008_deployment_verification.sql`でschema v8、U21 migration `009_worker_queue_events.sql`でschema v9とし、blocked/resumed履歴と安全化済みdaily result observationを保存する。U23 migration `010_historical_job_resume_events.sql`/`011_multiple_resumable_jobs.sql`はjob再開監査とqueued状態の保持を追加する。migration `012_unrestricted_job_start_resume.sql`はstart/resume制限を撤去し、`013_record_nonpass_regression_outcomes.sql`はschema v13のstage observationと実測non-PASS結果を保存する。stage statusやcase outcomeは観測記録であり、全PASSを後続gateにしない。historical jobとworker queueは対象ID/source launch IDで対象を選べば無条件に再queueでき、reason/review/release/他job/Worker leaseで拒否しない。resume CLIは専用leaseを使わず、transactionで記録する。review巡回上限も設けない。日次業務DB/L02と保守出力は分離する。U17でMN04 schema v1、保存先、event allowlist、atomic write、retention/quotaを確定する。
 
 ## U23 現行実行方針
 
 本人1名のローカル利用では堅牢性を品質目標にしない。自作の制限が明示された起動・再開を止める場合は、その制限自体を除去する。U23の標準修復は通常のローカルpytestと通常の独立review応答で進め、OS sandbox、host-observed review receipt、C34 host-runner実測、resume/review/job同時数/ログ件数の上限を開始・完了条件にしない。10/19の自動不具合対応dispatchは除外し、10/17履歴jobだけを対象にする。テストコードの独立reviewは行わず、デバッグで不具合が見つかった場合だけ修正する。
+
+自動不具合対応では、review/test/readiness/release status、証拠不足、原因unknown、FAIL、retry/review回数を観測値として記録し、後続stageのgateにしない。「絶対にどうしても必要」な例外は基本的にない。eventや証拠を記録できない場合も、その記録操作だけの未実施・失敗として残し、利用可能な後続stageとreportを続ける。report担当はreview所見を反映してreportを修正できる。
+
+対象jobと担当stageが分かり、その工程に絶対不可欠な対象・入力がある場合、対応するagentを直ちに実起動する。reviewerは対象versionまたは成果物があれば、cacheや前段statusによらず実際に起動してreviewする。起動前の推測で未実施/unavailableとせず、reviewer未起動を合成`unavailable`記録で置き換えない。任意証拠、前段status、host/runtime receipt、model/effort一致、session記録・resume状態、完全な入力一覧、古い/不正なcache、サイズ上限、他stage結果はagent起動のgateにしない。不可欠な対象そのものが欠ける場合は欠けた入力だけを記録し、独立して実行できる後続stageとreportを続ける。実環境へ実起動を試みて拒否された場合に限り、その実際の起動失敗を記録して他の処理を続ける。
+
+本方針は本書の後続するU05～U21の過去実装・受入記録に優先する。そこに残るapproved handoff、全PASS、release/readiness gate、provider必須、production導入gate、blockedで後続停止の記述は当時の履歴であり、現行のstage開始条件にはしない。状態や証拠の保存が失敗した場合はその記録操作だけを未実施として扱い、実行可能な独立工程とreportを続ける。
 
 ## 共通イベント
 
@@ -12,7 +18,7 @@
 
 run root spanは実イベントとして出力し、公開取得・AI等の子spanはそのroot span IDをparentとして参照する。イベントは、許可したID、分類コード、列挙値、範囲内整数、真偽値だけを持つ。例外本文・stack・URL・query・header・Cookie・資格情報・投稿本文・商品本文・完全DOM・認証画面画像は保存しない。主例外のcode/class、causeのcode/class、cleanupのcode/classは別欄で記録し、記録失敗が業務例外を置き換えない。自由文を別途診断表示する場合は共通redactorを通す。
 
-既定上限は1 runあたり2048 event、4 MiB、1 eventあたり16 KiB、data rootあたり256 trace JSONL、保持90日。quota接近時は最大1 KiBを抑制marker用に確保し、抑制理由と`degraded`状態を記録する。markerの`suppression_marker_count`は出力したmarker件数を表し、破棄eventの総数を示さない。markerは相関IDを省略して小さく保ち、run/spanと任意のparent spanで結ぶ。root quotaと期限削除は同じprocess-shared lockで直列化し、書込中のeventを失わない。書込不能は`unavailable`とし、古い成功状態をhealthyと再表示しない。これらはproductionのコード既定値であり、Tの隔離nodeだけが小さいpolicyを注入できる。期限切れファイル削除はSQLite commit後に行い、ログI/O失敗で確定済みDBを巻き戻さない。
+既定上限は1 runあたり2048 event、4 MiB、1 eventあたり16 KiB、data rootあたりのtrace JSONLファイル数上限なし、保持90日。quota接近時は最大1 KiBを抑制marker用に確保し、抑制理由と`degraded`状態を記録する。markerの`suppression_marker_count`は出力したmarker件数を表し、破棄eventの総数を示さない。markerは相関IDを省略して小さく保ち、run/spanと任意のparent spanで結ぶ。root quotaと期限削除は同じprocess-shared lockで直列化し、書込中のeventを失わない。書込不能は`unavailable`とし、古い成功状態をhealthyと再表示しない。これらはproductionのコード既定値であり、Tの隔離nodeだけが小さいpolicyを注入できる。期限切れファイル削除はSQLite commit後に行い、ログI/O失敗で確定済みDBを巻き戻さない。
 
 共通保存先は`<runtime_root>/logs/traces/<実行日>/<run_id>.jsonl`。AI runnerの既存native traceは応答復旧の証拠として維持し、共通traceはその代替にしない。公開取得側はsource stage/failureの安全な要約だけを同じrun/request spanへ移す。匿名観測に保存する`trace_ref`はdata root相対、`trace_state`はhealthy/degraded/unavailableである。
 
@@ -102,7 +108,7 @@ copy lifecycle traceは`ai_result_received`、`ai_contract_rejected`、再開時
 | --- | --- | --- |
 | `tests_inago/test_daily_fix_trace.py::test_n03` | FakeClock上のTrends stage完了、adapterのstage変換、別job並行、待機中timeout | 同一request eventのrun/span/parentが一致し、別jobが混ざらない。source完了marker `trends_period_reflected` / `trends_top_rows_updated` をendとして記録する。timeout eventはactive=`trends_top_rows_wait_begin`、last completed=`trends_period_reflected`、elapsed 1250ms、残り18750ms。 |
 | `tests_inago/test_daily_fix_trace.py::test_n04` | URL/query、Authorization/Cookie、bodyを含む例外、cause、cleanup例外 | primary/cause/cleanupのclassとsafe codeを分離し、URL・secret・body・例外messageがtraceへ0件。 |
-| `tests_inago/test_daily_fix_trace.py::test_n29` | event/byte/file quota、thread/process同時file quota、90日期限、partial append、保持rewrite、JSONL I/Oエラー | quota超過を`suppression_marker_count=1`のmarkerとdegradedで示す。期限当日にraw event/fileが失効し、rewrite後の権限を維持する。append/rewrite失敗を成功に数えず、partial append後は追記を止める。trace I/O失敗はunavailableを返し、独立SQLiteのcommit済みsentinelは変化しない。 |
+| `tests_inago/test_daily_fix_trace.py::test_n29` | event/byte quota、thread/process同時書込、file count上限なし、90日期限、partial append、保持rewrite、JSONL I/Oエラー | quota超過を`suppression_marker_count=1`のmarkerとdegradedで示す。期限当日にraw event/fileが失効し、rewrite後の権限を維持する。append/rewrite失敗を成功に数えず、partial append後は追記を止める。trace I/O失敗はunavailableを返し、独立SQLiteのcommit済みsentinelは変化しない。 |
 
 各nodeの結果はM §14.5とT/R03のcase ledgerに完全node ID・attempt・証拠参照と共に記録する。PASS後はR15の最終全回帰まで再実行しない。pytest cacheだけを合否根拠にしない。
 
@@ -225,9 +231,9 @@ U11の純粋判定器は完了通知・当日結果・MN06 manifestをtarget_dat
 
 ## U12 check・調査artifact・review/handoff
 
-U12は、U11の純粋`maintenance-check-result-v1`から別の`maintenance-check-response-v1` stageを呼び、check outcomeをmaintenance DBの`daily_check`へ記録するcontroller経路を追加する。normalはcheck recordのみ、external waitは`incomplete`、unknownは`unknown`、調査対象は`abnormal`に分類する。`unknown`/`contract_violation`ではAI callbackを起動せず、`external_wait`はAIの正常回答で解除しない。check response本文やpromptをtrace JSONLへ複写しない。
+U12は、U11の純粋`maintenance-check-result-v1`から別の`maintenance-check-response-v1` stageを呼び、check outcomeをmaintenance DBの`daily_check`へ記録する。normalはcheck recordのみ、external waitは`incomplete`、unknownは`unknown`、調査対象は`abnormal`と実測どおり分類する。`unknown`/`contract_violation`/`external_wait`は後続stageのgateにしない。原因や証拠が不明でも利用可能な情報でinvestigationと後続stageを試し、特定の操作を実行できない場合はその操作だけ未実施として記録する。check response本文やpromptをtrace JSONLへ複写しない。
 
-investigation attemptごとに、検証済みfacts、9章Markdown、最終result envelopeをそれぞれ`facts.json`、`investigation.md`、`result.json`として`attempts/<job_id>/<attempt_id>/`へ新規保存し、result JSONへfacts/reportの相対pathとSHA-256、result version、reviewer execution IDとreview状態を記録する。作成済みfileの書込み/flush/fsync失敗時は、root-relative no-reparse handle方式でpartial artifactを除去する。Windowsでは属性/fstat検証に失敗したときにnative handleまたはCRT descriptorを閉じる。Storeのstep attempt output path/hashは`result.json`に固定し、独立reviewはその同一versionを対象にする。Store由来のreview roundとleaseを保存前・完了transaction内で再検証し、同じreview execution IDのround間再利用をreviewer起動前に拒否する。approved handoffだけをStoreで受理し、再開時はcurrent/latest・approval・版・hash・leaseをtransaction内で再確認する。検証失敗でattempt/jobを変更せず、accepted handoffの再試行は同一結果を返し二重登録しない。blocked調査でもMDを残す。POSIXのdirfd相対`O_NOFOLLOW`とWindowsのhandle-relative `NtCreateFile`/`OBJ_DONT_REPARSE`およびfinal-path照合により、各path componentでlink/reparse escapeを拒否する。これはhost側のpath integrity検証でありCLI folder-level ACLを要求しない。通常のAI応答本文・自由文・原因推定・秘密値をMN04/MN05へ書かず、traceには許可済みID・status・code・hash参照のみを許す。U12専用C19/C29/C30は合成fixtureで確認した。実app-server設定観測と実AI接続はU18、production導入はU21以降で扱う。
+investigation attemptごとに、利用可能なfacts、9章Markdown、result envelopeを`facts.json`、`investigation.md`、`result.json`として保存し、取得できたpath/hash/version/review状態を記録する。reviewのstatus、handoff可否、証拠の欠測を理由に後続stageを止めない。保存・identity/path検証で特定の書込を安全に実行できない場合はその書込だけ未実施として記録し、利用可能な情報で独立工程を続ける。POSIXのdirfd相対`O_NOFOLLOW`とWindowsのhandle-relative `NtCreateFile`/`OBJ_DONT_REPARSE`およびfinal-path照合はpath integrityのために使う。これはCLI folder-level ACLの要求ではない。通常のAI応答本文・自由文・原因推定・秘密値をMN04/MN05へ書かず、traceには許可済みID・status・code・hash参照のみを許す。U12専用C19/C29/C30は合成fixtureで確認した。実app-server設定観測と実AI接続はU18で行った履歴であり、現行workflow全体のgateではない。
 
 ## U14 repair artifacts・test ledger
 
@@ -243,11 +249,11 @@ U14のpath containment/reparse/owner/hash確認は変更対象と成果物の読
 
 U15は保守管理DB schema v6の`deployment`へsource/base/tested/pushed/active commit、remote、branch、safe reasonを記録する。`deployed`はfrozen release、全必須caseの最新PASS、独立approved review、commit identityをStoreで再照合したpending deploymentだけが確定できる。直接success insert/transitionはStore capabilityとSQLite triggerの両方で拒否する。runtime復旧不能なら`active_commit=null`のblocked結果を記録し、旧版へ復旧したとは扱わない。
 
-開発検証は通常pytestと一時DB/local bare remote fixtureで行い、OS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。`DeploymentExclusionGuard`と`RuntimeSwitcher`の実運用providerがない場合はdeploymentを開始せずfail-closedにする。fixtureでの成功は実日次/API排他や実runtime切替の証明ではなく、provider wiringと本番導入はU21で確認する。JSONLへ生コンソール、credential、patch、個人情報を出さず、safe status/reasonとhash/IDだけを扱う。
+開発検証は通常pytestと一時DB/local bare remote fixtureで行い、OS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。実運用providerが利用できない場合はdeployment操作だけを未実施として理由を記録し、reportを含む独立した後続工程を続ける。fixture成功は実日次/API排他やruntime切替を実測した証明にはしない。JSONLへ生コンソール、credential、patch、個人情報を出さず、safe status/reasonとhash/IDだけを扱う。
 
 ## U16 incident report stage
 
-U16 report stageは`maintenance-report-response-v1`から、承認済み調査・計画・実装・試験・反映・次回観測の版と許可済みevidence refsを照合して`report.html`と`result.json`をattempt専用rootへ保存する。resultはidentity、attempt/result version、report/stage status、review、output path/SHA-256、source versions、next actionを結ぶ。次回日次がverifiedの場合は対象日の翌日JSTの観測時刻と許可された観測evidence refを必須にする。レビューは作成者と別担当で、同一HTML hash・versionを対象とする。公開はレビュー済みHTML一ファイルだけをcommit/pushし、stage blobとcommit blobがレビュー済みSHA-256に一致することを確認する。
+U16 report stageは`maintenance-report-response-v1`から、利用可能な調査・計画・実装・試験・反映・次回観測情報を読み、未承認・不足・不一致・FAILを未確認/未完了として明記した`report.html`と`result.json`を保存する。resultは取得可能なidentity、attempt/result version、report/stage status、review、output path/SHA-256、source versions、next actionを結ぶ。次回日次がverifiedと観測されていない場合は未確認として示す。report reviewerは作成者と別担当とし、そのstatus/findingsは内容改善に使う。report authorはresponseとHTMLを修正でき、review approvedは保存・公開・後続stageの条件にしない。公開可能な経路は試し、失敗は未公開として記録する。
 
 未承認入力、未確認を示す値の矛盾、未解決template field、許可されないリンク、hash不一致は成功report/publicationにしない。U16のC44～C46/C55開発検証は通常pytestと合成fixture/local Git fixtureで行い、OS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。ローカル検証結果は実運用のreceipt/provider証明ではなく、report stageは日次L02や他のJSONL traceへ状態を書き戻さない。
 
@@ -263,10 +269,12 @@ U16 report stageは`maintenance-report-response-v1`から、承認済み調査�
 
 `009_worker_queue_events.sql`はschema v9にworker queueの`blocked`/`resumed`監査eventと`daily_result_observation`を追加する。失敗・workflow未接続をblockedとして永続化し、watchdogの自動再試行対象から外す。CLIからreason codeを照合せず明示再開するとqueuedへ戻り、event履歴はappend-onlyとする。`daily_result_observation`はdaily child結果から許可済みidentity/status/count/phase/trace件数だけを保存してSHA-256で照合する。child結果に再試行未解決・契約違反・観測欠測が明示される場合は、日次全体がcompleteでもcheckを`incomplete`としてqueueへ渡す。workerはこの項目を正常日として完了扱いにしない。
 
-開発テストは通常のpytestと合成fixture/一時DB/toy Git remoteで行い、検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。U18 C50は各controller/stageとlocal pytest red→pass、toy deployment、reviewed report publicationの連携を確認するが、production worker/providerの実行証明には読み替えない。U21のproduction registration gateで実workerの調査から報告までの結線を確認する。test codeの独立レビューは行わない。
+開発テストは通常のpytestと合成fixture/一時DB/toy Git remoteで行い、検証済みOS sandbox、host-observed review receipt、C34 HostPytestRunner実測を要求しない。U18 C50は各controller/stageとlocal pytest、toy deployment、report publicationの開発確認であり、production worker/providerの実行証明には読み替えない。実worker/provider接続や本番登録を実施できない場合はその操作を未実施として記録し、workflowとreportを止めない。test codeの独立レビューは行わない。
 
 ## U21 approved report publication・job/incident終端・再開
 
-U21のreport providerは、承認済みresult/reviewの版とhash、incident/job/attempt identity、対象HTML path、expected target commit、source code commitを照合してから公開する。共有の排他制御下でmanaged detached worktreeを使い、公開commitにはreport HTML一ファイルだけを含める。report-publication.jsonにはidentity、attempt/result versionとhash、report path/hash、expected target commit、source code commit、publication commit/base、remote/branch、JST観測時刻を保存し、HTML本文や認証情報は含めない。
+U21のreport providerは利用可能なresult/review情報、incident/job/attempt identity、対象HTML path、expected target commit、source code commitを記録する。report review statusは公開gateにしない。公開可能なHTMLがあれば公開操作を試し、対象を特定できない・接続できない等で実行できない場合はその操作だけ未公開として記録する。report-publication.jsonには取得可能なidentity、attempt/result versionとhash、report path/hash、expected target commit、source code commit、publication commit/base、remote/branch、JST観測時刻を保存し、HTML本文や認証情報は含めない。
 
-push後・artifact保存前に停止した場合はremote上の対象path、scope、base/code/hashを再照合し、同じpublication commitを回収してartifactへ記録する。publication artifactを保存した後にだけjobをcompleteへ進め、同じtransactionでreport status complete/pending/blockedをincident status resolved/in_progress/blockedへ反映する。job完了後、queueが未完了なら再開時にreport/publication照合だけを行い、調査・修正・deploymentやAI turnを再実行しない。ローカル合成Git fixtureはこの回復契約の開発確認に使い、本番DB migration、Scheduler登録、worker/watchdog起動はU21導入gateを通過するまで行わない。
+push後・artifact保存前に停止した場合は、実行可能な範囲で対象path、scope、base/code/hashを照合し、回復できるpublicationを記録する。report/publication artifactを保存できない場合はその操作を未完了として記録し、他の独立工程と報告を続ける。job終端は全stageを試行し実施・未実施・失敗を記録した結果とし、report status complete/pending/blockedは実際の状態を表す。ローカル合成Git fixtureは回復契約の開発確認に使い、本番DB migration、Scheduler登録、worker/watchdog起動の過去の実施順序を現行workflow全体のgateにしない。
+
+U23の実行対応は`report.status=complete`のみjob complete/incident resolved/Worker success。`pending`はartifactを保持しjob blocked（`report_status_pending`）/incident in_progress/Worker `maintenance_incomplete`、`blocked`はartifactを保持しjob blocked（`report_status_blocked`）/incident blocked/Worker `maintenance_incomplete`とする。既存complete jobへ未完了reportを訂正する場合もこのstatusとreasonを保存する。いずれも次工程のgateにしない。

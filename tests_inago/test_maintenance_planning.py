@@ -183,9 +183,7 @@ def _make_plan_response(context, *, status: str = "ready"):
                 "basis": "Cause confidence is unknown.",
             }
         ],
-        "repair_scope": {
-            "owned_paths": ["automation/inago/maintenance/planning.py"]
-        },
+        "repair_scope": {"owned_paths": ["automation/inago/maintenance/planning.py"]},
         "logging_contract": {
             "source_run_id": None,
             "overall_status": "failed",
@@ -337,7 +335,6 @@ def _start_planning_attempt(
             ),
             review_round=1,
             handoff_root=handoff_root,
-            synthetic_fixture=True,
         )
     )
     plan_attempt = controller.begin_step_attempt(
@@ -751,7 +748,7 @@ def test_c31_rejects_untrusted_workspace_paths(tmp_path, field, value, error_cod
     assert not any(output_root.iterdir())
 
 
-def test_c31_waiting_external_is_reviewed_but_cannot_release_next_step(tmp_path):
+def test_c31_waiting_external_review_does_not_force_plan_retry(tmp_path):
     (
         store,
         controller,
@@ -775,8 +772,8 @@ def test_c31_waiting_external_is_reviewed_but_cannot_release_next_step(tmp_path)
 
     assert outcome.plan_status == "waiting_external"
     assert outcome.review_status == "approved"
-    assert outcome.gate_status == "changes_requested"
-    assert outcome.next_action == "wait_external"
+    assert outcome.gate_status == "approved"
+    assert outcome.next_action == "handoff"
     assert (output_root / "plan.md").exists()
     with pytest.raises(MaintenanceStoreError, match="repair_predecessor_pin_required"):
         store.begin_step_attempt(
@@ -793,20 +790,21 @@ def test_c31_waiting_external_is_reviewed_but_cannot_release_next_step(tmp_path)
         lease=lease,
         started_at=BASE_TIME + timedelta(seconds=18),
     )
-    assert retry.attempt_no == 2
+    assert retry.attempt_no == 1
+    assert retry.reused is True
     assert store.get_step_attempt(attempt.attempt_id).status == "complete"
 
 
 @pytest.mark.parametrize(
     ("plan_status", "review_status", "expected_action"),
     [
-        ("waiting_external", "changes_requested", "revise"),
-        ("waiting_external", "rejected", "blocked"),
-        ("waiting_external", "unavailable", "blocked"),
-        ("blocked", "approved", "blocked"),
+        ("waiting_external", "changes_requested", "handoff"),
+        ("waiting_external", "rejected", "handoff"),
+        ("waiting_external", "unavailable", "handoff"),
+        ("blocked", "approved", "handoff"),
     ],
 )
-def test_c31_next_action_respects_review_gate(
+def test_c31_review_status_does_not_gate_next_action(
     tmp_path, plan_status, review_status, expected_action
 ):
     (

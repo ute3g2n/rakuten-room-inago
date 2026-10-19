@@ -27,7 +27,6 @@ JST = ZoneInfo("Asia/Tokyo")
 TRACE_SCHEMA_VERSION = 1
 TRACE_MAX_EVENTS_PER_RUN = 2048
 TRACE_MAX_BYTES_PER_RUN = 4 * 1024 * 1024
-TRACE_MAX_FILES_PER_DATA_ROOT = 256
 TRACE_MAX_EVENT_BYTES = 16 * 1024
 TRACE_RETENTION_DAYS = 90
 TRACE_SUPPRESSION_RESERVE_BYTES = 1024
@@ -181,11 +180,10 @@ class TraceContractError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class TracePolicy:
-    """Per-run and per-root upper bounds; production defaults are fixed here."""
+    """Per-run upper bounds; trace file count has no quota."""
 
     max_events_per_run: int = TRACE_MAX_EVENTS_PER_RUN
     max_bytes_per_run: int = TRACE_MAX_BYTES_PER_RUN
-    max_files_per_root: int = TRACE_MAX_FILES_PER_DATA_ROOT
     max_event_bytes: int = TRACE_MAX_EVENT_BYTES
     retention_days: int = TRACE_RETENTION_DAYS
     suppression_reserve_bytes: int = TRACE_SUPPRESSION_RESERVE_BYTES
@@ -194,7 +192,6 @@ class TracePolicy:
         positive = (
             self.max_events_per_run,
             self.max_bytes_per_run,
-            self.max_files_per_root,
             self.max_event_bytes,
             self.retention_days,
             self.suppression_reserve_bytes,
@@ -901,11 +898,6 @@ class TraceWriter:
 
     def _ensure_file_capacity(self) -> None:
         _assert_safe_descendant(self.data_root, self.path.parent, allow_missing=True)
-        trace_root = self.data_root / "logs" / "traces"
-        paths = _trace_paths(trace_root, limit=self.policy.max_files_per_root)
-        exists = self.path.exists()
-        if not exists and len(paths) >= self.policy.max_files_per_root:
-            raise TraceContractError("trace file quota reached")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         _assert_safe_descendant(self.data_root, self.path.parent, allow_missing=False)
 
@@ -1415,7 +1407,7 @@ def _safe_failure_reason(exc: BaseException) -> str:
     return "trace_write_unavailable"
 
 
-def _trace_paths(trace_root: Path, *, limit: int) -> list[Path]:
+def _trace_paths(trace_root: Path) -> list[Path]:
     if not trace_root.exists():
         return []
     result: list[Path] = []
@@ -1433,10 +1425,6 @@ def _trace_paths(trace_root: Path, *, limit: int) -> list[Path]:
                     stack.append(path)
                 elif entry.is_file(follow_symlinks=False) and path.suffix == ".jsonl":
                     result.append(path)
-                    if len(result) > limit:
-                        raise TraceContractError(
-                            "trace file tree exceeds its file quota"
-                        )
     return result
 
 
@@ -1507,7 +1495,7 @@ def _expire_trace_events_locked(
 ) -> TraceRetentionResult:
     try:
         _assert_safe_descendant(root, trace_root, allow_missing=False)
-        paths = _trace_paths(trace_root, limit=policy.max_files_per_root)
+        paths = _trace_paths(trace_root)
     except (OSError, TraceContractError, RetentionError):
         return TraceRetentionResult(0, 0, 0, 1)
     expired_events = removed_files = rewritten_files = failures = 0

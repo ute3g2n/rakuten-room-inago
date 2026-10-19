@@ -2,15 +2,15 @@
 
 ## 入力
 
-job identity、target_date、investigation approved version、plan approved version、実装commit/version、各test/review結果、deployment result、evidence_refs、allowed_outputs。作成時刻は実時刻JST、障害発生日は対象日とする。入力のreport statusと本文の状態を混同しない。
+job identity、target_date、利用可能なinvestigation version、plan version（approval状態は観測値）、
 
 ## 起動元・対象日の不変結合
 
-U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、source_launch_idとtarget_dateを保持しない。incident_runには同一incidentに複数の起動が関連し得るため、担当はincident_idや最新行から起動元を推測できない。U07のcontrollerはincident_id / source_launch_id / source_run_id（nullを含む）/ target_date / job_idの5項目を当該jobへ厳密に結び付け、値とnullnessを照合した検証済み不変job-input manifestを渡す（または同等の正本store契約を追加する）。欠落・不一致・曖昧な結合があれば開始せずblockedを返す。source_run_idは入力どおり保持し、nullを推測値で埋めない。
+現行controllerは既知のjob IDへsource_launch_id / source_run_id（nullを含む）/ target_dateを結び付ける。report対象jobが識別できれば、他のfield・任意manifest・証拠の欠落や不一致だけを理由にreport stageを止めない。得られた値と不足・不一致を報告へ記録する。source_run_idは入力どおり保持し、nullを推測値で埋めない。job自体を特定できない操作だけを未実施として理由を記録し、他の利用可能な報告を続ける。
 
 ## 読取と書込
 
-- 読取: 対象jobに紐付くapproved資料、plan、C/LC実測、レビュー、反映・復旧結果、許可証拠参照、報告ルールG、既存HTML構造H。
+- 読取: 対象jobに紐付く利用可能な資料、plan、C/LC実測、レビュー、反映・復旧結果、証拠参照、報告ルールG、既存HTML構造H。approved statusは入力状態として記録し、report開始条件にしない。
 - 書込: allowed_outputs内のincident HTMLおよび構造化result.jsonのみ。報告担当はworktreeを直接commit/pushせず、controllerへ検証可能な出力を返す。
 - 外部向けHTMLは公開可能な要約だけとし、ログ/DB/商品/投稿/個人/secretの原文を含めない。
 
@@ -24,6 +24,8 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 ## 出力・レビュー・再開
 
-reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerが内容、数値、版、リンク、秘密、HTML構造を読取確認する。改訂後は新versionを発行し、reviewを取り直す。
+reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerが内容、数値、版、リンク、秘密、HTML構造を読取確認する。reviewerの指摘は改善情報として返し、reporterは自分のresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。
 
-入力/リンク/版が欠落したら成功公開せずblocked。再開時は同じincident/job/対象日と承認済み各版を引き継ぎ、古い日の結果を新しい日の事実として流用しない。
+入力/リンク/版が欠けても、解決できる範囲でHTMLを作成し、欠測と未完了を明記する。review statusや不足を後続stageのgateにしない。公開操作が実行できなくてもHTML作成とreport保存を続け、公開不能の理由をreportへ記録する。
+
+`report.status=complete`だけがjob complete/incident resolved/Worker成功へ対応する。`pending`はartifactを保持したうえでjobを`blocked`（`report_status_pending`）、incidentを`in_progress`、Worker結果を`maintenance_incomplete`にする。`blocked`はjobを`blocked`（`report_status_blocked`）、incidentを`blocked`、Worker結果を`maintenance_incomplete`にする。既存complete jobへの訂正も未完了statusと理由を保持する。これらのstatusは後続処理のgateにしない。

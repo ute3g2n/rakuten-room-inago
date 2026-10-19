@@ -7,6 +7,8 @@ import subprocess
 import threading
 from types import SimpleNamespace
 
+import pytest
+
 from automation.inago.maintenance.store import (
     LeaseToken,
     MaintenanceJobRecord,
@@ -33,8 +35,21 @@ def _git(repository: Path, *arguments: str) -> str:
     return result.stdout.strip()
 
 
+@pytest.mark.parametrize(
+    ("report_status", "expected_status", "expected_job_status", "expected_reason"),
+    [
+        ("complete", "complete", "complete", None),
+        ("pending", "waiting", "blocked", "report_status_pending"),
+        ("blocked", "blocked", "blocked", "report_status_blocked"),
+    ],
+)
 def test_publication_stage_recovers_after_push_before_artifact_save(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path,
+    monkeypatch,
+    report_status: str,
+    expected_status: str,
+    expected_job_status: str,
+    expected_reason: str | None,
 ):
     runtime_root = tmp_path / "runtime"
     runtime_root.mkdir()
@@ -91,7 +106,7 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         "attempt_id": attempt_id,
         "result_version": "report-u21-v1",
         "created_at_jst": "2026-10-19T03:00:00+09:00",
-        "report_status": "complete",
+        "report_status": report_status,
         "stage_status": "reviewed",
         "review": review,
         "output": {"path": html_path, "sha256": html_sha256},
@@ -332,15 +347,20 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
         target_branch="main",
         exclusion_guard=guard,
     )
-    assert resumed.status == "complete"
+    assert resumed.status == expected_status
     assert not guard.held
     publication_record = json.loads(
         (attempt_root / "report-publication.json").read_text(encoding="utf-8")
     )
     assert publication_record["publication_commit"] == remote_commit
     assert publication_record["report_sha256"] == html_sha256
-    assert controller.finalized[-1]["final_status"] == "complete"
-    assert controller.finalized[-1]["incident_status"] == "resolved"
+    assert controller.finalized[-1]["final_status"] == expected_job_status
+    assert controller.finalized[-1]["reason_code"] == expected_reason
+    assert controller.finalized[-1]["incident_status"] == {
+        "complete": "resolved",
+        "pending": "in_progress",
+        "blocked": "blocked",
+    }[report_status]
     assert (
         _git(
             repository,

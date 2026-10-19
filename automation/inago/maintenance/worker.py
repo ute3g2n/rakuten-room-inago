@@ -38,8 +38,7 @@ class WorkflowLaunch(Protocol):
     status: str
 
     @property
-    def result_summary(self) -> object | None:
-        ...
+    def result_summary(self) -> object | None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -357,7 +356,7 @@ def run_worker_once(
     source_launch_id: str | None = None,
     workflow_runner: WorkflowRunner | None = None,
 ) -> WorkerRunResult:
-    """Acknowledge a normal check or run one fail-closed incident workflow."""
+    """Acknowledge a normal check or try the full incident workflow."""
 
     if now.tzinfo is None or now.utcoffset() is None:
         raise MaintenanceStoreError("worker_clock_invalid")
@@ -544,6 +543,7 @@ def run_worker_once(
             "normal_shortfall",
             "abnormal",
             "incomplete",
+            "unknown",
         }
         and not non_actionable_unknown
     ):
@@ -562,7 +562,7 @@ def run_worker_once(
             historical_job_id=historical_job_id,
         )
 
-    requires_workflow = check.check_status in {"abnormal", "incomplete"}
+    requires_workflow = check.check_status in {"abnormal", "incomplete", "unknown"}
     if requires_workflow and workflow_runner is None:
         return _blocked_result(
             store,
@@ -601,7 +601,6 @@ def run_worker_once(
                     )
                 except Exception:
                     heartbeat_errors.append("worker_lease_heartbeat_failed")
-                    cancel_workflow.set()
                     return
 
         heartbeat_thread = threading.Thread(
@@ -612,6 +611,7 @@ def run_worker_once(
         heartbeat_thread.start()
 
     resolution_status = "not_started"
+    workflow_reason_code: str | None = None
     try:
         if requires_workflow:
             assert workflow_runner is not None
@@ -638,19 +638,6 @@ def run_worker_once(
                     lease=lease,
                     historical_job_id=historical_job_id,
                 )
-            if heartbeat_errors:
-                return _blocked_result(
-                    store,
-                    queue,
-                    check_id=check.check_id,
-                    reason_code=heartbeat_errors[0],
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    historical_job_id=historical_job_id,
-                )
             if not isinstance(outcome, WorkerWorkflowOutcome):
                 return _blocked_result(
                     store,
@@ -665,36 +652,15 @@ def run_worker_once(
                     historical_job_id=historical_job_id,
                 )
             if outcome.status != "complete":
-                resolution_status = (
-                    "waiting" if outcome.status == "waiting" else "blocked"
+                # Stage failure/wait states describe operations; they do not
+                # prevent the worker from recording the result and advancing.
+                workflow_reason_code = outcome.reason_code or (
+                    "maintenance_workflow_stage_waiting"
+                    if outcome.status == "waiting"
+                    else "maintenance_workflow_stage_blocked"
                 )
-                reason = outcome.reason_code or "maintenance_workflow_incomplete"
-                blocked_result = _blocked_result(
-                    store,
-                    queue,
-                    check_id=check.check_id,
-                    reason_code=reason,
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    resolution_status=resolution_status,
-                    historical_job_id=historical_job_id,
-                )
-                return (
-                    WorkerRunResult(
-                        status="waiting",
-                        worker_job_id=blocked_result.worker_job_id,
-                        queue_id=blocked_result.queue_id,
-                        source_launch_id=blocked_result.source_launch_id,
-                        check_id=blocked_result.check_id,
-                        reason_code=blocked_result.reason_code,
-                        maintenance_resolution_status="waiting",
-                    )
-                    if resolution_status == "waiting"
-                    else blocked_result
-                )
+            if heartbeat_errors and workflow_reason_code is None:
+                workflow_reason_code = heartbeat_errors[0]
             if outcome.check_id != check.check_id:
                 return _blocked_result(
                     store,
@@ -708,7 +674,7 @@ def run_worker_once(
                     lease=lease,
                     historical_job_id=historical_job_id,
                 )
-            resolution_status = "complete"
+            resolution_status = outcome.status
 
         completed_at = datetime.now(timezone.utc) if requires_workflow else now
         if historical_item is not None:
@@ -717,29 +683,41 @@ def run_worker_once(
                 source_run_id=None,
                 target_date=historical_item.target_date,
             )
-            if (
-                len(completed_jobs) != 1
-                or completed_jobs[0].job_id != historical_item.job.job_id
-                or completed_jobs[0].status != "complete"
-            ):
-                return _blocked_result(
-                    store,
-                    queue,
+            completed_job = next(
+                (
+                    job
+                    for job in completed_jobs
+                    if job.job_id == historical_item.job.job_id
+                ),
+                None,
+            )
+            if completed_job is None or completed_job.status != "complete":
+                final_resolution_status = (
+                    resolution_status
+                    if resolution_status != "complete"
+                    else "incomplete"
+                )
+                return WorkerRunResult(
+                    status="maintenance_incomplete",
+                    worker_job_id=historical_item.job.job_id,
+                    source_launch_id=historical_item.source_launch_id,
                     check_id=check.check_id,
-                    reason_code="historical_job_completion_unconfirmed",
-                    owner_id=owner,
-                    owner_pid=pid,
-                    owner_start_time=process_start,
-                    now=now,
-                    lease=lease,
-                    historical_job_id=historical_item.job.job_id,
+                    reason_code=(
+                        workflow_reason_code or "historical_job_completion_unrecorded"
+                    ),
+                    maintenance_resolution_status=final_resolution_status,
                 )
             return WorkerRunResult(
-                status="maintenance_complete",
+                status=(
+                    "maintenance_complete"
+                    if resolution_status == "complete"
+                    else "maintenance_incomplete"
+                ),
                 worker_job_id=historical_item.job.job_id,
                 source_launch_id=historical_item.source_launch_id,
                 check_id=check.check_id,
-                maintenance_resolution_status="complete",
+                reason_code=workflow_reason_code,
+                maintenance_resolution_status=resolution_status,
             )
         completed = store.complete_worker_queue(
             queue_id=queue.queue_id,
@@ -748,24 +726,32 @@ def run_worker_once(
             completed_at=completed_at,
         )
         result = _result(completed, duplicate=False)
-        if resolution_status == "complete":
-            return WorkerRunResult(
-                status="maintenance_complete",
-                worker_job_id=result.worker_job_id,
-                queue_id=result.queue_id,
-                source_launch_id=result.source_launch_id,
-                check_id=result.check_id,
-                maintenance_resolution_status="complete",
-            )
-        return result
+        return WorkerRunResult(
+            status=(
+                "maintenance_complete"
+                if resolution_status == "complete"
+                else "maintenance_incomplete"
+            ),
+            worker_job_id=result.worker_job_id,
+            queue_id=result.queue_id,
+            source_launch_id=result.source_launch_id,
+            check_id=result.check_id,
+            reason_code=workflow_reason_code,
+            maintenance_resolution_status=resolution_status,
+        )
     finally:
         stop_heartbeat.set()
         if heartbeat_thread is not None:
             heartbeat_thread.join(timeout=2)
-        store.release_lease(
-            lease=lease,
-            released_at=(datetime.now(timezone.utc) if requires_workflow else now),
-        )
+        try:
+            store.release_lease(
+                lease=lease,
+                released_at=(datetime.now(timezone.utc) if requires_workflow else now),
+            )
+        except Exception:
+            # A failed lease release is observable in the lease row; it does
+            # not erase a completed workflow/report result.
+            pass
 
 
 def dispatch_ready_worker(

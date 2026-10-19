@@ -28,26 +28,26 @@ repository source schema `automation/inago/schemas/ai-job.schema.json`は、隔�
 
 ### 起動条件と入力
 
-- Python制御部が対象runの終了、CLI最終記録、export、backup、preservation、所有子・プロセスの終了を確定した後に限り、maintenance controllerが独立jobを作成します。正常日にはSol/xhighのcheckだけを実行し、正常確認で原因調査・修正・報告へ進みません。
-- 本番の障害対応を扱う場合、release gateがreadyであり、登録済みの起動ID/対象日/証拠参照が一意であることを制御部が確認します。本人の投稿、認証、既存日次DBの書込は担当の権限に含めません。
+- Python制御部が対象runの終了、CLI最終記録、export、backup、preservation、所有子・プロセスの終了を確定した後に限り、maintenance controllerが独立jobを作成します。正常日にはSol/highのcheckだけを実行し、正常確認で原因調査・修正・報告へ進みません。
+- 本番の障害対応を扱う場合、利用可能な起動ID/対象日/証拠参照を使います。release gate、review/test status、証拠充足を後続stageの開始条件にしません。本人の投稿、認証、既存日次DBの書込は担当の権限に含めません。
 - 入力はM第4.3節の管理job項目: incident_id、source_launch_id、source_run_id、target_date、job_id、attempt、stage、base_commit、input_refs、evidence_refs、allowed_outputs。source_run_idが存在しない起動はnullを保ち、推測で生成しません。
-- 各担当は入力・根拠参照とallowed_outputsに列挙された資料だけを使います。親Aは証拠・コード・設定を読取専用とし、attempt専用の文書成果だけを作成します。親Bは承認済み計画が指定した管理worktree内のファイルだけを変更します。
+- 各担当は入力・根拠参照とallowed_outputsに列挙された資料を使います。親Aは証拠・コード・設定を読取専用とし、attempt専用の文書成果だけを作成します。親Bは計画で示した管理worktree内のファイルを変更します。plan reviewのapproved statusは開始条件にせず、findingsを引き継ぎます。
 
 U05のmaintenance_jobはsource_launch_idとtarget_dateを保持しません。incident_runだけでは同じincidentに複数起動がある場合に一意な起動元を選べません。U07のcontrollerはincident_id / source_launch_id / source_run_id（nullを含む）/ target_date / job_idの5項目を当該jobへ厳密に結び付け、値とnullnessを照合した検証済み不変job-input manifestを渡す（または同等の正本store結合を実装・検証する）必要があります。それまでは新flowを起動せず、欠落・不一致・曖昧な結合や起動元・対象日の推測をblockedとして扱ってください。
 
 ### 順序と役割
 
-1. maintenance controllerが[1]checkを専用のSol/xhigh調査担当へ渡します。正常ならcheck結果を保存して終了します。
-2. 要調査なら同担当が[2][3]の事実台帳と調査MDを作成し、新規の調査reviewerが対象版を根拠と照合します。
-3. 合格した調査版だけをSol/xhigh計画担当へ渡し、新規の計画reviewerが計画全体、14項目、テストケース12項目、各STEPの全文promptと所有を確認します。
-4. 承認計画がある場合のみ親B配下で実装担当、試験担当、コードreviewerを別々に使います。実装担当は割当コード、試験担当は割当テスト/fixture、reviewerは読取のみです。
-5. 合格版の実行・反映情報だけをLuna/max/Fastの報告担当に渡し、新規の報告reviewerが内容・根拠・表示を確認します。U18での接続・tier観測完了前に実運用を開始しません。
+1. maintenance controllerが[1]checkを専用のSol/high調査担当へ渡します。正常ならcheck結果を保存して終了します。
+2. 要調査なら同担当が[2][3]の事実台帳と調査MDを作成し、新規の調査reviewerが所見を返します。review statusに関係なく計画へ進みます。
+3. 利用可能な調査資料をSol/high計画担当へ渡し、新規の計画reviewerが計画全体、14項目、テストケース12項目、各STEPの全文promptと所有を確認します。未確定・findingsは次stageへ渡します。
+4. 親B配下で実装担当、試験担当、コードreviewerを順に使います。承認status、試験結果、readiness/release gateを後続処理の開始条件にしません。各担当は割当範囲で作業し、テストコードはデバッグで不具合が見つかった場合だけ修正します。
+5. 実行・反映の状態を問わず利用可能な情報を報告担当へ渡し、新規の報告reviewerは改善所見を返します。報告担当は自分のreportを修正でき、report作成・公開の試行はreview statusで止めません。
 
 ### 出力・失敗・再開
 
 - 成果は指定attemptのhandoff出力先に返し、controllerがschema、ID、版、許可path、hash、review対象版を検証してから確定します。担当はSQLite、稼働DB、Scheduler、task設定、release gate、投稿状態を直接変更しません。
-- 作成担当とレビュー担当は同一にできません。承認は正確なresult_versionに結び付け、改版後は取り直します。3回の差戻し上限は同一job・step・sequenceをまたぐ総数です。
-- 入力不足、参照不一致、allowed_outputs欠落、モデル/effort/tier未対応、レビュー不一致、出力schema不正は成功に補正せずblockedまたはfailedとして停止します。別モデル/API、別run、別attemptの資料へ無断で切り替えません。
+- 作成担当とレビュー担当は分け、reviewは対象result_versionに結び付けて記録します。status/findingsは次stageのgateにしません。差戻し回数の上限はありません。
+- 入力不足、参照不一致、allowed_outputs欠落、モデル/effort/tier未対応、レビュー不一致、出力schema不正は事実どおり記録します。実行できない個別操作だけを未実施とし、利用可能な後続処理とreportを続けます。実在しない情報を補作せず、同じ許可の再確認を求めません。
 - 再開は同じjob・incident・source launch・sequenceと証拠を用い、controllerが記録したattempt回数を維持します。手編集で過去failed結果をsuccessに変えません。
 - 日次処理の再起動、ROOM投稿、認証情報の読出、任意DB調査、日次DB修正、未承認コード変更、force push、自己レビュー、過去日の事実コピーは禁止です。
 

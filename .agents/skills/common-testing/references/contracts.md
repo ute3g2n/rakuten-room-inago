@@ -2,7 +2,7 @@
 
 ## 入力
 
-review approved plan_version、実装commit/version、許可case_idと完全node、初期fixture/時計/設定、T内の当該job/attempt専用basetemp、allowed_outputsを使う。test listをplanやU19凍結manifestから逸脱させない。
+利用可能なplan_version（review statusを問わない）、
 
 ## 起動元・対象日の不変結合
 
@@ -11,7 +11,8 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 ## 実行許可
 
 - 書込はcaseが明記した隔離fixture/試験DBとT/Uxx/Cxx/attempt-Nの専用領域のみ。source、app configuration、日次DB、認証、Schedulerはread-onlyまたは未接続。
-- testを実行する前にnodeが実在すること、履歴上の未実施/FAILであること、basetempが専用空のattempt領域であることを確認する。
+- 実在するtest nodeを優先して実行する。caseや隔離領域が一部不明でも、実行可能な他caseを進め、欠測を記録する。
+- testを実行する前に
 - U20前の実行は新規、未実施または前回FAILで計画が再試行を許すcaseに限る。既PASSのcase、pytest collect、全suiteを起動しない。
 
 ## 証拠
@@ -22,4 +23,6 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 ## 再開と禁止
 
-FAILの再実行は新attemptへ記録し、同じcase input/versionを維持する。PASSはU20全回帰で指定された一回を除いて再実行しない。隔離環境・所有範囲・許可nodeが不明なときは実行せずblockedとする。試験担当はコードを直さない。
+FAILの再実行は新attemptへ記録する。PASS/FAIL/SKIP/ERROR/NOT_RUN/UNVERIFIEDの全結果を次stageへ渡し、後続stageのgateにしない。試験を実行できない場合も、review/反映/reportなど実行可能な後続stageを止めない。「絶対にどうしても必要」なgateは基本的にない前提とする。
+
+対象jobと実行可能なcaseが特定できればtesterを起動する。完全なcase一覧、host receipt、OS sandbox証拠、review/runtime statusが不足していても、使えるcaseで試験を始める。

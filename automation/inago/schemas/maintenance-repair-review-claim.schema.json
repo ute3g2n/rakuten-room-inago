@@ -14,7 +14,7 @@
     },
     "tested_code_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
     "reviewed_code_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
-    "status": {"enum": ["approved", "changes_requested"]}
+    "status": {"enum": ["approved", "changes_requested", "rejected", "unavailable"]}
   },
   "required": [
     "author_id",

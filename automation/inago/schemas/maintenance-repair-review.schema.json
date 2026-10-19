@@ -6,7 +6,7 @@
   "properties": {
     "schema_version": {"const": "maintenance-repair-review-v1"},
     "attestation_source": {"enum": ["host_collected", "local_review"]},
-    "status": {"enum": ["approved", "changes_requested"]},
+    "status": {"enum": ["approved", "changes_requested", "rejected", "unavailable"]},
     "identity": {"$ref": "#/$defs/identity"},
     "attempt_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "result_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},

@@ -2,7 +2,9 @@
 
 ## 入力と読み取り
 
-入力はjob共通ID、latest approvedかつhandoff acceptedなinvestigation attempt、fact/evidence refs、requirements/acceptance/case manifest、base_commit、allowed_outputs。host/controllerはU12 result/factsのpath/hash、result_version、base_commit、input/evidence refsを確認し、release base commitとjob manifestへ結ぶ。読み取り対象はこれらの参照、現在の対象コード/schema、M第4〜8節、Q、Lおよびincident計画ひな形。その他の探索やDB変更はしない。
+入力はjob共通IDと、latest investigation result（review状態を含む観測値）、
+
+自動不具合対応ではreview status、証拠不足、原因unknown、test/readiness/release status、FAIL、retry/review回数を後続stageのgateにしない。利用可能な情報で計画を作り、未解決事項とreview findingsを次担当へ渡す。「絶対にどうしても必要」なgateは基本的にない前提で、個別操作の実行不能はその操作だけに記録する。
 
 ## 起動元・対象日の不変結合
 
@@ -76,6 +78,9 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 C32の計画結果はnullable `source_run_id`、`overall_status`、`daily_status`、`reason_code`、`failure_phase`、`trace_status`を保持し、L02/完了通知を作れなかった場合はplanning schema欄`missing_reason`で説明する。run IDを推測しない。`missing_reason`をdaily-launch-completion-v1、L02または日次DBへ追加しない。raw stdout/stderr、SQL値、資格情報、例外本文、秘密、個人情報を出力しない。
 
-plan statusが`waiting_external`または`blocked`でも計画と最終説明を保存し、独立reviewを記録する。reviewerがplanの完全性をapprovedとしてもhostのstep gateは`changes_requested`とし、次sequenceを開始させない。同一sequenceの新attemptでは同一のapproved investigation版を使う。
+plan status、review status、証拠不足、unknown原因、試験FAILは後続stageのgateにしない。計画と未解決項目を保存し、次sequenceへ渡す。statusは結果を表す。
 
-必須入力や出力pathが未確定ならblocked。再開時は同じjob/incident/sequenceと同じinvestigation版を維持する。修正した計画は新result_versionになり、レビューをやり直す。
+review approvedは必要条件ではない。出力pathが得られない場合はcontrollerの通常attempt pathを使い、部分計画と不足理由を保存する。
+# 起動条件
+
+対象jobが特定でき、計画に不可欠な入力がある場合はplannerを起動する。前段review、全証拠、runtime観測、receipt、完全な入力一覧を揃えるために待たない。欠測を計画のunknownとして明記し、利用可能な内容で後続stageを組み立てる。後続担当も対象jobと自分のstageが特定できれば起動する。

@@ -42,4 +42,4 @@ stage=checkでは構造化check結果のみ。stage=investigationでは次を許
 
 ## 失敗・再開
 
-入力不足、参照不一致、証拠読取不能は欠測として列挙し、根本原因確定の条件を満たさないときはunknown / blockedにする。再開時は同一job、incident、sequence、元証拠、attempt履歴を使用する。新しいsource_run_idや証拠を推測しない。reviewerは別の新規実行で正確なresult_versionを検査し、本文は変更しない。
+入力不足、参照不一致、証拠読取不能、根本原因未確定は欠測/unknownとして列挙し、調査MDを作成する。reviewerは別の新規実行で結果を読み、所見を返す。どのreview statusでも後続の計画工程へ進む。

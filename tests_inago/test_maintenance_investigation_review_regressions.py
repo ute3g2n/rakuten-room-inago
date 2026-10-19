@@ -190,7 +190,6 @@ def _complete_attempt(
             review_runner=lambda metadata: (reviewer_calls.append(metadata) or review),
             review_round=review_round,
             handoff_root=attempts_root,
-            synthetic_fixture=True,
         )
     )
 

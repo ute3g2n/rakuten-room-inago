@@ -358,7 +358,7 @@ def test_c46_contract(tmp_path: Path):
         == published.commit
     )
 
-    with pytest.raises(ReportContractError, match="report_not_approved"):
+    with pytest.raises(ReportContractError, match="report_review_invalid"):
         publish_reviewed_report(
             repo,
             report_path=report_output_path,
@@ -412,17 +412,16 @@ def test_report_review_must_bind_author_version_and_hash():
         )
 
 
-def test_report_rejects_unapproved_inputs_unsafe_links_and_identity_drift():
+def test_report_accepts_unapproved_status_but_rejects_unsafe_links_and_identity_drift():
     sources = _source_snapshot()
     sources["plan"]["review_status"] = "changes_requested"
-    with pytest.raises(ReportContractError, match="report_source_not_approved"):
-        prepare_incident_report(
-            _job_context(),
-            sources,
-            _report_response(),
-            template_path=Path(__file__).resolve().parents[1]
-            / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
-        )
+    prepare_incident_report(
+        _job_context(),
+        sources,
+        _report_response(),
+        template_path=Path(__file__).resolve().parents[1]
+        / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
     response = _report_response()
     response["issues"][0]["evidence_ref"] = "javascript:alert(1)"
     with pytest.raises(ReportContractError, match="report_link_invalid"):

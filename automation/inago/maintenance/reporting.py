@@ -64,7 +64,7 @@ _SENSITIVE_PATTERNS = (
 
 
 class ReportContractError(ValueError):
-    """A report, its approved inputs, or its publication state is invalid."""
+    """A report, its available inputs, or its publication state is invalid."""
 
     def __init__(self, code: str) -> None:
         self.code = code
@@ -193,8 +193,14 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
         if set(item) != {"result_version", "review_status", "href"}:
             raise ReportContractError("report_sources_invalid")
         _id(item["result_version"], "report_source_version_invalid")
-        if item["review_status"] != "approved":
-            raise ReportContractError("report_source_not_approved")
+        if item["review_status"] not in {
+            "approved",
+            "changes_requested",
+            "rejected",
+            "unavailable",
+            "not_started",
+        }:
+            raise ReportContractError("report_review_status_invalid")
         href_fields.append(f"{name}.href")
     implementation = data["implementation"]
     if set(implementation) != {
@@ -208,9 +214,16 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
         or _COMMIT_PATTERN.fullmatch(implementation["base_commit"]) is None
         or not isinstance(implementation["result_commit"], str)
         or _COMMIT_PATTERN.fullmatch(implementation["result_commit"]) is None
-        or implementation["review_status"] != "approved"
+        or implementation["review_status"]
+        not in {
+            "approved",
+            "changes_requested",
+            "rejected",
+            "unavailable",
+            "not_started",
+        }
     ):
-        raise ReportContractError("report_implementation_not_approved")
+        raise ReportContractError("report_implementation_status_invalid")
     tests = data["tests"]
     if set(tests) != {"status", "result_version", "summary", "evidence_href"}:
         raise ReportContractError("report_sources_invalid")
@@ -618,7 +631,7 @@ def prepare_incident_report(
     *,
     template_path: str | Path,
 ) -> ReportStageArtifacts:
-    """Render one report from approved, identity-bound sources.
+    """Render one report from available, identity-bound sources.
 
     The returned artifacts are ready for a separate report review. This helper
     does not persist to the repository, access production data, or publish.
@@ -756,10 +769,8 @@ def finalize_report_review(
     ):
         raise ReportContractError("report_result_not_reviewable")
     result["review"] = validated
-    result["stage_status"] = (
-        "reviewed" if validated["status"] == "approved" else "blocked"
-    )
-    result["next_action"] = "publish" if validated["status"] == "approved" else "hold"
+    result["stage_status"] = "reviewed"
+    result["next_action"] = "publish"
     result_json = (
         json.dumps(
             result,
@@ -867,7 +878,7 @@ def _git_paths(repo: Path, *args: str) -> list[str]:
 def _git_content_sha256(repo: Path, object_path: str) -> str:
     try:
         completed = subprocess.run(
-            ["git", "-C", str(repo), "show", object_path],
+            ["git", "-C", str(repo), "cat-file", "blob", object_path],
             check=False,
             capture_output=True,
         )
@@ -1026,7 +1037,7 @@ def publish_reviewed_report(
     target_branch: str,
     commit_message: str,
 ) -> ReportPublication:
-    """Commit and push a reviewed report, reusing an already published commit.
+    """Commit and push a report with its recorded review, reusing a published commit.
 
     Production callers use a dedicated detached managed worktree. A retry can
     therefore inspect the remote history for the unique report commit and
@@ -1079,9 +1090,7 @@ def publish_reviewed_report(
             output_sha256=reviewed_sha256,
         )
     except (ReportContractError, TypeError, AttributeError) as exc:
-        raise ReportContractError("report_not_approved") from exc
-    if reviewed["status"] != "approved":
-        raise ReportContractError("report_not_approved")
+        raise ReportContractError("report_review_invalid") from exc
     current_branch = _git(repo, "branch", "--show-current")
     if (
         not _BRANCH_PATTERN.fullmatch(target_branch)

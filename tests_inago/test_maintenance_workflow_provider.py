@@ -129,6 +129,10 @@ def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path)
                 attempt = context.resume_state.latest_attempts_by_sequence[1]
                 assert attempt.step_key == "maintenance_investigation"
                 assert attempt.status == "running"
+            if stage_name == "report":
+                return WorkflowStageResult(
+                    status="blocked", reason_code="report_inputs_unavailable"
+                )
             return WorkflowStageResult(status="complete")
 
         return run
@@ -139,15 +143,16 @@ def test_provider_loads_existing_job_and_attempt_before_running_stages(tmp_path)
     )
     outcome = provider(launch, check, queue, lease, threading.Event())
 
-    assert outcome.status == "complete"
+    assert outcome.status == "blocked"
     assert outcome.check_id == check.check_id
+    assert outcome.reason_code == "report_inputs_unavailable"
     assert stage_calls == list(WORKFLOW_STAGE_ORDER)
 
 
 def test_completed_job_resume_runs_only_report_stage():
     launch_id = "launch-u21-complete-resume"
     run_id = "run-u21-complete-resume"
-    target_date = "2026-10-19"
+    target_date = "2026-10-18"
     job = MaintenanceJobRecord(
         job_id="job-u21-complete-resume",
         incident_id="incident-u21-complete-resume",
@@ -454,7 +459,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     assert attempt.sequence == 1
     assert session_plan.role_name == "rr-inago-incident-investigator"
     assert session_plan.requested_model == "gpt-6.1-sol"
-    assert session_plan.requested_effort == "xhigh"
+    assert session_plan.requested_effort == "high"
     assert session_plan.requested_service_tier == "default"
     assert session_plan.requested_fast_mode is False
 
@@ -505,10 +510,12 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     def make_investigation_response(current_context):
         return {
             **current_context,
-            "schema_version": "maintenance-investigation-response-v1",
+            "schema_version": "maintenance-investigation-response-v2",
             "stage": "investigation",
-            "status": "complete",
             "summary": "日次結果の安全な観測値を確認しました。",
+            "report_markdown": "\n".join(
+                ["# 調査報告", *(f"## {number}. 章" for number in range(1, 10)), ""]
+            ),
             "facts": [
                 {
                     "fact_id": "daily-failure-1",
@@ -637,7 +644,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     )
     assert author_result.status == "complete", (author_result.reason_code, fake_errors)
     assert len(created_sessions) == 1
-    assert context.state["investigation_response"] == response
+    assert context.state["investigation_response"] == response | {"status": "complete"}
     assert context.state["investigation_response_sha256"] == "c" * 64
     assert context.state["investigation_result_version"] == (
         f"investigation:{attempt.attempt_id}:v1"
@@ -664,11 +671,14 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         controller,
         store,
     )
-    assert complete_result.status == "complete", complete_result.reason_code
-    assert len(created_sessions) == 5
+    assert complete_result.status == "complete", (
+        complete_result.reason_code,
+        fake_errors,
+    )
+    assert len(created_sessions) == 3
     outcome = context.state["investigation_outcome"]
     assert outcome.investigation_status == "complete"
-    assert outcome.review_status == "approved"
+    assert outcome.review_status == "changes_requested"
     assert outcome.next_action == "handoff"
     assert outcome.handoff is not None
     completed_attempt = store.get_step_attempt(attempt_id=outcome.attempt_id)
@@ -701,7 +711,7 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
     )
     assert planning_plan.role_name == "common-execution-planner"
     assert planning_plan.requested_model == "gpt-6.1-sol"
-    assert planning_plan.requested_effort == "xhigh"
+    assert planning_plan.requested_effort == "high"
     assert planning_plan.requested_service_tier == "default"
     assert planning_plan.requested_fast_mode is False
 
@@ -960,19 +970,19 @@ def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
         getattr(context.state.get("planning_outcome"), "review_reason_code", None),
         planning_review_turns,
     )
-    assert planning_review_turns[0] == 2
-    assert planner_turns[0] == 2
+    assert planning_review_turns[0] == 1
+    assert planner_turns[0] == 1
     assert context.state["planning_response"]["stage"] == "planning"
     assert context.state["planning_response_sha256"] == "e" * 64
     assert context.state["planning_turn_id"] == "turn-synthetic-planning"
     planning_outcome = context.state["planning_outcome"]
     assert planning_outcome.plan_status == "ready"
-    assert planning_outcome.review_status == "approved"
-    assert planning_outcome.gate_status == "approved"
+    assert planning_outcome.review_status == "changes_requested"
+    assert planning_outcome.gate_status == "changes_requested"
     first_planning_attempt = store.get_step_attempt(
         attempt_id=planning_outcome.attempt_id
     )
-    assert first_planning_attempt.attempt_no == 2
+    assert first_planning_attempt.attempt_no == 1
     monkeypatch.setattr(
         production_workflow,
         "_ensure_repair_worktree",

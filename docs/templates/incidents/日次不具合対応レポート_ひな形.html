@@ -115,7 +115,7 @@
         {{check_rows}}
       </tbody>
     </table>
-    <p>fixture試験、本番反映、次回の日次確認を別々に記載します。未実施や未確認を成功として扱いません。</p>
+    <p>fixture試験、本番反映、次回の日次確認を別々に記載します。未実施や未確認を成功として扱いません。review指摘、試験FAIL、証拠不足は状態として示し、解消していなくてもレポートの作成・保存を続けます。report status completeだけがjob complete・incident resolved・Worker成功に対応します。pending/blockedは報告artifactを保持してjobをblocked、incidentを実statusに合わせ、Workerはmaintenance_incompleteとして記録します。</p>
   </section>
 
   <section id="recovery">
@@ -134,7 +134,7 @@
       <li>調査: {{investigation_version}} · <a href="{{investigation_href}}">調査MD</a></li>
       <li>計画: {{plan_version}} · <a href="{{plan_href}}">修正計画</a></li>
       <li>コード: {{base_commit}} → {{result_commit_or_null}}</li>
-      <li>証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
+      <li id="evidence-index">証拠索引: <a href="{{evidence_index_href}}">{{evidence_index_label}}</a></li>
       <li>作成: {{reporter_id}} · {{created_at_jst}} · {{result_version}}</li>
       <li>コードレビュー: {{review_status}} · {{reviewed_version}}</li>
     </ul>
