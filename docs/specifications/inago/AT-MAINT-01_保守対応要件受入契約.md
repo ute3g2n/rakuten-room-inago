@@ -209,7 +209,9 @@ U23 migration `010_historical_job_resume_events.sql`はhistorical jobの再開�
 
 ## U21 reportの公開・job/incident終端・再開
 
-report公開は利用可能なreportとtarget情報で試みる。review approved、deployment済み、全inputの承認状態を公開条件にしない。statusや欠測はreportに記録する。公開結果は`attempts/<job_id>/<attempt_id>/report-publication.json`に保存し、report path/hash、target commit、source code commit、publication commit/base、remote/branch、観測時刻を記録する。credentialやHTML本文はこの公開結果へ含めない。公開は報告書HTMLだけを通常pushする。公開操作が実行できない場合は具体的なreason codeを保ち、例外連鎖・捕捉位置・相関ID・入力/成果物参照をfailure journalと工程handoffへ記録する。将来のstage resultとしてblockedを返さず、unknownまたはfailedで終端照合と後続処理を続ける。
+report公開は利用可能なreportとtarget情報で試みる。review approved、deployment済み、全inputの承認状態を公開条件にしない。statusや欠測はreportに記録する。公開結果は`attempts/<job_id>/<attempt_id>/report-publication.json`に保存し、report path/hash、target commit、source code commit、publication commit/base、remote/branch、観測時刻を記録する。credentialやHTML本文はこの公開結果へ含めない。公開は報告書HTMLだけを通常pushする。
+
+同じ公開先に既存HTMLがある場合、同一jobの前回成果・review record・publication sidecar・remote上の祖先commit・commit内HTMLが全て同じhashとidentityへ結び付く場合だけ、その既存hashを置換対象として許可する。前回の承認済みreportとcontroller fallbackのどちらも、対応するreview状態を確認してから置換する。確認できない場合は公開を拒否し、候補attemptごとの不一致理由を安全なoperation contextに残す。公開操作が実行できない場合は具体的なreason codeを保ち、例外連鎖・捕捉位置・相関ID・入力/成果物参照をfailure journalと工程handoffへ記録する。将来のstage resultとしてblockedを返さず、unknownまたはfailedで終端照合と後続処理を続ける。
 
 push後・publication artifact保存前に停止した場合は、利用可能なremote historyを見て既存publicationを再利用する。不一致や対象不明で公開操作を再開できない場合はその操作だけ未公開として記録し、汎用理由へ置換せず具体的reason codeを保持する。report結果は保存して他の工程を止めない。report publicationの可否と障害解消状態を混同せず、それぞれの実測statusを保存する。job/worker queueの終端statusは全stageを試行した結果として記録し、stageのapproved/readiness/release gateを終端条件にしない。
 

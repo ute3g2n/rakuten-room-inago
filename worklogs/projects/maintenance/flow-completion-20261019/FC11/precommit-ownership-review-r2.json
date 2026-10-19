@@ -1,0 +1,113 @@
+{
+  "schema_version": "fc11-precommit-ownership-review-v1",
+  "observed_at_jst": "2026-10-20T08:47:00+09:00",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "head": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+  "upstream": "origin/main",
+  "cached_paths_before_stage": [],
+  "tracked_modified_count": 8,
+  "untracked_owned_count": 5,
+  "candidate_files": [
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "02df5a197434cd659f905f2f8b617fccc87f4326f5d182001bd0e6bbc7daeead",
+      "bytes": 607974,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "docs/operations/日次タスクのトレース・ログ出力一覧.md",
+      "sha256": "ddbd93203dc22ab32da6bcc8b25aab1a80a017080249d28b14b24bec73711954",
+      "bytes": 74710,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+      "sha256": "b93ae258c13bf634184093afd48d849d8cbcca83102d57fbf82508276ca933d3",
+      "bytes": 69069,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+      "sha256": "0525f1723fce7cc209a1617f8f522d36ff693a3e4a6a1fe303aafcc560d9b3f6",
+      "bytes": 80273,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "sha256": "5548269ee9b5b9e400d947b0e86d43c17b01ddfc16bb8ef16c4b56099c3381c3",
+      "bytes": 4200630,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "sha256": "69c0755255a61a14bb31dc229b898f98d0b86a13530f1006f4f7f5263a2b6109",
+      "bytes": 317183,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "sha256": "59b2786828b1dbedc1e72d5248b294a8b876d008f05136981d92cf63cb44d3ca",
+      "bytes": 167435,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/fallback-handoff-fixes.md",
+      "sha256": "94e7b859a080addbb8a0f6ee292ceb12bfc4e74472c799c6a5bcfebc30e66c7b",
+      "bytes": 10498,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/publication-replacement-review-r1.json",
+      "sha256": "65d85cb837241b5d879b83fe5b720c0dd806d26559d638ab7ab88e778b7b99b0",
+      "bytes": 4545,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/publication-replacement-review-r1.md",
+      "sha256": "dc429e24f3af96c448c407b23f390881e8ae27cd876d72f8f547ff8c1e68b89a",
+      "bytes": 4044,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-bc8f2a6-readback.json",
+      "sha256": "787f1cd962c96a795f68ee4ef9a378e967e2936924d004970a5c962b710a7e7f",
+      "bytes": 2205,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-23-cli.json",
+      "sha256": "2d3b965555cce6cd8c22e0129d10b9a9d02bb0b924b7585967438612acaef050",
+      "bytes": 2081,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-23-worker.console.txt",
+      "sha256": "655d660c892a355ede026a2b14d7f36e4cb73997b4f87bc01bc5a32937ebf4fa",
+      "bytes": 441,
+      "ownership": "FC11 publication conflict fix, specification sync, required-flow record, or same-job run evidence"
+    }
+  ],
+  "privacy_pattern_scan_counts": {
+    "private_key": {
+      "staged_added_lines": 0
+    },
+    "bearer": {
+      "staged_added_lines": 0
+    },
+    "credential_assignment": {
+      "staged_added_lines": 0
+    },
+    "real_email": {
+      "staged_added_lines": 0
+    },
+    "profile_path": {
+      "staged_added_lines": 0
+    }
+  },
+  "git_diff_check_exit_code": 0,
+  "scope_decision": "All 13 candidate files are owned by this FC11 execution and the immediately preceding resume23/runtime-apply evidence. No other pre-existing user changes are included. This manifest excludes its own hash to avoid self-reference.",
+  "staged_paths_count": 14,
+  "staged_diff_check_exit_code": 0,
+  "recovered_check_failure": "The first staged diff check found three trailing-space Markdown line breaks in publication-replacement-review-r1.md. Removed those formatting spaces; a repeat git diff --cached --check returned 0."
+}

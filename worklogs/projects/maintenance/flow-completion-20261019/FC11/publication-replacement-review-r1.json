@@ -1,0 +1,80 @@
+{
+  "schema_version": "fc11-publication-replacement-review-v1",
+  "observed_at_jst": "2026-10-20T08:43:20+09:00",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "base_commit": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "resume_23": {
+    "worker_status": "maintenance_incomplete",
+    "reason_code": "report_publication_path_conflict",
+    "current_attempt_id": "f3f13768-6ea6-411b-b33a-de89c275c3a7",
+    "current_result_version": "report-314cfa05cc079969cd9bfc79-r14",
+    "current_review_status": "approved",
+    "current_review_findings": 0,
+    "current_reviewed_html_sha256": "af31348ef7607a642e2393e4efe4821ec9f22d585bdc63b48520217ceb4cd738",
+    "published_previous_attempt_id": "248743c6-c710-4ef3-af53-9336fbe2e3c1",
+    "published_previous_result_version": "report-69b06174df8c6a7a457cc70c-r13",
+    "published_previous_html_sha256": "2644b0118ac4d147c89b5de72ab9911b33b1f42b253f9f36593e2859f962b650",
+    "published_previous_publication_commit": "e17cf65f2fcca5c14ad28eb51b033b8ad996bd9d",
+    "published_previous_sidecar_present": true
+  },
+  "root_cause": "The target path contains an exact prior publication from the same job that was independently approved. The publisher only recognized a prior controller fallback as replaceable, so it rejected the reviewed prior report.",
+  "product_change": {
+    "file": "automation/inago/maintenance/production_workflow.py",
+    "sha256": "02df5a197434cd659f905f2f8b617fccc87f4326f5d182001bd0e6bbc7daeead",
+    "summary": "Permit replacement only after binding the prior same-job result, approved reviewer record or controller fallback status, publication sidecar, remote ancestry, and exact report blob. Record candidate result/cause summaries in a shallow safe operation context so the journal depth filter retains them."
+  },
+  "specification_sync": [
+    "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md",
+    "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md",
+    "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+  ],
+  "verification": {
+    "full_publication_test_file_pre_diagnostic_flattening": {
+      "command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_report_publication_stage.py -q",
+      "exit_code": 0,
+      "result": "46 passed in 105.83 seconds",
+      "note": "This run included the approved-prior-publication replacement behavior but preceded the final change from nested candidate maps to shallow safe strings."
+    },
+    "focused_test_final_source": {
+      "command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_report_publication_stage.py -k same_job_proven_report_publication -q",
+      "exit_code": 0,
+      "result": "1 passed, 45 deselected in 3.37 seconds"
+    },
+    "py_compile": {
+      "exit_code": 0,
+      "files": [
+        "automation/inago/maintenance/production_workflow.py",
+        "tests_inago/test_maintenance_report_publication_stage.py"
+      ]
+    },
+    "git_diff_check": {
+      "exit_code": 0,
+      "warning": "Git reported its normal CRLF-to-LF normalization warning for production_workflow.py."
+    },
+    "requirements_builder": {
+      "command": "node tools/docs/inago-requirements/build.mjs",
+      "exit_code": 0,
+      "version": "2.56",
+      "chapters": 28,
+      "figures": 39,
+      "reference_documents": 26,
+      "output_bytes": 4200630
+    }
+  },
+  "independent_product_review": {
+    "reviewer": "fc11_html_scope_product_review_r2",
+    "verdict": "APPROVE",
+    "findings": 0,
+    "source_sha256": "02df5a197434cd659f905f2f8b617fccc87f4326f5d182001bd0e6bbc7daeead",
+    "notes": "The existing identity/result/review/sidecar/hash/remote ancestry/blob checks and final old-hash recheck remain. Test code was not independently reviewed."
+  },
+  "deployment_and_same_job_status": "Not yet applied or re-run after this change. Overall plan remains incomplete.",
+  "next_action": "Audit only task-owned changes, selectively commit and push to origin/main, officially activate the commit on the fixed root, then resume the same 10/17 job once and run Worker limited to the same source_launch_id. Read back publication, terminal, source/run identity, and 10/19 exclusion state."
+}

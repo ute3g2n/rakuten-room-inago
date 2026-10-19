@@ -11389,7 +11389,7 @@ def _daily_report_publication_worktree(
     return repository
 
 
-def _daily_report_replaceable_fallback_sha256(
+def _daily_report_replaceable_prior_publication_sha256(
     *,
     repository: Path,
     store: MaintenanceStore,
@@ -11400,18 +11400,51 @@ def _daily_report_replaceable_fallback_sha256(
     existing_sha256: str,
     remote_name: str,
     target_branch: str,
+    diagnostics: dict[str, object] | None = None,
 ) -> str | None:
-    """Prove an old public blob came from this job's unreviewed fallback."""
+    """Prove the old public blob is a prior report published by this job."""
+
+    evidence = diagnostics if diagnostics is not None else {}
+    evidence.clear()
+    evidence["decision"] = "not_authorized"
 
     if re.fullmatch(r"[a-f0-9]{64}", existing_sha256) is None:
+        evidence["rejection_reason"] = "existing_report_hash_invalid"
         return None
     try:
         remote_head = _daily_report_target_head(
             repository, remote_name=remote_name, target_branch=target_branch
         )
-    except ReportContractError:
+    except ReportContractError as exc:
+        evidence["rejection_reason"] = "remote_target_head_unavailable"
+        evidence["cause_code"] = exc.code
         return None
     attempts_root = store.database_path.parent / "attempts"
+    candidates: list[str] = []
+    causes: list[str] = []
+    evidence["candidate_results"] = candidates
+    evidence["candidate_causes"] = causes
+
+    def reject(
+        previous: StepAttemptRecord,
+        reason: str,
+        *,
+        cause_class: str | None = None,
+        cause_code: str | None = None,
+    ) -> None:
+        evidence["rejection_reason"] = reason
+        if len(candidates) < 16:
+            candidates.append(f"{previous.attempt_id}:{reason}")
+        if len(causes) < 16 and (cause_class or cause_code):
+            safe_parts = [previous.attempt_id, "cause"]
+            for value in (cause_class, cause_code):
+                if (
+                    isinstance(value, str)
+                    and re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", value)
+                ):
+                    safe_parts.append(value)
+            causes.append(":".join(safe_parts))
+
     for previous in reversed(store.list_step_attempts(job_id=job.job_id)):
         if (
             previous.attempt_id == current_attempt.attempt_id
@@ -11443,14 +11476,33 @@ def _daily_report_replaceable_fallback_sha256(
                 ).as_posix(),
                 store=store,
             )
-        except (ReportContractError, MaintenanceStoreError):
+        except (ReportContractError, MaintenanceStoreError) as exc:
+            cause_code = getattr(exc, "code", None)
+            reject(
+                previous,
+                "prior_result_or_publication_unavailable",
+                cause_class=type(exc).__name__,
+                cause_code=cause_code if isinstance(cause_code, str) else None,
+            )
             continue
+        fallback_review = isinstance(prior_review, dict) and (
+            prior_result.get("stage_status") == "review_unavailable"
+            and prior_result.get("report_origin") == "controller_fallback"
+            and prior_review.get("reviewer_id")
+            == "controller-fallback-review-unavailable"
+            and prior_review.get("status") == "unavailable"
+        )
+        approved_review = isinstance(prior_review, dict) and (
+            prior_result.get("stage_status") == "reviewed"
+            and prior_result.get("report_origin") is None
+            and prior_review.get("reviewer_id") == _REPORT_REVIEWER_ROLE
+            and prior_review.get("status") == "approved"
+        )
         if (
             prior_result.get("identity") != identity
             or prior_result.get("attempt_id") != previous.attempt_id
             or prior_result.get("result_version") != previous.result_version
-            or prior_result.get("stage_status") != "review_unavailable"
-            or prior_result.get("report_origin") != "controller_fallback"
+            or not (fallback_review or approved_review)
             or prior_result.get("report_status") != "pending"
             or prior_result.get("next_action") != "publish"
             or not isinstance(prior_output, dict)
@@ -11466,6 +11518,10 @@ def _daily_report_replaceable_fallback_sha256(
                 attempt=previous,
             )
         ):
+            reject(
+                previous,
+                "prior_result_not_bound_to_same_job_approved_or_fallback_report",
+            )
             continue
         required_publication_fields = {
             "schema_version",
@@ -11496,8 +11552,13 @@ def _daily_report_replaceable_fallback_sha256(
             or publication.get("remote_name") != remote_name
             or publication.get("target_branch") != target_branch
             or not isinstance(prior_publication_commit, str)
-            or re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", prior_publication_commit) is None
+            or re.fullmatch(
+                r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})",
+                prior_publication_commit,
+            )
+            is None
         ):
+            reject(previous, "prior_publication_sidecar_binding_mismatch")
             continue
         try:
             prior_html = _daily_report_read_bytes(
@@ -11507,8 +11568,10 @@ def _daily_report_replaceable_fallback_sha256(
                 expected_sha256=existing_sha256,
             )
         except ReportContractError:
+            reject(previous, "prior_report_artifact_unavailable")
             continue
         if hashlib.sha256(prior_html).hexdigest() != existing_sha256:
+            reject(previous, "prior_report_artifact_hash_mismatch")
             continue
         ancestor = subprocess.run(
             [
@@ -11525,6 +11588,7 @@ def _daily_report_replaceable_fallback_sha256(
             timeout=60,
         )
         if ancestor.returncode != 0:
+            reject(previous, "prior_publication_not_ancestor_of_remote_head")
             continue
         prior_blob = subprocess.run(
             [
@@ -11543,7 +11607,14 @@ def _daily_report_replaceable_fallback_sha256(
             prior_blob.returncode == 0
             and hashlib.sha256(prior_blob.stdout).hexdigest() == existing_sha256
         ):
+            evidence["decision"] = "authorized_same_job_prior_publication"
+            evidence["authorized_attempt_id"] = previous.attempt_id
+            if len(candidates) < 16:
+                candidates.append(f"{previous.attempt_id}:authorized")
             return existing_sha256
+        reject(previous, "prior_publication_commit_blob_mismatch")
+    if "rejection_reason" not in evidence:
+        evidence["rejection_reason"] = "no_eligible_prior_publication_attempt"
     return None
 
 
@@ -11741,16 +11812,23 @@ def run_daily_report_publication_stage(
                 remote_existing_sha256
             )
         if remote_existing_sha256 is not None and remote_existing_sha256 != html_sha256:
-            expected_existing_sha256 = _daily_report_replaceable_fallback_sha256(
-                repository=worktree,
-                store=store,
-                job=job,
-                current_attempt=attempt,
-                identity=manifest_identity,
-                report_path=report_path,
-                existing_sha256=remote_existing_sha256,
-                remote_name=remote_name,
-                target_branch=target_branch,
+            replacement_evidence: dict[str, object] = {}
+            expected_existing_sha256 = (
+                _daily_report_replaceable_prior_publication_sha256(
+                    repository=worktree,
+                    store=store,
+                    job=job,
+                    current_attempt=attempt,
+                    identity=manifest_identity,
+                    report_path=report_path,
+                    existing_sha256=remote_existing_sha256,
+                    remote_name=remote_name,
+                    target_branch=target_branch,
+                    diagnostics=replacement_evidence,
+                )
+            )
+            failure_context["existing_report_replacement_evidence"] = (
+                replacement_evidence
             )
             if expected_existing_sha256 is None:
                 failure_context["existing_report_replaceable"] = False

@@ -56,7 +56,7 @@ tests_inago/test_maintenance_workflow_provider.py::test_daily_evidence_stage_per
 
 ## 次の再開位置
 
-すべての変更をownership単位で監査し、cached/uncached/untracked、secret scan、`git diff --check`を確認してtask-owned差分だけを選択stage/commit/pushする。そのHEADを公式fixed-root runtimeへapply/read-back後、対象job/source_launch_idだけをWorkerで再開し、fresh reporter/reviewer/revision/publication/DB terminalを確認する。完遂判定はまだ行わない。
+次は同一job/source_launch_idを明示してresume-workerし、続けてそのsource_launch_id限定のWorker --onceを実行する。fresh reporter/reviewer/revision/publication/DB terminalを確認する。完遂判定はまだ行わない。
 
 ## 選択stage前の所有監査
 
@@ -68,3 +68,9 @@ tests_inago/test_maintenance_workflow_provider.py::test_daily_evidence_stage_per
 - 選択ファイル整合assertの初回はownership表のhash表記を誤ってbacktick付きと仮定し、31件を読めずassertion errorとなった。読み取りのみでファイル・index変更なし。実際のplain hash列へparserを合わせ、32 staged filesと6 JSONを確認できた。
 - staged full-file privacy scanはcanonical requirement HTML内のユーprofile path 1件とtests内の合成`example.invalid` address 5件を検出した。Git HEADのcanonical HTMLにも同じprofile referenceが1件あり、生成元の既存`worklogs/projects/requirements/notes/00_実行管理.md`は今回の所有差分ではない。builderが参照資料から再生成するためその歴史資料は編集せず、計画本文に今回追加されていたprofile pathだけを「global Codex AGENTS.md」へ置換した。合成addressは今回の追加行にはない。final staged added-line scanはprivate key/token/bearer/profile path/real emailすべて0件。
 - plan内のprofile path除去後、canonical source builder v2.56を再実行し28章/39図/26参照資料/4,197,768 bytesで終了。canonical HTMLの既存referenceはGit HEADと同じ内容に保たれた。
+
+## Git公開・official runtime apply
+
+- 32 task-owned fileを選択commitし、`main` commit `bc8f2a68ad5b96865993a68e2d3a020747966a44` を `origin/main` へpushした。remote readbackは同じcommit、ahead/behind 0/0。
+- official `TaskSchedulerRuntimeSwitcher.activate(commit, checkout=None)` と `confirm_active(commit)` で固定workspaceの同じrootをapplyした。active commitは `bc8f2a68ad5b96865993a68e2d3a020747966a44`、health true、state status active、pending null。Daily/Worker/Watchdog/HumanApiの4 taskは全てReady/Enabledへ戻った。詳細は `runtime-apply-bc8f2a6-readback.json`。
+- このapply後に同一jobのresume23とlaunch限定Workerを実行した。実結果と現在の次の再開位置は`publication-replacement-review-r1.md/.json`を参照する。

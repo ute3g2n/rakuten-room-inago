@@ -1,0 +1,60 @@
+{
+  "schema_version": "fc11-same-job-resume-command-v1",
+  "observed_at_utc": "2026-10-19T23:36:02.878964+00:00",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "command": [
+    "python",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "<fixed runtime>",
+    "resume-worker",
+    "--source-launch-id",
+    "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "--job-id",
+    "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  ],
+  "before": {
+    "quick_check": "ok",
+    "schema_version": 16,
+    "job_status": "complete",
+    "resume_count": 22,
+    "job_source_run_id": null,
+    "manifest": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30",
+      "created_at": "2026-10-18T21:32:50.000000Z"
+    },
+    "running_attempts": [
+      {
+        "attempt_id": "0809d9f7-36ce-4d5e-93cc-683484e2d383",
+        "step_key": "maintenance_planning",
+        "sequence": 2,
+        "attempt_no": 11,
+        "status": "running",
+        "started_at": "2026-10-19T22:18:38.195272Z",
+        "finished_at": null
+      }
+    ]
+  },
+  "exit_code": 0,
+  "response": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "resume_count": 23,
+    "resume_event_id": "a39f7acf22dc485ab2f1de903a3d69bb",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "queued"
+  },
+  "stdout_tail": [
+    "{\"job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\", \"resume_count\": 23, \"resume_event_id\": \"a39f7acf22dc485ab2f1de903a3d69bb\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"queued\"}"
+  ],
+  "stderr_class": "empty",
+  "stderr_tail": [],
+  "result": "queued"
+}

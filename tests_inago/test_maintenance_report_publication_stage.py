@@ -2003,11 +2003,11 @@ def test_publication_stage_recovers_after_push_before_artifact_save(
     assert not guard.held
 
 
-def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement(
+def test_only_same_job_proven_report_publication_can_authorize_blob_replacement(
     tmp_path: Path,
 ):
     from automation.inago.maintenance.production_workflow import (
-        _daily_report_replaceable_fallback_sha256,
+        _daily_report_replaceable_prior_publication_sha256,
     )
 
     runtime_root = tmp_path / "runtime"
@@ -2170,7 +2170,7 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
             assert hashlib.sha256(raw).hexdigest() == expected_sha256
             return raw
 
-    authorized = _daily_report_replaceable_fallback_sha256(
+    authorized = _daily_report_replaceable_prior_publication_sha256(
         repository=repository,
         store=Store(),
         job=job,
@@ -2183,7 +2183,7 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
     )
     assert authorized == public_sha256
     public_file.unlink()
-    assert _daily_report_replaceable_fallback_sha256(
+    assert _daily_report_replaceable_prior_publication_sha256(
         repository=repository,
         store=Store(),
         job=job,
@@ -2202,7 +2202,7 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
     )
     assert remote_head == publication_commit
     assert remote_sha256 == public_sha256
-    assert _daily_report_replaceable_fallback_sha256(
+    assert _daily_report_replaceable_prior_publication_sha256(
         repository=repository,
         store=Store(),
         job=job,
@@ -2214,12 +2214,85 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
         target_branch="main",
     ) is None
 
+    # A previous real, independently approved report from this same job is
+    # also replaceable when its result, review record, sidecar, and remote
+    # commit all bind to the exact existing blob.
+    review = {
+        **review,
+        "reviewer_id": "rr-inago-incident-report-reviewer",
+        "reviewed_version": "report-fc10-v1",
+        "status": "approved",
+    }
+    result = {
+        **result,
+        "result_version": "report-fc10-v1",
+        "stage_status": "reviewed",
+        "report_origin": None,
+        "review": review,
+    }
+    reviewed_result_bytes = json.dumps(
+        result, sort_keys=True, separators=(",", ":")
+    ).encode()
+    result_path.write_bytes(reviewed_result_bytes)
+    reviewed_result_sha256 = hashlib.sha256(reviewed_result_bytes).hexdigest()
+    publication = {
+        **publication,
+        "result_version": "report-fc10-v1",
+        "result_sha256": reviewed_result_sha256,
+    }
+    publication_path = result_path.parent / "report-publication.json"
+    publication_path.write_text(
+        json.dumps(publication, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    previous = replace(
+        previous,
+        result_version="report-fc10-v1",
+        output_sha256=reviewed_result_sha256,
+    )
+    attempts[0] = previous
+    review_record.update(
+        {
+            "reviewer_id": review["reviewer_id"],
+            "reviewed_version": review["reviewed_version"],
+            "status": review["status"],
+        }
+    )
+    replacement_diagnostics: dict[str, object] = {}
+    assert _daily_report_replaceable_prior_publication_sha256(
+        repository=repository,
+        store=Store(),
+        job=job,
+        current_attempt=current,
+        identity=identity,
+        report_path=report_path,
+        existing_sha256=public_sha256,
+        remote_name="origin",
+        target_branch="main",
+        diagnostics=replacement_diagnostics,
+    ) == public_sha256
+    assert replacement_diagnostics == {
+        "decision": "authorized_same_job_prior_publication",
+        "candidate_results": [f"{previous_id}:authorized"],
+        "candidate_causes": [],
+        "authorized_attempt_id": previous_id,
+    }
+    from automation.inago.maintenance.failure_journal import _safe_operation_context
+
+    sanitized_context = _safe_operation_context(
+        {"existing_report_replacement_evidence": replacement_diagnostics}
+    )
+    assert sanitized_context["existing_report_replacement_evidence"] == (
+        replacement_diagnostics
+    )
+
     publication_path = result_path.parent / "report-publication.json"
     original_result = result_path.read_bytes()
     original_publication = publication_path.read_bytes()
     for field, bad_value in (
         ("reviewed_version", "another-version"),
         ("reviewed_sha256", "f" * 64),
+        ("status", "changes_requested"),
     ):
         bad_review = {**review, field: bad_value}
         bad_result = {**result, "review": bad_review}
@@ -2246,9 +2319,11 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
                 "reviewed_sha256": bad_value
                 if field == "reviewed_sha256"
                 else review["reviewed_sha256"],
+                "status": bad_value if field == "status" else review["status"],
             }
         )
-        assert _daily_report_replaceable_fallback_sha256(
+        rejection_diagnostics: dict[str, object] = {}
+        assert _daily_report_replaceable_prior_publication_sha256(
             repository=repository,
             store=Store(),
             job=job,
@@ -2258,7 +2333,19 @@ def test_only_same_job_unreviewed_fallback_can_authorize_report_blob_replacement
             existing_sha256=public_sha256,
             remote_name="origin",
             target_branch="main",
+            diagnostics=rejection_diagnostics,
         ) is None
+        if field == "status":
+            sanitized_context = _safe_operation_context(
+                {"existing_report_replacement_evidence": rejection_diagnostics}
+            )
+            evidence = sanitized_context["existing_report_replacement_evidence"]
+            assert evidence["rejection_reason"] == (
+                "prior_result_not_bound_to_same_job_approved_or_fallback_report"
+            )
+            assert evidence["candidate_results"] == [
+                f"{previous_id}:prior_result_not_bound_to_same_job_approved_or_fallback_report"
+            ]
         review_record.update(
             {
                 "reviewed_version": review["reviewed_version"],

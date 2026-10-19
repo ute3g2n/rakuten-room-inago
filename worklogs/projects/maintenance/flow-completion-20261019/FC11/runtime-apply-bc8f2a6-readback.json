@@ -1,0 +1,81 @@
+{
+  "schema_version": "fc11-runtime-apply-readback-v1",
+  "observed_at_utc": "2026-10-19T23:34:10.019830+00:00",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "branch": "main",
+  "commit": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+  "push_readback": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+  "official_switcher": "TaskSchedulerRuntimeSwitcher",
+  "operation": "activate(commit, checkout=None); confirm_active(commit)",
+  "read_only_before": {
+    "active_commit": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+    "state": {
+      "active": {
+        "commit": "abfa4482666c44d47cd2c2053c34edba9f251c2f",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "result": "applied_and_confirmed",
+  "after": {
+    "active_commit": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+    "healthy": true,
+    "state": {
+      "active": {
+        "commit": "bc8f2a68ad5b96865993a68e2d3a020747966a44",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  }
+}
