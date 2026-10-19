@@ -20,7 +20,7 @@
   ],
   "properties": {
     "schema_version": { "const": 1 },
-    "settings_version": { "const": "1.0" },
+    "settings_version": { "enum": ["1.0", "1.1"] },
     "timezone": { "const": "Asia/Tokyo" },
     "code_fix_concurrency": { "const": 1 },
     "lease_heartbeat_seconds": { "const": 30 },
@@ -28,8 +28,8 @@
     "ai_job_timeout_seconds": { "const": 1200 },
     "cancellation_confirmation_timeout_seconds": { "const": 60 },
     "request_retry_limit": { "const": 2 },
-    "review_round_limit": { "const": 3 },
-    "job_resume_limit": { "const": 3 },
+    "review_round_limit": { "enum": [3, 5] },
+    "job_resume_limit": { "enum": [3, 4] },
     "diagnostic_log_retention_days": { "const": 90 },
     "diagnostic_log_max_file_bytes": { "const": 4194304 },
     "diagnostic_log_max_files_per_day": {
@@ -38,5 +38,25 @@
       "description": "Legacy input accepted for compatibility; ignored by maintenance logging."
     }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "settings_version": { "const": "1.0" } } },
+      "then": {
+        "properties": {
+          "review_round_limit": { "const": 3 },
+          "job_resume_limit": { "const": 3 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "settings_version": { "const": "1.1" } } },
+      "then": {
+        "properties": {
+          "review_round_limit": { "const": 5 },
+          "job_resume_limit": { "const": 4 }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }

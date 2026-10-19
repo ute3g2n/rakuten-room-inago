@@ -2867,7 +2867,16 @@ def _daily_investigation_prompt(
         "Do not browse unrelated paths or query a database. Keep observations, "
         "hypotheses, unknowns, and missing evidence separate. Do not infer a "
         "source_run_id when it is null. Every fact must reference only the "
-        "provided evidence_refs. Return exactly the structured response schema; "
+        "provided evidence_refs. Preserve Markdown literally: do not HTML-entity "
+        "encode underscores, brackets, heading markers, field names, or links; "
+        "put exact field names in code spans when needed. For every fact, include "
+        "all evidence_refs that support its values. Distinguish recorded run status "
+        "from an observation's recorded CLI exit code and from independent process "
+        "verification. In chapter 9, list each evidence reference separately and "
+        "copy its supplied SHA-256 and observation/collection timestamp exactly; "
+        "distinguish the code base commit from evidence-file identity, and mark "
+        "only absent metadata as unprovided. Return exactly the structured response "
+        "schema; "
         "the host controller will create the three allowed artifacts after "
         "validation. Do not modify files.\n\n"
         "EXACT_JOB_CONTEXT_JSON:\n"
@@ -3133,7 +3142,28 @@ def run_daily_investigation_stage(
             reason_code="investigation_timeout_invalid",
         )
 
-    for _ in range(3):
+    job = workflow.state.get("job")
+    if not isinstance(job, MaintenanceJobRecord):
+        return WorkflowStageResult(
+            status="blocked", reason_code="investigation_job_identity_invalid"
+        )
+    try:
+        reviewed_attempts = sum(
+            store.get_step_attempt_review(attempt_id=step_attempt.attempt_id)
+            is not None
+            for step_attempt in store.list_step_attempts(job_id=job.job_id)
+            if step_attempt.step_key == "maintenance_investigation"
+            and step_attempt.sequence == 1
+        )
+    except MaintenanceStoreError as exc:
+        return WorkflowStageResult(status="blocked", reason_code=exc.code)
+    remaining_review_rounds = store.review_round_limit - reviewed_attempts
+    if remaining_review_rounds < 1:
+        return WorkflowStageResult(
+            status="blocked", reason_code="investigation_review_round_limit_reached"
+        )
+
+    for _ in range(remaining_review_rounds):
         author_result = run_daily_investigation_author_stage(
             workflow,
             controller,
@@ -3180,12 +3210,6 @@ def run_daily_investigation_stage(
                     reason_code="investigation_attempt_not_actionable",
                 )
             review_round = store.next_step_review_round(current_attempt.attempt_id)
-            job = workflow.state.get("job")
-            if not isinstance(job, MaintenanceJobRecord):
-                return WorkflowStageResult(
-                    status="blocked",
-                    reason_code="investigation_job_identity_invalid",
-                )
             release_basis = store.get_release_deployment_basis(
                 release_id=job.release_id
             )
@@ -3334,7 +3358,7 @@ def run_daily_investigation_stage(
                 reviewer_id=reviewer_id,
                 reviewer_execution_id=reviewer_execution_id,
                 review_round=review_round,
-                max_review_rounds=3,
+                max_review_rounds=store.review_round_limit,
             )
             workflow.state["investigation_review_response_path"] = str(turn.output_path)
             workflow.state["investigation_review_response_sha256"] = turn.output_sha256
@@ -3364,6 +3388,7 @@ def run_daily_investigation_stage(
                     review_runner=review_runner,
                     review_round=review_round,
                     handoff_root=attempts_root,
+                    max_review_rounds=store.review_round_limit,
                     time_provider=lambda: datetime.now(timezone.utc),
                 )
             )
@@ -4131,7 +4156,28 @@ def run_daily_planning_stage(
             reason_code="planning_timeout_invalid",
         )
 
-    for _ in range(3):
+    job = workflow.state.get("job")
+    if not isinstance(job, MaintenanceJobRecord):
+        return WorkflowStageResult(
+            status="blocked", reason_code="planning_job_identity_invalid"
+        )
+    try:
+        reviewed_attempts = sum(
+            store.get_step_attempt_review(attempt_id=step_attempt.attempt_id)
+            is not None
+            for step_attempt in store.list_step_attempts(job_id=job.job_id)
+            if step_attempt.step_key == "maintenance_planning"
+            and step_attempt.sequence == 2
+        )
+    except MaintenanceStoreError as exc:
+        return WorkflowStageResult(status="blocked", reason_code=exc.code)
+    remaining_review_rounds = store.review_round_limit - reviewed_attempts
+    if remaining_review_rounds < 1:
+        return WorkflowStageResult(
+            status="blocked", reason_code="planning_review_round_limit_reached"
+        )
+
+    for _ in range(remaining_review_rounds):
         author_result = run_daily_planning_author_stage(
             workflow,
             controller,

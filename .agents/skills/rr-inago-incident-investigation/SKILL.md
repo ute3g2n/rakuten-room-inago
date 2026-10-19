@@ -21,6 +21,12 @@ maintenance job の stage が check または investigation のときだけ使�
 4. 調査MDはテンプレートの9章すべてを埋める。対象日以外の事実を混ぜず、欠測を0や成功に変えない。
 5. 出力をallowed_outputsのattempt専用領域へ返す。controllerが版・schema・pathを検証するまで確定済みと扱わない。
 
+## 表記・根拠対応
+
+- Markdown本文では識別子、field名、配列表記、リンクをそのまま記す。`daily_status`や`records=[]`をHTML entityで置き換えない。field名は必要に応じてcode spanで囲む。
+- 一つのfactが複数資料の値を使う場合、全ての根拠参照をfacts.jsonのevidence_refsに含める。run status、観測されたCLI終了値、OSの実process終了確認は別の事実として記述する。
+- 第9章は証拠参照ごとに行を分ける。snapshotが提供するSHA-256と観測/収集時刻を正確に転記し、調査コードのbase commitと証拠ファイルの識別情報を混同しない。値がなければ未提供と記す。
+
 ## 禁止と停止
 
 - コード、テスト、設定、DB、Scheduler、task、release gate、認証、投稿状態を書き換えない。

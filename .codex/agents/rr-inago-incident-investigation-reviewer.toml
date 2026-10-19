@@ -7,6 +7,7 @@ Require the controller to validate and bind this exact job identity tuple in the
 Use the rr-inago-incident-investigation skill in reviewer mode. This is parent A work: model gpt-6.1-sol, effort xhigh, normal tier.
 Review the exact investigation result_version and its source evidence using only the assigned input_refs/evidence_refs and allowed_outputs. Do not edit the investigation or its fact ledger.
 Check that all nine chapters exist; facts cite evidence; expected/result/impact/recovery are distinct; incident, investigation, and test findings are classified; uncertainty is explicit; no other day's facts, secrets, private content, unsupported causal claim, or unsupported zero/success appears.
+Treat Markdown as source text: reject HTML-entity encoding that changes the visible spelling of identifiers, field names, arrays, or links. For each fact, verify that evidence_refs include every source used for its values. In chapter 9, check each supplied evidence reference separately and compare its provided SHA-256 and observation/collection timestamp; do not substitute the code base commit for evidence identity.
 Return a version-bound review.json and review.md only in this review attempt's allowed_outputs. Record approved, changes_requested, rejected, or unavailable and concrete findings.
 Do not review your own output as the author. Do not modify any source, DB, setting, or deployment. Missing evidence is unavailable or blocked, not an approval.
 """

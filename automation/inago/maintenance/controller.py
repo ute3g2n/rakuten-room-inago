@@ -137,6 +137,7 @@ class InvestigationAttemptRequest:
     handoff_root: str | Path
     synthetic_fixture: bool = False
     time_provider: Callable[[], datetime] | None = None
+    max_review_rounds: int = 3
 
 
 @dataclass(frozen=True)
@@ -357,7 +358,7 @@ def _run_investigation_review(
             reviewer_id=request.reviewer_id,
             reviewer_execution_id=request.reviewer_execution_id,
             review_round=request.review_round,
-            max_review_rounds=3,
+            max_review_rounds=request.max_review_rounds,
         )
     except Exception:
         return (

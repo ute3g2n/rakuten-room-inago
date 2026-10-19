@@ -699,7 +699,7 @@ def validate_investigation_review(
     if (
         isinstance(max_review_rounds, bool)
         or not isinstance(max_review_rounds, int)
-        or not 1 <= max_review_rounds <= 3
+        or not 1 <= max_review_rounds <= 10
         or isinstance(review_round, bool)
         or not isinstance(review_round, int)
         or not 1 <= review_round <= max_review_rounds
