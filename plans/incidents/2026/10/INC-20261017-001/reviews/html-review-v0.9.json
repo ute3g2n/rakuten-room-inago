@@ -1,0 +1,9 @@
+{
+  "schema_version": "maintenance-report-review-v1",
+  "reviewer_id": "rr-inago-incident-report-reviewer",
+  "reviewed_version": "v0.9",
+  "reviewed_sha256": "2efefd4cb6dff2d90360f04d7f324b39145b5af14dd48669fb468b8453f12947",
+  "status": "approved",
+  "reviewed_at": "2026-10-19T21:12:22+09:00",
+  "findings": []
+}
