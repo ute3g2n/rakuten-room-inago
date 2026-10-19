@@ -178,6 +178,10 @@ def test_c29_contract(tmp_path):
 
     context = make_context()
     response = make_investigation_response(context)
+    response["summary"] = "The recorded daily_status is failed; records=[] were observed."
+    response["facts"][0]["actual"] = (
+        "daily_status=failed; records=[]; literal \\| cell; markdown \\*word*"
+    )
 
     validated = validate_investigation_response(response, context)
     markdown = render_investigation_markdown(
@@ -195,6 +199,18 @@ def test_c29_contract(tmp_path):
     assert "investigation-v1" in markdown
     assert "unknown" in markdown
     assert "未確認" in markdown
+    assert "daily_status" in markdown
+    assert "records=[]" in markdown
+    assert (
+        "| daily_status=failed; records=[]; literal &#92;&#124; cell; markdown \\*word* |"
+        in markdown
+    )
+    assert (
+        "daily_status=failed; records=[]; literal \\| cell; markdown \\*word*"
+        in markdown
+    )
+    assert "daily&#95;status" not in markdown
+    assert "records=&#91;&#93;" not in markdown
     assert "外部側停止が原因" not in markdown
     assert "合成fixtureから生成した検証用レポート" in markdown
     saved_markdown = tmp_path / "investigation.md"
