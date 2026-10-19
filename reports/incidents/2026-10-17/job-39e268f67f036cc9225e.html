@@ -1,23 +1,217 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>日次作業の不具合対応について</title>
-<style>body{font-family:system-ui,sans-serif;line-height:1.8;max-width:920px;margin:2rem auto;padding:0 1rem;color:#17202a}h1,h2{line-height:1.4}section{margin:1.5rem 0}.note{background:#f1f5f9;padding:1rem;border-radius:.5rem}.synthetic{border:2px solid #7c2d12;background:#fff7ed;padding:.8rem;font-weight:700}pre,code{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{max-width:none;margin:0}}</style>
-</head><body><main>
-<h1>日次作業の不具合対応について</h1>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="日次処理の障害、調査、修正、検証、反映状況を根拠とともに確認する報告ひな形">
+  <title>日次作業の不具合対応報告</title>
+  <style>
+    :root { color-scheme: light; --ink: #20313d; --muted: #526675; --line: #cbd6dd; --soft: #f1f5f7; --accent: #175a72; --warn: #7a4c00; --bad: #8c2e35; --good: #246146; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eaf0f3; color: var(--ink); font: 16px/1.65 system-ui, "Yu Gothic UI", "Meiryo", sans-serif; }
+    main { width: min(1100px, calc(100% - 2rem)); margin: 2rem auto; background: white; padding: clamp(1rem, 4vw, 3rem); box-shadow: 0 5px 24px #20313d18; }
+    h1, h2, h3 { line-height: 1.3; }
+    h1 { margin-top: .2rem; font-size: clamp(1.55rem, 4vw, 2.25rem); }
+    h2 { margin-top: 2.4rem; padding-bottom: .45rem; border-bottom: 2px solid var(--line); color: var(--accent); font-size: 1.35rem; }
+    h3 { margin-top: 1.5rem; font-size: 1.08rem; }
+    a { color: #145c8b; overflow-wrap: anywhere; }
+    .eyebrow, .muted { color: var(--muted); }
+    .summary { padding: 1rem 1.2rem; background: var(--soft); border-left: 4px solid var(--accent); }
+    .status { display: inline-block; padding: .15rem .55rem; border-radius: 999px; background: #edf1f3; color: var(--ink); font-size: .9rem; font-weight: 700; }
+    .status.pending { background: #fff0d2; color: var(--warn); }
+    .status.blocked, .status.failed { background: #f9e4e5; color: var(--bad); }
+    .status.passed { background: #e0f1e8; color: var(--good); }
+    .facts, .issue-list { display: grid; gap: .75rem; }
+    .facts { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .fact, .issue { padding: .8rem 1rem; border: 1px solid var(--line); border-radius: .45rem; min-width: 0; }
+    .fact strong { display: block; color: var(--muted); font-size: .88rem; }
+    .issue { border-left: 4px solid var(--line); }
+    .issue.actual { border-left-color: var(--bad); }
+    .issue.investigation { border-left-color: var(--warn); }
+    .issue.test { border-left-color: var(--accent); }
+    .tree { white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 2; padding: 1rem; background: #f5f7f8; border: 1px solid var(--line); border-radius: .4rem; }
+    code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    pre { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+    th, td { padding: .6rem .7rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--soft); }
+    .checklist li { margin: .3rem 0; }
+    .evidence-links { display: inline-flex; flex-wrap: wrap; gap: .35rem .75rem; }
+    .evidence-references li { margin: .45rem 0; scroll-margin-top: 1rem; }
+    @media print {
+      body { background: white; font-size: 11pt; }
+      main { width: 100%; margin: 0; padding: 0; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+      h2, h3, .issue, .fact, tr { break-inside: avoid; }
+      table { display: table; overflow: visible; table-layout: fixed; }
+      thead { display: table-header-group; }
+      tbody { display: table-row-group; }
+      th, td { overflow-wrap: anywhere; }
+      .tree { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }
+      pre, code { white-space: pre-wrap; }
+    }
+    @media (max-width: 520px) {
+      body { font-size: 15px; }
+      main { width: 100%; margin: 0; padding: 1rem; }
+      .tree { padding: .7rem; font-size: .88rem; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">対象日: 2026-10-17</p>
+    <h1>10月17日の日次処理の記録と確認結果</h1>
+    <p class="summary">調査結果には、CLIの記録にIntegrityErrorと終了値4があり、Schedulerの結果も4とあります。当日の永続実行記録は0件です。日次の実行記録との紐づけはありません。実際の処理状況、影響、エラーの原因、回復の有無は分かっていません。調査レビューでは、いくつかの記載に根拠がないとの指摘がありました。計画は未作成、試験は未実施、本番反映は未試行、翌日観測は保留です。報告は、入力された当日記録一覧と調査結果をもとに作成しました。参照先の資料ファイルは、この作業場所から直接開いて確認できていません。提供資料からは、この事例が合成例かどうかを判断できません。この報告版のレビュー結果と公開状況を示す個別記録は、今回の入力にありません。公開されたか、ワークフローが完了したか、元の問題が解決したかは、それぞれ未確認です。</p>
+    <div class="facts">
+      <div class="fact"><strong>確認状況</strong><span class="status pending">確認を続けます</span></div>
+      <div class="fact"><strong>報告日</strong>2026-10-20T06:45:30+09:00</div>
+    </div>
+  </header>
 
-<p>対象日: 2026-10-17。<strong>出来事の区分:</strong> 調査で判明。<strong>内容:</strong> 報告工程で通常の報告ページを作成できませんでした。元の日次不具合とは別の出来事です。</p>
-<section><h2>何が起きたか</h2><p>2026-10-17の日次処理について、調査・記録をまとめる報告書を作ろうとしました。</p><p><strong>期待:</strong> 確認できる記録を使って内容をまとめ、別担当の確認と公開を行う想定です。</p><p><strong>実際:</strong> 通常の報告ページを作成できませんでした。確認できた前段の記録は参考付録に示します。</p></section>
-<section><h2>影響と回復</h2><p><strong>影響:</strong> 報告工程で通常形式を作れなかったことは確認できました。元の日次処理が利用者へ与えた影響は分かっていません。</p><p><strong>回復:</strong> 短い事実報告を保存し、別担当の確認と公開を続けます。元の日次処理が回復したかは未確認です。</p></section>
-<section><h2>何を調べ、何を変えたか</h2><p><strong>確認した範囲:</strong> 確認できたことは通常の報告作成が失敗したことと、参照できた記録の範囲です。識別情報の不足: なし。前段の確認内容: 通常の報告書作成は完了しませんでした。確認できたことだけを短い報告にまとめ、原因や影響が分からない点は不明のまま残します。</p><p><strong>変更:</strong> 元の日次処理の製品コードはこの報告工程では変更していません。通常報告が失敗した事実と確認範囲を短いページへ記録しています。</p><p><strong>試験の範囲:</strong> この代替ページの作成中に新しい製品試験は行っていません。前段の試験記録があれば参考付録に示します。</p></section>
-<section><h2>確認した記録</h2><p>記録の種類: 同じjobから参照できた調査・試験・反映記録</p><ul><li><a href="#evidence-1">調査・対応記録の参照</a></li><li><a href="#evidence-2">調査・対応記録の参照</a></li><li><a href="#evidence-3">調査・対応記録の参照</a></li><li><a href="#evidence-4">調査・対応記録の参照</a></li><li><a href="#evidence-5">調査・対応記録の参照</a></li><li><a href="#evidence-6">調査・対応記録の参照</a></li><li><a href="#evidence-7">調査・対応記録の参照</a></li><li><a href="#evidence-8">調査・対応記録の参照</a></li><li><a href="#evidence-9">調査・対応記録の参照</a></li></ul></section>
-<section><h2>分かっていないこと</h2><ul><li>別担当の指摘が解消したか確認できていません。</li><li>元の日次処理の原因と影響も未確定です。</li></ul></section>
-<section><h2>レビューと公開</h2><p>別担当が指摘を返しました。1回の修正と再確認後も指摘が残ったため、承認とは扱っていません。 別担当から指摘を受けました。以下に内容を記録しています。修正を試しましたが、反映できたかは確認前です。</p><ul><li>「試験・レビュー・反映」表の「翌日の確認」行: source_snapshot.next_day.statusはpendingですが、本文では状態を「停止」、status classをblockedとして表示しています。入力にある保留状態を停止・blockedに置き換えず、保留として記載してください。</li><li>参考付録「報告担当・コードレビュー」: 「コードレビュー: 承認済み（プロダクトコード）」とありますが、source_snapshot.implementation.review_statusはnot_startedです。承認済みという記述を裏付けるレビュー記録が入力にありません。実際の状態に修正してください。</li><li>「確認した記録」行および「修正後テスト」行: 「確認した記録」は状態passedと表示され、修正後テスト行には内部コードreport_source_artifact_unavailableが記載されています。source_snapshot.testsはresult_version not_created、status not_runです。入力された状態の整理と、試験合格を示す記録の確認を区別し、未実施をpassedと誤読させない表示にしてください。内部コードは参考付録へ移してください。</li><li>「報告作成」事象の「操作・期待・実結果」および「確認範囲と根拠」: 「報告結果に問題があったという理由が記録」としていますが、今回の入力で参照できるのは調査結果、証拠索引と複数の歴史的入力資料です。報告作成操作の結果や理由を示す参照資料はevidence_refsにありません。確認可能な根拠を示すか、この理由の記述を未確認として修正してください。</li><li>「根拠と関連文書」および「試験・レビュー・反映」表: 調査の行は「調査MD」と案内していますが、対応する参照先はmaintenance_investigation_resultのresult.jsonです。また、本文に調査版キーとreport_source_artifact_unavailable、tested=None/pushed=None/active=Noneがあり、参考付録外に内部版・状態・reason情報が露出しています。リンク名を実際の資料種別に合わせ、内部キーとコードは参考付録へ移してください。</li></ul><p>未解決の指摘を含む事実報告として公開を続けます。</p></section>
-<section><h2>工程の完了と元の不具合</h2><p><strong>自動対応の工程:</strong> 報告の公開と終了記録を続けています。</p><p><strong>元の不具合:</strong> 元の日次不具合の原因と業務上の回復は確認できていません。報告工程の継続を修正完了とは扱いません。</p></section>
-<section><h2>次に行うこと</h2><p>同じjobの記録と指摘を見比べ、必要な修正と再確認を続けます。</p></section>
-<details class="note" open><summary>参考付録：内部記録と根拠の参照先</summary><ul><li id="evidence-1"><strong>調査・対応記録の参照</strong>: <code>evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json</code></li><li id="evidence-2"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/e0-manifest.json</code></li><li id="evidence-3"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/observation.json</code></li><li id="evidence-4"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/production-cli.filtered.json</code></li><li id="evidence-5"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/read-aggregate.json</code></li><li id="evidence-6"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/scheduler.filtered.json</code></li><li id="evidence-7"><strong>調査・対応記録の参照</strong>: <code>historical-input/2026-10-17/source-evidence.json</code></li><li id="evidence-8"><strong>調査・対応記録の参照</strong>: <code>historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json</code></li><li id="evidence-9"><strong>調査・対応記録の参照</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json</code></li></ul><p>確認できなかった対象情報: なし</p><pre>job_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427
-source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427
-incident_id=352492da-ac58-4680-b1fd-fe5f24000229
-target_date=2026-10-17
-source_run_id=None
-normal_report_operation=report_result_artifact_invalid</pre></details>
-</main></body></html>
+  <nav aria-label="目次">
+    <h2>このページ</h2>
+    <ol>
+      <li><a href="#overview">概要と確認範囲</a></li>
+      <li><a href="#issues">事象一覧</a></li>
+      <li><a href="#details">事象ごとの詳細と修正</a></li>
+      <li><a href="#flow">確認したこと</a></li>
+      <li><a href="#checks">試験・レビュー・反映</a></li>
+      <li><a href="#recovery">未確認・停止・再開</a></li>
+      <li><a href="#evidence">根拠と関連文書</a></li>
+    </ol>
+  </nav>
+
+  <section id="overview">
+    <h2>概要と確認範囲</h2>
+    <p>何をしようとしたか、実際にどうなったか、次に何をするかを、確かめられた範囲で説明します。</p>
+    <ul>
+      <li>発生区分: 事象ごとの詳細に記載</li>
+      <li>日次最終状態・作業場所での検証・本番反映・次回の日次確認: 下の表に別々に記載</li>
+    </ul>
+    <p>各事象について、期待した結果、実際の結果、影響、回復、変更内容、確認した根拠を説明します。記録が足りないときは、何を調べ、何が分からないかを書きます。</p>
+  </section>
+
+  <section id="issues">
+    <h2>事象一覧</h2>
+    <table>
+      <thead><tr><th>事象</th><th>区分</th><th>期待</th><th>実結果・影響</th><th>回復・状態</th><th>根拠</th></tr></thead>
+      <tbody>
+        <tr><td><a href="#issue-1">当日の日次処理</a></td><td>当日の記録にあるエラー</td><td>日次処理が終わり、その結果が当日の記録に残ることです。</td><td>調査結果には、CLI記録にIntegrityErrorと終了値4があると記されています。記録にあるエラー名だけでは、実際にどの処理で何が起きたかは分かりません。<br><strong>影響:</strong> 日次処理が期待どおり終わったか、業務上どのような結果になったかは不明です。</td><td>回復したかどうかは確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></td></tr>
+<tr><td><a href="#issue-2">当日の日次処理</a></td><td>当日の記録にあるエラー</td><td>Schedulerが日次処理の実行結果を記録することです。</td><td>Schedulerの結果は4と記録されています。この値だけでは、実プロセスの終了や業務処理の結果は確定できません。<br><strong>影響:</strong> 日次処理の完了状況や利用者への影響は分かりません。</td><td>再実行や回復の記録は確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-2">タスク実行記録を見る</a></span></td></tr>
+<tr><td><a href="#issue-3">当日記録の照合</a></td><td>調査で判明</td><td>日次処理の実行記録があれば、その内容を確認できることです。</td><td>調査結果には、当日の永続実行記録は0件とあります。日次の実行記録との紐づけはありません。<br><strong>影響:</strong> 実行の詳しい経過や業務結果を実行記録から確かめられません。</td><td>記録がない理由や、別の資料で処理結果を確認できるかは不明です。</td><td><span class="evidence-links"><a href="#report-evidence-3">日次結果の集計記録を見る</a></span></td></tr>
+<tr><td><a href="#issue-4">調査レビュー</a></td><td>調査で判明</td><td>記載した数値や項目が資料で確かめられ、事実と不明点が分けられていることです。</td><td>レビュー担当は、許可項目の版、除外された項目数、自由記述の有無について、根拠が見当たらないと指摘しています。修正後の調査結果や再レビューの結果は確認できません。<br><strong>影響:</strong> 指摘された項目は確定した事実として扱えません。調査レビューの最終結果も不明です。</td><td>根拠が確認できるまでは未確認として扱い、修正後の調査と再レビューの記録を確認します。</td><td><span class="evidence-links"><a href="#report-evidence-4">調査結果（JSON）を見る</a></span></td></tr>
+<tr><td><a href="#issue-5">計画</a></td><td>調査で判明</td><td>確認した事実から、作業と確認範囲を記録することです。</td><td>計画は未作成です。作成されなかった理由は確認できません。<br><strong>影響:</strong> 計画に基づく作業範囲や確認結果はありません。</td><td>計画の内容と実施状況は未確認です。</td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td><a href="#issue-6">試験</a></td><td>調査で判明</td><td>対象とする試験を行い、その範囲と結果を記録することです。</td><td>試験は未実施で、試験結果の資料もありません。<br><strong>影響:</strong> 動作を試験で確かめたとは言えません。</td><td>試験の範囲と結果は未確認です。</td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td><a href="#issue-7">本番反映</a></td><td>調査で判明</td><td>反映を試みた場合は、対象と結果を記録することです。</td><td>本番反映は試みられていません。反映版や本番での動作結果はありません。<br><strong>影響:</strong> 変更が本番環境で動いたかは確認できません。</td><td>本番での回復状況は未確認です。翌日観測も保留です。</td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="details">
+    <h2>事象ごとの詳細と修正</h2>
+    <article class="issue actual" id="issue-1"><h3>CLIの記録にエラーが残っています</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>当日の日次処理について、調査結果とCLIの記録を確認しました。<br><strong>期待:</strong> 日次処理が終わり、その結果が当日の記録に残ることです。<br><strong>実結果:</strong> 調査結果には、CLI記録にIntegrityErrorと終了値4があると記されています。記録にあるエラー名だけでは、実際にどの処理で何が起きたかは分かりません。</p><h4>影響と回復</h4><p>日次処理が期待どおり終わったか、業務上どのような結果になったかは不明です。<br><strong>回復:</strong> 回復したかどうかは確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> エラー名は分類を表す情報であり、それだけでは根本原因は分かりません。</p><h4>変更後の動作</h4><p>当日の処理や製品動作を変更した記録はありません。</p><h4>確認範囲と根拠</h4><p>調査結果に記載されたCLIの値を確認しました。実プロセス終了を独立に示す記録と試験結果は確認できていません。 · <span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></p></article>
+<article class="issue actual" id="issue-2"><h3>Schedulerにも結果が記録されています</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>当日のScheduler記録について、調査結果と記録一覧を確認しました。<br><strong>期待:</strong> Schedulerが日次処理の実行結果を記録することです。<br><strong>実結果:</strong> Schedulerの結果は4と記録されています。この値だけでは、実プロセスの終了や業務処理の結果は確定できません。</p><h4>影響と回復</h4><p>日次処理の完了状況や利用者への影響は分かりません。<br><strong>回復:</strong> 再実行や回復の記録は確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> Schedulerの結果から根本原因は特定できません。</p><h4>変更後の動作</h4><p>Schedulerや日次処理を変更した記録はありません。</p><h4>確認範囲と根拠</h4><p>調査結果に記載されたSchedulerの値を確認しました。実行環境の独立した終了記録は確認できていません。 · <span class="evidence-links"><a href="#report-evidence-2">タスク実行記録を見る</a></span></p></article>
+<article class="issue investigation" id="issue-3"><h3>当日の永続実行記録は0件です</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>当日の実行記録の集計結果を確認しました。<br><strong>期待:</strong> 日次処理の実行記録があれば、その内容を確認できることです。<br><strong>実結果:</strong> 調査結果には、当日の永続実行記録は0件とあります。日次の実行記録との紐づけはありません。</p><h4>影響と回復</h4><p>実行の詳しい経過や業務結果を実行記録から確かめられません。<br><strong>回復:</strong> 記録がない理由や、別の資料で処理結果を確認できるかは不明です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 実行記録がない理由は特定されていません。</p><h4>変更後の動作</h4><p>実行記録や日次処理を変更した記録はありません。</p><h4>確認範囲と根拠</h4><p>調査結果に記載された集計値を確認しました。集計元の資料ファイルを直接開いた再確認はできていません。 · <span class="evidence-links"><a href="#report-evidence-3">日次結果の集計記録を見る</a></span></p></article>
+<article class="issue investigation" id="issue-4"><h3>調査結果に根拠不足の指摘があります</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>調査結果に含まれるレビュー内容を確認しました。<br><strong>期待:</strong> 記載した数値や項目が資料で確かめられ、事実と不明点が分けられていることです。<br><strong>実結果:</strong> レビュー担当は、許可項目の版、除外された項目数、自由記述の有無について、根拠が見当たらないと指摘しています。修正後の調査結果や再レビューの結果は確認できません。</p><h4>影響と回復</h4><p>指摘された項目は確定した事実として扱えません。調査レビューの最終結果も不明です。<br><strong>回復:</strong> 根拠が確認できるまでは未確認として扱い、修正後の調査と再レビューの記録を確認します。</p><h4>原因と分かっている範囲</h4><p><strong>確認済み:</strong> 提供されたレビュー内容に、これらの項目への根拠不足の指摘があります。これは日次処理の根本原因を示すものではありません。</p><h4>変更後の動作</h4><p>この報告では、根拠不足とされた項目を確定した事実として記載していません。</p><h4>確認範囲と根拠</h4><p>入力に含まれた調査結果とレビュー内容を確認しました。修正版と再レビュー結果は確認できていません。 · <span class="evidence-links"><a href="#report-evidence-4">調査結果（JSON）を見る</a></span></p></article>
+<article class="issue investigation" id="issue-5"><h3>計画は作成されていません</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>計画の作成状況を確認しました。<br><strong>期待:</strong> 確認した事実から、作業と確認範囲を記録することです。<br><strong>実結果:</strong> 計画は未作成です。作成されなかった理由は確認できません。</p><h4>影響と回復</h4><p>計画に基づく作業範囲や確認結果はありません。<br><strong>回復:</strong> 計画の内容と実施状況は未確認です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 計画が未作成である理由は記録から分かりません。</p><h4>変更後の動作</h4><p>計画に基づく変更は確認できません。</p><h4>確認範囲と根拠</h4><p>当日記録一覧にある計画の作成状況を確認しました。計画資料はありません。 · <span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></p></article>
+<article class="issue investigation" id="issue-6"><h3>試験は未実施です</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>試験の実施状況を確認しました。<br><strong>期待:</strong> 対象とする試験を行い、その範囲と結果を記録することです。<br><strong>実結果:</strong> 試験は未実施で、試験結果の資料もありません。</p><h4>影響と回復</h4><p>動作を試験で確かめたとは言えません。<br><strong>回復:</strong> 試験の範囲と結果は未確認です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 試験が未実施である理由は提供された記録から分かりません。</p><h4>変更後の動作</h4><p>試験で確認された動作変更はありません。</p><h4>確認範囲と根拠</h4><p>試験状況の記録を確認しました。試験は行われていません。 · <span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></p></article>
+<article class="issue investigation" id="issue-7"><h3>本番への反映は未試行です</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>本番反映の状況を確認しました。<br><strong>期待:</strong> 反映を試みた場合は、対象と結果を記録することです。<br><strong>実結果:</strong> 本番反映は試みられていません。反映版や本番での動作結果はありません。</p><h4>影響と回復</h4><p>変更が本番環境で動いたかは確認できません。<br><strong>回復:</strong> 本番での回復状況は未確認です。翌日観測も保留です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 本番反映がないため、反映後の結果から原因を確認できません。</p><h4>変更後の動作</h4><p>本番環境の動作を変更した記録はありません。</p><h4>確認範囲と根拠</h4><p>提供された反映状況では未試行です。本番環境の動作確認はありません。 · <span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></p></article>
+  </section>
+
+  <section id="flow">
+    <h2>処理の流れ</h2>
+    <p>調べた内容は上の事象一覧と下の試験・反映結果に分けて説明しています。細かな工程記録は参考付録にまとめています。</p>
+  </section>
+
+  <section id="checks">
+    <h2>試験・レビュー・反映</h2>
+    <table>
+      <thead><tr><th>段階</th><th>対象版</th><th>期待</th><th>実結果</th><th>状態</th><th>根拠</th></tr></thead>
+      <tbody>
+        <tr><td>当日記録の確認</td><td>版は参考付録を参照</td><td>CLI、Scheduler、実行記録の内容を確認すること。</td><td>調査結果にCLI終了値4、Scheduler結果4、当日の永続実行記録0件とあります。参照先の資料ファイルを直接開いた再確認はできていません。</td><td><span class="status passed">確認済み</span></td><td><span class="evidence-links"><a href="#report-evidence-6">元の証拠一覧を見る</a></span></td></tr>
+<tr><td>調査レビュー</td><td>版は参考付録を参照</td><td>調査内容と根拠を確認し、指摘があれば記録すること。</td><td>根拠不足の指摘があります。修正後の再レビュー結果は確認できません。</td><td><span class="status failed">失敗</span></td><td><span class="evidence-links"><a href="#report-evidence-4">調査結果（JSON）を見る</a></span></td></tr>
+<tr><td>計画</td><td>版は参考付録を参照</td><td>確認した事実から作業と確認範囲を記録すること。</td><td>計画は未作成です。理由は確認できません。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td>試験</td><td>版は参考付録を参照</td><td>対象とする試験を行い、範囲と結果を記録すること。</td><td>試験は未実施です。結果資料はありません。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td>本番反映</td><td>版は参考付録を参照</td><td>反映した場合は対象版と本番結果を記録すること。</td><td>本番反映は未試行です。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td>翌日観測</td><td>版は参考付録を参照</td><td>次の日次処理の結果と観測時刻を記録すること。</td><td>翌日観測は保留で、観測資料はありません。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></span></td></tr>
+<tr><td>調査レビュー</td><td>版は参考付録を参照</td><td>調査結果を別の担当者が確認する</td><td>調査結果に修正依頼がありました。</td><td><span class="status failed">修正依頼あり</span></td><td><a href="#report-evidence-4">調査結果（JSON）を見る</a></td></tr>
+<tr><td>計画レビュー</td><td>版は参考付録を参照</td><td>修正計画を別の担当者が確認する</td><td>修正計画のレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
+<tr><td>プロダクトコードレビュー</td><td>版は参考付録を参照</td><td>変更したコードを別の担当者が確認する</td><td>コードレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
+<tr><td>修正後テスト</td><td>版は参考付録を参照</td><td>修正後の動作を試験で確かめる</td><td>試験は実施していません。試験結果の資料はありません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
+<tr><td>本番反映</td><td>版は参考付録を参照</td><td>確認した変更を本番環境に反映する</td><td>本番反映は実施していません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
+<tr><td>次回の日次確認</td><td>版は参考付録を参照</td><td>翌日も同じ問題が起きるか確かめる</td><td>翌日の確認はまだ行っていません。</td><td><span class="status pending">保留</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
+      </tbody>
+    </table>
+    <p>試験、本番への反映、次回の日次確認は、それぞれ別に記載します。未実施や未確認を成功とは扱いません。</p>
+    <p>この報告書のreview結果と公開結果、全工程が終了したか、元の不具合が解決したかも別々に説明します。報告書を作った時点の状態と、その後に保存された結果を混同しません。</p>
+  </section>
+
+  <section id="recovery">
+    <h2>未確認・停止・再開</h2>
+    <ul class="checklist">
+      <li>未確認事項: ・CLI記録にあるエラーが実際に起きた処理と、その発生理由。
+・実プロセスの終了結果と、当日の日次業務がどこまで進んだか。
+・当日の業務結果、利用者への影響、日次処理が回復したか。
+・根拠不足を指摘された項目の修正内容と調査の再レビュー結果。
+・計画、試験、本番反映、翌日観測の結果。
+・この事例が合成例かどうかを示す情報。
+・今回の報告版のレビューと公開の結果を示す個別記録。
+・このワークフローが完了したか、元の問題が解決したか。
+・参照先の資料ファイルの内容。資料ファイルはこの作業場所から直接開けていません。</li>
+      <li>続けるために必要な確認: 利用できる調査レビュー、計画、試験、本番反映、翌日観測の記録をそれぞれ確認します。今回の報告版のレビュー結果と公開結果は、それぞれを示す個別記録が得られた時点で確認します。原因や回復が不明な場合は、その状態を保って確認できる作業を続けます。</li>
+      <li>行っていない操作: 報告作成によって日次処理、本番環境、データベースを変更した事実は確認されていません。ワークフローの完了と元の問題の解決は別々に未確認です。</li>
+    </ul>
+  </section>
+
+  <section id="evidence">
+    <h2>根拠と関連文書</h2>
+    <ul>
+      <li>調査結果: <a href="#report-evidence-4">調査結果（JSON）</a></li>
+      <li>修正計画の資料は作成されていません。</li>
+      <li id="evidence-index">証拠索引: <a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）</a></li>
+    </ul>
+    <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めません。元の資料本文は転載せず、参照した種類と公開ページで確認できない範囲を示します。</p>
+    <h3>確認に使った資料</h3>
+    <p>各項目のリンクを開くと、この報告で参照した資料の種類と、公開ページに含めていない範囲を確認できます。</p>
+    <ul class="evidence-references">
+      <li id="report-evidence-1"><strong>本番CLIの記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-2"><strong>タスク実行記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-3"><strong>日次結果の集計記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-4"><strong>調査結果（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-5"><strong>当日の日次証拠索引（利用可能な記録）</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-6"><strong>元の証拠一覧</strong>。元の資料本文はこの公開ページに含めていません。</li>
+    </ul>
+  </section>
+  <details class="muted">
+    <summary>参考付録：確認用の内部記録</summary>
+    <ul>
+      <li>案件: 352492da-ac58-4680-b1fd-fe5f24000229</li>
+      <li>source_launch_id: historical-9e7f0c175cc4c874c955a5dab29c4427 · source_run_id: null</li>
+      <li>報告版: report-69b06174df8c6a7a457cc70c-r13</li>
+      <li>調査版・計画版: investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1 · not_created</li>
+      <li>報告担当が確認したチェック版: <pre>・当日記録の確認: 対象日の記録
+・調査レビュー: investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1
+・計画: 未作成
+・試験: 未作成
+・本番反映: 反映版は未提供
+・翌日観測: 観測版と資料は未提供</pre></li>
+      <li>試験記録の版: not_created</li>
+      <li>本番反映: 状態=not_attempted · 確認版=null · 公開版=null · 稼働版=null</li>
+      <li>次回確認: 状態=pending · 確認日時=null</li>
+      <li>工程の詳しい記録: <pre class="tree">当日記録を確認 → 調査結果あり（根拠不足の指摘あり） → 計画は未作成 → 試験は未実施 → 本番反映は未試行 → 翌日観測は保留 → 今回の報告版のレビューと公開は個別記録を確認できず → ワークフロー完了と元の問題の解決も未確認</pre></li>
+      <li>コード: 832122863a3f5e9e76cfb5c42082a5e404e088c2 → 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
+      <li>報告担当: 報告担当 · コードレビュー: 未開始（プロダクトコード） · 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
+      <li>停止理由の記録: 記録がありません（未確認）</li>
+      <li>作業時の状態と副作用: 確認を続けます · 報告作成によって日次処理、本番環境、データベースを変更した事実は確認されていません。ワークフローの完了と元の問題の解決は別々に未確認です。</li>
+      <li><strong>本番CLIの記録</strong>: <code>historical-input/2026-10-17/production-cli.filtered.json</code></li>
+<li><strong>タスク実行記録</strong>: <code>historical-input/2026-10-17/scheduler.filtered.json</code></li>
+<li><strong>日次結果の集計記録</strong>: <code>historical-input/2026-10-17/read-aggregate.json</code></li>
+<li><strong>調査結果（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json</code></li>
+<li><strong>当日の日次証拠索引（利用可能な記録）</strong>: <code>evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json</code></li>
+<li><strong>元の証拠一覧</strong>: <code>historical-input/2026-10-17/source-evidence.json</code></li>
+    </ul>
+  </details>
+</main>
+</body>
+</html>
