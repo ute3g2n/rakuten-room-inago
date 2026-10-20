@@ -1,0 +1,90 @@
+{
+  "schema_version": "fc11-ledger-predeploy-readback-v1",
+  "observed_at_utc": "2026-10-20T00:56:42.433952+00:00",
+  "repository": {
+    "root": "C:\\project\\rakuten-room-inago",
+    "branch": "main",
+    "head": "08794e0f14c0296fbdfa7a7973e8c90ea44a2a06",
+    "upstream": "origin/main",
+    "origin_main": "08794e0f14c0296fbdfa7a7973e8c90ea44a2a06",
+    "worktree_clean": true,
+    "ancestor_of_candidate": true,
+    "changed_paths_since_previous_applied_code": [
+      "\"plans/projects/maintenance/\\350\\207\\252\\345\\213\\225\\344\\270\\215\\345\\205\\267\\345\\220\\210\\345\\257\\276\\345\\277\\234\\343\\203\\225\\343\\203\\255\\343\\203\\274\\345\\256\\214\\351\\201\\202\\343\\201\\250\\345\\205\\250\\345\\267\\245\\347\\250\\213\\350\\277\\275\\350\\267\\241_\\345\\256\\237\\350\\241\\214\\350\\250\\210\\347\\224\\273_2026-10-19.md\"",
+      "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/final-acceptance-reconciliation-r1.md",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/precommit-final-readback-ownership-r1.json",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-204939e-readback.json",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-204939e.json",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-cli.json",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.json",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.md",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.console.txt",
+      "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.json"
+    ],
+    "application_or_policy_paths_changed_since_base": []
+  },
+  "runtime": {
+    "scheduled_task_current_commit": "08794e0f14c0296fbdfa7a7973e8c90ea44a2a06",
+    "healthy_at_head": true,
+    "state_file": {
+      "active": {
+        "commit": "204939e8dbca217489278e0133ea86ca35885def",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "daily_owner_active": false,
+    "pending_action_snapshot": {
+      "count": 0,
+      "revision": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "database": {
+    "schema_version": 16,
+    "quick_check": "ok",
+    "latest_formal_deployment": {
+      "release_id": "U23-REPORT-MD-20261019-7a90002",
+      "result_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+      "result_version": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+      "config_version": "1.5",
+      "deployment_id": "9f8a0536-cba8-4e4e-9a2b-e3add8b5c583",
+      "deployment_status": "deployed",
+      "active_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+      "deployed_at": "2026-10-19T05:03:33.523174Z"
+    },
+    "same_job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "status": "complete",
+      "resume_count": 27
+    },
+    "october19_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ],
+    "october19_queue_events": 0
+  },
+  "report": {
+    "version": "fallback-revision-8b0283aef941d24922fa",
+    "sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+    "review_status": "approved",
+    "reviewed_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+    "publication_commit": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d"
+  },
+  "analysis": {
+    "cause": "Task Scheduler reads the fixed repository root; current_commit follows that root HEAD. Documentation/report commits advanced HEAD after the switcher state file was last confirmed. Product-code/policy paths under automation, .agents, .codex and docs/standards are unchanged since the applied code commit. The formal ledger is older still.",
+    "official_reconciliation_path": "Create a release through MaintenanceStore APIs with exact final report review/version and PASS evidence, then begin a pending deployment and resume it through the existing DeploymentCoordinator using the fixed root; this uses no other checkout/workspace and must finish only if remote, runtime, and ledger readbacks match the exact candidate.",
+    "unintended_side_effects": false
+  },
+  "operation_recovery": {
+    "tool_wrapper_error": "One read-only exec wrapper call raised ReferenceError: functions is not defined before invoking a shell command. No filesystem, Git, runtime, or DB operation ran. The source inspection was rerun through the supported exec wrapper."
+  }
+}

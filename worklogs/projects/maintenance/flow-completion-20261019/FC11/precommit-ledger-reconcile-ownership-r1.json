@@ -1,0 +1,43 @@
+{
+  "schema_version": "fc11-ledger-predeploy-ownership-v1",
+  "head_before_commit": "08794e0f14c0296fbdfa7a7973e8c90ea44a2a06",
+  "branch": "main",
+  "upstream": "origin/main",
+  "ahead_behind": "0\t0",
+  "cached": [],
+  "tracked_uncached": [
+    "\"plans/projects/maintenance/\\350\\207\\252\\345\\213\\225\\344\\270\\215\\345\\205\\267\\345\\220\\210\\345\\257\\276\\345\\277\\234\\343\\203\\225\\343\\203\\255\\343\\203\\274\\345\\256\\214\\351\\201\\202\\343\\201\\250\\345\\205\\250\\345\\267\\245\\347\\250\\213\\350\\277\\275\\350\\267\\241_\\345\\256\\237\\350\\241\\214\\350\\250\\210\\347\\224\\273_2026-10-19.md\""
+  ],
+  "untracked": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/ledger-predeploy-runtime-readback-r1.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/ledger-predeploy-runtime-readback-r1.md"
+  ],
+  "owned_paths": [
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "bytes": 328312,
+      "sha256": "048a6fb31ee768b90389c3583d8c8a377a23846da250f76e1c88a4a6abae967e",
+      "owner": "FC11 ledger predeploy readback"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/ledger-predeploy-runtime-readback-r1.json",
+      "bytes": 5069,
+      "sha256": "3662652f84d70ae8614cef704ac75b427ecd7fbfff002cbe5d155de8df51cdec",
+      "owner": "FC11 ledger predeploy readback"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/ledger-predeploy-runtime-readback-r1.md",
+      "bytes": 2003,
+      "sha256": "b1eff38813b26c73e085798543b0c7f64d12ca69a184c0b4c64d30029d08aeda",
+      "owner": "FC11 ledger predeploy readback"
+    }
+  ],
+  "secret_scan_findings": 0,
+  "approved_plan_snapshot_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "notes": [
+    "Explicit scope only; no application/source files changed.",
+    "The candidate deployment result is the current repo HEAD after this evidence and plan log are committed.",
+    "No existing user changes are included.",
+    "First manifest-generation attempt passed str to bytes.replace and raised TypeError before any write; recovered by using UTF-8 bytes."
+  ]
+}
