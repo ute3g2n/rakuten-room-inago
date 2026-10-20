@@ -61,11 +61,11 @@
 <main>
   <header>
     <p class="eyebrow">対象日: 2026-10-17</p>
-    <h1>10月17日の日次処理で記録されたエラー</h1>
-    <p class="summary">当日のCLI記録にはIntegrityErrorが残り、CLIの観測終了値とSchedulerの結果はどちらも4でした。実プロセスの終了値は独立に確認されておらず、根本原因も不明です。原因を直す変更は確認できません。追加の記録機能は計画案にとどまり、実施されたとは確認できません。日次の実行記録との紐づけはありません。</p>
+    <h1>10月17日の日次処理で実行結果を記録できなかった件</h1>
+    <p class="summary">当日のCLI記録には、日次処理の実行結果を記録する際にデータベースの整合性エラーが出て、終了値4になったとあります。Schedulerの結果も4でした。当日の永続的な実行記録は確認できず、日次の実行記録との紐づけはありません。原因は分かっていません。原因を直す変更は確認できず、修正の試験も行われていません。この保守作業の記録には、計画作成時の接続エラー、修正準備で工程を識別する値が不正だったこと、本番反映用の変更候補を確認できなかったことも残っています。これらは保守作業中の問題で、日次不具合の原因とは別です。同じ保守実行の記録には、工程の開始・引継ぎ、失敗理由、例外情報、関連資料への参照があります。この記録機能がいつ追加されたかは分かりません。</p>
     <div class="facts">
       <div class="fact"><strong>確認状況</strong><span class="status pending">確認を続けます</span></div>
-      <div class="fact"><strong>報告日</strong>2026-10-20T08:50:18+09:00</div>
+      <div class="fact"><strong>報告日</strong>2026-10-20T09:17:04+09:00</div>
     </div>
   </header>
 
@@ -97,16 +97,18 @@
     <table>
       <thead><tr><th>事象</th><th>区分</th><th>期待</th><th>実結果・影響</th><th>回復・状態</th><th>根拠</th></tr></thead>
       <tbody>
-        <tr><td><a href="#issue-1">日次処理</a></td><td>当日の記録にあるエラー</td><td>日次処理が完了すること。</td><td>当日のCLI記録にはIntegrityErrorが記録され、CLIの観測終了値とSchedulerの結果はどちらも4でした。実プロセスの終了値は独立に確認されていません。<br><strong>影響:</strong> 当日の処理が完了したか確認できず、永続実行記録も確認されていません。</td><td>日次処理が回復したかは確認されていません。</td><td><span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></td></tr>
-<tr><td><a href="#issue-2">修正と追加記録</a></td><td>調査で判明</td><td>原因を直す変更と、今後の調査に役立つ追加記録を確認できること。</td><td>修正候補の準備は行われず、試験は未実施です。調査に役立つ記録機能は計画案にありますが、追加されたことは確認できません。<br><strong>影響:</strong> 動作を変える修正も、追加された記録機能も確認できません。</td><td>原因と日次処理の回復は未確認です。</td><td><span class="evidence-links"><a href="#report-evidence-2">関連する確認記録を見る</a></span></td></tr>
+        <tr><td><a href="#issue-1">日次処理</a></td><td>当日の記録にあるエラー</td><td>日次処理の結果が記録されること</td><td>当日のCLI記録には、実行結果を記録する際にデータベースの整合性エラーが出て、終了値4になったとあります。Schedulerの結果も4でした。<br><strong>影響:</strong> 当日の永続的な実行記録は確認できません。実際のプロセス終了値を独立して確認できる記録もありません。</td><td>日次処理が回復したかは確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></td></tr>
+<tr><td><a href="#issue-2">保守作業の工程記録</a></td><td>当日の記録にあるエラー</td><td>保守作業の各工程が進み、結果が記録されること</td><td>計画作成ではAIへの接続エラー、修正準備では工程を識別する値の不正、本番反映では反映用の変更候補を確認できなかったことが記録されています。<br><strong>影響:</strong> 計画担当の通常回答は得られず、修正の試験と本番反映は確認できていません。これらの工程上の問題は、日次不具合の原因を示すものではありません。</td><td>日次処理の原因修正と回復は確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-2">修正計画（JSON）を見る</a></span></td></tr>
+<tr><td><a href="#issue-3">修正準備と試験</a></td><td>当日の記録にあるエラー</td><td>修正候補を準備して試験すること</td><td>修正候補の準備は行われず、試験結果はありません。<br><strong>影響:</strong> 日次不具合を直す変更の動作は確認できていません。</td><td>試験と日次処理の回復は未確認です。</td><td><span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></td></tr>
       </tbody>
     </table>
   </section>
 
   <section id="details">
     <h2>事象ごとの詳細と修正</h2>
-    <article class="issue actual" id="issue-1"><h3>CLI記録にエラーが残っている</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>日次CLIの実行<br><strong>期待:</strong> 日次処理が完了すること。<br><strong>実結果:</strong> 当日のCLI記録にはIntegrityErrorが記録され、CLIの観測終了値とSchedulerの結果はどちらも4でした。実プロセスの終了値は独立に確認されていません。</p><h4>影響と回復</h4><p>当日の処理が完了したか確認できず、永続実行記録も確認されていません。<br><strong>回復:</strong> 日次処理が回復したかは確認されていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 調査資料からは、エラーの根本原因を特定できません。</p><h4>変更後の動作</h4><p>原因を直す変更は確認できません。</p><h4>確認範囲と根拠</h4><p>当日のCLI記録と調査資料で確認できる範囲です。実プロセスの終了値、根本原因、回復状況は未確認です。 · <span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></p></article>
-<article class="issue investigation" id="issue-2"><h3>修正と追加記録の実施は確認できない</h3><p><span class="status pending">調査で判明</span></p><h4>操作・期待・実結果</h4><p>修正候補の準備と試験<br><strong>期待:</strong> 原因を直す変更と、今後の調査に役立つ追加記録を確認できること。<br><strong>実結果:</strong> 修正候補の準備は行われず、試験は未実施です。調査に役立つ記録機能は計画案にありますが、追加されたことは確認できません。</p><h4>影響と回復</h4><p>動作を変える修正も、追加された記録機能も確認できません。<br><strong>回復:</strong> 原因と日次処理の回復は未確認です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 原因は特定されておらず、原因を直す変更も確認できません。</p><h4>変更後の動作</h4><p>実施された修正は確認できず、動作の変化も確認できません。</p><h4>確認範囲と根拠</h4><p>修正候補の準備記録と計画資料で確認できる範囲です。計画案は実施の証拠ではありません。 · <span class="evidence-links"><a href="#report-evidence-2">関連する確認記録を見る</a></span></p></article>
+    <article class="issue actual" id="issue-1"><h3>実行結果を記録する際のエラー</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>日次処理の実行結果の記録<br><strong>期待:</strong> 日次処理の結果が記録されること<br><strong>実結果:</strong> 当日のCLI記録には、実行結果を記録する際にデータベースの整合性エラーが出て、終了値4になったとあります。Schedulerの結果も4でした。</p><h4>影響と回復</h4><p>当日の永続的な実行記録は確認できません。実際のプロセス終了値を独立して確認できる記録もありません。<br><strong>回復:</strong> 日次処理が回復したかは確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 原因は確認できていません。記録されたエラーだけでは、なぜ記録に失敗したのか特定できません。</p><h4>変更後の動作</h4><p>今回の資料から、日次処理の原因を直す変更は確認できません。</p><h4>確認範囲と根拠</h4><p>当日のCLI記録、Schedulerの記録、調査資料を確認しました。根本原因、実際のプロセス終了値、日次処理の回復は未確認です。 · <span class="evidence-links"><a href="#report-evidence-1">本番CLIの記録を見る</a></span></p></article>
+<article class="issue actual" id="issue-2"><h3>工程の操作と失敗理由が記録された</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>計画作成、修正準備、本番反映<br><strong>期待:</strong> 保守作業の各工程が進み、結果が記録されること<br><strong>実結果:</strong> 計画作成ではAIへの接続エラー、修正準備では工程を識別する値の不正、本番反映では反映用の変更候補を確認できなかったことが記録されています。</p><h4>影響と回復</h4><p>計画担当の通常回答は得られず、修正の試験と本番反映は確認できていません。これらの工程上の問題は、日次不具合の原因を示すものではありません。<br><strong>回復:</strong> 日次処理の原因修正と回復は確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> これらの保守工程の記録から、日次不具合の原因は分かりません。</p><h4>変更後の動作</h4><p>原因を直す変更が実装されたとは確認できません。</p><h4>確認範囲と根拠</h4><p>この保守実行の工程記録には、操作の開始と引継ぎ、失敗理由、例外情報、関連資料への参照があります。記録機能がいつ追加されたかは未確認です。 · <span class="evidence-links"><a href="#report-evidence-2">修正計画（JSON）を見る</a></span></p></article>
+<article class="issue actual" id="issue-3"><h3>修正の試験は行われていない</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>修正候補の準備と試験<br><strong>期待:</strong> 修正候補を準備して試験すること<br><strong>実結果:</strong> 修正候補の準備は行われず、試験結果はありません。</p><h4>影響と回復</h4><p>日次不具合を直す変更の動作は確認できていません。<br><strong>回復:</strong> 試験と日次処理の回復は未確認です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 試験が行われていないことから、日次不具合の原因は判断できません。</p><h4>変更後の動作</h4><p>試験済みの修正は確認できません。</p><h4>確認範囲と根拠</h4><p>修正準備に関する記録を確認しました。 · <span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></p></article>
   </section>
 
   <section id="flow">
@@ -119,9 +121,9 @@
     <table>
       <thead><tr><th>段階</th><th>対象版</th><th>期待</th><th>実結果</th><th>状態</th><th>根拠</th></tr></thead>
       <tbody>
-        <tr><td>修正候補の準備と試験</td><td>版は参考付録を参照</td><td>修正候補を準備して試験すること。</td><td>修正候補の準備は行われず、試験は未実施です。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-2">関連する確認記録を見る</a></span></td></tr>
-<tr><td>調査レビュー</td><td>版は参考付録を参照</td><td>調査結果を別の担当者が確認する</td><td>調査結果に修正依頼がありました。</td><td><span class="status failed">修正依頼あり</span></td><td><a href="#report-evidence-3">調査結果（JSON）を見る</a></td></tr>
-<tr><td>計画レビュー</td><td>版は参考付録を参照</td><td>修正計画を別の担当者が確認する</td><td>修正計画のレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-4">修正計画（JSON）を見る</a></td></tr>
+        <tr><td>修正の試験</td><td>版は参考付録を参照</td><td>修正候補を試験する</td><td>修正候補の準備が行われず、試験結果はありません。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></td></tr>
+<tr><td>調査レビュー</td><td>版は参考付録を参照</td><td>調査結果を別の担当者が確認する</td><td>調査結果に修正依頼がありました。</td><td><span class="status failed">修正依頼あり</span></td><td><a href="#report-evidence-4">調査結果（JSON）を見る</a></td></tr>
+<tr><td>計画レビュー</td><td>版は参考付録を参照</td><td>修正計画を別の担当者が確認する</td><td>修正計画のレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-2">修正計画（JSON）を見る</a></td></tr>
 <tr><td>プロダクトコードレビュー</td><td>版は参考付録を参照</td><td>変更したコードを別の担当者が確認する</td><td>コードレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
 <tr><td>修正後テスト</td><td>版は参考付録を参照</td><td>修正後の動作を試験で確かめる</td><td>試験は実施していません。試験結果の資料はありません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
 <tr><td>本番反映</td><td>版は参考付録を参照</td><td>確認した変更を本番環境に反映する</td><td>本番反映は実施していません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
@@ -135,20 +137,21 @@
   <section id="recovery">
     <h2>未確認・停止・再開</h2>
     <ul class="checklist">
-      <li>未確認事項: ・エラーの根本原因。
-・実プロセスの終了値。
-・日次処理が回復したかどうか。
-・追加の記録機能が実施されたかどうか。</li>
-      <li>続けるために必要な確認: 原因を調べられる記録を確認し、原因を直す変更と追加の記録機能が実施されたか確かめてください。</li>
-      <li>行っていない操作: 追加の影響は確認されていません。</li>
+      <li>未確認事項: ・日次不具合の根本原因
+・実際のプロセス終了値
+・日次処理が回復したか
+・原因を直す変更が実装されたか
+・工程記録の仕組みがいつ追加されたか</li>
+      <li>続けるために必要な確認: 原因と修正を確認できる資料が得られたら、修正候補の準備、試験、本番反映、日次処理の再確認を行います。</li>
+      <li>行っていない操作: 原因修正、修正の試験、本番反映、日次処理の回復は確認できていません。</li>
     </ul>
   </section>
 
   <section id="evidence">
     <h2>根拠と関連文書</h2>
     <ul>
-      <li>調査結果: <a href="#report-evidence-3">調査結果（JSON）</a></li>
-      <li>修正計画: <a href="#report-evidence-4">修正計画（JSON）</a></li>
+      <li>調査結果: <a href="#report-evidence-4">調査結果（JSON）</a></li>
+      <li>修正計画: <a href="#report-evidence-2">修正計画（JSON）</a></li>
       <li id="evidence-index">証拠索引: <a href="#report-evidence-5">当日の日次証拠索引（利用可能な記録）</a></li>
     </ul>
     <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めません。元の資料本文は転載せず、参照した種類と公開ページで確認できない範囲を示します。</p>
@@ -156,9 +159,9 @@
     <p>各項目のリンクを開くと、この報告で参照した資料の種類と、公開ページに含めていない範囲を確認できます。</p>
     <ul class="evidence-references">
       <li id="report-evidence-1"><strong>本番CLIの記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-2"><strong>関連する確認記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-3"><strong>調査結果（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-4"><strong>修正計画（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-2"><strong>修正計画（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-3"><strong>関連する確認記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
+<li id="report-evidence-4"><strong>調査結果（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
 <li id="report-evidence-5"><strong>当日の日次証拠索引（利用可能な記録）</strong>。元の資料本文はこの公開ページに含めていません。</li>
     </ul>
   </section>
@@ -167,21 +170,21 @@
     <ul>
       <li>案件: 352492da-ac58-4680-b1fd-fe5f24000229</li>
       <li>source_launch_id: historical-9e7f0c175cc4c874c955a5dab29c4427 · source_run_id: null</li>
-      <li>報告版: report-6a01b30aa09ec93d6b709667-r15</li>
-      <li>調査版・計画版: investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1 · failure-3ed4aaa8-250e-4fbb-9d1c-94a8c80e361d</li>
-      <li>報告担当が確認したチェック版: <pre>・修正候補の準備と試験: failure-15eab95e-972f-4c67-bc68-5bc1301baa34</pre></li>
-      <li>試験記録の版: failure-15eab95e-972f-4c67-bc68-5bc1301baa34</li>
+      <li>報告版: fallback-revision-13f5edbc4a0c6f4c37d3</li>
+      <li>調査版・計画版: investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1 · failure-27e9a80f-2cf0-47db-bcb2-b7340105245a</li>
+      <li>報告担当が確認したチェック版: <pre>・修正の試験: failure-d4e7d529-4a39-4fa4-85ed-0d1fdb697023</pre></li>
+      <li>試験記録の版: failure-d4e7d529-4a39-4fa4-85ed-0d1fdb697023</li>
       <li>本番反映: 状態=not_attempted · 確認版=null · 公開版=null · 稼働版=null</li>
       <li>次回確認: 状態=pending · 確認日時=null</li>
-      <li>工程の詳しい記録: <pre class="tree">当日のCLI記録にはエラーが残っています。観測された終了値とSchedulerの結果はどちらも4ですが、実プロセスの終了値は独立に確認されていません。根本原因は不明です。原因を直す変更は確認できません。追加記録の計画案はありますが、記録機能が実際に追加されたとは確認できません。日次の実行記録との紐づけはありません。</pre></li>
+      <li>工程の詳しい記録: <pre class="tree">日次処理の記録にデータベースの整合性エラー → 原因未確認 → 計画作成時に接続エラーの記録 → 修正準備で工程識別値の不正があり、試験未実施 → 本番反映用の変更候補を確認できず</pre></li>
       <li>コード: 832122863a3f5e9e76cfb5c42082a5e404e088c2 → 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
       <li>報告担当: 報告担当 · コードレビュー: 未開始（プロダクトコード） · 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
       <li>停止理由の記録: 記録がありません（未確認）</li>
-      <li>作業時の状態と副作用: 確認を続けます · 追加の影響は確認されていません。</li>
+      <li>作業時の状態と副作用: 確認を続けます · 原因修正、修正の試験、本番反映、日次処理の回復は確認できていません。</li>
       <li><strong>本番CLIの記録</strong>: <code>historical-input/2026-10-17/production-cli.filtered.json</code></li>
-<li><strong>関連する確認記録</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/15eab95e-972f-4c67-bc68-5bc1301baa34/repair-handoff.json</code></li>
+<li><strong>修正計画（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/27e9a80f-2cf0-47db-bcb2-b7340105245a/stage-handoff.json</code></li>
+<li><strong>関連する確認記録</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/d4e7d529-4a39-4fa4-85ed-0d1fdb697023/repair-handoff.json</code></li>
 <li><strong>調査結果（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json</code></li>
-<li><strong>修正計画（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/3ed4aaa8-250e-4fbb-9d1c-94a8c80e361d/stage-handoff.json</code></li>
 <li><strong>当日の日次証拠索引（利用可能な記録）</strong>: <code>evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json</code></li>
     </ul>
   </details>
