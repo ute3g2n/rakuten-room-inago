@@ -61,6 +61,12 @@ workflow trace read-backは16行（8 stage begin、8 stage handoff）、全行�
 | FC-A09 範囲保護 | complete。job/launch/date/null run固定、10/19 queue/events/history不変、新job/runなし、別workspaceなし。 |
 | FC-A10 文書・運用・正式台帳 | complete。report ruleの限定4点review scope同期済み、role highとruntime observationを分離、schema/runtime/正式ledger/pushed commit一致。 |
 
+## Git記録
+
+- 作業branch `main`。計画とresume 29記録の今回所有3ファイルだけをstageし、exact-set照合で余計なpathがないこと、未stage差分がないこと、JSON parse、秘密パターン検査、`git diff --cached --check`を確認した。
+- commit `fca138468b8f8c202e608c87e3919c5daf62163d`を作成し、`origin/main`へpush。push後のHEADと`origin/main`は同じcommit。commitは計画・実行記録だけで製品コードを変えておらず、本番active product commit `6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850`は有効なまま。
+- このGit readbackを計画・記録へ反映する追補commitを続けて作成・pushし、この計画の受入記録を確定する。
+
 ## 独立最終受入照合
 
 - 独立reviewer `fc11_acceptance_review` はresume 29の保存証拠を新規に読取照合し、FC-A01〜FC-A10をすべてMet、全体Approved、指摘0件と判定した。照合対象は同一jobのDBと終端・handoff、最終HTMLのreview/publication/hash、raw Git公開blob、正式deployment ledger、10/19範囲保護を含む。

@@ -147,6 +147,15 @@
       "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"
     ]
   },
+  "git_completion": {
+    "branch": "main",
+    "commit": "fca138468b8f8c202e608c87e3919c5daf62163d",
+    "push_remote": "origin",
+    "push_ref": "main",
+    "push_confirmed": true,
+    "scope": "The commit contains only the execution plan and its two resume-29 execution records.",
+    "runtime_product_commit_remains": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850"
+  },
   "read_only_command_recoveries": [
     "PowerShell parsed unquoted @{u} as a hashtable; reran quoted upstream readback before any Git action.",
     "Set-Content re-encoded git-show text and produced a false HTML hash; corrected with raw-byte subprocess hashing and confirmed identical 21,897-byte blobs.",
