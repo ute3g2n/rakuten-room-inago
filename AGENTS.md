@@ -1,5 +1,9 @@
 # リポジトリの作業指示
 
+> **作業開始時に最初に参照**：[プロジェクト全体マップ](docs/architecture/プロジェクト全体マップ.md)
+>
+> **システムの説明資料**：[イナゴスキル要件定義書](docs/specifications/inago/イナゴスキル要件定義書.html)、[日次タスクのトレース・ログ出力一覧](docs/operations/日次タスクのトレース・ログ出力一覧.md)、[保守フローの構成案](docs/architecture/保守フロー_skill直列構成案_2026-10-20.html)
+
 ## 固定された作業場所
 
 - このリポジトリで許可される作業場所は `C:\project\rakuten-room-inago` のみです。
