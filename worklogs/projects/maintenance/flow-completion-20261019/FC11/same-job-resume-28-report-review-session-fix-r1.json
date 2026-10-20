@@ -1,0 +1,134 @@
+{
+  "schema_version": "fc11-report-review-session-isolation-r1",
+  "observed_at_utc": "2026-10-20T01:24:42Z",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "head_before_this_fix_commit": "72ff1940cf0c28695363932fed46c27bf19f059a",
+  "tracking": "origin/main",
+  "plan_sha256_at_creation": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "resume": {
+    "resume_count": 28,
+    "job_status": "complete",
+    "finished_at_utc": "2026-10-20T01:11:56.491913Z",
+    "terminal_accepted": false,
+    "reason": "The final HTML review was unavailable because the reviewer response version did not match the revised report."
+  },
+  "report": {
+    "attempt_id": "f5640b94-07f4-4f67-b2eb-2b4807645fe2",
+    "attempt_number": 27,
+    "result_version": "fallback-revision-f2d5127ebf7e65522987",
+    "next_action": "publish",
+    "report_status": "pending",
+    "stage_status": "review_unavailable",
+    "review_status": "unavailable",
+    "reviewer_id": "controller-fallback-review-unavailable",
+    "review_failure": "report_review_version_mismatch",
+    "publication_commit": "72ff1940cf0c28695363932fed46c27bf19f059a",
+    "publication_path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+    "published_html_sha256": "ae6672d2e9a40a984caaba66380a23db2f6d1d7bbdfb4e4346525c9480a870bf",
+    "published_but_approved": false
+  },
+  "failure": {
+    "operation": "daily report reviewer response binding after author revision",
+    "observed_chain": [
+      "Initial independent reviewer returned an in-scope finding that the original daily defect was unclear.",
+      "Author revised the HTML.",
+      "Second reviewer received the revised HTML SHA but returned the prior report version key.",
+      "Controller detected report_review_version_mismatch and stored review status unavailable.",
+      "Controller fallback path still published the pending report; this is not accepted as final approved output."
+    ],
+    "cause": "Both report versions reused the same persisted reviewer conversation. The prior conversation context was carried into the second response.",
+    "original_2026_10_17_incident_root_cause": "unknown"
+  },
+  "changes": [
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "sha256": "89a1fcd4a1acd4cdb16ba849a4a6fad3d041dbdab1b3a45582e4eb271b31d2dc",
+      "description": "Add an optional SHA-scoped session discriminator; preserve legacy keys when omitted and same-scope resume behavior when repeated."
+    },
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "sha256": "1b4178ac278a384f9aaad366024ccb183edfe3228f5d8f75065a325e744d5e72",
+      "description": "Use attempt/result-version/HTML-SHA scoped sessions for both normal and fallback report review."
+    },
+    {
+      "path": "tests_inago/test_maintenance_ai.py",
+      "description": "Add isolation/same-version resume regression and align stale fixed-root/high settings assertions."
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "description": "Assert distinct report versions receive distinct reviewer session discriminators."
+    }
+  ],
+  "verification": {
+    "red_before_fix": [
+      "Adapter test raised TypeError for unexpected session_discriminator.",
+      "Integration test observed both review versions with no distinct discriminators."
+    ],
+    "focused_adapter_and_fallback_tests": "9 passed",
+    "test_maintenance_ai.py": "36 passed in 11.73s",
+    "test_maintenance_report_publication_stage.py": "48 passed in 96.51s",
+    "py_compile": "passed for two production and two test files",
+    "git_diff_check": "exit 0; Git emitted only a CRLF/LF normalization warning for production_workflow.py"
+  },
+  "product_review": {
+    "reviewer": "/root/html_review_scope_product_review",
+    "verdict": "APPROVE",
+    "findings": 0,
+    "reviewed_files": [
+      {
+        "path": "automation/inago/maintenance/ai_adapter.py",
+        "sha256": "89a1fcd4a1acd4cdb16ba849a4a6fad3d041dbdab1b3a45582e4eb271b31d2dc"
+      },
+      {
+        "path": "automation/inago/maintenance/production_workflow.py",
+        "sha256": "1b4178ac278a384f9aaad366024ccb183edfe3228f5d8f75065a325e744d5e72"
+      }
+    ],
+    "test_code_review": "not requested"
+  },
+  "state_after_this_fix_before_commit": {
+    "cached_tracked_files": 0,
+    "uncached_tracked_files": [
+      "automation/inago/maintenance/ai_adapter.py",
+      "automation/inago/maintenance/production_workflow.py",
+      "tests_inago/test_maintenance_ai.py",
+      "tests_inago/test_maintenance_report_publication_stage.py"
+    ],
+    "implementation_committed": false,
+    "implementation_pushed": false,
+    "official_runtime_applied": false,
+    "same_job_resumed_after_fix": false,
+    "approved_final_html_published": false,
+    "fc_a06_complete": false,
+    "fc_a07_complete": false,
+    "plan_complete": false
+  },
+  "next_actions": [
+    "Audit only task-owned changes and check for secrets/personal data; selected stage and commit/push to origin/main.",
+    "Apply the exact pushed code revision through official runtime APIs and read back runtime plus deployment ledger.",
+    "Resume only the same 2026-10-17 job/source launch with null source_run_id.",
+    "Obtain independent approval for the exact final HTML bytes, publish those bytes, and read back report/review/publication/job terminal consistency.",
+    "Reconcile FC-A01 through FC-A10 with evidence before marking the plan complete."
+  ],
+  "operation_errors_and_recovery": [
+    {
+      "operation": "initial PowerShell current-location command",
+      "failure": "PowerShell parser error at Git upstream shorthand @{u}; no Git subcommand ran",
+      "cause": "PowerShell interpreted the unquoted shorthand as a hashtable expression",
+      "recovery": "Quote @{u} as a literal argument and rerun the read-only current-location checks."
+    },
+    {
+      "operation": "selected stage ownership assertion",
+      "failure": "AssertionError after git add reported Git paths with forward slashes while Windows Path.relative_to returned backslashes",
+      "cause": "The ownership verifier compared equivalent path spellings without separator normalization. Git had already staged only the seven explicitly selected task-owned paths.",
+      "recovery": "Normalize separators before comparing exact staged-path sets; confirmed only the seven planned paths are staged and no other file was added."
+    }
+  ]
+}

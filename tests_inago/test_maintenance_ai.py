@@ -169,6 +169,49 @@ def test_c24_contract(tmp_path):
     assert factory.call_args.kwargs["sandbox_policy"] == plan.sandbox_policy
 
 
+def test_report_review_session_isolated_by_report_version(tmp_path):
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    job = create_ready_release(store, incident_id=incident_id)
+    _bind_job(store, incident_id, job.job_id)
+    attempt_id = _start_test_attempt(store, job.job_id)
+    adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+    output_root = attempts_root / job.job_id / attempt_id
+    output_root.mkdir(parents=True)
+    worktree_root = worktrees_root / job.job_id
+    worktree_root.mkdir()
+    identity = _job_identity(incident_id, job.job_id)
+    common = {
+        "parent_key": "B",
+        "role_name": "rr-inago-incident-report-reviewer",
+        "job_id": job.job_id,
+        "attempt_id": attempt_id,
+        "identity": identity,
+        "cwd": adapter.project_root,
+        "attempt_output_root": output_root,
+        "worktree_root": worktree_root,
+    }
+
+    previous_report = adapter.plan_session(**common)
+    _bind_ai_session(store, previous_report, thread_id="thread-for-prior-report")
+
+    current_review = adapter.plan_session(
+        **common,
+        session_discriminator=("report-review-v2:" + "a" * 64),
+    )
+
+    assert current_review.session_key != previous_report.session_key
+    assert current_review.resume_thread_id is None
+
+    _bind_ai_session(store, current_review, thread_id="thread-for-current-report")
+    resumed_current_review = adapter.plan_session(
+        **common,
+        session_discriminator=("report-review-v2:" + "a" * 64),
+    )
+    assert resumed_current_review.session_key == current_review.session_key
+    assert resumed_current_review.resume_thread_id == "thread-for-current-report"
+
+
 def test_c25_contract(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)
@@ -189,20 +232,26 @@ def test_c25_contract(tmp_path):
         "rr-inago-incident-report-reviewer",
     }
     for role_name in adapter.allowed_roles("B"):
+        fixed_root_role = role_name in {
+            "common-implementer",
+            "common-tester",
+            "common-reviewer",
+        }
+        role_root = adapter.project_root if fixed_root_role else worktree_root
         plan = adapter.plan_session(
             parent_key="B",
             role_name=role_name,
             job_id=job.job_id,
             attempt_id=attempt_id,
             identity=_job_identity(incident_id, job.job_id),
-            cwd=worktree_root,
+            cwd=role_root,
             attempt_output_root=output_root,
-            worktree_root=worktree_root,
+            worktree_root=role_root,
         )
         assert plan.requested_model == "gpt-6-luna"
-        assert plan.requested_effort == "max"
+        assert plan.requested_effort == "high"
         assert plan.requested_service_tier == "priority"
-        assert 'service_tier="fast"' in plan.command
+        assert 'service_tier="priority"' in plan.command
         assert "features.fast_mode=true" in plan.command
 
     plan = adapter.plan_session(
@@ -211,14 +260,14 @@ def test_c25_contract(tmp_path):
         job_id=job.job_id,
         attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
-        cwd=worktree_root,
+        cwd=adapter.project_root,
         attempt_output_root=output_root,
-        worktree_root=worktree_root,
+        worktree_root=adapter.project_root,
     )
     with patch("automation.inago.maintenance.ai_adapter.AppServerSession") as factory:
         adapter.create_session(plan)
     assert factory.call_args.kwargs["model"] == "gpt-6-luna"
-    assert factory.call_args.kwargs["effort"] == "max"
+    assert factory.call_args.kwargs["effort"] == "high"
     assert factory.call_args.kwargs["service_tier"] == "priority"
     assert factory.call_args.kwargs["log_root"] == adapter.logs_root
     assert factory.call_args.kwargs["fast_mode"] is True
@@ -263,9 +312,9 @@ def test_c26_contract(tmp_path):
         job_id=job.job_id,
         attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
-        cwd=worktree_root,
+        cwd=adapter.project_root,
         attempt_output_root=output_root,
-        worktree_root=worktree_root,
+        worktree_root=adapter.project_root,
     )
     assert plan.observation_status == "configured_unverified"
     assert plan.observed_settings["service_tier"] is None
@@ -335,20 +384,20 @@ def test_c27_contract(tmp_path):
     implementer = adapter.plan_session(
         parent_key="B",
         role_name="common-implementer",
-        cwd=worktree_root,
-        **common,
+        cwd=adapter.project_root,
+        **{**common, "worktree_root": adapter.project_root},
     )
     assert implementer.sandbox_policy == {
         "type": "workspaceWrite",
         "networkAccess": False,
     }
-    assert not implementer.log_path.is_relative_to(worktree_root.resolve())
+    assert not implementer.log_path.is_relative_to(adapter.project_root.resolve())
 
     reviewer = adapter.plan_session(
         parent_key="B",
         role_name="common-reviewer",
-        cwd=worktree_root,
-        **common,
+        cwd=adapter.project_root,
+        **{**common, "worktree_root": adapter.project_root},
     )
     assert reviewer.sandbox_policy == {
         "type": "readOnly",
@@ -373,9 +422,9 @@ def test_c27_contract(tmp_path):
             job_id=job.job_id,
             attempt_id=attempt_id,
             identity=_job_identity(incident_id, job.job_id),
-            cwd=adapter.project_root,
+            cwd=tmp_path,
             attempt_output_root=output_root,
-            worktree_root=worktree_root,
+            worktree_root=adapter.project_root,
         )
 
     reviewer_plan = adapter.plan_session(
@@ -384,9 +433,9 @@ def test_c27_contract(tmp_path):
         job_id=job.job_id,
         attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
-        cwd=worktree_root,
+        cwd=adapter.project_root,
         attempt_output_root=output_root,
-        worktree_root=worktree_root,
+        worktree_root=adapter.project_root,
     )
     assert reviewer_plan.sandbox_policy == {
         "type": "readOnly",
@@ -570,9 +619,9 @@ def test_c27_turn_cwd_stays_at_managed_workspace(tmp_path):
         job_id=job.job_id,
         attempt_id=attempt_id,
         identity=_job_identity(incident_id, job.job_id),
-        cwd=worktree_root,
+        cwd=adapter.project_root,
         attempt_output_root=output_root,
-        worktree_root=worktree_root,
+        worktree_root=adapter.project_root,
     )
 
     class NeverCalledAppServer:

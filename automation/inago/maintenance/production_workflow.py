@@ -10015,6 +10015,9 @@ def _persist_minimal_daily_report(
                     cwd=project_root,
                     attempt_output_root=output_root,
                     worktree_root=worktrees_root / job.job_id,
+                    session_discriminator=(
+                        f"daily-report:{current.attempt_id}:{result_version}:{html_sha256}"
+                    ),
                 )
                 reviewer = adapter.create_session(reviewer_plan)
                 try:
@@ -11013,6 +11016,9 @@ def run_daily_report_stage(
                 cwd=project_root,
                 attempt_output_root=output_root,
                 worktree_root=worktrees_root / job.job_id,
+                session_discriminator=(
+                    f"daily-report:{attempt.attempt_id}:{result_version}:{html_sha256}"
+                ),
             )
             reviewer_schema = _daily_report_ai_response_schema("review")
             reviewer_raw = None

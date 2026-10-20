@@ -2957,6 +2957,7 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
     role_calls: list[str] = []
     normal_review_inputs: list[dict[str, object]] = []
     prepared_reports: list[object] = []
+    reviewer_session_discriminators: list[str | None] = []
     turn_number = 0
 
     monkeypatch.setattr(
@@ -3172,6 +3173,10 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
             pass
 
         def plan_session(self, **kwargs):
+            if kwargs["role_name"] == production_workflow._REPORT_REVIEWER_ROLE:
+                reviewer_session_discriminators.append(
+                    kwargs.get("session_discriminator")
+                )
             return SimpleNamespace(
                 role_name=kwargs["role_name"],
                 attempt_id=kwargs["attempt_id"],
@@ -3363,6 +3368,9 @@ def test_fc07_report_role_review_revision_or_failure_reaches_publication(
         assert review_inputs[0]["result_version"] != review_inputs[1]["result_version"]
         assert review_inputs[0]["html_path"] != review_inputs[1]["html_path"]
         assert review_inputs[0]["html_sha256"] != review_inputs[1]["html_sha256"]
+        assert len(reviewer_session_discriminators) == 2
+        assert all(reviewer_session_discriminators)
+        assert len(set(reviewer_session_discriminators)) == 2
         published_report = publication_calls[0]["report"]
         assert isinstance(published_report, dict)
         assert published_report["report_status"] == (

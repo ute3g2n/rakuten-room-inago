@@ -415,6 +415,7 @@ class MaintenanceAIAdapter:
         cwd: str | Path,
         attempt_output_root: str | Path,
         worktree_root: str | Path,
+        session_discriminator: str | None = None,
     ) -> MaintenanceAISessionPlan:
         if parent_key not in PARENT_SETTINGS:
             raise MaintenanceAIBlockedError("parent_key_unauthorized")
@@ -507,7 +508,19 @@ class MaintenanceAIAdapter:
             )
 
         base_session_key = f"{parent_key}:{role_name}"
-        session_key = base_session_key
+        session_scope = None
+        if session_discriminator is not None:
+            if not isinstance(session_discriminator, str) or not session_discriminator:
+                raise MaintenanceAIBlockedError("session_discriminator_invalid")
+            session_scope = hashlib.sha256(
+                session_discriminator.encode("utf-8")
+            ).hexdigest()[:24]
+        scoped_session_key = (
+            f"{base_session_key}:scope-{session_scope}"
+            if session_scope is not None
+            else base_session_key
+        )
+        session_key = scoped_session_key
         try:
             stored = self.controller.get_ai_parent_session(
                 job_id=job_id,
@@ -519,7 +532,7 @@ class MaintenanceAIAdapter:
             # Session rows are immutable. Keep the old conversation for audit,
             # and use a separate key when role instructions or session settings
             # have changed instead of trying to resume it under new settings.
-            session_key = f"{base_session_key}:cfg-{session_config_sha256}"
+            session_key = f"{scoped_session_key}:cfg-{session_config_sha256}"
             try:
                 stored = self.controller.get_ai_parent_session(
                     job_id=job_id,
@@ -530,9 +543,12 @@ class MaintenanceAIAdapter:
             if not matches_session_config(stored):
                 session_key = f"{session_key}:new-{uuid4().hex}"
                 stored = None
-        log_name = f"{parent_key}--{role_name}.jsonl"
-        if session_key != base_session_key:
-            log_name = f"{parent_key}--{role_name}--{session_config_sha256}.jsonl"
+        log_name_parts = [parent_key, role_name]
+        if session_scope is not None:
+            log_name_parts.extend(("scope", session_scope))
+        if session_key != scoped_session_key:
+            log_name_parts.extend(("cfg", session_config_sha256))
+        log_name = "--".join(log_name_parts) + ".jsonl"
         log_path = self.logs_root / manifest.target_date / manifest.job_id / log_name
         return MaintenanceAISessionPlan(
             manifest=manifest,
