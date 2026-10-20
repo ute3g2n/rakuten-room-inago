@@ -79,6 +79,18 @@ def _sqlite_failure_labels(exc: BaseException | None) -> tuple[str, str]:
     return name, constraint
 
 
+def _safe_sqlite_error_code(exc: BaseException | None) -> int | None:
+    """Keep only SQLite's bounded numeric code, without exception text."""
+
+    try:
+        value = getattr(exc, "sqlite_errorcode", None)
+    except Exception:
+        return None
+    if type(value) is int and 0 <= value <= 65535:
+        return value
+    return None
+
+
 def _safe_diagnostic_class(exc: BaseException) -> str:
     """Return an exception class name without copying its message or traceback."""
 
@@ -203,6 +215,7 @@ def _secondary_diagnostic(
         "code": "daily_secondary_operation_failed",
         "operation": operation,
         "exception_class": _safe_diagnostic_class(exc),
+        "error_code_number": _safe_sqlite_error_code(exc),
         "error_name": error_name,
         "constraint_label": constraint_label,
         "failure_module": failure_module,
@@ -331,6 +344,7 @@ def _default_failure_result(
     connection: sqlite3.Connection | None,
     target_date: str,
     phase: str,
+    secondary_errors: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     current_run = None
     if connection is not None:
@@ -342,7 +356,15 @@ def _default_failure_result(
                 """,
                 (target_date,),
             ).fetchone()
-        except sqlite3.Error:
+        except sqlite3.Error as exc:
+            if secondary_errors is not None:
+                secondary_errors.append(
+                    _secondary_diagnostic(
+                        "failure_result_run_lookup",
+                        exc,
+                        _pipeline_capture_location(),
+                    )
+                )
             current_run = None
     code = _safe_error_code(getattr(error, "code", None), type(error).__name__)
     return {
@@ -373,10 +395,58 @@ def _result_mapping(
     phase: str,
     secondary_errors: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    def add_primary_diagnostic(result: dict[str, Any]) -> dict[str, Any]:
+        primary_error = result.get("primary_error")
+        if isinstance(primary_error, Mapping):
+            primary_error = dict(primary_error)
+        else:
+            primary_error = {
+                "phase": phase,
+                "code": _safe_error_code(
+                    getattr(error, "code", None), type(error).__name__
+                ),
+            }
+        failure_module, failure_function, failure_line = _pipeline_capture_location()
+        error_name, constraint_label = _sqlite_failure_labels(error)
+        exception_chain, exception_chain_truncated = (
+            _safe_exception_chain_details(error)
+        )
+        primary_diagnostic = {
+            "operation": "daily_primary_failure",
+            "exception_class": _safe_diagnostic_class(error),
+            "exception_chain": exception_chain,
+            "exception_chain_truncated": exception_chain_truncated,
+            "exception_frames": _safe_exception_frames(error),
+            "error_code_number": _safe_sqlite_error_code(error),
+            "error_name": error_name,
+            "constraint_label": constraint_label,
+            "failure_module": failure_module,
+            "failure_function": failure_function,
+            "failure_line": failure_line,
+            "code_sha256": _pipeline_code_sha256(),
+        }
+        if "diagnostic" not in primary_error:
+            primary_error["diagnostic"] = primary_diagnostic
+        else:
+            diagnostic_key = "daily_primary_failure_diagnostic"
+            suffix = 2
+            while diagnostic_key in primary_error:
+                diagnostic_key = f"daily_primary_failure_diagnostic_{suffix}"
+                suffix += 1
+            primary_error[diagnostic_key] = primary_diagnostic
+        result["primary_error"] = primary_error
+        return result
+
     if ports.failure_result is None:
-        return _default_failure_result(error, connection, target_date, phase)
+        return add_primary_diagnostic(
+            _default_failure_result(
+                error, connection, target_date, phase, secondary_errors
+            )
+        )
     try:
-        return dict(ports.failure_result(error, connection, target_date, phase))
+        return add_primary_diagnostic(
+            dict(ports.failure_result(error, connection, target_date, phase))
+        )
     except Exception as exc:
         if secondary_errors is not None:
             secondary_errors.append(
@@ -384,7 +454,11 @@ def _result_mapping(
                     "failure_result_callback", exc, _pipeline_capture_location()
                 )
             )
-        return _default_failure_result(error, connection, target_date, phase)
+        return add_primary_diagnostic(
+            _default_failure_result(
+                error, connection, target_date, phase, secondary_errors
+            )
+        )
 
 
 def _cursor_mappings(cursor: sqlite3.Cursor) -> list[dict[str, Any]]:
@@ -932,7 +1006,7 @@ def run_daily_execution_core(
                 active_stage=operation,
                 last_completed_stage=last_completed,
                 error_class=type(exc).__name__ if exc is not None else None,
-                error_code_number=getattr(exc, "sqlite_errorcode", None),
+                error_code_number=_safe_sqlite_error_code(exc),
                 error_name=error_name,
                 constraint_label=constraint_label,
                 failure_line=failure_line,
@@ -1125,7 +1199,7 @@ def run_daily_execution_core(
                 "phase": phase,
                 "exception_class": type(exc).__name__,
                 "primary_error_code": code,
-                "error_code_number": getattr(exc, "sqlite_errorcode", None),
+                "error_code_number": _safe_sqlite_error_code(exc),
                 "error_name": error_name,
                 "constraint_label": constraint_label,
                 "persisted_run_id": None,

@@ -172,6 +172,164 @@ def test_pipeline_failure_records_its_own_capture_location(
     assert phase_error["code_sha256"] == expected_hash
 
 
+def test_result_mapping_adds_primary_diagnostic_on_all_callback_paths(
+    tmp_path: Path,
+) -> None:
+    primary_message = "primary_EXCEPTION_CANARY"
+    secondary_message = "secondary_CALLBACK_CANARY"
+
+    def raise_primary(_connection, _context, _on_draft_commit):
+        raise RuntimeError(primary_message)
+
+    def make_callback(kind: str):
+        if kind == "none":
+            return None
+        if kind == "success":
+            return lambda _error, _connection, target_date, phase: {
+                "status": "failed",
+                "target_date": target_date,
+                "run_id": None,
+                "committed_count": 0,
+                "attempt_used": 0,
+                "metrics_status": "unknown",
+                "resumed": False,
+                "reason": "primary_failure",
+                "error_count": 1,
+                "primary_error": {"phase": phase, "code": "RuntimeError", "kept": True},
+            }
+
+        def raise_secondary(_error, _connection, _target_date, _phase):
+            raise ValueError(secondary_message)
+
+        return raise_secondary
+
+    for kind in ("none", "success", "secondary_error"):
+        result = run_daily_execution_core(
+            _ports(
+                tmp_path / kind,
+                run_daily=raise_primary,
+                failure_result=make_callback(kind),
+            ),
+            clock=FakeClock(datetime.fromisoformat("2026-10-20T10:00:00+09:00")),
+        )
+
+        assert result["daily_status"] == "failed"
+        assert result["daily_reason"] == (
+            "primary_failure" if kind == "success" else "RuntimeError"
+        )
+        assert result["run_id"] is None
+        assert result["committed_count"] == 0
+        assert result["error_count"] == 1
+        primary = result["primary_error"]
+        assert primary["phase"] == "daily"
+        assert primary["code"] == "RuntimeError"
+        if kind == "success":
+            assert primary["kept"] is True
+
+        diagnostic = primary["diagnostic"]
+        assert diagnostic["operation"] == "daily_primary_failure"
+        assert diagnostic["exception_class"] == "RuntimeError"
+        assert diagnostic["exception_chain"][0] == {
+            "relation": "raised",
+            "exception_class": "RuntimeError",
+        }
+        assert diagnostic["exception_chain_truncated"] is False
+        assert diagnostic["exception_frames"]
+        assert all(
+            not Path(frame["path"]).is_absolute()
+            for frame in diagnostic["exception_frames"]
+        )
+        assert diagnostic["error_name"] == "unknown"
+        assert diagnostic["constraint_label"] == "unknown"
+        assert diagnostic["failure_module"] == daily_pipeline.__name__
+        assert diagnostic["failure_function"] == "add_primary_diagnostic"
+        assert isinstance(diagnostic["failure_line"], int)
+        assert diagnostic["code_sha256"] == hashlib.sha256(
+            Path(daily_pipeline.__file__).read_bytes()
+        ).hexdigest()
+
+        encoded_primary = json.dumps(primary)
+        assert primary_message not in encoded_primary
+        assert secondary_message not in encoded_primary
+        operations = [
+            item.get("operation")
+            for item in result["secondary_errors"]
+            if item.get("operation")
+        ]
+        assert operations == (
+            ["failure_result_callback", "failure_result_run_lookup"]
+            if kind == "secondary_error"
+            else [] if kind == "success" else ["failure_result_run_lookup"]
+        )
+
+        from automation.inago.cli import _append_production_log
+
+        case_root = tmp_path / kind / "l01"
+        _append_production_log(
+            case_root,
+            mode="daily",
+            status="failed",
+            reason="synthetic_primary_failure",
+            diagnostics={
+                "daily_status": result["daily_status"],
+                "daily_reason": result["daily_reason"],
+                "committed_count": result["committed_count"],
+                "error_count": result["error_count"],
+                "primary_error": result["primary_error"],
+                "secondary_errors": result["secondary_errors"],
+                "phase_results": result["phase_results"],
+            },
+        )
+        record_path = case_root / "logs" / "production-cli.jsonl"
+        persisted = json.loads(record_path.read_text(encoding="utf-8").splitlines()[0])
+        assert persisted["diagnostics"]["primary_error"]["diagnostic"] == diagnostic
+        persisted_text = record_path.read_text(encoding="utf-8")
+        assert primary_message not in persisted_text
+        assert secondary_message not in persisted_text
+
+
+def test_result_mapping_preserves_existing_diagnostic_and_adds_primary_diagnostic(
+    tmp_path: Path,
+) -> None:
+    existing_diagnostic = {"source": "callback", "detail": "keep this value"}
+
+    def fail_primary(_connection, _context, _on_draft_commit):
+        raise RuntimeError("primary failure")
+
+    def failure_result(_error, _connection, target_date, phase):
+        return {
+            "status": "failed",
+            "target_date": target_date,
+            "run_id": None,
+            "committed_count": 0,
+            "attempt_used": 0,
+            "metrics_status": "unknown",
+            "resumed": False,
+            "reason": "primary_failure",
+            "error_count": 1,
+            "primary_error": {
+                "phase": phase,
+                "code": "RuntimeError",
+                "diagnostic": existing_diagnostic.copy(),
+            },
+        }
+
+    result = run_daily_execution_core(
+        _ports(
+            tmp_path,
+            run_daily=fail_primary,
+            failure_result=failure_result,
+        ),
+        clock=FakeClock(datetime.fromisoformat("2026-10-20T10:00:00+09:00")),
+    )
+
+    primary = result["primary_error"]
+    assert primary["diagnostic"] == existing_diagnostic
+    added = primary["daily_primary_failure_diagnostic"]
+    assert added["operation"] == "daily_primary_failure"
+    assert added["exception_class"] == "RuntimeError"
+
+
 class _QueryFailConnection(sqlite3.Connection):
     failing_operation = ""
 
@@ -262,6 +420,58 @@ def test_callback_secondary_exception_preserves_primary_failure_and_records_safe
     assert result["committed_count"] == 0
     assert result["primary_error"]["code"] == "RuntimeError"
     _assert_safe_diagnostic(result, "failure_result_callback", "ValueError")
+    _assert_safe_diagnostic(result, "failure_result_run_lookup", "OperationalError")
+    assert [
+        item["operation"]
+        for item in result["secondary_errors"]
+        if item.get("operation")
+    ] == ["failure_result_callback", "failure_result_run_lookup"]
+
+
+def test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row(
+    tmp_path: Path,
+):
+    def raise_primary(_connection, _context, _on_draft_commit):
+        raise RuntimeError("primary_CANARY")
+
+    failed_lookup = run_daily_execution_core(
+        _ports(tmp_path / "lookup-error", run_daily=raise_primary),
+        clock=_clock(),
+    )
+    assert failed_lookup["daily_status"] == "failed"
+    assert failed_lookup["daily_reason"] == "RuntimeError"
+    assert failed_lookup["run_id"] is None
+    assert failed_lookup["committed_count"] == 0
+    assert [
+        item["operation"]
+        for item in failed_lookup["secondary_errors"]
+        if item.get("operation")
+    ] == ["failure_result_run_lookup"]
+    _assert_safe_diagnostic(
+        failed_lookup, "failure_result_run_lookup", "OperationalError"
+    )
+
+    def create_empty_run_table_then_raise(connection, _context, _on_draft_commit):
+        connection.execute(
+            "CREATE TABLE run (run_id TEXT, mode TEXT, target_date TEXT, "
+            "committed_count INTEGER, attempt_used INTEGER)"
+        )
+        raise RuntimeError("primary_CANARY")
+
+    no_row = run_daily_execution_core(
+        _ports(tmp_path / "lookup-empty", run_daily=create_empty_run_table_then_raise),
+        clock=_clock(),
+    )
+    assert no_row["daily_status"] == "failed"
+    assert no_row["daily_reason"] == "RuntimeError"
+    assert no_row["run_id"] is None
+    assert no_row["committed_count"] == 0
+    assert not [
+        item for item in no_row["secondary_errors"] if item.get("operation")
+    ]
+
+    serialized = json.dumps(failed_lookup["secondary_errors"])
+    assert "primary_CANARY" not in serialized
 
 
 def test_secondary_exception_chain_preserves_cause_context_and_suppression():
@@ -654,3 +864,147 @@ def test_secondary_errors_reach_isolated_cli_l01_record_payload(tmp_path: Path):
     assert "SQL_CANARY" not in raw
     assert "callback_CANARY" not in raw
     assert "export_CANARY" not in raw
+
+
+def test_sqlite_error_code_reaches_primary_secondary_and_l01_payload(tmp_path: Path):
+    from types import SimpleNamespace
+
+    from automation.inago.cli import _append_production_log
+
+    def missing_table_error(connection):
+        try:
+            connection.execute("SELECT value FROM synthetic_missing_table")
+        except sqlite3.Error as exc:
+            return exc
+        raise AssertionError("synthetic SQLite query unexpectedly succeeded")
+
+    def fail_primary(connection, _context, _on_draft_commit):
+        raise missing_table_error(connection)
+
+    def fail_callback(_error, connection, _target_date, _phase):
+        raise missing_table_error(connection)
+
+    result = run_daily_execution_core(
+        _ports(
+            tmp_path / "pipeline",
+            run_daily=fail_primary,
+            failure_result=fail_callback,
+        ),
+        clock=FakeClock(datetime.fromisoformat("2026-10-20T10:00:00+09:00")),
+    )
+
+    assert result["daily_status"] == "failed"
+    assert result["run_id"] is None
+    assert result["committed_count"] == 0
+    primary = result["primary_error"]["diagnostic"]
+    secondary = next(
+        item
+        for item in result["secondary_errors"]
+        if item.get("operation") == "failure_result_callback"
+    )
+    assert primary["error_code_number"] == 1
+    assert secondary["error_code_number"] == 1
+    assert primary["operation"] == "daily_primary_failure"
+    assert secondary["operation"] == "failure_result_callback"
+    for diagnostic in (primary, secondary):
+        assert diagnostic["exception_class"] == "OperationalError"
+        assert diagnostic["failure_module"] == daily_pipeline.__name__
+        assert isinstance(diagnostic["failure_function"], str)
+        assert isinstance(diagnostic["failure_line"], int)
+        assert diagnostic["code_sha256"] == hashlib.sha256(
+            Path(daily_pipeline.__file__).read_bytes()
+        ).hexdigest()
+        assert diagnostic["exception_chain"][0] == {
+            "relation": "raised",
+            "exception_class": "OperationalError",
+        }
+        assert diagnostic["exception_frames"]
+
+    for value in (True, -1, 65536, "1", None):
+        assert daily_pipeline._safe_sqlite_error_code(
+            SimpleNamespace(sqlite_errorcode=value)
+        ) is None
+    assert daily_pipeline._safe_sqlite_error_code(
+        SimpleNamespace(sqlite_errorcode=1)
+    ) == 1
+
+    diagnostics = {
+        "daily_status": result["daily_status"],
+        "daily_reason": result["daily_reason"],
+        "committed_count": result["committed_count"],
+        "error_count": result["error_count"],
+        "primary_error": result["primary_error"],
+        "secondary_errors": result["secondary_errors"],
+        "phase_results": result["phase_results"],
+    }
+    _append_production_log(
+        tmp_path / "l01",
+        mode="daily",
+        status="failed",
+        reason="synthetic_failure",
+        diagnostics=diagnostics,
+    )
+    record_path = tmp_path / "l01" / "logs" / "production-cli.jsonl"
+    record = json.loads(record_path.read_text(encoding="utf-8").splitlines()[0])
+    persisted = record["diagnostics"]
+    assert persisted["primary_error"]["diagnostic"]["error_code_number"] == 1
+    persisted_secondary = next(
+        item
+        for item in persisted["secondary_errors"]
+        if item.get("operation") == "failure_result_callback"
+    )
+    assert persisted_secondary["error_code_number"] == 1
+    safe_record = record_path.read_text(encoding="utf-8")
+    assert "synthetic_missing_table" not in safe_record
+    assert "no such table" not in safe_record
+
+
+class SqliteErrorCodePropertyFailure(Exception):
+    @property
+    def sqlite_errorcode(self):
+        raise RuntimeError("synthetic sqlite_errorcode property failure")
+
+
+def test_sqlite_error_code_property_failure_preserves_failed_result_and_logs_null(
+    tmp_path: Path,
+):
+    from automation.inago.cli import _append_production_log
+
+    def fail_primary(_connection, _context, _on_draft_commit):
+        raise SqliteErrorCodePropertyFailure("synthetic primary failure")
+
+    result = run_daily_execution_core(
+        _ports(tmp_path / "pipeline", run_daily=fail_primary),
+        clock=FakeClock(datetime.fromisoformat("2026-10-20T10:00:00+09:00")),
+    )
+
+    assert result["daily_status"] == "failed"
+    assert result["daily_reason"] == "SqliteErrorCodePropertyFailure"
+    assert result["run_id"] is None
+    assert result["committed_count"] == 0
+    diagnostic = result["primary_error"]["diagnostic"]
+    assert diagnostic["exception_class"] == "SqliteErrorCodePropertyFailure"
+    assert diagnostic["error_code_number"] is None
+    assert diagnostic["operation"] == "daily_primary_failure"
+
+    _append_production_log(
+        tmp_path / "l01",
+        mode="daily",
+        status="failed",
+        reason="synthetic_failure",
+        diagnostics={
+            "daily_status": result["daily_status"],
+            "daily_reason": result["daily_reason"],
+            "committed_count": result["committed_count"],
+            "primary_error": result["primary_error"],
+            "secondary_errors": result["secondary_errors"],
+        },
+    )
+    record_path = tmp_path / "l01" / "logs" / "production-cli.jsonl"
+    raw = record_path.read_text(encoding="utf-8")
+    record = json.loads(raw.splitlines()[0])
+    persisted = record["diagnostics"]["primary_error"]["diagnostic"]
+    assert persisted["error_code_number"] is None
+    assert persisted["exception_class"] == "SqliteErrorCodePropertyFailure"
+    assert "synthetic sqlite_errorcode property failure" not in raw
+    assert "synthetic primary failure" not in raw
