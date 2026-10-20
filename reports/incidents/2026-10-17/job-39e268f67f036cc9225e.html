@@ -1,191 +1,35 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="日次処理の障害、調査、修正、検証、反映状況を根拠とともに確認する報告ひな形">
-  <title>日次作業の不具合対応報告</title>
-  <style>
-    :root { color-scheme: light; --ink: #20313d; --muted: #526675; --line: #cbd6dd; --soft: #f1f5f7; --accent: #175a72; --warn: #7a4c00; --bad: #8c2e35; --good: #246146; }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #eaf0f3; color: var(--ink); font: 16px/1.65 system-ui, "Yu Gothic UI", "Meiryo", sans-serif; }
-    main { width: min(1100px, calc(100% - 2rem)); margin: 2rem auto; background: white; padding: clamp(1rem, 4vw, 3rem); box-shadow: 0 5px 24px #20313d18; }
-    h1, h2, h3 { line-height: 1.3; }
-    h1 { margin-top: .2rem; font-size: clamp(1.55rem, 4vw, 2.25rem); }
-    h2 { margin-top: 2.4rem; padding-bottom: .45rem; border-bottom: 2px solid var(--line); color: var(--accent); font-size: 1.35rem; }
-    h3 { margin-top: 1.5rem; font-size: 1.08rem; }
-    a { color: #145c8b; overflow-wrap: anywhere; }
-    .eyebrow, .muted { color: var(--muted); }
-    .summary { padding: 1rem 1.2rem; background: var(--soft); border-left: 4px solid var(--accent); }
-    .status { display: inline-block; padding: .15rem .55rem; border-radius: 999px; background: #edf1f3; color: var(--ink); font-size: .9rem; font-weight: 700; }
-    .status.pending { background: #fff0d2; color: var(--warn); }
-    .status.blocked, .status.failed { background: #f9e4e5; color: var(--bad); }
-    .status.passed { background: #e0f1e8; color: var(--good); }
-    .facts, .issue-list { display: grid; gap: .75rem; }
-    .facts { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .fact, .issue { padding: .8rem 1rem; border: 1px solid var(--line); border-radius: .45rem; min-width: 0; }
-    .fact strong { display: block; color: var(--muted); font-size: .88rem; }
-    .issue { border-left: 4px solid var(--line); }
-    .issue.actual { border-left-color: var(--bad); }
-    .issue.investigation { border-left-color: var(--warn); }
-    .issue.test { border-left-color: var(--accent); }
-    .tree { white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 2; padding: 1rem; background: #f5f7f8; border: 1px solid var(--line); border-radius: .4rem; }
-    code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-    pre { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
-    th, td { padding: .6rem .7rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
-    th { background: var(--soft); }
-    .checklist li { margin: .3rem 0; }
-    .evidence-links { display: inline-flex; flex-wrap: wrap; gap: .35rem .75rem; }
-    .evidence-references li { margin: .45rem 0; scroll-margin-top: 1rem; }
-    @media print {
-      body { background: white; font-size: 11pt; }
-      main { width: 100%; margin: 0; padding: 0; box-shadow: none; }
-      a { color: inherit; text-decoration: none; }
-      h2, h3, .issue, .fact, tr { break-inside: avoid; }
-      table { display: table; overflow: visible; table-layout: fixed; }
-      thead { display: table-header-group; }
-      tbody { display: table-row-group; }
-      th, td { overflow-wrap: anywhere; }
-      .tree { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }
-      pre, code { white-space: pre-wrap; }
-    }
-    @media (max-width: 520px) {
-      body { font-size: 15px; }
-      main { width: 100%; margin: 0; padding: 1rem; }
-      .tree { padding: .7rem; font-size: .88rem; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10月17日の日次処理に関する障害対応報告</title>
+<style>
+  body { max-width: 48rem; margin: 2.5rem auto; padding: 0 1.25rem; color: #202124; font: 1rem/1.75 system-ui, sans-serif; }
+  h1 { line-height: 1.35; }
+  h2 { margin-top: 1.6rem; font-size: 1.15rem; }
+</style>
 </head>
 <body>
 <main>
-  <header>
-    <p class="eyebrow">対象日: 2026-10-17</p>
-    <h1>10月17日の日次処理の失敗と調査結果</h1>
-    <p class="summary">調査資料の要約では、日次処理が失敗し、当日分の実行記録を確認できなかったとされています。ただし、CLIやSchedulerの記録本文は今回確認できる資料に含まれておらず、直接照合できません。原因は不明です。原因を直す変更は確認できず、修正の試験も行われていません。この保守実行の記録には、工程の開始や引継ぎ、失敗理由、例外情報、関連資料への参照があります。計画作成ではAIへの接続に失敗し、修正準備では工程を識別する値が不正で作業されず、本番反映用の変更候補も確認できなかったと記録されています。これらは保守作業の問題で、日次不具合の原因とは別です。記録機能がいつ追加されたかは確認できません。日次の実行記録との紐づけはありません。今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。記録項目には、工程・操作・段階、失敗理由、例外情報、捕捉位置、実行版、入力資料と成果物の参照があります。項目に値があるかは操作ごとに異なります。今回読み込めた内容は次のとおりです。この実行では工程トレースを15件読み込み、うち3件に失敗理由、例外情報、または中断の記録がありました。通常の引継ぎだけの記録は失敗として数えていません。失敗記録がある工程: 計画作成、修正、本番反映。今回記録されたエラー: AIへの接続エラー、工程を識別する値の不正、本番反映用の変更候補を確認できない状態。元の工程記録を保存する仕組みを追加した時期は確認できていません。</p>
-    <div class="facts">
-      <div class="fact"><strong>確認状況</strong><span class="status pending">確認を続けます</span></div>
-      <div class="fact"><strong>報告日</strong>2026-10-20T10:31:32+09:00</div>
-    </div>
-  </header>
-
-  <nav aria-label="目次">
-    <h2>このページ</h2>
-    <ol>
-      <li><a href="#overview">概要と確認範囲</a></li>
-      <li><a href="#issues">事象一覧</a></li>
-      <li><a href="#details">事象ごとの詳細と修正</a></li>
-      <li><a href="#flow">確認したこと</a></li>
-      <li><a href="#checks">試験・レビュー・反映</a></li>
-      <li><a href="#recovery">未確認・停止・再開</a></li>
-      <li><a href="#evidence">根拠と関連文書</a></li>
-    </ol>
-  </nav>
-
-  <section id="overview">
-    <h2>概要と確認範囲</h2>
-    <p>何をしようとしたか、実際にどうなったか、次に何をするかを、確かめられた範囲で説明します。</p>
-    <ul>
-      <li>発生区分: 事象ごとの詳細に記載</li>
-      <li>日次最終状態・作業場所での検証・本番反映・次回の日次確認: 下の表に別々に記載</li>
-    </ul>
-    <p>各事象について、期待した結果、実際の結果、影響、回復、変更内容、確認した根拠を説明します。記録が足りないときは、何を調べ、何が分からないかを書きます。</p>
+  <h1>10月17日の日次処理に関する障害対応報告</h1>
+  <section>
+    <h2>発生した不具合</h2>
+    <p>10月17日の日次処理で失敗が記録されています。その日の実行記録は保存されておらず、実際の投稿数や、その後に回復したかどうかは分かっていません。</p>
   </section>
-
-  <section id="issues">
-    <h2>事象一覧</h2>
-    <table>
-      <thead><tr><th>事象</th><th>区分</th><th>期待</th><th>実結果・影響</th><th>回復・状態</th><th>根拠</th></tr></thead>
-      <tbody>
-        <tr><td><a href="#issue-1">日次処理</a></td><td>当日の記録にあるエラー</td><td>日次処理が完了し、当日分の実行記録が残ること</td><td>調査資料の要約には、日次処理が失敗し、当日分の実行記録を確認できなかったとあります。CLIとSchedulerの記録本文は今回確認できる資料に含まれていないため、記載内容を直接照合できません。<br><strong>影響:</strong> 当日分の実行記録を確認できません。</td><td>日次処理が回復したかは確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-1">調査結果（JSON）を見る</a></span></td></tr>
-<tr><td><a href="#issue-2">保守作業の工程記録</a></td><td>当日の記録にあるエラー</td><td>各工程の操作と結果が記録されること</td><td>記録には工程の開始や引継ぎがあります。計画作成ではAIへの接続エラー、修正準備では工程を識別する値の不正、本番反映では変更候補を確認できなかったことが記録されています。<br><strong>影響:</strong> 計画担当の通常回答は得られず、修正の試験と本番反映は確認できていません。これらは保守作業中の記録で、日次不具合の原因を示すものではありません。</td><td>日次処理の原因修正と回復は確認できていません。</td><td><span class="evidence-links"><a href="#report-evidence-2">修正計画（JSON）を見る</a></span></td></tr>
-<tr><td><a href="#issue-3">修正準備と試験</a></td><td>当日の記録にあるエラー</td><td>修正候補を準備して試験すること</td><td>工程を識別する値が不正だったと記録され、修正準備は行われませんでした。試験結果はありません。<br><strong>影響:</strong> 日次処理を直す変更の動作は確認できていません。</td><td>修正の試験と日次処理の回復は未確認です。</td><td><span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></td></tr>
-      </tbody>
-    </table>
+  <section>
+    <h2>原因</h2>
+    <p>処理が失敗した根本原因と、実行記録が保存されなかった理由は、調査資料から特定できません。推測できる根拠はありません。</p>
   </section>
-
-  <section id="details">
-    <h2>事象ごとの詳細と修正</h2>
-    <article class="issue actual" id="issue-1"><h3>日次処理の失敗と当日分の実行記録の欠落</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>10月17日の日次処理<br><strong>期待:</strong> 日次処理が完了し、当日分の実行記録が残ること<br><strong>実結果:</strong> 調査資料の要約には、日次処理が失敗し、当日分の実行記録を確認できなかったとあります。CLIとSchedulerの記録本文は今回確認できる資料に含まれていないため、記載内容を直接照合できません。</p><h4>影響と回復</h4><p>当日分の実行記録を確認できません。<br><strong>回復:</strong> 日次処理が回復したかは確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 原因は特定できていません。</p><h4>変更後の動作</h4><p>日次処理の原因を直す変更は確認できません。</p><h4>確認範囲と根拠</h4><p>調査資料の要約は確認できましたが、CLIとSchedulerの記録本文は今回の確認資料に含まれていません。日次処理の詳しい状況と原因は独立して照合できません。 · <span class="evidence-links"><a href="#report-evidence-1">調査結果（JSON）を見る</a></span></p></article>
-<article class="issue actual" id="issue-2"><h3>工程の操作と失敗理由の記録</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>計画作成、修正準備、本番反映<br><strong>期待:</strong> 各工程の操作と結果が記録されること<br><strong>実結果:</strong> 記録には工程の開始や引継ぎがあります。計画作成ではAIへの接続エラー、修正準備では工程を識別する値の不正、本番反映では変更候補を確認できなかったことが記録されています。</p><h4>影響と回復</h4><p>計画担当の通常回答は得られず、修正の試験と本番反映は確認できていません。これらは保守作業中の記録で、日次不具合の原因を示すものではありません。<br><strong>回復:</strong> 日次処理の原因修正と回復は確認できていません。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 保守作業の記録から、日次不具合の原因は分かりません。</p><h4>変更後の動作</h4><p>日次処理の原因を直す変更が実装されたとは確認できません。</p><h4>確認範囲と根拠</h4><p>この実行の記録には工程、操作段階、失敗理由、例外情報、関連資料への参照があります。元の記録機能がいつ追加されたかは確認できません。 · <span class="evidence-links"><a href="#report-evidence-2">修正計画（JSON）を見る</a></span></p></article>
-<article class="issue actual" id="issue-3"><h3>修正の試験は行われていない</h3><p><span class="status pending">当日の記録にあるエラー</span></p><h4>操作・期待・実結果</h4><p>修正候補の準備と試験<br><strong>期待:</strong> 修正候補を準備して試験すること<br><strong>実結果:</strong> 工程を識別する値が不正だったと記録され、修正準備は行われませんでした。試験結果はありません。</p><h4>影響と回復</h4><p>日次処理を直す変更の動作は確認できていません。<br><strong>回復:</strong> 修正の試験と日次処理の回復は未確認です。</p><h4>原因と分かっている範囲</h4><p><strong>未確定:</strong> 修正準備が行われなかったことから、日次不具合の原因は判断できません。</p><h4>変更後の動作</h4><p>試験済みの修正は確認できません。</p><h4>確認範囲と根拠</h4><p>修正準備に関する記録を確認しました。 · <span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></p></article>
+  <section>
+    <h2>実際に行った修正</h2>
+    <p>日次処理の補助処理が失敗したとき、元の処理結果を保ちながら安全な診断情報を残すコード変更が加えられました。これは原因修正ではありません。変更の本番適用も確認できていません。</p>
   </section>
-
-  <section id="flow">
-    <h2>処理の流れ</h2>
-    <p>調べた内容は上の事象一覧と下の試験・反映結果に分けて説明しています。細かな工程記録は参考付録にまとめています。</p>
+  <section>
+    <h2>追加したトレース・ログ</h2>
+    <p>追加した診断情報は、失敗した操作の種類、エラーの分類、処理内で記録を捕まえた場所、実行コードを照合する情報です。同じ種類の失敗が起きたとき、どの補助操作で何が起き、どこで検知したかを調べやすくする狙いです。既存の日次ログへ渡す経路も使う変更ですが、試験では運用ログへの保存まで確認できていません。工程の操作や失敗をまとめたこのjobの記録も、入力資料では確認できませんでした。</p>
   </section>
-
-  <section id="checks">
-    <h2>試験・レビュー・反映</h2>
-    <table>
-      <thead><tr><th>段階</th><th>対象版</th><th>期待</th><th>実結果</th><th>状態</th><th>根拠</th></tr></thead>
-      <tbody>
-        <tr><td>修正の試験</td><td>版は参考付録を参照</td><td>修正候補を試験する</td><td>修正準備が行われず、試験結果はありません。</td><td><span class="status pending">未実施</span></td><td><span class="evidence-links"><a href="#report-evidence-3">関連する確認記録を見る</a></span></td></tr>
-<tr><td>調査レビュー</td><td>版は参考付録を参照</td><td>調査結果を別の担当者が確認する</td><td>調査結果に修正依頼がありました。</td><td><span class="status failed">修正依頼あり</span></td><td><a href="#report-evidence-1">調査結果（JSON）を見る</a></td></tr>
-<tr><td>計画レビュー</td><td>版は参考付録を参照</td><td>修正計画を別の担当者が確認する</td><td>修正計画のレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-2">修正計画（JSON）を見る</a></td></tr>
-<tr><td>プロダクトコードレビュー</td><td>版は参考付録を参照</td><td>変更したコードを別の担当者が確認する</td><td>コードレビューはまだ始まっていません。</td><td><span class="status pending">未開始</span></td><td><a href="#report-evidence-4">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
-<tr><td>修正後テスト</td><td>版は参考付録を参照</td><td>修正後の動作を試験で確かめる</td><td>試験は実施していません。試験結果の資料はありません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-4">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
-<tr><td>本番反映</td><td>版は参考付録を参照</td><td>確認した変更を本番環境に反映する</td><td>本番反映は実施していません。</td><td><span class="status pending">未実施</span></td><td><a href="#report-evidence-4">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
-<tr><td>次回の日次確認</td><td>版は参考付録を参照</td><td>翌日も同じ問題が起きるか確かめる</td><td>翌日の確認はまだ行っていません。</td><td><span class="status pending">保留</span></td><td><a href="#report-evidence-4">当日の日次証拠索引（利用可能な記録）を見る</a></td></tr>
-      </tbody>
-    </table>
-    <p>試験、本番への反映、次回の日次確認は、それぞれ別に記載します。未実施や未確認を成功とは扱いません。</p>
-    <p>この報告書のreview結果と公開結果、全工程が終了したか、元の不具合が解決したかも別々に説明します。報告書を作った時点の状態と、その後に保存された結果を混同しません。</p>
-  </section>
-
-  <section id="recovery">
-    <h2>未確認・停止・再開</h2>
-    <ul class="checklist">
-      <li>未確認事項: ・日次処理で具体的に何が起きたか
-・日次不具合の根本原因
-・日次処理が回復したか
-・原因を直す変更が実装されたか
-・元の工程記録機能がいつ追加されたか</li>
-      <li>続けるために必要な確認: 日次処理の詳しい状況と原因を確認できる資料が得られたら、修正候補の準備、試験、本番反映、日次処理の再確認を行います。</li>
-      <li>行っていない操作: 原因修正、修正の試験、本番反映、日次処理の回復は確認できていません。</li>
-    </ul>
-  </section>
-
-  <section id="evidence">
-    <h2>根拠と関連文書</h2>
-    <ul>
-      <li>調査結果: <a href="#report-evidence-1">調査結果（JSON）</a></li>
-      <li>修正計画: <a href="#report-evidence-2">修正計画（JSON）</a></li>
-      <li id="evidence-index">証拠索引: <a href="#report-evidence-4">当日の日次証拠索引（利用可能な記録）</a></li>
-    </ul>
-    <p class="muted">公開情報には秘密、個人情報、投稿本文、商品名、生ログ、生DB値を含めません。元の資料本文は転載せず、参照した種類と公開ページで確認できない範囲を示します。</p>
-    <h3>確認に使った資料</h3>
-    <p>各項目のリンクを開くと、この報告で参照した資料の種類と、公開ページに含めていない範囲を確認できます。</p>
-    <ul class="evidence-references">
-      <li id="report-evidence-1"><strong>調査結果（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-2"><strong>修正計画（JSON）</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-3"><strong>関連する確認記録</strong>。元の資料本文はこの公開ページに含めていません。</li>
-<li id="report-evidence-4"><strong>当日の日次証拠索引（利用可能な記録）</strong>。元の資料本文はこの公開ページに含めていません。</li>
-    </ul>
-  </section>
-  <details class="muted">
-    <summary>参考付録：確認用の内部記録</summary>
-    <ul>
-      <li>案件: 352492da-ac58-4680-b1fd-fe5f24000229</li>
-      <li>source_launch_id: historical-9e7f0c175cc4c874c955a5dab29c4427 · source_run_id: null</li>
-      <li>報告版: fallback-revision-26e12f662d0fbb727d02</li>
-      <li>調査版・計画版: investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1 · failure-43f6a6cc-c62e-48ff-a711-0f20ac181105</li>
-      <li>報告担当が確認したチェック版: <pre>・修正の試験: failure-8ea145e7-f539-4c8b-b4e1-252002f11854</pre></li>
-      <li>試験記録の版: failure-8ea145e7-f539-4c8b-b4e1-252002f11854</li>
-      <li>本番反映: 状態=not_attempted · 確認版=null · 公開版=null · 稼働版=null</li>
-      <li>次回確認: 状態=pending · 確認日時=null</li>
-      <li>工程の詳しい記録: <pre class="tree">調査資料の要約では日次処理の失敗と当日分の実行記録の欠落が報告されています。原因と詳しい状況は未確認です。保守作業では、計画作成時の接続エラー、修正準備時の識別値の不正、本番反映用の変更候補が確認できない記録がありました。</pre></li>
-      <li>コード: 832122863a3f5e9e76cfb5c42082a5e404e088c2 → 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
-      <li>報告担当: 報告担当 · コードレビュー: 未開始（プロダクトコード） · 832122863a3f5e9e76cfb5c42082a5e404e088c2</li>
-      <li>停止理由の記録: 記録がありません（未確認）</li>
-      <li>作業時の状態と副作用: 確認を続けます · 原因修正、修正の試験、本番反映、日次処理の回復は確認できていません。</li>
-      <li><strong>調査結果（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json</code></li>
-<li><strong>修正計画（JSON）</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/43f6a6cc-c62e-48ff-a711-0f20ac181105/stage-handoff.json</code></li>
-<li><strong>関連する確認記録</strong>: <code>job-historical-9e7f0c175cc4c874c955a5dab29c4427/8ea145e7-f539-4c8b-b4e1-252002f11854/repair-handoff.json</code></li>
-<li><strong>当日の日次証拠索引（利用可能な記録）</strong>: <code>evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json</code></li>
-    </ul>
-  </details>
 </main>
 </body>
 </html>
+

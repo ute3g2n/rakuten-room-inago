@@ -79,6 +79,36 @@ def _sqlite_failure_labels(exc: BaseException | None) -> tuple[str, str]:
     return name, constraint
 
 
+def _safe_diagnostic_class(exc: BaseException) -> str:
+    """Return an exception class name without copying its message or traceback."""
+
+    name = type(exc).__name__
+    return name if _SAFE_CODE.fullmatch(name) else "unknown"
+
+
+def _secondary_diagnostic(
+    operation: str,
+    exc: Exception,
+    capture_location: tuple[str, str, int | None],
+) -> dict[str, Any]:
+    """Build a safe, pipeline-local diagnostic for the existing CLI L01 path."""
+
+    failure_module, failure_function, failure_line = capture_location
+    error_name, constraint_label = _sqlite_failure_labels(exc)
+    return {
+        "phase": "daily_diagnostic",
+        "code": "daily_secondary_operation_failed",
+        "operation": operation,
+        "exception_class": _safe_diagnostic_class(exc),
+        "error_name": error_name,
+        "constraint_label": constraint_label,
+        "failure_module": failure_module,
+        "failure_function": failure_function,
+        "failure_line": failure_line,
+        "code_sha256": _pipeline_code_sha256(),
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class DailyExecutionPorts:
     """Explicit adapters around the shared daily execution lifecycle."""
@@ -235,12 +265,19 @@ def _result_mapping(
     connection: sqlite3.Connection | None,
     target_date: str,
     phase: str,
+    secondary_errors: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if ports.failure_result is None:
         return _default_failure_result(error, connection, target_date, phase)
     try:
         return dict(ports.failure_result(error, connection, target_date, phase))
-    except Exception:
+    except Exception as exc:
+        if secondary_errors is not None:
+            secondary_errors.append(
+                _secondary_diagnostic(
+                    "failure_result_callback", exc, _pipeline_capture_location()
+                )
+            )
         return _default_failure_result(error, connection, target_date, phase)
 
 
@@ -250,7 +287,9 @@ def _cursor_mappings(cursor: sqlite3.Cursor) -> list[dict[str, Any]]:
 
 
 def _retry_summary_for_run(
-    connection: sqlite3.Connection, run_id: str | None
+    connection: sqlite3.Connection,
+    run_id: str | None,
+    secondary_errors: list[dict[str, Any]] | None = None,
 ) -> dict[str, int | None]:
     """Count safe retry outcomes from persisted ROOM and Trends attempts."""
 
@@ -262,6 +301,7 @@ def _retry_summary_for_run(
             "contract_violation_count": 0,
         }
 
+    operation = "retry_summary_room_attempts"
     try:
         room_rows = _cursor_mappings(
             connection.execute(
@@ -270,6 +310,7 @@ def _retry_summary_for_run(
                 (run_id,),
             )
         )
+        operation = "retry_summary_trend_acquisitions"
         acquisitions = _cursor_mappings(
             connection.execute(
                 "SELECT acquisition_id, status, attempts_used FROM trends_acquisition "
@@ -277,6 +318,7 @@ def _retry_summary_for_run(
                 (run_id,),
             )
         )
+        operation = "retry_summary_trend_attempts"
         trend_attempts = _cursor_mappings(
             connection.execute(
                 "SELECT attempt.request_id, attempt.acquisition_id, attempt.attempt_no, "
@@ -288,7 +330,11 @@ def _retry_summary_for_run(
                 (run_id,),
             )
         )
-    except sqlite3.Error:
+    except sqlite3.Error as exc:
+        if secondary_errors is not None:
+            secondary_errors.append(
+                _secondary_diagnostic(operation, exc, _pipeline_capture_location())
+            )
         return {
             "attempt_count": None,
             "recovered_count": None,
@@ -395,7 +441,9 @@ def _retry_summary_for_run(
 
 
 def _attach_retry_summary(
-    daily_result: dict[str, Any], connection: sqlite3.Connection | None
+    daily_result: dict[str, Any],
+    connection: sqlite3.Connection | None,
+    secondary_errors: list[dict[str, Any]] | None = None,
 ) -> None:
     """Add counts only; never include retry inputs or source response content."""
 
@@ -411,7 +459,9 @@ def _attach_retry_summary(
         return
     run_id = daily_result.get("run_id")
     daily_result["retry_summary"] = _retry_summary_for_run(
-        connection, run_id if isinstance(run_id, str) else None
+        connection,
+        run_id if isinstance(run_id, str) else None,
+        secondary_errors,
     )
 
 
@@ -792,6 +842,7 @@ def run_daily_execution_core(
     monitor: Any = None
     monitor_attempted = False
     cleanup_errors: list[dict[str, str]] = []
+    secondary_diagnostics: list[dict[str, Any]] = []
     commit_export_failures = 0
     preflight_status = "not_run"
     database_status = "not_run"
@@ -854,6 +905,13 @@ def run_daily_execution_core(
                 result = _normalize_export(ports.export_dashboard(context))
             except Exception as exc:
                 commit_export_failures += 1
+                secondary_diagnostics.append(
+                    _secondary_diagnostic(
+                        "dashboard_export_after_commit",
+                        exc,
+                        _pipeline_capture_location(),
+                    )
+                )
                 return {"status": "failed", "error_code": type(exc).__name__}
             if result.get("status") != "ready":
                 commit_export_failures += 1
@@ -862,7 +920,7 @@ def run_daily_execution_core(
         phase_begin("daily")
         outcome = ports.run_daily(connection, context, refresh_history_after_commit)
         daily_result = _as_result(outcome)
-        _attach_retry_summary(daily_result, connection)
+        _attach_retry_summary(daily_result, connection, secondary_diagnostics)
         daily_status = _result_status(daily_result)
         phase_end("daily", daily_status)
     except Exception as exc:
@@ -899,8 +957,9 @@ def run_daily_execution_core(
             connection,
             target_date,
             phase,
+            secondary_diagnostics,
         )
-        _attach_retry_summary(daily_result, connection)
+        _attach_retry_summary(daily_result, connection, secondary_diagnostics)
         daily_status = _result_status(daily_result)
         if phase == "preflight":
             preflight_status = "failed"
@@ -1079,6 +1138,15 @@ def run_daily_execution_core(
             "code_sha256": _pipeline_code_sha256(),
         },
     )
+    if secondary_diagnostics:
+        existing_secondary = daily_result.get("secondary_errors", [])
+        merged_secondary = (
+            [dict(item) for item in existing_secondary if isinstance(item, Mapping)]
+            if isinstance(existing_secondary, (list, tuple))
+            else []
+        )
+        merged_secondary.extend(secondary_diagnostics)
+        daily_result["secondary_errors"] = merged_secondary
     return _combine_result(
         daily_result,
         daily_status=daily_status,

@@ -548,3 +548,33 @@ def test_previous_read_acknowledgement_requires_successful_exact_path_event(
         assert read_event["params"]["item"]["status"] == "completed"
         assert read_event["params"]["item"]["exitCode"] == 0
         assert str(job / "investigation.md") in read_event["params"]["item"]["command"]
+
+
+def test_daily_gap_emits_useful_safe_diagnostics(tmp_path: Path, monkeypatch):
+    """Run the real daily-gap fixtures under the plan-mapped complete node."""
+
+    from tests_inago import test_daily_pipeline_safe_diagnostics as daily_tests
+
+    daily_tests.test_callback_secondary_exception_preserves_primary_failure_and_records_safe_diagnostic(
+        tmp_path / "callback"
+    )
+    for index, operation in enumerate(
+        (
+            "retry_summary_room_attempts",
+            "retry_summary_trend_acquisitions",
+            "retry_summary_trend_attempts",
+        )
+    ):
+        with monkeypatch.context() as isolated_patch:
+            daily_tests.test_each_retry_summary_query_failure_keeps_result_and_null_fallbacks(
+                tmp_path / f"query-{index}",
+                isolated_patch,
+                operation,
+                operation,
+            )
+    daily_tests.test_commit_then_export_exception_preserves_commit_and_draft_count(
+        tmp_path / "post-commit-export"
+    )
+    daily_tests.test_secondary_errors_reach_isolated_cli_l01_record_payload(
+        tmp_path / "cli-l01"
+    )

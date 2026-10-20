@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 import hashlib
+import json
 import linecache
 import logging
 from pathlib import Path
 import sqlite3
+import pytest
 
 from automation.inago.clock import FakeClock
 from automation.inago import daily_pipeline
@@ -19,7 +21,9 @@ from automation.inago.trace import read_trace_events
 TARGET_DATE = "2026-10-19"
 
 
-def _ports(tmp_path: Path, *, run_daily, failure_result=None) -> DailyExecutionPorts:
+def _ports(
+    tmp_path: Path, *, run_daily, failure_result=None, export_dashboard=None
+) -> DailyExecutionPorts:
     return DailyExecutionPorts(
         data_root=tmp_path,
         preflight=lambda _now: {},
@@ -28,7 +32,7 @@ def _ports(tmp_path: Path, *, run_daily, failure_result=None) -> DailyExecutionP
         start_backup=lambda _connection, _context, _now: {"status": "ready"},
         operations_monitor=lambda _connection, _context, _target: None,
         run_daily=run_daily,
-        export_dashboard=lambda _context: {"status": "ready"},
+        export_dashboard=export_dashboard or (lambda _context: {"status": "ready"}),
         preserve_end_of_day=lambda _context, _now, _run_id: {
             "status": "ready",
             "end_backup": {"status": "ready"},
@@ -165,3 +169,207 @@ def test_pipeline_failure_records_its_own_capture_location(
         daily_pipeline.__file__, phase_error["failure_line"]
     )
     assert phase_error["code_sha256"] == expected_hash
+
+
+class _QueryFailConnection(sqlite3.Connection):
+    failing_operation = ""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        super().execute(
+            "CREATE TABLE search_attempt (attempt_id TEXT, run_id TEXT, query TEXT, "
+            "parent_refs_json TEXT, level INTEGER, source_status TEXT, ended_at TEXT, retry_of TEXT)"
+        )
+        super().execute(
+            "CREATE TABLE trends_acquisition (acquisition_id TEXT, status TEXT, "
+            "attempts_used INTEGER, run_id TEXT)"
+        )
+        super().execute(
+            "CREATE TABLE trends_acquisition_attempt (request_id TEXT, acquisition_id TEXT, "
+            "attempt_no INTEGER, retry_of TEXT, ended_at TEXT, status TEXT)"
+        )
+
+    def execute(self, query, parameters=()):
+        operation_by_query = {
+            "search_attempt": "retry_summary_room_attempts",
+            "trends_acquisition WHERE": "retry_summary_trend_acquisitions",
+            "trends_acquisition_attempt AS": "retry_summary_trend_attempts",
+        }
+        for marker, operation in operation_by_query.items():
+            if marker in query and operation == self.failing_operation:
+                raise sqlite3.OperationalError("SQL_CANARY private query text")
+        return super().execute(query, parameters)
+
+
+def _safe_result(*, run_id="synthetic-run"):
+    return {
+        "status": "complete",
+        "target_date": TARGET_DATE,
+        "run_id": run_id,
+        "committed_count": 3,
+        "attempt_used": 3,
+        "metrics_status": "observed",
+        "resumed": False,
+    }
+
+
+def _assert_safe_diagnostic(result, operation, exception_class):
+    diagnostic = next(
+        item for item in result["secondary_errors"] if item.get("operation") == operation
+    )
+    assert diagnostic["exception_class"] == exception_class
+    assert diagnostic["phase"] == "daily_diagnostic"
+    assert diagnostic["failure_module"] == daily_pipeline.__name__
+    assert isinstance(diagnostic["failure_function"], str)
+    assert isinstance(diagnostic["failure_line"], int)
+    assert diagnostic["code_sha256"] == hashlib.sha256(
+        Path(daily_pipeline.__file__).read_bytes()
+    ).hexdigest()
+    assert "SQL_CANARY" not in json.dumps(diagnostic)
+    assert "callback_CANARY" not in json.dumps(diagnostic)
+    assert "export_CANARY" not in json.dumps(diagnostic)
+
+
+def test_callback_secondary_exception_preserves_primary_failure_and_records_safe_diagnostic(
+    tmp_path: Path,
+):
+    def raise_primary(_connection, _context, _on_draft_commit):
+        raise RuntimeError("primary_CANARY")
+
+    def raise_callback(_error, _connection, _target_date, _phase):
+        raise ValueError("callback_CANARY")
+
+    result = run_daily_execution_core(
+        _ports(
+            tmp_path,
+            run_daily=raise_primary,
+            failure_result=raise_callback,
+        ),
+        clock=_clock(),
+    )
+
+    assert result["daily_status"] == "failed"
+    assert result["daily_reason"] == "RuntimeError"
+    assert result["error_count"] == 1
+    assert result["committed_count"] == 0
+    assert result["primary_error"]["code"] == "RuntimeError"
+    _assert_safe_diagnostic(result, "failure_result_callback", "ValueError")
+
+
+@pytest.mark.parametrize(
+    ("operation", "expected_operation"),
+    [
+        ("retry_summary_room_attempts", "retry_summary_room_attempts"),
+        ("retry_summary_trend_acquisitions", "retry_summary_trend_acquisitions"),
+        ("retry_summary_trend_attempts", "retry_summary_trend_attempts"),
+    ],
+)
+def test_each_retry_summary_query_failure_keeps_result_and_null_fallbacks(
+    tmp_path: Path, monkeypatch, operation: str, expected_operation: str
+):
+    real_open = sqlite3.connect
+    monkeypatch.setattr(_QueryFailConnection, "failing_operation", operation)
+    monkeypatch.setattr(
+        daily_pipeline.sqlite3,
+        "connect",
+        lambda *args, **kwargs: real_open(*args, factory=_QueryFailConnection, **kwargs),
+    )
+    ports = _ports(
+        tmp_path,
+        run_daily=lambda _connection, _context, _on_draft_commit: _safe_result(),
+    )
+
+    result = run_daily_execution_core(ports, clock=_clock())
+
+    assert result["daily_status"] == "complete"
+    assert result["committed_count"] == 3
+    assert result["attempt_used"] == 3
+    assert result["retry_summary"] == {
+        "attempt_count": None,
+        "recovered_count": None,
+        "unresolved_count": None,
+        "contract_violation_count": None,
+    }
+    _assert_safe_diagnostic(result, expected_operation, "OperationalError")
+    serialized = json.dumps(result["secondary_errors"])
+    assert "SQL_CANARY" not in serialized
+
+
+def test_commit_then_export_exception_preserves_commit_and_draft_count(
+    tmp_path: Path,
+):
+    export_calls = 0
+
+    def export(_context):
+        nonlocal export_calls
+        export_calls += 1
+        if export_calls == 1:
+            raise OSError("export_CANARY")
+        return {"status": "ready", "draft_count": 3}
+
+    def commit_then_export(connection, _context, on_draft_commit):
+        connection.commit()
+        refreshed = on_draft_commit(connection)
+        return {**_safe_result(run_id=None), "commit_refresh": refreshed}
+
+    result = run_daily_execution_core(
+        _ports(
+            tmp_path,
+            run_daily=commit_then_export,
+            failure_result=None,
+            export_dashboard=export,
+        ),
+        clock=_clock(),
+    )
+    assert result["daily_status"] == "complete"
+    assert result["committed_count"] == 3
+    assert result["attempt_used"] == 3
+    assert result["export"]["status"] == "ready"
+    assert result["phase_results"]["export"]["commit_refresh_failures"] == 1, result
+    _assert_safe_diagnostic(result, "dashboard_export_after_commit", "OSError")
+
+
+def test_secondary_errors_reach_isolated_cli_l01_record_payload(tmp_path: Path):
+    from automation.inago.cli import _append_production_log
+
+    def fail_primary(_connection, _context, _on_draft_commit):
+        raise RuntimeError("primary_CANARY")
+
+    def fail_callback(_error, _connection, _target_date, _phase):
+        raise ValueError("callback_CANARY")
+
+    result = run_daily_execution_core(
+        _ports(tmp_path / "pipeline", run_daily=fail_primary, failure_result=fail_callback),
+        clock=_clock(),
+    )
+    diagnostic = next(
+        item for item in result["secondary_errors"]
+        if item.get("operation") == "failure_result_callback"
+    )
+    assert diagnostic["operation"] == "failure_result_callback"
+    assert diagnostic["exception_class"] == "ValueError"
+    diagnostics = {
+        "overall_status": result["overall_status"],
+        "daily_status": result["daily_status"],
+        "reason": result["reason"],
+        "committed_count": result["committed_count"],
+        "error_count": result["error_count"],
+        "primary_error": result["primary_error"],
+        "secondary_errors": result["secondary_errors"],
+        "phase_results": result["phase_results"],
+    }
+    _append_production_log(
+        tmp_path,
+        mode="daily",
+        status="failed",
+        reason="daily_result_failed",
+        diagnostics=diagnostics,
+    )
+
+    record_path = tmp_path / "logs" / "production-cli.jsonl"
+    record = json.loads(record_path.read_text(encoding="utf-8").splitlines()[0])
+    assert diagnostic in record["diagnostics"]["secondary_errors"]
+    raw = record_path.read_text(encoding="utf-8")
+    assert "SQL_CANARY" not in raw
+    assert "callback_CANARY" not in raw
+    assert "export_CANARY" not in raw
