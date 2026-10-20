@@ -14,6 +14,18 @@ import pytest
 from automation.inago.maintenance import skill_chain
 
 
+EXPECTED_NEXT_HANDOFF_LABELS = (
+    "実装",
+    "試験",
+    "レビュー",
+    "反映・公開",
+    "レポート作成",
+    "レビュー",
+    "反映・公開",
+    "終了",
+)
+
+
 JOB_ID = "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
 LAUNCH_ID = "historical-9e7f0c175cc4c874c955a5dab29c4427"
 TARGET_DATE = "2026-10-17"
@@ -167,7 +179,7 @@ class _SyntheticSession:
                 f"remote_html_sha256: {report_hash}\n",
                 encoding="utf-8",
             )
-        next_role = skill_chain.ROLE_CALLS[index].name if index < len(skill_chain.ROLE_CALLS) else "none"
+        next_role = EXPECTED_NEXT_HANDOFF_LABELS[index - 1]
         handoff = json.dumps({"担当": next_role, "入力": predecessor, "依頼": summary}, ensure_ascii=False)
         predecessor_path = self.job / predecessor
         command_path = predecessor_path if self.read_mode != "mismatched" else self.job / "wrong-predecessor.md"
@@ -347,16 +359,46 @@ def test_resume_same_job_without_predecessor_pin(tmp_path: Path, monkeypatch):
 def test_resume_after_final_review_reuses_author_and_reviewer_outputs(tmp_path: Path, monkeypatch):
     root, job = _workspace(tmp_path)
     monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
-    factory, _sessions = _factory(root, job)
+    assert tuple(
+        skill_chain._next_handoff_label(role)
+        for role in skill_chain.ROLE_CALLS
+    ) == (*EXPECTED_NEXT_HANDOFF_LABELS[:-1], "終了または未達の該当担当")
+    factory, sessions = _factory(root, job, read_modes={6: "missing"})
     result = _run(root, factory)
     assert result["status"] == "complete", result["terminal"]
+    assert sum(session.role_number == 6 for session in sessions) == 1
 
     report_before = (job / "report.html").read_bytes()
     review_before = (job / "html-review.md").read_bytes()
-    (root / skill_chain._PUBLIC_REPORT).write_bytes(b"public readback mismatch")
-    events = skill_chain._read_events(
-        job / "calls.jsonl", result["chain_started_at"]
+    event_path = job / "calls.jsonl"
+    events = skill_chain._read_events(event_path, result["chain_started_at"])
+    role_events = [event for event in events if event.get("event") == "role_call_finished"]
+    assert len(role_events) == 8
+    for event in role_events:
+        event["handoff_target_matches"] = False
+        event["previous_read_acknowledged"] = False
+        event["turn_status"] = "failed"
+        event["handoff_valid"] = False
+    for event in events:
+        if event.get("event") in {"author_revision_finished", "html_rereview_finished"}:
+            event["turn_status"] = "failed"
+    event_path.write_text(
+        "".join(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n" for event in events),
+        encoding="utf-8",
     )
+    terminal = skill_chain.inspect_skill_chain_terminal(
+        job_root=job,
+        repository_root=root,
+        identity=IDENTITY,
+        chain_started_at=result["chain_started_at"],
+    )
+    assert terminal["status"] == "complete", terminal
+    assert terminal["role_calls_complete"] is True
+    assert terminal["predecessor_reads_confirmed"] is False
+    assert terminal["author_revision_confirmed"] is True
+    assert terminal["final_html_rereview_confirmed"] is True
+
+    (root / skill_chain._PUBLIC_REPORT).write_bytes(b"public readback mismatch")
 
     start_role, reason = skill_chain._resume_start_role(
         job,

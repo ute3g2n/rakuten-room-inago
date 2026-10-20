@@ -139,12 +139,15 @@ def _safe_exception_chain(exc: BaseException) -> list[dict[str, str]]:
     return chain
 
 
-def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
-    """Return traceback frames only when their source is inside this repository."""
+def _safe_exception_frame_details(
+    exc: BaseException,
+) -> tuple[list[dict[str, str | int]], bool]:
+    """Return safe repository frames and whether the per-exception limit omitted any."""
 
     try:
         repository_root = Path(__file__).resolve().parents[2]
         frames: list[dict[str, str | int]] = []
+        truncated = False
         pending: list[tuple[BaseException, str]] = [(exc, "raised")]
         visited: set[int] = set()
         while pending:
@@ -166,8 +169,8 @@ def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
                     )
                 )
             frame = current.__traceback__
-            local_frame_count = 0
-            while frame is not None and local_frame_count < 8:
+            current_frames: list[dict[str, str | int]] = []
+            while frame is not None:
                 code = frame.tb_frame.f_code
                 try:
                     source = Path(code.co_filename).resolve()
@@ -177,7 +180,7 @@ def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
                     continue
                 function = code.co_name
                 module = frame.tb_frame.f_globals.get("__name__")
-                frames.append(
+                current_frames.append(
                     {
                         "exception_class": _safe_diagnostic_class(current),
                         "relation": relation,
@@ -193,11 +196,21 @@ def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
                         "line": int(frame.tb_lineno),
                     }
                 )
-                local_frame_count += 1
                 frame = frame.tb_next
-        return frames
+            if len(current_frames) > 8:
+                truncated = True
+                current_frames = current_frames[-8:]
+            frames.extend(current_frames)
+        return frames, truncated
     except Exception:
-        return []
+        return [], False
+
+
+def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
+    """Keep the legacy frame-only helper for callers that need no completeness flag."""
+
+    frames, _ = _safe_exception_frame_details(exc)
+    return frames
 
 
 def _secondary_diagnostic(
@@ -210,6 +223,7 @@ def _secondary_diagnostic(
     failure_module, failure_function, failure_line = capture_location
     error_name, constraint_label = _sqlite_failure_labels(exc)
     exception_chain, exception_chain_truncated = _safe_exception_chain_details(exc)
+    exception_frames, exception_frames_truncated = _safe_exception_frame_details(exc)
     return {
         "phase": "daily_diagnostic",
         "code": "daily_secondary_operation_failed",
@@ -224,7 +238,8 @@ def _secondary_diagnostic(
         "code_sha256": _pipeline_code_sha256(),
         "exception_chain": exception_chain,
         "exception_chain_truncated": exception_chain_truncated,
-        "exception_frames": _safe_exception_frames(exc),
+        "exception_frames": exception_frames,
+        "exception_frames_truncated": exception_frames_truncated,
     }
 
 
@@ -411,12 +426,16 @@ def _result_mapping(
         exception_chain, exception_chain_truncated = (
             _safe_exception_chain_details(error)
         )
+        exception_frames, exception_frames_truncated = (
+            _safe_exception_frame_details(error)
+        )
         primary_diagnostic = {
             "operation": "daily_primary_failure",
             "exception_class": _safe_diagnostic_class(error),
             "exception_chain": exception_chain,
             "exception_chain_truncated": exception_chain_truncated,
-            "exception_frames": _safe_exception_frames(error),
+            "exception_frames": exception_frames,
+            "exception_frames_truncated": exception_frames_truncated,
             "error_code_number": _safe_sqlite_error_code(error),
             "error_name": error_name,
             "constraint_label": constraint_label,
@@ -1129,6 +1148,7 @@ def run_daily_execution_core(
                         "exception_chain": [],
                         "exception_chain_truncated": False,
                         "exception_frames": [],
+                        "exception_frames_truncated": False,
                     }
                 )
             return result

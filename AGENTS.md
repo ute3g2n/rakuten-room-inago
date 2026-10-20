@@ -14,6 +14,15 @@
 - Unknown root cause is never a reason to stop before the final report. When the cause remains unknown, make an actionable plan to add useful trace/log evidence if that can help a future diagnosis, carry out that instrumentation work where feasible, record its test/review/deployment outcome accurately, and continue through report creation/publication. Never claim the cause is fixed or known when it is not.
 - If one operation cannot run, record that operation and its reason, then continue independent work and the final report.
 
+## Testing discipline (mandatory)
+
+These rules apply to every test task in this repository and are required before reporting a test result.
+
+- When a failure is known, first debug and test only the failing behavior and the smallest directly affected test node. Do not repeat unrelated tests that already passed while their source and inputs remain unchanged.
+- After all targeted failures have been fixed, run the complete planned regression once as the final test pass.
+- If that final regression finds a failure, return to focused diagnosis: rerun the failing node and only directly affected nodes, fix the cause, then run the complete planned regression once again as the final pass.
+- Record the exact command and test node, source/input version or hashes, expected and actual results, and exit code. Never present a skipped or unrun test as passing.
+
 ## Git at task completion
 
 - Immediately before considering a task complete, run `git status --short` and inspect all repository changes.

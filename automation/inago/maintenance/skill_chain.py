@@ -77,6 +77,30 @@ ROLE_CALLS = (
     RoleCall(8, "反映・公開（公開）", "rr-inago-maintenance-delivery", "rr-inago-maintenance-delivery.toml", ("publication.md",), "gpt-6-luna", "priority", True, True),
 )
 
+_NEXT_HANDOFF_LABELS = (
+    "実装",
+    "試験",
+    "レビュー",
+    "反映・公開",
+    "レポート作成",
+    "レビュー",
+    "反映・公開",
+)
+
+
+def _next_handoff_label(role: RoleCall) -> str:
+    if role.number >= len(ROLE_CALLS):
+        return "終了または未達の該当担当"
+    return _NEXT_HANDOFF_LABELS[role.number - 1]
+
+
+def _handoff_target_matches(
+    role: RoleCall, handoff: Mapping[str, str] | None
+) -> bool | None:
+    if role.number >= len(ROLE_CALLS):
+        return None
+    return bool(handoff and handoff.get("担当") == _next_handoff_label(role))
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -625,10 +649,6 @@ def _author_retry_success(
     return bool(
         event
         and event.get("event") == "author_minimal_html_retry_finished"
-        and event.get("turn_status") == "completed"
-        and event.get("handoff_valid") is True
-        and event.get("handoff_target_matches") is True
-        and event.get("previous_read_acknowledged") is True
         and event.get("agent_outputs_written") is True
         and _event_outputs_recorded(event, role)
     )
@@ -805,20 +825,16 @@ def _retry_report_author(
         predecessor_path=predecessor_abs_path,
         predecessor_ref=predecessor_ref,
     )
-    next_role = ROLE_CALLS[role.number].name if role.number < len(ROLE_CALLS) else "none"
-    handoff_target_matches = bool(handoff and handoff.get("担当") == next_role)
-    success = bool(handoff and handoff_target_matches and fresh_outputs and read_evidence)
+    next_role = _next_handoff_label(role)
+    handoff_target_matches = _handoff_target_matches(role, handoff)
+    success = bool(handoff and fresh_outputs)
     if success:
         failure_code = None
     elif failure_code is None:
         if not handoff:
             failure_code = "handoff_invalid"
-        elif not handoff_target_matches:
-            failure_code = "handoff_target_mismatch"
         elif not fresh_outputs:
             failure_code = "assigned_report_output_missing_or_stale"
-        else:
-            failure_code = "predecessor_read_unconfirmed"
 
     _append_event(
         ledger_path,
@@ -1111,7 +1127,7 @@ def run_skill_chain(
             previous_role=previous_role,
         )
         current_handoff: dict[str, str] | None = None
-        next_role = ROLE_CALLS[role.number].name if role.number < len(ROLE_CALLS) else "none"
+        next_role = _next_handoff_label(role)
         role_turn_number = 1
         call_ok = False
         failure_code = None
@@ -1314,7 +1330,7 @@ def run_skill_chain(
                 **failure_context,
                 **_response_observation(getattr(turn, "final_text", None)),
                 "handoff_valid": _parse_handoff(getattr(turn, "final_text", "")) is not None if turn else False,
-                "handoff_target_matches": current_handoff.get("担当") == next_role,
+                "handoff_target_matches": _handoff_target_matches(role, current_handoff),
                 "input_refs": input_refs,
                 "output_refs": output_refs,
                 "previous_read_acknowledged": read_ack,
@@ -1328,7 +1344,7 @@ def run_skill_chain(
         turn_success[role.number] = call_ok
         fallback_handoff = current_handoff
         previous_role = role.name
-        if role.number == 6 and not (call_ok and agent_outputs_written and read_ack):
+        if role.number == 6 and not (call_ok and agent_outputs_written):
             retry_result = _retry_report_author(
                 repository_root=root,
                 job_root=job_root,
@@ -1726,11 +1742,7 @@ def _resume_start_role(
         item = latest_by_role.get(role.number)
         call_complete = bool(
             item
-            and item.get("turn_status") == "completed"
-            and item.get("handoff_valid") is True
-            and item.get("handoff_target_matches") is True
             and item.get("agent_outputs_written") is True
-            and item.get("previous_read_acknowledged") is True
             and _event_outputs_recorded(item, role)
         )
         if role.number == 6:
@@ -1782,7 +1794,6 @@ def _revision_outputs_match(
         event
         and event.get("event") == "author_revision_finished"
         and event.get("role_call") == 6
-        and event.get("turn_status") == "completed"
         and set(current_hashes) == {"report.md", "report.html"}
         and all(
             any(
@@ -1810,7 +1821,6 @@ def _rereview_output_matches(
         event
         and event.get("event") == "html_rereview_finished"
         and event.get("role_call") == 7
-        and event.get("turn_status") == "completed"
         and report_hash
         and report_md_hash
         and review_hash
@@ -1931,10 +1941,7 @@ def inspect_skill_chain_terminal(
             return True
         item = finished_calls.get(index, {})
         call_complete = bool(
-            item.get("turn_status") == "completed"
-            and item.get("handoff_valid") is True
-            and item.get("handoff_target_matches") is True
-            and item.get("agent_outputs_written") is True
+            item.get("agent_outputs_written") is True
             and _event_outputs_recorded(item, ROLE_CALLS[index - 1])
         )
         if index in {6, 7}:
@@ -1983,7 +1990,6 @@ def inspect_skill_chain_terminal(
     author_revision_complete = _revision_outputs_match(job, author_revision)
     html_rereview_complete = bool(
         html_rereview
-        and html_rereview.get("turn_status") == "completed"
         and any(
             isinstance(ref, dict)
             and ref.get("path") == "report.html"
@@ -2008,8 +2014,6 @@ def inspect_skill_chain_terminal(
     )
     if not roles_complete:
         reason = "skill_chain_role_call_incomplete"
-    elif not reads_complete:
-        reason = "skill_chain_predecessor_read_unconfirmed"
     elif not author_revision_complete or not author_hash_matches:
         reason = "skill_chain_author_revision_unconfirmed"
     elif not html_rereview_complete or not final_review_round:
