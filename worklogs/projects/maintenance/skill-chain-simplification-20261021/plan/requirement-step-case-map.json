@@ -1,0 +1,3115 @@
+{
+  "document_version": "1.1",
+  "scope": "skill-chain-simplification-20261021",
+  "purpose": "本人が明示した一回限りの移行計画の追跡用。通常保守の全件照合gateに実装しない",
+  "source_version": "構成案2.0",
+  "baseline_reference": "既存commit0994bc1と実file差分。内容hash生成/照合なし",
+  "plan": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md",
+  "identity": {
+    "source_launch_id": "fa3292ae0c7e43bb9569576fcb1a5d85",
+    "target_date": "2026-10-20",
+    "source_run_id": null,
+    "job_id": null,
+    "incident_id": null,
+    "missing_reason": {
+      "job_id": "一次調査時の当launch関連maintenance job0行。実行時に再確認し既存job再利用又は正規初回受付の実採番を保存",
+      "incident_id": "当launch関連incident0行。正規受付で実値を取得",
+      "controller_attempt_id": "未提供。scope/pathを使用し採番しない"
+    }
+  },
+  "requirements": [
+    {
+      "id": "R01",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "採用済み構成案2.0・通常7担当",
+      "source": "構成案2.0 #flow/#suggest",
+      "fact_ids": [
+        "CI-03",
+        "CI-04"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "cases": [
+        "C01",
+        "C10"
+      ]
+    },
+    {
+      "id": "R02",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "全起動worker実終了・安全な応答stdout/stderr実ログ",
+      "source": "構成案2.0 #runner、SPR-01 resolved",
+      "fact_ids": [
+        "CI-05",
+        "CI-06",
+        "CI-07"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP10",
+        "STEP13"
+      ],
+      "cases": [
+        "C02",
+        "C03",
+        "C15",
+        "C17"
+      ]
+    },
+    {
+      "id": "R03",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "次担当JSON/既読/同一invocation/planner/公開workerを撤去",
+      "source": "構成案2.0 #remove/#suggest",
+      "fact_ids": [
+        "CI-03",
+        "CI-04",
+        "CI-10"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "cases": [
+        "C01",
+        "C02",
+        "C10"
+      ]
+    },
+    {
+      "id": "R04",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "指定担当再開・DB先行complete/全artifact終端再判定を撤去",
+      "source": "構成案2.0 #runner/#remove",
+      "fact_ids": [
+        "CI-02",
+        "CI-08",
+        "CI-09"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP05",
+        "STEP13"
+      ],
+      "cases": [
+        "C04",
+        "C18"
+      ]
+    },
+    {
+      "id": "R05",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "保守全域と共通呼出しのhash生成/照合/必須欄/代替gate撤去",
+      "source": "構成案2.0 #remove/#changes",
+      "fact_ids": [
+        "CI-04",
+        "CI-09",
+        "CI-10",
+        "CI-12",
+        "CI-13",
+        "CI-14"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "cases": [
+        "C05",
+        "C10",
+        "C17"
+      ]
+    },
+    {
+      "id": "R06",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "固定workspace・全担当high・model/tier未観測でも起動",
+      "source": "本人最新指示、構成案2.0 #flow/#changes",
+      "fact_ids": [
+        "CI-05",
+        "CI-06",
+        "CI-11"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04"
+      ],
+      "cases": [
+        "C03",
+        "C06",
+        "C10"
+      ]
+    },
+    {
+      "id": "R07",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "本番反映を必要対象操作へ縮小・Gitは運用フロー外",
+      "source": "構成案2.0 #remove/#changes",
+      "fact_ids": [
+        "CI-01",
+        "CI-11",
+        "CI-12"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP10",
+        "STEP13"
+      ],
+      "cases": [
+        "C07",
+        "C10"
+      ]
+    },
+    {
+      "id": "R08",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "10/17固定依存撤去・実launch正規初回受付・immutable identity",
+      "source": "本人の10/20保守対応許可、構成案2.0実装範囲",
+      "fact_ids": [
+        "OCT20-F05",
+        "OCT20-F07",
+        "OCT20-F12",
+        "OCT20-F13",
+        "OCT20-F14",
+        "OCT20-F15"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP05"
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "R09",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "10/19除外・10/17流用/通常Daily/新run draft禁止・13時待機不要",
+      "source": "本人最新指示",
+      "fact_ids": [
+        "OCT20-F10",
+        "OCT20-F11",
+        "OCT20-F16",
+        "OCT20-F17"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "cases": [
+        "C09"
+      ]
+    },
+    {
+      "id": "R10",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "既知失敗最小node→局所修正→最後の全関係回帰一度",
+      "source": "本人試験規律、構成案2.0 #failures",
+      "fact_ids": [
+        "CI-01",
+        "CI-14"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP08"
+      ],
+      "cases": [
+        "C10",
+        "C16"
+      ]
+    },
+    {
+      "id": "R11",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "10/20一次対象を使用・worker IDとmaintenance jobを区別",
+      "source": "oct20-current-facts.md OCT20-F01〜F15",
+      "fact_ids": [
+        "OCT20-F01",
+        "OCT20-F02",
+        "OCT20-F03",
+        "OCT20-F04",
+        "OCT20-F05",
+        "OCT20-F06",
+        "OCT20-F07",
+        "OCT20-F08",
+        "OCT20-F09",
+        "OCT20-F10",
+        "OCT20-F12",
+        "OCT20-F13",
+        "OCT20-F14",
+        "OCT20-F15"
+      ],
+      "steps": [
+        "STEP05",
+        "STEP06",
+        "STEP07"
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "R12",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "新フロー内実装担当が原因修正又は有用な日次prepare/backup/trace計装",
+      "source": "本人最新指示、構成案2.0 #failures",
+      "fact_ids": [
+        "OCT20-F03",
+        "OCT20-F08",
+        "OCT20-F09",
+        "CI-13",
+        "CI-14"
+      ],
+      "steps": [
+        "STEP06",
+        "STEP07",
+        "STEP08",
+        "STEP09",
+        "STEP10",
+        "STEP11"
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ]
+    },
+    {
+      "id": "R13",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "製品作者別の独立review・テストコード独立review不要",
+      "source": "構成案2.0 #done/#flow",
+      "fact_ids": [
+        "CI-03",
+        "CI-10"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP09"
+      ],
+      "cases": [
+        "C14"
+      ]
+    },
+    {
+      "id": "R14",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "失敗/unknownでも後続・未実施を正直に報告・各結果を分離",
+      "source": "本人一人用ローカル方針、構成案2.0 #failures/#done",
+      "fact_ids": [
+        "OCT20-F03",
+        "OCT20-F07",
+        "CI-08",
+        "CI-09"
+      ],
+      "steps": [
+        "STEP06",
+        "STEP07",
+        "STEP08",
+        "STEP09",
+        "STEP10",
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "cases": [
+        "C13",
+        "C14",
+        "C15",
+        "C18"
+      ]
+    },
+    {
+      "id": "R15",
+      "id_scope": "今回計画の追跡用ローカルID。既存採用IDを新規採番したものではない",
+      "title": "最終HTML直書き・別作者review・4点を平易に説明",
+      "source": "構成案2.0 #done/#flow、レポート作成ルール",
+      "fact_ids": [
+        "CI-03",
+        "CI-07",
+        "CI-12"
+      ],
+      "steps": [
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "cases": [
+        "C14",
+        "C15"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "id": "OCT20-F01",
+      "statement": "10/20実launch failed/exit4/null-run",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R11",
+      "requirements": [
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F02",
+      "statement": "実13時台開始終了/PIDは過去保存値",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R11",
+      "requirements": [
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F03",
+      "statement": "prepare/IdempotencyConflict/trace not_written・secondary分類",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R12",
+      "requirements": [
+        "R11",
+        "R12",
+        "R14"
+      ],
+      "steps": [
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C12"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP08",
+          "owner": "新runnerが起動する試験担当",
+          "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP09",
+          "owner": "当該実装作者とは別の新runner製品review担当",
+          "outputs": "job/code-review.md、作者別agent名と実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP11",
+          "owner": "新runnerが起動するHTML作者",
+          "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+          "reviewer": "STEP12 HTML作者別review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ]
+    },
+    {
+      "id": "OCT20-F04",
+      "statement": "check incomplete/daily_runtime_error",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R11",
+      "requirements": [
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F05",
+      "statement": "既存queue queued、worker IDはjobでない",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F06",
+      "statement": "当queue event0行",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R11",
+      "requirements": [
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C11"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F07",
+      "statement": "当launchのincident/manifest/job紐付0行",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11",
+        "R14"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F08",
+      "statement": "observation committed0/error1・実投稿数不明",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R12",
+      "requirements": [
+        "R11",
+        "R12"
+      ],
+      "steps": [
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C12"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP08",
+          "owner": "新runnerが起動する試験担当",
+          "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP09",
+          "owner": "当該実装作者とは別の新runner製品review担当",
+          "outputs": "job/code-review.md、作者別agent名と実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP11",
+          "owner": "新runnerが起動するHTML作者",
+          "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+          "reviewer": "STEP12 HTML作者別review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ]
+    },
+    {
+      "id": "OCT20-F09",
+      "statement": "phase statusと未実施/unknown",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R12",
+      "requirements": [
+        "R11",
+        "R12"
+      ],
+      "steps": [
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C12"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP08",
+          "owner": "新runnerが起動する試験担当",
+          "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP09",
+          "owner": "当該実装作者とは別の新runner製品review担当",
+          "outputs": "job/code-review.md、作者別agent名と実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP11",
+          "owner": "新runnerが起動するHTML作者",
+          "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+          "reviewer": "STEP12 HTML作者別review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ]
+    },
+    {
+      "id": "OCT20-F10",
+      "statement": "Daily run0・null保持",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R09",
+      "requirements": [
+        "R09",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C09"
+      ]
+    },
+    {
+      "id": "OCT20-F11",
+      "statement": "10/19除外定数",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R09",
+      "requirements": [
+        "R09"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C09"
+      ]
+    },
+    {
+      "id": "OCT20-F12",
+      "statement": "実CLI worker対象指定",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F13",
+      "statement": "provider10/17固定かつ初回job生成なし",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F14",
+      "statement": "runner10/17と旧plan path固定",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F15",
+      "statement": "既存正規受付primitiveはあるがhash残存",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08"
+          ]
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C08",
+            "C11"
+          ]
+        }
+      ],
+      "cases": [
+        "C08",
+        "C11"
+      ]
+    },
+    {
+      "id": "OCT20-F16",
+      "statement": "10/17履歴jobは別対象・流用しない",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R09",
+      "requirements": [
+        "R09"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C09"
+      ]
+    },
+    {
+      "id": "OCT20-F17",
+      "statement": "10/19 queue/history別対象・触らない",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#確認済みの事実",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md#実際に読んだDBと選択条件"
+      ],
+      "primary_requirement": "R09",
+      "requirements": [
+        "R09"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C09"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C09"
+      ]
+    },
+    {
+      "id": "CI-01",
+      "statement": "Scheduler登録実入口",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R07",
+      "requirements": [
+        "R07",
+        "R10"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C07",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C07",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C07"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C07"
+          ]
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C07",
+        "C10"
+      ]
+    },
+    {
+      "id": "CI-02",
+      "statement": "worker/直接skill-chain/再開入口",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R04",
+      "requirements": [
+        "R04"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        }
+      ],
+      "cases": [
+        "C04",
+        "C18"
+      ]
+    },
+    {
+      "id": "CI-03",
+      "statement": "現8担当と旧plan固定",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R01",
+      "requirements": [
+        "R01",
+        "R03",
+        "R13",
+        "R15"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C01",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C01",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C01",
+        "C10"
+      ]
+    },
+    {
+      "id": "CI-04",
+      "statement": "既読/hash/JSON/終端全件照合",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R03",
+      "requirements": [
+        "R01",
+        "R03",
+        "R05"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C01",
+            "C02",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C01",
+            "C02",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C01",
+        "C02",
+        "C10"
+      ]
+    },
+    {
+      "id": "CI-05",
+      "statement": "close例外握りつぶし",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R02",
+      "requirements": [
+        "R02",
+        "R06"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C02",
+            "C15"
+          ]
+        }
+      ],
+      "cases": [
+        "C02",
+        "C03",
+        "C15",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-06",
+      "statement": "AppServer実turn/所有process回収基盤",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R02",
+      "requirements": [
+        "R02",
+        "R06"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C02",
+            "C15"
+          ]
+        }
+      ],
+      "cases": [
+        "C02",
+        "C03",
+        "C15",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-07",
+      "statement": "stderr破棄・応答実内容不足",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R02",
+      "requirements": [
+        "R02",
+        "R15"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C02",
+            "C03",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C02",
+            "C15"
+          ]
+        }
+      ],
+      "cases": [
+        "C02",
+        "C03",
+        "C15",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-08",
+      "statement": "worker二重終端/DBcomplete循環",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R04",
+      "requirements": [
+        "R04",
+        "R14"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C18"
+          ]
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP05",
+          "owner": "起動controller/runner担当",
+          "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C04",
+            "C18"
+          ]
+        }
+      ],
+      "cases": [
+        "C04",
+        "C18"
+      ]
+    },
+    {
+      "id": "CI-09",
+      "statement": "store旧status/hash manifest依存",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R05",
+      "requirements": [
+        "R04",
+        "R05",
+        "R14"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        }
+      ],
+      "cases": [
+        "C05",
+        "C10",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-10",
+      "statement": "legacy経路のhash/gate残存",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R05",
+      "requirements": [
+        "R03",
+        "R05",
+        "R13"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        }
+      ],
+      "cases": [
+        "C05",
+        "C10",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-11",
+      "statement": "deployment/runtime全tree/state/Git制御と既存dirty",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R07",
+      "requirements": [
+        "R06",
+        "R07"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C07",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C07",
+            "C10"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        },
+        {
+          "id": "STEP04",
+          "owner": "移行反映担当",
+          "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C07"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C07"
+          ]
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C07",
+        "C10"
+      ]
+    },
+    {
+      "id": "CI-12",
+      "statement": "report生成/公開hash/filename hash/終端再判定",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R15",
+      "requirements": [
+        "R05",
+        "R07",
+        "R15"
+      ],
+      "steps": [
+        {
+          "id": "STEP11",
+          "owner": "新runnerが起動するHTML作者",
+          "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+          "reviewer": "STEP12 HTML作者別review",
+          "cases": [
+            "C14",
+            "C15"
+          ]
+        },
+        {
+          "id": "STEP12",
+          "owner": "HTML作者とは別agentの新runner HTMLreview担当",
+          "outputs": "job/html-review.md、最終保存先HTML、追加作者workerとreviewerの実終了記録",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C14",
+            "C15"
+          ]
+        },
+        {
+          "id": "STEP13",
+          "owner": "起動controller/runner担当",
+          "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C15"
+          ]
+        }
+      ],
+      "cases": [
+        "C14",
+        "C15"
+      ]
+    },
+    {
+      "id": "CI-13",
+      "statement": "診断source/例外fingerprint生成",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R05",
+      "requirements": [
+        "R05",
+        "R12"
+      ],
+      "steps": [
+        {
+          "id": "STEP01",
+          "owner": "移行実装担当",
+          "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+          "reviewer": "STEP03 移行作者別製品review",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP02",
+          "owner": "移行試験担当",
+          "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C05",
+            "C10",
+            "C17"
+          ]
+        },
+        {
+          "id": "STEP03",
+          "owner": "移行実装作者と別agentの製品review担当",
+          "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C17"
+          ]
+        }
+      ],
+      "cases": [
+        "C05",
+        "C10",
+        "C17"
+      ]
+    },
+    {
+      "id": "CI-14",
+      "statement": "日次source診断hashと通常業務artifact hashの用途差",
+      "evidence": [
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#1-事実と呼出し経路",
+        "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md#7-ハッシュ全経路分類と撤去残存防止"
+      ],
+      "primary_requirement": "R12",
+      "requirements": [
+        "R05",
+        "R10",
+        "R12"
+      ],
+      "steps": [
+        {
+          "id": "STEP06",
+          "owner": "新runnerが起動する調査担当",
+          "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C12"
+          ]
+        },
+        {
+          "id": "STEP07",
+          "owner": "新runnerが起動する実装担当",
+          "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+          "reviewer": "STEP09 当該作者別製品review",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP08",
+          "owner": "新runnerが起動する試験担当",
+          "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
+          "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+          "cases": [
+            "C12",
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP09",
+          "owner": "当該実装作者とは別の新runner製品review担当",
+          "outputs": "job/code-review.md、作者別agent名と実所見",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP10",
+          "owner": "新runnerが起動する反映担当",
+          "outputs": "job/deployment.md、反映対象と操作の実結果",
+          "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+          "cases": [
+            "C13"
+          ]
+        },
+        {
+          "id": "STEP11",
+          "owner": "新runnerが起動するHTML作者",
+          "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+          "reviewer": "STEP12 HTML作者別review",
+          "cases": []
+        }
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "STEP01",
+      "name": "移行製品・契約の実装",
+      "owner": "移行実装担当",
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10"
+      ],
+      "cases": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08",
+        "C09",
+        "C10",
+        "C17",
+        "C18"
+      ],
+      "readable_inputs": "採用済み構成案2.0、構成案review.md/review.json（SPR-01 resolved）、本計画、code-and-test-inventory.md、固定workspaceの既存差分",
+      "writeable_boundary": "automation/inago/maintenance/**/*.py、automation/inago/maintenance/sql/の新規追加migration、automation/inago/app_server.py（保守呼出し共通箇所）、.agents/skills/{rr-inago-incident-investigation,common-implementation,common-testing,common-review,rr-inago-maintenance-delivery,rr-inago-incident-report,common-execution-planning}/以下、.codex/agents/の対応保守role、AGENTS.md、docs/specifications/inago/保守運用設定仕様.md、docs/specifications/inago/要件追跡表.md、docs/standards/イナゴ日次不具合レポート作成ルール.md。記録はworklogs/projects/maintenance/skill-chain-simplification-20261021/plan/migration/implementation.md 加えてautomation/inago/{daily_pipeline,orchestrator,trace}.pyの保守由来source診断hash部分、automation/inago/schemas/maintenance-*.schema.jsonと診断欄schema、automation/inago/register_maintenance_tasks.ps1（必要な保守接続のみ）、docs/templates/incidents/の3ひな形、docs/specifications/inago/{AT-MAINT-01_保守対応要件受入契約.md,要件データ辞書.md,イナゴスキル要件定義書.html,図解/F12.svg}、tools/docs/inago-requirements/{task-flows,flow-descriptions,flow-layout,document-source,build}.mjsとその直接source、.agents/skills/rakuten-room-inago/の保守呼出し記述。",
+      "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
+      "reviewer": "STEP03 移行作者別製品review",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step01",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP02",
+      "name": "移行の局所試験と最後の関係回帰",
+      "owner": "移行試験担当",
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10"
+      ],
+      "cases": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08",
+        "C09",
+        "C10",
+        "C16",
+        "C17",
+        "C18"
+      ],
+      "readable_inputs": "本計画、migration/implementation.md、変更製品実file、tests_inagoの関係node、既存FAIL/PASS記録",
+      "writeable_boundary": "tests_inago/test_maintenance_skill_chain.py、test_maintenance_ai.py、test_maintenance_store.py、test_maintenance_deployment.py、test_maintenance_deployment_probe.py、test_maintenance_docs.py、test_maintenance_integration.py、test_maintenance_workflow_provider.py と直接使うtests_inago fixture。記録はworklogs/projects/maintenance/skill-chain-simplification-20261021/plan/migration/test.md及び同dir証拠 さらにtest_maintenance_flow_completion_fc07.py、test_maintenance_report.py、test_maintenance_report_publication_stage.py、test_daily_pipeline_safe_diagnostics.py、test_daily_fix_trace.pyの直接関連試験/fixture。 直接必要な試験/fixture調整としてtests_inago/test_maintenance_completion.pyもこの担当が所有する。",
+      "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
+      "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step02",
+      "status": "planned_not_performed",
+      "test_execution": true
+    },
+    {
+      "id": "STEP03",
+      "name": "移行製品の独立レビュー",
+      "owner": "移行実装作者と別agentの製品review担当",
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R13"
+      ],
+      "cases": [
+        "C06",
+        "C08",
+        "C09",
+        "C17",
+        "C18"
+      ],
+      "readable_inputs": "本計画、migration/implementation.md、migration/test.md、変更製品コード実差分、構成案2.0と所見SPR-01",
+      "writeable_boundary": "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/migration/code-review.mdのみ",
+      "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step03",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP04",
+      "name": "固定rootで移行を適用",
+      "owner": "移行反映担当",
+      "requirements": [
+        "R02",
+        "R04",
+        "R06",
+        "R07",
+        "R08",
+        "R10"
+      ],
+      "cases": [
+        "C07",
+        "C08",
+        "C09"
+      ],
+      "readable_inputs": "本計画、migration/implementation.md、test.md、code-review.md、固定rootの実fileと実際の対象プロセス/設定",
+      "writeable_boundary": "割当されたmaintenance管理DBのschema migration（過去行保全）と必要設定/プロセス操作。記録はworklogs/projects/maintenance/skill-chain-simplification-20261021/plan/migration/deployment.md",
+      "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step04",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP05",
+      "name": "10月20日実launchの正規保守受付",
+      "owner": "起動controller/runner担当",
+      "requirements": [
+        "R04",
+        "R08",
+        "R11"
+      ],
+      "cases": [
+        "C08",
+        "C09",
+        "C11"
+      ],
+      "readable_inputs": "oct20-current-facts.md、実launch/queue/checkの最小既存行、変更後provider/runner/CLI、migration成果",
+      "writeable_boundary": "既存37a2be6b24fa4ffb8f859012e00a209a queueから正規store契約で採番する最初のmaintenance jobと同一jobの入口文書/実行ログ。過去日次DBは書込不可",
+      "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step05",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP06",
+      "name": "新フロー担当1：10月20日調査",
+      "owner": "新runnerが起動する調査担当",
+      "requirements": [
+        "R11",
+        "R12",
+        "R14"
+      ],
+      "cases": [
+        "C11",
+        "C12"
+      ],
+      "readable_inputs": "正式job入口文書、oct20-current-facts.md、10/20起動/準備/バックアップ/traceの既存安全化記録、関係要件とソース",
+      "writeable_boundary": "同一job directory/investigation.mdのみ",
+      "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step06",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP07",
+      "name": "新フロー担当2：原因修正又は有用な日次計装",
+      "owner": "新runnerが起動する実装担当",
+      "requirements": [
+        "R11",
+        "R12",
+        "R14"
+      ],
+      "cases": [
+        "C12",
+        "C13"
+      ],
+      "readable_inputs": "正式job入口、investigation.md、関係daily準備/backup/trace製品実fileと既存差分",
+      "writeable_boundary": "調査が指定するautomation/inagoのprepare/backup/preservation/日次trace/log関連製品fileと必要最小schema/settings。試験コードは禁止。記録はjob/implementation.md",
+      "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
+      "reviewer": "STEP09 当該作者別製品review",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step07",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP08",
+      "name": "新フロー担当3：10月20日対応試験",
+      "owner": "新runnerが起動する試験担当",
+      "requirements": [
+        "R10",
+        "R12",
+        "R14"
+      ],
+      "cases": [
+        "C12",
+        "C13",
+        "C16"
+      ],
+      "readable_inputs": "job/investigation.md、implementation.md、変更製品、関係既存nodeと新規予定node",
+      "writeable_boundary": "当該調査に直結するtests_inago fixture/node、job/test.mdと証拠のみ",
+      "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
+      "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step08",
+      "status": "planned_not_performed",
+      "test_execution": true
+    },
+    {
+      "id": "STEP09",
+      "name": "新フロー担当4：10月20日製品の独立レビュー",
+      "owner": "当該実装作者とは別の新runner製品review担当",
+      "requirements": [
+        "R12",
+        "R13",
+        "R14"
+      ],
+      "cases": [
+        "C13",
+        "C14"
+      ],
+      "readable_inputs": "job/investigation.md、implementation.md、test.md、変更製品の実差分",
+      "writeable_boundary": "job/code-review.mdのみ",
+      "outputs": "job/code-review.md、作者別agent名と実所見",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step09",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP10",
+      "name": "新フロー担当5：10月20日対応を本番適用",
+      "owner": "新runnerが起動する反映担当",
+      "requirements": [
+        "R02",
+        "R07",
+        "R12",
+        "R14"
+      ],
+      "cases": [
+        "C07",
+        "C13"
+      ],
+      "readable_inputs": "jobの実装/試験/review文書、固定root製品実file、必要設定/プロセス",
+      "writeable_boundary": "許可済み当該修正の本番資材/必要schema設定と必要保守プロセス操作、job/deployment.md",
+      "outputs": "job/deployment.md、反映対象と操作の実結果",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step10",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP11",
+      "name": "新フロー担当6：最終保存先HTMLを作成",
+      "owner": "新runnerが起動するHTML作者",
+      "requirements": [
+        "R12",
+        "R14",
+        "R15"
+      ],
+      "cases": [
+        "C14",
+        "C15"
+      ],
+      "readable_inputs": "jobの調査/実装/試験/製品review/反映文書、レポート作成ルール、実際のjob_id/identity",
+      "writeable_boundary": "reports/incidents/2026-10-20/〈正式job_id〉.htmlへ直接保存、job/report.md。job_idは実採番後の値",
+      "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
+      "reviewer": "STEP12 HTML作者別review",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step11",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP12",
+      "name": "新フロー担当7：HTMLを独立確認・局所修正",
+      "owner": "HTML作者とは別agentの新runner HTMLreview担当",
+      "requirements": [
+        "R14",
+        "R15"
+      ],
+      "cases": [
+        "C14",
+        "C15"
+      ],
+      "readable_inputs": "最終保存先HTML、job全結果の根拠とレポートルール",
+      "writeable_boundary": "job/html-review.mdのみ。HTML編集は作者へ返す",
+      "outputs": "job/html-review.md、最終保存先HTML、追加作者workerとreviewerの実終了記録",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step12",
+      "status": "planned_not_performed",
+      "test_execution": false
+    },
+    {
+      "id": "STEP13",
+      "name": "全worker終了と今回の実作業を報告",
+      "owner": "起動controller/runner担当",
+      "requirements": [
+        "R02",
+        "R04",
+        "R07",
+        "R14",
+        "R15"
+      ],
+      "cases": [
+        "C02",
+        "C04",
+        "C15",
+        "C18"
+      ],
+      "readable_inputs": "1つのrunner実行ログ、各担当Markdown、当該差分/反映結果、最終HTML/独立review所見",
+      "writeable_boundary": "同一job実行ログの終記録とjob/final-report.md。DBの同一job終了更新は試行可",
+      "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
+      "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
+      "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step13",
+      "status": "planned_not_performed",
+      "test_execution": false
+    }
+  ],
+  "cases": [
+    {
+      "id": "C01",
+      "requirements": [
+        "R01",
+        "R03"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_eight_roles_receive_exact_markdown",
+        "tests_inago/test_maintenance_skill_chain.py::test_contract_roles_and_generated_flow_are_synchronized",
+        "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event"
+      ],
+      "node_existence": "実在。旧8担当/既読/hash期待を7担当/自然Markdownへ更新又は意図を説明して置換後実行",
+      "status": "NOT_RUN",
+      "fixture": "_SyntheticSessionを7担当fakeに改め、固定workspace配下tmp_pathのデータ文書を利用。Git checkoutを作らない。",
+      "expected": "7担当が順に呼ばれ担当成果を利用、公開担当と常設planner呼出しなし。旧既読/hash期待は撤去。"
+    },
+    {
+      "id": "C02",
+      "requirements": [
+        "R02",
+        "R03"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP13"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_non_gating_status_and_early_end_continue_remaining_roles",
+        "tests_inago/test_maintenance_skill_chain.py::test_operation_failures_keep_raw_and_continue",
+        "tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes",
+        "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path"
+      ],
+      "node_existence": "実在。実turn終端/close例外の期待を更新",
+      "status": "NOT_RUN",
+      "fixture": "fake sessionでFAIL/changes_requested/空応答/起動例外/非0終了を注入。終了未回収child fixtureは新規C03へ。",
+      "expected": "raw履歴は保持、安全化した操作失敗とfallback Markdownを残し可能な次担当を実起動。close例外も実終了回収へ。"
+    },
+    {
+      "id": "C03",
+      "requirements": [
+        "R02",
+        "R06"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_owned_worker_exit_is_reaped_after_close_error"
+      ],
+      "node_existence": "予定/未作成。STEP02で作成。現時点実在/PASSとしない",
+      "status": "NOT_RUN",
+      "fixture": "sys.executableで短い標準ライブラリchildをsubprocess起動しPIDとPopen所有を保持。通信/ROOM/DBなし。fake closeに例外、制御できるchild終了を注入。",
+      "expected": "waitでreturncodeを回収後だけそのworkerを終了済と記録。start/end/PID/exit実値を残し無関係PID操作なし。"
+    },
+    {
+      "id": "C04",
+      "requirements": [
+        "R04"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP13"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_resume_same_job_without_predecessor_pin",
+        "tests_inago/test_maintenance_skill_chain.py::test_resume_after_final_review_reuses_author_and_reviewer_outputs",
+        "tests_inago/test_maintenance_store.py::test_resume_maintenance_job_ignores_resume_preconditions"
+      ],
+      "node_existence": "実在。全成果物再判定/旧hash復活を避ける期待へ更新",
+      "status": "NOT_RUN",
+      "fixture": "tmp_pathの同一job文書とSQLite、fake clock。DB queued/blocked/complete旧値それぞれ。",
+      "expected": "指定担当から続き、終了済のworker記録を取り消さず、DB先行complete・カウント・全件検証なし。"
+    },
+    {
+      "id": "C05",
+      "requirements": [
+        "R05"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_maintenance_chain_does_not_generate_content_hashes"
+      ],
+      "node_existence": "予定/未作成。STEP02で実装しnodeを記録",
+      "status": "NOT_RUN",
+      "fixture": "hashlib利用や旧helperに失敗sentinelを置く局所fake。既存履歴にhash文字列があるtmp SQLite。保守入口/AI応答/例外/report/ID採番を通す。",
+      "expected": "保守経路が新規hash/fingerprint/marker生成・照合を呼ばない。過去履歴保持。bytes/mtime/size/versionによるgateへの置換なし。ソース実読所見も残す。"
+    },
+    {
+      "id": "C06",
+      "requirements": [
+        "R06"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_appserver_best_effort_logging_and_advisory_probe",
+        "tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start",
+        "tests_inago/test_maintenance_ai.py::test_c26_app_server_blocks_unsupported_fast_tier_and_disabled_feature"
+      ],
+      "node_existence": "実在。旧preflight拒否期待は実起動試行と実拒否記録へ変更",
+      "status": "NOT_RUN",
+      "fixture": "monkeypatch AppServer thread/turn requestsと未観測model/tier。ネットなし。",
+      "expected": "high要求を送り観測未取得でも呼出しを試みる。実拒否は当操作失敗と次担当継続。max/xhigh要求なし。"
+    },
+    {
+      "id": "C07",
+      "requirements": [
+        "R07"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP04",
+        "STEP10"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_deployment.py::test_c38_fixed_root_allows_dirty_tracked_content_with_identity",
+        "tests_inago/test_maintenance_deployment.py::test_same_root_activation_repairs_stale_switch_state",
+        "tests_inago/test_maintenance_deployment_probe.py::test_read_only_deployment_probes_and_shared_exclusion_lock"
+      ],
+      "node_existence": "全3関数nodeソース実在。旧Git fixture/別checkout生成箇所をfakeへ改訂し、実際の既知失敗nodeを先行してから他の直接関係nodeを実行",
+      "status": "NOT_RUN",
+      "fixture": "subprocess/Scheduler fake、tmp_path内データ、固定root指示。旧_caseのgit init/clone/worktree fixtureを使わない。",
+      "expected": "必要な対象操作だけ試行しGitや全tree/commit/hash/healthyで拒否しない。必要操作の実結果を記録。"
+    },
+    {
+      "id": "C08",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP04",
+        "STEP05"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_production_route_is_separate_from_legacy_controller",
+        "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path",
+        "tests_inago/test_maintenance_workflow_provider.py::test_worker_cli_connects_provider_and_blocks_without_ready_release"
+      ],
+      "node_existence": "全3関数nodeソース実在。旧release拒否期待は正規初回受付/非gate動作へ更新。追加する10/20型nodeは予定として実名確定後command/mapを同期",
+      "status": "NOT_RUN",
+      "fixture": "tmp SQLiteにsource_launch/check/queueのみ、maintenance jobなし。固定root型fake。10/17以外のsynthetic launch。",
+      "expected": "正規受付で初回job採番し保存、次再開は同じID。worker IDをjobへ流用せず、worker_dispatch_not_assigned_to_plan拒否なし。推測run/dateなし。"
+    },
+    {
+      "id": "C09",
+      "requirements": [
+        "R09"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP04",
+        "STEP05"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_scope_preserves_excluded_date_and_daily_data"
+      ],
+      "node_existence": "実在。10/20保守を新対象として期待を更新",
+      "status": "NOT_RUN",
+      "fixture": "tmp SQLiteの10/19 queue/history、fake通常Daily callbackに呼出し禁止sentinel。",
+      "expected": "WORKER_DISPATCH_EXCLUDED_DATES=frozenset({'2026-10-19'})保持、10/19 queue/history未処理、Daily/run/draft作成や10/17リプレイなし。"
+    },
+    {
+      "id": "C10",
+      "requirements": [
+        "R01",
+        "R03",
+        "R05",
+        "R06",
+        "R07",
+        "R10"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_docs.py::test_c60_contract",
+        "tests_inago/test_maintenance_skill_chain.py::test_contract_roles_and_generated_flow_are_synchronized"
+      ],
+      "node_existence": "実在。旧hash/JSON/固定日付/mandatory Git期待を更新",
+      "status": "NOT_RUN",
+      "fixture": "実ファイル読取、repoの対象文書のみ。",
+      "expected": "通常保守へ長文計画/承認/全件map工程を再導入せず、作者別review/日次計装/局所試験/実終了が記載される。"
+    },
+    {
+      "id": "C11",
+      "requirements": [
+        "R08",
+        "R11"
+      ],
+      "steps": [
+        "STEP05",
+        "STEP06"
+      ],
+      "node_refs": [],
+      "node_existence": "手順case。pytest nodeなし。本番保守受付の実操作を実施する",
+      "status": "NOT_RUN",
+      "fixture": "実launch fa3292ae0c7e43bb9569576fcb1a5d85、queue 37a2be6b24fa4ffb8f859012e00a209a、check 18fd9a8b-343b-4c66-addb-a1bce71ecf83。日次DBはmode=ro最小SELECT。",
+      "expected": "既存jobあれば再利用、無ければ正規採番の最初のmaintenance jobを保存。実source_run_id nullを保持し実7担当起動へ。"
+    },
+    {
+      "id": "C12",
+      "requirements": [
+        "R12"
+      ],
+      "steps": [
+        "STEP06",
+        "STEP07",
+        "STEP08"
+      ],
+      "node_refs": [
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_failure_records_its_own_capture_location",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_callback_secondary_exception_preserves_primary_failure_and_records_safe_diagnostic",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_prepare_idempotency_conflict_records_safe_operation_context"
+      ],
+      "node_existence": "前2node実在、末尾は予定/未作成。STEP08で当該原因/計装に合わせて実装",
+      "status": "NOT_RUN",
+      "fixture": "tmp_path SQLite/prepare fake/backup failure fake/FakeClock。primary IdempotencyConflictとsecondary backup/preservation failureを値を含めず注入。",
+      "expected": "実際に選んだ日次側計装又は原因修正をfixtureで実確認。操作境界・class・位置が判別でき秘密sentinel/SQL値なし。calls.jsonl追加だけを成果にしない。原因不明は不明。"
+    },
+    {
+      "id": "C13",
+      "requirements": [
+        "R12",
+        "R14"
+      ],
+      "steps": [
+        "STEP07",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "node_refs": [
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_diagnostic_logger_failures_do_not_change_daily_result",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row",
+        "tests_inago/test_maintenance_completion.py::test_notification_save_failure_keeps_start_and_daily_exit_code",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_secondary_errors_reach_isolated_cli_l01_record_payload",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_sqlite_error_code_reaches_primary_secondary_and_l01_payload"
+      ],
+      "node_existence": "実在。実装の影響箇所に合わせ追加fixtureを作る",
+      "status": "NOT_RUN",
+      "fixture": "fake log writer/backup/preservationが例外、tmp SQLiteに対象runなし/読取エラーを区別。",
+      "expected": "元の失敗を成功へ変えずrunなしを維持、保存不能と原因を次担当/HTMLへ渡す。実装可能な別安全出力があれば内容を確認。"
+    },
+    {
+      "id": "C14",
+      "requirements": [
+        "R13",
+        "R14",
+        "R15"
+      ],
+      "steps": [
+        "STEP09",
+        "STEP11",
+        "STEP12"
+      ],
+      "node_refs": [],
+      "node_existence": "実物review手順case。pytest nodeなし",
+      "status": "NOT_RUN",
+      "fixture": "当該製品差分、実試験記録、最終HTML。別agent identity。",
+      "expected": "製品作者と異なるreviewerが差分/記録を読み、HTML作者と異なるreviewerが最終HTMLを読む。具体指摘と修正後の実物再読を保存。テストコードreviewはしない。"
+    },
+    {
+      "id": "C15",
+      "requirements": [
+        "R02",
+        "R14",
+        "R15"
+      ],
+      "steps": [
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles"
+      ],
+      "node_existence": "既存node実在・旧公開担当期待を削除。加えて本番実運用の終了観測手順",
+      "status": "NOT_RUN",
+      "fixture": "fake report作者失敗/追加作者/追加review、実10/20ではrunner実PID/turn記録。",
+      "expected": "最終HTML直書き/本文4点/秘密除外/正直な未実施。公開workerなし。通常7担当と追加worker、外側Workerの実終了を回収。DB queued/更新失敗を終了の否定にしない。"
+    },
+    {
+      "id": "C16",
+      "requirements": [
+        "R10"
+      ],
+      "steps": [
+        "STEP02",
+        "STEP08"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py",
+        "tests_inago/test_maintenance_ai.py",
+        "tests_inago/test_maintenance_store.py",
+        "tests_inago/test_maintenance_deployment.py",
+        "tests_inago/test_maintenance_deployment_probe.py",
+        "tests_inago/test_maintenance_docs.py",
+        "tests_inago/test_maintenance_integration.py",
+        "tests_inago/test_maintenance_workflow_provider.py",
+        "tests_inago/test_maintenance_completion.py",
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py",
+        "tests_inago/test_maintenance_flow_completion_fc07.py",
+        "tests_inago/test_maintenance_report.py",
+        "tests_inago/test_maintenance_report_publication_stage.py",
+        "tests_inago/test_daily_fix_trace.py"
+      ],
+      "node_existence": "全file実在。旧fixtureを固定root方針へ改訂後に実行。10/20診断変更の直接影響fileが追加なら事前にcase/nodeへ追記",
+      "status": "NOT_RUN",
+      "fixture": "C01～C13の隔離fixture、tmp_path SQLite/fake clock/fake process。別Git checkout/ネット/ROOM/実DBなし。",
+      "expected": "全関係回帰の全実結果とexitを記録。FAIL時は該当nodeへ戻り局所修正後もう一度最後の全関係回帰。未実行/SKIP/XFAILをPASSにしない。",
+      "regression_scopes": {
+        "migration": {
+          "owner": "STEP02",
+          "nodes": [
+            "tests_inago/test_maintenance_skill_chain.py",
+            "tests_inago/test_maintenance_ai.py",
+            "tests_inago/test_maintenance_store.py",
+            "tests_inago/test_maintenance_deployment.py",
+            "tests_inago/test_maintenance_deployment_probe.py",
+            "tests_inago/test_maintenance_docs.py",
+            "tests_inago/test_maintenance_integration.py",
+            "tests_inago/test_maintenance_workflow_provider.py",
+            "tests_inago/test_maintenance_completion.py",
+            "tests_inago/test_daily_pipeline_safe_diagnostics.py",
+            "tests_inago/test_maintenance_flow_completion_fc07.py",
+            "tests_inago/test_maintenance_report.py",
+            "tests_inago/test_maintenance_report_publication_stage.py",
+            "tests_inago/test_daily_fix_trace.py"
+          ]
+        },
+        "daily": {
+          "owner": "STEP08",
+          "nodes": [
+            "tests_inago/test_daily_pipeline_safe_diagnostics.py"
+          ],
+          "condition": "日次実差分に直接対応。追加sourceを変更した場合だけ対応完全nodeを追記。未変更移行PASSは再実行しない"
+        }
+      }
+    },
+    {
+      "id": "C17",
+      "requirements": [
+        "R02",
+        "R05"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_skill_chain.py::test_safe_stdout_stderr_and_response_exclude_secrets",
+        "tests_inago/test_maintenance_ai.py::test_c24_generic_app_server_root_log_preserves_daily_fields"
+      ],
+      "node_existence": "前nodeは予定/未作成、後nodeは実在。STEP02で保守safe sink fixtureを作る",
+      "status": "NOT_RUN",
+      "fixture": "fake stdout/stderr/RPC/応答へtoken/cookie/password/SQL parameters/商品投稿本文/例外本文canaryを混ぜ、許可欄要約sinkをtmp_pathへ出す。",
+      "expected": "許可した操作/終了情報が読み取れ、秘密canary/生RPC/原文例外が保存されない。従来の共有Dailyログ欄は保持。保存不能でも後続継続。"
+    },
+    {
+      "id": "C18",
+      "requirements": [
+        "R04",
+        "R14"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP13"
+      ],
+      "node_refs": [
+        "tests_inago/test_maintenance_integration.py::test_queued_job_finishes_after_workers_exit_without_prior_db_complete",
+        "tests_inago/test_maintenance_integration.py::test_db_finish_failure_keeps_actual_worker_exit_record",
+        "tests_inago/test_maintenance_store.py::test_job_completion_updates_incident_and_recovers_idempotently"
+      ],
+      "node_existence": "前2nodeは予定/未作成、末尾は実在。旧incident解決自動推論の期待も改訂対象",
+      "status": "NOT_RUN",
+      "fixture": "tmp SQLiteのqueued job/unknown cause、fake全worker実終了、終了DB更新に例外を注入。",
+      "expected": "実終了を記録して更新を試み、更新失敗とworkflow終了/原因不明を別々に報告。DB値やapproved語を前提にしない。"
+    }
+  ],
+  "review_findings": [
+    {
+      "id": "SPR-01",
+      "status": "resolved",
+      "source": "worklogs/projects/maintenance/skill-chain-simplification-20261021/review.json",
+      "requirements": [
+        "R02",
+        "R15"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "cases": [
+        "C14",
+        "C15",
+        "C17"
+      ],
+      "evidence": "構成案実物104/109/112行の再確認記録。安全化した応答/stdout/stderr実内容sinkを実装計画へ反映"
+    },
+    {
+      "id": "EPR-01",
+      "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+      "reviewed_version": "1.0",
+      "raw_review_status": "changes_requested",
+      "author_revision": "1.1",
+      "author_response": "addressed_and_independently_reread",
+      "requirements": [
+        "R10",
+        "R13"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP02",
+        "STEP03",
+        "STEP04",
+        "STEP05",
+        "STEP06",
+        "STEP07",
+        "STEP08",
+        "STEP09",
+        "STEP10",
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "cases": [
+        "C16"
+      ],
+      "evidence": "非testerの試験実行命令を除去、STEP02/08のみに試験実行を割当",
+      "blocks_following_work": false,
+      "author_response_before_reread": "addressed_pending_independent_reread",
+      "status": "resolved",
+      "follow_up_reviewed_version": "1.1"
+    },
+    {
+      "id": "EPR-02",
+      "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+      "reviewed_version": "1.0",
+      "raw_review_status": "changes_requested",
+      "author_revision": "1.1",
+      "author_response": "addressed_and_independently_reread",
+      "requirements": [
+        "R01",
+        "R03",
+        "R15"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP11",
+        "STEP12",
+        "STEP13"
+      ],
+      "cases": [
+        "C15"
+      ],
+      "evidence": "controller HTML合成を除去、同job作者へ最小HTMLを局所依頼、不能ならfallback Markdown/HTML未実施",
+      "blocks_following_work": false,
+      "author_response_before_reread": "addressed_pending_independent_reread",
+      "status": "resolved",
+      "follow_up_reviewed_version": "1.1"
+    },
+    {
+      "id": "EPR-03",
+      "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+      "reviewed_version": "1.0",
+      "raw_review_status": "changes_requested",
+      "author_revision": "1.1",
+      "author_response": "addressed_and_independently_reread",
+      "requirements": [
+        "R08",
+        "R10",
+        "R12"
+      ],
+      "steps": [
+        "STEP02",
+        "STEP08"
+      ],
+      "cases": [
+        "C01",
+        "C07",
+        "C08",
+        "C16"
+      ],
+      "evidence": "局所完全nodeと移行/日次別回帰command、実node改名時のcommand/map同期",
+      "blocks_following_work": false,
+      "author_response_before_reread": "addressed_pending_independent_reread",
+      "status": "resolved",
+      "follow_up_reviewed_version": "1.1"
+    },
+    {
+      "id": "EPR-04",
+      "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+      "reviewed_version": "1.0",
+      "raw_review_status": "changes_requested",
+      "author_revision": "1.1",
+      "author_response": "addressed_and_independently_reread",
+      "requirements": [
+        "R11",
+        "R13",
+        "R15"
+      ],
+      "steps": [
+        "STEP05",
+        "STEP09",
+        "STEP12"
+      ],
+      "cases": [
+        "C11",
+        "C14"
+      ],
+      "evidence": "手順caseをtext fenceへ変更しcommandと区別",
+      "blocks_following_work": false,
+      "author_response_before_reread": "addressed_pending_independent_reread",
+      "status": "resolved",
+      "follow_up_reviewed_version": "1.1"
+    },
+    {
+      "id": "EPR-05",
+      "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+      "reviewed_version": "1.0",
+      "raw_review_status": "changes_requested",
+      "author_revision": "1.1",
+      "author_response": "addressed_and_independently_reread",
+      "requirements": [
+        "R10",
+        "R12"
+      ],
+      "steps": [
+        "STEP02",
+        "STEP08"
+      ],
+      "cases": [
+        "C13",
+        "C16"
+      ],
+      "evidence": "test_maintenance_completion.pyの直接必要箇所をSTEP02試験所有へ追加",
+      "blocks_following_work": false,
+      "author_response_before_reread": "addressed_pending_independent_reread",
+      "status": "resolved",
+      "follow_up_reviewed_version": "1.1"
+    }
+  ],
+  "coverage": {
+    "requirements": 15,
+    "facts": 31,
+    "steps": 13,
+    "cases": 18,
+    "all_steps_have_14_fields_and_full_prompts": true,
+    "all_cases_have_12_fields": true,
+    "checks_are_document_self_review_only": true,
+    "gate": false
+  },
+  "test_execution_ownership": [
+    "STEP02",
+    "STEP08"
+  ],
+  "html_failure_behavior": "同jobのHTML作者へ最小HTMLを局所再依頼し実worker終了回収。生成不能ならcontrollerはfallback MarkdownとHTML未実施を記録して次担当へ。controller本文合成なし"
+}

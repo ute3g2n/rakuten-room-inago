@@ -1,0 +1,215 @@
+{
+  "reviewer_id": "/root/simplification_plan_review",
+  "review_stage": "independent_execution_plan_review",
+  "status": "approved",
+  "reviewed_plan_version": "1.1",
+  "reviewed_plan_date": "2026-10-21",
+  "subject": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md",
+  "mapping": "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/requirement-step-case-map.json",
+  "result": "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/plan-result.json",
+  "version_binding_method": "初回は提出版1.0全文・全対応JSON要素とplan-resultを実読。親の1.1修正保存通知後、版表示、全STEP検証責任、HTML失敗処理、C07/C08/C11/C14/C16、STEP02所有、対応JSON修正とplan-resultを再読した追確認。hash/bytes/mtime/marker一致照合は実施していない。",
+  "initial_review": {
+    "reviewed_plan_version": "1.0",
+    "status": "changes_requested",
+    "findings": ["EPR-01", "EPR-02", "EPR-03", "EPR-04", "EPR-05"],
+    "record": "下記findingsは初回提出版1.0の箇所・所見をそのまま保持する履歴。現在の未解消所見ではない。",
+    "blocks_following_work": false
+  },
+  "scope": "skill-chain-simplification-20261021",
+  "identity": {
+    "source_launch_id": "fa3292ae0c7e43bb9569576fcb1a5d85",
+    "target_date": "2026-10-20",
+    "source_run_id": null,
+    "queue_id": "37a2be6b24fa4ffb8f859012e00a209a",
+    "job_id": null,
+    "incident_id": null,
+    "controller_attempt_id": null,
+    "missing_reason": {
+      "job_id": "提供された一次調査は当launch関連maintenance job0行という観測。計画は実行時再確認と正規初回採番を指定し、reviewerは採番しない。",
+      "incident_id": "提供された一次調査は当launch関連incident0行という観測。reviewerは推測しない。",
+      "controller_attempt_id": "親の担当入力に未提供。指定scopeとallowed_outputsを使用。"
+    }
+  },
+  "allowed_outputs": [
+    "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+    "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.md"
+  ],
+  "source_material": [
+    "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html 構成案2.0",
+    ".agents/skills/common-execution-planning/SKILL.md",
+    ".agents/skills/common-execution-planning/references/contracts.md",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/preparation.md",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/review.json"
+  ],
+  "review_checks": {
+    "sections_0_to_14": "全節を実読し存在確認",
+    "steps": "STEP01〜13の全14項目と全文promptを実読",
+    "cases": "1.0のC01〜18全12項目を実読。1.1で局所完全node、手順fence、scope別最終回帰の修正を再読。EPR-03/04/05解消",
+    "mapping": "1.0のR01〜15、OCT20-F01〜17、CI-01〜14、SPR-01、全steps/cases/review_findings/coverageを実読。1.1でSTEP02所有、全STEP test_execution、C07/C08、C16 regression_scopesとplan-resultの同期を再読。EPR-01/05解消",
+    "investigation_status": "一次調査の独立review記録未提供を明記し継続。SPR-01は既存reviewのresolved履歴を実読。10/20 causeはunknownのまま保持",
+    "identity": "実launch/date/null-run保持、worker_job_idをmaintenance jobに流用しない。実行時既存job再確認と正式初回受付を指定",
+    "base_version": "構成案2.0と既存commit0994bc1は参照情報。現在のdirty/hunkを読んで保全し、版一致gateを追加しない",
+    "models_effort_tier": "全promptはhigh、既存roleを基準とし調査roleの異なるmodel指定を許容。model/tier/Fast未観測をgateにしない。実呼出しの設定成功は未実測",
+    "forbidden_side_effects": "固定workspace、通常Daily/新run/draft/10/19処理/10/17転用/13時待機禁止を全promptに伝播",
+    "non_gating": "review/test/readiness/release/FAIL/unknown/証拠/回数/旧status/receipt/lease/hash/代替照合による自作gate撤廃を明記。review結果も次工程を止めない",
+    "actual_work_and_exit": "移行コード独立review、新runner内部7担当による日次実差分・試験・製品review・反映・HTML・独立実読、追加worker/外側Workerの実終了を要求",
+    "logging": "shared AppServerのstderr破棄を把握しsafe実内容sinkと秘密canary試験を計画",
+    "hash_boundary_and_history": "保守診断source/hash/ID/schema/旧経路撤去と通常業務artifact hash維持、DB migrationの過去行保全を明記"
+  },
+  "findings": [
+    {
+      "id": "EPR-01",
+      "severity": "medium",
+      "locations": [
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 233},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 489},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 521}
+      ],
+      "issue": "非試験担当の全文promptにも最小node debug/test、全関係回帰を最後に一度、対象caseを実施する命令が反復される。read-only製品/HTMLreview、反映、HTML作者の所有と試験担当責任に衝突し、変更ないPASSの反復を招く。STEP01/07の試験実行禁止とも同一prompt内で衝突する。",
+      "requested_change": "実行命令をSTEP02/08に限定。他担当は既存証拠の読取と必要な局所試験の具体依頼にする。追加製品修正時も元実装→該当試験担当→別製品reviewの責任を明記。全STEP promptを同期する。",
+      "basis": "構成案2.0 #flow/#failures、CI-05、本人の変更ないPASSを繰返さない試験規律",
+      "requirements": ["R10", "R13"],
+      "steps": ["STEP01", "STEP02", "STEP03", "STEP04", "STEP05", "STEP06", "STEP07", "STEP08", "STEP09", "STEP10", "STEP11", "STEP12", "STEP13"],
+      "cases": ["C16"],
+      "owner": "計画作者。将来の試験実行者はSTEP02/08",
+      "expected_outputs": ["役割に一致した検証文と全文prompt", "対応JSONの担当整理"],
+      "evidence": "各全文promptの検証段落を実読",
+      "blocks_following_work": false
+    },
+    {
+      "id": "EPR-02",
+      "severity": "medium",
+      "locations": [
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 94},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 536},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 551}
+      ],
+      "issue": "作者生成不能時にcontrollerが最終HTML本文を生成する設計を再導入している。採用2.0のrunner責任縮小と作者の最終path直書き、CI-12のcontroller本文生成撤去に不整合。STEP13の所有にもHTML編集は含まれない。",
+      "requested_change": "controllerは短いfallback Markdownと失敗/利用資料/次操作を残し、HTML作者へ同じ最終pathの最小本文作成を局所依頼して実終了を回収する。作者でも生成不能ならHTML未実施を正直に渡し、独立reviewは読めた対象/未実施理由を記録して後続報告へ進む。controller本文生成を通常/例外の両方から除去。",
+      "basis": "構成案2.0 #flow/#runner/#suggest、CI-12。古いplanning契約のHTML fallbackより最新採用案が優先",
+      "requirements": ["R01", "R03", "R15"],
+      "steps": ["STEP01", "STEP11", "STEP12", "STEP13"],
+      "cases": ["C15"],
+      "owner": "計画作者。将来HTML本文のownerはHTML作者",
+      "expected_outputs": ["作者だけがHTMLを生成/修正する失敗時手順", "追加作者/HTMLreview worker終了記録"],
+      "evidence": "本文§5およびSTEP13本文/promptと原典の担当責任を比較",
+      "blocks_following_work": false
+    },
+    {
+      "id": "EPR-03",
+      "severity": "medium",
+      "locations": [
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 712},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 732},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 892}
+      ],
+      "issue": "局所C07/C08のコマンドにmodule全体が入り、C16でも移行と10/20日次の14fileを共通の全回帰として指定する。『それぞれの最終回帰』との説明だけではSTEP08が変更のない移行PASSまで再実行する解釈を除けず、最小node先行と最後の関係回帰一度の規律が曖昧。",
+      "requested_change": "C07/C08は既存完全関数node又は予定と明示した目的別nodeで局所実行。C16を移行scopeと日次scopeに分け、各試験担当が自分の差分へ直接関係するfile/node集合と実コマンドを確定する。日次側から変更のない移行PASSを一律再実行しない。改名/置換した旧8担当・既読nodeは更新後の実名とコマンドへ同期。",
+      "basis": "本人試験規律、構成案2.0 #failures、inventory§5",
+      "requirements": ["R08", "R10", "R12"],
+      "steps": ["STEP02", "STEP08"],
+      "cases": ["C01", "C07", "C08", "C16"],
+      "owner": "計画作者。将来STEP02/08の各試験担当",
+      "expected_outputs": ["scope別最終回帰集合/コマンド", "局所caseの完全node", "node改名対応"],
+      "evidence": "C07/C08/C16の実コマンドを読取。試験は未実行",
+      "blocks_following_work": false
+    },
+    {
+      "id": "EPR-04",
+      "severity": "low",
+      "locations": [
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 791},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 851}
+      ],
+      "issue": "C11/C14は手順caseだがpowershell fence内が日本語の説明だけで、そのまま実行できるコマンドではない。",
+      "requested_change": "text fence又は普通の文章へ変更し、C11はSTEP05の対象指定Worker commandを一度だけ実行する参照、C14は別agentの実物読取と所見保存という操作を明示する。架空コマンドは追加しない。",
+      "basis": "caseの実行方法・設定と完全promptの実行可能性",
+      "requirements": ["R11", "R13", "R15"],
+      "steps": ["STEP05", "STEP09", "STEP12"],
+      "cases": ["C11", "C14"],
+      "owner": "計画作者",
+      "expected_outputs": ["手順と実コマンドの区別が明確なcase"],
+      "evidence": "C11/C14のfence実読",
+      "blocks_following_work": false
+    },
+    {
+      "id": "EPR-05",
+      "severity": "medium",
+      "locations": [
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 183},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 198},
+        {"file": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md", "line": 889}
+      ],
+      "issue": "C16はtest_maintenance_completion.py全体を回帰に含めるが、STEP02のfixture改訂所有リストには同fileがない。『直接使うfixture』だけでは当module本体の旧hash/Git/終了期待更新権限が不明。C13でも同fileの実在nodeを使うため、必要修正を担当不能へ送る余地がある。",
+      "requested_change": "STEP02の所有へtest_maintenance_completion.pyの移行直接関係箇所を明示し、全文promptとJSONにも同期。又は移行scopeのC16から無関係fileを外し、日次で必要なnodeだけSTEP08へ割り当てる。所有外が判明した場合も正確なpath/必要差分を返し範囲更新で継続する。",
+      "basis": "全作業の所有/出力/試験の完全対応、本人の自作制限除去方針",
+      "requirements": ["R10", "R12"],
+      "steps": ["STEP02", "STEP08"],
+      "cases": ["C13", "C16"],
+      "owner": "計画作者",
+      "expected_outputs": ["試験file所有と回帰scopeが一致した本文/prompt/JSON"],
+      "evidence": "STEP02本文/prompt/JSON所有とC13/C16参照の比較",
+      "blocks_following_work": false
+    }
+  ],
+  "follow_up_review": {
+    "reviewed_plan_version": "1.1",
+    "observed_at_utc": "2026-10-20T20:48:42Z",
+    "status": "approved",
+    "scope": "初回5所見に対応する本文・全STEP検証prompt・所有・case・対応JSON・plan-resultの実物追確認。新たな製品試験や本番検証ではない。",
+    "resolutions": [
+      {
+        "finding_id": "EPR-01",
+        "status": "resolved",
+        "evidence": "1.1本文171/203/235/267/299/331/363/395/427/459/491/523/555行を実読。pytest/回帰実行はSTEP02/08だけ、他担当は実物/証拠読取と追加修正時の局所試験依頼。JSON全STEPのtest_executionも同じ2担当だけtrue。"
+      },
+      {
+        "finding_id": "EPR-02",
+        "status": "resolved",
+        "evidence": "1.1本文94/538/553行で同job作者への最小HTML局所再依頼と実終了回収、なお不能時はfallback Markdown/HTML未実施、controller本文合成禁止を確認。plan-result.html_failure_behaviorも同期。"
+      },
+      {
+        "finding_id": "EPR-03",
+        "status": "resolved",
+        "evidence": "1.1 C07 708〜714行/C08 728〜734行は目的別完全関数nodeへ限定。追加されたdeployment_probe/workflow_provider関数の定義をソースで実読確認。C16 886〜910行は移行STEP02/日次STEP08の別command、未変更移行PASS再実行禁止、実差分に応じたscope確定と改名後command/map同期を明記。JSON.regression_scopesも別owner。"
+      },
+      {
+        "finding_id": "EPR-04",
+        "status": "resolved",
+        "evidence": "1.1 C11 793〜795行/C14 853〜855行はtext fenceで実行コマンドではないと明記。C11の既存対象指定Worker、C14の別agent実物読取は周辺手順に保持。"
+      },
+      {
+        "finding_id": "EPR-05",
+        "status": "resolved",
+        "evidence": "1.1 STEP02本文185行/prompt200行とJSON.steps[STEP02].writeable_boundaryにtest_maintenance_completion.pyの直接必要な試験/fixture調整所有を追加。"
+      }
+    ],
+    "remaining_findings": [],
+    "new_findings": [],
+    "not_a_gate": true,
+    "implementation_testing_live_operation_status": "not_performed",
+    "incident_resolution": "unknown"
+  },
+  "not_performed": [
+    {"operation": "製品・試験・DB・Runtime・Schedulerの変更/実行", "reason": "read-only計画reviewの担当外。計画作成のみという本人範囲を保持"},
+    {"operation": "ハッシュ生成/照合", "reason": "本人最新指示により禁止"},
+    {"operation": "Git status/diff/stage/commit/push", "reason": "親がこのreviewerへGit操作を明示禁止。親が今回所有文書を扱う"},
+    {"operation": "次の実装worker起動", "reason": "本人の今回依頼は計画作成まで。実装開始をreview statusに結び付けず、実行依頼時のSTEP01へ所見を引き継ぐ"}
+  ],
+  "unknowns": [
+    "10/20 IdempotencyConflictの直接原因/衝突対象/実cause stack",
+    "controller実job/incident/attempt ID",
+    "実model/tier/認証/本番操作成功と全worker終了",
+    "10/20一次調査自体の独立review記録未提供",
+    "settings/language.mdは現workspaceに不存在。日本語で記録"
+  ],
+  "handoff": {
+    "next_role": "親へ1.1追確認を渡し今回計画成果の引渡しを行う",
+    "findings": [],
+    "resolved_findings": ["EPR-01", "EPR-02", "EPR-03", "EPR-04", "EPR-05"],
+    "instructions": "1.1で初回5所見の解消を実読確認。計画status/review/test/readiness/release/FAIL/unknown/証拠不足/回数/旧blockedを将来起動・再開・終了のgateにしない。新しいstage結果にblockedを返さない。実行不能操作だけ理由を残し、内容ある成果とhandoffを渡して可能な次担当を起動する。今回計画のみの範囲を保持し、実装開始依頼があれば利用可能な1.1計画と残るunknownでSTEP01を直ちに開始する。",
+    "blocks_following_work": false
+  }
+}

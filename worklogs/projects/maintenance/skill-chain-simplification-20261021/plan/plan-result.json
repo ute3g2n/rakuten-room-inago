@@ -1,0 +1,151 @@
+{
+  "document_version": "1.1",
+  "scope": "skill-chain-simplification-20261021",
+  "stage": "one_time_execution_planning",
+  "status": "completed",
+  "content_result": "採用済構成案2.0への移行4STEP、対象launch正規受付、新runner自身の自動7担当による10/20原因修正又は有用な日次計装/試験/独立製品review/反映/HTML/独立HTMLreview、全worker実終了の計画を作成",
+  "identity": {
+    "source_launch_id": "fa3292ae0c7e43bb9569576fcb1a5d85",
+    "target_date": "2026-10-20",
+    "source_run_id": null,
+    "job_id": null,
+    "incident_id": null,
+    "missing_reason": {
+      "job_id": "一次調査時の当launch関連maintenance job0行。実行時に再確認し既存job再利用又は正規初回受付の実採番を保存",
+      "incident_id": "当launch関連incident0行。正規受付で実値を取得",
+      "controller_attempt_id": "未提供。scope/pathを使用し採番しない"
+    }
+  },
+  "approved_source_version": "構成案2.0",
+  "historical_status_observations": {
+    "launch_status": "failed",
+    "overall_status": "failed",
+    "daily_status": "failed",
+    "reason_code": "daily_runtime_error",
+    "failure_phase": "prepare",
+    "primary_error_class": "IdempotencyConflict",
+    "trace_status": "not_written",
+    "queue_status": "queued",
+    "maintenance_job": "not_found_at_read_time",
+    "source_run_id": null
+  },
+  "outputs": [
+    "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/requirement-step-case-map.json",
+    "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/plan-result.json"
+  ],
+  "self_check": {
+    "requirements": 15,
+    "facts": 31,
+    "steps": 13,
+    "cases": 18,
+    "all_steps_have_14_fields_and_full_prompts": true,
+    "all_cases_have_12_fields": true,
+    "checks_are_document_self_review_only": true,
+    "gate": false
+  },
+  "operation_results": [
+    {
+      "operation": "原典/所見/一次facts/実コード/試験ソースの読取",
+      "status": "performed"
+    },
+    {
+      "operation": "計画/対応表/結果作成",
+      "status": "performed"
+    },
+    {
+      "operation": "文書/対応表機械確認（Python標準json/re/ast読取、製品試験ではない）",
+      "status": "performed",
+      "exit_code": 0,
+      "observed": {
+        "sections": "0 through 14",
+        "step_fields": "13 steps x 14 fields with full prompts",
+        "case_fields": "18 cases x 12 fields",
+        "unmapped_facts": 0,
+        "planned_uncreated_functions": 6
+      }
+    },
+    {
+      "operation": "製品実装・試験実行・DB mutation・Worker/Daily起動・本番反映",
+      "status": "not_performed",
+      "reason": "今回本人依頼の実作業は計画作成まで"
+    },
+    {
+      "operation": "hash生成/照合",
+      "status": "not_performed",
+      "reason": "本人最新指示で撤廃、版は既存Git参照/実file差分"
+    },
+    {
+      "operation": "Git stage/commit/push",
+      "status": "not_performed",
+      "reason": "計画作者担当範囲外。親が今回所有文書だけを扱う。将来保守フロー外"
+    },
+    {
+      "operation": "独立計画review所見の反映",
+      "status": "performed",
+      "detail": "試験実行をSTEP02/08へ限定、controller HTML合成撤去と作者局所再依頼、C07/08局所完全node、C16移行/日次scope分離、非command fence是正、completion試験所有追加"
+    },
+    {
+      "operation": "1.1文書構造/JSON/node参照再確認",
+      "status": "performed",
+      "exit_code": 0,
+      "observed": "0〜14節、13STEP14項目/全文prompt、18case12項目、未対応fact0、非tester実行命令漏れ0、未明示不存在node0"
+    }
+  ],
+  "unknowns": [
+    "IdempotencyConflictの直接原因/衝突対象/cause stack",
+    "backup/preservation/trace保存の正確な失敗境界",
+    "正式maintenance job_id/incident_id（正規初回受付前）",
+    "新設resume引数名と予定test nodeの実装後確定名",
+    "実model/tier/認証/OS操作と本番実worker終了",
+    "10/20調査自体の独立review記録未提供"
+  ],
+  "handoff": {
+    "next_role": "将来の実行担当（STEP01の移行実装担当）",
+    "inputs": [
+      "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md",
+      "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/requirement-step-case-map.json",
+      "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/plan-result.json",
+      "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/oct20-current-facts.md",
+      "worklogs/projects/maintenance/skill-chain-simplification-20261021/plan/code-and-test-inventory.md"
+    ],
+    "instruction": "独立計画reviewは1.1の実物追確認で5所見解消・残件0。今回の依頼は計画作成まで。実行依頼時は本計画STEP01から開始し、通常Dailyを再実行せず10/20実launchの正規保守受付と新7担当フローを実施する。review状態を起動gateにしない。"
+  },
+  "workflow_completion": {
+    "planning": "completed",
+    "future_migration_and_live_maintenance": "not_performed"
+  },
+  "incident_resolution": "unknown",
+  "publication": {
+    "local_html": "not_performed",
+    "reason": "将来新runnerのHTML作者工程で実施"
+  },
+  "test_execution_ownership": [
+    "STEP02",
+    "STEP08"
+  ],
+  "html_failure_behavior": "同jobのHTML作者へ最小HTMLを局所再依頼し実worker終了回収。生成不能ならcontrollerはfallback MarkdownとHTML未実施を記録して次担当へ。controller本文合成なし",
+  "review_observations": {
+    "source": "plans/projects/maintenance/reviews/skill-chain-simplification-v2-execution-review.json",
+    "reviewed_version": "1.0",
+    "raw_status": "changes_requested",
+    "finding_ids": [
+      "EPR-01",
+      "EPR-02",
+      "EPR-03",
+      "EPR-04",
+      "EPR-05"
+    ],
+    "author_revision": "1.1",
+    "author_response": "1.1へ全5所見を反映し、別reviewerが更新実物を再読して全件解消を確認",
+    "blocks_following_work": false,
+    "author_response_before_reread": "全5所見を反映、独立再読の結果は未観測",
+    "follow_up_review": {
+      "reviewed_version": "1.1",
+      "observed_at_utc": "2026-10-20T20:48:42Z",
+      "status": "approved",
+      "remaining_findings": [],
+      "blocks_following_work": false
+    }
+  }
+}
