@@ -207,7 +207,7 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
         "evidence_index_href",
         "evidence_index_label",
     }
-    if set(data) != required:
+    if set(data) not in (required, required | {"workflow_trace"}):
         raise ReportContractError("report_sources_invalid")
     identity = {
         key: job[key]
@@ -222,6 +222,110 @@ def _validate_sources(job: Mapping[str, Any], sources: object) -> dict[str, Any]
     if data["identity"] != identity:
         raise ReportContractError("report_identity_mismatch")
     allowed_refs = set(job["evidence_refs"])
+    if "workflow_trace" in data:
+        trace = data["workflow_trace"]
+        trace_keys = {
+            "schema_version",
+            "status",
+            "summary",
+            "record_count",
+            "failure_count",
+            "recorded_fields",
+            "records",
+            "evidence_refs",
+            "errors",
+        }
+        if not isinstance(trace, Mapping) or set(trace) != trace_keys:
+            raise ReportContractError("report_workflow_trace_invalid")
+        trace = dict(trace)
+        if (
+            trace["schema_version"] != "maintenance-workflow-trace-summary-v1"
+            or trace["status"] not in ("recorded", "not_found", "unavailable")
+            or not isinstance(trace["summary"], str)
+            or not trace["summary"].strip()
+            or len(trace["summary"]) > 2000
+            or not isinstance(trace["record_count"], int)
+            or isinstance(trace["record_count"], bool)
+            or not isinstance(trace["failure_count"], int)
+            or isinstance(trace["failure_count"], bool)
+            or not isinstance(trace["recorded_fields"], list)
+            or not all(isinstance(item, str) for item in trace["recorded_fields"])
+            or len(set(trace["recorded_fields"])) != len(trace["recorded_fields"])
+            or not isinstance(trace["records"], list)
+            or not isinstance(trace["evidence_refs"], list)
+            or not isinstance(trace["errors"], list)
+            or trace["record_count"] != len(trace["records"])
+            or not 0 <= trace["failure_count"] <= trace["record_count"]
+            or (trace["status"] == "recorded") != (trace["record_count"] > 0)
+        ):
+            raise ReportContractError("report_workflow_trace_invalid")
+        record_keys = {
+            "correlation_id",
+            "stage",
+            "operation",
+            "phase",
+            "reason_code",
+            "code_revision",
+            "capture_location",
+            "exception_chain",
+            "exception_reason_codes",
+            "input_refs",
+            "artifact_refs",
+            "primary_sink",
+            "fallback_status",
+        }
+        trace_refs: set[str] = set()
+        for record in trace["records"]:
+            if not isinstance(record, Mapping) or set(record) != record_keys:
+                raise ReportContractError("report_workflow_trace_invalid")
+            for field in (
+                "correlation_id",
+                "stage",
+                "operation",
+                "phase",
+                "code_revision",
+                "capture_location",
+                "primary_sink",
+            ):
+                if not isinstance(record[field], str) or not record[field]:
+                    raise ReportContractError("report_workflow_trace_invalid")
+            for field in ("reason_code", "fallback_status"):
+                if record[field] is not None and not isinstance(record[field], str):
+                    raise ReportContractError("report_workflow_trace_invalid")
+            for field in (
+                "exception_chain",
+                "exception_reason_codes",
+                "input_refs",
+                "artifact_refs",
+            ):
+                values = record[field]
+                if not isinstance(values, list) or not all(
+                    isinstance(item, str) for item in values
+                ):
+                    raise ReportContractError("report_workflow_trace_invalid")
+                if field in {"input_refs", "artifact_refs"}:
+                    trace_refs.update(values)
+                    if not set(values).issubset(allowed_refs):
+                        raise ReportContractError("report_evidence_ref_not_allowed")
+        if not all(isinstance(item, str) for item in trace["evidence_refs"]):
+            raise ReportContractError("report_workflow_trace_invalid")
+        if (
+            not set(trace["evidence_refs"]).issubset(allowed_refs)
+            or set(trace["evidence_refs"]) != trace_refs
+        ):
+            raise ReportContractError("report_evidence_ref_not_allowed")
+        error_keys = {"operation", "exception_chain"}
+        for error in trace["errors"]:
+            if (
+                not isinstance(error, Mapping)
+                or set(error) != error_keys
+                or not isinstance(error["operation"], str)
+                or not error["operation"]
+                or not isinstance(error["exception_chain"], list)
+                or not all(isinstance(item, str) for item in error["exception_chain"])
+            ):
+                raise ReportContractError("report_workflow_trace_invalid")
+        data["workflow_trace"] = trace
     href_fields = ["evidence_index_href"]
     for name in ("investigation", "plan", "tests", "deployment"):
         item = data[name]

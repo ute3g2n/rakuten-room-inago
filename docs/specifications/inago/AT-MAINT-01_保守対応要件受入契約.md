@@ -259,6 +259,10 @@ U02では本契約と要件対応を静的に確認し、HTML正本を再生成�
 source snapshotの調査・計画・コードreviewは、各sourceのstatusを対応させて表示し、固定文言で承認を補わない。未作成資料は本文の資料一覧へ誤ってリンクしない。リンク名は資料の役割と形式に合わせる。停止理由のnull/欠測は未確認とし、理由がなかったと断定しない。本文のreport statusは`complete`または`pending`とし、失敗・未確認はその理由と平易な表示で残す。工程tree、生status、reason code、内部ID、版キー、hashは技術付録へ置く。rendererはAI作成本文に状態コード等が含まれる時も本文へそのまま出さない。
 `report_status`は元資料が示す調査・試験・反映の完了状態、`stage_status`と`review.status`はHTML文章レビューの状態として独立に扱う。たとえば`report_status=pending`と`review.status=approved`は両立し、reviewの承認で元資料の完了状態を`complete`へ昇格させない。終端の公開読戻しもこの二つを独立に照合する。レビュー不能の場合は、現行の公開契約と同じくcontroller fallback・pending・`next_action=publish`・専用reviewer ID・unavailable statusを全て確認する。
 工程表の対象版欄が参考付録を指す場合、source工程の版とreport response内の全check工程名・版を付録に含める。
+report入力の`source_snapshot.workflow_trace`は、現在のjob・起動元・source run（nullを含む）・invocationに完全一致するoperation eventだけを読み、許可済み証拠参照に含まれる入力・成果物pathだけを渡す。工程、操作、phase、実行版、相関情報、捕捉場所、失敗理由、例外class連鎖と記録参照を含める。読取に失敗した場合も安全な例外class連鎖を`unavailable`の説明へ残して通常reportを続ける。該当記録がなければ`not_found`とし、追加計装を確認できたと表現しない。`recorded`は記録の内容を示すだけで、元のevent記録機能を今回追加した証拠ではない。今回の改修で追加した事実として説明できるのは、同じinvocationの記録をreport入力へ読み渡す処理であり、元のevent記録機能の新設は別の実装根拠がある場合だけ述べる。reporterは`recorded`の内容だけを平易な日本語へ要約し、工程失敗と10/17元障害の原因を混同しない。内部ID・operation名・reason code・path・版hashは本文へ出さない。
+
+trace failure countはreason code、例外情報、`failed`/`failure`/`error`等の明示的失敗phase、または中断記録から算出する。正常な`handoff`だけでは失敗として数えない。未登録のreason/exceptionは「記録がない」と表現せず、既知ラベルへ平易に変換できない事実と、理由・例外自体が記録されていない事実を分けて要約する。
+
 ## FC09 schema v15のソース・適用確認
 
 現行コードはmigration 014でappend-only operation event表を追加し、migration 015でrepair predecessorがない場合を許すためall-or-none insert triggerだけを削除する。immutable-pin triggerは維持する。隔離DBではschema v14からv15へ更新し、pinなしrepair attemptを作れることを確認する。FC09のproduction適用では固定workspace内の既存DBを公式CLIで移行し、backup、`quick_check`、version・migration記録・両triggerをread-backする。

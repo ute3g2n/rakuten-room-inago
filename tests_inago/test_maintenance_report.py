@@ -191,6 +191,54 @@ def test_c55_contract():
     assert report.report_status == "pending"
 
 
+def test_fc11_report_accepts_and_renders_bound_workflow_trace_summary():
+    sources = _source_snapshot()
+    sources["workflow_trace"] = {
+        "schema_version": "maintenance-workflow-trace-summary-v1",
+        "status": "recorded",
+        "summary": "工程ごとの操作と引継ぎ、失敗の参照先を記録しました。",
+        "record_count": 1,
+        "failure_count": 1,
+        "recorded_fields": ["operation", "phase", "correlation_id", "artifact_refs"],
+        "records": [
+            {
+                "correlation_id": "corr-fc11-report-trace",
+                "stage": "planning",
+                "operation": "workflow.stage.planning",
+                "phase": "handoff",
+                "reason_code": "ai_transport_failed",
+                "code_revision": "maintenance-source-v1-" + "a" * 64,
+                "capture_location": "workflow_provider.MaintenanceWorkflowProvider.__call__",
+                "exception_chain": [],
+                "exception_reason_codes": [],
+                "input_refs": [],
+                "artifact_refs": ["evidence/U16/plan.md"],
+                "primary_sink": "maintenance_operation_event",
+                "fallback_status": None,
+            }
+        ],
+        "evidence_refs": ["evidence/U16/plan.md"],
+        "errors": [],
+    }
+    response = _report_response()
+    response["issues"][0][
+        "changed_behavior"
+    ] = "工程ごとの操作・引継ぎ・失敗位置を相関情報と記録参照に結び付けました。"
+    response["issues"][0]["evidence_ref"] = "evidence/U16/plan.md"
+
+    report = prepare_incident_report(
+        _job_context(),
+        sources,
+        response,
+        template_path=Path(__file__).resolve().parents[1]
+        / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+
+    assert (
+        "工程ごとの操作・引継ぎ・失敗位置を相関情報と記録参照に結び付けました。"
+        in report.html
+    )
+    assert report.report_status == "pending"
 def test_c56_report_keeps_recurrent_observation_as_pending_review():
     sources = _source_snapshot()
     sources["next_day"] = {

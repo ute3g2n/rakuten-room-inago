@@ -440,8 +440,165 @@ def test_fc10_daily_report_prompt_requires_raw_allowed_evidence_paths():
     assert "including when joined directly to Japanese" in prompt
     assert "say 日次の実行記録との紐づけはありません" in prompt
     assert "error written in a record" in prompt
+    assert "not when underlying logging was first added" in prompt
+    assert "report step that reads the same invocation's trace" in prompt
 
 
+def test_fc11_report_trace_summary_uses_same_invocation_records_and_failure_artifacts():
+    job_id = "job-fc11-trace-summary"
+    launch_id = "launch-fc11-trace-summary"
+    invocation_id = "workflow-fc11-trace-summary"
+    plan_ref = f"{job_id}/attempt-plan/stage-handoff.json"
+    repair_ref = f"{job_id}/attempt-repair/repair-handoff.json"
+
+    def event(
+        *,
+        stage,
+        operation,
+        phase,
+        reason_code,
+        correlation_id,
+        artifact_refs,
+        exception_chain=(),
+    ):
+        return {
+            "job_id": job_id,
+            "source_launch_id": launch_id,
+            "invocation_id": invocation_id,
+            "stage": stage,
+            "operation": operation,
+            "phase": phase,
+            "reason_code": reason_code,
+            "correlation_id": correlation_id,
+            "code_revision": "maintenance-source-v1-" + "a" * 64,
+            "capture_location": "workflow_provider.MaintenanceWorkflowProvider.__call__",
+            "exception_chain_json": json.dumps(exception_chain),
+            "exception_reason_codes_json": "[]",
+            "input_refs_json": "[]",
+            "artifact_refs_json": json.dumps(artifact_refs),
+            "primary_sink": "maintenance_operation_event",
+            "fallback_status": None,
+        }
+
+    class TraceStore:
+        def list_operation_events(
+            self, *, job_id, source_launch_id, source_run_id, invocation_id
+        ):
+            assert (job_id, source_launch_id, source_run_id, invocation_id) == (
+                "job-fc11-trace-summary",
+                "launch-fc11-trace-summary",
+                None,
+                "workflow-fc11-trace-summary",
+            )
+            return (
+                event(
+                    stage="planning",
+                    operation="workflow.stage.planning",
+                    phase="handoff",
+                    reason_code="ai_transport_failed",
+                    correlation_id="corr-fc11-planning",
+                    artifact_refs=[plan_ref, "workflow-handoffs/unrelated.json"],
+                ),
+                event(
+                    stage="repair",
+                    operation="workflow.stage.repair",
+                    phase="handoff",
+                    reason_code="attempt_id_invalid",
+                    correlation_id="corr-fc11-repair",
+                    artifact_refs=[repair_ref],
+                ),
+                event(
+                    stage="investigation",
+                    operation="workflow.stage.investigation",
+                    phase="handoff",
+                    reason_code=None,
+                    correlation_id="corr-fc11-success-handoff",
+                    artifact_refs=[],
+                ),
+                event(
+                    stage="deployment",
+                    operation="workflow.stage.deployment",
+                    phase="failed",
+                    reason_code=None,
+                    correlation_id="corr-fc11-failed-phase",
+                    artifact_refs=[],
+                ),
+                event(
+                    stage="repair",
+                    operation="workflow.stage.repair.apply",
+                    phase="failed",
+                    reason_code="repair_implementation_failed",
+                    correlation_id="corr-fc11-unmapped-failure",
+                    artifact_refs=[],
+                    exception_chain=("RuntimeError",),
+                ),
+            )
+
+    workflow = SimpleNamespace(state={"invocation_id": invocation_id})
+    identity = {
+        "job_id": job_id,
+        "source_launch_id": launch_id,
+        "source_run_id": None,
+        "target_date": "2026-10-17",
+        "incident_id": "incident-fc11-trace-summary",
+    }
+    summary = production_workflow._daily_report_workflow_trace_summary(
+        workflow=workflow,
+        store=TraceStore(),
+        identity=identity,
+        evidence_refs={plan_ref, repair_ref},
+    )
+
+    assert summary["schema_version"] == "maintenance-workflow-trace-summary-v1"
+    assert summary["status"] == "recorded"
+    assert summary["record_count"] == 5
+    assert summary["failure_count"] == 4
+    assert {item["reason_code"] for item in summary["records"] if item["reason_code"]} == {
+        "ai_transport_failed",
+        "attempt_id_invalid",
+        "repair_implementation_failed",
+    }
+    assert summary["evidence_refs"] == [plan_ref, repair_ref]
+    assert "調査" not in summary["summary"]
+    assert "本番反映" in summary["summary"]
+    assert "通常の引継ぎだけの記録は失敗として数えていません" in summary["summary"]
+    assert "日常語に言い換えられていません" in summary["summary"]
+    assert "詳細は、今回読み込んだ記録では確認できませんでした" not in summary["summary"]
+    assert all(
+        set(item["artifact_refs"]).issubset({plan_ref, repair_ref})
+        for item in summary["records"]
+    )
+def test_fc11_report_trace_read_failure_is_contentful_and_nonblocking():
+    class FailedTraceStore:
+        def list_operation_events(self, **_kwargs):
+            try:
+                raise ValueError("unsafe detail must not be copied")
+            except ValueError as inner:
+                raise OSError("outer failure must not be copied") from inner
+
+    summary = production_workflow._daily_report_workflow_trace_summary(
+        workflow=SimpleNamespace(state={"invocation_id": "workflow-fc11-read-failure"}),
+        store=FailedTraceStore(),
+        identity={
+            "job_id": "job-fc11-read-failure",
+            "source_launch_id": "launch-fc11-read-failure",
+            "source_run_id": None,
+            "target_date": "2026-10-17",
+            "incident_id": "incident-fc11-read-failure",
+        },
+        evidence_refs={"job-fc11-read-failure/evidence-index.json"},
+    )
+
+    assert summary["status"] == "unavailable"
+    assert "読み出せませんでした" in summary["summary"]
+    assert summary["errors"] == [
+        {
+            "operation": "report.read_workflow_trace",
+            "exception_chain": ["OSError", "ValueError"],
+        }
+    ]
+    assert "unsafe detail" not in json.dumps(summary, ensure_ascii=False)
+    assert "outer failure" not in json.dumps(summary, ensure_ascii=False)
 def test_fc10_report_reviewer_prompt_limits_findings_to_requested_four_facts():
     prompt = production_workflow._daily_report_review_prompt(
         identity={"job_id": "fc10-report-review-scope"},
@@ -467,6 +624,8 @@ def test_fc10_report_reviewer_prompt_limits_findings_to_requested_four_facts():
     assert "Do not issue findings requiring" in prompt
     assert "do not require a visible" in prompt
     assert "private/secret data" in prompt
+    assert "not when underlying event logging was introduced" in prompt
+    assert "separate implementation evidence" in prompt
     assert "findings only about those four facts or exposed private/secret data" in prompt
     assert "internal field" not in prompt
     assert "print" not in prompt
@@ -2421,7 +2580,37 @@ def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monke
                 ],
                 "evidence_refs": [f"daily-evidence/{source_launch_id}/index.json"],
             },
+            "invocation_id": "workflow-fc11-fallback-trace",
         },
+    )
+    store.record_operation_event(
+        {
+            "event_id": "event-fc11-fallback-trace",
+            "correlation_id": "correlation-fc11-fallback-trace",
+            "parent_operation": "workflow-fc11-fallback-trace",
+            "job_id": job.job_id,
+            "source_launch_id": source_launch_id,
+            "source_run_id": None,
+            "incident_id": incident_id,
+            "invocation_id": "workflow-fc11-fallback-trace",
+            "stage": "planning",
+            "attempt_id": "attempt-fc11-fallback-trace",
+            "operation": "workflow.stage.planning",
+            "phase": "handoff",
+            "observed_at": BASE_TIME.isoformat(),
+            "code_revision": "maintenance-source-v1-" + "a" * 64,
+            "reason_code": "ai_transport_failed",
+            "exception_chain": ["MaintenanceAIBlockedError", "AppServerError"],
+            "exception_errno": None,
+            "exception_reason_codes": ["ai_transport_failed"],
+            "operation_context": {},
+            "stack_frames": [],
+            "capture_location": "maintenance.stage_handoff.make_stage_handoff",
+            "input_refs": [],
+            "artifact_refs": [f"daily-evidence/{source_launch_id}/index.json"],
+            "primary_sink": "maintenance_operation_event",
+            "fallback_status": None,
+        }
     )
     author_calls: list[str] = []
 
@@ -2457,9 +2646,31 @@ def test_report_stage_falls_back_and_invokes_author_runner(tmp_path: Path, monke
         "report_source_attempt_unavailable"
     )
     assert workflow.state["report_source_snapshot"]["identity"] == identity
+    assert (
+        workflow.state["report_source_snapshot"]["workflow_trace"]["status"]
+        == "recorded"
+    )
     assert author_calls == ["run_turn", "close"]
     assert result.status == "unknown"
     assert result.reason_code == "synthetic_author_transport_unavailable"
+    fallback_result = production_workflow._persist_minimal_daily_report(
+        workflow,
+        controller,
+        store,
+        operation="10月17日の不具合を調査して報告します。",
+        outcome="原因と影響はまだ確認できていません。",
+        failure_reason=result.reason_code,
+    )
+    assert fallback_result.status == "complete"
+    fallback_html = store.read_attempt_artifact(
+        attempts_root=store.database_path.parent / "attempts",
+        relative_path=workflow.state["report_html_path"],
+        expected_sha256=workflow.state["report_html_sha256"],
+    ).decode("utf-8")
+    assert "工程トレース" in fallback_html
+    assert "AIへの接続エラー" in fallback_html
+    assert "報告書へ渡す処理を追加しました" in fallback_html
+    assert "工程ログ自体を今回新たに追加したとは確認できません" in fallback_html
 
 
 def test_fc10_fallback_review_round_uses_persisted_review_history(

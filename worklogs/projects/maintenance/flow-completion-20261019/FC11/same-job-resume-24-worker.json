@@ -1,0 +1,63 @@
+{
+  "observed_at_utc": "2026-10-19T23:50:10.997511+00:00",
+  "schema_version": "flow-completion-explicit-worker-v1",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "preflight": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "resume_count": 24,
+      "status": "queued",
+      "source_run_id": null,
+      "finished_at": null
+    },
+    "manifest": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "target_date": "2026-10-17",
+      "source_run_id": null,
+      "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+    },
+    "historical_reference_count_for_exact_launch": 1,
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ],
+    "worker_dispatch_excluded_dates": [
+      "2026-10-19"
+    ],
+    "worker_code_path": "run_worker_once: if explicit launch queue is absent, read historical job reference for exactly that launch and load the existing historical item",
+    "prior_precondition_error": {
+      "attempted_operation": "worker preflight wrapper",
+      "error": "wrapper incorrectly required a worker_queue row for the exact historical launch",
+      "worker_invoked": false,
+      "root_cause": "the implementation intentionally resolves an explicit historical launch from job_input_manifest when no queue row exists",
+      "recovery": "reviewed run_worker_once branches and switched precondition to exact job identity plus manifest; no queue was created or modified"
+    }
+  },
+  "command": [
+    "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "--maintenance-id",
+    "workflow-fc11-resume24",
+    "worker",
+    "--once",
+    "--source-launch-id",
+    "historical-9e7f0c175cc4c874c955a5dab29c4427"
+  ],
+  "status": "completed",
+  "console_path": "worklogs\\projects\\maintenance\\flow-completion-20261019\\FC11\\same-job-resume-24-worker.console.txt",
+  "started_at_utc": "2026-10-19T23:50:10.997511+00:00",
+  "process_id": 10488,
+  "exit_code": 0,
+  "completed_at_utc": "2026-10-19T23:50:59.379840+00:00",
+  "console_tail": "{\"check_id\": \"d8178c1e-61fb-4a53-a4e5-0216722fda1b\", \"duplicate\": false, \"maintenance_resolution_status\": \"complete\", \"queue_id\": null, \"reason_code\": null, \"schema_version\": \"maintenance-worker-result-v3\", \"scope\": \"maintenance_workflow\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"maintenance_complete\", \"worker_job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\"}\n"
+}

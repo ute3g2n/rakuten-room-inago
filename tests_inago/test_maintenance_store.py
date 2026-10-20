@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -114,6 +115,63 @@ def test_c06_contract(tmp_path):
     assert rolled_back["incident_run"] == 0
 
 
+def test_fc11_operation_events_are_read_by_exact_job_launch_and_invocation(tmp_path):
+    store = make_store(tmp_path)
+    event = {
+        "event_id": "event-fc11-report-input",
+        "correlation_id": "correlation-fc11-report-input",
+        "parent_operation": "workflow-fc11-report-input",
+        "job_id": "job-fc11-report-input",
+        "source_launch_id": "launch-fc11-report-input",
+        "source_run_id": None,
+        "incident_id": "incident-fc11-report-input",
+        "invocation_id": "workflow-fc11-report-input",
+        "stage": "planning",
+        "attempt_id": "attempt-fc11-report-input",
+        "operation": "workflow.stage.planning",
+        "phase": "handoff",
+        "observed_at": BASE_TIME.isoformat(),
+        "code_revision": "maintenance-source-v1-" + "a" * 64,
+        "reason_code": "ai_transport_failed",
+        "exception_chain": ["MaintenanceAIBlockedError", "AppServerError"],
+        "exception_errno": None,
+        "exception_reason_codes": ["ai_transport_failed"],
+        "operation_context": {},
+        "stack_frames": [
+            {"file": "production_workflow.py", "function": "run_planner", "line": 42}
+        ],
+        "capture_location": "maintenance.stage_handoff.make_stage_handoff",
+        "input_refs": ["job-fc11-report-input/attempt-fc11-report-input/input.json"],
+        "artifact_refs": [
+            "job-fc11-report-input/attempt-fc11-report-input/stage-handoff.json"
+        ],
+        "primary_sink": "maintenance_operation_event",
+        "fallback_status": None,
+    }
+    store.record_operation_event(event)
+
+    found = store.list_operation_events(
+        job_id="job-fc11-report-input",
+        source_launch_id="launch-fc11-report-input",
+        source_run_id=None,
+        invocation_id="workflow-fc11-report-input",
+    )
+
+    assert len(found) == 1
+    assert found[0]["event_id"] == event["event_id"]
+    assert found[0]["reason_code"] == "ai_transport_failed"
+    assert found[0]["exception_chain_json"] == json.dumps(
+        ["MaintenanceAIBlockedError", "AppServerError"], separators=(",", ":")
+    )
+    assert (
+        store.list_operation_events(
+            job_id="job-fc11-report-input",
+            source_launch_id="launch-fc11-report-input",
+            source_run_id=None,
+            invocation_id="workflow-other-invocation",
+        )
+        == ()
+    )
 def test_c07_contract(tmp_path):
     store = make_store(tmp_path)
     incident_id = create_incident(store)

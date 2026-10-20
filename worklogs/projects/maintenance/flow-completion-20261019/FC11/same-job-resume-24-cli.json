@@ -1,0 +1,58 @@
+{
+  "observed_at_utc": "2026-10-19T23:49:26.109148+00:00",
+  "schema_version": "flow-completion-resume-cli-v1",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "command": [
+    "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "resume-worker",
+    "--source-launch-id",
+    "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "--job-id",
+    "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  ],
+  "preflight": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "release_id": "U21-BASELINE-be04335",
+      "source_run_id": null,
+      "result_version": "be04335443dc6cb1eddd7f464062eeaaf8d48a5a",
+      "lease_key": "maintenance:worker:b1a8bd3822a143208712efbb28a63e0e",
+      "lease_generation": 1,
+      "resume_count": 23,
+      "status": "failed",
+      "created_at": "2026-10-18T21:32:50.000000Z",
+      "updated_at": "2026-10-19T23:36:58.040800Z",
+      "finished_at": "2026-10-19T23:36:58.040800Z",
+      "terminal_reason_code": "workflow_terminal_observations_incomplete"
+    },
+    "manifest": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+    },
+    "running_attempts": [],
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ],
+    "target_date_daily_launch_rows": []
+  },
+  "exit_code": 0,
+  "stdout_tail": "{\"job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\", \"resume_count\": 24, \"resume_event_id\": \"c7e3cae221b449f2b32906c3cf8957fc\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"queued\"}\n",
+  "stderr_tail": "",
+  "result": "queued",
+  "identity_after": "to_be_read_back_before_worker"
+}

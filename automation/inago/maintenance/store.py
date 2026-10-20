@@ -6574,6 +6574,41 @@ class MaintenanceStore:
             connection.close()
         return tuple(dict(row) for row in rows)
 
+    def list_operation_events(
+        self,
+        *,
+        job_id: str,
+        source_launch_id: str,
+        source_run_id: str | None,
+        invocation_id: str,
+    ) -> tuple[dict[str, object], ...]:
+        """Read trace rows for one exact workflow invocation and daily identity."""
+
+        job = _safe_id(job_id, "job_id_invalid")
+        launch = _safe_id(source_launch_id, "source_launch_id_invalid")
+        invocation = _safe_id(invocation_id, "invocation_id_invalid")
+        run = (
+            _safe_id(source_run_id, "source_run_id_invalid")
+            if source_run_id is not None
+            else None
+        )
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT event_id, correlation_id, parent_operation, job_id, "
+                "source_launch_id, source_run_id, incident_id, invocation_id, "
+                "stage, attempt_id, operation, phase, observed_at, code_revision, "
+                "reason_code, exception_chain_json, exception_errno, "
+                "exception_reason_codes_json, stack_frames_json, capture_location, "
+                "input_refs_json, artifact_refs_json, primary_sink, fallback_status, "
+                "recovered_at FROM maintenance_operation_event "
+                "WHERE job_id = ? AND source_launch_id = ? AND source_run_id IS ? "
+                "AND invocation_id = ? ORDER BY observed_at, rowid",
+                (job, launch, run, invocation),
+            ).fetchall()
+        finally:
+            connection.close()
+        return tuple(dict(row) for row in rows)
     def reconcile_open_operation_events(self) -> int:
         """Append interruption observations for operations left at begin."""
 

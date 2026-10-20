@@ -30,6 +30,8 @@ reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-i
 
 入力/リンク/版が欠けても、解決できる範囲でHTMLを作成し、欠測と未完了を明記する。review statusや不足を後続stageのgateにしない。公開操作が実行できなくてもHTML作成とreport保存を続け、公開不能の理由をreportへ記録する。
 
+report source snapshotに`workflow_trace`がある場合、それは同じjob・launch・source run（nullを含む）・invocationのoperation eventだけを含む。通常の`handoff`だけは失敗として数えず、失敗理由・例外・`failed`等の明示的失敗phase・中断記録を集計する。`recorded`は今回読めた記録の存在と内容を示すが、元のevent記録機能を今回追加した証拠にはならない。今回の改修で確認できる追加機能は、同じinvocationの記録をreport入力へ読み渡す処理である。`not_found`/`unavailable`では記録を確認できないことを伝える。operation failureと元の日次不具合の原因を混同せず、内部識別子・reason code・path・hashを本文へ出さない。trace取得失敗はreport作成を止めない。
+
 ## FC02 現行の全工程引継ぎ契約（2026-10-19）
 
 この節は現行契約であり、過去のU05～U23に残る開始拒否・承認・worktree・終端結合の説明は旧実装の履歴として扱う。本人一名のローカルシステムで堅牢性を目的に制限を足さない。唯一の作業場所は `C:/project/rakuten-room-inago`。全担当のreasoning effortはhighとし、固定max roleしか選べないsessionでは同じ専門promptをhigh指定可能なworker/defaultで実起動する。指定値と実観測値を区別し、model/tier/receipt/session等の未観測を起動条件にしない。

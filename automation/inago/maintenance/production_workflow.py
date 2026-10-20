@@ -8068,6 +8068,256 @@ def run_daily_deployment_execution_stage(
         )
 
 
+def _daily_report_workflow_trace_summary(
+    *,
+    workflow: MaintenanceWorkflowContext,
+    store: MaintenanceStore,
+    identity: dict[str, Any],
+    evidence_refs: set[str],
+) -> dict[str, Any]:
+    """Expose safe trace facts from this exact run to the report author."""
+
+    invocation_id = workflow.state.get("invocation_id")
+    allowed_refs = {ref for ref in evidence_refs if isinstance(ref, str)}
+    base = {
+        "schema_version": "maintenance-workflow-trace-summary-v1",
+        "recorded_fields": [
+            "stage",
+            "operation",
+            "phase",
+            "reason_code",
+            "correlation_id",
+            "code_revision",
+            "capture_location",
+            "exception_chain",
+            "exception_reason_codes",
+            "input_refs",
+            "artifact_refs",
+        ],
+        "errors": [],
+    }
+    if not isinstance(invocation_id, str) or not invocation_id.strip():
+        return {
+            **base,
+            "status": "unavailable",
+            "summary": "この実行の識別情報を確認できず、工程トレースを読み出せませんでした。",
+            "record_count": 0,
+            "failure_count": 0,
+            "records": [],
+            "evidence_refs": [],
+            "errors": [
+                {
+                    "operation": "report.read_workflow_trace",
+                    "exception_chain": ["invocation_id_missing"],
+                }
+            ],
+        }
+
+    try:
+        rows = store.list_operation_events(
+            job_id=identity["job_id"],
+            source_launch_id=identity["source_launch_id"],
+            source_run_id=identity["source_run_id"],
+            invocation_id=invocation_id,
+        )
+    except Exception as exc:  # Trace read failure must not suppress the report.
+        chain: list[str] = []
+        current: BaseException | None = exc
+        seen: set[int] = set()
+        while current is not None and id(current) not in seen and len(chain) < 8:
+            seen.add(id(current))
+            chain.append(type(current).__name__)
+            current = current.__cause__ or current.__context__
+        return {
+            **base,
+            "status": "unavailable",
+            "summary": "工程トレースを読み出せませんでした。原因調査に使える記録が不足しています。",
+            "record_count": 0,
+            "failure_count": 0,
+            "records": [],
+            "evidence_refs": [],
+            "errors": [
+                {
+                    "operation": "report.read_workflow_trace",
+                    "exception_chain": chain or ["unknown_exception"],
+                }
+            ],
+        }
+
+    records: list[dict[str, Any]] = []
+
+    def is_failure_record(record: dict[str, Any]) -> bool:
+        return bool(
+            record["reason_code"]
+            or record["exception_chain"]
+            or record["exception_reason_codes"]
+            or record["phase"]
+            in {"failed", "failure", "error", "interruption_observed"}
+        )
+
+    for row in rows:
+        if (
+            any(
+                row.get(key) != identity.get(key)
+                for key in ("job_id", "source_launch_id", "source_run_id")
+            )
+            or row.get("invocation_id") != invocation_id
+        ):
+            continue
+
+        def parse_string_list(field: str) -> list[str]:
+            raw = row.get(field)
+            try:
+                value = json.loads(raw) if isinstance(raw, str) else raw
+            except (TypeError, json.JSONDecodeError):
+                return []
+            return (
+                [item for item in value if isinstance(item, str)]
+                if isinstance(value, list)
+                else []
+            )
+
+        artifact_refs = sorted(
+            set(parse_string_list("artifact_refs_json")) & allowed_refs
+        )
+        input_refs = sorted(set(parse_string_list("input_refs_json")) & allowed_refs)
+        exception_chain = parse_string_list("exception_chain_json")
+        exception_reason_codes = parse_string_list("exception_reason_codes_json")
+        reason_code = row.get("reason_code")
+        if reason_code is not None and not isinstance(reason_code, str):
+            reason_code = None
+        record = {
+            "correlation_id": (
+                row.get("correlation_id")
+                if isinstance(row.get("correlation_id"), str)
+                else ""
+            ),
+            "stage": (
+                row.get("stage") if isinstance(row.get("stage"), str) else "unknown"
+            ),
+            "operation": (
+                row.get("operation")
+                if isinstance(row.get("operation"), str)
+                else "unknown"
+            ),
+            "phase": (
+                row.get("phase") if isinstance(row.get("phase"), str) else "unknown"
+            ),
+            "reason_code": reason_code,
+            "code_revision": (
+                row.get("code_revision")
+                if isinstance(row.get("code_revision"), str)
+                else "unknown"
+            ),
+            "capture_location": (
+                row.get("capture_location")
+                if isinstance(row.get("capture_location"), str)
+                else "unknown"
+            ),
+            "exception_chain": exception_chain,
+            "exception_reason_codes": exception_reason_codes,
+            "input_refs": input_refs,
+            "artifact_refs": artifact_refs,
+            "primary_sink": (
+                row.get("primary_sink")
+                if isinstance(row.get("primary_sink"), str)
+                else "unknown"
+            ),
+            "fallback_status": (
+                row.get("fallback_status")
+                if isinstance(row.get("fallback_status"), str)
+                else None
+            ),
+        }
+        records.append(record)
+
+    failure_records = [record for record in records if is_failure_record(record)]
+    failures = len(failure_records)
+
+    trace_refs = sorted(
+        {
+            ref
+            for record in records
+            for ref in (*record["input_refs"], *record["artifact_refs"])
+        }
+    )
+    if records:
+        stage_labels = {
+            "investigation": "調査",
+            "planning": "計画作成",
+            "repair": "修正",
+            "deployment": "本番反映",
+            "report": "報告書作成",
+        }
+        failure_stages = list(
+            dict.fromkeys(
+                stage_labels.get(record["stage"], "工程")
+                for record in failure_records
+            )
+        )
+        reason_labels = {
+            "ai_transport_failed": "AIへの接続エラー",
+            "attempt_id_invalid": "工程を識別する値の不正",
+            "deployment_candidate_unavailable": "本番反映用の変更候補を確認できない状態",
+        }
+        known_reason_codes = set(reason_labels)
+        observed_reasons = list(
+            dict.fromkeys(
+                reason_labels[record["reason_code"]]
+                for record in records
+                if record["reason_code"] in reason_labels
+            )
+        )
+        undocumented_failure_count = sum(
+            not record["reason_code"]
+            and not record["exception_chain"]
+            and not record["exception_reason_codes"]
+            for record in failure_records
+        )
+        untranslated_failure_details = any(
+            bool(record["exception_chain"])
+            or bool(
+                record["reason_code"]
+                and record["reason_code"] not in known_reason_codes
+            )
+            or any(
+                reason_code not in known_reason_codes
+                for reason_code in record["exception_reason_codes"]
+            )
+            for record in failure_records
+        )
+        summary = (
+            f"この実行では工程トレースを{len(records)}件読み込み、"
+            f"うち{failures}件に失敗理由、例外情報、または中断の記録がありました。"
+            "通常の引継ぎだけの記録は失敗として数えていません。"
+        )
+        if failure_stages:
+            summary += "失敗記録がある工程: " + "、".join(failure_stages) + "。"
+        if observed_reasons:
+            summary += "今回記録されたエラー: " + "、".join(observed_reasons) + "。"
+        if undocumented_failure_count:
+            if undocumented_failure_count == failures:
+                summary += "失敗を示す記録はありますが、理由や例外の詳細は残っていません。"
+            else:
+                summary += (
+                    f"失敗記録のうち{undocumented_failure_count}件は、"
+                    "理由や例外の詳細が残っていません。"
+                )
+        if untranslated_failure_details:
+            summary += "一部の記録には理由や例外が含まれますが、この要約では日常語に言い換えられていません。"
+        status = "recorded"
+    else:
+        summary = "この実行に結び付く工程トレースを確認できませんでした。追加記録の有無は不明です。"
+        status = "not_found"
+    return {
+        **base,
+        "status": status,
+        "summary": summary,
+        "record_count": len(records),
+        "failure_count": failures,
+        "records": records,
+        "evidence_refs": trace_refs,
+    }
 def prepare_daily_report_inputs_stage(
     workflow: MaintenanceWorkflowContext,
     controller: MaintenanceController,
@@ -8508,6 +8758,12 @@ def prepare_daily_report_inputs_stage(
             "evidence_index_href": evidence_ref,
             "evidence_index_label": "当日の日次証拠索引",
         }
+        snapshot["workflow_trace"] = _daily_report_workflow_trace_summary(
+            workflow=workflow,
+            store=store,
+            identity=identity,
+            evidence_refs=evidence_refs,
+        )
         report_context = {**identity, "evidence_refs": sorted(evidence_refs)}
         snapshot = _validate_report_sources(report_context, snapshot)
         workflow.state["report_source_snapshot"] = snapshot
@@ -8705,6 +8961,12 @@ def _prepare_partial_daily_report_inputs_stage(
             precheck.get("input_refs", []) if isinstance(precheck, dict) else []
         )
         input_refs.update(evidence_refs)
+        snapshot["workflow_trace"] = _daily_report_workflow_trace_summary(
+            workflow=workflow,
+            store=store,
+            identity=identity,
+            evidence_refs=evidence_refs,
+        )
         snapshot = _validate_report_sources(
             {**identity, "evidence_refs": sorted(evidence_refs)}, snapshot
         )
@@ -9091,7 +9353,21 @@ def _daily_report_prompt(
         "Prioritize four plain-language facts in the visible report: what defect "
         "occurred, its cause (say unknown when evidence does not establish it), "
         "what fix was actually made, and what tracing/logging was added and what "
-        "it records. Never invent a cause, fix, or instrumentation. Describe the "
+        "it records. Never invent a cause, fix, or instrumentation. Translate "
+        "recorded stage failure reasons into plain Japanese without printing their "
+        "internal codes, and keep workflow-stage failures separate from the cause "
+        "of the original daily defect. If "
+        "`source_snapshot.workflow_trace.status` is `recorded`, explain in plain "
+        "Japanese which operation details and failure traces are present in this "
+        "run's records. The records prove what was captured, not when underlying "
+        "logging was first added. You may say this maintenance change added the "
+        "report step that reads the same invocation's trace and passes it into the "
+        "report; do not say the underlying event logging was newly added unless a "
+        "separate implementation record proves that. If the "
+        "trace status is `unavailable` or `not_found`, say it could not be confirmed "
+        "and do not claim it was added or captured. Do not expose correlation IDs, "
+        "internal operation names, reason codes, paths, or revision hashes in the "
+        "visible main text. Describe the "
         "observed behavior clearly enough to explain the defect. Other workflow "
         "management detail is optional and must not displace these four facts. "
         "Do not add event-classification labels such as 'test-confirmed' just to "
@@ -9164,7 +9440,12 @@ def _daily_report_review_prompt(
         "false claim that undermines one of the four facts. "
         "Approve when the four required facts are accurate and clear against "
         "the supplied evidence; do not reject only for excluded management "
-        "detail. Return the structured JSON with the exact top-level "
+        "detail. If a same-job workflow trace summary is supplied, it proves "
+        "which records were available, not when underlying event logging was "
+        "introduced. Accept a statement that this change reads same-invocation "
+        "records into the report when supported by the report source; do not "
+        "accept a claim that the underlying event logging was newly added without "
+        "separate implementation evidence. Return the structured JSON with the exact top-level "
         "identity and a `review` object matching the schema; set reviewer_id to "
         f"{_REPORT_REVIEWER_ROLE!r}, reviewed_version to the supplied version, "
         "and reviewed_sha256 to the supplied HTML hash. Use approved, "
@@ -9571,6 +9852,25 @@ def _persist_minimal_daily_report(
             "incident_resolution": "\U00005143\U0000306e\U000065e5\U00006b21\U00004e0d\U00005177\U00005408\U0000306e\U0000539f\U000056e0\U00003068\U0000696d\U000052d9\U00004e0a\U0000306e\U000056de\U00005fa9\U0000306f\U000078ba\U00008a8d\U00003067\U0000304d\U00003066\U00003044\U0000307e\U0000305b\U00003093\U00003002\U00005831\U0000544a\U00005de5\U00007a0b\U0000306e\U00007d99\U00007d9a\U00003092\U00004fee\U00006b63\U00005b8c\U00004e86\U00003068\U0000306f\U00006271\U00003044\U0000307e\U0000305b\U00003093\U00003002",
         }
 
+        workflow_trace = workflow.state.get("report_source_snapshot", {}).get(
+            "workflow_trace", {}
+        )
+        if (
+            isinstance(workflow_trace, dict)
+            and workflow_trace.get("status") == "recorded"
+            and isinstance(workflow_trace.get("summary"), str)
+        ):
+            fallback_content["actual_changes"] = (
+                "この対応では、同じ実行の工程記録を読み取り、確認できた内容をこの報告書へ渡す処理を追加しました。"
+                "今回の記録から分かる内容は次のとおりです。"
+                + workflow_trace["summary"]
+                + "記録が存在することだけでは、工程ログ自体を今回新たに追加したとは確認できません。"
+                + "10月17日の不具合を直す変更は確認できていません。"
+            )
+        else:
+            fallback_content["actual_changes"] += (
+                "工程トレースを今回の記録から確認できず、追加状況は分かりません。"
+            )
         fallback = build_fallback_report(
             identity=identity,
             operation=operation,

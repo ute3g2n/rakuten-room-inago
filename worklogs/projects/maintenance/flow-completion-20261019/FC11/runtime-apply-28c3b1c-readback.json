@@ -1,0 +1,68 @@
+{
+  "recorded_at_utc": "2026-10-19T23:48:50.598684+00:00",
+  "operation": "official TaskSchedulerRuntimeSwitcher fixed-root active confirmation/read-back",
+  "wrapper_failures_and_recovery": [
+    {
+      "type": "TypeError",
+      "cause": "json.dumps encountered a WindowsPath in captured runtime identity during final read-back serialization",
+      "result": "first wrapper did not write its read-back file",
+      "recovery": "official read-back was rerun with Path values converted to strings"
+    },
+    {
+      "type": "AttributeError",
+      "cause": "second wrapper treated Scheduler task dictionaries as objects with attributes",
+      "result": "record creation stopped before file write",
+      "recovery": "official task snapshot was read again using the returned dictionary keys"
+    }
+  ],
+  "repository": {
+    "branch": "main",
+    "head": "28c3b1c814c9e8c2e350b2acd44842e2dd10a0a3",
+    "upstream": "origin/main"
+  },
+  "runtime": {
+    "active_root": "C:\\project\\rakuten-room-inago",
+    "active_commit": "28c3b1c814c9e8c2e350b2acd44842e2dd10a0a3",
+    "state": {
+      "status": "active",
+      "active": {
+        "commit": "28c3b1c814c9e8c2e350b2acd44842e2dd10a0a3",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null
+    },
+    "confirm_active_result": null,
+    "healthy_expected_commit": true,
+    "tasks": [
+      {
+        "name": "RakutenRoomInagoDaily",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory": "C:\\project\\rakuten-room-inago"
+      },
+      {
+        "name": "RakutenRoomInagoWorker",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory": "C:\\project\\rakuten-room-inago"
+      },
+      {
+        "name": "RakutenRoomInagoWatchdog",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory": "C:\\project\\rakuten-room-inago"
+      },
+      {
+        "name": "RakutenRoomInagoHumanApi",
+        "state": "Ready",
+        "enabled": true,
+        "working_directory": "C:\\project\\rakuten-room-inago"
+      }
+    ]
+  },
+  "acceptance": {
+    "active_commit_matches_head": true,
+    "healthy": true,
+    "all_four_tasks_ready_enabled": true
+  }
+}
