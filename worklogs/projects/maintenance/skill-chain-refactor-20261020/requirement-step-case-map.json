@@ -1,0 +1,3651 @@
+{
+  "schema_version": "skill-chain-planning-map-v1",
+  "plan_version": "1.0",
+  "design_version": "1.1",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "planning_attempt_id": null,
+  "missing_reason": "正式planning attempt/allowed_outputs/controller base_commit未供給。指定project所有出力のみ使用。",
+  "plan_path": "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md",
+  "steps": [
+    {
+      "id": "SC01",
+      "title": "固定identity・原典・版と日次不足観測点の基準化",
+      "owner": "実行controller/調査担当",
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT09",
+        "SCT13"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、現code/既存job許可済みread-only接続とresume29記録",
+      "writable": "worklogs/projects/maintenance/skill-chain-refactor-20261020/SC01/のみ。製品/本番DB/Schedulerはread-only",
+      "outputs": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6.1-sol",
+      "tier_requested": "default"
+    },
+    {
+      "id": "SC02",
+      "title": "6skills・9Markdown・要件と運用契約の同期",
+      "owner": "契約・文書担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R03",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT14"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC01部分成果、現役要件/skills/roles",
+      "writable": "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md、docs/specifications/inago/AT-TRACE-01_共通トレース契約.md、docs/specifications/inago/要件データ辞書.md、docs/specifications/inago/要件追跡表.md、docs/specifications/inago/保守運用設定仕様.md、docs/specifications/inago/イナゴスキル要件定義書.html（最後のHTML内script#requirements-source[type=application/json] snapshotが唯一正本で生成先も同path。独立MD正本なし）、docs/operations/日次タスクのトレース・ログ出力一覧.md、tools/docs/inago-requirements/task-flows.mjs、docs/specifications/inago/図解/F12.svgの今回契約部分。.agents/skills/rr-inago-incident-investigation/SKILL.md、.agents/skills/rr-inago-incident-investigation/references/contracts.md、.agents/skills/common-implementation/SKILL.md、.agents/skills/common-implementation/references/contracts.md、.agents/skills/common-testing/SKILL.md、.agents/skills/common-testing/references/contracts.md、.agents/skills/common-review/SKILL.md、.agents/skills/common-review/references/contracts.md、.agents/skills/rr-inago-incident-report/SKILL.md、.agents/skills/rr-inago-incident-report/references/contracts.md、.agents/skills/common-execution-planning/SKILL.md、.agents/skills/common-execution-planning/references/contracts.md、新設予定.agents/skills/rr-inago-maintenance-delivery/SKILL.md（短い9書式参照は構成案1.1を直接参照し追加fileを必須としない）。.codex/agents/rr-inago-incident-investigator.toml、.codex/agents/common-implementer.toml、.codex/agents/common-tester.toml、.codex/agents/common-reviewer.toml、.codex/agents/rr-inago-incident-reporter.toml、.codex/agents/rr-inago-incident-report-reviewer.toml、.codex/agents/common-execution-planner.toml、.codex/agents/common-execution-plan-reviewer.toml、.codex/agents/rr-inago-incident-investigation-reviewer.toml。計画/調査reviewの現役参照は新runtimeから外す部分のみ同期し計画用途と歴史は保持。docs/standards/イナゴ日次不具合レポート作成ルール.md、docs/templates/incidents/日次不具合調査レポート_ひな形.md、docs/templates/incidents/日次不具合修正計画_ひな形.mdの現役参照（docs/templates/incidents/日次不具合対応レポート_ひな形.htmlは既存本人修正済みをread-onlyで維持）。worklogs/projects/maintenance/skill-chain-refactor-20261020/SC02/",
+      "outputs": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6.1-sol",
+      "tier_requested": "default"
+    },
+    {
+      "id": "SC03",
+      "title": "薄いrunner1本と最小受付adapterの本番接続",
+      "owner": "製品実装担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R04",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT02",
+        "SCT08"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC01/02部分成果、source-inventory I01〜I07、AppServerSession低層",
+      "writable": "新設予定automation/inago/maintenance/skill_chain.py、automation/inago/maintenance/cli.py factoryとlegacy import、automation/inago/maintenance/historical.py型参照import、automation/inago/maintenance/worker.py終端最小adapter、automation/inago/app_server.pyの新runner専用advisory model-catalog/fast-feature両probe optionと小さいbest-effort transport-log option（_log:208-250とprocess_started/rpc_sent/turn_started/runtime_observed/turn_finished呼出し、旧日次既定互換）。worklogs/projects/maintenance/skill-chain-refactor-20261020/SC03/",
+      "outputs": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority",
+      "command_contract": {
+        "A_command_suffix": [
+          "--strict-config",
+          "-c",
+          "features.fast_mode=false"
+        ],
+        "B_command_suffix": [
+          "--strict-config",
+          "-c",
+          "service_tier=\"priority\"",
+          "-c",
+          "features.fast_mode=true"
+        ],
+        "thread_start_fields": {
+          "model": "用途別gpt-6.1-solまたはgpt-6-luna",
+          "serviceTier": "用途別default/priority"
+        },
+        "turn_start_fields": {
+          "model": "用途別gpt-6.1-solまたはgpt-6-luna",
+          "effort": "high",
+          "serviceTierForTurn": "用途別default/priority"
+        },
+        "fast_mode_payload_field": null,
+        "reuse_boundary": "旧_commandの小さいargv組立だけ新runnerへ。旧adapter全moduleはimportしない。実観測一致を起動gateにしない。"
+      }
+    },
+    {
+      "id": "SC04",
+      "title": "失敗・中断・再開と旧不要制御の整理",
+      "owner": "製品実装担当（SC03と順次所有）",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT11",
+        "SCT14"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC03差分、旧fallback/Store history/終端条件",
+      "writable": "automation/inago/maintenance/skill_chain.py失敗/保存/再開、automation/inago/app_server.pyの新runner専用best-effort transport-log境界（_logと通常start/turnのlog呼出し、旧日次既定互換）、automation/inago/maintenance/cli.py・automation/inago/maintenance/worker.pyの最小adapter、旧制御のautomation/inago/maintenance/production_workflow.py、automation/inago/maintenance/workflow_provider.py、automation/inago/maintenance/ai_adapter.py、automation/inago/maintenance/stage_handoff.py、automation/inago/maintenance/investigation.py、automation/inago/maintenance/planning.py、automation/inago/maintenance/repair.py、automation/inago/maintenance/reporting.py、automation/inago/maintenance/deployment.pyの不要現役制御と参照整理、既存schemaの現役参照整理のみ（automation/inago/schemas/maintenance-investigation-response.schema.json、automation/inago/schemas/maintenance-investigation-review.schema.json、automation/inago/schemas/maintenance-planning-response.schema.json、automation/inago/schemas/maintenance-planning-review.schema.json、automation/inago/schemas/maintenance-repair-handoff.schema.json、automation/inago/schemas/maintenance-repair-result.schema.json、automation/inago/schemas/maintenance-stage-handoff.schema.json、automation/inago/schemas/maintenance-report-response.schema.json、automation/inago/schemas/maintenance-report-result.schema.json、automation/inago/schemas/maintenance-report-review.schema.json。歴史読取で必要なら保持し新工程schemaの追加なし）。worklogs/projects/maintenance/skill-chain-refactor-20261020/SC04/",
+      "outputs": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    },
+    {
+      "id": "SC05",
+      "title": "通常pytest・一時DB・ローカルGitのfocused試験",
+      "owner": "試験担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT06",
+        "SCT08",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、利用可能なSC01〜04成果、実在node一覧、日次不足表",
+      "writable": "新設予定tests_inago/test_maintenance_skill_chain.py、実在tests_inago/test_maintenance_ai.py・test_maintenance_store.py・test_maintenance_integration.py・test_maintenance_flow_completion_fc07.py・test_daily_pipeline_safe_diagnostics.pyの変更影響case/fixture。worklogs/projects/maintenance/skill-chain-refactor-20261020/SC05/。製品/本番DBは変更しない",
+      "outputs": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    },
+    {
+      "id": "SC06",
+      "title": "作者と別agentによる製品レビュー",
+      "owner": "独立製品review担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R03",
+        "SC-R04",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT07",
+        "SCT14"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC02〜04実製品diffとSC05実測log、日次不足表",
+      "writable": "worklogs/projects/maintenance/skill-chain-refactor-20261020/SC06/code-review.md・review.json・対象版manifestのみ。製品/試験/HTMLはread-only",
+      "outputs": "code-review.md、対象hash、実review担当/instance、finding/rework参照",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    },
+    {
+      "id": "SC07",
+      "title": "新本番経路の選択Git・適用・稼働版読戻し",
+      "owner": "反映・公開担当/実行controller",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT08",
+        "SCT12",
+        "SCT13"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC01baseline/所有表、SC02〜06差分/試験/review、既存適用CLIと現branch/tracking",
+      "writable": "今回所有code/docs/testsの選択Gitと既存正式適用操作/同job最小adapter、worklogs/projects/maintenance/skill-chain-refactor-20261020/SC07/。Scheduler登録/資格情報/10/19/日次業務行は変更しない",
+      "outputs": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    },
+    {
+      "id": "SC08",
+      "title": "同じ10/17 jobを8呼出し連続実行し日次対応を実証",
+      "owner": "実行controller＋調査/実装/試験/別製品review/反映担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R06"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT13"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、同job incident.md、原調査/review、日次不足表、SC07版、最後の保存引継ぎ",
+      "writable": "同job rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/と最小既存履歴。実装担当のみautomation/inago/daily_pipeline.pyの_result_mapping/_retry_summary_for_run/refresh_history_after_commitの根拠ある不足hunkとautomation/inago/trace.pyの必要allowlist部分。新schemaは前提にしない。testerのみtests_inago/test_daily_pipeline_safe_diagnostics.pyと新設予定tests_inago/test_maintenance_skill_chain.pyの該当case、反映担当のみその所有Git/本番適用。worklogs/projects/maintenance/skill-chain-refactor-20261020/SC08/は観測複製",
+      "outputs": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "調査gpt-6.1-sol、制作/確認/反映gpt-6-luna",
+      "tier_requested": "調査default、制作/確認/反映priority"
+    },
+    {
+      "id": "SC09",
+      "title": "後半のLLM本文・作者修正・別review・同bytes公開",
+      "owner": "レポート作者/別HTML reviewer/反映・公開担当",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06"
+      ],
+      "cases": [
+        "SCT02",
+        "SCT04",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT12"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、同job全MD/日次diff・実測・反映結果、本文4点規則、report.html実物",
+      "writable": "同job report.md/report.html/html-review.md/publication.md、reports/incidents/2026-10-17/job-39e268f67f036cc9225e.htmlと版履歴/公開参照、worklogs/projects/maintenance/skill-chain-refactor-20261020/SC09/。作者だけHTML編集、reviewerは指定reviewMDのみ、deliveryは同bytes複写/Git/照合",
+      "outputs": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    },
+    {
+      "id": "SC10",
+      "title": "新受入の独立照合・運用整理・最終引継ぎ",
+      "owner": "独立最終照合担当/実行controller",
+      "requirements": [
+        "SC-R01",
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT06",
+        "SCT08",
+        "SCT09",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "readable": "構成案docs/architecture/保守フロー_skill直列構成案_2026-10-20.html版1.1、AGENTS.md、原調査plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.mdと.json/.result.json、plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md/.json、worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md・baseline-snapshot.json・source-inventory.md、SC01〜09実物、同job履歴/公開/適用版、旧FC11宣言、全同期差分",
+      "writable": "worklogs/projects/maintenance/skill-chain-refactor-20261020/SC10/、docs/specifications/inago/保守運用設定仕様.mdとdocs/specifications/inago/要件追跡表.mdの今回実績欄。計画実行欄変更が必要なら別の新対象版として記録",
+      "outputs": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録",
+      "reviewer": "作者と別の製品reviewer。HTMLは別HTML reviewer。最終実績は独立照合担当。",
+      "effort_requested": "high",
+      "runtime_model_observed": null,
+      "runtime_tier_observed": null,
+      "status": "NOT_RUN",
+      "model_requested": "gpt-6-luna",
+      "tier_requested": "priority"
+    }
+  ],
+  "policy": "本人1名のローカルシステムで堅牢性は品質目標にしない。後続起動をreview/test/readiness/release、承認、receipt、lease、回数、FAIL、指摘、unknown、欠測、model/tier/session観測で止めない。自作制限は根本除去し別名gateにしない。できない個別操作だけnot_performedと具体理由を記し、内容ある通常または失敗成果と引継ぎを保存し次担当を実起動して報告・公開まで進む。未達は成功にせず同じjob再作業へ結ぶ。raw過去statusを保持し操作結果・公開・workflow完遂・元障害解消を分ける。",
+  "unknowns": [
+    "formal planning attempt/controller base_commit/complete refs",
+    "actual runtime model/effort/tier",
+    "new runner/delivery skill/test nodes are planned, not existing"
+  ],
+  "current_request": "planning_only",
+  "production_changed": false,
+  "daily_started": false,
+  "job_resumed": false,
+  "downstream_roles": [
+    {
+      "usage": "調査",
+      "skill": "rr-inago-incident-investigation",
+      "model_requested": "gpt-6.1-sol",
+      "effort_requested": "high",
+      "inputs": "incident.md、実在日次ログ参照、原調査u23-08-update-v2とreview-v2、現codeと日次ログ一覧",
+      "writable": "investigation.mdのみ",
+      "outputs": "investigation.mdのみ",
+      "next_role": "実装",
+      "tier_requested": "default",
+      "fast_mode_requested": false,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config features.fast_mode=false（A）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "実装",
+      "skill": "common-implementation",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、investigation.md、指定日次codeと不足表、再作業のFAIL/製品指摘",
+      "writable": "implementation.mdと調査が指定したautomation/inago/daily_pipeline.pyの_result_mapping/_retry_summary_for_run/refresh_history_after_commitの所有hunk、automation/inago/trace.pyの必要allowlist部分（新schema不要。schema変更が必要と判明した場合は正確path/最小差分を親へ返し割当を更新、独立作業は継続）",
+      "outputs": "implementation.mdと調査が指定したautomation/inago/daily_pipeline.pyの_result_mapping/_retry_summary_for_run/refresh_history_after_commitの所有hunk、automation/inago/trace.pyの必要allowlist部分（新schema不要。schema変更が必要と判明した場合は正確path/最小差分を親へ返し割当を更新、独立作業は継続）",
+      "next_role": "試験",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "試験",
+      "skill": "common-testing",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、investigation.md、implementation.md、実製品diff、関連実在node",
+      "writable": "割当focused tests/fixtures、test.md、test.logと生成safe logs",
+      "outputs": "割当focused tests/fixtures、test.md、test.logと生成safe logs",
+      "next_role": "レビュー",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "レビュー（製品）",
+      "skill": "common-review",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、investigation.md、implementation.md、test.md/実ログ、実製品diff",
+      "writable": "code-review.mdのみ。製品/試験/HTMLはread-only",
+      "outputs": "code-review.mdのみ。製品/試験/HTMLはread-only",
+      "next_role": "反映・公開",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "反映・公開（反映）",
+      "skill": "rr-inago-maintenance-delivery",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、implementation.md、test.md、code-review.md、今回所有diff、現branch/tracking/既存低層適用道具",
+      "writable": "deployment.md、所有diff選択Git、本番適用と同job最小履歴",
+      "outputs": "deployment.md、所有diff選択Git、本番適用と同job最小履歴",
+      "next_role": "レポート作成",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "レポート作成",
+      "skill": "rr-inago-incident-report",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、全成果/原典、日次diff/実測/適用記録、本文4点規則、再作業ならhtml-review.md",
+      "writable": "report.htmlとreport.mdのみ",
+      "outputs": "report.htmlとreport.mdのみ",
+      "next_role": "レビュー",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "レビュー（HTML）",
+      "skill": "common-review",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.md、report.html実物、report.mdと根拠investigation/implementation/test/deployment、作者修正後実物",
+      "writable": "html-review.mdのみ。HTML本文/製品/試験編集禁止",
+      "outputs": "html-review.mdのみ。HTML本文/製品/試験編集禁止",
+      "next_role": "反映・公開",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    },
+    {
+      "usage": "反映・公開（公開）",
+      "skill": "rr-inago-maintenance-delivery",
+      "model_requested": "gpt-6-luna",
+      "effort_requested": "high",
+      "inputs": "incident.mdの公開先、最終report.html、html-review.md、deployment.md/未達一覧",
+      "writable": "publication.md、reports/incidents/2026-10-17/job-39e268f67f036cc9225e.htmlの同bytes公開と同job最小履歴",
+      "outputs": "publication.md、reports/incidents/2026-10-17/job-39e268f67f036cc9225e.htmlの同bytes公開と同job最小履歴",
+      "next_role": "終了または未達の該当担当",
+      "tier_requested": "priority",
+      "fast_mode_requested": true,
+      "runtime_model_observed": null,
+      "runtime_effort_observed": null,
+      "runtime_tier_observed": null,
+      "runtime_fast_mode_observed": null,
+      "runtime_observation_status": "unknown",
+      "role_selection_fallback": "専用role選択不能/fixed maxならhigh指定可能な利用可能worker/defaultへ同じ専門promptで実起動。要求値と実観測を分離し、実provider拒否だけcall失敗として後続へ。",
+      "fast_request_route": "subprocess config service_tier=\"priority\"とfeatures.fast_mode=true（B）",
+      "effort_request_route": "turn/start effort=high。modelはthread/startとturn/start。"
+    }
+  ],
+  "cases": [
+    {
+      "id": "SCT01",
+      "title": "契約/9書式/6skill一致",
+      "requirements": [
+        "SC-R01",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC02",
+        "SC05",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_contracts_match_architecture_v11",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT01"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "入力は構成案1.1の共通枠1+入口1+担当別8書式。6skillのpath、8用途配列、次起動key集合3をfixtureとして固定。DBなし。",
+      "expected_db_files_logs": "DBなし/製品変更0。抽出見出し不足0、担当用途8/skill種類6、次起動追加key0、現役旧gate文言0。生成要件/F12は対象bytes/hashのみ更新。"
+    },
+    {
+      "id": "SCT02",
+      "title": "通常8呼出しとMD原文引渡し",
+      "requirements": [
+        "SC-R01",
+        "SC-R05"
+      ],
+      "steps": [
+        "SC03",
+        "SC05",
+        "SC09"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_eight_roles_receive_exact_markdown",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT02"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "一時jobフォルダにincident.md1件、成果8件は未存在。合成agent8用途が各入力SHAと自分の実用途を記す。初期呼出し0、履歴0。",
+      "expected_db_files_logs": "成果MD8件+report.html1件、正常呼出し8/用途重複0、review新instance2/作者instance再利用0。各前成果SHA=次入力読取SHA。historyはこの同job実行分だけ追加。"
+    },
+    {
+      "id": "SCT03",
+      "title": "FAIL/指摘/unknown/早期終了でも残り担当実処理",
+      "requirements": [
+        "SC-R01",
+        "SC-R04"
+      ],
+      "steps": [
+        "SC04",
+        "SC05"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_non_gating_status_and_early_end_continue_remaining_roles",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT03"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "正常8用途fixtureを基準に1箇所ずつFAIL/指摘/unknown/欠測/raw blocked/途中終了を注入。各parameter初期呼出し0、出力0、raw履歴1件。",
+      "expected_db_files_logs": "各parameterで残る用途を全起動、最終publication.md実在、raw履歴1件不変。注入結果は失敗/未達のまま、次成果は参照と具体次依頼を持つ。早期終了から残り0件になる挙動はFAIL。"
+    },
+    {
+      "id": "SCT04",
+      "title": "AI/不正応答/記録/Git失敗の局所記録",
+      "requirements": [
+        "SC-R01",
+        "SC-R04",
+        "SC-R05"
+      ],
+      "steps": [
+        "SC04",
+        "SC05",
+        "SC09"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_operation_failures_keep_raw_and_continue",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT04"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "各parameterに一次操作1回の失敗を設定。transportはAppServerError from OSError、空応答bytes0、不正は担当欠落、整形失敗も独立注入。writerのnormal/予備それぞれを失敗stub、Gitはlocal拒否hook。 正常AIがfinal_textを返すproviderを別fixtureにしprocess_started/rpc_sent/turn_started/runtime_observed/turn_finishedの各log点だけOSErrorを注入する5parameter。",
+      "expected_db_files_logs": "失敗ごと元応答または例外参照1件以上、safe cause chain2classと捕捉frames、同job/版/操作を保存。normal sink失敗は予備attempt1、両sink失敗は復帰時unknown区間1。後続用途とpublication実行あり、HTMLがないのに作成済み記録0。 log-onlyの5parameterは同callのAI正常実行1/final_text一致/ログ由来interrupt0。ログ失敗はstderr/独立予備へattempt、全sink喪失は復帰時unknown。正常動作とlog達成は別結果。"
+    },
+    {
+      "id": "SCT05",
+      "title": "同job中断再開とnull predecessor",
+      "requirements": [
+        "SC-R02",
+        "SC-R04"
+      ],
+      "steps": [
+        "SC04",
+        "SC05",
+        "SC08"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_resume_same_job_without_predecessor_pin",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_store.py::test_resume_maintenance_job_ignores_resume_preconditions",
+        "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT05"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "一時DBの既存同jobをcomplete/resume29/source_run_id nullでseed。legacy planning attempt status=failed、repair predecessor attempt_id=nullをseed、最後の保存MD引継ぎは実装を指す。旧get_step_attempt(None)またはpin参照stubは呼べばAssertionError。save前/後の中断を別parameterにする。",
+      "expected_db_files_logs": "既存job1件のまま新job0、日次run0。pin参照stub呼出し0、実装agentが実読/実起動1以上、残る用途全起動。中断前raw行は同値、再開履歴と新成果版のみ追加。既存成果の存在を成功扱いせず最後の実LLM引継ぎを使用。"
+    },
+    {
+      "id": "SCT06",
+      "title": "真の日次不足を実差分/合成実ログで埋める",
+      "requirements": [
+        "SC-R03",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC05",
+        "SC08",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_daily_gap_emits_useful_safe_diagnostics",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_failure_records_its_own_capture_location"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT06"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "3parameterを分離。(a)一次日次失敗を固定しfailure_result callbackが二次ValueError。(b)一時DBのquery実行stubが選択した固定query labelでsqlite3.OperationalError、他queryは既知集計値。(c)合成commit1件後export callbackがOSError。callback起点を外側捕捉lineと混同しないfixture。",
+      "expected_db_files_logs": "(a)一次status/reasonを維持、default結果は現既定どおり、二次診断eventちょうど1件にoperation/class/capture/module-function-line/codehash。(b)失敗queryに対応する既定null4項目維持、query label付きdiagnostic1件、SQL/params0。(c)合成DBcommit1/draft1を維持しexport失敗count1、safe export event1件、rollback0。全parameter秘密値0、proposed/persisted既定区別維持。"
+    },
+    {
+      "id": "SCT07",
+      "title": "製品review独立性/対象版/書込境界",
+      "requirements": [
+        "SC-R03",
+        "SC-R04",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC06",
+        "SC08"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_product_reviewer_reads_new_revision_and_writes_only_review",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT07"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "作者instance A、製品diff版A/hashA、指摘1件をseed。作者修正後版B/hashB、reviewer新instance R、review.md未存在。workspaceWriteで指定MDだけ書く合成reviewerを使用。",
+      "expected_db_files_logs": "review.md1件、読取hashB、reviewer R!=A。製品/試験/HTML bytes変更0。hashA所見をhashB承認へ流用0。差分なしparameterでは所見対象なしでapproved0。"
+    },
+    {
+      "id": "SCT08",
+      "title": "本番入口と低層AI/試験・適用・job版",
+      "requirements": [
+        "SC-R01",
+        "SC-R03",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC03",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_production_factory_uses_chain_and_advisory_catalog",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start",
+        "tests_inago/test_maintenance_ai.py::test_c24_app_server_passes_role_instructions_and_settings_to_thread_start",
+        "tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT08"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "CLI worker factoryを一時注入し新runner stubへ到達を計測。旧制御modules importは呼べば失敗。model catalog欠測、fast feature不正/欠測/disabled、実provider拒否、正常を別AI parameter。試験source hashA/適用hashA/実jobhashBの不一致fixtureと全A一致fixture。 fast feature catalog experimentalFeature/listが不正/欠測/disabledの各parameterを追加しfast_mode=trueを要求し、合成Popen/command spyで実起動argvとthread/turn paramsを別々に捕捉する。 合成Popen/command spyが実subprocess argvを、payload spyがthread/startとturn/start paramsを別々に捕捉。A/Bを別parameter。",
+      "expected_db_files_logs": "旧制御import/call0、新runner呼出し1。model catalog欠測とfast feature不正/欠測/disabledの各parameterでもthread/turn要求1、実subprocess argvに--strict-config/-c/service_tier=\"priority\"/-c/features.fast_mode=trueを保持、thread/start・turn/startのmodelとturn/startのeffort=high維持（falseへ黙って変更0）。実拒否はcall失敗1と次担当起動。reviewer新instance/MD書込可、delivery networktrue。版不一致fixtureはSC-A03未達、一致fixtureだけ一致記録。既存日次既定設定差0。 全fast feature parameterで事前拒否せず実subprocess config features.fast_mode=true/service_tier=\"priority\"を保ち、model/highのthread/turnまで到達、falseへの黙示変更0。実provider拒否だけcall失敗として後続へ。 B argvのservice_tier=\"priority\"とfeatures.fast_mode=true、A argvのfeatures.fast_mode=falseを実捕捉。thread/start/turn/start model、turn/start effort=highを照合。Fast架空payload field0、旧adapter全module import0。",
+      "command_contract": {
+        "A_command_suffix": [
+          "--strict-config",
+          "-c",
+          "features.fast_mode=false"
+        ],
+        "B_command_suffix": [
+          "--strict-config",
+          "-c",
+          "service_tier=\"priority\"",
+          "-c",
+          "features.fast_mode=true"
+        ],
+        "thread_start_fields": {
+          "model": "用途別gpt-6.1-solまたはgpt-6-luna",
+          "serviceTier": "用途別default/priority"
+        },
+        "turn_start_fields": {
+          "model": "用途別gpt-6.1-solまたはgpt-6-luna",
+          "effort": "high",
+          "serviceTierForTurn": "用途別default/priority"
+        },
+        "fast_mode_payload_field": null,
+        "reuse_boundary": "旧_commandの小さいargv組立だけ新runnerへ。旧adapter全moduleはimportしない。実観測一致を起動gateにしない。"
+      }
+    },
+    {
+      "id": "SCT09",
+      "title": "実jobの新証拠と固定identity",
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "node": null,
+      "node_status": "operation_no_pytest_node",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_store.py::test_fc11_operation_events_are_read_by_exact_job_launch_and_invocation"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT09"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "親baseline B01〜B05をbefore:既存job1/complete/resume29/null、maintenance schema16、10/19 queue1queued/events0/launch1failed-null-exit4、pendingnull。実行開始時は安全read-onlyで再採取し差があれば新beforeを記録。",
+      "expected_db_files_logs": "同job1/同launch/date/null維持、新job0、8担当実起動と同job5連鎖の実物参照。日次/10/19保護digestはbefore一致。新差分の本番sourcehashと試験/review/job対象hash一致。resume_countはAPIの実増分だけで値を予測しない。"
+    },
+    {
+      "id": "SCT10",
+      "title": "作者修正後の実review版を同bytes公開",
+      "requirements": [
+        "SC-R05",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC05",
+        "SC09"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_author_revises_then_same_reviewed_bytes_are_published",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT10"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "HTML版A/hashAに不具合説明の根拠誤り1件、作者が版B/hashBへ修正。別reviewerがBを読む。tmp bare remote初期HTMLは旧版、公開先はincident指定。review不能parameterは所見unknown。",
+      "expected_db_files_logs": "正常は作者修正1/再review1、公開blob bytesB/hashB、HTML中間改変0。review不能は公開attemptあり/承認済み記録0/次review依頼あり。公開成功からSC-A03自動達成0。DB業務行変化0。"
+    },
+    {
+      "id": "SCT11",
+      "title": "旧誤合格型の完了誤認を防ぐ",
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R05",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC04",
+        "SC05",
+        "SC09",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_report_complete_is_not_daily_response_complete",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT11"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "旧resume29同型のMDをseed:planning transport failed、repair attempt_id_invalid、deployment候補なし、report公開成功、job.complete。日次diff0/日次test0/日次review0/日次apply0。",
+      "expected_db_files_logs": "公開=trueとフロー観測値を保持しつつSC-A03未達、原因unknown/incident未解決。実装宛3項目依頼1件以上。日次実装成功/双方不能の創作0、旧FC-A04 Metを再認定0。"
+    },
+    {
+      "id": "SCT12",
+      "title": "選択Gitと失敗/既存変更保持",
+      "requirements": [
+        "SC-R04",
+        "SC-R05",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC05",
+        "SC07",
+        "SC09",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_git_failure_preserves_scope_and_resumes",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT12"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "local repoで既存user.txt変更1、今回task.txt変更1、bare remoteを用意。正常push/拒否hook/到達不可remoteの3parameter。適用先sourceは旧hashを固定。",
+      "expected_db_files_logs": "index/commit対象task.txtのみ、user.txt未stage差分保持。正常remote blob一致、拒否/到達不可ではtask diffと再開理由保持。全parameter報告成果1以上、旧適用hashをpushから新hashに推定0。"
+    },
+    {
+      "id": "SCT13",
+      "title": "禁止副作用/10月19日除外保護",
+      "requirements": [
+        "SC-R02",
+        "SC-R06",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC01",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_scope_preserves_excluded_date_and_daily_data",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [
+        "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved"
+      ],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT13"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "一時DBに10/19 queue1 queued、event0、launch1 failed/null/exit4、daily run0、draft12、active予約12を合成seed。before safe digestを保存。実jobでは親baseline+再採取を使用。",
+      "expected_db_files_logs": "同job履歴以外の上記件数と全行safe digestはbefore同値、10/19処理0。新job0/run0/追生成0、WORKER_DISPATCH_EXCLUDED_DATESの文字列集合1要素維持。"
+    },
+    {
+      "id": "SCT14",
+      "title": "旧巨大制御整理と要件/運用同期",
+      "requirements": [
+        "SC-R01",
+        "SC-R07"
+      ],
+      "steps": [
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC10"
+      ],
+      "node": "tests_inago/test_maintenance_skill_chain.py::test_legacy_control_removed_and_contracts_synchronized",
+      "node_status": "planned_new_not_existing_not_collected",
+      "existing_nodes": [],
+      "status": "NOT_RUN",
+      "clock_fixture": "2026-10-20T10:00:00+09:00",
+      "owner": "試験担当。SCT09は実行controller/独立照合担当。",
+      "output_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/SCT14"
+      ],
+      "reviewer": "製品と実測は独立製品reviewer/最終照合。テストcode独立reviewなし。",
+      "initial_state": "入口対象cli/worker/historical/newrunnerとimport依存を固定しlegacy-control importは検出対象。要件HTML snapshot/生成物/skills/roles/templates/運用/test一覧を同期fixtureにする。",
+      "expected_db_files_logs": "旧制御到達0、controller文章合成0、旧release gate再導入0。残す低層道具/歴史読取は理由一覧あり。9書式とhigh設定一致、不要code参照残り0、新工程別schema/state/registry/receipt追加0。"
+    }
+  ],
+  "existing_test_nodes": [
+    {
+      "node": "tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes",
+      "cases": [
+        "SCT04"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start",
+      "cases": [
+        "SCT08"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_ai.py::test_c24_app_server_passes_role_instructions_and_settings_to_thread_start",
+      "cases": [
+        "SCT08"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root",
+      "cases": [
+        "SCT07",
+        "SCT08"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_resume_maintenance_job_ignores_resume_preconditions",
+      "cases": [
+        "SCT05"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_store.py::test_fc11_operation_events_are_read_by_exact_job_launch_and_invocation",
+      "cases": [
+        "SCT09"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_integration.py::test_worker_block_and_explicit_resume_are_durable",
+      "cases": [
+        "SCT05",
+        "SCT11"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path",
+      "cases": [
+        "SCT03"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved",
+      "cases": [
+        "SCT10",
+        "SCT13"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    },
+    {
+      "node": "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_pipeline_failure_records_its_own_capture_location",
+      "cases": [
+        "SCT06"
+      ],
+      "definition_verified": true,
+      "execution_status": "NOT_RUN",
+      "evidence_ref": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "SC-R01",
+      "acceptance_id": "SC-A01",
+      "text": "6skills/8呼出し、薄いrunner1本、9Markdown書式、担当/入力/依頼の3項目だけを本番経路へ実装。同じinvocationで8担当の起動・前成果実読取・内容ある出力が連続し、旧planning/承認/本文合成の業務制御を呼ばない",
+      "prior_requirement_ids": [
+        "FC-R01",
+        "FC-R03",
+        "FC-R05"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A01",
+        "FC-A03",
+        "FC-A05"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "F-SC01",
+        "F-SC04",
+        "F-SC07"
+      ],
+      "steps": [
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT08",
+        "SCT14"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R02",
+      "acceptance_id": "SC-A02",
+      "text": "同じjob/launch/date/null runを読戻す。旧completeを新受入達成に流用せず、10/19 queue/historyと日次業務行を保護",
+      "prior_requirement_ids": [
+        "FC-R08",
+        "FC-R09"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A08",
+        "FC-A09"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "F001",
+        "F002",
+        "F007",
+        "F008",
+        "U005",
+        "F-SC02",
+        "F-SC03"
+      ],
+      "steps": [
+        "SC01",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT09",
+        "SCT11",
+        "SCT13"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R03",
+      "acceptance_id": "SC-A03",
+      "text": "**同一job担当の日次新実差分→隔離試験実ログ→作者と別agentの製品review→本番適用版→同jobに紐付く新証拠**を実物で照合。保守ログ増設、外側差分、過去PASS、成果物存在、job.completeだけでは未達",
+      "prior_requirement_ids": [
+        "FC-R02",
+        "FC-R04"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A02",
+        "FC-A04"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "F001",
+        "F002",
+        "F005",
+        "U002",
+        "U003",
+        "F-SC02",
+        "F-SC05"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT11"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R04",
+      "acceptance_id": "SC-A04",
+      "text": "transport/空不正応答/早すぎる終了/保存/Git/pytest FAIL/指摘でも元記録と次担当の実処理・報告・同job再開先が残る。後続stage gateなし",
+      "prior_requirement_ids": [
+        "FC-R02",
+        "FC-R03",
+        "FC-R05"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A02",
+        "FC-A03",
+        "FC-A05"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "U001",
+        "U004",
+        "F-SC01",
+        "F-SC02",
+        "F-SC04",
+        "F-SC07"
+      ],
+      "steps": [
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT07",
+        "SCT12"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R05",
+      "acceptance_id": "SC-A05",
+      "text": "LLMがHTMLを直接作成・修正。4点の事実/平易さと秘密露出だけを独立review。作者修正後の実物を再reviewし同bytes公開",
+      "prior_requirement_ids": [
+        "FC-R06",
+        "FC-R07"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A06",
+        "FC-A07"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "F-SC01",
+        "F-SC02",
+        "F-SC06",
+        "F-SC07"
+      ],
+      "steps": [
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT02",
+        "SCT04",
+        "SCT10",
+        "SCT11",
+        "SCT12"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R06",
+      "acceptance_id": "SC-A06",
+      "text": "元原因・実投稿数・回復unknownを保持し、操作結果/対応達成/公開/workflow/incident解消を分離。双方不能なら候補別の具体理由と説明HTML。未達は同jobへ返す",
+      "prior_requirement_ids": [
+        "FC-R01",
+        "FC-R04",
+        "FC-R07",
+        "FC-R08"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A01",
+        "FC-A04",
+        "FC-A07",
+        "FC-A08"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "F001",
+        "F002",
+        "F003",
+        "F004",
+        "F005",
+        "F006",
+        "F008",
+        "U004",
+        "U005",
+        "F-SC02"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "status": "planned_not_run"
+    },
+    {
+      "id": "SC-R07",
+      "acceptance_id": "SC-A07",
+      "text": "要件/schema/skills/roles/報告規則/運用/docs/testsを同期。旧巨大制御の本番参照を外し不要code整理。試験版/適用版/実job版を実値比較",
+      "prior_requirement_ids": [
+        "FC-R09",
+        "FC-R10"
+      ],
+      "prior_acceptance_ids": [
+        "FC-A09",
+        "FC-A10"
+      ],
+      "prior_acceptance_status": "historical_raw_preserved_not_reused",
+      "facts": [
+        "U001",
+        "U002",
+        "U003",
+        "F-SC01",
+        "F-SC03",
+        "F-SC04",
+        "F-SC05",
+        "F-SC06",
+        "F-SC07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT07",
+        "SCT08",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "status": "planned_not_run"
+    }
+  ],
+  "facts": [
+    {
+      "id": "F001",
+      "statement": "CLI IntegrityError/failed、committed_count0。OS実終了値unknown",
+      "source_location": "調査v2第2/3/9章、歴史供給値",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F002",
+      "statement": "当日run0、source_run_id=null。未保存理由unknown",
+      "source_location": "調査v2第2/3/9章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F003",
+      "statement": "既存draft12/予約12/publicationイベント2と当日確定0は集計範囲が別。実投稿0の証明でない",
+      "source_location": "調査v2第2章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F004",
+      "statement": "backup integrity/manifest okは日次回復の証明でない",
+      "source_location": "調査v2第2/4章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F005",
+      "statement": "CLI trace not_written/count0と別観測retention2件partialは別範囲",
+      "source_location": "調査v2第2/4章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F006",
+      "statement": "metrics unknown、観測0を指標0/取得成功にしない",
+      "source_location": "調査v2第2章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F007",
+      "statement": "当時Scheduler Ready/enabled/result4。現在状態とOS実終了値の直接証明でない",
+      "source_location": "調査v2第2/6章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F008",
+      "statement": "限定capture records=[]/not_listed。全ログ不存在の証明でない",
+      "source_location": "調査v2第2/9章、manifest SHA unknown",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "U001",
+      "statement": "後日focused5/関連15 passedはその隔離版限定",
+      "source_location": "調査v2第5章、IR-U23-04",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "U002",
+      "statement": "日次logger/rollback/capture位置6nodes passed。rollback後行数自体は未検証",
+      "source_location": "調査v2第5章、IR-U23-04",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "U003",
+      "statement": "製品4file独立approvedは原因/回復/再発防止を証明しない",
+      "source_location": "調査v2第5章、IR-U23-04",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "U004",
+      "statement": "stub author到達/transport unavailableは外部model成功/HTML作成を証明しない",
+      "source_location": "調査v2第5章",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "U005",
+      "statement": "S04 20:36〜42時点running/resume7/null、10/19 queue1/event0。現在値でない",
+      "source_location": "調査v2第5/9章、IR-U23-V2-01",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC01",
+      "statement": "構成案1.1は未導入。6skills/8呼出し、9Markdown書式、3項目起動、LLM本文作成を定義",
+      "source_location": "構成案#dataflow/#formats/#runner/#results",
+      "evidence_refs": [
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#dataflow",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#formats",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#runner",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#results"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC02",
+      "statement": "resume29はplanning transport失敗、repair attempt_id_invalid(null predecessor)、deployment候補なし、reportはcontroller_fallback。それでもFC-A01〜10をcomplete/Metとした",
+      "source_location": "`worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.md/.json` 工程表・受入表",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.json"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC03",
+      "statement": "親開始HEAD fc8b0a82ee91d0c8ab3a6d2274601498455d717f、main→origin/main、clean。現在job complete/resume29/null、schema16。ledger/runtime active6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850、pending null。HEADは後続docs-only、製品sourcehash一致を別観測",
+      "source_location": "W/baseline-evidence.md B01〜B05、baseline-snapshot.json",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md",
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC04",
+      "statement": "CLI factory差替えに加えtop-level Controller/historical importとworker終端adapterの整理が必要。旧8stageは新8LLM呼出しでない",
+      "source_location": "W/source-inventory.md I01〜I03",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC05",
+      "statement": "日次SQLite分類/捕捉位置/hash/proposed-persisted/best-effortは既存。FC03はDaily read-only/reused。残る具体不足候補は_result_mapping、_retry_summary_for_run、refresh_history_after_commit",
+      "source_location": "FC01/instrumentation-backlog.md、FC03/execution-record.md、W/source-inventory.md I04/I05、baseline製品hash",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC01/instrumentation-backlog.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC03/execution-record.md",
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC06",
+      "statement": "HTML本文reviewは4点の事実/平易さと秘密露出に限定。版と公開一致は機械確認",
+      "source_location": "`docs/standards/イナゴ日次不具合レポート作成ルール.md` 最終限定節、構成案#html-review",
+      "evidence_refs": [
+        "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#html-review"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    },
+    {
+      "id": "F-SC07",
+      "statement": "AppServerSessionへ3項目output_schemaを渡せる。Fast実要求はai_adapter.py::_command:379-398のsubprocess config引数で、低層fast_mode属性だけでは送られない。MD/HTMLはagentが直接書く。新instance/resume_thread_id省略でreview独立。workspaceWrite＋review出力のみprompt、delivery networkAccess:trueが実行可能な最小案。model catalog probeとfast_mode=true時のfast feature probe（experimentalFeature/list）は新runnerだけadvisory化候補。_log:208-250はOSErrorでlog_write_failedをraiseし正常AIの通常ログ失敗もcallを失敗にし得るため、新runner専用best-effortが必要",
+      "source_location": "W/source-inventory.md I06/I07、automation/inago/app_server.py::_log:208-250、automation/inago/maintenance/ai_adapter.py::_command:379-398",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md",
+        "automation/inago/app_server.py#_log:208-250",
+        "automation/inago/maintenance/ai_adapter.py#_command:379-398"
+      ],
+      "limit": "原調査/歴史供給値と後日/現在観測を分離し、IR-U23-03/04/V2-01と原因unknownを保持。局所F-SCは承認済み原factを装わない。"
+    }
+  ],
+  "mappings": [
+    {
+      "fact_id": "F001",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A03",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F002",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A03",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F003",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F004",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F005",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R03",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A03",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F006",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC04",
+        "SC05",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F007",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R02"
+      ],
+      "acceptance": [
+        "SC-A02"
+      ],
+      "steps": [
+        "SC01",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT09",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F008",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "U001",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R04",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A04",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT07",
+        "SCT08",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "U002",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R03",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A03",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "U003",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R03",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A03",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "U004",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R04",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A04",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT06",
+        "SCT07",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "U005",
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT05",
+        "SCT06",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC01",
+      "evidence_refs": [
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#dataflow",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#formats",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#runner",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#results"
+      ],
+      "requirements": [
+        "SC-R01",
+        "SC-R04",
+        "SC-R05",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A01",
+        "SC-A04",
+        "SC-A05",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT07",
+        "SCT08",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC02",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.json"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R03",
+        "SC-R04",
+        "SC-R05",
+        "SC-R06"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A03",
+        "SC-A04",
+        "SC-A05",
+        "SC-A06"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC03",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md",
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json"
+      ],
+      "requirements": [
+        "SC-R02",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A02",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT05",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC04",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md"
+      ],
+      "requirements": [
+        "SC-R01",
+        "SC-R04",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A01",
+        "SC-A04",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT07",
+        "SCT08",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC05",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC01/instrumentation-backlog.md",
+        "worklogs/projects/maintenance/flow-completion-20261019/FC03/execution-record.md",
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json"
+      ],
+      "requirements": [
+        "SC-R03",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A03",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT06",
+        "SCT07",
+        "SCT08",
+        "SCT09",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC06",
+      "evidence_refs": [
+        "docs/standards/イナゴ日次不具合レポート作成ルール.md",
+        "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html#html-review"
+      ],
+      "requirements": [
+        "SC-R05",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A05",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT04",
+        "SCT07",
+        "SCT08",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    },
+    {
+      "fact_id": "F-SC07",
+      "evidence_refs": [
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md",
+        "automation/inago/app_server.py#_log:208-250",
+        "automation/inago/maintenance/ai_adapter.py#_command:379-398"
+      ],
+      "requirements": [
+        "SC-R01",
+        "SC-R04",
+        "SC-R05",
+        "SC-R07"
+      ],
+      "acceptance": [
+        "SC-A01",
+        "SC-A04",
+        "SC-A05",
+        "SC-A07"
+      ],
+      "steps": [
+        "SC01",
+        "SC02",
+        "SC03",
+        "SC04",
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT01",
+        "SCT02",
+        "SCT03",
+        "SCT04",
+        "SCT05",
+        "SCT07",
+        "SCT08",
+        "SCT10",
+        "SCT11",
+        "SCT12",
+        "SCT13",
+        "SCT14"
+      ],
+      "ownership_refs": [
+        "steps/SC01",
+        "steps/SC02",
+        "steps/SC03",
+        "steps/SC04",
+        "steps/SC05",
+        "steps/SC06",
+        "steps/SC07",
+        "steps/SC08",
+        "steps/SC09",
+        "steps/SC10"
+      ],
+      "owners": [
+        "レポート作者/別HTML reviewer/反映・公開担当",
+        "反映・公開担当/実行controller",
+        "契約・文書担当",
+        "実行controller/調査担当",
+        "実行controller＋調査/実装/試験/別製品review/反映担当",
+        "独立最終照合担当/実行controller",
+        "独立製品review担当",
+        "製品実装担当",
+        "製品実装担当（SC03と順次所有）",
+        "試験担当"
+      ],
+      "outputs": [
+        {
+          "step": "SC01",
+          "output": "baseline.md、daily-gap.md、owner-map.json、history-verdict-correction.md"
+        },
+        {
+          "step": "SC02",
+          "output": "契約/skill/role差分、9書式対応表、生成HTML/F12、同期記録"
+        },
+        {
+          "step": "SC03",
+          "output": "runner実差分、production-entry-call-map.md、3項目とMD引渡し例、implementation.md"
+        },
+        {
+          "step": "SC04",
+          "output": "失敗/再開差分、削除/保持根拠一覧、operation-failure記録例、implementation.md"
+        },
+        {
+          "step": "SC05",
+          "output": "test.md、test.log、JUnit、node-list.json、safe生成ログ、期待/実値/exit/hash"
+        },
+        {
+          "step": "SC06",
+          "output": "code-review.md、対象hash、実review担当/instance、finding/rework参照"
+        },
+        {
+          "step": "SC07",
+          "output": "deployment.md、branch/commit/push先、実操作log、tested-applied-runtime比較"
+        },
+        {
+          "step": "SC08",
+          "output": "同job investigation/implementation/test+log/code-review/deployment、日次新実差分、実起動/入出力記録、安全な新日次ログ、適用版対応"
+        },
+        {
+          "step": "SC09",
+          "output": "LLM HTMLとreport.md、独立html-review.md、作者修正前後版、publication.md、Git blob照合、同job次3項目"
+        },
+        {
+          "step": "SC10",
+          "output": "acceptance-matrix.json、final-report.md、同job継続または終了3項目、最終Git記録"
+        }
+      ],
+      "reviewer": "計画は独立計画reviewer。製品は作者と別製品reviewer。HTMLは作者と別HTML reviewer。実績は独立最終照合。",
+      "completion_evidence": "将来NOT_RUN。同job実物/実command/log/対象版/独立review/適用/公開read-back。"
+    }
+  ],
+  "design_sha256": "0177ae92e0981eb1ab179b49d04739de9ffbfbc056daa3e7f7be52b79a28b3ec",
+  "design_bytes": 52900,
+  "source_result_version": "u23-08-update-v2",
+  "recorded_investigation_review": {
+    "status": "approved",
+    "at": "2026-10-19T20:49:37+09:00",
+    "limits": [
+      "IR-U23-03",
+      "IR-U23-04",
+      "IR-U23-V2-01"
+    ],
+    "evidence_ref": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+  },
+  "plan_review_handoff": {
+    "担当": "独立計画レビュー",
+    "入力": [
+      "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md",
+      "worklogs/projects/maintenance/skill-chain-refactor-20261020/requirement-step-case-map.json"
+    ],
+    "依頼": "全0〜14節/10STEP各14項目と全文prompt/14case各12項目/8用途全文prompt、全fact/evidence/所有/版/新受入、非gate、同job日次実差分と連続8呼出し/同bytes公開を独立確認してください。"
+  },
+  "preserved_review_limits": [
+    {
+      "id": "IR-U23-03",
+      "type": "preserved_scope_limit_not_new_defect",
+      "requirement_ids": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "調査/作者/独立照合",
+      "outputs": [
+        "investigation.md",
+        "report.html",
+        "acceptance-matrix.json"
+      ],
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "meaning": "歴史snapshot7件未再読、供給値照合範囲/F008 hash unknownを保持。"
+    },
+    {
+      "id": "IR-U23-04",
+      "type": "preserved_scope_limit_not_new_defect",
+      "requirement_ids": [
+        "SC-R03",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT07",
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "調査/製品review/作者/独立照合",
+      "outputs": [
+        "daily-gap.md",
+        "test.md",
+        "code-review.md",
+        "report.html"
+      ],
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md"
+      ],
+      "meaning": "U001〜U004の原記録は原調査reviewer指定外。詳細SHA/時刻/旧FAILの独立確認範囲を拡張しない。"
+    },
+    {
+      "id": "IR-U23-V2-01",
+      "type": "preserved_scope_limit_not_new_defect",
+      "requirement_ids": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "調査/作者/独立照合",
+      "outputs": [
+        "baseline.md",
+        "investigation.md",
+        "report.html",
+        "acceptance-matrix.json"
+      ],
+      "evidence_refs": [
+        "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+        "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md",
+        "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md"
+      ],
+      "meaning": "S04 20:36と後続追記/今回baselineの時刻境界を保持し過去値を最新値としない。"
+    }
+  ]
+}

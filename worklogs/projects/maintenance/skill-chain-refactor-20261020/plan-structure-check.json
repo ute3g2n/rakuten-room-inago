@@ -1,0 +1,1322 @@
+{
+  "operation": "plan_document_structure_and_reference_validation_only",
+  "observed_at_jst": "2026-10-20T13:28:10.763991+09:00",
+  "product_tests_run": false,
+  "production_changed": false,
+  "job_resumed": false,
+  "plan_sha256": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+  "map_sha256": "643fe0b00d12a6a4057ca74c55feaaf6bc652ecbe3e335a24db3bf779c88e1ef",
+  "checks": [
+    {
+      "name": "final_plan_sha256",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "final_map_sha256",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "sections_0_through_14",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "ten_steps",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC01_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC01_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC02_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC02_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC03_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC03_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC04_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC04_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC05_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC05_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC06_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC06_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC07_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC07_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC08_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC08_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC09_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC09_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC10_14_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SC10_complete_prompt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "fourteen_cases",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT01_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT02_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT03_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT04_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT05_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT06_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT07_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT08_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT09_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT10_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT11_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT12_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT13_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SCT14_12_fields",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "eight_role_prompts",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "eighteen_complete_prompts",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "map_counts",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "same_job_identity",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "not_executed_flags",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_and_cases_not_run",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_0_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_0_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_0_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_1_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_1_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_1_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_2_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_2_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_2_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_3_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_3_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_3_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_4_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_4_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_4_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_5_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_5_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_5_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_6_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_6_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "requirements_6_facts_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_0_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_0_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_0_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_0_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_1_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_1_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_1_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_1_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_2_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_2_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_2_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_2_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_3_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_3_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_3_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_3_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_4_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_4_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_4_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_4_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_5_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_5_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_5_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_5_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_6_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_6_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_6_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_6_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_7_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_7_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_7_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_7_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_8_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_8_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_8_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_8_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_9_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_9_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_9_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_9_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_10_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_10_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_10_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_10_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_11_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_11_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_11_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_11_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_12_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_12_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_12_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_12_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_13_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_13_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_13_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_13_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_14_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_14_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_14_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_14_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_15_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_15_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_15_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_15_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_16_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_16_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_16_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_16_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_17_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_17_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_17_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_17_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_18_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_18_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_18_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_18_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_19_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_19_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_19_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mappings_19_acceptance_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_0_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_0_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_1_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_1_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_2_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_2_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_3_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_3_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_4_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_4_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_5_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_5_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_6_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_6_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_7_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_7_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_8_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_8_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_9_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "steps_9_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_0_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_0_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_1_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_1_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_2_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_2_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_3_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_3_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_4_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_4_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_5_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_5_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_6_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_6_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_7_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_7_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_8_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_8_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_9_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_9_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_10_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_10_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_11_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_11_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_12_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_12_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_13_requirements_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cases_13_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_0_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_0_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_1_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_1_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_2_steps_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved_review_limits_2_cases_refs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F001_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F002_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F003_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F004_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F005_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F006_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F007_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F008_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_U001_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_U002_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_U003_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_U004_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_U005_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC01_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC02_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC03_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC04_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC05_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC06_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mapping_F-SC07_ownership",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_0_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_0_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_0_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_1_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_1_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_1_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_2_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_2_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_2_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_3_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_3_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_3_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_4_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_4_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_4_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_5_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_5_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_5_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_6_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_6_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_6_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_7_high",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_7_settings",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "role_7_observation_unknown",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "handoff_exact_three_keys",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "design_hash_and_bytes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_c26_transport_log_failure_still_interrupts_and_closes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_c26_app_server_checks_model_and_effort_before_thread_start",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_c24_app_server_passes_role_instructions_and_settings_to_thread_start",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_c27_app_server_log_is_confined_to_host_owned_root",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_resume_maintenance_job_ignores_resume_preconditions",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_fc11_operation_events_are_read_by_exact_job_launch_and_invocation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_worker_block_and_explicit_resume_are_durable",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_workflow_block_status_does_not_block_worker_path",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_fc07_fallback_report_and_october_19_exclusion_are_preserved",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "existing_node_test_pipeline_failure_records_its_own_capture_location",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "new_nodes_and_live_case_distinguished",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "evidence_paths_and_fragments_exist",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "passed": true,
+  "final_lf_refresh": {
+    "observed_at_jst": "2026-10-20T13:30:41.497890+09:00",
+    "validation_scope": "Byte-for-byte equivalence after line-ending normalization; prior 258 content checks preserved without repeating product tests.",
+    "targets": [
+      {
+        "path": "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md",
+        "previous_crlf_sha256": "a949129c0989b8c9aef21d375875634ac2c837bd5db074e135fe8ab3a2530fa5",
+        "final_lf_sha256": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+        "only_line_endings_changed": true,
+        "matches_git_index": true
+      },
+      {
+        "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/requirement-step-case-map.json",
+        "previous_crlf_sha256": "3d4813722daf7e6e79f4677ef0d15fae9befa903a655b9777673ab7b60ba3662",
+        "final_lf_sha256": "643fe0b00d12a6a4057ca74c55feaaf6bc652ecbe3e335a24db3bf779c88e1ef",
+        "only_line_endings_changed": true,
+        "matches_git_index": true
+      }
+    ]
+  }
+}

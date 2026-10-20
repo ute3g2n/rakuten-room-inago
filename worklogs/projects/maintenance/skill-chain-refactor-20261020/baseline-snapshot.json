@@ -1,0 +1,157 @@
+{
+  "observed_at_jst": "2026-10-20T13:04:24.349799+09:00",
+  "operation": "planning_read_only_baseline",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "git": {
+    "branch": "main",
+    "head": "fc8b0a82ee91d0c8ab3a6d2274601498455d717f",
+    "tracking": "origin/main",
+    "initial_cached_uncached_untracked": "empty_before_planner_writes"
+  },
+  "architecture": {
+    "version": "1.1",
+    "path": "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html",
+    "sha256": "0177ae92e0981eb1ab179b49d04739de9ffbfbc056daa3e7f7be52b79a28b3ec"
+  },
+  "maintenance_database": {
+    "path": "rakuten-room-inago/runtime/maintenance/state.sqlite",
+    "mode": "ro",
+    "schema_version": 16
+  },
+  "job": [
+    {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "source_run_id": null,
+      "status": "complete",
+      "resume_count": 29,
+      "result_version": "be04335443dc6cb1eddd7f464062eeaaf8d48a5a",
+      "created_at": "2026-10-18T21:32:50.000000Z",
+      "updated_at": "2026-10-20T01:35:00.723320Z",
+      "finished_at": "2026-10-20T01:35:00.723320Z",
+      "terminal_reason_code": null
+    }
+  ],
+  "manifest": [
+    {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+    }
+  ],
+  "attempt_status_counts": [
+    {
+      "status": "blocked",
+      "count": 1
+    },
+    {
+      "status": "complete",
+      "count": 26
+    },
+    {
+      "status": "failed",
+      "count": 29
+    },
+    {
+      "status": "handoff_accepted",
+      "count": 1
+    },
+    {
+      "status": "interrupted",
+      "count": 6
+    }
+  ],
+  "running_attempts": [],
+  "latest_deployment": [
+    {
+      "deployment_id": "6b08030b-1c22-414a-9983-42ba9b461650",
+      "release_id": "FC11-REPORT-PUBLICATION-20261020-6B6DC80",
+      "status": "deployed",
+      "base_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+      "tested_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+      "pushed_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+      "active_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+      "remote_name": "origin",
+      "target_branch": "main",
+      "deployed_at": "2026-10-20T01:37:59.338580Z"
+    }
+  ],
+  "runtime_switch": {
+    "status": "active",
+    "active": {
+      "commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+      "root": "C:\\project\\rakuten-room-inago"
+    },
+    "pending": null
+  },
+  "oct19_protection": {
+    "queue_count": 1,
+    "queue_safe_rows": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ],
+    "queue_rows_sha256": "fa2850f221ef3c695bf50c7f821ad3680d878b19219d0d5725b68ae1c11b45ac",
+    "queue_events_count": 0,
+    "queue_events_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "launch_count": 1,
+    "launch_safe_rows": [
+      {
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "failed",
+        "source_run_id": null,
+        "exit_code": 4
+      }
+    ],
+    "launch_rows_sha256": "9e6d57757a7f2361256faf919699b7c3d31a26588355a850b02aced25c87f722"
+  },
+  "source_sha256": {
+    "automation/inago/daily_pipeline.py": "d010be9965577358686eb9574ae11c59cfe85a273e9951316f1b83b7dab7d202",
+    "automation/inago/orchestrator.py": "f615a5c3c8df6a94412791f95273560ce45d023beba34932d80616c295d7f2a7",
+    "automation/inago/trace.py": "92a2c9d7f4395839e1590539ea5adc57a48b267f5669ff19bc492acc112dcab9",
+    "automation/inago/maintenance/workflow_provider.py": "2b6e221765a284802f7f149a0b80b8a9fc70eb807bee9723094c20c6ea6cf196",
+    "automation/inago/maintenance/production_workflow.py": "1b4178ac278a384f9aaad366024ccb183edfe3228f5d8f75065a325e744d5e72",
+    "automation/inago/maintenance/ai_adapter.py": "89a1fcd4a1acd4cdb16ba849a4a6fad3d041dbdab1b3a45582e4eb271b31d2dc",
+    "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html": "0177ae92e0981eb1ab179b49d04739de9ffbfbc056daa3e7f7be52b79a28b3ec"
+  },
+  "runtime_execution_not_started": true,
+  "notes": [
+    "Task Scheduler directly references the fixed repository root. Workspace HEAD and saved deployment/runtime-switch commits are distinct observations; docs-only later commits do not prove a product-code change.",
+    "Original incident cause and business recovery remain unknown. Prior complete/approved records do not prove Daily remediation/instrumentation occurred inside the historical job.",
+    "No Worker/Daily/resume/Git deployment/schema operation was executed during planning baseline."
+  ],
+  "source_comparison_with_saved_deployment_commit": {
+    "automation/inago/daily_pipeline.py": {
+      "raw_bytes_equal": true,
+      "line_ending_normalized_equal": true
+    },
+    "automation/inago/orchestrator.py": {
+      "raw_bytes_equal": true,
+      "line_ending_normalized_equal": true
+    },
+    "automation/inago/trace.py": {
+      "raw_bytes_equal": true,
+      "line_ending_normalized_equal": true
+    },
+    "automation/inago/maintenance/workflow_provider.py": {
+      "raw_bytes_equal": true,
+      "line_ending_normalized_equal": true
+    },
+    "automation/inago/maintenance/production_workflow.py": {
+      "raw_bytes_equal": false,
+      "line_ending_normalized_equal": true
+    },
+    "automation/inago/maintenance/ai_adapter.py": {
+      "raw_bytes_equal": true,
+      "line_ending_normalized_equal": true
+    }
+  },
+  "product_paths_changed_from_saved_deployment": [],
+  "source_comparison_note": "production_workflow.py differs in raw line endings only; preserve raw source_sha256 and do not call all raw bytes identical. Other five compared code files match raw bytes. Git product paths changed from saved deployment commit to baseline HEAD: zero."
+}

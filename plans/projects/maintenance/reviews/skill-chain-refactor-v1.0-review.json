@@ -1,0 +1,355 @@
+{
+  "schema_version": "independent-skill-chain-plan-review-v1",
+  "status": "approved",
+  "plan_version": "1.0",
+  "review_date_jst": "2026-10-20",
+  "reviewer": "/root/skill_chain_plan_review",
+  "independent_from_author": true,
+  "effort_requested": "high",
+  "runtime_model_observed": null,
+  "runtime_effort_observed": null,
+  "runtime_tier_observed": null,
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229"
+  },
+  "formal_planning_attempt_id": null,
+  "formal_review_attempt_id": null,
+  "controller_base_commit": null,
+  "allowed_outputs_source": "Parent controller explicitly assigned the two project review paths; no formal attempt envelope was supplied.",
+  "allowed_outputs": [
+    "plans/projects/maintenance/reviews/skill-chain-refactor-v1.0-review.md",
+    "plans/projects/maintenance/reviews/skill-chain-refactor-v1.0-review.json"
+  ],
+  "targets": [
+    {
+      "path": "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md",
+      "version": "1.0",
+      "sha256": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+      "bytes": 227995
+    },
+    {
+      "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/requirement-step-case-map.json",
+      "version": "1.0",
+      "sha256": "643fe0b00d12a6a4057ca74c55feaaf6bc652ecbe3e335a24db3bf779c88e1ef",
+      "bytes": 150899
+    }
+  ],
+  "source_material": [
+    {
+      "path": "docs/architecture/保守フロー_skill直列構成案_2026-10-20.html",
+      "version": "1.1",
+      "sha256": "0177ae92e0981eb1ab179b49d04739de9ffbfbc056daa3e7f7be52b79a28b3ec"
+    },
+    {
+      "path": "plans/incidents/2026/10/INC-20261017-001/investigations/u23-08-investigation-update-2026-10-19.md",
+      "version": "u23-08-update-v2",
+      "sha256": "b221b23c23cb20b8e8dea4ff418fdcf319d47c2756bbe742c65bbca6fcb1dda2"
+    },
+    {
+      "path": "plans/incidents/2026/10/INC-20261017-001/reviews/u23-08-investigation-review-v2.md",
+      "status_recorded": "approved",
+      "reviewed_at_recorded_jst": "2026-10-19T20:49:37+09:00",
+      "sha256": "bc5f727b20a8899637cc13f4afa38597cd4fffbf675ddd153ba861e78032d04f"
+    },
+    {
+      "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-evidence.md",
+      "sha256": "0ca504ad34a360910f32aad8c97306888d9677b96347cb3e553d931b5e52adb7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json",
+      "sha256": "c912038ebf3b78fa11e77c71c8c64d40becf2c2f74ebb5ddbf9d1f38a21921b5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/source-inventory.md",
+      "sha256": "787e60be0be831eb358451ae3ca123c8d1255724359484bdec3e0b3cdb78cf6e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.md",
+      "use": "Read with JSON companion as historical raw acceptance overclaim; not reused as current completion evidence."
+    },
+    {
+      "path": "automation/inago/app_server.py",
+      "locations": [
+        "_log:208-250",
+        "start:475-478",
+        "_verify_fast_mode_capability:601-633",
+        "run_turn:636-814"
+      ],
+      "use": "Read only to verify transport log failures, preflight probes, and actual model/effort request routes."
+    },
+    {
+      "path": "automation/inago/maintenance/ai_adapter.py",
+      "locations": [
+        "_command:379-398"
+      ],
+      "use": "Read only to verify existing Fast and priority subprocess config arguments; plan excludes importing the old adapter module."
+    },
+    {
+      "path": "tests_inago/test_maintenance_ai.py",
+      "locations": [
+        "test_c26_transport_log_failure_still_interrupts_and_closes:1217-1250"
+      ],
+      "use": "Definition read only; this timeout cleanup case does not prove normal AI continuation after log-only failure. No test was executed."
+    }
+  ],
+  "coverage": {
+    "sections_0_through_14": 15,
+    "steps_with_all_14_fields": 10,
+    "cases_with_all_12_fields": 14,
+    "standalone_step_prompts": 10,
+    "standalone_role_prompts": 8,
+    "requirements": 7,
+    "facts": 20,
+    "grouped_fact_mappings": 20,
+    "all_requirement_fact_step_case_ids_covered": true,
+    "preserved_investigation_review_findings": 3,
+    "owners_outputs_evidence_reviewers_and_handoffs_checked": true,
+    "new_planned_pytest_nodes": 13,
+    "real_job_operation_cases_without_invented_node": 1,
+    "existing_nodes_referenced_from_inventory": 10
+  },
+  "checks": [
+    {
+      "location": "plan sections 0-14; map",
+      "result": "pass",
+      "detail": "Exact target hashes and sizes, chapter order, all numbered fields, complete prompt context, identity/nullness, ID coverage and ownership/output references checked on submitted final bytes."
+    },
+    {
+      "location": "plan sections 3-5; SC02-SC04; SCT01/02/08/14",
+      "result": "pass",
+      "detail": "Six skills, eight uses, nine Markdown forms, one thin runner and only three next-call keys. Old production controller/import/call/business envelopes removed; no new stage state/schema/registry/A-B sessions or approval receipt framework."
+    },
+    {
+      "location": "plan section 3/4; SC03; SCT08; map.downstream_roles",
+      "result": "pass",
+      "detail": "Explicit model/high/tier/Fast requests and separate null observations; real subprocess config arguments distinguished from thread/turn payloads. Both model and Fast feature probes advisory only in new runner; actual provider denial recorded locally."
+    },
+    {
+      "location": "plan SC03/04; SCT04",
+      "result": "pass",
+      "detail": "Five normal-AI log-only OSError injection points preserve the same call and final_text. Small best-effort stderr/independent fallback and unknown gap after all sinks fail; original operation result kept separate from log persistence."
+    },
+    {
+      "location": "plan SC02-SC09; all role prompts",
+      "result": "pass",
+      "detail": "Concrete owned files/hunks, shared-root changes preserved, workspaceWrite enables reviewer MD output with product/test/HTML edits forbidden, delivery networkAccess true, approvalPolicy never. No OS sandbox proof/host receipt/C34 requirement."
+    },
+    {
+      "location": "plan section 0; all 18 prompts; SC04; SCT03/05/08/11",
+      "result": "pass",
+      "detail": "No downstream launch gate on review/test/readiness/release, unknown causes, evidence, failures, findings, receipts, lease or counts. Impossible individual operations are not_performed; substantive handoffs and independent downstream work continue."
+    },
+    {
+      "location": "plan SC08/10; SCT06/09/11",
+      "result": "pass",
+      "detail": "Same-job new Daily diff, synthetic measured logs, independent product review, actual deployment revision and new same-job evidence form the acceptance chain. Outer maintenance changes, old PASS, report publication or job.complete alone cannot satisfy it. Existing diagnostics are not duplicated and candidate gaps do not become asserted October 17 causes."
+    },
+    {
+      "location": "plan section 6; SC09; SCT10/12",
+      "result": "pass",
+      "detail": "LLM author writes and corrects HTML, a different reviewer reads changed actual bytes, delivery publishes those bytes. Scope remains four content points/plainness plus secrets; review failure is not relabeled approval. Publication, workflow, response achievement and incident resolution stay separate."
+    },
+    {
+      "location": "plan SC02/04/07-10; SCT12-14",
+      "result": "pass",
+      "detail": "Requirement/document/skill/role/test/operation synchronization, explicit same-job resume, preserved historical raw states and October 19 exclusion/history. Current tracking Git uses only task-owned paths/hunks. No manual Daily/new job/run invention/draft generation/13:00 wait/other workspace."
+    },
+    {
+      "location": "plan sections 3/12; baseline B03 and snapshot source comparison",
+      "result": "pass",
+      "detail": "Saved active commit and start HEAD remain distinct. Six code files: five raw matches, production_workflow.py differs only in line endings and matches after normalization. Plan no longer claims all raw bytes match or seven product files."
+    }
+  ],
+  "findings": [],
+  "new_change_requests_count": 0,
+  "inherited_findings_forwarded": [
+    {
+      "id": "IR-U23-03",
+      "kind": "retained_evidence_limit",
+      "severity": "low",
+      "location": "plan section 2 explicit source-review mapping and section 12; map.preserved_review_limits",
+      "detail": "Seven historical raw snapshots not reread; F008 hash unknown. Do not claim independent original evidence verification.",
+      "requirements": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "Investigation, report author and independent final comparison",
+      "outputs": [
+        "investigation.md",
+        "report.html",
+        "acceptance-matrix.json"
+      ],
+      "handoff": "Retain the scope limit and unknown hash in source-based conclusions and report; continue assigned roles."
+    },
+    {
+      "id": "IR-U23-04",
+      "kind": "retained_evidence_limit",
+      "severity": "low",
+      "location": "plan section 2 explicit source-review mapping; map.preserved_review_limits",
+      "detail": "U001-U004 original test/product-review records were outside the original investigation reviewer's assigned inputs. Old detailed verification is not extended to this job's new Daily response.",
+      "requirements": [
+        "SC-R03",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT06",
+        "SCT07",
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "Investigation, product reviewer, report author and final comparison",
+      "outputs": [
+        "daily-gap.md",
+        "test.md",
+        "code-review.md",
+        "report.html"
+      ],
+      "handoff": "Read the actual new diff/logs/review/deployment in the same job; retain historical limits and continue."
+    },
+    {
+      "id": "IR-U23-V2-01",
+      "kind": "retained_observation_boundary",
+      "severity": "low",
+      "location": "plan section 2 explicit source-review mapping; map.preserved_review_limits",
+      "detail": "S04 20:36 running/resume7, subsequent additions and current baseline are separate observation times.",
+      "requirements": [
+        "SC-R02",
+        "SC-R06"
+      ],
+      "steps": [
+        "SC01",
+        "SC08",
+        "SC09",
+        "SC10"
+      ],
+      "cases": [
+        "SCT09",
+        "SCT10",
+        "SCT11"
+      ],
+      "owner": "Investigation, report author and final comparison",
+      "outputs": [
+        "baseline.md",
+        "investigation.md",
+        "report.html",
+        "acceptance-matrix.json"
+      ],
+      "handoff": "Preserve observation boundaries and do not present a historical state as current; continue."
+    }
+  ],
+  "information_gaps": [
+    {
+      "location": "plan sections 0/12; review metadata",
+      "missing": "Formal planning/review attempt, controller base_commit and complete refs",
+      "action": "Keep null/unknown and explicit missing reason; use supplied identity and actual artifact SHA. Do not infer identifiers."
+    },
+    {
+      "location": "plan sections 4/12; map.downstream_roles",
+      "missing": "Actual runtime model/effort/tier/Fast observations and dedicated delivery tool role availability",
+      "action": "Keep requested settings separate from actual observations; attempt the real role through available worker/default and record only actual rejection as local failure."
+    },
+    {
+      "location": "plan section 12",
+      "missing": "Referenced settings/language.md",
+      "action": "Japanese instructions followed; missing file did not prevent review."
+    }
+  ],
+  "validation": {
+    "artifact_read_only_check": "pass",
+    "final_check_exit_code": 0,
+    "check_scope": "JSON parse, exact final hashes/bytes, section/field counts, prompt required context, grouped mapping ID/ownership/output coverage, role settings/request routes and unknown observations",
+    "earlier_check_failures": [
+      {
+        "operation": "local artifact audit",
+        "failure": "KeyError: step_id",
+        "reason": "Checker assumed older flat mapping shape before reading final 20 grouped mappings",
+        "recovery": "Read actual grouped shape and rerun; no target file changed"
+      },
+      {
+        "operation": "local artifact audit",
+        "failure": "KeyError: request_route",
+        "reason": "Checker used a non-existent shorthand key",
+        "recovery": "Read actual fast_request_route and effort_request_route fields and rerun successfully"
+      }
+    ],
+    "product_tests": "not_performed",
+    "product_tests_reason": "Planning-only read-only reviewer scope; no pytest/collect, AI call, DB/runtime/job operation or deployment/publication was requested for this reviewer."
+  },
+  "product_execution_status": "not_performed_planning_only",
+  "daily_response_achievement": "not_verified_by_this_plan_review",
+  "publication_status": "not_performed_by_this_plan_review",
+  "incident_resolution": "unknown",
+  "review_status_is_downstream_gate": false,
+  "handoff": {
+    "to": "Parent controller /root",
+    "outputs": [
+      "plans/projects/maintenance/reviews/skill-chain-refactor-v1.0-review.md",
+      "plans/projects/maintenance/reviews/skill-chain-refactor-v1.0-review.json"
+    ],
+    "current_scope_next_action": "Save planning execution record and inspect/stage/commit/push only current task-owned artifacts to current tracking branch. Parent owns Git; reviewer does not mix shared changes.",
+    "future_assigned_execution": "Start SC01 with available inputs when execution is assigned. Preserve all inherited limitations and unknown causes. Every role saves substantive normal or failure/fallback output and handoff, then launches the next assigned role. No blocked result or approval/receipt/count gate; only impossible operations are not_performed. Continue independent stages/report/publication and same-job rework.",
+    "implementation_role_launched_by_reviewer": false,
+    "implementation_role_not_launched_reason": "Current user/parent scope is plan creation and independent plan review only; parent remains active for the authorized planning handoff."
+  },
+  "line_ending_normalization_followup": {
+    "date_jst": "2026-10-20",
+    "scope": "Delta review of CRLF-to-LF normalization only; plan_version remains 1.0.",
+    "method": "For each current LF file, reconstruct every LF as CRLF and compare SHA-256 against the previous independently reviewed raw SHA. All three reconstructed hashes match exactly.",
+    "content_changed_beyond_line_endings": false,
+    "json_values_changed": false,
+    "files": [
+      {
+        "path": "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md",
+        "previous_reviewed_sha256": "a949129c0989b8c9aef21d375875634ac2c837bd5db074e135fe8ab3a2530fa5",
+        "current_lf_sha256": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+        "previous_bytes": 229129,
+        "current_bytes": 227995,
+        "line_endings_removed_bytes": 1134,
+        "inverse_crlf_reconstruction_matches_previous_raw_sha256": true
+      },
+      {
+        "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/requirement-step-case-map.json",
+        "previous_reviewed_sha256": "3d4813722daf7e6e79f4677ef0d15fae9befa903a655b9777673ab7b60ba3662",
+        "current_lf_sha256": "643fe0b00d12a6a4057ca74c55feaaf6bc652ecbe3e335a24db3bf779c88e1ef",
+        "previous_bytes": 154550,
+        "current_bytes": 150899,
+        "line_endings_removed_bytes": 3651,
+        "inverse_crlf_reconstruction_matches_previous_raw_sha256": true
+      },
+      {
+        "path": "worklogs/projects/maintenance/skill-chain-refactor-20261020/baseline-snapshot.json",
+        "previous_reviewed_sha256": "bf3ad1694f65b1c51f501798dbf71ee5d9d105c0215accc48d499acca18557b2",
+        "current_lf_sha256": "c912038ebf3b78fa11e77c71c8c64d40becf2c2f74ebb5ddbf9d1f38a21921b5",
+        "line_endings_removed_bytes": 157,
+        "inverse_crlf_reconstruction_matches_previous_raw_sha256": true
+      }
+    ],
+    "verdict": "approved",
+    "new_change_requests_count": 0,
+    "review_outputs_written_as": "UTF-8 LF using write_bytes",
+    "git_blob_verification_owner": "Parent controller after staging"
+  }
+}
