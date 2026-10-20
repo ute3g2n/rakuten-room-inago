@@ -1,0 +1,56 @@
+{
+  "as_of": "2026-10-20T15:46:33.003582+09:00",
+  "exact_launch_manifests": [
+    {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    }
+  ],
+  "excluded_date_constant": "WORKER_DISPATCH_EXCLUDED_DATES = frozenset({\"2026-10-19\"})",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "job_input_manifest": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "maintenance_job": {
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "status": "complete"
+  },
+  "october_19": {
+    "daily_check_counts_by_status": [
+      {
+        "count": 1,
+        "status": "incomplete"
+      }
+    ],
+    "daily_launch_counts_by_status": [
+      {
+        "count": 1,
+        "status": "failed"
+      }
+    ],
+    "historical_manifest_count": 0,
+    "worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "reason_code": null,
+        "status": "queued",
+        "target_date": "2026-10-19"
+      }
+    ],
+    "worker_queue_events": []
+  }
+}
