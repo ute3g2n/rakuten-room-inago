@@ -1,479 +1,202 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="担当skillを順番に起動し、LLMが書いた成果物で引き継ぐ保守フローの構成案。全体図、データフロー、担当ごとの入力・出力を示します。">
-  <title>保守フローのシンプル構成案 — skillを順につなぐ</title>
-  <style>
-    :root{color-scheme:light;--ink:#182d3b;--muted:#526471;--line:#d6e0e6;--blue:#235bc4;--blue-bg:#edf3ff;--green:#08745c;--green-bg:#edf8f3;--amber:#855300;--amber-bg:#fff5df;--paper:#fff;--bg:#f7f9fb}
-    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:78px}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 "BIZ UDPGothic","Yu Gothic",Meiryo,sans-serif;overflow-wrap:anywhere}a{color:var(--blue);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}a:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:4px}main,header,nav>div,footer{max-width:1180px;margin:auto;padding-left:28px;padding-right:28px}header{padding-top:45px;padding-bottom:28px}.meta{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:13px}.tag{display:inline-block;padding:2px 9px;border:1px solid var(--line);border-radius:5px;background:white;font-size:12px;font-weight:bold}h1{font-size:clamp(29px,4vw,44px);line-height:1.4;letter-spacing:.01em;margin:15px 0}h2{font-size:25px;line-height:1.5;margin:0 0 13px}h3{font-size:19px;line-height:1.5;margin:0 0 10px}p{margin:0 0 13px}.lead{font-size:19px;max-width:870px}.muted,small{color:var(--muted)}small{font-size:13px}.principles{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.principles span{padding:8px 13px;background:var(--blue-bg);border-radius:6px;font-weight:bold;font-size:14px}nav{position:sticky;top:0;background:#fffffffa;border-block:1px solid var(--line);z-index:3}nav>div{display:flex;gap:22px;flex-wrap:wrap;padding-top:11px;padding-bottom:11px}nav a{font-size:14px;text-decoration:none;font-weight:bold}section{margin:26px 0;padding:27px;background:var(--paper);border:1px solid var(--line);border-radius:10px}.section-no{color:var(--blue);font-size:14px;display:block;margin-bottom:5px;font-weight:bold}figure{margin:20px 0}figcaption{font-size:13px;color:var(--muted);margin-top:12px}.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:18px;list-style:none;padding:0;margin:0}.flow li{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:112px;padding:10px 5px;border:1px solid #b9ceee;background:var(--blue-bg);border-radius:8px;text-align:center}.flow li:not(:last-child):after{content:"→";position:absolute;left:100%;width:18px;font-size:21px;color:var(--muted);top:40px}.flow .delivery{background:var(--green-bg);border-color:#b6dacd}.flow b{font-size:16px;line-height:1.5}.flow .num{font-size:12px;color:var(--muted)}.flow small{font-size:11px}.note{padding:13px 16px;background:var(--blue-bg);border-left:3px solid var(--blue);margin-top:17px}.note.amber{background:var(--amber-bg);border-color:#b87700}.note.green{background:var(--green-bg);border-color:var(--green)}.note p:last-child{margin-bottom:0}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}.branch{padding:19px;border:1px solid var(--line);border-radius:8px}.branch.unknown{background:var(--amber-bg);border-color:#e4cc9e}.branch.known{background:var(--blue-bg);border-color:#bed1f0}.branch .arrow{font-size:22px;line-height:1.3;color:var(--muted);margin:8px 0}.branch strong{font-size:18px}.merge{text-align:center;margin-top:15px;padding:12px;background:var(--green-bg);border:1px solid #b6dacd;border-radius:7px;font-weight:bold}.df-head,.df-row{display:grid;grid-template-columns:1fr 34px .84fr 34px 1.08fr;gap:0}.df-head{font-size:13px;color:var(--muted);margin-bottom:8px}.df-head span{text-align:center}.df-row{padding:16px 0;border-top:1px solid var(--line);align-items:stretch}.df-row .arrow{align-self:center;text-align:center;color:var(--muted);font-size:22px}.data{padding:15px;border:1px solid var(--line);border-radius:7px;background:#fafcfd;font-size:14px}.data p:last-child{margin-bottom:0}.data ul{margin:6px 0 0;padding-left:19px}.data li{margin:3px 0}.task{padding:15px;background:var(--blue-bg);border:1px solid #bed1f0;border-radius:7px;font-size:14px}.task h3{font-size:18px}.task.delivery{background:var(--green-bg);border-color:#b6dacd}.file{display:inline-block;color:var(--green);font:600 13px/1.7 Consolas,Meiryo,monospace;margin:0 0 5px}.label{display:block;font-size:12px;font-weight:bold;color:var(--muted);margin-bottom:5px}.out{background:var(--green-bg);border-color:#c9e4d8}.compact{margin:8px 0;padding-left:21px}.compact li{margin:5px 0}code{font:13px/1.7 Consolas,Meiryo,monospace;background:#f0f3f6;padding:1px 4px;border-radius:3px;overflow-wrap:anywhere}pre{margin:12px 0;padding:16px;background:#f4f7f9;border:1px solid var(--line);border-radius:7px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.8 Consolas,Meiryo,monospace}.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.strip>div{position:relative;border:1px solid var(--line);border-radius:7px;padding:15px;background:#fafcfd}.strip>div:not(:last-child):after{content:"→";position:absolute;left:100%;width:20px;text-align:center;top:35%;color:var(--muted);font-size:23px}.strip b{display:block}.responsibility{padding:18px;border:1px solid var(--line);border-radius:8px}.responsibility.llm{background:var(--blue-bg)}.responsibility.runner{background:#f4f6f8}.result{display:grid;grid-template-columns:1fr 1fr;gap:16px}.result>div{padding:18px;border:1px solid var(--line);border-radius:8px}.result h3{font-size:18px}.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.pill-row span{font-size:13px;background:var(--green-bg);padding:4px 8px;border-radius:4px}details{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}summary{cursor:pointer;font-weight:bold;font-size:15px}.refs{padding:10px 0 0;margin:0;list-style:none}.refs li{padding:8px 0;border-bottom:1px solid #e8edf1;font-size:14px}.refs code{display:block;background:none;padding:0;font-size:12px;color:var(--muted)}.refs .proposed{color:var(--amber)}footer{font-size:13px;color:var(--muted);padding-top:3px;padding-bottom:35px}.avoid-break{break-inside:avoid}.subline{font-size:14px;color:var(--muted)}
-    @media(max-width:1000px){.flow{grid-template-columns:1fr;gap:15px;max-width:660px;margin:auto}.flow li{min-height:58px;display:grid;grid-template-columns:35px 1fr 170px;text-align:left;gap:8px;padding:10px 16px}.flow li:not(:last-child):after{content:"↓";left:calc(50% - 9px);top:100%;height:15px;line-height:15px;font-size:17px}.flow small{font-size:12px}.df-head,.df-row{grid-template-columns:1fr 23px .86fr 23px 1.08fr}.data,.task{padding:12px}}
-    @media(max-width:700px){main,header,nav>div,footer{padding-left:16px;padding-right:16px}header{padding-top:28px}.lead{font-size:17px}section{padding:19px;margin:18px 0}h2{font-size:22px}nav{position:static}nav>div{gap:8px 18px}.split,.result{grid-template-columns:1fr}.df-head{display:none}.df-row{grid-template-columns:1fr;padding:20px 0}.df-row .arrow{line-height:1.3;transform:rotate(90deg);height:26px}.data:before{content:attr(data-kind);display:block;font-size:12px;font-weight:bold;color:var(--muted);margin-bottom:6px}.flow li{grid-template-columns:27px 1fr 110px;padding:10px}.flow b{font-size:15px}.flow small{font-size:11px}.strip{grid-template-columns:1fr;gap:20px}.strip>div:not(:last-child):after{content:"↓";left:calc(50% - 10px);top:100%;height:20px;line-height:20px}.principles{gap:7px}.principles span{font-size:12px;padding:6px 8px}.meta{flex-wrap:wrap;gap:8px}pre{font-size:12px;padding:12px}}
-    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-    @media print{body{background:white;font-size:10pt}main,header,footer{max-width:none;padding-left:0;padding-right:0}header{padding-top:0}nav{display:none}section{padding:17px;margin:15px 0;border-radius:0}h1{font-size:26pt}h2{font-size:17pt}h2,h3{break-after:avoid}.df-row,.branch,.result>div{break-inside:avoid}.flow{grid-template-columns:repeat(8,minmax(0,1fr));gap:12px}.flow li{display:flex;min-height:85px;padding:5px;text-align:center}.flow b{font-size:10pt}.flow small{font-size:7pt}.flow li:not(:last-child):after{content:"→";left:100%;top:30px;width:12px;height:auto;font-size:11pt}.df-head,.df-row{grid-template-columns:1fr 20px .84fr 20px 1.08fr}.df-head{display:grid}.df-row .arrow{transform:none;height:auto}.data:before{display:none}.data,.task{font-size:9pt;padding:10px}.split,.result{grid-template-columns:1fr 1fr}.strip{grid-template-columns:repeat(4,1fr)}.strip>div:not(:last-child):after{content:"→";left:100%;top:35%;height:auto}.principles span{font-size:9pt}summary{font-size:10pt}a{color:inherit}.note{font-size:9pt}footer{padding-bottom:0}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="実際の修正・独立レビュー・HTML・worker終了で判断する保守フロー構成案2.0。ハッシュの生成と照合、状態ゲート、必須Git操作を廃止する提案。">
+<title>保守フロー構成案2.0 — 実作業とworkerの終了で完了する</title>
+<style>
+:root{color-scheme:light;--ink:#182d3b;--muted:#536672;--line:#d5e0e7;--blue:#235bc4;--bluebg:#edf3ff;--green:#08745c;--greenbg:#edf8f3;--amber:#815100;--amberbg:#fff5df;--bg:#f6f8fb}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:80px}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "BIZ UDPGothic","Yu Gothic",Meiryo,sans-serif;overflow-wrap:anywhere}
+a{color:var(--blue);text-underline-offset:3px}a:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+header,main,footer,nav>div{max-width:1200px;margin:auto;padding-inline:28px}header{padding-block:42px 27px}.meta{display:flex;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:13px}.tag{background:white;border:1px solid var(--line);border-radius:5px;padding:2px 10px;font-weight:bold}
+h1{font-size:clamp(29px,4vw,44px);line-height:1.45;margin:16px 0}h2{font-size:25px;line-height:1.5;margin:0 0 14px}h3{font-size:18px;line-height:1.5;margin:0 0 9px}p{margin:0 0 13px}.lead{font-size:19px;max-width:950px}.muted,small{color:var(--muted)}small{font-size:13px}.subline{font-size:14px;color:var(--muted)}
+nav{position:sticky;top:0;background:#fffffff5;border-block:1px solid var(--line);z-index:2}nav>div{display:flex;flex-wrap:wrap;gap:9px 24px;padding-block:12px}nav a{font-size:14px;text-decoration:none;font-weight:bold}
+section{margin:25px 0;padding:27px;background:white;border:1px solid var(--line);border-radius:10px}.kicker{display:block;font-size:13px;color:var(--blue);font-weight:bold;margin-bottom:6px}
+.note{padding:15px 18px;border-left:3px solid var(--blue);background:var(--bluebg);margin-block:17px}.note p:last-child{margin-bottom:0}.note.green{background:var(--greenbg);border-color:var(--green)}.note.amber{background:var(--amberbg);border-color:var(--amber)}
+.pills{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.pills span{font-size:14px;font-weight:bold;background:var(--bluebg);padding:7px 12px;border-radius:6px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-block:18px}.card{border:1px solid var(--line);border-radius:8px;padding:18px;background:#fafcfd}.card .n{font-size:12px;color:var(--green);font-weight:bold}.card p{font-size:14px;margin-bottom:0}.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}.two .card{background:white}
+.flow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:17px;list-style:none;padding:0;margin:22px 0 16px}.flow li{position:relative;text-align:center;border:1px solid #bed1f0;background:var(--bluebg);border-radius:8px;padding:14px 5px;min-height:112px}.flow li:not(:last-child):after{content:"→";position:absolute;left:100%;width:17px;top:38px;font-size:21px;color:var(--muted)}.flow b,.flow small{display:block}.flow small{font-size:11px}.flow .apply{background:var(--greenbg);border-color:#b8dacd}.flow .n{font-size:12px;color:var(--muted)}
+.table-wrap{overflow-x:auto;margin:16px 0}table{width:100%;border-collapse:collapse;font-size:14px;min-width:660px}caption{text-align:left;font-weight:bold;margin-bottom:9px}th,td{text-align:left;vertical-align:top;padding:13px 12px;border-bottom:1px solid var(--line)}thead th{background:#f0f4f8;font-size:13px}tbody th{font-weight:bold;width:19%}.roles tbody th{width:15%}.roles td:nth-child(2){width:33%}.remove td:nth-child(2){width:43%}
+code{font:13px/1.8 Consolas,Meiryo,monospace;background:#f0f3f6;padding:1px 4px;border-radius:3px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.85 Consolas,Meiryo,monospace;padding:17px;background:#f4f7f9;border:1px solid var(--line);border-radius:7px;margin:13px 0}ul,ol{padding-left:23px;margin:10px 0}li{margin-block:5px}details{border-top:1px solid var(--line);padding-top:13px;margin-top:18px}summary{font-weight:bold;cursor:pointer}.ref-list li{font-size:14px;margin-block:9px}.small-table{min-width:570px}.small-table tbody th{width:28%}footer{font-size:13px;color:var(--muted);padding-block:5px 35px}
+@media(max-width:1000px){.cards{grid-template-columns:1fr 1fr}.flow{grid-template-columns:1fr;gap:14px;max-width:670px;margin-inline:auto}.flow li{display:grid;grid-template-columns:30px 1fr 170px;text-align:left;min-height:58px;padding:11px 16px;align-items:center;gap:8px}.flow li:not(:last-child):after{content:"↓";left:calc(50% - 8px);top:100%;line-height:14px;height:14px;font-size:17px}.flow small{font-size:12px}}
+@media(max-width:650px){header,main,footer,nav>div{padding-inline:16px}header{padding-top:26px}section{padding:19px;margin-block:18px}.lead{font-size:17px}h2{font-size:22px}nav{position:static}.cards,.two{grid-template-columns:1fr}.flow li{grid-template-columns:25px 1fr 112px;padding-inline:10px}.flow b{font-size:15px}.flow small{font-size:11px}.pills span{font-size:12px}table{font-size:13px}th,td{padding:11px 9px}pre{font-size:12px;padding:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white;font-size:10pt}nav{display:none}header,main,footer{padding-inline:0;max-width:none}header{padding-top:0}section{border-radius:0;padding:16px;margin-block:15px}h1{font-size:25pt}h2{font-size:17pt}h2,h3{break-after:avoid}.cards{grid-template-columns:repeat(4,1fr)}.flow{grid-template-columns:repeat(7,1fr);max-width:none}.flow li{display:block;text-align:center;min-height:85px;padding:6px}.flow b{font-size:10pt}.flow small{font-size:7pt}.flow li:not(:last-child):after{content:"→";left:100%;top:27px;width:17px;height:auto}.table-wrap{overflow:visible}table{min-width:0;font-size:9pt}thead{display:table-header-group}tr,.card,pre{break-inside:avoid}.two{grid-template-columns:1fr 1fr}a{color:inherit}}
+</style>
 </head>
 <body>
 <header>
-  <div class="meta"><span class="tag">構成案・未導入</span><span>2026年10月20日</span><span>作業場所：C:\project\rakuten-room-inago</span></div>
-  <h1>保守フローは、<br>skillを順につなぐ。</h1>
-  <p class="lead">各担当が資料を読み、作業し、次の担当への指示を書きます。<br>スクリプトは、その指示どおりに担当を起動します。</p>
-  <div class="principles"><span>判断はLLM</span><span>引継ぎはLLMが書く文書</span><span>スクリプトは起動・記録・再開</span></div>
-  <p class="subline" style="margin-top:15px">この文書は新構成の提案です。現行フローの変更・本番切替えは行っていません。</p>
+  <div class="meta"><span class="tag">構成案 2.0</span><span>2026年10月21日・本人指示を反映</span><span>固定作業場所：C:\project\rakuten-room-inago</span></div>
+  <h1>修正し、レビューし、HTMLを作る。<br>workerの終了を確かめて終える。</h1>
+  <p class="lead">ハッシュの生成・照合と、状態やGit同期による完了ゲートを廃止します。<br>実際に行った作業を読み、各workerの終了を確認する構成へ絞ります。</p>
+  <div class="pills"><span>ハッシュ処理を全面撤去</span><span>Gitは本人が実施</span><span>通常8担当 → 推奨7担当</span><span>失敗した箇所から再作業</span></div>
+  <p class="subline" style="margin-top:15px">このHTMLは新構成の提案です。今回の更新対象はこの設計文書であり、現行コードからの処理削除や本番切替えを実施したという報告ではありません。旧1.1の完了条件・書式は本案で置き換えます。</p>
 </header>
-<nav aria-label="目次"><div><a href="#flow">全体の流れ</a><a href="#unknown">原因不明のとき</a><a href="#dataflow">担当ごとの入力・出力</a><a href="#formats">Markdown書式</a><a href="#runner">スクリプトの最小化</a><a href="#results">完了の考え方</a></div></nav>
+<nav aria-label="目次"><div><a href="#done">完了基準</a><a href="#flow">7担当の流れ</a><a href="#runner">runnerと終了確認</a><a href="#remove">撤廃する処理</a><a href="#suggest">追加の簡略化案</a><a href="#failures">失敗と局所再作業</a><a href="#changes">実装時の変更範囲</a></div></nav>
 <main>
-  <section id="flow">
-    <span class="section-no">01 / 全体</span>
-    <h2>6種類のskillを、8回呼ぶ。</h2>
-    <p>調査担当が短い変更方針まで書きます。レビューskillと反映・公開skillは、それぞれ役割を指定して2回使います。</p>
-    <figure aria-label="調査、実装、試験、製品レビュー、反映、レポート、HTMLレビュー、公開の順に担当を呼び出す">
-      <ol class="flow">
-        <li><span class="num">1</span><b><a href="#investigate">調査</a></b><small>原因と次の作業</small></li>
-        <li><span class="num">2</span><b><a href="#implement">実装</a></b><small>原因修正／ログ追加</small></li>
-        <li><span class="num">3</span><b><a href="#test">試験</a></b><small>実際に動かす</small></li>
-        <li><span class="num">4</span><b><a href="#code-review">製品レビュー</a></b><small>別の担当が読む</small></li>
-        <li class="delivery"><span class="num">5</span><b><a href="#deploy">反映</a></b><small>本番の版を確かめる</small></li>
-        <li><span class="num">6</span><b><a href="#report">レポート</a></b><small>HTMLを直接書く</small></li>
-        <li><span class="num">7</span><b><a href="#html-review">HTMLレビュー</a></b><small>別の担当が読む</small></li>
-        <li class="delivery"><span class="num">8</span><b><a href="#publish">公開</a></b><small>レビュー済みの実物</small></li>
-      </ol>
-      <figcaption>青：調査・制作・確認のskill。緑：反映・公開のskill。すべてLLM担当が作業します。</figcaption>
-    </figure>
-    <div class="note"><strong>担当の間には、LLMが書いた成果物をそのまま渡す。</strong><p>専任の計画工程、親A／親Bの振り分け、前工程の成功IDとの照合、中間データの作り直しをなくします。レビュー担当は作者と別のagentとして起動します。</p></div>
-  </section>
+<section id="done">
+  <span class="kicker">01 / 本人が指定した完了基準</span>
+  <h2>完了の根拠は、実作業の4点だけ。</h2>
+  <div class="cards">
+    <div class="card"><span class="n">1 / 修正</span><h3>本番資材を変更した</h3><p>原因修正、または次回の原因特定に役立つ日次処理のトレース・ログ追加を実施し、必要な反映操作を行った。</p></div>
+    <div class="card"><span class="n">2 / 製品レビュー</span><h3>別の担当が読んだ</h3><p>作者と異なる担当が、変更した製品コードと試験記録を実際に読み、所見を残した。</p></div>
+    <div class="card"><span class="n">3 / HTML</span><h3>作成し、内容を確認した</h3><p>何が起きたか・原因・修正・追加ログが分かるHTMLを作成。別の担当が実物を読み、作者が必要な箇所を修正する。</p></div>
+    <div class="card"><span class="n">4 / worker終了</span><h3>起動した担当が終了した</h3><p>各workerと追加作業workerの実際の終了を確認し、時刻・終了結果を記録する。裏で動いたまま完了としない。</p></div>
+  </div>
+  <p>修正・適用の実結果は差分と対象ファイル、レビューは担当者の実所見、HTMLは実物を読むことで確認します。これらを別の合格フラグや証明書へ変換する機械判定は設けません。試験は実施し、実結果を残しますが、PASSやapprovedという語を後続起動の条件にしません。</p>
+  <div class="note green"><p><strong>原因不明、同じjobで新しい日次ログがまだ出ていないこと、Git未commit・未push、過去のblockedやqueuedは未完了理由にしません。</strong>「原因は不明」「今回は診断用ログを追加した」と、そのまま説明します。実施できなかった作業を実施済みと記録することはありません。</p></div>
+  <p class="subline">SC-A01／03／04／05／07、SCT09／10などの旧受入項目を、今回以後の起動・再開・完了ゲートとして使いません。過去記録は当時の事実として保存します。</p>
+</section>
 
-  <section id="unknown">
-    <span class="section-no">02 / 調査担当が判断</span>
-    <h2>原因不明なら、日次処理に診断用ログを追加する。</h2>
-    <div class="split">
-      <div class="branch known"><span class="label">原因を特定できた</span><strong>原因を直す変更を指示</strong><div class="arrow" aria-hidden="true">↓</div><p>何を、どう変えればよいか。<br>何を試せば直ったと判断できるか。</p></div>
-      <div class="branch unknown"><span class="label">原因を特定できなかった</span><strong>足りない観測点へのログ追加を指示</strong><div class="arrow" aria-hidden="true">↓</div><p>日次処理のどこで、何を記録すれば、<br>次回の原因の切り分けに役立つか。</p></div>
-    </div>
-    <div class="merge">どちらも、実装 → 試験 → 製品レビュー → 本番反映へ</div>
-    <div class="note amber"><p><strong>「原因不明」という文章だけで次へ渡さない。</strong>調査担当は、不足情報と追加場所を具体的に書きます。実装担当は既存ログを調べ、重複追加を避けます。既存ログを使う場合は、その内容と本番適用の有無を示します。</p><p>保守作業の進行ログを増やしただけでは、日次不具合の診断用ログを追加したことにはしません。</p></div>
-    <details>
-      <summary>原因不明の場合の引継ぎ例を見る</summary>
-      <pre>【説明のための例。今回の障害原因や現行コードの不足を断定するものではありません】
+<section id="flow">
+  <span class="kicker">02 / 推奨構成</span>
+  <h2>通常は7担当。公開専用workerをなくす。</h2>
+  <p>順番は固定します。各担当は前のMarkdownと実物を読み、自分の作業結果を短く書きます。HTML作者が最終保存先へ直接書くので、別workerによるコピー・公開版照合・公開証明を省けます。</p>
+  <figure aria-label="調査、実装、試験、独立製品レビュー、本番反映、HTML作成、独立HTMLレビューの7担当">
+    <ol class="flow">
+      <li><span class="n">1</span><b>調査</b><small>原因／ログ追加方針</small></li>
+      <li><span class="n">2</span><b>実装</b><small>原因修正／ログ追加</small></li>
+      <li><span class="n">3</span><b>試験</b><small>局所確認 → 最終回帰</small></li>
+      <li><span class="n">4</span><b>製品レビュー</b><small>作者とは別担当</small></li>
+      <li class="apply"><span class="n">5</span><b>本番反映</b><small>必要な反映操作</small></li>
+      <li><span class="n">6</span><b>HTML作成</b><small>最終保存先へ直接書く</small></li>
+      <li><span class="n">7</span><b>HTMLレビュー</b><small>実物を読んで終了</small></li>
+    </ol>
+    <figcaption class="subline">レビューで必要な修正が分かったら、元担当へその箇所だけ追加依頼します。修正したHTMLも同じ保存先で作者が直し、別担当が読み直します。</figcaption>
+  </figure>
+  <div class="table-wrap"><table class="roles">
+    <caption>担当ごとの入力・出力と責任</caption>
+    <thead><tr><th scope="col">担当</th><th scope="col">読むもの</th><th scope="col">実施内容と出力</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">1. 調査</th><td>対象jobの入口文書、既存ログ、日次の要件</td><td>事実・分かった原因・不明点・短い変更方針・確認方法を <code>investigation.md</code> へ書く。原因不明なら有用な日次ログ追加を具体化する。</td></tr>
+      <tr><th scope="row">2. 実装</th><td>調査結果、今回所有するファイルと既存差分</td><td>許可された変更を実施。実際の差分、ログ項目、影響箇所、試験への依頼を <code>implementation.md</code> へ書く。</td></tr>
+      <tr><th scope="row">3. 試験</th><td>調査・実装結果、関係する試験</td><td>既知の失敗箇所を先に確認し、直し終えたら計画した回帰を最後に一度実行。コマンド・完全node・期待・実結果・終了コードを <code>test.md</code> へ書く。</td></tr>
+      <tr><th scope="row">4. 製品レビュー</th><td>製品コードの実差分、調査依頼、試験結果</td><td>作者とは別のagentが読み、指摘箇所と改善内容を <code>code-review.md</code> へ書く。テストコード自体の独立レビュー工程は追加しない。</td></tr>
+      <tr><th scope="row">5. 本番反映</th><td>実装・試験・製品レビュー結果、固定フォルダーの実ファイル</td><td>必要な設定・schema・プロセス再起動等だけを実施し、対象とコマンドの実結果を <code>deployment.md</code> へ書く。未commitの変更も反映対象にできる。Git操作は担当しない。</td></tr>
+      <tr><th scope="row">6. HTML作成</th><td>ここまでの結果、レポート作成ルール</td><td>最終保存先 <code>reports/incidents/〈対象日〉/〈既存job_id〉.html</code> へ直接書く。作成したパスと説明上の注意だけを <code>report.md</code> へ書く。</td></tr>
+      <tr><th scope="row">7. HTMLレビュー</th><td>作者が作成・修正した最終保存先のHTML、説明の根拠</td><td>作者とは別のagentが本文4点の正確さ・分かりやすさと秘密の露出を確認し、<code>html-review.md</code> へ所見を書く。指摘は作者へ渡し、必要な修正後の実物を読む。</td></tr>
+    </tbody>
+  </table></div>
+  <p>既存の10/17レポートは現在の保存先を使います。新規レポートの名前には既存job_idをそのまま使い、ファイル名用のハッシュを生成しません。ローカルHTMLの保存・閲覧までをこのフローで扱い、Git経由の外部配信は本人の作業です。</p>
+  <details><summary>使用する既存skill</summary>
+    <ul class="ref-list">
+      <li>調査：<a href="../../.agents/skills/rr-inago-incident-investigation/SKILL.md">rr-inago-incident-investigation</a></li>
+      <li>実装：<a href="../../.agents/skills/common-implementation/SKILL.md">common-implementation</a></li>
+      <li>試験：<a href="../../.agents/skills/common-testing/SKILL.md">common-testing</a></li>
+      <li>製品レビュー／HTMLレビュー：<a href="../../.agents/skills/common-review/SKILL.md">common-review</a>。対象の作者と別agentで起動する。</li>
+      <li>本番反映：<a href="../../.agents/skills/rr-inago-maintenance-delivery/SKILL.md">rr-inago-maintenance-delivery</a>。名称を維持しても、公開・Git・ハッシュ照合の責任は外す。</li>
+      <li>HTML作成：<a href="../../.agents/skills/rr-inago-incident-report/SKILL.md">rr-inago-incident-report</a></li>
+    </ul>
+    <p class="subline">6種類のskillを通常7回呼ぶ案です。全担当のreasoning effortはhigh。model・tier・effortの設定観測は起動条件にしません。既存skill本文・参照契約・role promptも実装時に本案へ同期します。</p>
+  </details>
+</section>
 
-原因：まだ分からない。
-不足情報：ある外部呼出しの前後を区別できず、失敗した操作を絞れない。
-実装依頼：該当の日次処理に、呼出し前後・例外の連鎖・捕捉位置を記録する。
-記録する値：操作名、時刻、相関ID、実行版、例外の種類と安全化した原因情報。
-試験：その呼出しを合成fixtureで失敗させ、追加した記録から操作を特定できるか確かめる。
-限界：ログ追加は原因を直したことではない。次回の実障害での特定結果は未確認。
+<section id="runner">
+  <span class="kicker">03 / 制御は1本</span>
+  <h2>runnerは起動し、終了を待ち、記録して次へ進む。</h2>
+  <div class="two">
+    <div class="card"><h3>runnerの仕事</h3><ol><li>同じjobで指定された担当を起動する。</li><li>そのworkerが実際に終了するまで待つ。</li><li>開始・終了・終了コードとログの保存先を追記する。</li><li>固定順の次担当を起動し、最後に終了を記録する。</li></ol></div>
+    <div class="card"><h3>各LLMの仕事</h3><ul><li>前のMarkdownと必要な実物を読む。</li><li>調査・修正・試験・レビュー・反映・HTMLを担当する。</li><li>何を実施し、何ができなかったかを文章で残す。</li><li>追加修正が必要なら、元担当へ具体的な作業を依頼する。</li></ul></div>
+  </div>
+  <pre>対象jobと、開始する担当を受け取る
+固定順の各担当について：
+    workerを起動する
+    実際の終了を待ち、秘密等を除いた応答・標準出力・標準エラーを保存する
+    開始時刻・終了時刻・終了コードを実行ログへ追記する
+    起動失敗や非ゼロ終了も、その事実を次担当へ渡す
+全担当と追加作業workerが終了したら、jobの処理終了を記録する</pre>
+  <p><strong>「LLMが終了と発言した」だけでは終了扱いにしません。</strong>CLIで起動したworkerはプロセス終了と終了コードを回収します。AppServer経由の担当は実際のturn終了を受け取り、終了させる所有CLIがある場合はそのプロセスも回収します。生きているworkerは実行中と表示します。次担当へ進む前に前担当の終了を確かめるのは、本人が求めた終了確認と直列実行のためです。</p>
+  <p>応答・標準出力・標準エラー・例外情報は、保存前にtoken・cookie・認証URL・個人情報・商品や投稿の本文を除きます。これは保存内容の扱いであり、新しい承認や後続起動のゲートにはしません。</p>
+  <div class="table-wrap"><table class="small-table"><caption>機械記録は1つの実行ログへ集約する</caption><thead><tr><th scope="col">項目</th><th scope="col">記録する内容</th></tr></thead><tbody>
+    <tr><th scope="row">対象</th><td>既存job_id、source_launch_id、target_date、入力どおりのsource_run_id。</td></tr>
+    <tr><th scope="row">呼び出し</th><td>担当名、単純な通し番号、入力・出力のパス、応答とstdout/stderrの保存先。</td></tr>
+    <tr><th scope="row">開始と終了</th><td>開始時刻・終了時刻、実際のturn終了またはプロセス終了、取得できた終了コード。起動失敗は失敗として記す。</td></tr>
+    <tr><th scope="row">失敗</th><td>失敗した操作、秘密を含まない例外class・原因連鎖・必要な呼出し位置。ハッシュや例外fingerprintは作らない。</td></tr>
+  </tbody></table></div>
+  <p>DBの現在値がqueued・blocked等でも、それを開始・再開・終了の条件にしません。終了したworkerの記録を残して最後にjobの終了を更新します。「DBが先にcompleteでなければ完了にできない」という循環を削除します。DB更新に失敗した場合も、実行ログへ実際の終了とDB更新失敗を残し、作業の終了を伝えます。</p>
+  <p>途中再開は「同じjobの、指定した担当から」。成果物全体を再検証して開始位置を逆算する処理をやめ、開始担当と短い再作業依頼を渡します。完了後にMarkdownへ追記しても、終了済みworkerの実行を取り消しません。</p>
+</section>
 
-次の担当：実装
-次の入力：incident.md、investigation.md、対象コードへの参照</pre>
-    </details>
-  </section>
+<section id="remove">
+  <span class="kicker">04 / 撤廃を指定された処理</span>
+  <h2>照合・状態・Gitによるゲートを全て外す。</h2>
+  <div class="table-wrap"><table class="remove"><caption>旧ゲートと、新構成での扱い</caption><thead><tr><th scope="col">廃止するもの</th><th scope="col">削除対象</th><th scope="col">新構成</th></tr></thead><tbody>
+    <tr><th scope="row">ハッシュ生成・照合の全経路</th><td>入力・出力・応答・設定・コード差分・Git tree・稼働資材・例外fingerprint・HTML・公開先のハッシュ。SHA等の必須欄、本文へのハッシュmarker、ハッシュによるID・ファイル名生成も削除。</td><td>実ファイルを読んで作業する。参照は既存ID・パス・時刻と差分。新しい呼出しの識別が必要なら単純な通し番号を使う。</td></tr>
+    <tr><th scope="row">既読証明・同一invocation証明<br><small>旧SC-A01</small></th><td>コマンドイベントからの既読抽出、<code>previous_read_acknowledged</code>、8担当が一度のinvocation内にそろう条件、担当設定の観測receipt。</td><td>前成果を読むことは担当の作業。別実行にまたがる再開も同じjobで続ける。読んだ内容は自然な所見へ反映する。</td></tr>
+    <tr><th scope="row">同じjobの新しい日次ログ必須<br><small>旧SC-A03／SCT09</small></th><td>修正を入れた過去jobから新しいDaily実記録が出るまで完了にしない条件。自然日次の待機を完了工程へ組み込む処理。</td><td>本番資材への修正と、変更に対応する試験・レビューを確認して終える。自然日次の観測は後日の運用で行う。</td></tr>
+    <tr><th scope="row">終了時の成果物全体再判定<br><small>旧SC-A04</small></th><td>成果物の古いハッシュや更新状態からroleを未完了へ戻す処理。既存jobのcompleteを先に要求する処理。旧blocked／queuedを持ち越す終了制限。</td><td>workerの終了をその時点で記録する。実作業を文章で確認し、過去の状態を後続の停止条件へ使わない。</td></tr>
+    <tr><th scope="row">Gitと外部公開の完了条件<br><small>旧SC-A05／SCT10</small></th><td>必須stage・commit・push、remote blob読戻し、公開先のハッシュ・bytes一致、Git権限回復を待つ再開条件。</td><td>HTMLを最終保存先へ作る。commit・pushは本人が都合のよい時に行う。Gitの失敗を作業未完了へ結び付けない。</td></tr>
+    <tr><th scope="row">環境全体の合格条件<br><small>旧SC-A07</small></th><td>全tree digest、保存stateと実資材の一致、commit一致、全タスクReady、<code>healthy</code>による反映・終了判定。</td><td>今回の対象ファイルと必要な操作を直接扱う。関係のない資料や別タスクの状態で、修正済みの仕事を未完了に戻さない。</td></tr>
+    <tr><th scope="row">結果の語による起動制限</th><td>原因unknown、試験FAIL、reviewのapproved以外、空応答・不正応答、証拠不足、回数上限を後続開始条件にする処理。</td><td>実結果と不足を次担当へ渡す。実行できない操作だけ理由を残し、できる後続作業を続ける。</td></tr>
+  </tbody></table></div>
+  <div class="note amber"><p><strong>ハッシュを別の照合へ置き換えません。</strong>全ファイルのbytes比較、mtime・サイズ・版番号の一致、必須markerやapproved語の照合で同じゲートを作ることもやめます。パスや時刻は人が読む参照情報です。内容の正しさを読むレビューと、workerの実際の終了確認は本人の指定どおり行います。</p></div>
+  <p class="subline">Git自身が内部で扱うcommit IDを変更する提案ではありません。保守フロー側でcommit IDや内容ハッシュを生成・照合して作業を制限する処理を削除します。既存job_idに過去のハッシュ文字列が含まれていても、再計算せず既存の識別子として使います。</p>
+</section>
 
-  <section id="dataflow">
-    <span class="section-no">03 / データフローと担当の契約</span>
-    <h2>読む資料 → 担当skill → 出す成果物</h2>
-    <p>入口は、対象日のログへの参照です。最初の<code>incident.md</code>に、同じjobの識別情報・参照先・許可された作業をまとめます。</p>
-    <p class="subline">全担当の共通入力：<a href="../../AGENTS.md">AGENTS.md</a>、<code>incident.md</code>、この文書。下図のファイル名は新構成で使う提案です。各成果物には「次の担当・次の入力・次の作業」も書きます。</p>
-    <div class="df-head" aria-hidden="true"><span>読む資料</span><span></span><span>作業する担当</span><span></span><span>次へ渡す成果物</span></div>
+<section id="suggest">
+  <span class="kicker">05 / さらに削れると考える処理</span>
+  <h2>追加で6つの簡略化を勧める。</h2>
+  <p>以下は本人が指定したゲート撤廃に加え、この構成案へ取り込んだ推奨変更です。</p>
+  <div class="table-wrap"><table><thead><tr><th scope="col">推奨する削除</th><th scope="col">削れる理由と、残すもの</th></tr></thead><tbody>
+    <tr><th scope="row">① 公開専用worker</th><td>作者が最終保存先へ書き、レビュー担当もそのファイルを読む。コピー用workerと<code>publication.md</code>の新規生成をなくし、通常8担当を7担当にする。</td></tr>
+    <tr><th scope="row">② 次担当指定のJSON</th><td>通常の順番は固定なので、担当・入力・依頼の3項目JSON、handoffのschema検査、target照合、整形retryをなくす。追加修正は同じjobの元担当へ文章で依頼する。</td></tr>
+    <tr><th scope="row">③ 固定root用の切替状態機械</th><td>作業場所は1か所。別checkoutへの切替・pending/activeの版照合・全tree検査を廃止し、固定フォルダーの変更と必要な再起動等へ反映処理を縮める。</td></tr>
+    <tr><th scope="row">④ 長い計画書・承認表の常設工程</th><td>通常保守では調査結果に短い変更方針と試験方法を書けば実装へ渡せる。専任planner、計画承認、STEP/case/受入表の全件照合を常設の開始条件にしない。</td></tr>
+    <tr><th scope="row">⑤ 複数の実行台帳と終了判定</th><td>担当のMarkdownと1つの実行ログへ集約。receipt、hash ledger、複数manifest、終端reconciliation、承認・公開証明の再登録をなくす。日次の原因調査に有用なログは残す。</td></tr>
+    <tr><th scope="row">⑥ 過去履歴の再判定と全工程リプレイ</th><td>中断後は指定した担当から再開する。成果物の更新で前担当へ自動的に戻る処理と、関係のないPASS工程の再実行を削除する。失敗箇所の局所修正と最後の計画回帰は行う。</td></tr>
+  </tbody></table></div>
+  <p>機械的な合否証明を減らした分、担当者の文章には「何をしたか」「何が分かったか」「何ができなかったか」「次に直す具体的な箇所」を残します。機械検証用の長い共通schemaは必須にしません。</p>
+</section>
 
-    <article class="df-row" id="investigate" aria-labelledby="investigate-title">
-      <div class="data" data-kind="読む資料"><span class="file">incident.md ＋ 対象日のログ</span><ul><li><a href="../operations/日次タスクのトレース・ログ出力一覧.md">日次のトレース・ログ出力一覧</a></li><li><a href="../specifications/inago/イナゴスキル要件定義書.html">期待する日次動作の該当節</a></li><li>関係するコードと、必要な許可済み観測資料</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="investigate-title">1. 調査</h3><p>事実と推測を分ける。原因修正か、診断用ログ追加かを決め、具体的な作業を指示する。</p><small>短い変更方針もここで作る。</small></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-investigation">investigation.md の書式</a></span><p>不具合／原因と根拠／不明点／変更依頼／対象コード／確認方法。</p><p><strong>次：実装</strong></p></div>
-    </article>
+<section id="failures">
+  <span class="kicker">06 / 失敗しても後続へ</span>
+  <h2>実結果を残し、必要な箇所だけ直す。</h2>
+  <div class="two">
+    <div class="card"><h3>原因が分からなかったら</h3><p>分かっていない原因を断定しません。次回の切り分けに役立つ日次処理の観測点を選び、トレース・ログを追加します。操作・開始／終了・秘密を除いた例外情報・既存の起動元を記録し、失敗fixture等で内容を確かめます。</p><p>同じ過去jobでDailyを再現することや、次の日次時刻を待つことを完了条件にしません。</p></div>
+    <div class="card"><h3>workerや操作が失敗したら</h3><p>起動不能、空応答、非ゼロ終了、試験FAIL、反映失敗を具体的に記録し、利用できる元資料と一緒に次担当へ渡します。通常の成果物を書けなければ、操作・失敗理由・利用できる資料・次の作業だけを残します。</p><p>レビュー未実施やHTML未生成はそのまま報告します。フローを止める状態へ置き換えず、実施していない修正・レビュー・HTMLを達成したとは書きません。</p></div>
+  </div>
+  <div class="note"><p><strong>既知の失敗 → その箇所を修正・試験 → 直し終えたら計画回帰を一度。</strong>最終回帰で新たに失敗したら、該当nodeと直接影響するnodeへ戻ります。変更のないPASSを毎回繰り返しません。試験記録はコマンド・完全node・対象ファイル／差分・期待・実結果・終了コードで残し、ハッシュ欄を要求しません。</p></div>
+  <p>HTMLの指摘は作者が同じ保存先で修正し、別のレビュー担当がその実物を読み直します。指摘を理由に後続全体を停止したり、調査・実装・試験の済んだ仕事からやり直したりしません。製品コードに追加修正がある場合も、その変更箇所の試験と独立レビューを行います。</p>
+  <details><summary>短いMarkdownの例</summary><pre># 実装結果
+対象: incident.md
+担当・日時: 実際の担当名と作業日時
 
-    <article class="df-row" id="implement" aria-labelledby="implement-title">
-      <div class="data" data-kind="読む資料"><span class="file">investigation.md</span><ul><li>指示された製品コードと既存テスト</li><li><a href="../specifications/inago/AT-TRACE-01_共通トレース契約.md">共通トレース契約の記録項目・伏字規則</a></li><li>日次の期待動作の該当節</li><li>再作業なら、試験失敗・レビュー指摘</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="implement-title">2. 実装</h3><p>短い作業方針を書き、実際のコードを変える。原因不明なら、次回診断に役立つログを追加する。</p></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">コード差分 ＋ <a href="#format-implementation">implementation.md の書式</a></span><p>変更ファイル／変わった動作／追加・再利用したログ／記録内容／試験依頼。既存変更と今回の所有範囲も記す。</p><p><strong>次：試験</strong></p></div>
-    </article>
+## 行ったこと
+- 変更したファイル・箇所と動作の違い
+- 日次に追加したログと、次回に分かること
 
-    <article class="df-row" id="test" aria-labelledby="test-title">
-      <div class="data" data-kind="読む資料"><span class="file">investigation.md ＋ implementation.md</span><ul><li>変更コードと関係する<code>tests_inago/</code></li><li>実装担当が指定した確認方法</li><li>ログ追加なら、記録すべき項目と切り分けたい失敗</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="test-title">3. 試験</h3><p>必要なfocusedテストを作成・実行する。合成fixture・一時DBで失敗を起こし、実際の記録内容を確認する。</p><small>製品コードは直さず、失敗を次へ渡す。</small></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-test">test.md の書式</a> ＋ test.log</span><p>対象版／実行コマンド／期待と実結果／終了コード／生成ログへの参照。FAIL・未実施は理由も記す。</p><p><strong>次：製品レビュー</strong></p></div>
-    </article>
-
-    <article class="df-row" id="code-review" aria-labelledby="code-review-title">
-      <div class="data" data-kind="読む資料"><span class="file">調査・実装・試験の3文書 ＋ 製品差分</span><ul><li>変更後の製品コード</li><li>試験の実結果と追加ログ</li><li>調査担当の変更依頼・確認方法</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="code-review-title">4. 製品レビュー</h3><p>独立した担当が、依頼どおりの修正・日次ログ追加かを確認する。試験コード自体の独立レビューは行わない。</p></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-code-review">code-review.md の書式</a></span><p>対象版／実所見／指摘箇所／修正依頼。対象差分がなければ、その事実を記す。</p><p><strong>次：反映</strong>。指摘とFAILも一緒に渡す。</p></div>
-    </article>
-
-    <article class="df-row" id="deploy" aria-labelledby="deploy-title">
-      <div class="data" data-kind="読む資料"><span class="file">implementation.md ＋ test.md ＋ code-review.md</span><ul><li>今回所有する差分</li><li>現在のbranch・tracking先・稼働版</li><li><a href="../specifications/inago/保守運用設定仕様.md">運用設定仕様の適用・確認手順</a></li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task delivery"><h3 id="deploy-title">5. 反映</h3><p>LLMが差分・試験・指摘を読み、必要な修正を判断する。適用する変更は選択commit/pushし、本番へ反映して稼働版を読む。</p><small>操作はGit・既存CLI等の道具で実行。</small></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-deployment">deployment.md の書式</a></span><p>実行した操作／commit・push先／schema適用の有無／実際の稼働版／失敗・未実施と理由／残る修正依頼。</p><p><strong>次：レポート</strong></p></div>
-    </article>
-
-    <article class="df-row" id="report" aria-labelledby="report-title">
-      <div class="data" data-kind="読む資料"><span class="file">ここまでの全成果物</span><ul><li><a href="../standards/イナゴ日次不具合レポート作成ルール.md">日次不具合レポート作成ルール</a></li><li><a href="../templates/incidents/日次不具合対応レポート_ひな形.html">既存のHTMLひな形</a></li><li>必要な箇所だけ、元ログ・差分と照合</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="report-title">6. レポート作成</h3><p>LLMがHTMLを直接作る。①不具合、②原因、③実施した修正、④追加したログと役立ち方を平易に書く。</p><small>Pythonによる文章の合成・再描画をなくす。</small></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">report.html ＋ <a href="#format-report">report.md の書式</a></span><p>HTMLの実物と、その参照先・未達事項。通常作成に失敗したら、同じ担当を短い指示で起動し最小HTMLを作る。</p><p><strong>次：HTMLレビュー</strong></p></div>
-    </article>
-
-    <article class="df-row" id="html-review" aria-labelledby="html-review-title">
-      <div class="data" data-kind="読む資料"><span class="file">report.html ＋ 根拠の成果物</span><ul><li><a href="../standards/イナゴ日次不具合レポート作成ルール.md">作成ルールの「本文で伝える4点」</a></li><li>調査・実装・反映結果の該当部分</li><li>再レビューなら、作者の修正後HTML</li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task"><h3 id="html-review-title">7. HTMLレビュー</h3><p>作者と別の担当が、4点の欠落・誤り・分かりにくさと秘密の露出を確認する。管理情報や表示分類を追加要求しない。</p></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-html-review">html-review.md の書式</a></span><p>実際に読んだHTMLの版／所見／修正依頼。指摘は作者が修正し、その実物を再レビューする。</p><p><strong>次：修正が必要ならレポート作成、修正後は再レビュー。最終版を公開へ。</strong></p></div>
-    </article>
-
-    <article class="df-row" id="publish" aria-labelledby="publish-title">
-      <div class="data" data-kind="読む資料"><span class="file">最終report.html ＋ html-review.md</span><ul><li>反映結果と、まだ残る作業</li><li><code>incident.md</code>にある公開先</li><li><a href="../../AGENTS.md">今回所有分のGit処理規則</a></li></ul></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="task delivery"><h3 id="publish-title">8. 公開・結果登録</h3><p>レビュー済みHTMLをそのままcommit/pushし、公開した実物と照合する。同じjobへ実結果と次の作業を残す。</p></div>
-      <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">公開HTML ＋ <a href="#format-publication">publication.md の書式</a></span><p>公開先／commit・push先／公開実物との一致／対応の達成・未達／同じjobでの次作業。</p><p><strong>次：未達があれば担当へ戻す。達成したら終了。</strong></p></div>
-    </article>
-
-    <details id="inputs">
-      <summary>入口と保存場所を見る</summary>
-      <p style="margin-top:12px">初期入力だけは受付が固定情報から作ります。以後の説明・判断・次担当への指示は、各LLMが出力します。ログ本文を全担当へ何度もコピーせず、必要な参照だけ渡します。</p>
-      <p><a href="#format-incident">入口 incident.md の書式</a>と、<a href="#formats">各担当のMarkdown書式</a>を次節に定義します。</p>
-      <p>保存場所の提案：<code>rakuten-room-inago/runtime/maintenance-flow/〈同じjob_id〉/</code>。図の<code>investigation.md</code>等をここへ保存します。やり直すときは旧版も残し、同じjobで続けます。公開するのはレポートHTMLだけです。</p>
-      <p class="subline">ログ参照の具体例：<code>rakuten-room-inago/runtime/logs/production-cli.jsonl</code>、<code>rakuten-room-inago/runtime/logs/traces/〈日付〉/〈run_id〉.jsonl</code>、<code>rakuten-room-inago/runtime/logs/〈対象日〉/ai-root-transport.jsonl</code>。実際に存在する対象の参照を入口へ書きます。run未生成ならrun別ログの存在を仮定せず、CLIや起動記録の参照と欠測を渡します。</p>
-    </details>
-
-    <details id="skill-map">
-      <summary>使うskillと、参照資料の実ファイルを見る</summary>
-      <p style="margin-top:12px">既存skillは、この文書の短い入出力契約へ同期して使う案です。現行のcontroller・承認ID・長い計画書に依存する指示は整理します。新設が必要なのは「反映・公開」の1種類です。</p>
-      <ul class="refs">
-        <li><strong>調査</strong> — <a href="../../.agents/skills/rr-inago-incident-investigation/SKILL.md">既存の調査skill</a><code>.agents/skills/rr-inago-incident-investigation/SKILL.md</code></li>
-        <li><strong>実装</strong> — <a href="../../.agents/skills/common-implementation/SKILL.md">既存の実装skill</a><code>.agents/skills/common-implementation/SKILL.md</code></li>
-        <li><strong>試験</strong> — <a href="../../.agents/skills/common-testing/SKILL.md">既存の試験skill</a><code>.agents/skills/common-testing/SKILL.md</code></li>
-        <li><strong>レビュー</strong> — <a href="../../.agents/skills/common-review/SKILL.md">既存のレビューskill</a>を製品／HTMLの2用途へ整理。毎回、対象の作者と別agentを起動する。<code>.agents/skills/common-review/SKILL.md</code></li>
-        <li><strong>レポート作成</strong> — <a href="../../.agents/skills/rr-inago-incident-report/SKILL.md">既存の報告skill</a>をHTML直接作成へ整理。<code>.agents/skills/rr-inago-incident-report/SKILL.md</code></li>
-        <li><strong>反映・公開</strong> — <span class="proposed">新設するskill（この時点では未作成）</span>。入力の作業依頼に従い、適用または公開を実行する。<code>.agents/skills/rr-inago-maintenance-delivery/SKILL.md（提案）</code></li>
-        <li><strong>期待する日次動作</strong> — <a href="../specifications/inago/イナゴスキル要件定義書.html">要件定義書の関係する節だけを読む</a><code>docs/specifications/inago/イナゴスキル要件定義書.html</code></li>
-        <li><strong>ログの場所</strong> — <a href="../operations/日次タスクのトレース・ログ出力一覧.md">トレース・ログ出力一覧</a><code>docs/operations/日次タスクのトレース・ログ出力一覧.md</code></li>
-        <li><strong>ログの内容</strong> — <a href="../specifications/inago/AT-TRACE-01_共通トレース契約.md">記録項目と伏字規則</a><code>docs/specifications/inago/AT-TRACE-01_共通トレース契約.md</code></li>
-        <li><strong>運用操作</strong> — <a href="../specifications/inago/保守運用設定仕様.md">適用・稼働確認に関係する手順</a>。旧フローの状態制御を新構成へ持ち込まない。<code>docs/specifications/inago/保守運用設定仕様.md</code></li>
-        <li><strong>HTMLの文章とひな形</strong> — <a href="../standards/イナゴ日次不具合レポート作成ルール.md">作成ルール</a> ／ <a href="../templates/incidents/日次不具合対応レポート_ひな形.html">既存ひな形</a><code>docs/standards/イナゴ日次不具合レポート作成ルール.md</code><code>docs/templates/incidents/日次不具合対応レポート_ひな形.html</code></li>
-      </ul>
-    </details>
-  </section>
-
-  <section id="formats">
-    <span class="section-no">04 / Markdownの引継ぎ書式</span>
-    <h2>共通の枠に、担当ごとの結果を書く。</h2>
-    <p>入口1種類と担当の成果物8種類を定義します。担当の成果物は<strong>下の共通書式＋担当別本文</strong>で作ります。共通の枠と必要な担当別本文をコピーして使えます。</p>
-    <div class="principles"><a href="#format-incident">入口</a><a href="#format-investigation">調査</a><a href="#format-implementation">実装</a><a href="#format-test">試験</a><a href="#format-code-review">製品レビュー</a><a href="#format-deployment">反映</a><a href="#format-report">レポート作成</a><a href="#format-html-review">HTMLレビュー</a><a href="#format-publication">公開</a></div>
-
-    <details id="format-common" open>
-      <summary>全担当共通：8種類の成果物に使う枠</summary>
-      <pre># 〈担当名〉結果
-対象: [incident.md](incident.md)
-担当: 〈実際に作業したagent名〉
-更新: 〈日時・タイムゾーン〉
-
-## 入力
-- [〈実際に読んだ文書〉](〈参照先〉)
-
-## 結論
-〈行ったことと実結果を、短く書く〉
-
-〈ここに、下で定義した担当別本文の見出しと内容を入れる〉
+## 確かめたこと
+- 実物・差分・実行コマンドと実結果の参照
 
 ## 不明・失敗・未実施
-- 〈分からないこと／失敗・未実施の操作と具体的理由／記録への参照〉
+- 対象の操作と具体的な理由
 
 ## 次の作業
-- 担当: 〈次の担当名〉
-- 入力: 〈次の担当が読むファイルへの参照〉
-- 依頼: 〈何を、どう作業してほしいか〉</pre>
-      <ul class="compact"><li>共通見出しと担当別見出しは残す。空欄にせず、「不明」「未実施＋理由」「該当なし＋理由」を書く。既知の情報が不足しても担当は作業を始める。</li><li>根拠はファイル・行・時刻等で示す。担当の成功宣言だけで、差分・試験ログ・適用結果を代用しない。秘密や生の業務データは転記しない。</li><li>ファイル参照はjobフォルダーからの相対パス。製品コード・既存資料はリポジトリからの相対パスと明記する。読めなかった入力は「不明・失敗・未実施」へ書く。</li><li>失敗は具体的な操作と理由を記し、例外の原因連鎖・捕捉位置・実行版・相関IDが読める安全化済みの記録を参照する。失敗記録も次へ渡す。</li><li>再作業では旧版を残し、実際に更新した成果物を次へ渡す。スクリプトは本文を変換・採点しない。</li></ul>
-    </details>
+- 確認してほしい箇所、または追加修正の依頼</pre><p class="subline">これは書きやすくする例です。見出しや特定の語がないという理由でworker起動・終了を拒否しません。</p></details>
+</section>
 
-    <details id="format-incident">
-      <summary>incident.md — 受付が作る、固定の入口</summary>
-      <p style="margin-top:12px">このファイルだけは共通の結果書式を使いません。対象の識別情報を後続LLMが推測・変更しないための入口です。</p>
-      <pre># 保守の依頼
-
-## 対象
-- job_id: 〈既存の対象job〉
-- source_launch_id: 〈対象の起動ID〉
-- target_date: 〈対象日〉
-- source_run_id: 〈実際のrun ID。未生成ならnull〉
-- 作業場所: C:\project\rakuten-room-inago
-
-## 起きたこと
-〈日次タスクの症状・期待した動作・分かっている影響〉
-
-## ログ・観測資料
-- 〈資料の参照先〉: 〈対象期間・関連する操作〉
-- 〈存在しない資料〉: 未提供。〈不足している理由〉
-
-## コードと仕様
-- 障害発生時の実行版: 〈実測値。不明なら不明〉
-- 現在のコード: 〈リポジトリ参照・commit〉
-- 期待動作: 〈要件定義書の該当節〉
-
-## 許可された作業
-- 〈原因修正・有用な日次診断ログの追加・試験・適用・報告等〉
-- 禁止する副作用: 〈別workspace、通常Daily手動起動等の今回の条件〉
-- 公開先: reports/incidents/〈対象日〉/〈対象HTML〉
-
-## 最初の作業
-- 担当: 調査
-- 入力: incident.mdと上のログ・資料
-- 依頼: 原因と根拠を調べ、実装担当への具体的な依頼を書いてください。</pre>
-    </details>
-
-    <details id="format-investigation">
-      <summary>investigation.md — 調査から実装へ</summary>
-      <p style="margin-top:12px">共通タイトルは「調査結果」。次の本文を共通書式へ入れます。通常の引継ぎ先は実装です。</p>
-      <pre>## 起きたこと
-- 操作: 〈日次タスクのどの処理か〉
-- 期待: 〈本来の動作〉
-- 実際と影響: 〈ログで確かめた事実〉
-- 根拠: 〈ログ・観測資料の参照と行・時刻〉
-
-## 原因
-- 分かったこと: 〈確認できた原因。不明なら不明〉
-- 根拠: 〈原因を裏付ける記録。仮説は仮説と書く〉
-- 足りない情報: 〈なぜ特定できないか。不要ならその理由〉
-
-## 実装への依頼
-- 方針: 〈原因修正／診断用ログ追加／両方。実施しないなら具体的理由〉
-- 対象: 〈リポジトリ内のファイル・関数や操作境界〉
-- 変更: 〈何をどう変えるか〉
-- 追加する記録: 〈どの操作の何を記録するか〉
-- 次回分かること: 〈記録から何を切り分けられるか〉
-- 確認方法: 〈起こす状況と、得られるべき動作・記録〉</pre>
-      <p class="subline">原因不明なら、日次の不足観測点と記録内容を具体化します。「原因不明なので修正なし」だけでは引き継ぎません。</p>
-    </details>
-
-    <details id="format-implementation">
-      <summary>implementation.md — 実装から試験へ</summary>
-      <p style="margin-top:12px">共通タイトルは「実装結果」。通常の引継ぎ先は試験です。</p>
-      <pre>## 変更したもの
-- 対象版: 〈commit。未commit変更があれば、その差分の参照も記す〉
-- 今回の所有範囲: 〈ファイル・変更箇所。既存の他者変更を区別〉
-
-| ファイル・箇所 | 変更前から変更後の動作 | 理由・差分への参照 |
-| --- | --- | --- |
-| 〈実際に変更した箇所〉 | 〈動作の違い〉 | 〈調査の依頼と対応〉 |
-
-## トレース・ログ
-- 対象処理: 〈日次処理／保守処理のどの操作か〉
-- 今回の対応: 〈新規追加／既存を拡張／既存を再利用。未変更なら理由〉
-- 記録項目と保存先: 〈実装した内容〉
-- 切り分けに役立つこと: 〈次回に判別できることと限界〉
-- 根拠: 〈記録するコード・差分への参照〉
-
-## 試験への依頼
-- 試験対象: 〈変更箇所と影響範囲〉
-- 起こす状況: 〈通常動作・合成失敗等〉
-- 期待する結果: 〈動作と実際に出るべき記録〉
-- 既存テスト: 〈関係するtest nodeやファイル〉</pre>
-      <p class="subline">コード未変更でも理由と試験への依頼を残します。修正準備の失敗を「原因修正も有用なログ追加もできない理由」に置き換えません。</p>
-    </details>
-
-    <details id="format-test">
-      <summary>test.md — 試験から独立製品レビューへ</summary>
-      <p style="margin-top:12px">共通タイトルは「試験結果」。通常の引継ぎ先はレビュー、依頼内容は製品コードの確認です。</p>
-      <pre>## 試験した対象
-- コード版・差分: 〈実際に試験したcommitと未commit差分への参照〉
-- 環境: 〈interpreter・一時DB等、再実行に必要な情報だけ〉
-- 追加・変更したテスト: 〈ファイル。なければなし〉
-
-## 実測結果
-| 実行コマンド・完全test node | 期待 | 実結果・終了コード | 記録 |
-| --- | --- | --- | --- |
-| 〈実際のコマンド〉 | 〈確かめる動作〉 | 〈PASS/FAILと整数の終了コード。未実施なら理由〉 | [test.log](test.log) の〈該当行〉 |
-
-## 診断ログの確認
-- 起こした失敗: 〈合成fixtureの条件。実障害の再発とは区別〉
-- 実際に出た記録: 〈生成ログへの参照・必要項目の有無〉
-- 切り分けの結果: 〈どの操作・例外・原因連鎖まで読めたか〉
-- 確認していない範囲: 〈自然な次回日次等〉
-
-## 再作業が必要なこと
-- 〈失敗した期待・対象箇所・実装担当への具体的依頼。なければなし〉</pre>
-      <p class="subline">試験対象がない場合も、その事実と成果物の整合を確認して渡します。FAILや未実施でもレビュー担当を起動します。</p>
-    </details>
-
-    <details id="format-code-review">
-      <summary>code-review.md — 独立製品レビューから反映へ</summary>
-      <p style="margin-top:12px">共通タイトルは「製品レビュー結果」。通常の引継ぎ先は反映・公開、依頼内容は製品変更の反映確認です。</p>
-      <pre>## 読んだ対象
-- 製品コード版・差分: 〈実際に読んだ対象への参照〉
-- 試験記録: [test.md](test.md) と参照した実測ログ
-- 独立確認: 〈作者と異なるレビュー担当であること〉
-
-## 所見
-- 調査の依頼に対応しているか: 〈根拠と実所見〉
-- 日次診断ログが必要な情報を残すか: 〈コードと試験記録に基づく所見〉
-- 影響・未確認事項: 〈今回の変更に関係するものだけ〉
-
-## 指摘
-1. 箇所: 〈ファイル・行〉
-   内容と根拠: 〈何が問題か〉
-   修正依頼: 〈どう直し、何を確認するか〉
-〈指摘なしなら「指摘なし」。対象未取得なら、その理由と確認範囲〉
-
-## 反映担当へ渡すこと
-- 〈反映対象と、残る指摘・試験FAIL・再作業依頼〉</pre>
-      <p class="subline">製品コードのレビューです。テストコードの独立レビューは追加しません。対象差分がない場合は「対象差分なし」と書き、承認したことにしません。</p>
-    </details>
-
-    <details id="format-deployment">
-      <summary>deployment.md — 反映からレポート作成へ</summary>
-      <p style="margin-top:12px">共通タイトルは「反映結果」。通常の引継ぎ先はレポート作成です。</p>
-      <pre>## 対象変更
-- 変更内容・今回の所有ファイル: 〈implementation.mdと実際の差分への参照〉
-- 試験・レビュー: 〈読んだ実結果と残る指摘〉
-
-## 操作と実結果
-| 操作 | 実際のコマンド・対象 | 実結果・未実施理由 | 根拠 |
-| --- | --- | --- | --- |
-| commit/push | 〈branch・commit・tracking先〉 | 〈実結果〉 | 〈操作ログ〉 |
-| schema適用 | 〈対象migration。不要なら不要と理由〉 | 〈実結果〉 | 〈適用確認〉 |
-| コード適用 | 〈適用した版と操作〉 | 〈実結果〉 | 〈操作ログ〉 |
-
-## 適用後の確認
-- 実際の稼働版: 〈読戻した値と根拠。未確認なら未確認〉
-- 想定版との一致: 〈比較した実結果〉
-- 動作・記録の確認: 〈実施内容と根拠。隔離試験と自然日次を区別〉
-
-## 残る対応
-- 〈未反映・指摘・FAILと、次に誰が何を行うか。なければなし〉</pre>
-      <p class="subline">push成功から本番適用を推定しません。適用しなかった操作も理由を残し、レポート担当へ渡します。</p>
-    </details>
-
-    <details id="format-report">
-      <summary>report.md — レポート作者から独立HTMLレビューへ</summary>
-      <p style="margin-top:12px">共通タイトルは「レポート作成結果」。通常の引継ぎ先はレビュー、依頼内容はHTML本文の確認です。HTML本文は別ファイル<code>report.html</code>へ直接書きます。</p>
-      <pre>## 作成したHTML
-- ファイル: [report.html](report.html)
-- 内容の識別: 〈実ファイルから計算したSHA-256〉
-- 作成方法: 〈通常の報告／確認できた事実だけの最小報告〉
-
-## 本文4点の根拠
-- 発生した不具合: 〈本文の説明と、investigation.mdの該当箇所〉
-- 原因: 〈判明内容または不明とする根拠〉
-- 実施した修正: 〈implementation.md・deployment.mdの該当箇所〉
-- 追加したトレース・ログ: 〈記録内容・次回に役立つ点・実装と適用の根拠〉
-
-## 未達事項の反映
-- 〈原因未解決・未実施・未反映等を本文へどう記したか〉
-
-## レビュー指摘への修正
-- 初回: 指摘前。
-- 修正時: 〈html-review.mdの指摘／作者が直した箇所／修正後の内容〉</pre>
-      <p class="subline">このファイルは作者の引継ぎです。レビュー済み・公開済みの証明にはしません。修正後は上のHTML識別値も実物から更新します。</p>
-    </details>
-
-    <details id="format-html-review">
-      <summary>html-review.md — 独立HTMLレビューから作者または公開へ</summary>
-      <p style="margin-top:12px">共通タイトルは「HTMLレビュー結果」。修正が必要ならレポート作成へ返し、作者の修正後HTMLを再度読みます。確認した最終版を反映・公開へ渡します。</p>
-      <pre>## 読んだHTML
-- ファイル: [report.html](report.html)
-- 内容の識別: 〈実際に読んだファイルのSHA-256〉
-- 独立確認: 〈作者と異なるレビュー担当であること〉
-
-## 4点の確認
-- 不具合の説明: 〈根拠との一致・欠落・分かりにくさ〉
-- 原因の説明: 〈不明を含め、根拠と合うか〉
-- 実施した修正: 〈実際に行った内容と合うか〉
-- 追加したログ: 〈記録内容と次回の役立ち方が、実装・適用結果と合うか〉
-- 秘密・個人情報: 〈露出の有無。確認不能なら理由〉
-
-## 指摘
-1. 本文の場所: 〈見出し・該当文〉
-   問題と根拠: 〈4点のどこが誤っている、または不足しているか〉
-   作者への依頼: 〈必要な修正〉
-〈指摘なしなら「指摘なし」。読めなかった場合は不能理由〉
-
-## 作者修正後の再確認
-- 〈修正した実物を読んだ結果。初回は「まだ再確認していない」〉</pre>
-      <p class="subline">管理情報の詳しさ・資料一覧・表示分類等は指摘対象にしません。HTMLが変わったら、前の所見を新しい版の承認として使いません。</p>
-    </details>
-
-    <details id="format-publication">
-      <summary>publication.md — 公開結果と、同じjobの再開先</summary>
-      <p style="margin-top:12px">共通タイトルは「公開結果」。未達があれば担当へ戻し、対応と最終公開の実結果が揃ったら終了を指示します。</p>
-      <pre>## 公開対象
-- HTML: 〈公開した、または公開を試したファイル〉
-- レビュー: [html-review.md](html-review.md) の〈対象HTML識別値・実所見〉
-- 作者修正後の最終確認: 〈どの実物を読んだか。未確認ならその理由〉
-
-## 公開の実結果
-- 保存先: reports/incidents/〈対象日〉/〈対象HTML〉
-- branch・commit・push先: 〈実際の値。失敗なら失敗と理由〉
-- 公開実物との一致: 〈公開先から読んだHTMLとレビュー対象の比較結果・根拠〉
-
-## 対応と報告の実結果
-- 原因: 〈判明／不明と根拠〉
-- 原因修正または日次診断ログ追加: 〈実装・試験・製品レビュー・適用の実結果への参照〉
-- レビュー後の最終HTML公開: 〈実結果への参照。未承認を承認済みとしない〉
-- 未達事項: 〈残る作業。ないと言える根拠も書く〉
-
-## 同じjobの次の対応
-- 再開先と作業: 〈実装・試験・反映・HTML作成等、実際に未達の作業〉
-- 終了する場合の根拠: 〈原因修正／有用な日次ログ対応と最終公開の達成根拠。修正も計装もできない場合は、双方が実施不能の具体的理由〉</pre>
-      <p class="subline">「報告を公開した」だけで対応完了にはしません。原因不明でも、日次診断ログへの有用な対応を実施・確認していれば、その事実と限界を書けます。</p>
-    </details>
-
-    <details id="format-launch">
-      <summary>全担当共通：スクリプトへ返す起動指示は3項目だけ</summary>
-      <p style="margin-top:12px">Markdownの「次の作業」と同じ依頼を、LLMの最終応答として返します。本文の業務判断はLLMが行い、スクリプトはこの3項目で起動するだけです。</p>
-      <pre>{
-  "担当": "試験",
-  "入力": ["incident.md", "investigation.md", "implementation.md"],
-  "依頼": "変更した日次処理を合成fixtureで失敗させ、診断に必要な記録が残るか確認してください。"
-}</pre>
-      <p>担当名は<code>調査／実装／試験／レビュー／反映・公開／レポート作成／終了</code>。レビュー対象が製品かHTMLか、作業が反映か公開かは「依頼」に書きます。<code>終了</code>は次担当の起動が不要という意味で、実結果を<code>publication.md</code>に残してから使います。</p>
-    </details>
-  </section>
-
-  <section id="runner">
-    <span class="section-no">05 / 実行スクリプトは1本</span>
-    <h2>LLMが判断し、スクリプトは呼び出す。</h2>
-    <div class="split">
-      <div class="responsibility llm"><h3>各LLMが行うこと</h3><ul class="compact"><li>資料を読み、原因と変更内容を判断する</li><li>コード・試験・HTML・引継ぎ文書を作る</li><li>指摘の修正や次担当への依頼を決める</li><li>反映・公開の道具を実行し、実結果を記す</li></ul></div>
-      <div class="responsibility runner"><h3>スクリプトに残すこと</h3><ol class="compact"><li>同じjobの資料で、指定されたskillを起動</li><li>LLMの応答と呼出し失敗をそのまま保存</li><li>次担当を起動し、中断後も同じjobで再開</li></ol><p class="subline">担当名・参照先の最低限の確認だけ行う。判断用の中間変数、承認の照合、文章生成、工程別の複雑な分岐を持たせない。</p></div>
-    </div>
-    <figure aria-label="LLMを起動し、成果物を保存し、LLMが指定した次担当を起動する繰り返し">
-      <div class="strip"><div><b>資料を渡す</b><small>同じjobと前担当の成果物</small></div><div><b>skillを起動</b><small>LLMが作業・次担当を指定</small></div><div><b>応答を保存</b><small>実物と実行記録を残す</small></div><div><b>指定先へ渡す</b><small>次も同じ呼出し処理</small></div></div>
-      <figcaption>skillは担当agentへの指示書。Git・pytest・ファイル操作等は、そのagentが必要な道具として使います。</figcaption>
-    </figure>
-    <details>
-      <summary>起動・再開・失敗の記録だけ補足</summary>
-      <ul class="compact"><li>一つのjobは直列に実行。同じ実行を重ねて起動しない最低限の処理だけ残す。</li><li>応答が不正なら、元応答と不正箇所を残し、同じ担当へ整形を依頼する。内容の推測や成功への置換をしない。</li><li>AIを呼べない場合は、操作、例外と原因の連鎖、捕捉位置、実行版、同じjob、入力・出力参照を記録する。次の固定担当へ元資料と失敗記録を渡す。</li><li>記録書込みが失敗したら、標準エラーと独立した予備ファイルへの保存を試し、後続の呼出しを続ける。復帰後、欠けた区間を不明として残す。</li><li>再開には保存済みの最後の引継ぎを使う。成果物の存在だけで作業成功とは判定せず、次担当が内容と実物を読む。</li><li>全担当のreasoning effortはhigh。設定値を実測値として扱わない。</li></ul>
-    </details>
-  </section>
-
-  <section id="results">
-    <span class="section-no">06 / 失敗しても報告し、未達は残す</span>
-    <h2>途中で失敗しても、次の担当は起動する。</h2>
-    <figure aria-label="失敗した操作の事実を成果物に残し、後続を起動して報告し、未達を同じjobで修正する">
-      <div class="strip"><div><b>操作が失敗</b><small>試験FAIL・AI失敗・反映失敗等</small></div><div><b>理由を成果物へ</b><small>実施／未実施と根拠</small></div><div><b>後続担当を起動</b><small>レビュー・反映確認・報告へ渡す</small></div><div><b>同じjobで直す</b><small>未達を適切な担当へ戻す</small></div></div>
-    </figure>
-    <p>試験FAILや製品レビュー指摘でも、後続担当は内容を受け取ります。反映できない操作はその理由を書き、報告まで進めます。未達の修正は同じjobに残し、LLMの引継ぎで実装 → 試験 → レビュー → 反映を再開します。状態名や回数上限で担当起動を止めません。</p>
-    <div class="note"><p><strong>HTMLの指摘は、レポート作者へ返す。</strong>作者が直した実物を別担当が再レビューし、その版を最終公開します。作者・レビュー・公開の間でHTML本文を書き換える中間処理は置きません。レビュー不能や修正未完了の場合も公開処理へ事実を渡し、未承認の出力をレビュー済み最終成果とは扱わず、同じjobで作成・レビュー・公開を続けます。</p></div>
-    <div class="result" style="margin-top:20px">
-      <div><h3>対応を達成した事実</h3><div class="pill-row"><span>実装</span><span>試験</span><span>独立レビュー</span><span>本番適用</span></div><p>原因修正、または次回の原因特定に役立つ<strong>日次処理の診断用ログ</strong>について、実際の差分・試験記録・所見・適用結果がある。</p><small>両方ともできない場合だけ、具体的な理由を残す。実装準備の失敗は、その理由の代わりにならない。</small></div>
-      <div><h3>報告を公開した事実</h3><div class="pill-row"><span>HTML作成</span><span>作者修正</span><span>独立レビュー</span><span>公開実物</span></div><p>修正後のHTMLが実際にレビューされ、その実物を公開した。追加ログの内容と、次回に何が分かるかが本文に書かれている。</p><small>公開しただけで対応達成にしない。未達があれば同じjobの次の作業として保持する。</small></div>
-    </div>
-    <div class="note green"><p>原因不明のままでも、有用な日次ログの追加・試験・レビュー・適用と、レビュー済みHTML公開までは達成できます。原因が判明したか、今回の対応を達成したか、報告を公開したかは、それぞれ実際の結果を書きます。</p></div>
-    <p class="subline" style="margin-top:14px">今回の引継ぎ条件も<code>incident.md</code>へ保持：同じ10/17 job・launch、source_run_idはnull、10/19除外維持。新jobでの代替、通常Dailyの手動実行、不足下書きの追生成は行いません。診断用ログは隔離試験で確認し、次の自然な日次での観測とは区別します。</p>
-  </section>
+<section id="changes">
+  <span class="kicker">07 / 実装へ渡す範囲</span>
+  <h2>コードと指示書を一緒に軽くする。</h2>
+  <p>構成案だけを変えて現行ゲートを残さないよう、実装時は次の範囲を同期します。過去の実行ログ・レビュー記録にあるハッシュや旧状態は当時の履歴として保存し、新たな生成・照合には使いません。</p>
+  <div class="table-wrap"><table><thead><tr><th scope="col">対象</th><th scope="col">実装時に行うこと</th></tr></thead><tbody>
+    <tr><th scope="row"><code>skill_chain.py</code></th><td>固定7担当の起動・終了待ち・実行記録・指定担当からの再開へ縮める。ハッシュhelper、成果物の新旧判定、既読抽出、handoff整形、最終HTML marker照合、終了時の全成果物検査を削除する。</td></tr>
+    <tr><th scope="row"><code>worker.py</code></th><td>チェーンの終了とDB旧状態を二重判定する経路、終端reconciliation必須を削除。全workerの実際の終了後にjob終了を記録する。履歴jobの選択用ハッシュ生成は既存ID参照へ置き換える。</td></tr>
+    <tr><th scope="row"><code>deployment.py</code><br><code>runtime_switcher.py</code></th><td>全tree・ファイルhash、commit一致、active/pending state照合による反映制御を削除し、固定rootへの必要な反映操作へ集約する。Git操作とタスク全体の合格判定を外す。</td></tr>
+    <tr><th scope="row">その他の保守経路・共通アダプター</th><td><code>app_server.py</code>の保守担当呼出し、maintenance配下のAI adapter、evidence、reporting、failure journal、code revision、旧workflow等も対象にする。応答fingerprint、証拠hash、例外hash、公開名hash、旧ゲートへの迂回経路を残さず、不要になった呼出しごと削除する。</td></tr>
+    <tr><th scope="row">schema・DB登録</th><td>現行経路で必須のhash欄をなくす。必要なmigrationは過去行を保全して行い、ダミーハッシュで必須制約を埋めない。実行記録を重複登録するreceipt・manifestの新規生成をやめる。</td></tr>
+    <tr><th scope="row">skills・roles・要求・報告規則</th><td>7担当の責任、短い入出力、Gitは本人担当、ハッシュ不要、新完了基準へ同期する。<code>AGENTS.md</code>の試験記録も対象ファイル・差分の参照へそろえる。旧計画や承認済みの過去レビューを現在のゲートとして参照しない。</td></tr>
+    <tr><th scope="row">変更に関係する試験</th><td>ハッシュ・既読・status markerを必須とする旧期待を削除。workerの実終了、失敗時の後続起動、指定箇所からの再開、実修正・レビュー・HTMLの作業を確認する。既知の失敗nodeを先に直し、最後に関係する計画回帰を一度実行する。</td></tr>
+  </tbody></table></div>
+  <div class="note green"><p><strong>今回の10/17 jobの対象は維持します。</strong>同じjob_id・source_launch_id・target_dateを使用し、source_run_idはnullのままです。新job、日次run、下書きを代わりに作りません。10/19の除外とqueue/history保全、10/20 Dailyの再処理禁止、通常Dailyの手動起動禁止を守り、13:00待機を追加しません。</p></div>
+  <details><summary>参照する実ファイル</summary><ul class="ref-list">
+    <li><a href="../../automation/inago/maintenance/skill_chain.py">担当起動と現在の終了検査</a> ／ <a href="../../automation/inago/maintenance/worker.py">履歴Workerとjob終了処理</a></li>
+    <li><a href="../../automation/inago/maintenance/deployment.py">反映処理</a> ／ <a href="../../automation/inago/maintenance/runtime_switcher.py">現在の実行環境切替処理</a></li>
+    <li><a href="../standards/イナゴ日次不具合レポート作成ルール.md">HTML本文の4点・独立レビュー範囲</a></li>
+    <li><a href="../../AGENTS.md">固定作業場所・局所デバッグと最後の回帰という試験方針</a></li>
+  </ul></details>
+</section>
 </main>
-<footer>構成案 1.1・Markdown引継ぎ書式を定義 ｜ このHTMLは設計文書です。ここに示す新skill・成果物・実行スクリプトは、まだ実装・適用していません。</footer>
+<footer>構成案2.0 ｜ 2026-10-21本人指示による再提案。ハッシュ・状態・Gitの完了ゲートを撤廃し、実作業とworker終了を基準にする。通常7担当への削減等は追加の簡略化提案。現行コードの削除・本番反映は、この文書更新とは別の実装作業。</footer>
 </body>
 </html>
