@@ -430,6 +430,15 @@ class TaskSchedulerRuntimeSwitcher:
                 ):
                     raise DeploymentError("runtime_task_transition_fence_missing")
                 self._write_state({**state, "status": "active_pending_health"})
+            else:
+                self._write_state(
+                    {
+                        "schema_version": _SWITCH_STATE_SCHEMA,
+                        "active": {"commit": commit, "root": str(target)},
+                        "pending": None,
+                        "status": "active",
+                    }
+                )
             return
         active = state.get("active") if isinstance(state, Mapping) else None
         active_record = (

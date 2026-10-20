@@ -1,0 +1,146 @@
+{
+  "schema_version": "fc11-runtime-confirmation-fix-v1",
+  "observed_at": "2026-10-20",
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "branch": "main",
+  "pre_fix_head": "0ad1765a16eaf8be73d0c315655d1d525fa7cc26",
+  "plan_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "failed_official_apply": {
+    "release_id": "FC11-REPORT-20261020-0ad1765",
+    "deployment_id": "fa835401-7247-4d35-9d02-e5e8bbaeed14",
+    "base_commit": "204939e8dbca217489278e0133ea86ca35885def",
+    "tested_commit": "0ad1765a16eaf8be73d0c315655d1d525fa7cc26",
+    "pushed_commit": "0ad1765a16eaf8be73d0c315655d1d525fa7cc26",
+    "ledger_active_commit": "0ad1765a16eaf8be73d0c315655d1d525fa7cc26",
+    "ledger_status": "deployed",
+    "ledger_time_utc": "2026-10-20T00:59:06.148841Z",
+    "runtime_confirm_status": "failed",
+    "failure_journal_event_id": "81e77df29b0e4453ab3e544bcd138f09",
+    "correlation_id": "4756cd9d2d474c97a2cce013ea760c65",
+    "failure_time_utc": "2026-10-20T00:59:11.776+00:00",
+    "diagnostic_log_maintenance_id": "bd6d1f365f654e87b6374031dc2fc1d2",
+    "operation": "deployment.deploy",
+    "capture_location": "automation.inago.maintenance.deployment.DeploymentCoordinator.deploy",
+    "reason_code": "runtime_task_release_pending",
+    "exception_chain": ["DeploymentError", "DeploymentError"],
+    "exception_reason_codes": [
+      "runtime_task_release_pending",
+      "runtime_switch_state_invalid"
+    ],
+    "stack_frames": [
+      {"file": "diagnostic_trace.py", "function": "wrapped", "line": 941},
+      {"file": "deployment.py", "function": "deploy", "line": 1474}
+    ],
+    "code_revision": "unknown",
+    "job_context": "not_provided_to_standalone_official_apply",
+    "source_run_id": null,
+    "input_refs_in_failure_event": [],
+    "artifact_refs_in_failure_event": [],
+    "runtime_switch_state_after_failure": {
+      "active_commit": "204939e8dbca217489278e0133ea86ca35885def",
+      "pending": null,
+      "status": "active",
+      "scheduled_task_working_directory": "C:\\project\\rakuten-room-inago",
+      "scheduled_task_current_commit": "0ad1765a16eaf8be73d0c315655d1d525fa7cc26",
+      "health": true
+    },
+    "raw_ledger_row_preserved": true,
+    "accepted_as_success": false
+  },
+  "cause": {
+    "switcher": "Same-root/same-commit activation with checkout supplied returned without reconciling stale active commit/root metadata.",
+    "coordinator": "finish_deployment(status=deployed) ran before confirm_active; a confirmation failure left a false-success ledger status.",
+    "chain": "Task Scheduler readback matched requested commit/root -> switcher state remained old -> confirm_active raised runtime_switch_state_invalid -> Coordinator wrapped it as runtime_task_release_pending after ledger finish."
+  },
+  "changes": [
+    {
+      "file": "automation/inago/maintenance/runtime_switcher.py",
+      "behavior": "For an already-matching root/commit with no pending switch, store the read-back active identity in switch state and preserve current task settings.",
+      "sha256": "67a8ebc831824a7e76e3338b9e0f956a690e6a3dffdcfac131085675bb2e6a34"
+    },
+    {
+      "file": "automation/inago/maintenance/deployment.py",
+      "behavior": "Confirm runtime active state before recording deployed; confirmation failure remains pending/resumable.",
+      "sha256": "a60f1c6deaac7c647f4dfb42b9b696a32ccbaed2395707ac814b4cf3622b8da"
+    },
+    {
+      "file": "tests_inago/test_maintenance_deployment.py",
+      "behavior": "Regression for stale same-root state, confirm-failure non-finalization and same-deployment retry; update obsolete worktree assertion to the fixed-root contract."
+    }
+  ],
+  "verification": {
+    "red_before_fix": [
+      "Same-root stale-state test failed with runtime_switch_state_invalid.",
+      "Confirmation-failure test observed runtime_task_release_pending after the ledger had already become deployed."
+    ],
+    "command": "PYTHONPATH=<fixed repository root> pytest -q tests_inago/test_maintenance_deployment.py",
+    "result": "9 passed",
+    "compile_command": "python -m py_compile automation/inago/maintenance/runtime_switcher.py automation/inago/maintenance/deployment.py tests_inago/test_maintenance_deployment.py",
+    "compile_exit_code": 0,
+    "git_diff_check_exit_code": 0,
+    "product_review": {
+      "reviewer": "/root/html_review_scope_product_review",
+      "verdict": "APPROVE",
+      "findings": 0,
+      "reviewed_files": [
+        "automation/inago/maintenance/runtime_switcher.py",
+        "automation/inago/maintenance/deployment.py"
+      ],
+      "test_code_review": "not requested",
+      "read_only": true
+    }
+  },
+  "operation_errors_and_recovery": [
+    {
+      "operation": "pytest launcher",
+      "failure": "ModuleNotFoundError: automation",
+      "cause": "direct Windows pytest entry point did not add repository root to import path",
+      "recovery": "Set process-local PYTHONPATH to the fixed repository root and run the same focused pytest file."
+    },
+    {
+      "operation": "python -m pytest",
+      "failure": "No module named pytest",
+      "cause": "selected Python 3.12 environment does not contain pytest",
+      "recovery": "Use installed pytest launcher with process-local PYTHONPATH."
+    },
+    {
+      "operation": "read-only database lookup",
+      "failure": "unable to open database file",
+      "cause": "initial path omitted repository's rakuten-room-inago data-root directory",
+      "recovery": "Read from rakuten-room-inago/runtime/maintenance/state.sqlite."
+    },
+    {
+      "operation": "read-only deployment query",
+      "failure": "no such column: started_at",
+      "cause": "query assumed a column absent from schema 16",
+      "recovery": "Inspect table columns and query the existing deployed_at field."
+    },
+    {
+      "operation": "PowerShell rg invocation",
+      "failure": "pattern parsing error",
+      "cause": "shell parsing of the attempted expression",
+      "recovery": "Use a simple literal search; no files were changed by the failed command."
+    }
+  ],
+  "current_state": {
+    "product_fix_committed": false,
+    "product_fix_pushed": false,
+    "product_fix_applied": false,
+    "same_job_resumed_after_fix": false,
+    "final_html_after_fix_reviewed_and_published": false,
+    "plan_complete": false,
+    "acceptance": "FC-A10 remains incomplete pending selected commit/push, official apply/readback, and same-job resume/report/readback."
+  },
+  "next_actions": [
+    "Update plan section 14 and record this operation failure without changing its historical DB row.",
+    "Select-stage only task-owned changes after cached/uncached/untracked and secret review; commit and push main to origin/main.",
+    "Use the formal MaintenanceStore APIs and DeploymentCoordinator to apply and read back the fixed commit.",
+    "Resume only the same 2026-10-17 job/source launch, then measure fresh trace, independent report review, publication and terminal state."
+  ]
+}

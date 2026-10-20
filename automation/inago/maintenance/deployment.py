@@ -1449,17 +1449,6 @@ class DeploymentCoordinator:
                             else "runtime_restore_failed"
                         ),
                     )
-                result = self.store.finish_deployment(
-                    deployment_id=deployment_id,
-                    status="deployed",
-                    pushed_commit=pushed,
-                    active_commit=tested,
-                    reason_code=None,
-                    finished_at=self._now(),
-                    capability=self.store._deployment_capability,
-                )
-                deployment_finalized = True
-                runtime_switch_attempted = False
                 confirm_active = getattr(self.runtime_switcher, "confirm_active", None)
                 if callable(confirm_active):
                     confirm_error: Exception | None = None
@@ -1474,6 +1463,17 @@ class DeploymentCoordinator:
                         raise DeploymentError(
                             "runtime_task_release_pending"
                         ) from confirm_error
+                result = self.store.finish_deployment(
+                    deployment_id=deployment_id,
+                    status="deployed",
+                    pushed_commit=pushed,
+                    active_commit=tested,
+                    reason_code=None,
+                    finished_at=self._now(),
+                    capability=self.store._deployment_capability,
+                )
+                deployment_finalized = True
+                runtime_switch_attempted = False
                 return self._result(result)
             except DeploymentError as exc:
                 if deployment_finalized or completed_record is not None:

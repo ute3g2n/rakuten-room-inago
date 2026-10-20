@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -17,6 +19,7 @@ from automation.inago.maintenance.deployment import (
     stage_owned_paths,
 )
 from automation.inago.maintenance.store import MaintenanceStore
+from automation.inago.maintenance.runtime_switcher import TaskSchedulerRuntimeSwitcher
 
 
 def _git(path: Path, *args: str, check: bool = True) -> str:
@@ -39,6 +42,8 @@ class _Runtime:
     def __init__(self, base: str) -> None:
         self.active = base
         self.unhealthy_commit: str | None = None
+        self.confirm_error: Exception | None = None
+        self.confirmations: list[str] = []
         self.switches: list[str] = []
 
     def current_commit(self) -> str:
@@ -54,6 +59,12 @@ class _Runtime:
         return (
             self.active == expected_commit and expected_commit != self.unhealthy_commit
         )
+
+    def confirm_active(self, commit: str) -> None:
+        if self.confirm_error is not None:
+            raise self.confirm_error
+        assert self.active == commit
+        self.confirmations.append(commit)
 
 
 class _Guard:
@@ -173,27 +184,128 @@ def _deploy(case: dict[str, object]):
     )
 
 
-def test_c38_contract(tmp_path: Path) -> None:
+def test_same_root_activation_repairs_stale_switch_state(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    _git(tmp_path, "init", "--initial-branch=main", str(repository))
+    _git(repository, "config", "user.name", "Fixture Author")
+    _git(repository, "config", "user.email", "fixture@example.invalid")
+    (repository / "README.md").write_text("active code\n", encoding="utf-8")
+    commit = _commit(repository, "active code")
+
+    runtime_root = tmp_path / "runtime"
+    state_directory = runtime_root / "maintenance"
+    state_directory.mkdir(parents=True)
+    previous_commit = "1" * 40
+    state_path = state_directory / "runtime-switch-state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "maintenance-runtime-switch-v1",
+                "active": {"commit": previous_commit, "root": str(repository)},
+                "pending": None,
+                "status": "active",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    task_names = (
+        "RakutenRoomInagoDaily",
+        "RakutenRoomInagoWorker",
+        "RakutenRoomInagoWatchdog",
+        "RakutenRoomInagoHumanApi",
+    )
+    rows = [
+        {
+            "TaskName": name,
+            "WorkingDirectory": str(repository),
+            "Enabled": True,
+            "State": "Ready",
+            "Execute": "python.exe",
+            "Arguments": "maintenance.py",
+        }
+        for name in task_names
+    ]
+    modes: list[str] = []
+
+    def task_runner(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        mode = command[command.index("-Mode") + 1]
+        modes.append(mode)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            json.dumps({"status": "ok", "tasks": rows}),
+            "",
+        )
+
+    switcher = TaskSchedulerRuntimeSwitcher(
+        repository=repository,
+        runtime_root=runtime_root,
+        worktree_root=tmp_path / "worktrees",
+        python_executable=sys.executable,
+        task_runner=task_runner,
+    )
+
+    switcher.activate(commit, repository)
+    switcher.confirm_active(commit)
+
+    saved = json.loads(state_path.read_text(encoding="utf-8"))
+    assert saved["active"] == {"commit": commit, "root": str(repository)}
+    assert saved["pending"] is None
+    assert saved["status"] == "active"
+    assert modes == ["Read", "Read"]
+
+
+def test_runtime_confirmation_failure_does_not_finalize_deployment(
+    tmp_path: Path,
+) -> None:
+    case = _case(tmp_path)
+    runtime = case["runtime"]
+    runtime.confirm_error = DeploymentError("runtime_switch_state_invalid")
+
+    with pytest.raises(DeploymentError, match="deployment_finalize_pending"):
+        _deploy(case)
+
+    attempts = case["store"].list_deployments_for_release(
+        release_id="release-fixture"
+    )
+    assert len(attempts) == 1
+    assert attempts[0].status == "pending"
+    assert attempts[0].active_commit is None
+
+    runtime.confirm_error = None
+    resumed = case["coordinator"].deploy(
+        release_id="release-fixture",
+        tested_version="release-v1",
+        reviewed_version="release-v1",
+        remote_name="origin",
+        target_branch="main",
+        active_checkout=case["active"],
+        expected_target_commit=case["base"],
+        owner_id="fixture-deployer-retry",
+        resume_deployment_id=attempts[0].deployment_id,
+    )
+
+    assert resumed.status == "deployed"
+    assert resumed.active_commit == case["result"]
+    completed = case["store"].get_deployment(
+        deployment_id=attempts[0].deployment_id
+    )
+    assert completed is not None
+    assert completed.status == "deployed"
+
+
+def test_c38_fixed_root_contract(tmp_path: Path) -> None:
     case = _case(tmp_path)
     repo = case["repo"]
     source_user_change = repo / "README.md"
     source_user_change.write_text("user change stays here\n", encoding="utf-8")
     manager = ManagedWorktreeManager(repo, tmp_path / "managed")
 
-    worktree = manager.open(release_id="release-fixture", commit=case["result"])
-    reused = manager.open(release_id="release-fixture", commit=case["result"])
-
-    assert reused == worktree
-    assert _git(worktree, "rev-parse", "HEAD") == case["result"]
-    assert not _git(worktree, "status", "--porcelain")
-    assert source_user_change.read_text(encoding="utf-8") == "user change stays here\n"
-    other = manager.open(release_id="another-release", commit=case["base"])
-    assert other != worktree
-
-    (worktree / "local-note.txt").write_text("keep", encoding="utf-8")
-    with pytest.raises(DeploymentError, match="managed_worktree_dirty"):
+    with pytest.raises(DeploymentError, match="fixed_repository_dirty"):
         manager.open(release_id="release-fixture", commit=case["result"])
-    assert (worktree / "local-note.txt").read_text(encoding="utf-8") == "keep"
+    assert source_user_change.read_text(encoding="utf-8") == "user change stays here\n"
 
 
 def test_c39_contract(tmp_path: Path) -> None:
