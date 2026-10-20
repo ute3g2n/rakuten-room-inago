@@ -1,0 +1,165 @@
+{
+  "schema_version": "fc11-same-job-resume-final-readback-v1",
+  "recorded_at_jst": "2026-10-20T10:45:52+09:00",
+  "plan": {
+    "version": "1.2",
+    "original_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381"
+  },
+  "workspace": "C:\\project\\rakuten-room-inago",
+  "git_before_final_record": {
+    "branch": "main",
+    "head": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "tracking": "origin/main",
+    "origin_main": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "clean": true
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "resume_count": 29
+  },
+  "execution": {
+    "resume_event_id": "b99f200fd018446b85197c795db0475e",
+    "worker_status": "maintenance_complete",
+    "worker_exit_code": 0,
+    "duplicate": false,
+    "queue_id": null,
+    "invocation_id": "workflow-ea0b3ae43c9a4384888402f3f0aa6bab",
+    "workflow_completion": "complete",
+    "terminal_status": "complete",
+    "finished_at_utc": "2026-10-20T01:35:00.723320Z",
+    "stage_observations": {
+      "count": 8,
+      "complete": ["check_incident", "evidence", "job", "investigation", "report"],
+      "unknown": {
+        "planning": "ai_transport_failed",
+        "repair": "attempt_id_invalid",
+        "deployment": "deployment_candidate_unavailable"
+      },
+      "blocked": [],
+      "all_handoffs_read_back": true,
+      "missing_stages": 0,
+      "missing_attempt_outputs": 0,
+      "missing_stage_handoffs": 0,
+      "identity_mismatches": 0
+    },
+    "incident_resolution": "unknown"
+  },
+  "trace": {
+    "code_revision": "maintenance-source-v1-266845476b9213bcbb4ae750f04149b46c7d23bd559e334730eaa3b28dea27e5",
+    "final_store_event_count": 16,
+    "event_phases": {"begin": 8, "handoff": 8},
+    "report_snapshot_record_count": 15,
+    "report_snapshot_failure_count": 3,
+    "count_reconciliation": "The 16th final DB row is the report stage handoff recorded after the report snapshot; the HTML accurately says it read 15 records at snapshot time.",
+    "failure_handoffs": [
+      {"stage": "planning", "reason_code": "ai_transport_failed", "cause": "AppServerError"},
+      {"stage": "repair", "reason_code": "attempt_id_invalid", "cause": "MaintenanceStoreError", "detail": "Planning predecessor pin attempt_id was null after planning failure; get_step_attempt received null."},
+      {"stage": "deployment", "reason_code": "deployment_candidate_unavailable", "cause": "RepairContractError"}
+    ],
+    "old_blocked_history_preserved": true
+  },
+  "report": {
+    "attempt_id": "e56ad307-33a4-4fd5-bd10-14897529829c",
+    "result_version": "fallback-revision-26e12f662d0fbb727d02",
+    "origin": "controller_fallback",
+    "normal_author_revision_failure": "report_revision_author_failed",
+    "reviewer_id": "rr-inago-incident-report-reviewer",
+    "review_status": "approved",
+    "review_findings": 0,
+    "reviewed_sha256": "1a8d371e592214afe78c9d7fcb314c6ab675f6bd36f684e9846c15fbe0d228b4",
+    "published_sha256": "1a8d371e592214afe78c9d7fcb314c6ab675f6bd36f684e9846c15fbe0d228b4",
+    "path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+    "publication_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "remote": "origin/main",
+    "bytes": 21897,
+    "local_and_commit_blob_identical": true
+  },
+  "deployment": {
+    "release_id": "FC11-REPORT-PUBLICATION-20261020-6B6DC80",
+    "deployment_id": "6b08030b-1c22-414a-9983-42ba9b461650",
+    "status": "deployed",
+    "release_gate": "ready",
+    "base_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "tested_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "pushed_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "active_commit": "6b6dc80a577cd6e9e75e0d3887b7b1bf23eba850",
+    "runtime_healthy": true,
+    "fixed_root_only": true,
+    "scheduled_tasks_ready_enabled": 4,
+    "database_schema": 16,
+    "database_quick_check": "ok",
+    "worker_excluded_dates": ["2026-10-19"]
+  },
+  "scope_protection": {
+    "same_job_and_source_launch_only": true,
+    "daily_launch_created": false,
+    "new_job_created": false,
+    "source_run_id_remains_null": true,
+    "october_19_queue_id": "82e35e362a064e3292355d27ed0f4289",
+    "october_19_queue_status": "queued",
+    "october_19_queue_event_count": 0,
+    "october_19_daily_launch_history_unchanged": true,
+    "other_workspace_used": false
+  },
+  "effort_observation": {
+    "requested_effort": "high",
+    "runtime_model_and_effort_observation": "unavailable",
+    "inferred_from_settings": false,
+    "used_as_launch_gate": false
+  },
+  "acceptance_self_check": {
+    "FC-A01": "complete",
+    "FC-A02": "complete",
+    "FC-A03": "complete",
+    "FC-A04": "complete",
+    "FC-A05": "complete",
+    "FC-A06": "complete",
+    "FC-A07": "complete",
+    "FC-A08": "complete",
+    "FC-A09": "complete",
+    "FC-A10": "complete",
+    "overall": "complete"
+  },
+  "independent_final_acceptance_review": {
+    "reviewer": "fc11_acceptance_review",
+    "verdict": "approved",
+    "findings": 0,
+    "criteria": {
+      "FC-A01": "met",
+      "FC-A02": "met",
+      "FC-A03": "met",
+      "FC-A04": "met",
+      "FC-A05": "met",
+      "FC-A06": "met",
+      "FC-A07": "met",
+      "FC-A08": "met",
+      "FC-A09": "met",
+      "FC-A10": "met"
+    },
+    "trace_count_reconciliation": "The reviewer independently confirmed 15 rows/3 failures in the report input snapshot versus 16 final store rows because the report handoff was saved after the snapshot.",
+    "reviewed_artifacts": [
+      "same-job-resume-29-final-publication-r1.json",
+      "workflow-ea0b3ae43c9a4384888402f3f0aa6bab.json",
+      "runtime/maintenance/release-evidence/fc11-final-report-runtime-deploy-6b6dc80.json",
+      "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"
+    ]
+  },
+  "read_only_command_recoveries": [
+    "PowerShell parsed unquoted @{u} as a hashtable; reran quoted upstream readback before any Git action.",
+    "Set-Content re-encoded git-show text and produced a false HTML hash; corrected with raw-byte subprocess hashing and confirmed identical 21,897-byte blobs.",
+    "An rg glob invocation was invalid in PowerShell; recovered with targeted Store API and artifact readbacks."
+  ],
+  "evidence_refs": [
+    "rakuten-room-inago/runtime/maintenance/same-job-resume-29-resume.console.txt",
+    "rakuten-room-inago/runtime/maintenance/same-job-resume-29-worker.console.txt",
+    "rakuten-room-inago/runtime/workflow-terminal/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-ea0b3ae43c9a4384888402f3f0aa6bab.json",
+    "rakuten-room-inago/runtime/workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-ea0b3ae43c9a4384888402f3f0aa6bab",
+    "rakuten-room-inago/runtime/maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/e56ad307-33a4-4fd5-bd10-14897529829c/result.json",
+    "rakuten-room-inago/runtime/maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/e56ad307-33a4-4fd5-bd10-14897529829c/report-publication.json",
+    "rakuten-room-inago/runtime/maintenance/release-evidence/fc11-final-report-runtime-deploy-6b6dc80.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-29-final-publication-r1.md"
+  ]
+}
