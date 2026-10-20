@@ -22,7 +22,7 @@
   <div class="principles"><span>判断はLLM</span><span>引継ぎはLLMが書く文書</span><span>スクリプトは起動・記録・再開</span></div>
   <p class="subline" style="margin-top:15px">この文書は新構成の提案です。現行フローの変更・本番切替えは行っていません。</p>
 </header>
-<nav aria-label="目次"><div><a href="#flow">全体の流れ</a><a href="#unknown">原因不明のとき</a><a href="#dataflow">担当ごとの入力・出力</a><a href="#runner">スクリプトの最小化</a><a href="#results">完了の考え方</a></div></nav>
+<nav aria-label="目次"><div><a href="#flow">全体の流れ</a><a href="#unknown">原因不明のとき</a><a href="#dataflow">担当ごとの入力・出力</a><a href="#formats">Markdown書式</a><a href="#runner">スクリプトの最小化</a><a href="#results">完了の考え方</a></div></nav>
 <main>
   <section id="flow">
     <span class="section-no">01 / 全体</span>
@@ -81,7 +81,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="investigate-title">1. 調査</h3><p>事実と推測を分ける。原因修正か、診断用ログ追加かを決め、具体的な作業を指示する。</p><small>短い変更方針もここで作る。</small></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">investigation.md</span><p>不具合／原因と根拠／不明点／変更依頼／対象コード／確認方法。</p><p><strong>次：実装</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-investigation">investigation.md の書式</a></span><p>不具合／原因と根拠／不明点／変更依頼／対象コード／確認方法。</p><p><strong>次：実装</strong></p></div>
     </article>
 
     <article class="df-row" id="implement" aria-labelledby="implement-title">
@@ -89,7 +89,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="implement-title">2. 実装</h3><p>短い作業方針を書き、実際のコードを変える。原因不明なら、次回診断に役立つログを追加する。</p></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">コード差分 ＋ implementation.md</span><p>変更ファイル／変わった動作／追加・再利用したログ／記録内容／試験依頼。既存変更と今回の所有範囲も記す。</p><p><strong>次：試験</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file">コード差分 ＋ <a href="#format-implementation">implementation.md の書式</a></span><p>変更ファイル／変わった動作／追加・再利用したログ／記録内容／試験依頼。既存変更と今回の所有範囲も記す。</p><p><strong>次：試験</strong></p></div>
     </article>
 
     <article class="df-row" id="test" aria-labelledby="test-title">
@@ -97,7 +97,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="test-title">3. 試験</h3><p>必要なfocusedテストを作成・実行する。合成fixture・一時DBで失敗を起こし、実際の記録内容を確認する。</p><small>製品コードは直さず、失敗を次へ渡す。</small></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">test.md ＋ test.log</span><p>対象版／実行コマンド／期待と実結果／終了コード／生成ログへの参照。FAIL・未実施は理由も記す。</p><p><strong>次：製品レビュー</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-test">test.md の書式</a> ＋ test.log</span><p>対象版／実行コマンド／期待と実結果／終了コード／生成ログへの参照。FAIL・未実施は理由も記す。</p><p><strong>次：製品レビュー</strong></p></div>
     </article>
 
     <article class="df-row" id="code-review" aria-labelledby="code-review-title">
@@ -105,7 +105,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="code-review-title">4. 製品レビュー</h3><p>独立した担当が、依頼どおりの修正・日次ログ追加かを確認する。試験コード自体の独立レビューは行わない。</p></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">code-review.md</span><p>対象版／実所見／指摘箇所／修正依頼。対象差分がなければ、その事実を記す。</p><p><strong>次：反映</strong>。指摘とFAILも一緒に渡す。</p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-code-review">code-review.md の書式</a></span><p>対象版／実所見／指摘箇所／修正依頼。対象差分がなければ、その事実を記す。</p><p><strong>次：反映</strong>。指摘とFAILも一緒に渡す。</p></div>
     </article>
 
     <article class="df-row" id="deploy" aria-labelledby="deploy-title">
@@ -113,7 +113,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task delivery"><h3 id="deploy-title">5. 反映</h3><p>LLMが差分・試験・指摘を読み、必要な修正を判断する。適用する変更は選択commit/pushし、本番へ反映して稼働版を読む。</p><small>操作はGit・既存CLI等の道具で実行。</small></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">deployment.md</span><p>実行した操作／commit・push先／schema適用の有無／実際の稼働版／失敗・未実施と理由／残る修正依頼。</p><p><strong>次：レポート</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-deployment">deployment.md の書式</a></span><p>実行した操作／commit・push先／schema適用の有無／実際の稼働版／失敗・未実施と理由／残る修正依頼。</p><p><strong>次：レポート</strong></p></div>
     </article>
 
     <article class="df-row" id="report" aria-labelledby="report-title">
@@ -121,7 +121,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="report-title">6. レポート作成</h3><p>LLMがHTMLを直接作る。①不具合、②原因、③実施した修正、④追加したログと役立ち方を平易に書く。</p><small>Pythonによる文章の合成・再描画をなくす。</small></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">report.html ＋ report.md</span><p>HTMLの実物と、その参照先・未達事項。通常作成に失敗したら、同じ担当を短い指示で起動し最小HTMLを作る。</p><p><strong>次：HTMLレビュー</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file">report.html ＋ <a href="#format-report">report.md の書式</a></span><p>HTMLの実物と、その参照先・未達事項。通常作成に失敗したら、同じ担当を短い指示で起動し最小HTMLを作る。</p><p><strong>次：HTMLレビュー</strong></p></div>
     </article>
 
     <article class="df-row" id="html-review" aria-labelledby="html-review-title">
@@ -129,7 +129,7 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task"><h3 id="html-review-title">7. HTMLレビュー</h3><p>作者と別の担当が、4点の欠落・誤り・分かりにくさと秘密の露出を確認する。管理情報や表示分類を追加要求しない。</p></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">html-review.md</span><p>実際に読んだHTMLの版／所見／修正依頼。指摘は作者が修正し、その実物を再レビューする。</p><p><strong>次：修正が必要ならレポート作成、修正後は再レビュー。最終版を公開へ。</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file"><a href="#format-html-review">html-review.md の書式</a></span><p>実際に読んだHTMLの版／所見／修正依頼。指摘は作者が修正し、その実物を再レビューする。</p><p><strong>次：修正が必要ならレポート作成、修正後は再レビュー。最終版を公開へ。</strong></p></div>
     </article>
 
     <article class="df-row" id="publish" aria-labelledby="publish-title">
@@ -137,39 +137,14 @@
       <span class="arrow" aria-hidden="true">→</span>
       <div class="task delivery"><h3 id="publish-title">8. 公開・結果登録</h3><p>レビュー済みHTMLをそのままcommit/pushし、公開した実物と照合する。同じjobへ実結果と次の作業を残す。</p></div>
       <span class="arrow" aria-hidden="true">→</span>
-      <div class="data out" data-kind="出す成果物"><span class="file">公開HTML ＋ publication.md</span><p>公開先／commit・push先／公開実物との一致／対応の達成・未達／同じjobでの次作業。</p><p><strong>次：未達があれば担当へ戻す。達成したら終了。</strong></p></div>
+      <div class="data out" data-kind="出す成果物"><span class="file">公開HTML ＋ <a href="#format-publication">publication.md の書式</a></span><p>公開先／commit・push先／公開実物との一致／対応の達成・未達／同じjobでの次作業。</p><p><strong>次：未達があれば担当へ戻す。達成したら終了。</strong></p></div>
     </article>
 
     <details id="inputs">
-      <summary>入口・成果物の書式と、保存場所を見る</summary>
+      <summary>入口と保存場所を見る</summary>
       <p style="margin-top:12px">初期入力だけは受付が固定情報から作ります。以後の説明・判断・次担当への指示は、各LLMが出力します。ログ本文を全担当へ何度もコピーせず、必要な参照だけ渡します。</p>
-      <div class="split">
-        <div><h3>入口：incident.md</h3><pre>対象：job_id、source_launch_id、対象日、source_run_id
-      （生成されなかったrunはnullのまま）
-作業場所：C:\project\rakuten-room-inago
-現象：日次処理で何が起きたか
-ログ参照：対象日のCLI・共通trace・AI通信ログ等
-コード版：対象の実行版と現在のコード参照
-許可範囲：今回変更できる箇所・禁止副作用
-公開先：reports/incidents/〈対象日〉/〈対象HTML〉
-次の担当：調査</pre></div>
-        <div><h3>各担当の成果物：共通部分</h3><pre>対象：incident.mdへの参照
-読んだ資料：ファイルへの参照
-行った作業：実際の操作・変更
-結果：分かったこと／分からないこと／失敗と理由
-成果物：差分・試験ログ・HTML等への参照
-
-次の担当：担当名
-次の入力：その担当が読むファイルへの参照
-次の作業：具体的な依頼</pre></div>
-      </div>
+      <p><a href="#format-incident">入口 incident.md の書式</a>と、<a href="#formats">各担当のMarkdown書式</a>を次節に定義します。</p>
       <p>保存場所の提案：<code>rakuten-room-inago/runtime/maintenance-flow/〈同じjob_id〉/</code>。図の<code>investigation.md</code>等をここへ保存します。やり直すときは旧版も残し、同じjobで続けます。公開するのはレポートHTMLだけです。</p>
-      <p><strong>起動指示もLLMが書きます。</strong>最終応答は全担当共通の3項目だけにします。実行スクリプトは内容を解釈し直さず、指定された担当と資料で起動します。レビューの対象や適用／公開の違いは「依頼」に書き、業務判断用の状態を増やしません。</p>
-      <pre>{
-  "担当": "試験",
-  "入力": ["incident.md", "investigation.md", "implementation.md"],
-  "依頼": "変更した日次処理を合成fixtureで失敗させ、診断に必要な記録が残るか確認してください。"
-}</pre>
       <p class="subline">ログ参照の具体例：<code>rakuten-room-inago/runtime/logs/production-cli.jsonl</code>、<code>rakuten-room-inago/runtime/logs/traces/〈日付〉/〈run_id〉.jsonl</code>、<code>rakuten-room-inago/runtime/logs/〈対象日〉/ai-root-transport.jsonl</code>。実際に存在する対象の参照を入口へ書きます。run未生成ならrun別ログの存在を仮定せず、CLIや起動記録の参照と欠測を渡します。</p>
     </details>
 
@@ -192,8 +167,282 @@
     </details>
   </section>
 
+  <section id="formats">
+    <span class="section-no">04 / Markdownの引継ぎ書式</span>
+    <h2>共通の枠に、担当ごとの結果を書く。</h2>
+    <p>入口1種類と担当の成果物8種類を定義します。担当の成果物は<strong>下の共通書式＋担当別本文</strong>で作ります。共通の枠と必要な担当別本文をコピーして使えます。</p>
+    <div class="principles"><a href="#format-incident">入口</a><a href="#format-investigation">調査</a><a href="#format-implementation">実装</a><a href="#format-test">試験</a><a href="#format-code-review">製品レビュー</a><a href="#format-deployment">反映</a><a href="#format-report">レポート作成</a><a href="#format-html-review">HTMLレビュー</a><a href="#format-publication">公開</a></div>
+
+    <details id="format-common" open>
+      <summary>全担当共通：8種類の成果物に使う枠</summary>
+      <pre># 〈担当名〉結果
+対象: [incident.md](incident.md)
+担当: 〈実際に作業したagent名〉
+更新: 〈日時・タイムゾーン〉
+
+## 入力
+- [〈実際に読んだ文書〉](〈参照先〉)
+
+## 結論
+〈行ったことと実結果を、短く書く〉
+
+〈ここに、下で定義した担当別本文の見出しと内容を入れる〉
+
+## 不明・失敗・未実施
+- 〈分からないこと／失敗・未実施の操作と具体的理由／記録への参照〉
+
+## 次の作業
+- 担当: 〈次の担当名〉
+- 入力: 〈次の担当が読むファイルへの参照〉
+- 依頼: 〈何を、どう作業してほしいか〉</pre>
+      <ul class="compact"><li>共通見出しと担当別見出しは残す。空欄にせず、「不明」「未実施＋理由」「該当なし＋理由」を書く。既知の情報が不足しても担当は作業を始める。</li><li>根拠はファイル・行・時刻等で示す。担当の成功宣言だけで、差分・試験ログ・適用結果を代用しない。秘密や生の業務データは転記しない。</li><li>ファイル参照はjobフォルダーからの相対パス。製品コード・既存資料はリポジトリからの相対パスと明記する。読めなかった入力は「不明・失敗・未実施」へ書く。</li><li>失敗は具体的な操作と理由を記し、例外の原因連鎖・捕捉位置・実行版・相関IDが読める安全化済みの記録を参照する。失敗記録も次へ渡す。</li><li>再作業では旧版を残し、実際に更新した成果物を次へ渡す。スクリプトは本文を変換・採点しない。</li></ul>
+    </details>
+
+    <details id="format-incident">
+      <summary>incident.md — 受付が作る、固定の入口</summary>
+      <p style="margin-top:12px">このファイルだけは共通の結果書式を使いません。対象の識別情報を後続LLMが推測・変更しないための入口です。</p>
+      <pre># 保守の依頼
+
+## 対象
+- job_id: 〈既存の対象job〉
+- source_launch_id: 〈対象の起動ID〉
+- target_date: 〈対象日〉
+- source_run_id: 〈実際のrun ID。未生成ならnull〉
+- 作業場所: C:\project\rakuten-room-inago
+
+## 起きたこと
+〈日次タスクの症状・期待した動作・分かっている影響〉
+
+## ログ・観測資料
+- 〈資料の参照先〉: 〈対象期間・関連する操作〉
+- 〈存在しない資料〉: 未提供。〈不足している理由〉
+
+## コードと仕様
+- 障害発生時の実行版: 〈実測値。不明なら不明〉
+- 現在のコード: 〈リポジトリ参照・commit〉
+- 期待動作: 〈要件定義書の該当節〉
+
+## 許可された作業
+- 〈原因修正・有用な日次診断ログの追加・試験・適用・報告等〉
+- 禁止する副作用: 〈別workspace、通常Daily手動起動等の今回の条件〉
+- 公開先: reports/incidents/〈対象日〉/〈対象HTML〉
+
+## 最初の作業
+- 担当: 調査
+- 入力: incident.mdと上のログ・資料
+- 依頼: 原因と根拠を調べ、実装担当への具体的な依頼を書いてください。</pre>
+    </details>
+
+    <details id="format-investigation">
+      <summary>investigation.md — 調査から実装へ</summary>
+      <p style="margin-top:12px">共通タイトルは「調査結果」。次の本文を共通書式へ入れます。通常の引継ぎ先は実装です。</p>
+      <pre>## 起きたこと
+- 操作: 〈日次タスクのどの処理か〉
+- 期待: 〈本来の動作〉
+- 実際と影響: 〈ログで確かめた事実〉
+- 根拠: 〈ログ・観測資料の参照と行・時刻〉
+
+## 原因
+- 分かったこと: 〈確認できた原因。不明なら不明〉
+- 根拠: 〈原因を裏付ける記録。仮説は仮説と書く〉
+- 足りない情報: 〈なぜ特定できないか。不要ならその理由〉
+
+## 実装への依頼
+- 方針: 〈原因修正／診断用ログ追加／両方。実施しないなら具体的理由〉
+- 対象: 〈リポジトリ内のファイル・関数や操作境界〉
+- 変更: 〈何をどう変えるか〉
+- 追加する記録: 〈どの操作の何を記録するか〉
+- 次回分かること: 〈記録から何を切り分けられるか〉
+- 確認方法: 〈起こす状況と、得られるべき動作・記録〉</pre>
+      <p class="subline">原因不明なら、日次の不足観測点と記録内容を具体化します。「原因不明なので修正なし」だけでは引き継ぎません。</p>
+    </details>
+
+    <details id="format-implementation">
+      <summary>implementation.md — 実装から試験へ</summary>
+      <p style="margin-top:12px">共通タイトルは「実装結果」。通常の引継ぎ先は試験です。</p>
+      <pre>## 変更したもの
+- 対象版: 〈commit。未commit変更があれば、その差分の参照も記す〉
+- 今回の所有範囲: 〈ファイル・変更箇所。既存の他者変更を区別〉
+
+| ファイル・箇所 | 変更前から変更後の動作 | 理由・差分への参照 |
+| --- | --- | --- |
+| 〈実際に変更した箇所〉 | 〈動作の違い〉 | 〈調査の依頼と対応〉 |
+
+## トレース・ログ
+- 対象処理: 〈日次処理／保守処理のどの操作か〉
+- 今回の対応: 〈新規追加／既存を拡張／既存を再利用。未変更なら理由〉
+- 記録項目と保存先: 〈実装した内容〉
+- 切り分けに役立つこと: 〈次回に判別できることと限界〉
+- 根拠: 〈記録するコード・差分への参照〉
+
+## 試験への依頼
+- 試験対象: 〈変更箇所と影響範囲〉
+- 起こす状況: 〈通常動作・合成失敗等〉
+- 期待する結果: 〈動作と実際に出るべき記録〉
+- 既存テスト: 〈関係するtest nodeやファイル〉</pre>
+      <p class="subline">コード未変更でも理由と試験への依頼を残します。修正準備の失敗を「原因修正も有用なログ追加もできない理由」に置き換えません。</p>
+    </details>
+
+    <details id="format-test">
+      <summary>test.md — 試験から独立製品レビューへ</summary>
+      <p style="margin-top:12px">共通タイトルは「試験結果」。通常の引継ぎ先はレビュー、依頼内容は製品コードの確認です。</p>
+      <pre>## 試験した対象
+- コード版・差分: 〈実際に試験したcommitと未commit差分への参照〉
+- 環境: 〈interpreter・一時DB等、再実行に必要な情報だけ〉
+- 追加・変更したテスト: 〈ファイル。なければなし〉
+
+## 実測結果
+| 実行コマンド・完全test node | 期待 | 実結果・終了コード | 記録 |
+| --- | --- | --- | --- |
+| 〈実際のコマンド〉 | 〈確かめる動作〉 | 〈PASS/FAILと整数の終了コード。未実施なら理由〉 | [test.log](test.log) の〈該当行〉 |
+
+## 診断ログの確認
+- 起こした失敗: 〈合成fixtureの条件。実障害の再発とは区別〉
+- 実際に出た記録: 〈生成ログへの参照・必要項目の有無〉
+- 切り分けの結果: 〈どの操作・例外・原因連鎖まで読めたか〉
+- 確認していない範囲: 〈自然な次回日次等〉
+
+## 再作業が必要なこと
+- 〈失敗した期待・対象箇所・実装担当への具体的依頼。なければなし〉</pre>
+      <p class="subline">試験対象がない場合も、その事実と成果物の整合を確認して渡します。FAILや未実施でもレビュー担当を起動します。</p>
+    </details>
+
+    <details id="format-code-review">
+      <summary>code-review.md — 独立製品レビューから反映へ</summary>
+      <p style="margin-top:12px">共通タイトルは「製品レビュー結果」。通常の引継ぎ先は反映・公開、依頼内容は製品変更の反映確認です。</p>
+      <pre>## 読んだ対象
+- 製品コード版・差分: 〈実際に読んだ対象への参照〉
+- 試験記録: [test.md](test.md) と参照した実測ログ
+- 独立確認: 〈作者と異なるレビュー担当であること〉
+
+## 所見
+- 調査の依頼に対応しているか: 〈根拠と実所見〉
+- 日次診断ログが必要な情報を残すか: 〈コードと試験記録に基づく所見〉
+- 影響・未確認事項: 〈今回の変更に関係するものだけ〉
+
+## 指摘
+1. 箇所: 〈ファイル・行〉
+   内容と根拠: 〈何が問題か〉
+   修正依頼: 〈どう直し、何を確認するか〉
+〈指摘なしなら「指摘なし」。対象未取得なら、その理由と確認範囲〉
+
+## 反映担当へ渡すこと
+- 〈反映対象と、残る指摘・試験FAIL・再作業依頼〉</pre>
+      <p class="subline">製品コードのレビューです。テストコードの独立レビューは追加しません。対象差分がない場合は「対象差分なし」と書き、承認したことにしません。</p>
+    </details>
+
+    <details id="format-deployment">
+      <summary>deployment.md — 反映からレポート作成へ</summary>
+      <p style="margin-top:12px">共通タイトルは「反映結果」。通常の引継ぎ先はレポート作成です。</p>
+      <pre>## 対象変更
+- 変更内容・今回の所有ファイル: 〈implementation.mdと実際の差分への参照〉
+- 試験・レビュー: 〈読んだ実結果と残る指摘〉
+
+## 操作と実結果
+| 操作 | 実際のコマンド・対象 | 実結果・未実施理由 | 根拠 |
+| --- | --- | --- | --- |
+| commit/push | 〈branch・commit・tracking先〉 | 〈実結果〉 | 〈操作ログ〉 |
+| schema適用 | 〈対象migration。不要なら不要と理由〉 | 〈実結果〉 | 〈適用確認〉 |
+| コード適用 | 〈適用した版と操作〉 | 〈実結果〉 | 〈操作ログ〉 |
+
+## 適用後の確認
+- 実際の稼働版: 〈読戻した値と根拠。未確認なら未確認〉
+- 想定版との一致: 〈比較した実結果〉
+- 動作・記録の確認: 〈実施内容と根拠。隔離試験と自然日次を区別〉
+
+## 残る対応
+- 〈未反映・指摘・FAILと、次に誰が何を行うか。なければなし〉</pre>
+      <p class="subline">push成功から本番適用を推定しません。適用しなかった操作も理由を残し、レポート担当へ渡します。</p>
+    </details>
+
+    <details id="format-report">
+      <summary>report.md — レポート作者から独立HTMLレビューへ</summary>
+      <p style="margin-top:12px">共通タイトルは「レポート作成結果」。通常の引継ぎ先はレビュー、依頼内容はHTML本文の確認です。HTML本文は別ファイル<code>report.html</code>へ直接書きます。</p>
+      <pre>## 作成したHTML
+- ファイル: [report.html](report.html)
+- 内容の識別: 〈実ファイルから計算したSHA-256〉
+- 作成方法: 〈通常の報告／確認できた事実だけの最小報告〉
+
+## 本文4点の根拠
+- 発生した不具合: 〈本文の説明と、investigation.mdの該当箇所〉
+- 原因: 〈判明内容または不明とする根拠〉
+- 実施した修正: 〈implementation.md・deployment.mdの該当箇所〉
+- 追加したトレース・ログ: 〈記録内容・次回に役立つ点・実装と適用の根拠〉
+
+## 未達事項の反映
+- 〈原因未解決・未実施・未反映等を本文へどう記したか〉
+
+## レビュー指摘への修正
+- 初回: 指摘前。
+- 修正時: 〈html-review.mdの指摘／作者が直した箇所／修正後の内容〉</pre>
+      <p class="subline">このファイルは作者の引継ぎです。レビュー済み・公開済みの証明にはしません。修正後は上のHTML識別値も実物から更新します。</p>
+    </details>
+
+    <details id="format-html-review">
+      <summary>html-review.md — 独立HTMLレビューから作者または公開へ</summary>
+      <p style="margin-top:12px">共通タイトルは「HTMLレビュー結果」。修正が必要ならレポート作成へ返し、作者の修正後HTMLを再度読みます。確認した最終版を反映・公開へ渡します。</p>
+      <pre>## 読んだHTML
+- ファイル: [report.html](report.html)
+- 内容の識別: 〈実際に読んだファイルのSHA-256〉
+- 独立確認: 〈作者と異なるレビュー担当であること〉
+
+## 4点の確認
+- 不具合の説明: 〈根拠との一致・欠落・分かりにくさ〉
+- 原因の説明: 〈不明を含め、根拠と合うか〉
+- 実施した修正: 〈実際に行った内容と合うか〉
+- 追加したログ: 〈記録内容と次回の役立ち方が、実装・適用結果と合うか〉
+- 秘密・個人情報: 〈露出の有無。確認不能なら理由〉
+
+## 指摘
+1. 本文の場所: 〈見出し・該当文〉
+   問題と根拠: 〈4点のどこが誤っている、または不足しているか〉
+   作者への依頼: 〈必要な修正〉
+〈指摘なしなら「指摘なし」。読めなかった場合は不能理由〉
+
+## 作者修正後の再確認
+- 〈修正した実物を読んだ結果。初回は「まだ再確認していない」〉</pre>
+      <p class="subline">管理情報の詳しさ・資料一覧・表示分類等は指摘対象にしません。HTMLが変わったら、前の所見を新しい版の承認として使いません。</p>
+    </details>
+
+    <details id="format-publication">
+      <summary>publication.md — 公開結果と、同じjobの再開先</summary>
+      <p style="margin-top:12px">共通タイトルは「公開結果」。未達があれば担当へ戻し、対応と最終公開の実結果が揃ったら終了を指示します。</p>
+      <pre>## 公開対象
+- HTML: 〈公開した、または公開を試したファイル〉
+- レビュー: [html-review.md](html-review.md) の〈対象HTML識別値・実所見〉
+- 作者修正後の最終確認: 〈どの実物を読んだか。未確認ならその理由〉
+
+## 公開の実結果
+- 保存先: reports/incidents/〈対象日〉/〈対象HTML〉
+- branch・commit・push先: 〈実際の値。失敗なら失敗と理由〉
+- 公開実物との一致: 〈公開先から読んだHTMLとレビュー対象の比較結果・根拠〉
+
+## 対応と報告の実結果
+- 原因: 〈判明／不明と根拠〉
+- 原因修正または日次診断ログ追加: 〈実装・試験・製品レビュー・適用の実結果への参照〉
+- レビュー後の最終HTML公開: 〈実結果への参照。未承認を承認済みとしない〉
+- 未達事項: 〈残る作業。ないと言える根拠も書く〉
+
+## 同じjobの次の対応
+- 再開先と作業: 〈実装・試験・反映・HTML作成等、実際に未達の作業〉
+- 終了する場合の根拠: 〈原因修正／有用な日次ログ対応と最終公開の達成根拠。修正も計装もできない場合は、双方が実施不能の具体的理由〉</pre>
+      <p class="subline">「報告を公開した」だけで対応完了にはしません。原因不明でも、日次診断ログへの有用な対応を実施・確認していれば、その事実と限界を書けます。</p>
+    </details>
+
+    <details id="format-launch">
+      <summary>全担当共通：スクリプトへ返す起動指示は3項目だけ</summary>
+      <p style="margin-top:12px">Markdownの「次の作業」と同じ依頼を、LLMの最終応答として返します。本文の業務判断はLLMが行い、スクリプトはこの3項目で起動するだけです。</p>
+      <pre>{
+  "担当": "試験",
+  "入力": ["incident.md", "investigation.md", "implementation.md"],
+  "依頼": "変更した日次処理を合成fixtureで失敗させ、診断に必要な記録が残るか確認してください。"
+}</pre>
+      <p>担当名は<code>調査／実装／試験／レビュー／反映・公開／レポート作成／終了</code>。レビュー対象が製品かHTMLか、作業が反映か公開かは「依頼」に書きます。<code>終了</code>は次担当の起動が不要という意味で、実結果を<code>publication.md</code>に残してから使います。</p>
+    </details>
+  </section>
+
   <section id="runner">
-    <span class="section-no">04 / 実行スクリプトは1本</span>
+    <span class="section-no">05 / 実行スクリプトは1本</span>
     <h2>LLMが判断し、スクリプトは呼び出す。</h2>
     <div class="split">
       <div class="responsibility llm"><h3>各LLMが行うこと</h3><ul class="compact"><li>資料を読み、原因と変更内容を判断する</li><li>コード・試験・HTML・引継ぎ文書を作る</li><li>指摘の修正や次担当への依頼を決める</li><li>反映・公開の道具を実行し、実結果を記す</li></ul></div>
@@ -210,7 +459,7 @@
   </section>
 
   <section id="results">
-    <span class="section-no">05 / 失敗しても報告し、未達は残す</span>
+    <span class="section-no">06 / 失敗しても報告し、未達は残す</span>
     <h2>途中で失敗しても、次の担当は起動する。</h2>
     <figure aria-label="失敗した操作の事実を成果物に残し、後続を起動して報告し、未達を同じjobで修正する">
       <div class="strip"><div><b>操作が失敗</b><small>試験FAIL・AI失敗・反映失敗等</small></div><div><b>理由を成果物へ</b><small>実施／未実施と根拠</small></div><div><b>後続担当を起動</b><small>レビュー・反映確認・報告へ渡す</small></div><div><b>同じjobで直す</b><small>未達を適切な担当へ戻す</small></div></div>
@@ -225,6 +474,6 @@
     <p class="subline" style="margin-top:14px">今回の引継ぎ条件も<code>incident.md</code>へ保持：同じ10/17 job・launch、source_run_idはnull、10/19除外維持。新jobでの代替、通常Dailyの手動実行、不足下書きの追生成は行いません。診断用ログは隔離試験で確認し、次の自然な日次での観測とは区別します。</p>
   </section>
 </main>
-<footer>構成案 1.0 ｜ このHTMLは設計文書です。ここに示す新skill・成果物・実行スクリプトは、まだ実装・適用していません。</footer>
+<footer>構成案 1.1・Markdown引継ぎ書式を定義 ｜ このHTMLは設計文書です。ここに示す新skill・成果物・実行スクリプトは、まだ実装・適用していません。</footer>
 </body>
 </html>
