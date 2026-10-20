@@ -1,0 +1,86 @@
+{
+  "schema_version": "fc11-runtime-apply-readback-v1",
+  "observed_at_utc": "2026-10-20T00:38:38.652688+00:00",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "branch": "main",
+  "commit": "204939e8dbca217489278e0133ea86ca35885def",
+  "official_switcher": "TaskSchedulerRuntimeSwitcher",
+  "operation": "activate(commit, checkout=None); confirm_active(commit)",
+  "before": {
+    "state": {
+      "status": "active",
+      "active": {
+        "commit": "b12fa875ca6069193077ca90f28e512e239ab935",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null
+    },
+    "tasks": [
+      {
+        "TaskName": "RakutenRoomInagoDaily",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWorker",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWatchdog",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoHumanApi",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      }
+    ]
+  },
+  "result": "applied_and_confirmed",
+  "active_root": "C:\\project\\rakuten-room-inago",
+  "active_commit": "204939e8dbca217489278e0133ea86ca35885def",
+  "healthy": true,
+  "after": {
+    "state": {
+      "status": "active",
+      "active": {
+        "commit": "204939e8dbca217489278e0133ea86ca35885def",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null
+    },
+    "tasks": [
+      {
+        "TaskName": "RakutenRoomInagoDaily",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWorker",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWatchdog",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoHumanApi",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "State": "Ready",
+        "Enabled": true
+      }
+    ]
+  }
+}

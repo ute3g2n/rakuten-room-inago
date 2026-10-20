@@ -1,0 +1,113 @@
+{
+  "schema_version": "fc11-final-readback-ownership-v1",
+  "branch": "main",
+  "head_before_commit": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d",
+  "upstream": "origin/main",
+  "ahead_behind": "0\t0",
+  "cached_before_commit": [],
+  "tracked_uncached_before_commit": [
+    "\"plans/projects/maintenance/\\350\\207\\252\\345\\213\\225\\344\\270\\215\\345\\205\\267\\345\\220\\210\\345\\257\\276\\345\\277\\234\\343\\203\\225\\343\\203\\255\\343\\203\\274\\345\\256\\214\\351\\201\\202\\343\\201\\250\\345\\205\\250\\345\\267\\245\\347\\250\\213\\350\\277\\275\\350\\267\\241_\\345\\256\\237\\350\\241\\214\\350\\250\\210\\347\\224\\273_2026-10-19.md\""
+  ],
+  "untracked_before_commit": [
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/final-acceptance-reconciliation-r1.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-204939e-readback.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-204939e.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-cli.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.json",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.md",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.console.txt",
+    "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.json"
+  ],
+  "status_before_commit": [
+    "M \"plans/projects/maintenance/\\350\\207\\252\\345\\213\\225\\344\\270\\215\\345\\205\\267\\345\\220\\210\\345\\257\\276\\345\\277\\234\\343\\203\\225\\343\\203\\255\\343\\203\\274\\345\\256\\214\\351\\201\\202\\343\\201\\250\\345\\205\\250\\345\\267\\245\\347\\250\\213\\350\\277\\275\\350\\267\\241_\\345\\256\\237\\350\\241\\214\\350\\250\\210\\347\\224\\273_2026-10-19.md\"",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/final-acceptance-reconciliation-r1.md",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-204939e-readback.json",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-204939e.json",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-cli.json",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.json",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.md",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.console.txt",
+    "?? worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.json"
+  ],
+  "owned_paths": [
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "bytes": 326817,
+      "sha256": "c11158691e17cf0f132f006379654158c23d5fd376cc65718a9a67787e34765e",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/final-acceptance-reconciliation-r1.md",
+      "bytes": 3440,
+      "sha256": "0aa376b42a0e0cfd094b9d1176c279da36e9b826f7ca85dac27c8253a7bbfba0",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-204939e-readback.json",
+      "bytes": 2623,
+      "sha256": "04fc6d351a1a1236ddcda6e48fc1f5b11244ac4a4055d691c9848eb28df75eb2",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-204939e.json",
+      "bytes": 4694,
+      "sha256": "641c4b4c26efd9fce7aa8e4bd406f0a4b2e27bf4555c62cd2148eff4ba16be8e",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-cli.json",
+      "bytes": 3712,
+      "sha256": "0788d03bd1fc85edd21ac975bd0b94a71b796f08cc298a45a1efacf62be7d4aa",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.json",
+      "bytes": 39054,
+      "sha256": "2d77764798400382a9264b1ba72a7eda5c5983417fee23d9c12dda293e99885c",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-final-readback.md",
+      "bytes": 3290,
+      "sha256": "c09579a8141e6348110026a5457d9a0a0874b912ece191812f2b2e3b20b10716",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.console.txt",
+      "bytes": 702,
+      "sha256": "aab0ac256120c20ca2a1b20570f6f6486897552891d7f762c2e0b94273f7b55e",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-27-worker.json",
+      "bytes": 1334772,
+      "sha256": "0face0907ab1116bc16b6fcea308b540a4b314e6c571bc604c98a246c300ca3b",
+      "ownership": "FC11 same-job resume27/final acceptance worklog or approved plan §14 append"
+    }
+  ],
+  "secret_scan": {
+    "patterns": [
+      "private_key",
+      "bearer_credential",
+      "github_token",
+      "openai_key",
+      "aws_access_key",
+      "credential_assignment",
+      "personal_email"
+    ],
+    "finding_count": 0,
+    "findings": []
+  },
+  "approved_plan_snapshot_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381",
+  "notes": [
+    "All planned paths are explicit and task-owned; no bulk stage.",
+    "The manifest does not hash itself to avoid a self-reference.",
+    "No existing user change was present at the baseline commit fa6c78a."
+  ],
+  "machine_checks": {
+    "initial_cached_diff_check": "failed: one extra blank line at end of same-job-resume-27-worker.console.txt",
+    "recovery": "trimmed only trailing blank line; restage only that owned console artifact; rerun cached diff check",
+    "secret_scan_after_content_creation": "0 findings",
+    "scope": "10 explicit task-owned paths only"
+  }
+}

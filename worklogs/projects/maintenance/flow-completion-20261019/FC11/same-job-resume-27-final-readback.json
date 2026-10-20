@@ -1,0 +1,939 @@
+{
+  "schema_version": "fc11-final-readback-v1",
+  "observed_at_utc": "2026-10-20T00:52:26.312600+00:00",
+  "repository": {
+    "root": "C:\\project\\rakuten-room-inago",
+    "branch": "main",
+    "head": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d",
+    "upstream": "origin/main",
+    "approved_plan_snapshot": "worklogs/projects/maintenance/flow-completion-20261019/FC02/plan.md",
+    "approved_plan_snapshot_sha256": "e7434af9385cd2a33dc66fbc57004cfe7576ea76c0362847e48d129831f4f381"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "worker": {
+    "command": [
+      "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+      "-B",
+      "-m",
+      "automation.inago.maintenance.cli",
+      "--data-root",
+      "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+      "worker",
+      "--once",
+      "--source-launch-id",
+      "historical-9e7f0c175cc4c874c955a5dab29c4427"
+    ],
+    "repository_commit": "204939e8dbca217489278e0133ea86ca35885def",
+    "exit_code": 0,
+    "result": {
+      "check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b",
+      "duplicate": false,
+      "maintenance_resolution_status": "complete",
+      "queue_id": null,
+      "reason_code": null,
+      "schema_version": "maintenance-worker-result-v3",
+      "scope": "maintenance_workflow",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "status": "maintenance_complete",
+      "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+    },
+    "identity_matches": true,
+    "same_job_resume_count": 27,
+    "target_daily_launch_created": false,
+    "daily_launch_rows_unchanged": true,
+    "october19_queue_unchanged": true
+  },
+  "database": {
+    "schema_version": 16,
+    "quick_check": "ok",
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17",
+      "status": "complete",
+      "resume_count": 27,
+      "finished_at": "2026-10-20T00:42:20.341675Z",
+      "terminal_reason_code": null
+    },
+    "attempt_status_counts": [
+      {
+        "status": "blocked",
+        "count": 1
+      },
+      {
+        "status": "complete",
+        "count": 24
+      },
+      {
+        "status": "failed",
+        "count": 25
+      },
+      {
+        "status": "handoff_accepted",
+        "count": 1
+      },
+      {
+        "status": "interrupted",
+        "count": 6
+      }
+    ],
+    "running_attempts": [],
+    "stage_observations": [
+      {
+        "stage_name": "check_incident",
+        "status": "complete",
+        "reason_code": null,
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "evidence",
+        "status": "complete",
+        "reason_code": null,
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "job",
+        "status": "complete",
+        "reason_code": null,
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "investigation",
+        "status": "complete",
+        "reason_code": null,
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "planning",
+        "status": "unknown",
+        "reason_code": "ai_transport_failed",
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "repair",
+        "status": "unknown",
+        "reason_code": "attempt_id_invalid",
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "deployment",
+        "status": "unknown",
+        "reason_code": "deployment_candidate_unavailable",
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      },
+      {
+        "stage_name": "report",
+        "status": "complete",
+        "reason_code": null,
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d"
+      }
+    ],
+    "target_date_daily_launch_rows": [],
+    "october19_daily_launch_rows": [
+      {
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "failed",
+        "source_run_id": null,
+        "exit_code": 4,
+        "completed_at": "2026-10-19T04:00:03.226334Z"
+      }
+    ],
+    "october19_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued",
+        "reason_code": null
+      }
+    ],
+    "october19_queue_event_count": 0,
+    "ai_session_observations": [
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-20T00:17:05.590283Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-20T00:16:38.572357Z"
+      },
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T23:36:43.114528Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T23:36:20.780918Z"
+      },
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:44:09.644265Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:43:20.654264Z"
+      },
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:29:24.978540Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:28:50.262105Z"
+      },
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:11:46.815785Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T21:11:17.400281Z"
+      },
+      {
+        "role_name": "rr-inago-incident-reporter",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T20:24:14.476604Z"
+      },
+      {
+        "role_name": "rr-inago-incident-report-reviewer",
+        "requested_model": "gpt-6-luna",
+        "requested_effort": "high",
+        "requested_service_tier": "priority",
+        "requested_fast_mode": 1,
+        "created_at": "2026-10-19T20:23:48.620417Z"
+      }
+    ]
+  },
+  "workflow_terminal": {
+    "path": "rakuten-room-inago/runtime/workflow-terminal/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d.json",
+    "sha256": "4170bcfd7d32abd0fa42f8337a33e389369ab6f589c1a79c3d4c1b6d584f790c",
+    "workflow_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+    "workflow_completion": "complete",
+    "job_terminal_status": "complete",
+    "incident_resolution": "unknown",
+    "stage_observations": [
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:16.643595Z",
+        "reason_code": null,
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "check_incident",
+        "status": "complete",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:16.696628Z",
+        "reason_code": null,
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "evidence",
+        "status": "complete",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:16.740026Z",
+        "reason_code": null,
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "job",
+        "status": "complete",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:16.780196Z",
+        "reason_code": null,
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "investigation",
+        "status": "complete",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:19.983732Z",
+        "reason_code": "ai_transport_failed",
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "planning",
+        "status": "unknown",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:20.239293Z",
+        "reason_code": "attempt_id_invalid",
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "repair",
+        "status": "unknown",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:41:20.316038Z",
+        "reason_code": "deployment_candidate_unavailable",
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "deployment",
+        "status": "unknown",
+        "target_date": "2026-10-17"
+      },
+      {
+        "invocation_id": "workflow-80ea6993227c4c6f9c3efc96b730ac3d",
+        "observed_at": "2026-10-20T00:42:17.198153Z",
+        "reason_code": null,
+        "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+        "source_run_id": null,
+        "stage_name": "report",
+        "status": "complete",
+        "target_date": "2026-10-17"
+      }
+    ],
+    "stage_handoff_refs": [
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/check_incident.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/evidence.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/job.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/investigation.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/planning.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/repair.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/deployment.json",
+      "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/report.json"
+    ],
+    "attempt_output_refs": [
+      {
+        "attempt_id": "feb4fb86-679c-44a0-85dd-93a64e88b87f",
+        "evidence_kind": "completed_attempt_output",
+        "output_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json",
+        "output_sha256": "17b007c9e67f428f753d52657440c6ba55385420f52085d429a87bd538d47fa6",
+        "result_version": "investigation:feb4fb86-679c-44a0-85dd-93a64e88b87f:v1",
+        "status": "handoff_accepted",
+        "step_key": "maintenance_investigation"
+      },
+      {
+        "attempt_id": "1db29558-c5a7-447d-bc3d-0c2e3932bd8d",
+        "evidence_kind": "stage_failure_handoff",
+        "formal_output_observation": null,
+        "operation_result": "failed",
+        "output_path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/planning.json",
+        "output_sha256": "12bb87b866025890277d0f211f9b02557f3182240f294dfaf74894a51d062c8d",
+        "reason_code": "ai_transport_failed",
+        "result_version": "failure-1db29558-c5a7-447d-bc3d-0c2e3932bd8d",
+        "stage": "planning",
+        "status": "failed",
+        "step_key": "maintenance_planning"
+      },
+      {
+        "attempt_id": "c9612f89-b2a1-4025-a613-48cc652efc8b",
+        "evidence_kind": "stage_failure_handoff",
+        "formal_output_observation": null,
+        "operation_result": "not_performed",
+        "output_path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/repair.json",
+        "output_sha256": "7764f2f76bdd9aa0351bff8a2da08c8616ed181c3c768e228347c0aa393a4552",
+        "reason_code": "attempt_id_invalid",
+        "result_version": "failure-c9612f89-b2a1-4025-a613-48cc652efc8b",
+        "stage": "repair",
+        "status": "failed",
+        "step_key": "maintenance_repair"
+      }
+    ],
+    "deployment_output_ref": {
+      "attempt_output_observations": [],
+      "evidence_kind": "stage_failure_handoff",
+      "operation_result": "unknown",
+      "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/deployment.json",
+      "reason_code": "deployment_candidate_unavailable",
+      "sha256": "f930fd6b3d0f988769bea533186728188915cc5bddb2de6b8702252c08d2c9ef",
+      "stage": "deployment"
+    },
+    "report_publication_readback": {
+      "attempt_id": "dfad8488-b363-43ad-a3b7-8570af7be8b4",
+      "html_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/report-fallback-86de30baeb3de58a11de.html",
+      "html_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+      "public_html_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+      "publication_commit": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d",
+      "publication_path": "maintenance/attempts/job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/report-publication.json",
+      "publication_sha256": "3c5c360fc39fbc776fc05a5bf4a425cebe75167d5bf6bcf2e8ed29571eafb0b1",
+      "remote_head_readback": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d",
+      "remote_name": "origin",
+      "result_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/result.json",
+      "result_sha256": "9612a208778ee5b8d287a2283b1c06198fcec5ba1260632f2ce92d7bf7e9fe84",
+      "target_branch": "main"
+    },
+    "terminal_verification": {
+      "all_content_handoffs_read_back": true,
+      "all_stage_observations_present": true,
+      "deployment_result_or_failure_handoff_read_back": true,
+      "report_complete_observation": true,
+      "report_result_html_publication_sidecar_and_remote_readback": true,
+      "stage_attempt_or_failure_handoffs_read_back": true,
+      "stage_observation_identity_matches": true
+    },
+    "missing_stages": [],
+    "missing_stage_handoffs": [],
+    "missing_attempt_outputs": [],
+    "identity_mismatch_stages": []
+  },
+  "trace": {
+    "operation_event_count": 16,
+    "source_fingerprints": [
+      "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994"
+    ],
+    "operation_events": [
+      {
+        "event_id": "e496cbb64a274ea8a04115bd5ad5cda2",
+        "correlation_id": "1df6763c644e4cf9b4b7bd57cb982f9f",
+        "stage": "check_incident",
+        "operation": "workflow.stage.check_incident",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.595000Z"
+      },
+      {
+        "event_id": "49772e38c223487c83493214c7bdce23",
+        "correlation_id": "1df6763c644e4cf9b4b7bd57cb982f9f",
+        "stage": "check_incident",
+        "operation": "workflow.stage.check_incident",
+        "phase": "handoff",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.632000Z"
+      },
+      {
+        "event_id": "a38a4335cdc349409776b19263e26c50",
+        "correlation_id": "25761d9b628a46baaf9c468a8c428e48",
+        "stage": "evidence",
+        "operation": "workflow.stage.evidence",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.653000Z"
+      },
+      {
+        "event_id": "b661b421135947138ba150e0c846e355",
+        "correlation_id": "25761d9b628a46baaf9c468a8c428e48",
+        "stage": "evidence",
+        "operation": "workflow.stage.evidence",
+        "phase": "handoff",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.684000Z"
+      },
+      {
+        "event_id": "90014532372a4f048a4b29a06552dfea",
+        "correlation_id": "6044f31081f449f292236f8c70aaa13b",
+        "stage": "job",
+        "operation": "workflow.stage.job",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.705000Z"
+      },
+      {
+        "event_id": "3ec24cb446b941f3b2495d78e56f1e97",
+        "correlation_id": "6044f31081f449f292236f8c70aaa13b",
+        "stage": "job",
+        "operation": "workflow.stage.job",
+        "phase": "handoff",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.734000Z"
+      },
+      {
+        "event_id": "3612e20310d44812ac7e3f585006c877",
+        "correlation_id": "cf6a3e71a6504a92a5a4031fbad1b92b",
+        "stage": "investigation",
+        "operation": "workflow.stage.investigation",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.749000Z"
+      },
+      {
+        "event_id": "d95f91ec2de1457da5fae84f6a785348",
+        "correlation_id": "cf6a3e71a6504a92a5a4031fbad1b92b",
+        "stage": "investigation",
+        "operation": "workflow.stage.investigation",
+        "phase": "handoff",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.773000Z"
+      },
+      {
+        "event_id": "d5c68c5b53f342bfa0af780a562347fe",
+        "correlation_id": "9b67598708674c2fb9c91d699b249c05",
+        "stage": "planning",
+        "operation": "workflow.stage.planning",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:16.789000Z"
+      },
+      {
+        "event_id": "e6582c5f4f0e42118d1799af7f0be82c",
+        "correlation_id": "9b67598708674c2fb9c91d699b249c05",
+        "stage": "planning",
+        "operation": "workflow.stage.planning",
+        "phase": "handoff",
+        "reason_code": "ai_transport_failed",
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:19.977000Z"
+      },
+      {
+        "event_id": "f9c6d12f50b740c2a26c95870d2e712b",
+        "correlation_id": "9f177e808f744da399ef27c758a3b71c",
+        "stage": "repair",
+        "operation": "workflow.stage.repair",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:19.993000Z"
+      },
+      {
+        "event_id": "7518b13049dd446ba6e6b32de03ad19d",
+        "correlation_id": "9f177e808f744da399ef27c758a3b71c",
+        "stage": "repair",
+        "operation": "workflow.stage.repair",
+        "phase": "handoff",
+        "reason_code": "attempt_id_invalid",
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:20.233000Z"
+      },
+      {
+        "event_id": "ebfb3fe771414a079aca12bf435d4d21",
+        "correlation_id": "fb6d19eed3ff42c5bbfeba7847132a67",
+        "stage": "deployment",
+        "operation": "workflow.stage.deployment",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:20.248000Z"
+      },
+      {
+        "event_id": "669286d52eb641d68b1ee668fe9d7954",
+        "correlation_id": "fb6d19eed3ff42c5bbfeba7847132a67",
+        "stage": "deployment",
+        "operation": "workflow.stage.deployment",
+        "phase": "handoff",
+        "reason_code": "deployment_candidate_unavailable",
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:20.310000Z"
+      },
+      {
+        "event_id": "4345a412e9634e7f85ebea7d357cda0c",
+        "correlation_id": "24f630713ed14ac0b19dc81729e5822e",
+        "stage": "report",
+        "operation": "workflow.stage.report",
+        "phase": "begin",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:41:20.325000Z"
+      },
+      {
+        "event_id": "7b6a8ac42a464b5d925932fc0edd96e5",
+        "correlation_id": "24f630713ed14ac0b19dc81729e5822e",
+        "stage": "report",
+        "operation": "workflow.stage.report",
+        "phase": "handoff",
+        "reason_code": null,
+        "code_revision": "maintenance-source-v1-38ce77b9dfff5d589ec8fe1e73c38983f31e5740d869b18219d6ca912b3d2994",
+        "observed_at": "2026-10-20T00:42:17.184000Z"
+      }
+    ],
+    "failure_handoffs": {
+      "planning": {
+        "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/planning.json",
+        "sha256": "12bb87b866025890277d0f211f9b02557f3182240f294dfaf74894a51d062c8d",
+        "operation": "planning.author.run_turn_or_validate",
+        "operation_result": "failed",
+        "reason_code": "ai_transport_failed",
+        "correlation_id": "8f2e1080e0a140ce909c226ae8403790",
+        "input_refs": [
+          "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+          "historical-input/2026-10-17/observation.json",
+          "historical-input/2026-10-17/source-evidence.json"
+        ],
+        "output_refs": [
+          "job-historical-9e7f0c175cc4c874c955a5dab29c4427/1db29558-c5a7-447d-bc3d-0c2e3932bd8d/controller-fallback.json",
+          "job-historical-9e7f0c175cc4c874c955a5dab29c4427/1db29558-c5a7-447d-bc3d-0c2e3932bd8d/stage-handoff.json",
+          "job-historical-9e7f0c175cc4c874c955a5dab29c4427/1db29558-c5a7-447d-bc3d-0c2e3932bd8d/plan.md",
+          "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/planning.json"
+        ],
+        "errors": [
+          {
+            "capture_location": "maintenance.stage_handoff.make_stage_handoff",
+            "exception_chain": [
+              "MaintenanceAIBlockedError",
+              "AppServerError"
+            ],
+            "operation": "planning.author.run_turn_or_validate",
+            "reason_code": "ai_transport_failed",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "run_daily_planning_author_stage",
+                "line": 5245
+              },
+              {
+                "file": "diagnostic_trace.py",
+                "function": "wrapped",
+                "line": 941
+              },
+              {
+                "file": "ai_adapter.py",
+                "function": "run_turn",
+                "line": 765
+              }
+            ]
+          }
+        ],
+        "journal_observation": {
+          "primary_sink": "maintenance_operation_event",
+          "status": "written"
+        }
+      },
+      "repair": {
+        "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/repair.json",
+        "sha256": "7764f2f76bdd9aa0351bff8a2da08c8616ed181c3c768e228347c0aa393a4552",
+        "operation": "workflow.repair.prepare_repair_candidate_for_tests",
+        "operation_result": "not_performed",
+        "reason_code": "attempt_id_invalid",
+        "correlation_id": "7506bc99ffa44274a346061fecec1612",
+        "input_refs": [
+          "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+          "historical-input/2026-10-17/observation.json",
+          "historical-input/2026-10-17/source-evidence.json"
+        ],
+        "output_refs": [
+          "job-historical-9e7f0c175cc4c874c955a5dab29c4427/c9612f89-b2a1-4025-a613-48cc652efc8b/repair-handoff.json",
+          "job-historical-9e7f0c175cc4c874c955a5dab29c4427/c9612f89-b2a1-4025-a613-48cc652efc8b/repair-test-handoff-7506bc99ffa44274a346.json",
+          "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/repair.json"
+        ],
+        "errors": [
+          {
+            "capture_location": "run_daily_repair_test_stage",
+            "exception_chain": [
+              "MaintenanceStoreError"
+            ],
+            "operation": "workflow.repair.prepare_repair_candidate_for_tests",
+            "reason_code": "attempt_id_invalid",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "prepare_daily_repair_stage",
+                "line": 12678
+              },
+              {
+                "file": "production_workflow.py",
+                "function": "_daily_repair_setup_document",
+                "line": 5925
+              },
+              {
+                "file": "store.py",
+                "function": "get_step_attempt",
+                "line": 6646
+              },
+              {
+                "file": "store.py",
+                "function": "_safe_id",
+                "line": 990
+              }
+            ]
+          }
+        ],
+        "journal_observation": {
+          "primary_sink": "maintenance_operation_event",
+          "status": "written"
+        }
+      },
+      "deployment": {
+        "path": "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/deployment.json",
+        "sha256": "f930fd6b3d0f988769bea533186728188915cc5bddb2de6b8702252c08d2c9ef",
+        "operation": "workflow.deployment.verify_or_apply_deployment_candidate",
+        "operation_result": "unknown",
+        "reason_code": "deployment_candidate_unavailable",
+        "correlation_id": "934eb139715a4cbaaec07273e32fe532",
+        "input_refs": [
+          "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+          "historical-input/2026-10-17/observation.json",
+          "historical-input/2026-10-17/source-evidence.json"
+        ],
+        "output_refs": [
+          "workflow-handoffs/job-historical-9e7f0c175cc4c874c955a5dab29c4427/workflow-80ea6993227c4c6f9c3efc96b730ac3d/deployment.json"
+        ],
+        "errors": [
+          {
+            "capture_location": "prepare_daily_deployment_candidate_stage",
+            "exception_chain": [
+              "RepairContractError"
+            ],
+            "operation": "workflow.deployment.prepare_deployment_candidate",
+            "reason_code": "deployment_candidate_repair_unavailable",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "prepare_daily_deployment_candidate_stage",
+                "line": 7216
+              }
+            ]
+          },
+          {
+            "capture_location": "_record_deployment_not_performed.artifact_save",
+            "exception_chain": [
+              "InvestigationContractError",
+              "RepairContractError"
+            ],
+            "operation": "workflow.deployment.not_performed_artifact_save",
+            "reason_code": "deployment_not_performed_artifact_save_failed",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "_record_deployment_not_performed",
+                "line": 7559
+              },
+              {
+                "file": "investigation.py",
+                "function": "save_attempt_artifact",
+                "line": 664
+              },
+              {
+                "file": "investigation.py",
+                "function": "_validate_context",
+                "line": 207
+              }
+            ]
+          },
+          {
+            "capture_location": "run_daily_deployment_execution_stage",
+            "exception_chain": [
+              "RepairContractError"
+            ],
+            "operation": "workflow.deployment.verify_or_apply_deployment_candidate",
+            "reason_code": "deployment_candidate_unavailable",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "run_daily_deployment_execution_stage",
+                "line": 7835
+              }
+            ]
+          },
+          {
+            "capture_location": "_record_deployment_not_performed.artifact_save",
+            "exception_chain": [
+              "InvestigationContractError",
+              "RepairContractError"
+            ],
+            "operation": "workflow.deployment.not_performed_artifact_save",
+            "reason_code": "deployment_not_performed_artifact_save_failed",
+            "stack_frames": [
+              {
+                "file": "production_workflow.py",
+                "function": "_record_deployment_not_performed",
+                "line": 7559
+              },
+              {
+                "file": "investigation.py",
+                "function": "save_attempt_artifact",
+                "line": 664
+              },
+              {
+                "file": "investigation.py",
+                "function": "_validate_context",
+                "line": 207
+              }
+            ]
+          }
+        ],
+        "journal_observation": {
+          "primary_sink": "maintenance_operation_event",
+          "status": "written"
+        }
+      }
+    },
+    "raw_old_blocked_attempts_preserved": 1,
+    "future_stage_blocked_observations": 0
+  },
+  "report": {
+    "attempt_id": "dfad8488-b363-43ad-a3b7-8570af7be8b4",
+    "result_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/result.json",
+    "result_sha256": "9612a208778ee5b8d287a2283b1c06198fcec5ba1260632f2ce92d7bf7e9fe84",
+    "report_origin": "controller_fallback",
+    "report_stage_status": "reviewed",
+    "report_status_before_publication": "pending",
+    "reviewer_id": "rr-inago-incident-report-reviewer",
+    "reviewed_version": "fallback-revision-8b0283aef941d24922fa",
+    "review_status": "approved",
+    "finding_count": 0,
+    "reviewed_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+    "html_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/report-fallback-86de30baeb3de58a11de.html",
+    "html_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+    "html_bytes": 21972,
+    "publication_sidecar_path": "job-historical-9e7f0c175cc4c874c955a5dab29c4427/dfad8488-b363-43ad-a3b7-8570af7be8b4/report-publication.json",
+    "publication_sidecar_sha256": "3c5c360fc39fbc776fc05a5bf4a425cebe75167d5bf6bcf2e8ed29571eafb0b1",
+    "publication_commit": "fa6c78a64f2242a7f2a65ce3bb63ddd3e275494d",
+    "public_path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+    "remote_html_sha256": "86de30baeb3de58a11de7290b08307d26a8ba93fc623f5cdb6fe2e342382b32e",
+    "remote_html_bytes": 21972,
+    "reporter_invoked": true,
+    "reviewer_invoked": true,
+    "author_final_origin": "controller_fallback; reporter was invoked but did not author the final HTML",
+    "review_and_public_bytes_match": true
+  },
+  "runtime_apply": {
+    "schema_version": "fc11-runtime-apply-readback-v1",
+    "observed_at_utc": "2026-10-20T00:38:38.652688+00:00",
+    "repository_root": "C:\\project\\rakuten-room-inago",
+    "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "branch": "main",
+    "commit": "204939e8dbca217489278e0133ea86ca35885def",
+    "official_switcher": "TaskSchedulerRuntimeSwitcher",
+    "operation": "activate(commit, checkout=None); confirm_active(commit)",
+    "before": {
+      "state": {
+        "status": "active",
+        "active": {
+          "commit": "b12fa875ca6069193077ca90f28e512e239ab935",
+          "root": "C:\\project\\rakuten-room-inago"
+        },
+        "pending": null
+      },
+      "tasks": [
+        {
+          "TaskName": "RakutenRoomInagoDaily",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoWorker",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoWatchdog",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoHumanApi",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        }
+      ]
+    },
+    "result": "applied_and_confirmed",
+    "active_root": "C:\\project\\rakuten-room-inago",
+    "active_commit": "204939e8dbca217489278e0133ea86ca35885def",
+    "healthy": true,
+    "after": {
+      "state": {
+        "status": "active",
+        "active": {
+          "commit": "204939e8dbca217489278e0133ea86ca35885def",
+          "root": "C:\\project\\rakuten-room-inago"
+        },
+        "pending": null
+      },
+      "tasks": [
+        {
+          "TaskName": "RakutenRoomInagoDaily",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoWorker",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoWatchdog",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        },
+        {
+          "TaskName": "RakutenRoomInagoHumanApi",
+          "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+          "State": "Ready",
+          "Enabled": true
+        }
+      ]
+    }
+  },
+  "latest_formal_ledger_before_reconciliation": {
+    "release_id": "U23-REPORT-MD-20261019-7a90002",
+    "base_commit": "dabbb0fe72039f72c326817b49103892d09a25ae",
+    "result_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "result_version": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "config_version": "1.5",
+    "state": "frozen",
+    "deployment_status": "deployed",
+    "active_commit": "22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "deployed_at": "2026-10-19T05:03:33.523174Z"
+  },
+  "acceptance_readout": {
+    "FC-A01_to_FC-A09": "independent read-only reconciliation found complete",
+    "FC-A10": "partial at this readback: official applied/runtime commit 204939e has no matching formal deployment ledger row; latest deployed ledger row is 22d68761cc47e089bfc2ed59dc9eadc4e69126ee",
+    "plan_complete": false
+  }
+}

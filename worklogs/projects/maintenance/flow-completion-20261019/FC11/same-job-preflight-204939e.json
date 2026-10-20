@@ -1,0 +1,144 @@
+{
+  "schema_version": "fc11-same-job-preflight-v1",
+  "observed_at_utc": "2026-10-20T00:40:26.282201+00:00",
+  "repository_commit": "204939e8dbca217489278e0133ea86ca35885def",
+  "identity_expected": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "operations": [
+    {
+      "operation": "production_cli_preflight",
+      "command": [
+        "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "automation.inago.maintenance.cli",
+        "--data-root",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+        "preflight",
+        "--environment",
+        "production",
+        "--config",
+        "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime\\config\\settings.json"
+      ],
+      "exit_code": 0,
+      "stdout_tail": "{\"config_sha256\": \"ccbd9c2af0c7118ff3c6f683e2e6e1c0c5149aebcda6b0320f2d562c4db680d8\", \"daily_database_separate\": true, \"database_health\": \"ok\", \"environment\": \"production\", \"maintenance_database\": \"available\", \"schema_version\": 16, \"settings_version\": \"1.6\", \"status\": \"ready\"}\n",
+      "stderr_tail": ""
+    },
+    {
+      "operation": "identity_readback_projection",
+      "first_observation": "false_negative_due_to_comparing_manifest_metadata_with_identity_tuple",
+      "cause": "the manifest also contains incident_id and manifest_sha256, which are not members of identity_expected",
+      "recovery": "compared exactly job_id, source_launch_id, target_date, and source_run_id",
+      "recovered": true,
+      "database_or_scheduler_mutated": false
+    }
+  ],
+  "production_preflight": {
+    "config_sha256": "ccbd9c2af0c7118ff3c6f683e2e6e1c0c5149aebcda6b0320f2d562c4db680d8",
+    "daily_database_separate": true,
+    "database_health": "ok",
+    "environment": "production",
+    "maintenance_database": "available",
+    "schema_version": 16,
+    "settings_version": "1.6",
+    "status": "ready"
+  },
+  "database": {
+    "quick_check": "ok",
+    "schema_version": 16
+  },
+  "job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_run_id": null,
+    "resume_count": 26,
+    "status": "failed",
+    "finished_at": "2026-10-20T00:32:34.363543Z",
+    "terminal_reason_code": "workflow_terminal_observations_incomplete"
+  },
+  "manifest": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "identity_matches": true,
+  "attempt_status_counts": [
+    {
+      "step_key": "maintenance_investigation",
+      "status": "blocked",
+      "count": 1
+    },
+    {
+      "step_key": "maintenance_investigation",
+      "status": "complete",
+      "count": 6
+    },
+    {
+      "step_key": "maintenance_investigation",
+      "status": "handoff_accepted",
+      "count": 1
+    },
+    {
+      "step_key": "maintenance_investigation",
+      "status": "interrupted",
+      "count": 1
+    },
+    {
+      "step_key": "maintenance_planning",
+      "status": "failed",
+      "count": 14
+    },
+    {
+      "step_key": "maintenance_planning",
+      "status": "interrupted",
+      "count": 1
+    },
+    {
+      "step_key": "maintenance_repair",
+      "status": "failed",
+      "count": 5
+    },
+    {
+      "step_key": "maintenance_report",
+      "status": "complete",
+      "count": 17
+    },
+    {
+      "step_key": "maintenance_report",
+      "status": "failed",
+      "count": 4
+    },
+    {
+      "step_key": "maintenance_report",
+      "status": "interrupted",
+      "count": 4
+    }
+  ],
+  "running_attempts": [],
+  "target_worker_queue": [],
+  "target_daily_launch_rows": [],
+  "october19_worker_queue": [
+    {
+      "queue_id": "82e35e362a064e3292355d27ed0f4289",
+      "target_date": "2026-10-19",
+      "status": "queued",
+      "reason_code": null
+    }
+  ],
+  "october19_worker_queue_event_count": 0,
+  "target_incident_run_nonnull_count": 0,
+  "worker_dispatch_exclusion_preserved": true,
+  "side_effects": {
+    "read_only_database": true,
+    "daily_or_worker_actions_performed": false,
+    "new_job_created": false
+  },
+  "result": "ready_for_same_job_resume"
+}

@@ -1,0 +1,6 @@
+Command: C:\project\rakuten-room-inago\.venv-inago\Scripts\python.exe -B -m automation.inago.maintenance.cli --data-root C:\project\rakuten-room-inago\rakuten-room-inago\runtime worker --once --source-launch-id historical-9e7f0c175cc4c874c955a5dab29c4427
+Exit code: 0
+STDOUT:
+{"check_id": "d8178c1e-61fb-4a53-a4e5-0216722fda1b", "duplicate": false, "maintenance_resolution_status": "complete", "queue_id": null, "reason_code": null, "schema_version": "maintenance-worker-result-v3", "scope": "maintenance_workflow", "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427", "status": "maintenance_complete", "worker_job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427"}
+
+STDERR:
