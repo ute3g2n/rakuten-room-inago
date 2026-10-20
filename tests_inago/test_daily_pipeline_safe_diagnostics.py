@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime
 import hashlib
 import json
@@ -225,6 +226,13 @@ def _assert_safe_diagnostic(result, operation, exception_class):
     assert diagnostic["code_sha256"] == hashlib.sha256(
         Path(daily_pipeline.__file__).read_bytes()
     ).hexdigest()
+    assert diagnostic["exception_chain"]
+    assert diagnostic["exception_chain"][0] == {
+        "relation": "raised",
+        "exception_class": exception_class,
+    }
+    assert isinstance(diagnostic["exception_frames"], list)
+    assert all(not Path(frame["path"]).is_absolute() for frame in diagnostic["exception_frames"])
     assert "SQL_CANARY" not in json.dumps(diagnostic)
     assert "callback_CANARY" not in json.dumps(diagnostic)
     assert "export_CANARY" not in json.dumps(diagnostic)
@@ -254,6 +262,101 @@ def test_callback_secondary_exception_preserves_primary_failure_and_records_safe
     assert result["committed_count"] == 0
     assert result["primary_error"]["code"] == "RuntimeError"
     _assert_safe_diagnostic(result, "failure_result_callback", "ValueError")
+
+
+def test_secondary_exception_chain_preserves_cause_context_and_suppression():
+    def raise_chain(kind):
+        try:
+            raise OSError("MESSAGE_CANARY")
+        except OSError as inner:
+            if kind == "cause":
+                raise ValueError("OUTER_CANARY") from inner
+            if kind == "suppressed":
+                raise ValueError("OUTER_CANARY") from None
+            raise ValueError("OUTER_CANARY")
+
+    expected_relations = {
+        "cause": ["raised", "cause"],
+        "context": ["raised", "context"],
+        "suppressed": ["raised", "context_suppressed"],
+    }
+    for kind, relations in expected_relations.items():
+        with pytest.raises(ValueError) as raised:
+            raise_chain(kind)
+
+        chain = daily_pipeline._safe_exception_chain(raised.value)
+        assert [item["relation"] for item in chain] == relations
+        assert [item["exception_class"] for item in chain] == [
+            "ValueError",
+            "OSError",
+        ]
+        assert "CANARY" not in json.dumps(chain)
+
+        frames = daily_pipeline._safe_exception_frames(raised.value)
+        assert frames
+        assert all(not Path(item["path"]).is_absolute() for item in frames)
+        assert all("CANARY" not in json.dumps(item) for item in frames)
+
+    try:
+        json.loads("{")
+    except json.JSONDecodeError as external_error:
+        external_frames = daily_pipeline._safe_exception_frames(external_error)
+    assert external_frames
+    assert all(frame["path"].startswith("tests_inago/") for frame in external_frames)
+
+
+def test_exception_chain_truncation_boundary_is_reported_without_unsafe_data():
+    def cause_chain(length: int) -> BaseException:
+        nodes = [RuntimeError(f"MESSAGE_CANARY_{index}") for index in range(length)]
+        for current, following in zip(nodes, nodes[1:]):
+            current.__cause__ = following
+        local_canary = "LOCAL_CANARY"
+        try:
+            raise nodes[0]
+        except RuntimeError as exception:
+            assert local_canary
+            return exception
+
+    fewer_than_limit = cause_chain(11)
+    exactly_limit = cause_chain(12)
+    beyond_limit = cause_chain(13)
+
+    duplicate_pending = cause_chain(12)
+    current = duplicate_pending
+    for _ in range(11):
+        current = current.__cause__
+    current.__context__ = duplicate_pending
+
+    cases = [
+        ("fewer_than_limit", fewer_than_limit, False, 11),
+        ("exactly_limit", exactly_limit, False, 12),
+        ("beyond_limit", beyond_limit, True, 12),
+        ("duplicate_pending_only", duplicate_pending, False, 12),
+    ]
+    for operation, exception, expected_truncated, expected_length in cases:
+        chain, truncated = daily_pipeline._safe_exception_chain_details(exception)
+        assert len(chain) == expected_length
+        assert truncated is expected_truncated
+        assert daily_pipeline._safe_exception_chain(exception) == chain
+
+        diagnostic = daily_pipeline._secondary_diagnostic(
+            operation, exception, (daily_pipeline.__name__, "test", 1)
+        )
+        assert len(diagnostic["exception_chain"]) == expected_length
+        assert diagnostic["exception_chain_truncated"] is expected_truncated
+        serialized = json.dumps(diagnostic)
+        assert "MESSAGE_CANARY" not in serialized
+        assert "LOCAL_CANARY" not in serialized
+        assert "traceback" not in serialized.lower()
+        assert all("message" not in key.lower() for key in diagnostic)
+
+
+def test_pipeline_hash_failure_is_recorded_as_unknown(monkeypatch):
+    def fail_read(_path):
+        raise OSError("HASH_CANARY")
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read)
+    assert daily_pipeline._pipeline_code_sha256() is None
 
 
 @pytest.mark.parametrize(
@@ -299,31 +402,64 @@ def test_commit_then_export_exception_preserves_commit_and_draft_count(
     tmp_path: Path,
 ):
     export_calls = 0
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    database_path = tmp_path / "daily.sqlite"
+    database_counts = {"commit": 0, "rollback": 0}
+
+    class CountedConnection(sqlite3.Connection):
+        def commit(self):
+            database_counts["commit"] += 1
+            return super().commit()
+
+        def rollback(self):
+            database_counts["rollback"] += 1
+            return super().rollback()
 
     def export(_context):
         nonlocal export_calls
         export_calls += 1
         if export_calls == 1:
             raise OSError("export_CANARY")
-        return {"status": "ready", "draft_count": 3}
+        return {"status": "ready", "draft_count": 1}
 
     def commit_then_export(connection, _context, on_draft_commit):
+        connection.execute("CREATE TABLE committed_draft (draft_id INTEGER)")
+        connection.execute("INSERT INTO committed_draft VALUES (1)")
         connection.commit()
         refreshed = on_draft_commit(connection)
-        return {**_safe_result(run_id=None), "commit_refresh": refreshed}
+        return {
+            **_safe_result(run_id=None),
+            "committed_count": 1,
+            "attempt_used": 1,
+            "commit_refresh": refreshed,
+        }
 
-    result = run_daily_execution_core(
-        _ports(
-            tmp_path,
-            run_daily=commit_then_export,
-            failure_result=None,
-            export_dashboard=export,
+    ports = _ports(
+        tmp_path,
+        run_daily=commit_then_export,
+        failure_result=None,
+        export_dashboard=export,
+    )
+    ports = replace(
+        ports,
+        open_database=lambda: sqlite3.connect(
+            database_path, factory=CountedConnection
         ),
+    )
+    result = run_daily_execution_core(
+        ports,
         clock=_clock(),
     )
+    with sqlite3.connect(database_path) as connection:
+        draft_count = connection.execute(
+            "SELECT COUNT(*) FROM committed_draft"
+        ).fetchone()[0]
+
     assert result["daily_status"] == "complete"
-    assert result["committed_count"] == 3
-    assert result["attempt_used"] == 3
+    assert result["committed_count"] == 1
+    assert result["attempt_used"] == 1
+    assert draft_count == 1
+    assert database_counts == {"commit": 1, "rollback": 0}
     assert result["export"]["status"] == "ready"
     assert result["phase_results"]["export"]["commit_refresh_failures"] == 1, result
     _assert_safe_diagnostic(result, "dashboard_export_after_commit", "OSError")
@@ -342,6 +478,11 @@ def test_secondary_errors_reach_isolated_cli_l01_record_payload(tmp_path: Path):
         _ports(tmp_path / "pipeline", run_daily=fail_primary, failure_result=fail_callback),
         clock=_clock(),
     )
+    assert result["run_id"] is None
+    assert sum(
+        item.get("operation") == "failure_result_callback"
+        for item in result["secondary_errors"]
+    ) == 1
     diagnostic = next(
         item for item in result["secondary_errors"]
         if item.get("operation") == "failure_result_callback"
@@ -369,6 +510,16 @@ def test_secondary_errors_reach_isolated_cli_l01_record_payload(tmp_path: Path):
     record_path = tmp_path / "logs" / "production-cli.jsonl"
     record = json.loads(record_path.read_text(encoding="utf-8").splitlines()[0])
     assert diagnostic in record["diagnostics"]["secondary_errors"]
+    assert sum(
+        item.get("operation") == "failure_result_callback"
+        for item in record["diagnostics"]["secondary_errors"]
+    ) == 1
+    persisted_diagnostic = next(
+        item for item in record["diagnostics"]["secondary_errors"]
+        if item.get("operation") == "failure_result_callback"
+    )
+    assert persisted_diagnostic["exception_chain"] == diagnostic["exception_chain"]
+    assert persisted_diagnostic["exception_frames"] == diagnostic["exception_frames"]
     raw = record_path.read_text(encoding="utf-8")
     assert "SQL_CANARY" not in raw
     assert "callback_CANARY" not in raw

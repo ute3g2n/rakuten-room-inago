@@ -86,6 +86,108 @@ def _safe_diagnostic_class(exc: BaseException) -> str:
     return name if _SAFE_CODE.fullmatch(name) else "unknown"
 
 
+def _safe_exception_chain_details(
+    exc: BaseException,
+) -> tuple[list[dict[str, str]], bool]:
+    """Return safe exception links and whether the bounded list was truncated."""
+
+    chain: list[dict[str, str]] = []
+    pending: list[tuple[BaseException, str]] = [(exc, "raised")]
+    visited: set[int] = set()
+    while pending and len(chain) < 12:
+        current, relation = pending.pop(0)
+        if id(current) in visited:
+            continue
+        visited.add(id(current))
+        chain.append(
+            {
+                "relation": relation,
+                "exception_class": _safe_diagnostic_class(current),
+            }
+        )
+        cause = current.__cause__
+        context = current.__context__
+        if cause is not None:
+            pending.append((cause, "cause"))
+        if context is not None and context is not cause:
+            pending.append(
+                (
+                    context,
+                    "context_suppressed" if current.__suppress_context__ else "context",
+                )
+            )
+    truncated = any(id(current) not in visited for current, _ in pending)
+    return chain, truncated
+
+
+def _safe_exception_chain(exc: BaseException) -> list[dict[str, str]]:
+    """Keep exception types and links while omitting messages and locals."""
+
+    chain, _ = _safe_exception_chain_details(exc)
+    return chain
+
+
+def _safe_exception_frames(exc: BaseException) -> list[dict[str, str | int]]:
+    """Return traceback frames only when their source is inside this repository."""
+
+    try:
+        repository_root = Path(__file__).resolve().parents[2]
+        frames: list[dict[str, str | int]] = []
+        pending: list[tuple[BaseException, str]] = [(exc, "raised")]
+        visited: set[int] = set()
+        while pending:
+            current, relation = pending.pop(0)
+            if id(current) in visited:
+                continue
+            visited.add(id(current))
+            cause = current.__cause__
+            context = current.__context__
+            if cause is not None:
+                pending.append((cause, "cause"))
+            if context is not None and context is not cause:
+                pending.append(
+                    (
+                        context,
+                        "context_suppressed"
+                        if current.__suppress_context__
+                        else "context",
+                    )
+                )
+            frame = current.__traceback__
+            local_frame_count = 0
+            while frame is not None and local_frame_count < 8:
+                code = frame.tb_frame.f_code
+                try:
+                    source = Path(code.co_filename).resolve()
+                    relative_source = source.relative_to(repository_root).as_posix()
+                except (OSError, RuntimeError, TypeError, ValueError):
+                    frame = frame.tb_next
+                    continue
+                function = code.co_name
+                module = frame.tb_frame.f_globals.get("__name__")
+                frames.append(
+                    {
+                        "exception_class": _safe_diagnostic_class(current),
+                        "relation": relation,
+                        "path": relative_source,
+                        "module": (
+                            module
+                            if isinstance(module, str) and _SAFE_CODE.fullmatch(module)
+                            else "unknown"
+                        ),
+                        "function": (
+                            function if _SAFE_CODE.fullmatch(function) else "unknown"
+                        ),
+                        "line": int(frame.tb_lineno),
+                    }
+                )
+                local_frame_count += 1
+                frame = frame.tb_next
+        return frames
+    except Exception:
+        return []
+
+
 def _secondary_diagnostic(
     operation: str,
     exc: Exception,
@@ -95,6 +197,7 @@ def _secondary_diagnostic(
 
     failure_module, failure_function, failure_line = capture_location
     error_name, constraint_label = _sqlite_failure_labels(exc)
+    exception_chain, exception_chain_truncated = _safe_exception_chain_details(exc)
     return {
         "phase": "daily_diagnostic",
         "code": "daily_secondary_operation_failed",
@@ -106,6 +209,9 @@ def _secondary_diagnostic(
         "failure_function": failure_function,
         "failure_line": failure_line,
         "code_sha256": _pipeline_code_sha256(),
+        "exception_chain": exception_chain,
+        "exception_chain_truncated": exception_chain_truncated,
+        "exception_frames": _safe_exception_frames(exc),
     }
 
 
