@@ -149,3 +149,12 @@ The initial SC08 attempt is preserved as not-performed before any role session, 
 ### Git・最終再開位置
 
 終了前のbranch/head/tracking再読値: `main` / `7ab368ff5f38bca688a10e6ac4a844afb874eb04` / `origin/main` 同head。delivery担当の初回stageはPermissionDeniedだったが、SC10で今回所有15 pathだけを明示stageできた。GitのCRLF正規化がHTMLを1 byte変更することを検出し、path限定`.gitattributes` `-text`を追加して再stage。staged HTMLとreview済みworktree bytesの双方は2314 bytes / SHA `a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8`で一致。commit/pushはこれから。production apply/readbackと同job新traceは未実施。次はstage済み差分の最終machine/secret check後にcommit/pushし、その後にTask Scheduler/runtime適用を試み、同じ既存jobをresumeして新しい同job traceを確認する。FC01–FC11は再実行しない。
+
+
+## 最新実測追記 — 2026-10-20 18:21 JST
+
+HTML remote-publicationの更新結果を読戻して記録する。branch `main`のHEAD、tracking head、`git ls-remote origin refs/heads/main`はいずれも`e421239863cfb529240e1aa89850757f48f4bfae`。公開HTML raw blobは2314 bytes / SHA-256 `a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8`で、別reviewer承認済みHTMLおよびローカル公開先と完全一致した。よってHTML公開範囲のSC-A05をmet、SCT10をpassへ更新した。旧remote HTMLは`SC10/previous-public-html-before-push.html`へ保全（67c0d8cb2b3a61f7bcf64160e3a8460fa6aeaae04e3555a80e96fcc66d250277）。
+
+同じ実測時点でTask SchedulerのDaily/Worker/Watchdog/HumanApiは全て有効・Readyで、WorkingDirectoryは固定root。runtime-switch stateはactive commit `c69394756f5a11e14ceda6b003dbbb17e67554af`、SHA-256 `8db12abe3771a48a8fe2d2da1a612821c12cebc2f7b2a576ef258348af8e7968`であり、日次診断差分を含む`e421239863cfb529240e1aa89850757f48f4bfae`は未適用。次は承認済みswitcherによる固定root apply/readback。
+
+計画第14節最新追記SHA-256 `01ab0297e8ac690396a62929efdf97df134d6e02f256c9174e6f398b86a1a584`、acceptance matrix SHA-256 `5190a7d9f16c822d60f42a2420fe6f0b4f37a4df58f2dd86cab2fc81f5dba0c1`、final report SHA-256 `0045e1ee5f5ac173f6f36c139cd65c350fc6b3392c08c34ebd1c0a6040095a1e`。SC-A03未達、同job production traceなし、全体incompleteを維持する。10/19 exclusion、10/17固定job identity/source_run_id null、10/20 Daily失敗未再処理の各制約を維持する。

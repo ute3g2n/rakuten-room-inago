@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日次処理の障害対応報告</title>
+<style>
+body{font-family:system-ui,"Yu Gothic UI",Meiryo,sans-serif;line-height:1.8;max-width:780px;margin:3rem auto;padding:0 1.25rem;color:#202733}h1{font-size:1.7rem}h2{font-size:1.15rem;margin-top:2rem;color:#173b5e}p{margin:.5rem 0 1rem}main{border-top:3px solid #2877a8;padding-top:1rem}
+</style>
+</head>
+<body>
+<main>
+<h1>日次処理の障害対応報告</h1>
+<section>
+<h2>起きた不具合</h2>
+<p>10月17日の日次処理は失敗し、その日の実行記録が保存されませんでした。残っている記録からは、実際に何件投稿されたかも確認できません。</p>
+</section>
+<section>
+<h2>原因</h2>
+<p>処理が失敗した理由と実行記録が保存されなかった理由は、資料から特定できていません。</p>
+</section>
+<section>
+<h2>実施した修正</h2>
+<p>日次処理の診断記録に、後から起きた例外の種類と先の例外とのつながりを残す処理を加えました。例外が起きた日次コード内の場所も、安全に特定できる範囲で記録します。例外の記録が上限に達して、まだ調べられていない例外が残った場合も、そのことを示す情報を追加しました。</p>
+<p>この変更は稼働環境へ適用し、適用後の確認でも指定したコード版と稼働先が一致することを確認しました。通常の日次処理は起動していないため、実際の日次処理での動作はまだ確認できていません。診断情報を増やす変更であり、10月17日の原因を直したものではありません。</p>
+</section>
+<section>
+<h2>トレース・ログ</h2>
+<p>追加情報は既存の日次診断記録へ渡されます。例外の種類と例外同士の関係、記録できる場合は日次コード内のファイル・関数・行、調査しきれない例外が残ったかどうかを記録します。10月17日の記録が残っておらず、その日の診断内容は確認できません。</p>
+</section>
+</main>
+</body>
+</html>
