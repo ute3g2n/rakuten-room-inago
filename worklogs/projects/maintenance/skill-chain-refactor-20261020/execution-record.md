@@ -105,3 +105,47 @@ SC05 F6 tested the corrected runner `fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39
 Independent SC06 review v5 read the exact current runner and F6 evidence and approved with no findings. Review artifact `SC06/follow-up-review-v5.md`, SHA-256 `8b2b3109b6e906c5cc7331c5722f687d0508943a68d99a720524ba6faf063ff5`. Its scope is product parsing/security behavior, not production application or live execution.
 
 The initial SC08 attempt is preserved as not-performed before any role session, not as a live-role result. The repaired code still needs a new explicit Git commit/push and SC07 apply/readback; next action is that code release, followed by the single successful same-job 8-role invocation. Current SC-A03/SCT06/SCT09 and final report/review/publication remain incomplete.
+
+## 最新実行状況 — 2026-10-20 17:55 JST（SC08/SC09/SC10）
+
+基準計画v1.0の開始SHAは`001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5`。この追記は計画第14節にだけ反映し、第0〜13節、case本文、prompt、対応表は変更していない。今回の実測受入は`SC10/acceptance-matrix.json`、要約は`SC10/final-report.md`。workflow statusはincompleteであり、SC-A03は未達。
+
+### STEP結果
+
+| STEP | 最新判定 | 実物・hash・結果 | 未完了と再開位置 |
+|---|---|---|---|
+| SC01–SC02 | 完了 | 開始時baseline/read-onlyと契約・要件・schema/roles/skills/report-rule同期。各原hashと生成物は既存SC01/SC02記録。 | 追加作業なし。 |
+| SC03–SC04 | 実装済み、運用実績は部分 | runner/CLI/worker連結の従前commitはSC07 `dadffcd01ee7cc7672ad7f7c446839128dbe12e7`に適用済みの記録。SC08の同一chainで8 roleを呼び出したが最終chainはincomplete。 | 前成果runner read flagとthread実読が不一致。次は同job resume。 |
+| SC05 | 完了（計画nodeの限定試験） | SCT01–05、SCT08、SCT11–14のfocused/synthetic記録。Daily trace差分は別途SCT06で再試験。FC01–FC11は未実行。 | synthetic結果をproduction実績へ広げない。 |
+| SC06 | 完了（対象範囲） | 同jobの最新daily patch code-review `30d3a309fa18d5a154959042b566b95a32650c56a6ff1e00e9fd1239fc4e7696`、CR-01解消・追加findingなし。 | 本番apply証明ではない。 |
+| SC07 | 部分達成 | 以前のrunner適用 `dadffcd...` はreadback記録あり。新daily patch `daily_pipeline.py` SHA `ca269b0e138093a1e2071d41a62b7d44a4fbdf16105a76f54ae0cea9ffb6265a` は未commit/apply。Git index書込とTask Scheduler readはPermissionDenied。 | 権限回復後、所有pathを明示stage/commit/pushし、固定rootへ適用し実版をreadback。 |
+| SC08 | 部分達成 | 同一chain start `2026-10-20T05:50:41.047Z`で8 role turnを呼出し。`test.md` SHA `f896509648e3f35140f52cb47ec2dcd28fc244f4edad98ca2a08cc54b920b5d0`; worker記録 SHA `ba260e2031db8c68af47606a336ca0d71db76862e28444f7b1aafd2ed6d1a7b8`; role-read ledger SHA `1c93fb33ab5e33c62cf84f9888a96b0df514d7c60d36f8b20f72ce7917081412`。Product review後deploymentには未適用を記録。Worker JSON `maintenance_incomplete / skill_chain_role_call_incomplete`, CLI exit 0。 | role 6 retry failed `handoff_target_mismatch`。role 7/8は実行したがfinal chain incomplete、job queued。 |
+| SC09 | 部分達成 | 作者HTML SHA `a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8`; 別reviewer approved、review SHA `a4fc2237381c100d22a9a175bb01c3374999d0cbdebd05b79367c30a453dd00b`; local publicationは2314 bytesで同hash。 | `origin/main`のHTML hash `67c0d8cb2b3a61f7bcf64160e3a8460fa6aeaae04e3555a80e96fcc66d250277`のためremote公開未達。 |
+| SC10 | 実照合完了・受入未完 | acceptance matrix SHA `5e6c347f591ba92cfe633b014494653b942b1bf02720c464d337f96535467d0e`; final report SHA `04563f65b963e41dc7d6b82400e50a0f2886df3b1911f0b33e689a799147ff36`; job DB/10/19/日次行をread-only再確認し、仕様/追跡表へ最新判定を同期。 | SC-A03未達とGit/Task Scheduler制約を同jobへ引継ぐ。 |
+
+### 同一jobの事後状態・禁止範囲
+
+固定identity `job-historical-9e7f0c175cc4c874c955a5dab29c4427` / `historical-9e7f0c175cc4c874c955a5dab29c4427` / `2026-10-17` / `source_run_id=null`。Worker JSONは`queue_id=null`。事後DBはjob queued、resume_count 30、finished/terminal reason null。10/19 queueは既存queuedの同じID、event 0。10/17・10/19・10/20 target dateにDaily run 0。10/20別launchのDaily failed/exit 4/null runを再処理していない。`WORKER_DISPATCH_EXCLUDED_DATES=frozenset({"2026-10-19"})`維持。新job・run・draftなし。Daily手動起動と13:00待機なし。
+
+### 全caseの最新状態
+
+| case | 状態 | 根拠範囲 |
+|---|---|---|
+| SCT01 | PASS | SC05の合成契約・生成flow照合。 |
+| SCT02 | PASS | SC05のsynthetic 8-role順序/Markdown契約。 |
+| SCT03 | PASS | SC05のsynthetic failure後継続。 |
+| SCT04 | PASS | SC05 F5/F6のtransport・malformed output・best-effort logging範囲。 |
+| SCT05 | PASS | SC05 F5/F6のsynthetic same-job resume範囲。 |
+| SCT06 | PASS | 同job実装差分に対する隔離fixture試験。コードSHA `ca269b0e...`, test SHA `237b4057...`; CR-01初回指摘後の再試験PASS。自然Daily/production traceは未観測。 |
+| SCT07 | PASS | 同job製品hashを別reviewerが確認、CR-01 resolved・追加findingなし。 |
+| SCT08 | PASS | SC05のAppServer/config/production-route synthetic範囲。 |
+| SCT09 | PARTIAL | 固定job/launch/date/nullと8 role turnを実測。runner read flags false、final chain incomplete、本番apply/同job production traceなし。 |
+| SCT10 | PARTIAL | 作者更新済みHTML、別reviewer実読、local copy同bytes。tracking remoteは旧bytes。 |
+| SCT11 | PASS | SC05 synthetic report publishとdaily response completion分離。 |
+| SCT12 | PASS | SC05 local bare Git success/failureでのscope保持。 |
+| SCT13 | PASS | SC05 exclusion fixture、および実10/19 row/event before-after read-only照合。 |
+| SCT14 | PASS | SC02同期とSC05の要求/role/generated-flow限定fixture。 |
+
+### Git・最終再開位置
+
+終了前のbranch/head/tracking再読値: `main` / `7ab368ff5f38bca688a10e6ac4a844afb874eb04` / `origin/main` 同head。delivery担当の初回stageはPermissionDeniedだったが、SC10で今回所有15 pathだけを明示stageできた。GitのCRLF正規化がHTMLを1 byte変更することを検出し、path限定`.gitattributes` `-text`を追加して再stage。staged HTMLとreview済みworktree bytesの双方は2314 bytes / SHA `a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8`で一致。commit/pushはこれから。production apply/readbackと同job新traceは未実施。次はstage済み差分の最終machine/secret check後にcommit/pushし、その後にTask Scheduler/runtime適用を試み、同じ既存jobをresumeして新しい同job traceを確認する。FC01–FC11は再実行しない。

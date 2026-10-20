@@ -465,6 +465,136 @@ def test_commit_then_export_exception_preserves_commit_and_draft_count(
     _assert_safe_diagnostic(result, "dashboard_export_after_commit", "OSError")
 
 
+@pytest.mark.parametrize(
+    ("after_commit_result", "expected_status", "expected_failure_count"),
+    [
+        ({"status": "failed", "error_code": "ERROR_CANARY", "path": "PATH_CANARY"}, "failed", 1),
+        ({"status": "not_run"}, "not_run", 1),
+        ({"status": "PRIVATE_STATUS_CANARY", "reason": "REASON_CANARY"}, "unknown", 1),
+        ({"reason": "MISSING_STATUS_CANARY"}, "unknown", 1),
+        ({"status": "ready"}, None, 0),
+    ],
+)
+def test_commit_then_export_non_ready_return_is_safe_and_persisted(
+    tmp_path: Path, after_commit_result, expected_status, expected_failure_count
+):
+    from automation.inago.cli import _append_production_log
+
+    export_calls = 0
+    database_path = tmp_path / "daily.sqlite"
+    database_counts = {"commit": 0, "rollback": 0}
+
+    class CountedConnection(sqlite3.Connection):
+        def commit(self):
+            database_counts["commit"] += 1
+            return super().commit()
+
+        def rollback(self):
+            database_counts["rollback"] += 1
+            return super().rollback()
+
+    def export(_context):
+        nonlocal export_calls
+        export_calls += 1
+        if export_calls == 1:
+            return after_commit_result
+        return {"status": "ready", "draft_count": 1}
+
+    def commit_then_export(connection, _context, on_draft_commit):
+        connection.execute("CREATE TABLE committed_draft (draft_id INTEGER)")
+        connection.execute("INSERT INTO committed_draft VALUES (1)")
+        connection.commit()
+        refreshed = on_draft_commit(connection)
+        return {
+            **_safe_result(run_id=None),
+            "committed_count": 1,
+            "attempt_used": 1,
+            "commit_refresh": refreshed,
+        }
+
+    ports = _ports(
+        tmp_path,
+        run_daily=commit_then_export,
+        export_dashboard=export,
+    )
+    ports = replace(
+        ports,
+        open_database=lambda: sqlite3.connect(
+            database_path, factory=CountedConnection
+        ),
+    )
+    result = run_daily_execution_core(
+        ports,
+        clock=FakeClock(datetime.fromisoformat("2026-10-20T10:00:00+09:00")),
+    )
+
+    with sqlite3.connect(database_path) as connection:
+        draft_count = connection.execute(
+            "SELECT COUNT(*) FROM committed_draft"
+        ).fetchone()[0]
+
+    assert result["daily_status"] == "complete"
+    assert result["committed_count"] == 1
+    assert result["attempt_used"] == 1
+    assert draft_count == 1
+    assert database_counts == {"commit": 1, "rollback": 0}
+    assert result["export"]["status"] == "ready"
+    assert result["phase_results"]["export"]["commit_refresh_failures"] == expected_failure_count
+
+    matching = [
+        item for item in result["secondary_errors"]
+        if item.get("operation") == "dashboard_export_after_commit"
+    ]
+    if expected_status is None:
+        assert matching == []
+    else:
+        assert len(matching) == 1
+        diagnostic = matching[0]
+        assert diagnostic["code"] == "dashboard_export_after_commit_not_ready"
+        assert diagnostic["failure_kind"] == "returned_status"
+        assert diagnostic["returned_status"] == expected_status
+        assert diagnostic["exception_observed"] is False
+        assert diagnostic["exception_class"] is None
+        assert diagnostic["exception_chain"] == []
+        assert diagnostic["exception_frames"] == []
+        assert diagnostic["failure_module"] == daily_pipeline.__name__
+        assert isinstance(diagnostic["failure_function"], str)
+        assert isinstance(diagnostic["failure_line"], int)
+        assert diagnostic["code_sha256"] == hashlib.sha256(
+            Path(daily_pipeline.__file__).read_bytes()
+        ).hexdigest()
+
+        case_root = tmp_path / "safe-log"
+        diagnostics = {
+            "overall_status": result["overall_status"],
+            "daily_status": result["daily_status"],
+            "reason": result["reason"],
+            "committed_count": result["committed_count"],
+            "primary_error": result["primary_error"],
+            "secondary_errors": result["secondary_errors"],
+            "phase_results": result["phase_results"],
+        }
+        _append_production_log(
+            case_root,
+            mode="daily",
+            status="complete",
+            reason="synthetic_result",
+            diagnostics=diagnostics,
+        )
+        record_path = case_root / "logs" / "production-cli.jsonl"
+        persisted = json.loads(record_path.read_text(encoding="utf-8").splitlines()[0])
+        assert diagnostic in persisted["diagnostics"]["secondary_errors"]
+        safe_serialized = record_path.read_text(encoding="utf-8")
+        for canary in (
+            "ERROR_CANARY",
+            "PATH_CANARY",
+            "PRIVATE_STATUS_CANARY",
+            "REASON_CANARY",
+            "MISSING_STATUS_CANARY",
+        ):
+            assert canary not in safe_serialized
+
+
 def test_secondary_errors_reach_isolated_cli_l01_record_payload(tmp_path: Path):
     from automation.inago.cli import _append_production_log
 

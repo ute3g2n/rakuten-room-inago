@@ -1,0 +1,79 @@
+{
+  "plan_version": "1.0",
+  "audited_at": "2026-10-20T17:55:36+09:00",
+  "baseline_plan_sha256": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+  "audited_plan_sha256_before_append": "e500b406a4b8b00d98b8589997787bd5b4c51e252514c7b6b01f6d19edc80add",
+  "workspace": "C:/project/rakuten-room-inago",
+  "git": {
+    "branch": "main",
+    "head": "7ab368ff5f38bca688a10e6ac4a844afb874eb04",
+    "tracking": "origin/main",
+    "tracking_head": "7ab368ff5f38bca688a10e6ac4a844afb874eb04",
+    "commit_push_result": "pending",
+    "reason": "The delivery role's initial stage failed with PermissionDenied. SC10 later explicitly staged 15 task-owned paths; commit and push have not yet been attempted.",
+    "reviewed_html_staged_blob_matches_worktree": true,
+    "reviewed_html_staged_sha256": "a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8"
+  },
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17"
+  },
+  "overall_status": "incomplete",
+  "workflow_completion": false,
+  "incident_resolution": "unknown",
+  "same_job_worker_result": {
+    "status": "maintenance_incomplete",
+    "reason_code": "skill_chain_role_call_incomplete",
+    "maintenance_resolution_status": "unknown",
+    "queue_id": null,
+    "integer_exit": 0,
+    "chain_started_at": "2026-10-20T05:50:41.047Z",
+    "chain_finished_at": "2026-10-20T08:51:30.778Z"
+  },
+  "production_and_publication": {
+    "daily_trace_patch_sha256": "ca269b0e138093a1e2071d41a62b7d44a4fbdf16105a76f54ae0cea9ffb6265a",
+    "daily_test_sha256": "237b4057e2c1fd733ef26a78ec882d1a217ad7a6bb894e2eac635ecedee36f93",
+    "product_review_sha256": "30d3a309fa18d5a154959042b566b95a32650c56a6ff1e00e9fd1239fc4e7696",
+    "production_apply": "not_performed",
+    "production_version_readback": "not_performed",
+    "same_job_production_trace": "not_observed",
+    "reviewed_html_sha256": "a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8",
+    "review_result": "approved",
+    "local_publication_sha256": "a1275018b28c303630e78130d90a9926ded192173a2aaa68d457ef5e0bde88a8",
+    "local_publication_bytes": 2314,
+    "remote_html_sha256": "67c0d8cb2b3a61f7bcf64160e3a8460fa6aeaae04e3555a80e96fcc66d250277",
+    "remote_matches_reviewed_html": false
+  },
+  "acceptance": [
+    {"id": "SC-A01", "status": "partial", "evidence": ["SC08/role-read-ledger.md", "same-chain calls.jsonl role_call 1-8"], "gap": "Each following role has a completed transcript read of the prior Markdown, but every runner previous_read_acknowledged flag is false; role 6 retry failed and the chain finished incomplete."},
+    {"id": "SC-A02", "status": "met", "evidence": ["SC01 baseline", "SC08/worker-attempt-2.md", "read-only post-worker DB query"], "gap": "The existing job remains queued and source_run_id remains null; no 10/17 Daily run was created."},
+    {"id": "SC-A03", "status": "not_met", "evidence": ["SC08/SCT06/test.md", "same-job code-review.md", "SC08/deployment.md"], "gap": "The daily trace diff was tested and independently reviewed but could not be committed/applied/read back; no same-job production trace exists."},
+    {"id": "SC-A04", "status": "partial", "evidence": ["SC05 focused failure tests", "SC08/calls.jsonl", "SC08/publication.md"], "gap": "Observed failures did not stop later reviewer/publication work, but terminal workflow remains incomplete and runner read acknowledgements are absent."},
+    {"id": "SC-A05", "status": "partial", "evidence": ["same-job report.html", "html-review.md", "publication.md", "local public HTML readback"], "gap": "Author-updated HTML was separately reviewed and copied byte-identically to the local target, but origin/main still contains the old HTML."},
+    {"id": "SC-A06", "status": "met", "evidence": ["same-job report.html", "publication.md", "post-worker DB readback"], "gap": "Original cause, actual October 17 processing count, and recovery remain unknown; incident resolution is not claimed."},
+    {"id": "SC-A07", "status": "partial", "evidence": ["SC02 synchronization record", "SC05/SCT14", "SC10 specification updates"], "gap": "Document/role/contract synchronization is recorded, but the new daily code is not deployed and applied-version comparison is unavailable."}
+  ],
+  "cases": [
+    {"id": "SCT01", "status": "pass", "scope": "synthetic contract/requirements and generated-flow comparison", "evidence": "SC05 focused test records"},
+    {"id": "SCT02", "status": "pass", "scope": "synthetic 8-role order and Markdown input contract", "evidence": "SC05 focused test records"},
+    {"id": "SCT03", "status": "pass", "scope": "synthetic continuation after role/operation failure", "evidence": "SC05 focused test records"},
+    {"id": "SCT04", "status": "pass", "scope": "planned synthetic transport, malformed output, and best-effort logging cases", "evidence": "SC05 F5/F6 focused records"},
+    {"id": "SCT05", "status": "pass", "scope": "synthetic resume behavior at the applicable code version", "evidence": "SC05 F5/F6 focused records"},
+    {"id": "SCT06", "status": "pass", "scope": "same-job daily trace diff exercised with isolated synthetic fixture; no natural/production Daily record", "evidence": "SC08/SCT06/test.md; runtime test.md; test hash 237b4057e2c1fd733ef26a78ec882d1a217ad7a6bb894e2eac635ecedee36f93"},
+    {"id": "SCT07", "status": "pass", "scope": "independent product review of fixed daily trace patch; CR-01 resolved", "evidence": "same-job code-review.md; review hash 30d3a309fa18d5a154959042b566b95a32650c56a6ff1e00e9fd1239fc4e7696"},
+    {"id": "SCT08", "status": "pass", "scope": "synthetic AppServer/configuration and production route checks", "evidence": "SC05 F5/F6 focused records"},
+    {"id": "SCT09", "status": "partial", "scope": "same job and launch, all 8 role turns occurred; no production trace/apply or completed terminal", "evidence": "SC08/worker-attempt-2.md; SC08/role-read-ledger.md; read-only database recheck"},
+    {"id": "SCT10", "status": "partial", "scope": "reviewed final HTML and local copy match; tracking remote did not update", "evidence": "report.html, html-review.md, publication.md, origin/main blob readback"},
+    {"id": "SCT11", "status": "pass", "scope": "synthetic check that report publication does not imply daily response completion", "evidence": "SC05 focused test records"},
+    {"id": "SCT12", "status": "pass", "scope": "synthetic local bare Git success/failure scope handling", "evidence": "SC05 focused test records"},
+    {"id": "SCT13", "status": "pass", "scope": "synthetic exclusion check plus real read-only 10/19 before/after observation; no processing", "evidence": "SC05 focused test records; SC08/worker-attempt-2.md; worker.py exclusion constant"},
+    {"id": "SCT14", "status": "pass", "scope": "synthetic requirements/role/generated-flow synchronization checks", "evidence": "SC05 F5/F6 focused records; SC02 sync record"}
+  ],
+  "next_action": {
+    "assigned_role": "same-job maintenance delivery/resume",
+    "input": ["SC08/deployment.md", "SC08/worker-attempt-2.md", "SC08/role-read-ledger.md", "automation/inago/daily_pipeline.py", "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"],
+    "request": "When host permissions allow, explicitly stage only task-owned paths, commit/push, apply and read back the daily trace code at the fixed root, then resume only the existing 10/17 job and verify a new same-job production diagnostic. Keep source_run_id null and preserve the 10/19 exclusion."
+  }
+}

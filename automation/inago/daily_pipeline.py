@@ -1008,7 +1008,13 @@ def run_daily_execution_core(
         ) -> dict[str, Any]:
             nonlocal commit_export_failures
             try:
-                result = _normalize_export(ports.export_dashboard(context))
+                export_value = ports.export_dashboard(context)
+                observed_status = (
+                    export_value.get("status")
+                    if isinstance(export_value, Mapping)
+                    else None
+                )
+                result = _normalize_export(export_value)
             except Exception as exc:
                 commit_export_failures += 1
                 secondary_diagnostics.append(
@@ -1021,6 +1027,36 @@ def run_daily_execution_core(
                 return {"status": "failed", "error_code": type(exc).__name__}
             if result.get("status") != "ready":
                 commit_export_failures += 1
+                normalized_status = (
+                    observed_status.strip().lower()
+                    if isinstance(observed_status, str)
+                    else "unknown"
+                )
+                if normalized_status not in {"failed", "not_run", "unknown"}:
+                    normalized_status = "unknown"
+                failure_module, failure_function, failure_line = (
+                    _pipeline_capture_location()
+                )
+                secondary_diagnostics.append(
+                    {
+                        "phase": "daily_diagnostic",
+                        "code": "dashboard_export_after_commit_not_ready",
+                        "operation": "dashboard_export_after_commit",
+                        "failure_kind": "returned_status",
+                        "returned_status": normalized_status,
+                        "exception_observed": False,
+                        "exception_class": None,
+                        "error_name": "unknown",
+                        "constraint_label": "unknown",
+                        "failure_module": failure_module,
+                        "failure_function": failure_function,
+                        "failure_line": failure_line,
+                        "code_sha256": _pipeline_code_sha256(),
+                        "exception_chain": [],
+                        "exception_chain_truncated": False,
+                        "exception_frames": [],
+                    }
+                )
             return result
 
         phase_begin("daily")

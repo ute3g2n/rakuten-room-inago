@@ -2,31 +2,32 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>日次処理の障害対応報告</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>日次処理の不具合と対応</title>
 <style>
-body{font-family:system-ui,"Yu Gothic UI",Meiryo,sans-serif;line-height:1.8;max-width:780px;margin:3rem auto;padding:0 1.25rem;color:#202733}h1{font-size:1.7rem}h2{font-size:1.15rem;margin-top:2rem;color:#173b5e}p{margin:.5rem 0 1rem}main{border-top:3px solid #2877a8;padding-top:1rem}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.8;color:#202833;background:#f4f6f8;margin:0;padding:2rem}
+main{max-width:760px;margin:auto;background:#fff;padding:2rem 2.4rem;border-radius:12px}
+h1{font-size:1.65rem;line-height:1.4}h2{font-size:1.1rem;margin:1.7rem 0 .4rem;color:#244b68}p{margin:.35rem 0}
 </style>
 </head>
 <body>
 <main>
-<h1>日次処理の障害対応報告</h1>
+<h1>日次処理の不具合と対応</h1>
 <section>
-<h2>起きた不具合</h2>
-<p>10月17日の日次処理は失敗し、その日の実行記録が保存されませんでした。残っている記録からは、実際に何件投稿されたかも確認できません。</p>
+<h2>起きたこと</h2>
+<p>10月17日の日次処理の実行記録が保存されていません。処理結果を追えず、実際に何件処理されたかも確認できていません。</p>
 </section>
 <section>
 <h2>原因</h2>
-<p>処理が失敗した理由と実行記録が保存されなかった理由は、資料から特定できていません。</p>
+<p>記録が残らなかった理由と元の不具合の原因は分かっていません。原因を示す当日の実行記録がありません。</p>
 </section>
 <section>
-<h2>実施した修正</h2>
-<p>日次処理の診断記録に、後から起きた例外の種類と先の例外とのつながりを残す処理を加えました。例外が起きた日次コード内の場所も、安全に特定できる範囲で記録します。例外の記録が上限に達して、まだ調べられていない例外が残った場合も、そのことを示す情報を追加しました。</p>
-<p>この変更は稼働環境へ適用し、適用後の確認でも指定したコード版と稼働先が一致することを確認しました。通常の日次処理は起動していないため、実際の日次処理での動作はまだ確認できていません。診断情報を増やす変更であり、10月17日の原因を直したものではありません。</p>
+<h2>実際に行った修正</h2>
+<p>日次処理の診断コードを修正しました。応答に状態がない場合は「不明」と記録し、明示された失敗状態と区別します。隔離試験と別担当のコードレビューでは修正を確認しました。ただし、これは元の原因を直したものではなく、本番には適用されていません。Gitへの登録も権限エラーで未実施です。</p>
 </section>
 <section>
-<h2>トレース・ログ</h2>
-<p>追加情報は既存の日次診断記録へ渡されます。例外の種類と例外同士の関係、記録できる場合は日次コード内のファイル・関数・行、調査しきれない例外が残ったかどうかを記録します。10月17日の記録が残っておらず、その日の診断内容は確認できません。</p>
+<h2>追加した記録</h2>
+<p>確定後の履歴表示を更新する処理が、例外なしで「準備完了」以外を返したとき、処理の種類、返された状態（欠けている場合や記録対象外の値は「不明」）、例外がなかったこと、コード内の記録位置を安全な診断情報として残す変更を加えました。隔離データでは既存の日次ログ保存経路まで届くことを確認しました。これにより、変更が本番に適用された後の該当処理について、どの操作でどの状態が返ったかを次回の記録で調べられます。10月17日の実行記録と同じ起動の工程記録の要約は確認できず、この変更が本番で記録した実績もありません。</p>
 </section>
 </main>
 </body>
