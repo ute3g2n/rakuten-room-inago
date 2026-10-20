@@ -143,3 +143,17 @@
 
 - 公開HTMLのscoped `git diff --check` はexit 0。ステージ前にはstatus、HTML diff、秘密混入を再確認し、今回の所有path/hunkだけを選択する。他担当の製品/test差分と`.pytest-tmp/`は混入させない。
 - 次担当は、Git結果を含むこの `publication.md` と、実際に未達なDeploymentCoordinator操作の入力を引き継ぎ、同じjobの具体担当を起動して製品適用/read-backと新証跡を続ける。未達を成功にせず、達成根拠をこの同job記録へ実物で結ぶ。
+
+## 選択反映・追跡先read-back
+
+- stage対象を `reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html` と本記録だけに限定し、共有repoにある他担当のproduct/test変更および`.pytest-tmp/`はstageしていない。
+- 対象HTMLとpublication記録の秘密パターン検査はclean。staged `git diff --check` は問題なし。HTML本文は `report.html` のレビュー済みbytesを維持した。
+- commit: branch `main`、`6cdbdbe` (`Publish reviewed 2026-10-17 incident report`)。push: `origin/main` 成功（`0da38b6..6cdbdbe`）。
+- push後、GitHub Contents APIのmain pathから実ファイル内容を取得しbase64 decode後にSHA-256を計算。追跡先ファイルは2659 bytes、SHA-256 `6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62`。ローカル作者HTML・review対象・公開先と一致。API Git blob id `6e52101e6a338010cc18030dd7edce0d9d838ac0`。
+- この確認で完了したのは、レビュー済み報告HTMLのmainへの選択反映とremote read-back。製品コードの本番適用、raw job status更新、workflow completion、元障害の解消は確認していない。root causeとrun未保存理由はunknownのまま。
+- 同jobの次作業: DeploymentCoordinator用の現行修正版に一致するreview済み・試験済みcommit/releaseを実物で揃え、10/17の日次差分を本番適用/read-backし、同じjobの新証跡を追加する。適用版の不一致を解消できない場合は具体理由を記録して同jobの担当へ再開する。
+
+publication_result: succeeded
+reviewed_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
+published_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
+remote_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
