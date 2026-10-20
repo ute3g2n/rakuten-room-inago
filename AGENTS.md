@@ -1,32 +1,32 @@
-# Repository Instructions
+# リポジトリの作業指示
 
-## Fixed workspace
+## 固定された作業場所
 
-- The only allowed workspace for this repository is `C:\project\rakuten-room-inago`.
-- Keep the working folder at this path. Do not create, attach, select, or continue work in another worktree, checkout, or workspace. These instructions override generic recommendations to use worktrees.
-- If task changes already exist in another checkout, recover the needed changes into this workspace without discarding the source, then continue here.
-- A Git branch change does not authorize changing the working folder.
+- このリポジトリで許可される作業場所は `C:\project\rakuten-room-inago` のみです。
+- 作業フォルダーはこのパスに固定してください。別のworktree、checkout、workspaceを作成、接続、選択したり、そこで作業を続けたりしないでください。この指示は、worktreeの使用を推奨する一般的な提案より優先されます。
+- タスクの変更が別のcheckoutにすでに存在する場合は、元の変更を破棄せず、必要な変更をこの作業場所へ取り込んでから作業を続けてください。
+- Gitブランチを変更しても、作業場所を変更してよいことにはなりません。
 
-## Debugging and blocking
+## デバッグと作業の停止
 
-- Never block the overall workflow or gate a downstream stage on an operation result. Preserve `blocked`/`waiting` or other status values as observations, mark only an impossible individual operation as not performed with its reason, and continue every independent later stage through the final report. An explicit user cancellation is the only normal instruction that stops the overall workflow.
-- Start investigation when the incident/job is known. Missing evidence, an unknown cause, a partial report, a failed optional command, or reviewer findings are recorded as facts and passed to the next stage; they do not block the operation or workflow.
-- Unknown root cause is never a reason to stop before the final report. When the cause remains unknown, make an actionable plan to add useful trace/log evidence if that can help a future diagnosis, carry out that instrumentation work where feasible, record its test/review/deployment outcome accurately, and continue through report creation/publication. Never claim the cause is fixed or known when it is not.
-- If one operation cannot run, record that operation and its reason, then continue independent work and the final report.
+- 操作結果を理由に全体の作業を止めたり、後続工程を保留したりしないでください。`blocked`、`waiting`などの状態は観測結果として保持し、実行不能な個別操作だけを理由とともに未実施として記録し、独立して進められる後続工程を最終報告まで続けてください。全体の作業を止める通常の指示は、ユーザーによる明示的なキャンセルだけです。
+- 障害またはjobが分かったら調査を開始してください。証拠の不足、原因不明、報告の未完成、任意コマンドの失敗、レビュー指摘は事実として記録し、次の工程へ渡してください。それらを理由に操作や全体の作業を止めないでください。
+- 根本原因が不明でも、最終報告の前に作業を止めないでください。原因が不明のままなら、今後の診断に役立つトレースやログを追加する実行可能な計画を立て、可能な範囲で計測を実装してください。試験、レビュー、反映の結果を正確に記録し、報告作成・公開まで続けてください。原因を修正または特定したと偽ってはいけません。
+- 操作を実行できない場合は、その操作と理由を記録し、独立して進められる作業と最終報告を続けてください。
 
-## Testing discipline (mandatory)
+## 試験の進め方（必須）
 
-These rules apply to every test task in this repository and are required before reporting a test result.
+このリポジトリのすべての試験作業に、試験結果を報告する前の必須ルールとして適用します。
 
-- When a failure is known, first debug and test only the failing behavior and the smallest directly affected test node. Do not repeat unrelated tests that already passed while their source and inputs remain unchanged.
-- After all targeted failures have been fixed, run the complete planned regression once as the final test pass.
-- If that final regression finds a failure, return to focused diagnosis: rerun the failing node and only directly affected nodes, fix the cause, then run the complete planned regression once again as the final pass.
-- Record the exact command and test node, source/input version or hashes, expected and actual results, and exit code. Never present a skipped or unrun test as passing.
+- 失敗が分かっている場合、まず失敗した動作と、その影響を直接受ける最小の試験nodeだけをデバッグ・試験してください。ソースと入力が変わっていない間に、無関係な合格済み試験を繰り返さないでください。
+- 対象を絞った失敗をすべて修正した後、計画された回帰試験全体を最終試験として一度実行してください。
+- 最終回帰試験で失敗が見つかった場合は、対象を絞った調査に戻り、失敗nodeとその影響を直接受けるnodeだけを再実行して原因を修正してください。その後、計画された回帰試験全体を最終試験としてもう一度実行してください。
+- 正確なコマンドと試験node、ソース・入力の版またはハッシュ、期待結果と実結果、終了コードを記録してください。スキップした試験や未実行の試験を合格として示してはいけません。
 
-## Git at task completion
+## タスク完了時のGit処理
 
-- Immediately before considering a task complete, run `git status --short` and inspect all repository changes.
-- For task-owned changes, review their scope and diff, run the applicable machine checks, then commit them in a meaningful unit and push the current branch to its tracking remote.
-- Stage only files created or changed for the current task. Do not mix existing user changes. Never use `reset --hard`, `checkout`, force push, or history rewriting.
-- Do not commit or push if the user explicitly prohibited it, authentication/connection/tracking is unavailable, or the diff contains unintended changes, secrets, keys, or personal information. Keep the changes and report the reason in the execution log and final response.
-- Report the branch, commit, and push destination after a successful commit and push. If either fails, preserve the changes and report why.
+- タスク完了と判断する直前に、`git status --short`を実行し、リポジトリ内のすべての変更を確認してください。
+- タスクで所有する変更について、対象範囲と差分を確認し、該当する機械検証を行ってから、意味のある単位でコミットし、現在のブランチを追跡先のリモートへプッシュしてください。
+- 今回のタスクで作成または変更したファイルだけをステージしてください。既存のユーザー変更を混ぜてはいけません。`reset --hard`、`checkout`、force push、履歴の書き換えを行わないでください。
+- ユーザーが明示的に禁止した場合、認証・接続・追跡先を利用できない場合、または差分に意図しない変更、秘密情報、鍵、個人情報が含まれる場合は、コミット・プッシュしないでください。変更を保持し、理由を実行記録と最終報告に記載してください。
+- コミットとプッシュに成功した場合は、成功したブランチ、コミット、プッシュ先を報告してください。いずれかに失敗した場合は、変更を保持して理由を報告してください。
