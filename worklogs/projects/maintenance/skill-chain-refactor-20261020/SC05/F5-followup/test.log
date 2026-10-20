@@ -1,0 +1,8 @@
+.........................                                                [100%]
+25 passed in 5.59s
+
+F5 follow-up summary:
+Expected 21 focused maintenance-chain nodes and four exact planned existing nodes to pass. Actual 25 passed in 5.59s; exit=0, failures=0, errors=0, skips=0.
+Product SHA-256: 3e8e3f34cd87739ef2ef57f88bc76f0fcd1fc93fa51a4fcea50ccd79e10d9e12
+SC05 test SHA-256: 6c2d480d29e33d19c57dacd2251a5df20bd01dbbe3d47073769ff7d89951328f
+Run JST: 2026-10-20T14:37:48.3531388+09:00 through 2026-10-20T14:37:54.7238278+09:00.

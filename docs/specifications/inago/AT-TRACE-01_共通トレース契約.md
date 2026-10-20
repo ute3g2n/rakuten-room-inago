@@ -337,3 +337,9 @@ Migration `016_operation_failure_details.sql`はappend-only `maintenance_operati
 report author応答とpersist済みAI envelopeのturn/thread照合が失敗した場合、操作名・期待ID・一致数・安全なcandidate path/hash/turn/threadを含むattempt内diagnostic artifactを保存し、failure eventはその参照を持つ。公開pathに既存HTMLがある場合は、同一jobの前回reportについて成果・DB review record・publication sidecar・remote上の祖先commit内HTMLが同一identity/hashを示す時だけ、そのexact prior hashをreplace対象として渡す。review状態は前回が承認済みreviewer結果またはcontroller fallbackのunavailableであることまで確認する。置換候補を拒否した場合はattemptごとの理由をoperation contextの許容深さに収まるsafe summaryで記録する。レビュー済み新HTMLは作業tree/indexを変更せず、一時Git indexから一ファイルcommitでpushする。
 
 隔離DBではmigration 015→016、nested reason code、privacy-safe contextの保存/replayを確認する。正式runtime適用と同一jobから生成される新しいfailure eventは、その実測をFC10/FC11 execution recordへ記録する。
+
+## SC 日次・skill連鎖の追加診断記録（2026-10-20）
+
+日次処理の安全な分類・許可項目は既存U23.08と共通trace契約に従い、日次業務schemaを増やさない。`_result_mapping`のfailure-result callback再失敗、`_retry_summary_for_run`の固定集計操作、`refresh_history_after_commit`のexport失敗を、それぞれ安全なoperation名で区別する。callback/DB/exportの失敗は元の処理結果や確定済みcommitを置き換えない。SQLite詳細は許可された分類値だけを残す。
+
+新skill runnerの記録は呼出し開始・終了・例外class、role、連番、入力/出力の相対参照とhash、実行コードhash、および次担当Markdownの実読取を示す最小情報とする。自由文のAI応答、prompt、HTML本文、例外本文、絶対path、秘密、個人情報を診断ログへ複写しない。診断ログ失敗は担当の呼出し結果を上書きしない。これは新たな永続schema/registry/receiptではなく、jobのMarkdownと追記ログで残す実行証拠である。

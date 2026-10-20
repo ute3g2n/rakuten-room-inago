@@ -53,3 +53,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ## FC05 欠損入力でもreviewへ引き渡す
 
 試験が実施できないときは、NOT_RUNと具体的理由、確認範囲、原因位置、相関ID、成果参照を持つ通常の成果物を返す。試験結果をreviewer/report担当の起動条件にしない。
+
+## SC skill連鎖での担当
+
+割当計画caseを通常pytestと安全な隔離fixtureで実行し、期待/実結果、command、exit、対象hash、証拠と未実施理由を`test.md`へ直接記録する。10/19 production queue/history・Daily・投稿dataへ接続しない。FAILや未実施を後続起動条件にしない。

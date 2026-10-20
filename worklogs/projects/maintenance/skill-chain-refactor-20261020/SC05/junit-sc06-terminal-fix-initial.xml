@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="20" time="5.126" timestamp="2026-10-20T14:23:48.160970+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.176"><failure message="AssertionError: {'status': 'incomplete', 'reason_code': 'skill_chain_predecessor_read_unconfirmed', 'identity': {'job_id': 'job-histor...cal-9e7f0c175cc4c874c955a5dab29c4427', 'target_date': '2026-10-17', 'source_run_id': None}, 'missing_outputs': [], ...}&#10;assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1435/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002514F418EF0&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+        assert all(event["previous_read_acknowledged"] for event in finished)
+        for prior, current in zip(finished, finished[1:]):
+            prior_md = prior["output_refs"][0]
+            if prior["role_call"] == 7:
+                rereview = next(event for event in events if event.get("event") == "html_rereview_finished")
+                prior_md = rereview["output_refs"][0]
+            current_input = next(
+                ref for ref in current["input_refs"]
+                if Path(ref["path"]).name == Path(prior_md["path"]).name
+            )
+            assert current_input["sha256"] == prior_md["sha256"]
+            current_markdown = next(ref for ref in current["output_refs"] if ref["path"].endswith(".md"))
+            saved = (root / current_markdown["path"]).read_bytes()
+            if current["role_call"] == 7:
+                # The required final author revision and independent re-review
+                # replace role 7's first Markdown file. Preserve the immutable
+                # role-call input evidence as the assertion for that read.
+                assert any(
+                    evidence["path"] == current_input["path"]
+                    and evidence["sha256"] == current_input["sha256"]
+                    and evidence["method"] == "item/completed"
+                    and evidence["item_type"] == "commandExecution"
+                    and evidence["status"] == "completed"
+                    and evidence["exit_code"] == 0
+                    for evidence in current["previous_read_evidence"]
+                )
+                continue
+            assert current_input["sha256"].encode() in saved
+&gt;       assert result["terminal"]["status"] == "complete", result["terminal"]
+E       AssertionError: {'status': 'incomplete', 'reason_code': 'skill_chain_predecessor_read_unconfirmed', 'identity': {'job_id': 'job-histor...cal-9e7f0c175cc4c874c955a5dab29c4427', 'target_date': '2026-10-17', 'source_run_id': None}, 'missing_outputs': [], ...}
+E       assert 'incomplete' == 'complete'
+E
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:285: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.258" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_operation_failures_keep_raw_and_continue" time="0.201" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_same_job_without_predecessor_pin" time="0.407" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_appserver_best_effort_logging_and_advisory_probe" time="0.015" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_scope_preserves_excluded_date_and_daily_data" time="0.021" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_production_route_is_separate_from_legacy_controller" time="0.002" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_contract_roles_and_generated_flow_are_synchronized" time="0.051" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_git_failure_preserves_scope_and_resumes[available]" time="0.967" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_git_failure_preserves_scope_and_resumes[unavailable]" time="0.900" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-transport_failure]" time="0.196" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-invalid_handoff]" time="0.192" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-omit_report_html]" time="0.175" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-transport_failure]" time="0.194"><failure message="AssertionError: assert 'complete' == 'incomplete'&#10;  &#10;  - incomplete&#10;  ? --&#10;  + complete">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1435/test_reporter_failure_gets_sam3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002514F5BB4D0&gt;
+primary_failure = 'transport_failure', recovery_outcome = 'failure'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+            assert result["status"] == "complete"
+        else:
+&gt;           assert result["status"] == "incomplete"
+E           AssertionError: assert 'complete' == 'incomplete'
+E
+E             - incomplete
+E             ? --
+E             + complete
+
+tests_inago\test_maintenance_skill_chain.py:484: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-invalid_handoff]" time="0.188"><failure message="AssertionError: assert 'complete' == 'incomplete'&#10;  &#10;  - incomplete&#10;  ? --&#10;  + complete">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1435/test_reporter_failure_gets_sam4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002514F5BA090&gt;
+primary_failure = 'invalid_handoff', recovery_outcome = 'failure'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+            assert result["status"] == "complete"
+        else:
+&gt;           assert result["status"] == "incomplete"
+E           AssertionError: assert 'complete' == 'incomplete'
+E
+E             - incomplete
+E             ? --
+E             + complete
+
+tests_inago\test_maintenance_skill_chain.py:484: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-omit_report_html]" time="0.179"><failure message="AssertionError: assert 'complete' == 'incomplete'&#10;  &#10;  - incomplete&#10;  ? --&#10;  + complete">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1435/test_reporter_failure_gets_sam5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002514F5BAAE0&gt;
+primary_failure = 'omit_report_html', recovery_outcome = 'failure'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+            assert result["status"] == "complete"
+        else:
+&gt;           assert result["status"] == "incomplete"
+E           AssertionError: assert 'complete' == 'incomplete'
+E
+E             - incomplete
+E             ? --
+E             + complete
+
+tests_inago\test_maintenance_skill_chain.py:484: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[success]" time="0.169" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[missing]" time="0.171" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[failed]" time="0.171" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[mismatched]" time="0.168" /></testsuite></testsuites>

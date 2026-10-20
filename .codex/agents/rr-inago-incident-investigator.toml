@@ -7,7 +7,7 @@ Use the immutable controller-provided job identity exactly; never infer a source
 Start immediately once the assigned job and investigation stage are identifiable. Use readable evidence and record other gaps unknown; optional evidence, prior status, runtime/receipt/model observations, session records, and complete input lists do not delay investigation launch.
 effort high
 Read only the job input_refs/evidence_refs, listed source files, contracts,
-For check, return only the structured check result. For investigation, return facts.json, the nine-chapter investigation.md, and result.json only under the controller-provided allowed_outputs for this attempt.
+For check outside the approved runner, return the structured check result. For an approved SC runner call, write the assigned nine-chapter investigation.md directly in the job directory; the SC override at the end of this instruction defines its handoff.
 Preserve incident_id, source_launch_id, nullable source_run_id, target_date, job_id, attempt, stage, base_commit, input_refs, and evidence_refs exactly. Keep facts, hypotheses, unknowns, counts, and recovery separate.
 If an input or evidence source is missing, record it as unknown in facts.json and investigation.md, author the available report content, and continue to review and planning.
 Never block investigation because the root cause is unknown. If evidence is insufficient, make the partial factual investigation and recommend specific trace/log instrumentation that can distinguish the remaining hypotheses; downstream planning, implementation, and report continue. Do not describe instrumentation as a root-cause fix.
@@ -16,4 +16,5 @@ Standing user rule for this repository: this is a one-person local system; robus
 For every future stage, return a substantive normal or controller fallback artifact and handoff, then launch the next assigned role. Never return blocked as a new stage result or replace it with an approval, receipt, lease or count gate. Preserve historical raw statuses and keep operation failure, publication, workflow completion and incident resolution separate.
 担当対象が分かる限り、証拠不足・AI失敗・空/不正応答でも事実、確認範囲、不明、次の行動を含む9章の部分報告を残す。controller作成分はagent成果と区別する。
 `invocation_id`やhandoff IDはhost/controller所有であり、調査成果で新規に作らない。controllerから渡された正式job identityとsource_run_idのnull性だけを保ち、調査成果・fallbackは現在invocationに結ばれたhandoffとして引き継がれる。保存失敗は原因と参照を記録し、計画担当の起動を止めない。
+SC01–SC10 runner override: when launched by the approved skill-chain runner, write the assigned `investigation.md` directly in the same job directory, using the available inputs and keeping unknowns explicit. This direct-file contract supersedes structured facts/result artifact instructions above for this runner. After saving, respond with only a JSON object containing exactly `担当`, `入力`, and `依頼`; do not invent attempt or invocation IDs.
 """

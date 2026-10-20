@@ -93,13 +93,14 @@ export const expandedFlows = {
     n('S','S-STATUS／AG-RECOVERY','状態確認プログラム','本番で問題が起きても作成済みの本文を残して修正につなげる','発生した不具合と保存済みの結果','記録し、本人や保守担当者が必要な修正と関連テストを行えるように表示します','必要な場合は復旧説明AIへ診断を依頼しますが、検索上限・時刻・本人投稿という決まりを勝手に緩めません'),
   ],
   F12: [
-    n('S','maintenance completion / watchdog','完了通知・監視プログラム','日次の実際の終了状態を保守担当へ正確に渡す','日次CLI最終結果、後処理、保全、プロセス終了、起動ID','照合し、記録できる証拠参照と対象日を管理DBへ渡します','保存runがない起動前停止ではrun IDを作らずsource_run_id=nullを保ち、元のfailed結果や欠測を成功扱いにしません'),
-    n('A','rr-inago-incident-investigation','親A・調査担当','正常な結果と調査が必要な事象を分ける','日次結果と利用可能な証拠','受け取り、Sol/high設定で調査agentを実起動して確認済みの事実・外部要因・未知を分類します','対象jobと担当stageが分かり必須入力があれば直ちに起動します。任意の証拠・status・receipt・設定観測で起動を遅らせず、未確認事項を記録して後続へ渡します'),
-    n('S','maintenance controller / store','案件管理プログラム','同じ起動・障害の履歴をIDで追跡する','source_launch_id、nullable source_run_id、target_date、check/incidentの記録','管理DBへ記録し、前工程のstatusを次stageの開始条件にしません','各工程は失敗や不明を内容ある成果に残して次担当を実起動します。工程の引継ぎ完了、操作の成否、公開結果、フロー完遂と元障害の解消を分けて記録します。必須成果・公開版・終了登録を照合して完遂を確認し、原因や回復が不明なら不明のまま保ちます。記録の失敗は独立した保存先へ残して処理を続け、同一起動の元の日次結果と旧履歴は保持します。各stageの内容ある引継ぎ、正式なattempt/output、最終HTMLのhashと公開branch上の読戻し内容が一致した場合だけ完遂を登録します。試験・review・反映の未実施や失敗は実測のまま次の担当へ渡し、PASSや承認に作り替えません'),
-    n('A','investigation / execution planning','親A・調査/計画担当とreviewer','確認できた事実と未確認事項を次の作業へ渡す','利用可能な調査MD/facts/evidence、現行要件、0～14節計画と対応表','使って計画agentを実起動し、対象versionまたは成果物があれば別担当reviewerを実起動してreviewを依頼します','必須対象がある担当を直ちに起動します。任意証拠・status・receipt・設定観測・session/cache状態は起動条件にせず、原因unknownや欠測も後続stageへ渡します。source_run_id=nullはnullのまま保ちます'),
-    n('A','common-implementation / testing / review','親B・実装/テスト/レビュー担当','確認できる不具合を利用可能な情報で修正する','利用可能な計画と担当範囲の変更対象・試験対象・review対象version/artifact','使って実装/試験agentを実起動し、通常のローカルpytestと製品コードreviewを依頼します','レビュー対象があれば実reviewerを起動し、未起動を合成unavailableにしません。テストコードは独立reviewしません。失敗・未実施・review所見を次工程へ渡し、PASS/承認を反映条件にしません'),
-    n('S','maintenance deployment','本番反映プログラム','実行可能な修正を反映できる範囲で試み、結果を記録する','利用可能な修正候補と反映対象環境','確認し、実行可能な反映操作を試して実際の反映版と未実施操作を記録します','test/review/readiness statusを後続gateにしません。個別操作を実行できない場合はその理由を記録し、報告へ進みます'),
-    n('A','rr-inago-incident-report','親B・報告担当とreviewer','何が起き、どこまで対応できたか利用者へ伝える','利用可能な調査・計画・試験・review・反映記録と元件数','report担当へ渡してHTMLを作成し、review対象HTML版または成果物があれば別担当reviewerを実起動してreviewを依頼します。review所見があればreport担当が自ら修正します','任意証拠や前段statusで担当の起動を止めず、review未起動を合成unavailableで置き換えません。review承認をreport完了条件にせず、未確認と未実施を明記します。通常作成失敗時は平易なfallback HTMLをreview/publicationへ渡し、内部IDやhashは参考付録へ置きます。公開とincident解決は分離します'),
+    n('S','daily check','日次後check','日次結果の事実と未知を区別し、対象jobを選びます','既存Dailyの記録と対象jobの正式identity','正常日ならcheckだけで終え、異常・未知なら同じjobの調査へ渡します','10/17 source_run_id=nullを保ち、10/19 queue/historyや通常Dailyを再処理しません'),
+    n('A','rr-inago-incident-investigation','調査担当','原因・根拠・未確認と次の診断候補を調べます','incident.mdとjob資料、許可された原記録','同jobのinvestigation.mdを作り、次担当へ渡します','原因不明でも起動し、証拠のない因果を断定しません'),
+    n('A','common-implementation','実装担当','原因修正または次回診断に役立つ日次計装を実装します','調査成果と承認計画の割当差分','製品差分とimplementation.mdを作り、次担当へ渡します','保守runnerのログだけで日次実装を代替しません'),
+    n('A','common-testing','試験担当','指定された製品差分の試験結果を記録します','実装成果と計画指定case','通常pytestを実行し、期待/実結果をtest.mdに記録します','FAILや未実施を後続のgateにせず、日次業務DBを使いません'),
+    n('A','common-review','別製品reviewer','実装と試験証拠を別sessionから確認します','日次製品差分とtest.md','review所見をcode-review.mdに記録します','review結果にかかわらず反映担当へ渡します'),
+    n('S','rr-inago-maintenance-delivery','反映担当','選択された製品差分を確認して本番へ反映します','実装・試験・review成果と現在のtracking先','所有差分を選択して適用し、版をread-backしてdeployment.mdに記録します','実際にできない操作だけ理由付きで残し、次担当へ進みます'),
+    n('A','rr-inago-incident-report / common-review','報告者と別HTML reviewer','同jobの結果を平易なHTMLへまとめ、本文の4点だけを独立確認します','実際の調査・実装・試験・review・反映記録','reporterがreport.htmlを直接作成し、別session reviewerが読んでhtml-review.mdを作ります。指摘はreporterが同じauthor sessionで修正します','不具合・原因・修正・追加trace/logを正確に伝え、秘密露出だけを確認します'),
+    n('S','rr-inago-maintenance-delivery','公開担当','作者修正後のreview済みbytesを公開先から読み戻します','report.html、html-review.md、reporter修正版','同一bytesを公開してpublication.mdに参照とhashを記録します','公開・工程完遂・元障害解消を別々に記録します'),
   ],
 };
 

@@ -1,0 +1,56 @@
+{
+  "observed_at": "2026-10-20T13:40:54.4932927+09:00",
+  "method": "SQLite mode=ro; PRAGMA query_only=ON; SHA-256 over ordered JSON projections; excludes free text and business bodies",
+  "target": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "october_19": {
+    "worker_queue": {
+      "row_count": 1,
+      "projection": ["queue_id", "target_date", "status"],
+      "sha256": "439b0b71bd3056816bfb3f80d1fd0629a1c9f0d0e6289e212ae0e3fb3607dbf2"
+    },
+    "worker_queue_event": {
+      "row_count": 0,
+      "projection": ["event_id", "queue_id", "event_type", "check_id", "reason_code", "owner_id", "generation", "occurred_at"],
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "daily_launch": {
+      "row_count": 1,
+      "projection": ["source_launch_id", "target_date", "status", "source_run_id", "exit_code"],
+      "safe_rows": [{"target_date": "2026-10-19", "status": "failed", "source_run_id": null, "exit_code": 4}],
+      "sha256": "77bfb287cecbc8f628e33f0f336e8a3193906b0b5ab5639faf04d046261ebd99"
+    }
+  },
+  "daily_run_counts": {
+    "2026-10-17": 0,
+    "2026-10-19": 0,
+    "2026-10-20": 0
+  },
+  "october_20_daily_launch": {
+    "row_count": 1,
+    "status": "failed",
+    "source_run_id": null,
+    "exit_code": 4,
+    "safe_reason_code": "daily_runtime_error",
+    "failure_phase": "prepare",
+    "trace_status": "not_written",
+    "detailed_cause": "unknown"
+  },
+  "maintenance_job": {
+    "status": "complete",
+    "resume_count": 29,
+    "running_attempts": 0,
+    "schema_version": 16,
+    "source_run_id": null,
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30"
+  },
+  "safety": {
+    "daily_restarted": false,
+    "october_19_queue_or_history_processed": false,
+    "job_identity_changed": false
+  }
+}

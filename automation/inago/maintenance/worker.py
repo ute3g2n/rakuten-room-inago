@@ -26,9 +26,6 @@ from automation.inago.maintenance.store import (
     MaintenanceStoreError,
     WorkerQueueRecord,
 )
-from automation.inago.maintenance.workflow_reconciliation import (
-    reconcile_workflow_terminal,
-)
 
 
 ProcessProbe = Callable[[int], ProcessObservation]
@@ -86,6 +83,7 @@ class WorkerWorkflowOutcome:
     status: str
     check_id: str | None = None
     reason_code: str | None = None
+    terminal_adapter: str = "legacy"
 
 
 WorkflowRunner = Callable[
@@ -803,15 +801,60 @@ def run_worker_once(
                         except Exception:
                             pass
                 if identity is not None:
-                    try:
-                        reconcile_workflow_terminal(
-                            store,
-                            job_id=historical_item.job.job_id,
-                            lease=lease,
-                            expected_identity=identity,
-                        )
-                    except Exception as exc:
-                        terminal_error = exc
+                    if outcome.terminal_adapter == "skill-chain-markdown":
+                        try:
+                            from automation.inago.maintenance.skill_chain import (
+                                inspect_skill_chain_terminal,
+                            )
+
+                            terminal = inspect_skill_chain_terminal(
+                                job_root=(
+                                    store.database_path.parent.parent
+                                    / "maintenance-flow"
+                                    / historical_item.job.job_id
+                                ),
+                                repository_root=store.database_path.parent.parent.parent.parent,
+                                identity=identity,
+                            )
+                            if terminal.get("status") != "complete":
+                                terminal_code = terminal.get("reason_code")
+                                safe_code = (
+                                    terminal_code
+                                    if isinstance(terminal_code, str)
+                                    and re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", terminal_code)
+                                    else "skill_chain_terminal_incomplete"
+                                )
+                                terminal_error = RuntimeError(safe_code)
+                                workflow_reason_code = safe_code
+                                outcome = WorkerWorkflowOutcome(
+                                    status="unknown",
+                                    check_id=check.check_id,
+                                    reason_code=safe_code,
+                                    terminal_adapter="skill-chain-markdown",
+                                )
+                        except Exception as exc:
+                            terminal_error = exc
+                            workflow_reason_code = "skill_chain_terminal_readback_failed"
+                            outcome = WorkerWorkflowOutcome(
+                                status="unknown",
+                                check_id=check.check_id,
+                                reason_code=workflow_reason_code,
+                                terminal_adapter="skill-chain-markdown",
+                            )
+                    else:
+                        try:
+                            from automation.inago.maintenance.workflow_reconciliation import (
+                                reconcile_workflow_terminal,
+                            )
+
+                            reconcile_workflow_terminal(
+                                store,
+                                job_id=historical_item.job.job_id,
+                                lease=lease,
+                                expected_identity=identity,
+                            )
+                        except Exception as exc:
+                            terminal_error = exc
                 if terminal_error is not None:
                     try:
                         from automation.inago.maintenance.failure_journal import (

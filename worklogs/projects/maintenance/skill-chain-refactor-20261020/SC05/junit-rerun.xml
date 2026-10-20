@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.594" timestamp="2026-10-20T14:07:26.974843+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.200"><failure message="assert False&#10; +  where False = all(&lt;generator object test_eight_roles_receive_exact_markdown.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000022A7E6E2190&gt;)">tmp_path = WindowsPath('%TEMP%/pytest-of-local-user/pytest-1753/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022A7E850A40&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+&gt;       assert all(event["previous_read_acknowledged"] for event in finished)
+E       assert False
+E        +  where False = all(&lt;generator object test_eight_roles_receive_exact_markdown.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000022A7E6E2190&gt;)
+
+tests_inago\test_maintenance_skill_chain.py:173: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.204" /></testsuite></testsuites>

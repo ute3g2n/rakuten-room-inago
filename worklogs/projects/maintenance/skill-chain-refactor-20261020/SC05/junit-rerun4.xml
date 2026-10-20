@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="0.598" timestamp="2026-10-20T14:08:23.368834+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.159"><failure message="AssertionError: assert 'a3a4e9c6ce15...dd0143d37547f' == '275790441c94...9cea517c412e3'&#10;  &#10;  - 275790441c944f3670fee2a3945b5ebadf6f06b0bd4c2bfd7d49cea517c412e3&#10;  + a3a4e9c6ce1544658308c375c4a269013e4e1e64620b15c66b4dd0143d37547f">tmp_path = WindowsPath('%TEMP%/pytest-of-local-user/pytest-1756/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000024F9163D1F0&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+        assert all(event["previous_read_acknowledged"] for event in finished)
+        for prior, current in zip(finished, finished[1:]):
+            prior_md = prior["output_refs"][0]
+            current_input = next(ref for ref in current["input_refs"] if ref["path"] == prior_md["path"])
+&gt;           assert current_input["sha256"] == prior_md["sha256"]
+E           AssertionError: assert 'a3a4e9c6ce15...dd0143d37547f' == '275790441c94...9cea517c412e3'
+E
+E             - 275790441c944f3670fee2a3945b5ebadf6f06b0bd4c2bfd7d49cea517c412e3
+E             + a3a4e9c6ce1544658308c375c4a269013e4e1e64620b15c66b4dd0143d37547f
+
+tests_inago\test_maintenance_skill_chain.py:182: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.217" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_appserver_best_effort_logging_and_advisory_probe" time="0.013" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_scope_preserves_excluded_date_and_daily_data" time="0.006" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_production_route_is_separate_from_legacy_controller" time="0.001" /></testsuite></testsuites>

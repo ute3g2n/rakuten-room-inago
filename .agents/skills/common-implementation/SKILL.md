@@ -58,3 +58,7 @@ Maintenance operation boundaries carry one correlation ID from begin through ret
 ### FC04 固定rootのrepair author
 
 maintenance repair authorは唯一のプロジェクトroot C:/project/rakuten-room-inago内で既存作業を保ったまま担当範囲を変更する。clone、worktree、別checkoutを作らず選択しない。利用可能な調査・計画から実装を続け、原因が未確定なら有用な計装を追加して未確認を明示する。
+
+## SC skill連鎖での担当
+
+承認済み実行計画と調査Markdownを実際に読み、割当製品ファイルだけを固定workspaceで変更する。10/17原因が不明でも、確認された日次診断不足があれば日次コードの実差分を作る。保守runnerのログだけで日次計装を代替しない。10/19除外、通常Daily、日次業務データは変えない。実装者が`implementation.md`を直接書き、次担当へ手渡す。

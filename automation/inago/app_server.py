@@ -13,6 +13,7 @@ import queue
 import re
 import stat
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -132,6 +133,8 @@ class AppServerSession:
         developer_instructions: str | None = None,
         sandbox_policy: Mapping[str, Any] | None = None,
         on_thread_ready: Callable[[str], None] | None = None,
+        advisory_capability_probes: bool = False,
+        best_effort_logging: bool = False,
     ):
         if not command or any(
             not isinstance(item, str) or not item for item in command
@@ -156,6 +159,10 @@ class AppServerSession:
         self.developer_instructions = developer_instructions
         self.sandbox_policy = dict(sandbox_policy or {"type": "readOnly"})
         self.on_thread_ready = on_thread_ready
+        self.advisory_capability_probes = advisory_capability_probes
+        self.best_effort_logging = best_effort_logging
+        self.log_write_failed = False
+        self.capability_probe_observations: dict[str, dict[str, str]] = {}
         self.observed_settings = {
             "model": None,
             "effort": None,
@@ -237,10 +244,61 @@ class AppServerSession:
                     self._validate_log_target()
                 with self.log_path.open("a", encoding="utf-8") as file:
                     file.write(json.dumps(record, ensure_ascii=False) + "\n")
-        except AppServerError:
+        except AppServerError as exc:
+            if self.best_effort_logging:
+                self.log_write_failed = True
+                try:
+                    sys.stderr.write(
+                        json.dumps(
+                            {
+                                "event": "app_server_log_write_failed",
+                                "role_name": self.role_name,
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                        + "\n"
+                    )
+                    sys.stderr.flush()
+                except OSError:
+                    pass
+                return
             raise
         except OSError as exc:
+            if self.best_effort_logging:
+                self.log_write_failed = True
+                try:
+                    sys.stderr.write(
+                        json.dumps(
+                            {
+                                "event": "app_server_log_write_failed",
+                                "role_name": self.role_name,
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                        + "\n"
+                    )
+                    sys.stderr.flush()
+                except OSError:
+                    pass
+                return
             raise AppServerError("log_write_failed") from exc
+
+    def _run_capability_probe(self, name: str, probe: Callable[[], None]) -> None:
+        try:
+            probe()
+        except AppServerError as exc:
+            if not self.advisory_capability_probes:
+                raise
+            self.capability_probe_observations[name] = {
+                "status": "unavailable",
+                "code": exc.code,
+            }
+            self._log("capability_probe_advisory", code=exc.code)
+        else:
+            self.capability_probe_observations[name] = {"status": "available"}
+            self._log("capability_probe_advisory", status="available")
 
     def _maintenance_log_fields(self, observation_status: str) -> dict[str, Any]:
         if self.role_name is None:
@@ -473,9 +531,21 @@ class AppServerSession:
             ):
                 raise AppServerError("auth_mode_not_permitted")
             if self.model is not None:
-                self._verify_model_capability(deadline=deadline)
+                if self.advisory_capability_probes:
+                    self._run_capability_probe(
+                        "model",
+                        lambda: self._verify_model_capability(deadline=deadline),
+                    )
+                else:
+                    self._verify_model_capability(deadline=deadline)
             if self.fast_mode:
-                self._verify_fast_mode_capability(deadline=deadline)
+                if self.advisory_capability_probes:
+                    self._run_capability_probe(
+                        "fast_mode",
+                        lambda: self._verify_fast_mode_capability(deadline=deadline),
+                    )
+                else:
+                    self._verify_fast_mode_capability(deadline=deadline)
             params = {
                 "cwd": str(self.cwd),
                 "sandbox": (

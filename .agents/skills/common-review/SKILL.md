@@ -50,3 +50,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ## FC05 差分や試験証拠がない場合
 
 利用可能な差分・controller fallback・unknown成果のいずれかを実際に読み、review担当自身の所見を保存する。対象がない場合は理由を記録してunavailable等の実結果を返す。review状態や指摘で後続担当を止めない。
+
+## SC skill連鎖での担当
+
+製品reviewでは対象コード差分、要求、試験証拠と禁止副作用だけを独立に確認し、所見を`code-review.md`へ直接記録する。HTML reviewでは別sessionから、作者更新後の実HTMLについて不具合・原因・修正・追加trace/logの事実と分かりやすさ、秘密露出だけを確認する。reviewer自身は対象ファイルを編集せず、次工程をreview状態で止めない。

@@ -8,9 +8,8 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
-from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.investigation import _assert_no_reparse_components
 from automation.inago.maintenance.safe_file import (
     SafeFileError,
@@ -27,6 +26,9 @@ from automation.inago.maintenance.store import (
     MaintenanceStore,
     MaintenanceStoreError,
 )
+
+if TYPE_CHECKING:
+    from automation.inago.maintenance.controller import MaintenanceController
 
 
 _OBSERVATION_KEYS = {

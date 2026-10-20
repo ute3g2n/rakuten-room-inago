@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.335" timestamp="2026-10-20T14:08:31.301436+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.150"><failure message="StopIteration">tmp_path = WindowsPath('%TEMP%/pytest-of-local-user/pytest-1757/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000017F1C86DB50&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+        assert all(event["previous_read_acknowledged"] for event in finished)
+        for prior, current in zip(finished, finished[1:]):
+            prior_md = prior["output_refs"][0]
+            if prior["role_call"] == 7:
+                rereview = next(event for event in events if event.get("event") == "html_rereview_finished")
+                prior_md = rereview["output_refs"][0]
+&gt;           current_input = next(ref for ref in current["input_refs"] if ref["path"] == prior_md["path"])
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           StopIteration
+
+tests_inago\test_maintenance_skill_chain.py:184: StopIteration</failure></testcase></testsuite></testsuites>

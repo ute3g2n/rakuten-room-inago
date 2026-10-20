@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="20" time="5.085" timestamp="2026-10-20T14:21:42.099540+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.178"><failure message="AssertionError: assert b'4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc' in b'# HTML\xe7\xa2\xba\xe8\xaa\x8d\r\n4\xe9\xa0\x85\xe7\x9b\xae\xe3\x82\x92\xe7\xa2\xba\xe8\xaa\x8d\xe3\x81\x97\xe3\x81\...096cea65a9e76a70044f88a07d51ec56613e22de06e023887f2\r\nreview_result: approved\r\nreview_round: final_after_author\r\n'&#10; +  where b'4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc' = &lt;built-in method encode of str object at 0x000001FEA6AA9760&gt;()&#10; +    where &lt;built-in method encode of str object at 0x000001FEA6AA9760&gt; = '4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc'.encode">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1424/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FEA6A67BC0&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+        assert all(event["previous_read_acknowledged"] for event in finished)
+        for prior, current in zip(finished, finished[1:]):
+            prior_md = prior["output_refs"][0]
+            if prior["role_call"] == 7:
+                rereview = next(event for event in events if event.get("event") == "html_rereview_finished")
+                prior_md = rereview["output_refs"][0]
+            current_input = next(
+                ref for ref in current["input_refs"]
+                if Path(ref["path"]).name == Path(prior_md["path"]).name
+            )
+            assert current_input["sha256"] == prior_md["sha256"]
+            current_markdown = next(ref for ref in current["output_refs"] if ref["path"].endswith(".md"))
+            saved = (root / current_markdown["path"]).read_bytes()
+&gt;           assert current_input["sha256"].encode() in saved
+E           AssertionError: assert b'4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc' in b'# HTML\xe7\xa2\xba\xe8\xaa\x8d\r\n4\xe9\xa0\x85\xe7\x9b\xae\xe3\x82\x92\xe7\xa2\xba\xe8\xaa\x8d\xe3\x81\x97\xe3\x81\...096cea65a9e76a70044f88a07d51ec56613e22de06e023887f2\r\nreview_result: approved\r\nreview_round: final_after_author\r\n'
+E            +  where b'4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc' = &lt;built-in method encode of str object at 0x000001FEA6AA9760&gt;()
+E            +    where &lt;built-in method encode of str object at 0x000001FEA6AA9760&gt; = '4d88fba11385fc0f57971cf5b12ef931b03f5d46600f14a5d993f04ddb032bcc'.encode
+
+tests_inago\test_maintenance_skill_chain.py:270: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.270" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_operation_failures_keep_raw_and_continue" time="0.243" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_same_job_without_predecessor_pin" time="0.369" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_appserver_best_effort_logging_and_advisory_probe" time="0.013" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_scope_preserves_excluded_date_and_daily_data" time="0.008" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_production_route_is_separate_from_legacy_controller" time="0.001" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_contract_roles_and_generated_flow_are_synchronized" time="0.045" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_git_failure_preserves_scope_and_resumes[available]" time="0.988" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_git_failure_preserves_scope_and_resumes[unavailable]" time="0.897" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-transport_failure]" time="0.212"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1424/test_reporter_failure_gets_sam0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FEA6B79820&gt;
+primary_failure = 'transport_failure', recovery_outcome = 'success'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+&gt;           assert result["status"] == "complete"
+E           AssertionError: assert 'incomplete' == 'complete'
+E
+E             - complete
+E             + incomplete
+E             ? ++
+
+tests_inago\test_maintenance_skill_chain.py:468: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-invalid_handoff]" time="0.191"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1424/test_reporter_failure_gets_sam1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FEA6A9CBC0&gt;
+primary_failure = 'invalid_handoff', recovery_outcome = 'success'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+&gt;           assert result["status"] == "complete"
+E           AssertionError: assert 'incomplete' == 'complete'
+E
+E             - complete
+E             + incomplete
+E             ? ++
+
+tests_inago\test_maintenance_skill_chain.py:468: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[success-omit_report_html]" time="0.185"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('%TEMP%/inago-sc05-20261020-1424/test_reporter_failure_gets_sam2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FEA6A67D40&gt;
+primary_failure = 'omit_report_html', recovery_outcome = 'success'
+
+    @pytest.mark.parametrize("primary_failure", ["transport_failure", "invalid_handoff", "omit_report_html"])
+    @pytest.mark.parametrize("recovery_outcome", ["success", "failure"])
+    def test_reporter_failure_gets_same_author_recovery_then_later_roles(
+        tmp_path: Path,
+        monkeypatch,
+        primary_failure: str,
+        recovery_outcome: str,
+    ):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(
+            root,
+            job,
+            reporter_behavior=primary_failure,
+            reporter_recovery_behavior=recovery_outcome,
+        )
+        result = _run(root, factory)
+        role_names = [session.role_name for session in sessions]
+        reporter_calls = [session for session in sessions if session.role_number == 6]
+
+        assert any(session.role_number == 7 for session in sessions)
+        assert any(session.role_number == 8 for session in sessions)
+        assert reporter_calls
+        first_reviewer_call = sessions.call_trace.index(7)
+        reporter_attempts_before_review = sessions.call_trace[:first_reviewer_call].count(6)
+        assert reporter_attempts_before_review &gt;= (3 if primary_failure == "invalid_handoff" else 2)
+        if recovery_outcome == "success":
+            assert b"recovered_by_synthetic_author" in (job / "report.html").read_bytes()
+&gt;           assert result["status"] == "complete"
+E           AssertionError: assert 'incomplete' == 'complete'
+E
+E             - complete
+E             + incomplete
+E             ? ++
+
+tests_inago\test_maintenance_skill_chain.py:468: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-transport_failure]" time="0.194" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-invalid_handoff]" time="0.190" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-omit_report_html]" time="0.175" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[success]" time="0.166" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[missing]" time="0.165" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[failed]" time="0.166" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[mismatched]" time="0.167" /></testsuite></testsuites>

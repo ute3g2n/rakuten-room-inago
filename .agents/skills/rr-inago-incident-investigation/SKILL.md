@@ -66,3 +66,7 @@ reporterと独立report reviewerを実起動し、指摘はreporterが修正す�
 ### FC04 fallback引継ぎ
 
 対象が識別できる場合、証拠不足・調査agentの失敗・空または不正応答でも、利用可能な事実と調査範囲、不明点、次の確認を含む9章の部分報告を保存する。controllerが代替報告を作る場合は作成元と失敗原因を引継ぎへ記し、agent成功と表現しない。計画担当をstatusやreview結果で止めず実起動する。
+
+## SC skill連鎖での担当
+
+この計画では同jobの`incident.md`、許可されたjob資料、現在の実行記録を読み、確認事実・不明点・原因確度・次の診断候補を`investigation.md`へ直接記録する。10/17 job/launch/dateを保ちrunはnullのまま扱う。10/20 Dailyや10/19 queue/historyを対象jobに混ぜない。原因不明でも次担当へ渡す。

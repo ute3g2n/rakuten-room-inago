@@ -15,7 +15,6 @@ from typing import Sequence
 import uuid
 from zoneinfo import ZoneInfo
 
-from automation.inago.maintenance.controller import MaintenanceController
 from automation.inago.maintenance.diagnostic_trace import (
     MaintenanceAuditReceiptError,
     MaintenanceDiagnosticError,
@@ -138,6 +137,14 @@ def _parser() -> argparse.ArgumentParser:
     finish.add_argument("--lease-owner", required=True)
     finish.add_argument("--lease-generation", required=True, type=int)
     finish.add_argument("--reason-code")
+
+    skill_chain = commands.add_parser(
+        "skill-chain", help="run the assigned maintenance skills for one existing job"
+    )
+    skill_chain.add_argument("--job-id", required=True)
+    skill_chain.add_argument("--source-launch-id", required=True)
+    skill_chain.add_argument("--target-date", required=True)
+    skill_chain.add_argument("--source-run-id")
     return parser
 
 
@@ -353,6 +360,7 @@ def _run(
         return exit_code
     store = _store_for(args)
     if args.command == "enqueue-historical":
+        from automation.inago.maintenance.controller import MaintenanceController
         from automation.inago.maintenance.historical import (
             HistoricalIntakeError,
             enqueue_historical_observation,
@@ -376,8 +384,8 @@ def _run(
         return 0 if result.get("status") == "queued" else 3
     if args.command == "worker":
         from automation.inago.maintenance.worker import run_worker_once
-        from automation.inago.maintenance.production_workflow import (
-            build_production_workflow_provider,
+        from automation.inago.maintenance.skill_chain import (
+            build_skill_chain_workflow_provider,
         )
 
         result = run_worker_once(
@@ -387,8 +395,9 @@ def _run(
             owner_pid=os.getpid(),
             owner_start_time=current_process_start_time(),
             source_launch_id=args.source_launch_id,
-            workflow_runner=build_production_workflow_provider(
-                store, diagnostic_trace=diagnostic_trace
+            workflow_runner=build_skill_chain_workflow_provider(
+                store,
+                repository_root=Path(__file__).resolve().parents[3],
             ),
         )
         _emit(result.to_dict())
@@ -490,7 +499,6 @@ def _run(
             }
         )
         return 0
-    controller = MaintenanceController(store, diagnostic_trace=diagnostic_trace)
     if args.command == "status":
         _emit(
             {
@@ -500,6 +508,9 @@ def _run(
             }
         )
         return 0
+    from automation.inago.maintenance.controller import MaintenanceController
+
+    controller = MaintenanceController(store, diagnostic_trace=diagnostic_trace)
     if args.command == "release-gate":
         gate = controller.evaluate_release_gate(
             release_id=args.release_id,
@@ -579,6 +590,25 @@ def main(argv: Sequence[str] | None = None) -> int:
                 except MaintenanceDiagnosticError:
                     pass
         return int(exc.code or 0)
+    if args.command == "skill-chain":
+        from automation.inago.maintenance.skill_chain import (
+            SkillChainError,
+            run_skill_chain,
+        )
+
+        try:
+            result = run_skill_chain(
+                repository_root=Path(__file__).resolve().parents[3],
+                job_id=args.job_id,
+                source_launch_id=args.source_launch_id,
+                target_date=args.target_date,
+                source_run_id=args.source_run_id,
+            )
+        except SkillChainError as exc:
+            _emit({"status": "not_performed", "reason_code": exc.code})
+            return 3
+        _emit(result)
+        return 0 if result.get("status") == "complete" else 3
     if args.command == "preflight":
         if not isinstance(args.data_root, str) or not args.data_root.strip():
             _emit({"status": "blocked", "reason_code": "data_root_required"})

@@ -282,3 +282,13 @@ Migration 016はappend-only operation eventに安全化済み例外reason code�
 controllerが採番した`invocation_id`をhandoff payloadにも保存し、正式schemaで必須にする。terminal照合は現在のinvocationとpayload内のIDを両方比較し、別invocationの古いhandoffを拒む。AIにはこのcontroller-owned IDを生成させない。deployment結果は登録schema、現在attempt、candidate、repair handoffのhash、release記録の全てを突合し、文字列5項目だけのJSONを反映証明にしない。
 
 failure journalの通常先`maintenance/failure-journal/events.jsonl`への書込またはpath解決に失敗した場合、検証済みDB rootから別に導く`maintenance/failure-journal-secondary/events.jsonl`へ安全化eventを追記する。復旧時は両方を読み、event IDで重複を除いてDBへ冪等に再生する。両sinkの失敗も元のoperationを止めず、具体的な安全化された失敗情報を残す。2026-10-20の同一job実測と未解決理由はFC10実行記録で確認する。
+
+## SC01–SC10 承認skill連鎖の実行契約（2026-10-20）
+
+本節は、承認済み「保守フローskill直列化と10月17日実動完遂」計画の実行経路を定める。旧FC/U系列の当時の実装・受入・履歴は保持するが、この経路の実行条件には使わない。対象は固定workspace `C:/project/rakuten-room-inago` と既存job `job-historical-9e7f0c175cc4c874c955a5dab29c4427`、source launchは同じID、target_dateは2026-10-17、source_run_idはnullである。10/19のqueue/history、通常Daily、下書き、runは変更・生成しない。
+
+新経路は6 skills・8つの順次LLM呼出しを一つのrunner invocationで行う。順は調査、実装、試験、製品review、反映、report作成、HTML review、公開である。次担当は前担当のMarkdownを同一jobから実際に読み、その原文を基に自分の担当成果を作る。job dirにはincident.mdと8担当成果（investigation.md、implementation.md、test.md、code-review.md、deployment.md、report.md、html-review.md、publication.md）を保存する。制御handoffは「担当」「入力」「依頼」の3項目だけとし、Markdown本文をcontrollerが生成・置換しない。reviewerは別AppServerSessionで起動する。
+
+review、test、原因unknown、前工程の失敗、実際のモデル設定の未観測を次担当起動条件にしない。空・不正応答、保存、Git、適用、公開の失敗は、実際の理由と再開先を担当成果に残し、可能な後続担当を起動する。操作結果、修正達成、公開、workflow完遂、元incident解消は別々に判定する。job completeはincident解決を意味しない。
+
+日次原因が特定できない場合は、日次処理コードに有用な診断差分を加え、指定試験、作者とは別の製品review、本番反映、同じ10/17 jobからの新しい実証までつなぐ。保守runnerのログ追加や過去試験は日次差分の代用にならない。

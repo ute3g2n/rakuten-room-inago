@@ -1,0 +1,26 @@
+{
+  "plan_version": "1.0",
+  "plan_sha256_at_execution_start": "001b904b786c1dea6c95b54a307f4e2ace60358f850308e0566c164a9b7afaf5",
+  "workspace": "C:/project/rakuten-room-inago",
+  "identity": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "invocation_id": null,
+    "invocation_id_missing_reason": "SC01 is a pre-run baseline; the controller has not assigned an invocation yet."
+  },
+  "owners": [
+    {"stage": "SC01", "owner": "execution controller and investigation", "outputs": ["SC01/baseline.md", "SC01/daily-gap.md", "SC01/owner-map.json", "SC01/history-verdict-correction.md", "job/incident.md"], "files": ["worklogs/projects/maintenance/skill-chain-refactor-20261020/SC01/**", "rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/incident.md"]},
+    {"stage": "SC02", "owner": "contract/document synchronization", "outputs": ["skills, role configs, requirement docs, docs generation, synchronization record"], "files": [".agents/skills/**", ".codex/agents/**", "docs/specifications/inago/**", "docs/operations/日次タスクのトレース・ログ出力一覧.md", "tools/docs/inago-requirements/task-flows.mjs", "docs/standards/イナゴ日次不具合レポート作成ルール.md"]},
+    {"stage": "SC03-SC04", "owner": "product implementation", "outputs": ["implementation.md", "production-entry-call-map.md", "runner, CLI/worker adapters, AppServer options, legacy cleanup"], "files": ["automation/inago/maintenance/skill_chain.py", "automation/inago/maintenance/cli.py", "automation/inago/maintenance/historical.py", "automation/inago/maintenance/worker.py", "automation/inago/maintenance/production_workflow.py", "automation/inago/maintenance/workflow_provider.py", "automation/inago/maintenance/ai_adapter.py", "automation/inago/maintenance/stage_handoff.py", "automation/inago/maintenance/investigation.py", "automation/inago/maintenance/planning.py", "automation/inago/maintenance/repair.py", "automation/inago/maintenance/reporting.py", "automation/inago/maintenance/deployment.py", "automation/inago/app_server.py"]},
+    {"stage": "SC05", "owner": "tester", "outputs": ["test.md", "test.log", "JUnit, node-list, safe log evidence"], "files": ["tests_inago/test_maintenance_skill_chain.py", "tests_inago/test_daily_pipeline_safe_diagnostics.py", "tests_inago/test_maintenance_ai.py", "tests_inago/test_maintenance_store.py", "tests_inago/test_maintenance_integration.py", "tests_inago/test_maintenance_flow_completion_fc07.py"]},
+    {"stage": "SC06", "owner": "independent product reviewer", "outputs": ["code-review.md", "review.json", "reviewed-version manifest"], "files": ["worklogs/projects/maintenance/skill-chain-refactor-20261020/SC06/**"]},
+    {"stage": "SC07", "owner": "delivery and execution controller", "outputs": ["deployment.md", "selected commit/push, applied/runtime version read-back"], "files": ["task-owned production changes and SC07 worklog"]},
+    {"stage": "SC08", "owner": "same-job investigator, implementer, tester, independent product reviewer, delivery", "outputs": ["investigation.md", "implementation.md", "test.md", "code-review.md", "deployment.md", "same-job daily diff and safe logs"], "files": ["rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/**", "automation/inago/daily_pipeline.py", "automation/inago/trace.py", "tests_inago/test_daily_pipeline_safe_diagnostics.py"]},
+    {"stage": "SC09", "owner": "report author, independent HTML reviewer, delivery", "outputs": ["report.md", "report.html", "html-review.md", "publication.md", "same-bytes publication proof"], "files": ["job report artifacts", "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html"]},
+    {"stage": "SC10", "owner": "independent final verifier and controller", "outputs": ["acceptance-matrix.json", "final-report.md", "final handoff"], "files": ["SC10 worklog", "docs/specifications/inago/保守運用設定仕様.md", "docs/specifications/inago/要件追跡表.md"]}
+  ],
+  "rules": ["fixed workspace only", "preserve existing changes", "select task-owned paths/hunks for Git", "keep source_run_id null", "preserve October 19 exclusion and history", "do not restart Daily", "do not invent new run/job/drafts/IDs"]
+}

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.332" timestamp="2026-10-20T14:08:43.468963+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.149"><failure message="AssertionError: {'status': 'incomplete', 'reason_code': 'skill_chain_role_call_incomplete', 'identity': {'job_id': 'job-historical-9e7...cal-9e7f0c175cc4c874c955a5dab29c4427', 'target_date': '2026-10-17', 'source_run_id': None}, 'missing_outputs': [], ...}&#10;assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('%TEMP%/pytest-of-local-user/pytest-1759/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002413506DA60&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+        monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+        factory, sessions = _factory(root, job)
+        result = _run(root, factory)
+        events = [json.loads(line) for line in (job / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        finished = [event for event in events if event.get("event") == "role_call_finished"]
+
+        assert [event["role_call"] for event in finished] == list(range(1, 9))
+        assert len(sessions) == 8
+        assert result["role_calls_attempted"] == 8
+        assert all(event["previous_read_acknowledged"] for event in finished)
+        for prior, current in zip(finished, finished[1:]):
+            prior_md = prior["output_refs"][0]
+            if prior["role_call"] == 7:
+                rereview = next(event for event in events if event.get("event") == "html_rereview_finished")
+                prior_md = rereview["output_refs"][0]
+            current_input = next(
+                ref for ref in current["input_refs"]
+                if Path(ref["path"]).name == Path(prior_md["path"]).name
+            )
+            assert current_input["sha256"] == prior_md["sha256"]
+            current_markdown = next(ref for ref in current["output_refs"] if ref["path"].endswith(".md"))
+            saved = (root / current_markdown["path"]).read_bytes()
+            assert current_input["sha256"].encode() in saved
+&gt;       assert result["terminal"]["status"] == "complete", result["terminal"]
+E       AssertionError: {'status': 'incomplete', 'reason_code': 'skill_chain_role_call_incomplete', 'identity': {'job_id': 'job-historical-9e7...cal-9e7f0c175cc4c874c955a5dab29c4427', 'target_date': '2026-10-17', 'source_run_id': None}, 'missing_outputs': [], ...}
+E       assert 'incomplete' == 'complete'
+E
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:192: AssertionError</failure></testcase></testsuite></testsuites>
