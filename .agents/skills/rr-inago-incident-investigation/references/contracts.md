@@ -2,7 +2,7 @@
 
 ## 入力
 
-controllerは管理job項目 incident_id / source_launch_id / source_run_id / target_date / job_id / attempt / stage / base_commit / input_refs / evidence_refs / allowed_outputs を渡す。担当はこれらの値を出力へ維持する。source_run_idは元記録に存在しない場合のみnull。target_dateはJST対象日であり、後日実施時に当日へ置き換えない。
+controllerは管理job項目 incident_id / source_launch_id / source_run_id / target_date / job_id / attempt / stage / input_refs / evidence_refs / allowed_outputs を渡す。担当はimmutable identity値を保持し、欠測はunknown/nullとして記録する。base commitや完全な入力一覧を担当の開始・完了条件にしない。source_run_idやtarget_dateを推測・置換しない。
 
 ## 起動元・対象日の不変結合
 
@@ -24,7 +24,7 @@ stage=checkでは構造化check結果のみ。stage=investigationでは次を許
 2. investigation.md: docs/templates/incidents/日次不具合調査レポート_ひな形.mdを基にした9章。
 3. result.json: 元のID、status、result_version、成果参照、未確認・不足、review_requiredを記録。
 
-出力の内容はmanager job responseを通じて返し、controllerがschema/ID/版/path/hashを確認して確定する。担当自身で正本パスへコピー、Git追加、commit、pushをしない。
+調査結果を割当済みのjob成果物へ読みやすいMarkdownで保存する。担当は正本へのhash/版照合やGit操作を行わず、実際に保存したpathと未確認点を次担当へ伝える。
 
 ## 9章
 
@@ -54,13 +54,13 @@ stage=checkでは構造化check結果のみ。stage=investigationでは次を許
 
 handoffはidentity、schema_version、invocation/stage/attempt/operationとparent_operation、入力版/参照、stage_progress、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin（agent/controller_fallback）、実行担当、review対象版、開始/終了/観測時刻、code revisionを持つ。本文は「何を行い、何が分かり、何が不明で、何を次に行うか」を含む。新attempt IDはcontrollerの正式採番値だけを使う。
 
-工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
+工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・read-backの成否を後続担当の開始条件にしない。未実施や失敗は理由付きで記録し、可能な後続工程を続ける。
 
 各失敗は操作名、例外classと安全化したcause chain/stack frames、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
-reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
+reporterと独立report reviewerを実起動し、指摘はHTML作者が修正する。HTML作者は最終保存先へ直接HTMLを作成し、controller本文合成・公開専用worker・hash/bytes/version照合を必須にしない。本文は不具合、原因（不明なら不明）、修正、追加trace/logの4点を平易に説明する。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+source_launch_id、source_run_id（nullを含む）、target_date、job_idは、このjobに渡された値をそのまま使い、推測や差替えをしない。通常Dailyの手動起動、別のlaunch/run/jobでの代用、別workspace/worktreeは禁止。Gitのstage/commit/pushは行わず、本人の作業として残す。
 
 
 ### FC04 fallback引継ぎ

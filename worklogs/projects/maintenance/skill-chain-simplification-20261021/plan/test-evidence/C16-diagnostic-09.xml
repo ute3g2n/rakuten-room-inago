@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="3.673" timestamp="2026-10-21T06:39:13.005553+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_daily_evidence_stage_persists_and_reuses_redacted_bundle" time="0.374"><failure message="KeyError: 'evidence_bundle_sha256'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-09/test_daily_evidence_stage_pers0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A61C13C950&gt;
+
+    def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
+        tmp_path, monkeypatch
+    ):
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9601)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9601,
+            )
+    
+        result = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        launch = store.get_daily_launch(result.launch_id)
+        check = store.get_daily_check_by_launch(result.launch_id)
+        queue = store.get_worker_queue(result.launch_id)
+        assert launch is not None and check is not None and queue is not None
+        lease_now = datetime.now(timezone.utc)
+        lease = store.acquire_lease(
+            lease_key="maintenance:evidence-test",
+            owner_id="evidence-test",
+            owner_pid=9602,
+            owner_start_time=lease_now.isoformat(),
+            now=lease_now,
+        )
+        context = MaintenanceWorkflowContext(
+            launch=launch,
+            check=check,
+            queue=queue,
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=None, attempts=()),
+        )
+    
+        check_result = run_daily_check_incident_stage(
+            context, MaintenanceController(store), store
+        )
+        assert check_result.status == "complete"
+        first_result = run_daily_evidence_stage(context, store)
+        assert first_result.status == "complete", first_result.reason_code
+        manifest_ref = context.state["evidence_bundle_ref"]
+&gt;       bundle_hash = context.state["evidence_bundle_sha256"]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'evidence_bundle_sha256'
+
+tests_inago\test_maintenance_workflow_provider.py:561: KeyError</failure></testcase><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_consecutive_stage_failures_keep_content_and_run_later_roles" time="0.052"><failure message="AssertionError: assert 'unknown' == 'failed'&#10;  &#10;  - failed&#10;  + unknown">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-09/test_fc07_consecutive_stage_fa0')
+
+    def test_fc07_consecutive_stage_failures_keep_content_and_run_later_roles(tmp_path: Path):
+        store, launch, check, queue, lease = _context(tmp_path)
+        calls: list[str] = []
+        contexts: list[MaintenanceWorkflowContext] = []
+        failed_stages = set(WORKFLOW_STAGE_ORDER[:2])
+    
+        def make_runner(stage_name: str):
+            def run(context: MaintenanceWorkflowContext):
+                calls.append(stage_name)
+                contexts.append(context)
+                if stage_name in failed_stages:
+                    try:
+                        raise OSError("SYNTHETIC_PRIVATE_SECRET")
+                    except OSError as cause:
+                        raise RuntimeError("consecutive injected stage failure") from cause
+                return WorkflowStageResult(status="complete")
+    
+            return run
+    
+        outcome = MaintenanceWorkflowProvider(
+            store, {name: make_runner(name) for name in WORKFLOW_STAGE_ORDER}
+        )(launch, check, queue, lease, threading.Event())
+    
+        assert calls == list(WORKFLOW_STAGE_ORDER)
+&gt;       assert outcome.status == "failed"
+E       AssertionError: assert 'unknown' == 'failed'
+E         
+E         - failed
+E         + unknown
+
+tests_inago\test_maintenance_flow_completion_fc07.py:204: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_deployment" name="test_c43_contract" time="2.451" /></testsuite></testsuites>

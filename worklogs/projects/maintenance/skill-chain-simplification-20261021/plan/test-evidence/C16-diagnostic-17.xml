@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="4" time="0.343" timestamp="2026-10-21T06:47:49.094289+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_seven_roles_receive_markdown_and_run_in_order" time="0.028"><failure message="AssertionError: [{'job_id': 'job-fixture', 'source_launch_id': 'launch-fixture', 'source_run_id': None, 'target_date': '2026-10-20', ....d': 'job-fixture', 'source_launch_id': 'launch-fixture', 'source_run_id': None, 'target_date': '2026-10-20', ...}, ...]&#10;assert False&#10; +  where False = all(&lt;generator object test_seven_roles_receive_markdown_and_run_in_order.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002A0BCE31D80&gt;)">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-17/test_seven_roles_receive_markd0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002A0BCC16000&gt;
+
+    def test_seven_roles_receive_markdown_and_run_in_order(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root)
+        result = _run(root, factory)
+        ledger = root / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID / "calls.jsonl"
+        events = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert [role.name for role in skill_chain.ROLE_CALLS] == [
+            "rr-inago-incident-investigator", "common-implementer", "common-tester",
+            "common-reviewer", "rr-inago-maintenance-delivery", "rr-inago-incident-reporter",
+            "rr-inago-incident-report-reviewer",
+        ]
+        assert [event["stage"] for event in events] == [role.stage for role in skill_chain.ROLE_CALLS]
+        assert len(sessions) == result["roles_attempted"] == 7
+        assert all(s.closed for s in sessions)
+&gt;       assert all(role["turn_status"] == "completed" for role in result["roles"]), result["roles"]
+E       AssertionError: [{'job_id': 'job-fixture', 'source_launch_id': 'launch-fixture', 'source_run_id': None, 'target_date': '2026-10-20', ....d': 'job-fixture', 'source_launch_id': 'launch-fixture', 'source_run_id': None, 'target_date': '2026-10-20', ...}, ...]
+E       assert False
+E        +  where False = all(&lt;generator object test_seven_roles_receive_markdown_and_run_in_order.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002A0BCE31D80&gt;)
+
+tests_inago\test_maintenance_skill_chain.py:129: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[empty_ledger]" time="0.004" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[missing_role]" time="0.012" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[empty_response]" time="0.011" /></testsuite></testsuites>

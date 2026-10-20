@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.701" timestamp="2026-10-21T06:41:40.649251+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_daily_evidence_stage_persists_and_reuses_redacted_bundle" time="0.721"><failure message="AssertionError: maintenance_job_start_failed&#10;assert 'blocked' == 'complete'&#10;  &#10;  - complete&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-12/test_daily_evidence_stage_pers0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F47EF33170&gt;
+
+    def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
+        tmp_path, monkeypatch
+    ):
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9601)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9601,
+            )
+    
+        result = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        launch = store.get_daily_launch(result.launch_id)
+        check = store.get_daily_check_by_launch(result.launch_id)
+        queue = store.get_worker_queue(result.launch_id)
+        assert launch is not None and check is not None and queue is not None
+        lease_now = datetime.now(timezone.utc)
+        lease = store.acquire_lease(
+            lease_key="maintenance:evidence-test",
+            owner_id="evidence-test",
+            owner_pid=9602,
+            owner_start_time=lease_now.isoformat(),
+            now=lease_now,
+        )
+        context = MaintenanceWorkflowContext(
+            launch=launch,
+            check=check,
+            queue=queue,
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=None, attempts=()),
+        )
+    
+        check_result = run_daily_check_incident_stage(
+            context, MaintenanceController(store), store
+        )
+        assert check_result.status == "complete"
+        first_result = run_daily_evidence_stage(context, store)
+        assert first_result.status == "complete", first_result.reason_code
+        manifest_ref = context.state["evidence_bundle_ref"]
+        manifest_path = store.database_path.parent.joinpath(*manifest_ref.split("/"))
+        manifest_before = manifest_path.read_bytes()
+        manifest = json.loads(manifest_before)
+        assert manifest["correlation"]["source_launch_id"] == result.launch_id
+        assert manifest["classes"][1]["class_id"] == "L02"
+        assert manifest["classes"][1]["status"] == "collected"
+    
+        second_result = run_daily_evidence_stage(context, store)
+    
+        assert second_result.status == "complete"
+        assert context.state["evidence_bundle_ref"] == manifest_ref
+        assert manifest_path.read_bytes() == manifest_before
+    
+        candidate_commit = "a" * 40
+        monkeypatch.setattr(
+            production_workflow, "_repository_head", lambda: candidate_commit
+        )
+        release_id = "release-u21-evidence"
+        store.create_release(
+            release_id=release_id,
+            author_id="implementation-agent",
+            base_commit="b" * 40,
+            result_commit=candidate_commit,
+            result_version="result-u21-evidence",
+            config_version="settings-u21-evidence",
+            required_case_ids=("evidence-case-u21",),
+            created_at=BASE_TIME.isoformat(),
+        )
+        store.record_test_result(
+            release_id=release_id,
+            case_id="evidence-case-u21",
+            attempt=1,
+            result_version="result-u21-evidence",
+            status="PASS",
+            recorded_at=BASE_TIME.isoformat(),
+        )
+        store.record_release_review(
+            release_id=release_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="result-u21-evidence",
+            status="approved",
+            reviewed_at=BASE_TIME.isoformat(),
+        )
+        record_successful_deployment_fixture(
+            store,
+            release_id=release_id,
+            deployed_at=BASE_TIME.isoformat(),
+        )
+        assert (
+            store.evaluate_release_gate(
+                release_id=release_id,
+                evaluated_at=BASE_TIME,
+            ).status
+            == "ready"
+        )
+    
+        job_result = run_daily_job_stage(context, MaintenanceController(store), store)
+&gt;       assert job_result.status == "complete", job_result.reason_code
+E       AssertionError: maintenance_job_start_failed
+E       assert 'blocked' == 'complete'
+E         
+E         - complete
+E         + blocked
+
+tests_inago\test_maintenance_workflow_provider.py:618: AssertionError</failure></testcase></testsuite></testsuites>

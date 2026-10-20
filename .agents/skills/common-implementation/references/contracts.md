@@ -22,7 +22,7 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 ## 禁止事項
 
-本番DB・証拠原本・credentials・設定、投稿・Scheduler・task登録、release gateは変更禁止。testsを編集/実行しない。独自の大規模整形、範囲外リファクタ、削除、reset、checkoutで他者差分を戻す、force push、commit/push/deployは禁止。
+本番DB・証拠原本・credentials・設定、投稿・Scheduler・task登録は変更禁止。保守フロー内のrelease gateは撤去対象。testsを編集/実行しない。独自の大規模整形、範囲外リファクタ、削除、reset、checkoutで他者差分を戻す、force push、commit/push/deployは禁止。
 
 ## 引継ぎ・再開
 
@@ -38,17 +38,17 @@ U05の現行管理schemaはmaintenance_jobにsource_run_idのみを保持し、s
 
 handoffはidentity、schema_version、invocation/stage/attempt/operationとparent_operation、入力版/参照、stage_progress、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin（agent/controller_fallback）、実行担当、review対象版、開始/終了/観測時刻、code revisionを持つ。本文は「何を行い、何が分かり、何が不明で、何を次に行うか」を含む。新attempt IDはcontrollerの正式採番値だけを使う。
 
-工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
+工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、作業と各保存操作の実際の結果を別々に記録し、未実施や保存失敗を完了扱いしない。read-backや保存結果を後続担当の開始条件にしない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
 
 各失敗は操作名、例外classと安全化したcause chain/stack frames、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
-workflow invocationの開始時にmaintenance source set（Python/SQL/schemaとworker/workflow/daily境界）の一回限りのfingerprintを取得し、failure eventとhandoffへ同じ値を渡す。取得失敗は`code_revision=unknown`と具体的capture reasonとして記録し、補助logger fileのhashへ置換しない。workflow stageのattempt参照は完全一致するstep key・job・source_run_idで照合する。deploymentは検証済みdeployment candidateに結ばれたrepair attemptを使い、なければnullにする。reportはmaintenance_report attemptだけを使い、同じsequence番号の別stageから推測しない。
+workflow invocationは不変のcontroller対象identityと各担当の実結果を保存する。コードfingerprintやhashを担当開始・完了・所有の証明に使わない。stage attempt、deployment candidate、report attemptの完全一致やread-backを後続開始・workflow完了条件にしない。実操作のdeployment結果と報告HTMLの実保存先を観測値として記録し、原因/状態がunknownならそのまま渡す。
 
 failure journalの参照fieldはIDとpathを分けて検証する。path参照はprivate rootからの安全な相対POSIX表示参照に限り、absolute path、`.`/`..` traversal、バックスラッシュ、secret/password/credential/cookie/token/private key/環境fileを示す名前を保存しない。危険な参照をIDへ読み替えず、値ごと省略する。
 
-reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
+reporterと独立report reviewerを実起動し、指摘はHTML作者が修正する。HTML作者は最終保存先へ直接HTMLを作成し、controller本文合成・公開専用worker・hash/bytes/version照合を必須にしない。本文は不具合、原因（不明なら不明）、修正、追加trace/logの4点を平易に説明する。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+source_launch_id、source_run_id（nullを含む）、target_date、job_idは、このjobに渡された値をそのまま使い、推測や差替えをしない。通常Dailyの手動起動、別のlaunch/run/jobでの代用、別workspace/worktreeは禁止。Gitのstage/commit/pushは行わず、本人の作業として残す。
 
 
 ### FC04 固定rootとunknown
@@ -59,4 +59,11 @@ repair authorのworkspaceは固定rootのみ。既存変更を保持し、別che
 
 `invocation_id`はcontrollerが採番・設定する値であり、AIが作らない。controllerは通常成果とfallback成果のhandoff payloadに現在値を保存し、terminal照合はpathだけでなくpayload内の値も照合する。古いinvocationの成果を現行扱いしない。
 
-保守failure journalのprimary write/path resolutionが失敗しても、検証済みDB rootから別解決するsecondary spoolへの保存・replayを続ける。event IDで冪等化し、両sink failureも元処理をgateせず、利用できる戻り値に原因連鎖・capture位置・参照を残す。deployment resultはregistered schema、current attempt、candidate、repair handoff hash、release recordを合わせて検証し、JSONの見た目だけで反映成功を記録しない。
+保守failure journalのprimary write/path resolutionが失敗しても、利用可能なsecondary spoolへの保存・replayを続ける。両sink failureも元処理をgateせず、利用できる戻り値に原因連鎖・capture位置・参照を残す。deployment resultは実際に反映した操作の結果として記録し、health failureならrollbackとfailureを正確に報告する。review/release statusやhash/receiptの照合をstage完了条件にしない。
+
+
+## SC07 current contract precedence
+
+For the current seven-role maintenance flow, apply the root task and architecture proposal 2.0 before any older clauses in this reference. Do not require content hashes, receipts, bytes/version read-back, commit/push, or release records as maintenance workflow gates. Do not add or retain those values as invocation/ownership proof. Historical fields may remain stored without validation or comparison. Deployment must still report and roll back an actually unhealthy runtime truthfully; that operation result does not prevent later roles from running. Preserve ordinary Daily business artifact handling outside maintenance-flow gates.
+
+\n

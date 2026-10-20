@@ -201,7 +201,7 @@ def test_fc07_consecutive_stage_failures_keep_content_and_run_later_roles(tmp_pa
     )(launch, check, queue, lease, threading.Event())
 
     assert calls == list(WORKFLOW_STAGE_ORDER)
-    assert outcome.status == "failed"
+    assert outcome.status == "unknown"
     assert len(store.observations) == len(WORKFLOW_STAGE_ORDER)
     state = contexts[-1].state
     handoffs = state["workflow_stage_handoffs"]
@@ -846,7 +846,7 @@ def test_fc07_fallback_report_and_october_19_exclusion_are_preserved():
     )
     for heading in (
         "何が起きたか",
-        "何を調べたか、何を変えたか",
+        "何を調べ、何を変えたか",
         "分かっていないこと",
         "次に行うこと",
     ):
@@ -859,52 +859,24 @@ def test_fc07_fallback_report_and_october_19_exclusion_are_preserved():
     assert WORKER_DISPATCH_EXCLUDED_DATES == frozenset({"2026-10-19"})
 
 
-def test_fc07_invocation_revision_fingerprint_changes_with_maintenance_source(
-    tmp_path: Path, monkeypatch
-):
-    import automation.inago.maintenance.code_revision as code_revision_module
+def test_fc07_invocation_revision_uses_current_marker_without_source_scan():
+    from automation.inago.maintenance.code_revision import (
+        capture_invocation_code_revision,
+    )
 
-    source_root = Path(__file__).resolve().parents[1]
-    isolated_root = tmp_path / "isolated-repository-copy"
-    shutil.copytree(
-        source_root / "automation" / "inago" / "maintenance",
-        isolated_root / "automation" / "inago" / "maintenance",
-    )
-    shutil.copytree(
-        source_root / "automation" / "inago" / "schemas",
-        isolated_root / "automation" / "inago" / "schemas",
-    )
-    for filename in ("daily_pipeline.py", "orchestrator.py", "trace.py"):
-        destination = isolated_root / "automation" / "inago" / filename
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_root / "automation" / "inago" / filename, destination)
-    copied_revision_module = (
-        isolated_root / "automation" / "inago" / "maintenance" / "code_revision.py"
-    )
-    monkeypatch.setattr(code_revision_module, "__file__", str(copied_revision_module))
-
-    before = code_revision_module.capture_invocation_code_revision()
-    assert before.reason_code is None
-    assert before.code_revision.startswith("maintenance-source-v1-")
-    worker_copy = (
-        isolated_root / "automation" / "inago" / "maintenance" / "worker.py"
-    )
-    worker_copy.write_bytes(worker_copy.read_bytes() + b"\n# isolated fingerprint mutation\n")
-    after = code_revision_module.capture_invocation_code_revision()
-    assert after.reason_code is None
-    assert after.code_revision.startswith("maintenance-source-v1-")
-    assert after.code_revision != before.code_revision
-    assert after.source_count == before.source_count
+    revision = capture_invocation_code_revision()
+    assert revision.reason_code is None
+    assert revision.code_revision == "maintenance-source-current"
+    assert revision.source_count == 0
 
 
 def test_fc07_invocation_revision_is_shared_by_event_and_stage_handoff(
     tmp_path: Path, monkeypatch
 ):
-    revision_value = "maintenance-source-v1-" + "c" * 64
+    revision_value = "maintenance-source-current"
     revision = InvocationCodeRevision(
         code_revision=revision_value,
-        source_count=22,
-        manifest_sha256="c" * 64,
+        source_count=0,
     )
     capture_calls = []
 
@@ -1171,3 +1143,4 @@ def test_fc07_attempt_binding_keeps_deployment_repair_and_report_sequence_four(
     assert deployment_handoff["attempt_id"] == deployment_event["attempt_id"]
     assert deployment_handoff["attempt_id"] != report.attempt_id
     assert report_handoff["attempt_id"] == report.attempt_id
+

@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="4.459" timestamp="2026-10-21T06:53:40.648685+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_deployment" name="test_c38_fixed_root_allows_dirty_tracked_content" time="1.160"><failure message="sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-20/test_c38_fixed_root_allows_dir0')
+
+    def test_c38_fixed_root_allows_dirty_tracked_content(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+automation\inago\maintenance\store.py:1341: in initialize
+    _migrate_remove_legacy_maintenance_attestation_gates(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = &lt;sqlite3.Connection object at 0x000001FD72C4B5B0&gt;
+
+    def _migrate_remove_legacy_maintenance_attestation_gates(
+        connection: sqlite3.Connection,
+    ) -&gt; None:
+        """Retain historical values while removing schema-level proof/hash gates."""
+        protected_business_table = "daily_result_observation"
+        triggers = connection.execute(
+            "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='trigger'"
+        ).fetchall()
+        for name, table, sql in triggers:
+            if table == protected_business_table:
+                continue
+            if re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator|release_gate|repair_", sql or "", re.IGNORECASE):
+                connection.execute(f"DROP TRIGGER IF EXISTS \"{name}\"")
+    
+        tables = connection.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        rebuild: list[tuple[str, str, list[str]]] = []
+        for table, create_sql in tables:
+            if table == protected_business_table or not create_sql:
+                continue
+            prefix, definitions, suffix = _split_table_definitions(create_sql)
+            changed: list[str] = []
+            has_gate = False
+            for definition in definitions:
+                rewritten = _remove_hash_checks(definition)
+                if rewritten is None:
+                    has_gate = True
+                    continue
+                if rewritten != definition:
+                    has_gate = True
+                changed.append(rewritten)
+            indexes = [
+                row[0] for row in connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL",
+                    (table,),
+                ).fetchall()
+                if not re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator", row[0], re.IGNORECASE)
+            ]
+            if has_gate:
+                rebuild.append((table, prefix + "(" + ",\n".join(changed) + ")" + suffix, indexes))
+    
+        for table, create_sql, indexes in rebuild:
+            temp = f"{table}__attestation_v19"
+            connection.execute(f"DROP TABLE IF EXISTS \"{temp}\"")
+            rewritten_sql = re.sub(
+                r"(?is)(CREATE\s+TABLE\s+)(?:IF\s+NOT\s+EXISTS\s+)?(?:\"[^\"]+\"|`[^`]+`|\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)",
+                lambda match: match.group(1) + f'"{temp}"',
+                create_sql,
+                count=1,
+            )
+            connection.execute(rewritten_sql)
+            columns = [row[1] for row in connection.execute(f"PRAGMA table_info(\"{table}\")")]
+            names = ", ".join(f'"{column}"' for column in columns)
+            connection.execute(f'INSERT INTO "{temp}" ({names}) SELECT {names} FROM "{table}"')
+            connection.execute(f'DROP TABLE "{table}"')
+&gt;           connection.execute(f'ALTER TABLE "{temp}" RENAME TO "{table}"')
+E           sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment
+
+automation\inago\maintenance\store.py:330: OperationalError</failure></testcase><testcase classname="tests_inago.test_maintenance_deployment" name="test_c39_contract" time="1.248"><failure message="sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-20/test_c39_contract0')
+
+    def test_c39_contract(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+automation\inago\maintenance\store.py:1341: in initialize
+    _migrate_remove_legacy_maintenance_attestation_gates(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = &lt;sqlite3.Connection object at 0x000001FD72C4B790&gt;
+
+    def _migrate_remove_legacy_maintenance_attestation_gates(
+        connection: sqlite3.Connection,
+    ) -&gt; None:
+        """Retain historical values while removing schema-level proof/hash gates."""
+        protected_business_table = "daily_result_observation"
+        triggers = connection.execute(
+            "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='trigger'"
+        ).fetchall()
+        for name, table, sql in triggers:
+            if table == protected_business_table:
+                continue
+            if re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator|release_gate|repair_", sql or "", re.IGNORECASE):
+                connection.execute(f"DROP TRIGGER IF EXISTS \"{name}\"")
+    
+        tables = connection.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        rebuild: list[tuple[str, str, list[str]]] = []
+        for table, create_sql in tables:
+            if table == protected_business_table or not create_sql:
+                continue
+            prefix, definitions, suffix = _split_table_definitions(create_sql)
+            changed: list[str] = []
+            has_gate = False
+            for definition in definitions:
+                rewritten = _remove_hash_checks(definition)
+                if rewritten is None:
+                    has_gate = True
+                    continue
+                if rewritten != definition:
+                    has_gate = True
+                changed.append(rewritten)
+            indexes = [
+                row[0] for row in connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL",
+                    (table,),
+                ).fetchall()
+                if not re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator", row[0], re.IGNORECASE)
+            ]
+            if has_gate:
+                rebuild.append((table, prefix + "(" + ",\n".join(changed) + ")" + suffix, indexes))
+    
+        for table, create_sql, indexes in rebuild:
+            temp = f"{table}__attestation_v19"
+            connection.execute(f"DROP TABLE IF EXISTS \"{temp}\"")
+            rewritten_sql = re.sub(
+                r"(?is)(CREATE\s+TABLE\s+)(?:IF\s+NOT\s+EXISTS\s+)?(?:\"[^\"]+\"|`[^`]+`|\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)",
+                lambda match: match.group(1) + f'"{temp}"',
+                create_sql,
+                count=1,
+            )
+            connection.execute(rewritten_sql)
+            columns = [row[1] for row in connection.execute(f"PRAGMA table_info(\"{table}\")")]
+            names = ", ".join(f'"{column}"' for column in columns)
+            connection.execute(f'INSERT INTO "{temp}" ({names}) SELECT {names} FROM "{table}"')
+            connection.execute(f'DROP TABLE "{table}"')
+&gt;           connection.execute(f'ALTER TABLE "{temp}" RENAME TO "{table}"')
+E           sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment
+
+automation\inago\maintenance\store.py:330: OperationalError</failure></testcase><testcase classname="tests_inago.test_maintenance_deployment" name="test_c43_contract" time="1.166"><failure message="sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-20/test_c43_contract0')
+
+    def test_c43_contract(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:438: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+automation\inago\maintenance\store.py:1341: in initialize
+    _migrate_remove_legacy_maintenance_attestation_gates(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = &lt;sqlite3.Connection object at 0x000001FD72C4B4C0&gt;
+
+    def _migrate_remove_legacy_maintenance_attestation_gates(
+        connection: sqlite3.Connection,
+    ) -&gt; None:
+        """Retain historical values while removing schema-level proof/hash gates."""
+        protected_business_table = "daily_result_observation"
+        triggers = connection.execute(
+            "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='trigger'"
+        ).fetchall()
+        for name, table, sql in triggers:
+            if table == protected_business_table:
+                continue
+            if re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator|release_gate|repair_", sql or "", re.IGNORECASE):
+                connection.execute(f"DROP TRIGGER IF EXISTS \"{name}\"")
+    
+        tables = connection.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        rebuild: list[tuple[str, str, list[str]]] = []
+        for table, create_sql in tables:
+            if table == protected_business_table or not create_sql:
+                continue
+            prefix, definitions, suffix = _split_table_definitions(create_sql)
+            changed: list[str] = []
+            has_gate = False
+            for definition in definitions:
+                rewritten = _remove_hash_checks(definition)
+                if rewritten is None:
+                    has_gate = True
+                    continue
+                if rewritten != definition:
+                    has_gate = True
+                changed.append(rewritten)
+            indexes = [
+                row[0] for row in connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL",
+                    (table,),
+                ).fetchall()
+                if not re.search(r"sha256|\bhash\b|receipt|commit|signature|fingerprint|digest|discriminator", row[0], re.IGNORECASE)
+            ]
+            if has_gate:
+                rebuild.append((table, prefix + "(" + ",\n".join(changed) + ")" + suffix, indexes))
+    
+        for table, create_sql, indexes in rebuild:
+            temp = f"{table}__attestation_v19"
+            connection.execute(f"DROP TABLE IF EXISTS \"{temp}\"")
+            rewritten_sql = re.sub(
+                r"(?is)(CREATE\s+TABLE\s+)(?:IF\s+NOT\s+EXISTS\s+)?(?:\"[^\"]+\"|`[^`]+`|\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)",
+                lambda match: match.group(1) + f'"{temp}"',
+                create_sql,
+                count=1,
+            )
+            connection.execute(rewritten_sql)
+            columns = [row[1] for row in connection.execute(f"PRAGMA table_info(\"{table}\")")]
+            names = ", ".join(f'"{column}"' for column in columns)
+            connection.execute(f'INSERT INTO "{temp}" ({names}) SELECT {names} FROM "{table}"')
+            connection.execute(f'DROP TABLE "{table}"')
+&gt;           connection.execute(f'ALTER TABLE "{temp}" RENAME TO "{table}"')
+E           sqlite3.OperationalError: error in trigger deployment_verification_deployed_only: no such table: main.deployment
+
+automation\inago\maintenance\store.py:330: OperationalError</failure></testcase></testsuite></testsuites>

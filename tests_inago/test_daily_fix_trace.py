@@ -382,9 +382,9 @@ def test_n04(tmp_path: Path, caplog) -> None:
     assert saved_diagnostic["error_name"] == "SQLITE_CONSTRAINT_PRIMARYKEY"
     assert saved_diagnostic["constraint_label"] == "primary_key"
     assert saved_diagnostic["error_code_number"] == 1555
+    assert "code_sha256" not in saved_diagnostic
     assert saved_diagnostic["failure_module"] == "automation.inago.orchestrator"
     assert saved_diagnostic["failure_function"] == "_create_run"
-    assert len(saved_diagnostic["code_sha256"]) == 64
     transaction_log = next(
         record
         for record in reversed(caplog.records)

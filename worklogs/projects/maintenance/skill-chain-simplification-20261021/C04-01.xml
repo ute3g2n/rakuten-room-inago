@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="3" failures="0" skipped="0" tests="3" time="0.359" timestamp="2026-10-21T06:17:43.342766+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_same_job_without_predecessor_pin" time="0.002"><error message="failed on setup with &quot;FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'&quot;">self = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C04-01')
+mode = 448, parents = False, exist_ok = False
+
+    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+        """
+        Create a new directory at this given path.
+        """
+        try:
+&gt;           os.mkdir(self, mode)
+E           FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\pathlib.py:1311: FileNotFoundError</error></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_after_final_review_reuses_author_and_reviewer_outputs" time="0.001"><error message="failed on setup with &quot;FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'&quot;">self = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C04-01')
+mode = 448, parents = False, exist_ok = False
+
+    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+        """
+        Create a new directory at this given path.
+        """
+        try:
+&gt;           os.mkdir(self, mode)
+E           FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\pathlib.py:1311: FileNotFoundError</error></testcase><testcase classname="tests_inago.test_maintenance_store" name="test_resume_maintenance_job_ignores_resume_preconditions" time="0.001"><error message="failed on setup with &quot;FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'&quot;">self = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C04-01')
+mode = 448, parents = False, exist_ok = False
+
+    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+        """
+        Create a new directory at this given path.
+        """
+        try:
+&gt;           os.mkdir(self, mode)
+E           FileNotFoundError: [WinError 3] 指定されたパスが見つかりません。: 'C:\\project\\rakuten-room-inago\\.pytest-tmp\\skill-chain-simplification-20261021\\C04-01'
+
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\pathlib.py:1311: FileNotFoundError</error></testcase></testsuite></testsuites>

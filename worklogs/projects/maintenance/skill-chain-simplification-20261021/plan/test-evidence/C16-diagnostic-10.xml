@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="3.578" timestamp="2026-10-21T06:40:13.936357+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_deployment" name="test_c43_contract" time="2.410" /><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_daily_evidence_stage_persists_and_reuses_redacted_bundle" time="0.329"><failure message="AssertionError: daily_evidence_bundle_write_failed_permissionerror&#10;assert 'blocked' == 'complete'&#10;  &#10;  - complete&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-10/test_daily_evidence_stage_pers0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000252FDE40500&gt;
+
+    def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
+        tmp_path, monkeypatch
+    ):
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9601)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9601,
+            )
+    
+        result = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        launch = store.get_daily_launch(result.launch_id)
+        check = store.get_daily_check_by_launch(result.launch_id)
+        queue = store.get_worker_queue(result.launch_id)
+        assert launch is not None and check is not None and queue is not None
+        lease_now = datetime.now(timezone.utc)
+        lease = store.acquire_lease(
+            lease_key="maintenance:evidence-test",
+            owner_id="evidence-test",
+            owner_pid=9602,
+            owner_start_time=lease_now.isoformat(),
+            now=lease_now,
+        )
+        context = MaintenanceWorkflowContext(
+            launch=launch,
+            check=check,
+            queue=queue,
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=None, attempts=()),
+        )
+    
+        check_result = run_daily_check_incident_stage(
+            context, MaintenanceController(store), store
+        )
+        assert check_result.status == "complete"
+        first_result = run_daily_evidence_stage(context, store)
+&gt;       assert first_result.status == "complete", first_result.reason_code
+E       AssertionError: daily_evidence_bundle_write_failed_permissionerror
+E       assert 'blocked' == 'complete'
+E         
+E         - complete
+E         + blocked
+
+tests_inago\test_maintenance_workflow_provider.py:559: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_flow_completion_fc07" name="test_fc07_consecutive_stage_failures_keep_content_and_run_later_roles" time="0.056" /></testsuite></testsuites>

@@ -96,7 +96,6 @@ def _bind_ai_session(store, plan, *, thread_id="thread-ai-output"):
         requested_effort=plan.requested_effort,
         requested_service_tier=plan.requested_service_tier,
         requested_fast_mode=plan.requested_fast_mode,
-        role_config_sha256=plan.role_config_sha256,
         sandbox=plan.sandbox_policy,
         created_at=(BASE_TIME + timedelta(seconds=20)).isoformat(),
     )
@@ -161,7 +160,6 @@ def test_c24_contract(tmp_path):
     assert factory.call_args.kwargs["log_root"] == adapter.logs_root
     assert factory.call_args.kwargs["fast_mode"] is False
     assert factory.call_args.kwargs["role_name"] == plan.role_name
-    assert factory.call_args.kwargs["role_config_sha256"] == plan.role_config_sha256
     assert (
         factory.call_args.kwargs["developer_instructions"]
         == plan.developer_instructions
@@ -197,7 +195,7 @@ def test_report_review_session_isolated_by_report_version(tmp_path):
 
     current_review = adapter.plan_session(
         **common,
-        session_discriminator=("report-review-v2:" + "a" * 64),
+        session_discriminator="report-review-v2",
     )
 
     assert current_review.session_key != previous_report.session_key
@@ -206,7 +204,7 @@ def test_report_review_session_isolated_by_report_version(tmp_path):
     _bind_ai_session(store, current_review, thread_id="thread-for-current-report")
     resumed_current_review = adapter.plan_session(
         **common,
-        session_discriminator=("report-review-v2:" + "a" * 64),
+        session_discriminator="report-review-v2",
     )
     assert resumed_current_review.session_key == current_review.session_key
     assert resumed_current_review.resume_thread_id == "thread-for-current-report"
@@ -272,7 +270,6 @@ def test_c25_contract(tmp_path):
     assert factory.call_args.kwargs["log_root"] == adapter.logs_root
     assert factory.call_args.kwargs["fast_mode"] is True
     assert factory.call_args.kwargs["role_name"] == plan.role_name
-    assert factory.call_args.kwargs["role_config_sha256"] == plan.role_config_sha256
     assert (
         factory.call_args.kwargs["developer_instructions"]
         == plan.developer_instructions
@@ -379,7 +376,7 @@ def test_c27_contract(tmp_path):
         "type": "readOnly",
         "networkAccess": False,
     }
-    assert not investigator.log_path.is_relative_to(output_root.resolve())
+    assert investigator.log_path.is_relative_to(adapter.logs_root.resolve())
 
     implementer = adapter.plan_session(
         parent_key="B",
@@ -391,7 +388,7 @@ def test_c27_contract(tmp_path):
         "type": "workspaceWrite",
         "networkAccess": False,
     }
-    assert not implementer.log_path.is_relative_to(adapter.project_root.resolve())
+    assert implementer.log_path.is_relative_to(adapter.logs_root.resolve())
 
     reviewer = adapter.plan_session(
         parent_key="B",
@@ -712,7 +709,6 @@ def test_c27_ai_response_is_validated_bound_and_saved_in_attempt_output(tmp_path
     assert saved["owner"] == {
         "parent_key": "A",
         "role_name": "rr-inago-incident-investigator",
-        "role_config_sha256": plan.role_config_sha256,
     }
     assert saved["allowed_outputs"] == [
         "facts.json",
@@ -1077,7 +1073,6 @@ def test_u07_job_input_manifest_and_session_bindings_are_immutable(tmp_path):
         "requested_effort": "max",
         "requested_service_tier": "priority",
         "requested_fast_mode": True,
-        "role_config_sha256": "a" * 64,
         "sandbox": sandbox,
         "created_at": (BASE_TIME + timedelta(seconds=9)).isoformat(),
     }
@@ -1346,7 +1341,6 @@ def test_c24_app_server_passes_role_instructions_and_settings_to_thread_start(
         service_tier="default",
         fast_mode=False,
         role_name="rr-inago-incident-investigator",
-        role_config_sha256="a" * 64,
         developer_instructions="Follow the investigation role contract.",
         sandbox_policy={"type": "readOnly", "networkAccess": False},
     )

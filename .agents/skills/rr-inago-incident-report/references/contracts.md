@@ -11,7 +11,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 ## 読取と書込
 
 - 読取: 対象jobに紐付く利用可能な資料、plan、C/LC実測、レビュー、反映・復旧結果、証拠参照、報告ルールG、既存HTML構造H。approved statusは入力状態として記録し、report開始条件にしない。
-- 書込: allowed_outputs内のincident HTMLおよび構造化result.jsonのみ。報告担当はworktreeを直接commit/pushせず、controllerへ検証可能な出力を返す。
+- 書込: incident HTMLを最終保存先へ直接作成し、割当済みjobのreport記録へ本文と結果を保存する。別公開workerやcontrollerによる本文合成を必須にせず、hash/bytes/version照合を行わない。Git stage/commit/pushはこの保守フローでは行わず、本人へ引き継ぐ。
 - 外部向けHTMLは公開可能な要約だけとし、ログ/DB/商品/投稿/個人/secretの原文を含めない。
 
 ## 内容確認
@@ -26,7 +26,7 @@ job identity、target_date、利用可能なinvestigation version、plan version
 
 ## 出力・レビュー・再開
 
-reporterはincident HTMLとresult.jsonをattempt専用pathへ返す。別のrr-inago-incident-report-reviewerは、発生した不具合、原因（不明を含む）、実施した修正、追加したトレース・ログと記録内容の4点を読取確認する。秘密・個人情報と、4点を隠すHTML表示上の問題も確認する。指摘はこの範囲の欠落・事実誤認・根拠のない断定・理解困難な表現に限り、reporterはresponseと本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。同じformal attempt内のresponse読取は、検証済みの全候補を返す。今回起動したauthor/reviewer turnはthread_idとturn_idの両方が一致する候補だけを一意に選ぶ。再開時の保存済みresponseはreport result_versionとcreated_at_jst、またはreview対象のreviewed_versionとreviewed_sha256が今回の入力に一致する候補だけを一意に選ぶ。一致なし・重複一致の場合は担当を起動し直し、以前のresponseやファイル名順を根拠に修正版を拒否しない。
+reporterはincident HTMLを最終保存先へ直接作成する。別のrr-inago-incident-report-reviewerは、発生した不具合、原因（不明を含む）、実施した修正、追加したトレース・ログと記録内容の4点、秘密・個人情報を読取確認する。指摘はこの範囲の欠落・事実誤認・根拠のない断定・理解困難な表現に限り、reporterは本文を修正できる。再reviewを行う場合も回数・statusを後続処理の条件にしない。担当の実turnとprocess終了結果を記録する。保存済みresponseやHTMLのhash/bytes/version照合を開始・完了条件にしない。
 
 入力/リンク/版が欠けても、解決できる範囲でHTMLを作成し、欠測と未完了を明記する。review statusや不足を後続stageのgateにしない。公開操作が実行できなくてもHTML作成とreport保存を続け、公開不能の理由をreportへ記録する。
 
@@ -42,23 +42,23 @@ report source snapshotに`workflow_trace`がある場合、それは同じjob・
 
 handoffはidentity、schema_version、invocation/stage/attempt/operationとparent_operation、入力版/参照、stage_progress、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin（agent/controller_fallback）、実行担当、review対象版、開始/終了/観測時刻、code revisionを持つ。本文は「何を行い、何が分かり、何が不明で、何を次に行うか」を含む。新attempt IDはcontrollerの正式採番値だけを使う。
 
-工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
+工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・read-backの成否を後続担当の開始条件にしない。未実施や失敗は理由付きで記録し、可能な後続工程を続ける。
 
-各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・hash・相対pathだけを許し、自由文を保存しない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
+各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・相対pathに限定し、新しいhashを生成しない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
-reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
+reporterと独立report reviewerを実起動し、指摘はHTML作者が修正する。HTML作者は最終保存先へ直接HTMLを作成し、controller本文合成・公開専用worker・hash/bytes/version照合を必須にしない。本文は不具合、原因（不明なら不明）、修正、追加trace/logの4点を平易に説明する。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+source_launch_id、source_run_id（nullを含む）、target_date、job_idは、このjobに渡された値をそのまま使い、推測や差替えをしない。通常Dailyの手動起動、別のlaunch/run/jobでの代用、別workspace/worktreeは禁止。Gitのstage/commit/pushは行わず、本人の作業として残す。
 
 ## FC06 continuation, review and publication
 
-通常HTMLを作れない時も平易な短いHTMLをcontrollerが作り、同じ正式job/attempt identity、入力参照、HTML hash、review対象版、result sidecarへ保存する。本文に必要な内容は不具合、原因、実施した修正、追加したトレース・ログと記録内容の4点とし、内部ID/status/reason/hash/版は参考付録だけに置く。独立reviewerを実起動し、範囲内の指摘はreporterが直して新しい版をレビューへ渡す。review不能時はstatus=unavailableと理由を保存し、approvedを捏造しない。その状態でも公開処理を試みる。target/identity不一致、push、sidecar保存などの公開操作失敗は具体的reason、例外連鎖、捕捉位置、相関ID、入力/成果物参照をfailure journalとhandoffへ保存し、元のreason付きunknown/failedで終端照合を続ける。公開後の保存が中断した場合は、同じjobを再開した時にremoteのreport pathとhashを読み直してpublication sidecarを復元する。report公開成功はincident解決の根拠ではない。元のcause/recoveryがunknownならincidentは未解決のままにする。公開commitは一時Git indexでHTML一ファイルだけから構成し、作業treeや既存indexを変更しない。別worktree/checkoutは作らない。
+HTML作者は割当済みjobの最終保存先へHTMLを直接作成し、本文だけで4点を説明する。本文に必要な内容は不具合、原因、実施した修正、追加したトレース・ログと記録内容の4点とする。内部ID/status/reasonなどの管理値で本文の説明を代用しない。独立reviewerを実起動し、範囲内の指摘は作者が直して新しい版をレビューへ渡す。review不能は事実として残し、approvedを捏造しない。HTML保存に失敗した場合は具体的な操作結果と再開位置を通常記録へ残し、後続工程を続ける。report公開成功はincident解決の根拠ではない。元のcause/recoveryがunknownならincidentは未解決のままにする。Gitのstage/commit/pushは行わず、本人に引き継ぐ。別worktree/checkoutは作らない。
 
 本文のレビューで必須なのは、発生した不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログと記録内容の4点である。確認済み事実と不明を混同せず、根拠のない原因・修正を断定しない。reviewerは発生区分ラベル、合成例ラベル、管理用資料の表示名や個別リンク、工程版対応表、工程statusの言い換え、report review/publication/terminalの管理記録間の結合を、4点の理解に必要でない限り要求しない。「試験で確認」等の分類ラベルは要求せず、試験PASSは前提として扱う。レビュー不能や不実施を承認済みと偽らない。
 
 ### FC10 host-owned invocationと公開証拠
 
-`invocation_id`はcontrollerが採番し、handoff payloadに同じ値を設定する。reporter/reviewerはこの値を生成せず、入力された正式identityと報告対象の版を維持する。bodyは平易な日本語で不具合、原因、実施した修正、追加したトレース・ログと記録内容を説明する。内部IDやstatus等は付録に置く。公開版のhash/read-backとDB終端登録は別操作の成果であり、reportの存在だけを完遂根拠にしない。
+`invocation_id`はcontrollerが採番し、handoff payloadに同じ値を設定する。reporter/reviewerはこの値を生成せず、入力された正式identityと報告対象の版を維持する。bodyは平易な日本語で不具合、原因、実施した修正、追加したトレース・ログと記録内容を説明する。内部IDやstatus等は付録に置く。reportの作成、レビュー、反映、workflow終了、incident解決はそれぞれ実際の結果を記録する。
 
 ### FC10 rendererとsource statusの表示
 

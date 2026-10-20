@@ -1,0 +1,87 @@
+F.                                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_worker_cli_admits_target_launch_without_lease ______________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C08-14/test_worker_cli_admits_target_0')
+capsys = <_pytest.capture.CaptureFixture object at 0x0000026B85352B70>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026B853527E0>
+
+    def test_worker_cli_admits_target_launch_without_lease(tmp_path: Path, capsys, monkeypatch):
+        from datetime import datetime, timezone
+    
+        from automation.inago.maintenance.cli import main as maintenance_cli_main
+        from automation.inago.maintenance.settings import ensure_settings_file
+        from automation.inago.maintenance.store import MaintenanceStore
+    
+        monkeypatch.setattr(
+            "automation.inago.maintenance.skill_chain_runtime._codex",
+            lambda: None,
+        )
+        monkeypatch.setattr(
+            "automation.inago.maintenance.skill_chain_runtime.run_skill_chain",
+            lambda **_kwargs: {"status": "incomplete"},
+        )
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+        launch = _create_failed_launch(store, tmp_path)
+    
+        exit_code = maintenance_cli_main(
+            [
+                "--data-root", str(data_root),
+                "--daily-database", str(daily_database),
+                "worker", "--once", "--source-launch-id", launch.launch_id,
+            ]
+        )
+        output = json.loads(capsys.readouterr().out)
+        queue = store.get_worker_queue(launch.launch_id)
+        check = store.get_daily_check_by_launch(launch.launch_id)
+        jobs = store.list_workflow_jobs_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+        )
+        (tmp_path / "worker-result.json").write_text(
+            json.dumps(output, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+        )
+        assert queue is not None
+        first_admission = store.ensure_skill_chain_job_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+            queue_id=queue.queue_id,
+            observed_at=datetime(2026, 10, 21, tzinfo=timezone.utc),
+        )
+        repeated_admission = store.ensure_skill_chain_job_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+            queue_id=queue.queue_id,
+            observed_at=datetime(2026, 10, 21, tzinfo=timezone.utc),
+        )
+    
+        assert exit_code == 0, output
+        assert output["status"] == "maintenance_incomplete"
+        assert output["maintenance_resolution_status"] == "unknown"
+        assert check is not None and check.check_status == "incomplete"
+        assert queue is not None and queue.status == "complete"
+        assert len(jobs) == 1
+        assert jobs[0].job_id != queue.worker_job_id
+        assert first_admission.job_id == repeated_admission.job_id == jobs[0].job_id
+        assert jobs[0].source_run_id is None
+        assert queue.target_date == "2026-10-20"
+        assert check is not None and check.target_date == "2026-10-20"
+        assert jobs[0].status == "failed"
+>       assert output["reason_code"] == "skill_chain_log_missing"
+E       AssertionError: assert 'skill_chain_failed' == 'skill_chain_log_missing'
+E         
+E         - skill_chain_log_missing
+E         + skill_chain_failed
+
+tests_inago\test_maintenance_skill_chain.py:558: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_skill_chain.py::test_worker_cli_admits_target_launch_without_lease
+1 failed, 1 passed in 0.80s
+PYTEST_EXIT_CODE=1

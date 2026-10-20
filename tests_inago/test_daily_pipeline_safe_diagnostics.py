@@ -12,6 +12,7 @@ import pytest
 
 from automation.inago.clock import FakeClock
 from automation.inago import daily_pipeline
+from automation.inago.contracts import IdempotencyConflict
 from automation.inago.daily_pipeline import (
     DailyExecutionPorts,
     run_daily_execution_core,
@@ -149,27 +150,24 @@ def test_pipeline_failure_records_its_own_capture_location(
         for record in caplog.records
         if record.getMessage() == "daily_pipeline_failure"
     )
-    expected_hash = hashlib.sha256(
-        Path(daily_pipeline.__file__).read_bytes()
-    ).hexdigest()
+    assert not hasattr(failure_record, "code_sha256")
     assert failure_record.failure_module == daily_pipeline.__name__
     assert failure_record.failure_function == "run_daily_execution_core"
     assert failure_record.failure_line is not None
     assert "_pipeline_capture_location()" in linecache.getline(
         daily_pipeline.__file__, failure_record.failure_line
     )
-    assert failure_record.code_sha256 == expected_hash
 
     trace_path = tmp_path / result["pipeline_trace"]["reference"]
     trace_events = read_trace_events(trace_path)
     phase_error = next(event for event in trace_events if event["phase"] == "error")
+    assert "code_sha256" not in phase_error
     assert phase_error["failure_module"] == daily_pipeline.__name__
     assert phase_error["failure_function"] == "run_daily_execution_core"
     assert phase_error["failure_line"] == failure_record.failure_line
     assert "_pipeline_capture_location()" in linecache.getline(
         daily_pipeline.__file__, phase_error["failure_line"]
     )
-    assert phase_error["code_sha256"] == expected_hash
 
 
 def test_result_mapping_adds_primary_diagnostic_on_all_callback_paths(
@@ -244,9 +242,6 @@ def test_result_mapping_adds_primary_diagnostic_on_all_callback_paths(
         assert diagnostic["failure_module"] == daily_pipeline.__name__
         assert diagnostic["failure_function"] == "add_primary_diagnostic"
         assert isinstance(diagnostic["failure_line"], int)
-        assert diagnostic["code_sha256"] == hashlib.sha256(
-            Path(daily_pipeline.__file__).read_bytes()
-        ).hexdigest()
 
         encoded_primary = json.dumps(primary)
         assert primary_message not in encoded_primary
@@ -376,14 +371,12 @@ def _assert_safe_diagnostic(result, operation, exception_class):
     diagnostic = next(
         item for item in result["secondary_errors"] if item.get("operation") == operation
     )
+    assert "code_sha256" not in diagnostic
     assert diagnostic["exception_class"] == exception_class
     assert diagnostic["phase"] == "daily_diagnostic"
     assert diagnostic["failure_module"] == daily_pipeline.__name__
     assert isinstance(diagnostic["failure_function"], str)
     assert isinstance(diagnostic["failure_line"], int)
-    assert diagnostic["code_sha256"] == hashlib.sha256(
-        Path(daily_pipeline.__file__).read_bytes()
-    ).hexdigest()
     assert diagnostic["exception_chain"]
     assert diagnostic["exception_chain"][0] == {
         "relation": "raised",
@@ -428,6 +421,59 @@ def test_callback_secondary_exception_preserves_primary_failure_and_records_safe
     ] == ["failure_result_callback", "failure_result_run_lookup"]
 
 
+def test_prepare_idempotency_conflict_records_safe_operation_context(tmp_path: Path):
+    sentinel = "IDEMPOTENCY_CONFLICT_SECRET_SENTINEL"
+    calls: list[str] = []
+
+    def raise_prepare_conflict(_connection, _now, _preflight):
+        calls.append("prepare")
+        raise IdempotencyConflict(f"conflicting private value: {sentinel}")
+
+    def backup_must_not_run(_connection, _context, _now):
+        calls.append("start_backup")
+        raise RuntimeError("backup failure sentinel")
+
+    def preservation_must_not_run(_context, _now, _run_id):
+        calls.append("preservation")
+        raise RuntimeError("preservation failure sentinel")
+
+    ports = replace(
+        _ports(tmp_path, run_daily=lambda *_args: pytest.fail("daily must not run")),
+        prepare=raise_prepare_conflict,
+        start_backup=backup_must_not_run,
+        preserve_end_of_day=preservation_must_not_run,
+    )
+    result = run_daily_execution_core(
+        ports,
+        clock=FakeClock(datetime.fromisoformat("2026-10-20T13:00:00+09:00")),
+    )
+
+    assert calls == ["prepare"]
+    assert result["daily_status"] == "failed"
+    assert result["phase_results"]["prepare"]["status"] == "failed"
+    assert result["run_id"] is None
+    primary = result["primary_error"]
+    diagnostic = primary["diagnostic"]
+    assert diagnostic["operation"] == "daily_primary_failure"
+    assert diagnostic["failed_operation"] == "prepare"
+    assert diagnostic["exception_class"] == "IdempotencyConflict"
+    assert diagnostic["failure_module"] == daily_pipeline.__name__
+    assert diagnostic["failure_function"] is not None
+    phase_error = next(
+        item
+        for item in result["pipeline_trace"]["diagnostic_context"]["phase_events"]
+        if item["phase"] == "error"
+    )
+    assert phase_error["operation"] == "prepare"
+    assert phase_error["error_class"] == "IdempotencyConflict"
+    assert phase_error["failure_module"] == daily_pipeline.__name__
+    assert phase_error["failure_function"] == "run_daily_execution_core"
+    assert result["pipeline_trace"]["diagnostic_context"]["persisted_run_id"] is None
+    serialized = json.dumps(result, sort_keys=True)
+    assert sentinel not in serialized
+    assert "conflicting private value" not in serialized
+
+
 def test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row(
     tmp_path: Path,
 ):
@@ -454,7 +500,7 @@ def test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row(
     def create_empty_run_table_then_raise(connection, _context, _on_draft_commit):
         connection.execute(
             "CREATE TABLE run (run_id TEXT, mode TEXT, target_date TEXT, "
-            "committed_count INTEGER, attempt_used INTEGER)"
+            "status TEXT, committed_count INTEGER, attempt_used INTEGER)"
         )
         raise RuntimeError("primary_CANARY")
 
@@ -561,12 +607,8 @@ def test_exception_chain_truncation_boundary_is_reported_without_unsafe_data():
         assert all("message" not in key.lower() for key in diagnostic)
 
 
-def test_pipeline_hash_failure_is_recorded_as_unknown(monkeypatch):
-    def fail_read(_path):
-        raise OSError("HASH_CANARY")
-
-    monkeypatch.setattr(Path, "read_bytes", fail_read)
-    assert daily_pipeline._pipeline_code_sha256() is None
+def test_pipeline_source_fingerprint_helper_is_removed():
+    assert not hasattr(daily_pipeline, "_pipeline_code_sha256")
 
 
 @pytest.mark.parametrize(
@@ -770,9 +812,6 @@ def test_commit_then_export_non_ready_return_is_safe_and_persisted(
         assert diagnostic["failure_module"] == daily_pipeline.__name__
         assert isinstance(diagnostic["failure_function"], str)
         assert isinstance(diagnostic["failure_line"], int)
-        assert diagnostic["code_sha256"] == hashlib.sha256(
-            Path(daily_pipeline.__file__).read_bytes()
-        ).hexdigest()
 
         case_root = tmp_path / "safe-log"
         diagnostics = {
@@ -911,9 +950,6 @@ def test_sqlite_error_code_reaches_primary_secondary_and_l01_payload(tmp_path: P
         assert diagnostic["failure_module"] == daily_pipeline.__name__
         assert isinstance(diagnostic["failure_function"], str)
         assert isinstance(diagnostic["failure_line"], int)
-        assert diagnostic["code_sha256"] == hashlib.sha256(
-            Path(daily_pipeline.__file__).read_bytes()
-        ).hexdigest()
         assert diagnostic["exception_chain"][0] == {
             "relation": "raised",
             "exception_class": "OperationalError",

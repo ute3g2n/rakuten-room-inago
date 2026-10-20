@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2026年10月20日の日次起動障害</title>
+  <style>
+    body { max-width: 760px; margin: 3rem auto; padding: 0 1.25rem; color: #202124; font-family: system-ui, sans-serif; line-height: 1.8; }
+    h1 { font-size: 1.7rem; line-height: 1.35; }
+    h2 { margin-top: 1.8rem; font-size: 1.15rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>2026年10月20日の日次起動障害</h1>
+    <section>
+      <h2>発生したこと</h2>
+      <p>日次処理の起動が失敗し、その日の処理runは作成されませんでした。そのため、日次処理や下書き生成が完了したことを確認できません。</p>
+    </section>
+    <section>
+      <h2>原因</h2>
+      <p>起動が失敗した直接の原因は、記録から特定できていません。競合があったかどうかも不明です。</p>
+    </section>
+    <section>
+      <h2>実施した修正</h2>
+      <p>原因そのものを直す変更は確認されていません。固定作業場所の処理コードには、将来の失敗を調べやすくする診断計装が追加されました。これは今回の障害の原因解消や業務回復を示すものではありません。</p>
+    </section>
+    <section>
+      <h2>追加したトレース・ログ</h2>
+      <p>追加された計装は、失敗した操作、例外と原因の種類、失敗を捕捉した場所、同日のrunの有無と安全な状態、各処理段階の名前・時刻・所要時間・結果を記録できるようにします。runがない場合やトレースの保存に失敗した場合も、利用できる処理段階の要約を結果に残します。照会に失敗した場合は、runがないと決めつけず「不明」として区別します。秘密や例外本文などは記録対象に加えていません。</p>
+      <p>この起動に結び付く工程トレースの要約は、今回の入力資料では確認できません。したがって、この起動で上記の情報が実際に記録されたとは確認できません。今回確認できるのは、将来の診断向け計装が実装されたことです。</p>
+    </section>
+  </main>
+</body>
+</html>

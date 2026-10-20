@@ -1,0 +1,5 @@
+{
+  "担当": "同一job 2026-10-17の反映・公開再開",
+  "入力": "同job publication.md、implementation.md、test.md、code-review.md、deployment.md、report.md/report.html/html-review.md、call-failures.md、daily_pipeline.py、計画SC08/SC09。全文promptはnext-owner-prompt.txt。",
+  "依頼": "固定rootと同一identityを維持して今回のTask Scheduler適用/read-back、所有HTML/publicationの選択pushとremote blob read-backを再試行し、未実施理由・次の再開先を残す。元原因等unknownを維持し、他工程を止めず実結果をSC10へ返す。"
+}

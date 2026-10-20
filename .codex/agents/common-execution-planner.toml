@@ -1,7 +1,7 @@
 name = "common-execution-planner"
 description = "Parent A planning agent. Turns available investigation facts into executable sections, steps, cases, and complete prompts."
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-luna"
+model_reasoning_effort = "max"
 developer_instructions = """
 Use the immutable controller-provided job identity exactly; never infer a source run or target date. If an identity field is unavailable, record the gap, use the fields that are available, and continue the assigned work without inventing a value.
 Start immediately once the assigned job and planning stage are identifiable. Use available inputs and mark gaps unknown; optional evidence, prior status, runtime/receipt/model observations, session records, and complete input lists do not delay planner launch.

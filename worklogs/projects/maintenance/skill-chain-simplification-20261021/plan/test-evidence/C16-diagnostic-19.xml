@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="5" time="4.697" timestamp="2026-10-21T06:52:43.476644+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_deployment" name="test_c38_fixed_root_allows_dirty_tracked_content" time="1.166"><failure message="automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-19/test_c38_fixed_root_allows_dir0')
+
+    def test_c38_fixed_root_allows_dirty_tracked_content(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x00000238977252B0&gt;
+applied_at = '2026-10-18T01:00:00+00:00'
+
+    def initialize(self, *, applied_at: datetime | str | None = None) -&gt; int:
+        """Create the maintenance database or verify its known schema version."""
+    
+        if self.database_path.exists() and not self.database_path.is_file():
+            raise UnsafeMaintenancePathError("maintenance_database_not_file")
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.database_path.is_symlink():
+            raise UnsafeMaintenancePathError("maintenance_database_reparse_point")
+        connection = sqlite3.connect(
+            self.database_path,
+            timeout=5.0,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA busy_timeout = 5000")
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if application_id not in {0, APPLICATION_ID}:
+                raise UnknownMaintenanceSchemaError("database_application_id_unknown")
+            if version &lt; 0 or version &gt; SCHEMA_VERSION:
+                raise UnknownMaintenanceSchemaError("database_schema_is_newer")
+            if version &gt; 0 and application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            if version == 0:
+                existing = connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+                if existing:
+                    raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+            connection.execute("PRAGMA journal_mode = WAL")
+            if version == 0:
+                migration_text = (
+                    Path(__file__).resolve().parent / "sql" / "001_initial.sql"
+                ).read_text(encoding="utf-8")
+                connection.execute("BEGIN IMMEDIATE")
+                statement = ""
+                for line in migration_text.splitlines(keepends=True):
+                    statement += line
+                    if sqlite3.complete_statement(statement):
+                        connection.execute(statement)
+                        statement = ""
+                if statement.strip():
+                    raise UnknownMaintenanceSchemaError("migration_incomplete")
+                connection.execute(
+                    "INSERT INTO schema_migration (version, applied_at, description) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        1,
+                        _timestamp(applied_at or datetime.now(timezone.utc)),
+                        "initial isolated maintenance state",
+                    ),
+                )
+                connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+                connection.execute("PRAGMA user_version = 1")
+                connection.commit()
+                version = 1
+            elif application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            while version &lt; SCHEMA_VERSION:
+                migration_version = version + 1
+                migration = _MIGRATIONS.get(migration_version)
+                if migration is None:
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_filename, migration_description = migration
+                migration_path = (
+                    Path(__file__).resolve().parent / "sql" / migration_filename
+                )
+                if not migration_path.is_file():
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_text = migration_path.read_text(encoding="utf-8")
+                check_foreign_keys = (
+                    migration_version in _MIGRATIONS_REQUIRING_FOREIGN_KEY_CHECK
+                )
+                if check_foreign_keys:
+                    connection.execute("PRAGMA foreign_keys = OFF")
+                try:
+                    connection.execute("BEGIN IMMEDIATE")
+                    statement = ""
+                    for line in migration_text.splitlines(keepends=True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            connection.execute(statement)
+                            statement = ""
+                    if statement.strip():
+&gt;                       raise UnknownMaintenanceSchemaError("migration_incomplete")
+E                       automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete
+
+automation\inago\maintenance\store.py:1339: UnknownMaintenanceSchemaError</failure></testcase><testcase classname="tests_inago.test_maintenance_deployment" name="test_same_root_activation_repairs_stale_switch_state" time="0.537" /><testcase classname="tests_inago.test_maintenance_deployment_probe" name="test_read_only_deployment_probes_and_shared_exclusion_lock" time="0.022" /><testcase classname="tests_inago.test_maintenance_deployment" name="test_c39_contract" time="1.119"><failure message="automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-19/test_c39_contract0')
+
+    def test_c39_contract(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x0000023897856150&gt;
+applied_at = '2026-10-18T01:00:00+00:00'
+
+    def initialize(self, *, applied_at: datetime | str | None = None) -&gt; int:
+        """Create the maintenance database or verify its known schema version."""
+    
+        if self.database_path.exists() and not self.database_path.is_file():
+            raise UnsafeMaintenancePathError("maintenance_database_not_file")
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.database_path.is_symlink():
+            raise UnsafeMaintenancePathError("maintenance_database_reparse_point")
+        connection = sqlite3.connect(
+            self.database_path,
+            timeout=5.0,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA busy_timeout = 5000")
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if application_id not in {0, APPLICATION_ID}:
+                raise UnknownMaintenanceSchemaError("database_application_id_unknown")
+            if version &lt; 0 or version &gt; SCHEMA_VERSION:
+                raise UnknownMaintenanceSchemaError("database_schema_is_newer")
+            if version &gt; 0 and application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            if version == 0:
+                existing = connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+                if existing:
+                    raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+            connection.execute("PRAGMA journal_mode = WAL")
+            if version == 0:
+                migration_text = (
+                    Path(__file__).resolve().parent / "sql" / "001_initial.sql"
+                ).read_text(encoding="utf-8")
+                connection.execute("BEGIN IMMEDIATE")
+                statement = ""
+                for line in migration_text.splitlines(keepends=True):
+                    statement += line
+                    if sqlite3.complete_statement(statement):
+                        connection.execute(statement)
+                        statement = ""
+                if statement.strip():
+                    raise UnknownMaintenanceSchemaError("migration_incomplete")
+                connection.execute(
+                    "INSERT INTO schema_migration (version, applied_at, description) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        1,
+                        _timestamp(applied_at or datetime.now(timezone.utc)),
+                        "initial isolated maintenance state",
+                    ),
+                )
+                connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+                connection.execute("PRAGMA user_version = 1")
+                connection.commit()
+                version = 1
+            elif application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            while version &lt; SCHEMA_VERSION:
+                migration_version = version + 1
+                migration = _MIGRATIONS.get(migration_version)
+                if migration is None:
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_filename, migration_description = migration
+                migration_path = (
+                    Path(__file__).resolve().parent / "sql" / migration_filename
+                )
+                if not migration_path.is_file():
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_text = migration_path.read_text(encoding="utf-8")
+                check_foreign_keys = (
+                    migration_version in _MIGRATIONS_REQUIRING_FOREIGN_KEY_CHECK
+                )
+                if check_foreign_keys:
+                    connection.execute("PRAGMA foreign_keys = OFF")
+                try:
+                    connection.execute("BEGIN IMMEDIATE")
+                    statement = ""
+                    for line in migration_text.splitlines(keepends=True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            connection.execute(statement)
+                            statement = ""
+                    if statement.strip():
+&gt;                       raise UnknownMaintenanceSchemaError("migration_incomplete")
+E                       automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete
+
+automation\inago\maintenance\store.py:1339: UnknownMaintenanceSchemaError</failure></testcase><testcase classname="tests_inago.test_maintenance_deployment" name="test_c43_contract" time="1.111"><failure message="automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-19/test_c43_contract0')
+
+    def test_c43_contract(tmp_path: Path) -&gt; None:
+&gt;       case = _case(tmp_path)
+               ^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_deployment.py:438: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_maintenance_deployment.py:120: in _case
+    store.initialize(applied_at="2026-10-18T01:00:00+00:00")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x00000238978A02C0&gt;
+applied_at = '2026-10-18T01:00:00+00:00'
+
+    def initialize(self, *, applied_at: datetime | str | None = None) -&gt; int:
+        """Create the maintenance database or verify its known schema version."""
+    
+        if self.database_path.exists() and not self.database_path.is_file():
+            raise UnsafeMaintenancePathError("maintenance_database_not_file")
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.database_path.is_symlink():
+            raise UnsafeMaintenancePathError("maintenance_database_reparse_point")
+        connection = sqlite3.connect(
+            self.database_path,
+            timeout=5.0,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA busy_timeout = 5000")
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if application_id not in {0, APPLICATION_ID}:
+                raise UnknownMaintenanceSchemaError("database_application_id_unknown")
+            if version &lt; 0 or version &gt; SCHEMA_VERSION:
+                raise UnknownMaintenanceSchemaError("database_schema_is_newer")
+            if version &gt; 0 and application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            if version == 0:
+                existing = connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+                if existing:
+                    raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+            connection.execute("PRAGMA journal_mode = WAL")
+            if version == 0:
+                migration_text = (
+                    Path(__file__).resolve().parent / "sql" / "001_initial.sql"
+                ).read_text(encoding="utf-8")
+                connection.execute("BEGIN IMMEDIATE")
+                statement = ""
+                for line in migration_text.splitlines(keepends=True):
+                    statement += line
+                    if sqlite3.complete_statement(statement):
+                        connection.execute(statement)
+                        statement = ""
+                if statement.strip():
+                    raise UnknownMaintenanceSchemaError("migration_incomplete")
+                connection.execute(
+                    "INSERT INTO schema_migration (version, applied_at, description) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        1,
+                        _timestamp(applied_at or datetime.now(timezone.utc)),
+                        "initial isolated maintenance state",
+                    ),
+                )
+                connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+                connection.execute("PRAGMA user_version = 1")
+                connection.commit()
+                version = 1
+            elif application_id != APPLICATION_ID:
+                raise UnknownMaintenanceSchemaError("database_application_id_missing")
+            while version &lt; SCHEMA_VERSION:
+                migration_version = version + 1
+                migration = _MIGRATIONS.get(migration_version)
+                if migration is None:
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_filename, migration_description = migration
+                migration_path = (
+                    Path(__file__).resolve().parent / "sql" / migration_filename
+                )
+                if not migration_path.is_file():
+                    raise UnknownMaintenanceSchemaError("migration_missing")
+                migration_text = migration_path.read_text(encoding="utf-8")
+                check_foreign_keys = (
+                    migration_version in _MIGRATIONS_REQUIRING_FOREIGN_KEY_CHECK
+                )
+                if check_foreign_keys:
+                    connection.execute("PRAGMA foreign_keys = OFF")
+                try:
+                    connection.execute("BEGIN IMMEDIATE")
+                    statement = ""
+                    for line in migration_text.splitlines(keepends=True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            connection.execute(statement)
+                            statement = ""
+                    if statement.strip():
+&gt;                       raise UnknownMaintenanceSchemaError("migration_incomplete")
+E                       automation.inago.maintenance.store.UnknownMaintenanceSchemaError: migration_incomplete
+
+automation\inago\maintenance\store.py:1339: UnknownMaintenanceSchemaError</failure></testcase></testsuite></testsuites>

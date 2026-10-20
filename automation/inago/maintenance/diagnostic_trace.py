@@ -174,22 +174,6 @@ class MaintenanceDiagnosticError(ValueError):
         super().__init__(code)
 
 
-class MaintenanceAuditReceiptError(MaintenanceDiagnosticError):
-    """A receipt failed after an operation returned or raised."""
-
-    def __init__(
-        self,
-        code: str,
-        *,
-        operation_returned: bool,
-        operation_result: Any | None = None,
-    ) -> None:
-        self.operation_returned = operation_returned
-        self.operation_result = operation_result
-        self.state_reconciliation_required = True
-        super().__init__(code)
-
-
 @dataclass(frozen=True, slots=True)
 class MaintenanceDiagnosticPolicy:
     retention_days: int = DEFAULT_RETENTION_DAYS
@@ -619,158 +603,6 @@ class MaintenanceDiagnosticTrace:
             primary_sink="maintenance_diagnostic_trace",
         )
 
-    def require_written(self, **event: object) -> Path | None:
-        result = self.write(**event)  # type: ignore[arg-type]
-        if result.status != "written" or result.path is None:
-            if not result.failure_journal_attempted:
-                append_failure_event(
-                    self.data_root,
-                    phase="fallback",
-                    operation=str(event.get("operation_id") or "diagnostic_trace.write"),
-                    correlation_id=(
-                        str(event["correlation_id"])
-                        if event.get("correlation_id") is not None
-                        else None
-                    ),
-                    job_id=(str(event["job_id"]) if event.get("job_id") is not None else None),
-                    source_launch_id=(
-                        str(event["source_launch_id"])
-                        if event.get("source_launch_id") is not None
-                        else None
-                    ),
-                    source_run_id=(
-                        str(event["source_run_id"])
-                        if event.get("source_run_id") is not None
-                        else None
-                    ),
-                    incident_id=(
-                        str(event["incident_id"])
-                        if event.get("incident_id") is not None
-                        else None
-                    ),
-                    invocation_id=(
-                        str(event["invocation_id"])
-                        if event.get("invocation_id") is not None
-                        else None
-                    ),
-                    stage=str(event.get("stage") or "unknown"),
-                    attempt_id=(
-                        str(event["attempt_id"])
-                        if event.get("attempt_id") is not None
-                        else None
-                    ),
-                    reason_code=result.reason_code or "trace_write_unavailable",
-                    capture_location="diagnostic_trace.MaintenanceDiagnosticTrace.require_written",
-                    primary_sink="maintenance_diagnostic_trace",
-                )
-            return None
-        return result.path
-
-    def _now(self) -> datetime:
-        if self.clock is not None:
-            value = self.clock.now_jst()
-            return _aware_jst(value, "at")
-        return datetime.now(JST)
-
-    def _select_target(
-        self,
-        day_dir: Path,
-        matching: list[os.DirEntry[str]],
-        encoded: bytes,
-    ) -> Path:
-        if matching:
-            latest = max(matching, key=lambda entry: self._segment_number(entry.name))
-            latest_path = Path(latest.path)
-            if latest.stat(follow_symlinks=False).st_size + len(encoded) <= (
-                self.policy.max_file_bytes
-            ):
-                return latest_path
-        if not matching:
-            return day_dir / f"{self.maintenance_id}.jsonl"
-        segment = max(self._segment_number(entry.name) for entry in matching) + 1
-        return day_dir / f"{self.maintenance_id}.part-{segment:04d}.jsonl"
-
-    @staticmethod
-    def _segment_number(name: str) -> int:
-        match = re.search(r"\.part-([0-9]{4,})\.jsonl\Z", name)
-        return int(match.group(1)) if match is not None else 0
-
-    def _append(self, path: Path, encoded: bytes) -> None:
-        if _has_reparse_point(path) or _has_reparse_point(path.parent):
-            raise MaintenanceDiagnosticError("diagnostic_path_reparse_point")
-        root = path.parents[3]
-        relative_path = path.relative_to(root).as_posix()
-        original_stat = None
-        original_bytes = b""
-        if path.exists():
-            try:
-                with open_file_beneath(root, relative_path, "rb") as stream:
-                    original_stat = os.fstat(stream.fileno())
-                    original_bytes = stream.read(self.policy.max_file_bytes + 1)
-                    named_stat = path.lstat()
-            except (OSError, SafeFileError) as exc:
-                raise MaintenanceDiagnosticError("diagnostic_file_unavailable") from exc
-            if not stat.S_ISREG(original_stat.st_mode) or not os.path.samestat(
-                original_stat, named_stat
-            ):
-                raise MaintenanceDiagnosticError("diagnostic_log_target_invalid")
-        payload = original_bytes + encoded
-        if len(payload) > self.policy.max_file_bytes:
-            raise MaintenanceDiagnosticError("diagnostic_file_size_limit")
-        temporary = path.parent / f".maintenance-log-stage-{uuid.uuid4().hex}.tmp"
-        flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
-        flags |= getattr(os, "O_NOFOLLOW", 0)
-        flags |= getattr(os, "O_BINARY", 0)
-        descriptor: int | None = None
-        try:
-            descriptor = os.open(temporary, flags, 0o600)
-            opened = os.fstat(descriptor)
-            named = temporary.lstat()
-            if (
-                not stat.S_ISREG(opened.st_mode)
-                or not stat.S_ISREG(named.st_mode)
-                or _has_reparse_point(temporary)
-                or not os.path.samestat(opened, named)
-            ):
-                raise MaintenanceDiagnosticError("diagnostic_log_stage_invalid")
-            view = memoryview(payload)
-            while view:
-                written = os.write(descriptor, view)
-                if written <= 0:
-                    raise OSError("staged write made no progress")
-                view = view[written:]
-            os.fsync(descriptor)
-            os.close(descriptor)
-            descriptor = None
-            if _has_reparse_point(path) or _has_reparse_point(path.parent):
-                raise MaintenanceDiagnosticError("diagnostic_path_reparse_point")
-            if original_stat is None:
-                if path.exists():
-                    raise MaintenanceDiagnosticError("diagnostic_log_changed")
-            else:
-                current_stat = path.lstat()
-                if not stat.S_ISREG(current_stat.st_mode) or not os.path.samestat(
-                    original_stat, current_stat
-                ):
-                    raise MaintenanceDiagnosticError("diagnostic_log_changed")
-            os.replace(temporary, path)
-            if os.name != "nt":
-                directory_fd = os.open(path.parent, os.O_RDONLY)
-                try:
-                    os.fsync(directory_fd)
-                finally:
-                    os.close(directory_fd)
-        except OSError:
-            self._failed_paths.add(os.path.normcase(str(path.absolute())))
-            raise
-        finally:
-            if descriptor is not None:
-                os.close(descriptor)
-            if temporary.exists() and not _has_reparse_point(temporary):
-                try:
-                    temporary.unlink()
-                except OSError:
-                    pass
 
 
 def _result_status(value: object) -> str:
@@ -929,7 +761,14 @@ def audit_maintenance_stage(
             fields["correlation_id"] = correlation_id
             fields["operation_id"] = f"{stage}.{function.__name__}"[:128]
             fields["code_revision"] = current_code_revision()
-            trace.require_written(
+            def record_observation(**event: object) -> None:
+                try:
+                    trace.write(**event)  # type: ignore[arg-type]
+                except Exception:
+                    # Diagnostic persistence is observable but never a workflow gate.
+                    return
+
+            record_observation(
                 event=start_event,
                 stage=stage,
                 status="resumed" if start_event == "stage_resumed" else "started",
@@ -965,30 +804,18 @@ def audit_maintenance_stage(
                     capture_location=f"{function.__module__}.{function.__qualname__}",
                     primary_sink="maintenance_workflow",
                 )
-                try:
-                    trace.require_written(
-                        event="stage_failed",
-                        stage=stage,
-                        status="failed",
-                        **failure_fields,
-                    )
-                except MaintenanceDiagnosticError as trace_error:
-                    append_failure_event(
-                        trace.data_root,
-                        phase="fallback",
-                        operation="diagnostic_trace.failure_receipt",
-                        correlation_id=correlation_id,
-                        reason_code=trace_error.code,
-                        error=trace_error,
-                        capture_location="diagnostic_trace.audit_maintenance_stage",
-                        primary_sink="maintenance_diagnostic_trace",
-                    )
+                record_observation(
+                    event="stage_failed",
+                    stage=stage,
+                    status="failed",
+                    **failure_fields,
+                )
                 raise
 
-            def require_completion_receipt(**event: object) -> Path | None:
+            def record_stage_event(**event: object) -> None:
                 event.setdefault("correlation_id", correlation_id)
                 event.setdefault("operation_id", f"{stage}.{function.__name__}"[:128])
-                return trace.require_written(**event)
+                record_observation(**event)
 
             event_fields = dict(fields)
             event_fields["duration_ms"] = max(
@@ -1023,7 +850,7 @@ def audit_maintenance_stage(
             if result_state is None:
                 result_state = getattr(result, "observation_status", None)
             selected_status = _result_status(result_state)
-            require_completion_receipt(
+            record_stage_event(
                 event=finish_event,
                 stage=stage,
                 status=selected_status,
@@ -1035,7 +862,7 @@ def audit_maintenance_stage(
                     review_event_status = _result_status(review_status)
                     if review_event_status not in _REVIEW_STATUSES:
                         review_event_status = "unknown"
-                    require_completion_receipt(
+                    record_stage_event(
                         event="review_completed",
                         stage="review",
                         status=review_event_status,
@@ -1049,7 +876,7 @@ def audit_maintenance_stage(
                 test_event_status = _result_status(test_status)
                 if test_event_status not in _TEST_STATUSES:
                     test_event_status = "unknown"
-                require_completion_receipt(
+                record_stage_event(
                     event="test_completed",
                     stage="test",
                     status=test_event_status,
@@ -1057,14 +884,14 @@ def audit_maintenance_stage(
                     **fields,
                 )
             if selected_status == "waiting":
-                require_completion_receipt(
+                record_stage_event(
                     event="stage_waiting",
                     stage=stage,
                     status="waiting",
                     **event_fields,
                 )
             elif selected_status == "cancelled":
-                require_completion_receipt(
+                record_stage_event(
                     event="stage_cancelled",
                     stage=stage,
                     status="cancelled",

@@ -1,0 +1,11 @@
+
+============================== warnings summary ===============================
+.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469
+  C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469: PytestCacheWarning: could not create cache path C:\project\rakuten-room-inago\.pytest_cache\v\cache\nodeids: [WinError 5] �A�N�Z�X�����ۂ���܂����B: 'C:\\project\\rakuten-room-inago\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 warning in 0.27s
+ERROR: not found: C:\project\rakuten-room-inago\tests_inago\test_daily_pipeline_safe_diagnostics.py::test_prepare_idempotency_conflict_records_safe_operation_context
+(no match in any of [<Module test_daily_pipeline_safe_diagnostics.py>])
+

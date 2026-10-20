@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import math
@@ -747,10 +746,6 @@ def _run_create_diagnostic(
     }.get(error_name, "unknown")
     frames = traceback.extract_tb(exc.__traceback__) if exc is not None else []
     failure_line = frames[-1].lineno if frames else None
-    try:
-        code_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    except OSError:
-        code_sha256 = None
     logger = logging.getLogger(__name__)
 
     def safe_log(level: str, message: str, extra: dict[str, Any]) -> None:
@@ -789,7 +784,6 @@ def _run_create_diagnostic(
                 ),
                 failure_function="_create_run" if exc is not None else None,
                 failure_line=failure_line,
-                code_sha256=code_sha256,
             )
             trace_result = trace.writer.write(event)
         except Exception as trace_exc:
@@ -817,7 +811,6 @@ def _run_create_diagnostic(
             ),
             "failure_function": "_create_run" if exc is not None else None,
             "failure_line": failure_line,
-            "code_sha256": code_sha256,
             "trace_requested": trace is not None,
             "trace_persisted": bool(
                 trace_result is not None

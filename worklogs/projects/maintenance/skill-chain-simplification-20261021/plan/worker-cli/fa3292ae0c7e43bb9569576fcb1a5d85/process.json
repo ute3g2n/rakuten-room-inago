@@ -1,0 +1,28 @@
+{
+  "command_argv": [
+    "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "worker",
+    "--once",
+    "--source-launch-id",
+    "fa3292ae0c7e43bb9569576fcb1a5d85"
+  ],
+  "cwd": "C:\\project\\rakuten-room-inago",
+  "pid": 103000,
+  "started_at_utc": "2026-10-20T22:54:07.596Z",
+  "finished_at_utc": "2026-10-20T23:07:04.008Z",
+  "cli_returncode": 0,
+  "wait_completed": true,
+  "stdout_raw_bytes_in_memory_only": 438,
+  "stderr_raw_bytes_in_memory_only": 0,
+  "stdout_safe_chars_saved": 438,
+  "stderr_safe_chars_saved": 0,
+  "safe_output_files": [
+    "stdout.safe.txt",
+    "stderr.safe.txt"
+  ]
+}

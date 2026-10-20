@@ -9,11 +9,11 @@
     "source_launch_id": "fa3292ae0c7e43bb9569576fcb1a5d85",
     "target_date": "2026-10-20",
     "source_run_id": null,
-    "job_id": null,
-    "incident_id": null,
+    "job_id": "job-maintenance-c2254aaa9e184dbba8ccd8c625f610d6",
+    "incident_id": "51146afb-856d-4eb3-b1b1-b8a290388c3f",
     "missing_reason": {
-      "job_id": "一次調査時の当launch関連maintenance job0行。実行時に再確認し既存job再利用又は正規初回受付の実採番を保存",
-      "incident_id": "当launch関連incident0行。正規受付で実値を取得",
+      "job_id": "計画時の関連jobは0件。正式受付で実job_idを取得し、以降同じjobを使用。",
+      "incident_id": "計画時の関連incidentは0件。正式受付の実incident_idを取得。",
       "controller_attempt_id": "未提供。scope/pathを使用し採番しない"
     }
   },
@@ -2234,8 +2234,9 @@
       "outputs": "migration/implementation.md、対象ファイル/hunk参照、変更前後の挙動、未確定事項",
       "reviewer": "STEP03 移行作者別製品review",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step01",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "migration implemented; runtime finalization defect fixed after actual run; see plan/migration/implementation.md and runtime-finalization-followup.md"
     },
     {
       "id": "STEP02",
@@ -2273,8 +2274,9 @@
       "outputs": "migration/test.md、console/JUnit、最終回帰の正確なfile/node列",
       "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step02",
-      "status": "planned_not_performed",
-      "test_execution": true
+      "status": "completed_with_recorded_failures",
+      "test_execution": true,
+      "execution_result": "C16-migration-06: 23 passed exit 0; C04/C18 stale Store fixtures: 2 failed before target behavior; see plan/migration/test.md"
     },
     {
       "id": "STEP03",
@@ -2305,8 +2307,9 @@
       "outputs": "migration/code-review.md、作者と別reviewer名、対象ファイル/hunkと実所見",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step03",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "independent migration and incident product reviews completed; no findings; see plan/migration/code-review.md and job code-review.md"
     },
     {
       "id": "STEP04",
@@ -2330,8 +2333,9 @@
       "outputs": "migration/deployment.md、適用対象/コマンド/実結果、反映不能操作、追加worker実終了",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step04",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "schema 19 applied and historical rows retained; see plan/migration/deployment.md"
     },
     {
       "id": "STEP05",
@@ -2352,8 +2356,9 @@
       "outputs": "対象job入口文書、runner実行ログ、controllerが実際に返したjob_idと起動command",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step05",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed_with_cli_result_incomplete",
+      "test_execution": false,
+      "execution_result": "official job and incident were created and target Worker CLI ran; process exit 0 but output status maintenance_incomplete; see plan/worker-cli and execution-summary.md"
     },
     {
       "id": "STEP06",
@@ -2373,8 +2378,9 @@
       "outputs": "job/investigation.md、既存実記録参照、確認済事実/仮説/unknown",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step06",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed_cause_unknown",
+      "test_execution": false,
+      "execution_result": "investigation complete; direct cause and conflicting object remain unknown; see job investigation.md"
     },
     {
       "id": "STEP07",
@@ -2394,8 +2400,9 @@
       "outputs": "job/implementation.md、当該担当が作った製品実差分、cause_fix又はinstrumentationの区別",
       "reviewer": "STEP09 当該作者別製品review",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step07",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed_with_diagnostic_instrumentation",
+      "test_execution": false,
+      "execution_result": "Daily diagnostics implemented; root cause and business recovery not claimed; see job implementation.md"
     },
     {
       "id": "STEP08",
@@ -2416,8 +2423,9 @@
       "outputs": "job/test.md、console/JUnit、diagnostic fixture出力",
       "reviewer": "対応する作者別製品reviewが製品と試験証拠を読取（テストコード独立reviewなし）",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step08",
-      "status": "planned_not_performed",
-      "test_execution": true
+      "status": "completed_with_failures_recorded",
+      "test_execution": true,
+      "execution_result": "C12 three nodes and C13 five nodes pass after focused fixes; see job test.md"
     },
     {
       "id": "STEP09",
@@ -2437,8 +2445,9 @@
       "outputs": "job/code-review.md、作者別agent名と実所見",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step09",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "independent product review completed with no findings; see job code-review.md"
     },
     {
       "id": "STEP10",
@@ -2459,8 +2468,9 @@
       "outputs": "job/deployment.md、反映対象と操作の実結果",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step10",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "fixed_root_source_applied_external_deploy_unverified",
+      "test_execution": false,
+      "execution_result": "Daily source in fixed root confirmed; external target/restart could not be identified; see job deployment.md"
     },
     {
       "id": "STEP11",
@@ -2480,8 +2490,9 @@
       "outputs": "最終HTML実物、job/report.mdのpathと説明上の注意",
       "reviewer": "STEP12 HTML作者別review",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step11",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "HTML author wrote directly to final path; see reports/incidents/2026-10-20/job-maintenance-c2254aaa9e184dbba8ccd8c625f610d6.html"
     },
     {
       "id": "STEP12",
@@ -2500,8 +2511,9 @@
       "outputs": "job/html-review.md、最終保存先HTML、追加作者workerとreviewerの実終了記録",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step12",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "independent reviewer read final HTML; no findings; see job html-review.md"
     },
     {
       "id": "STEP13",
@@ -2525,8 +2537,9 @@
       "outputs": "runner開始終了/exitログ、final-report.md、最終HTMLと作者別所見への参照",
       "reviewer": "実行記録を後続担当/最終報告担当が実読。承認gateなし",
       "prompt_ref": "plans/projects/maintenance/保守フロー簡素化と10月20日日次不具合対応_実行計画_2026-10-21.md#step13",
-      "status": "planned_not_performed",
-      "test_execution": false
+      "status": "completed",
+      "test_execution": false,
+      "execution_result": "all in-run workers, subprocesses, and follow-up subagents completed; see plan/execution-summary.md"
     }
   ],
   "cases": [
@@ -2546,9 +2559,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event"
       ],
       "node_existence": "実在。旧8担当/既読/hash期待を7担当/自然Markdownへ更新又は意図を説明して置換後実行",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "_SyntheticSessionを7担当fakeに改め、固定workspace配下tmp_pathのデータ文書を利用。Git checkoutを作らない。",
-      "expected": "7担当が順に呼ばれ担当成果を利用、公開担当と常設planner呼出しなし。旧既読/hash期待は撤去。"
+      "expected": "7担当が順に呼ばれ担当成果を利用、公開担当と常設planner呼出しなし。旧既読/hash期待は撤去。",
+      "execution_result": "current seven-role sequence and generated-flow contract passed in C16-migration-06"
     },
     {
       "id": "C02",
@@ -2568,9 +2582,10 @@
         "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path"
       ],
       "node_existence": "実在。実turn終端/close例外の期待を更新",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "fake sessionでFAIL/changes_requested/空応答/起動例外/非0終了を注入。終了未回収child fixtureは新規C03へ。",
-      "expected": "raw履歴は保持、安全化した操作失敗とfallback Markdownを残し可能な次担当を実起動。close例外も実終了回収へ。"
+      "expected": "raw履歴は保持、安全化した操作失敗とfallback Markdownを残し可能な次担当を実起動。close例外も実終了回収へ。",
+      "execution_result": "current non-gating, safe operation failure, close-error, and fallback nodes passed in C16-migration-06; retired legacy suites excluded"
     },
     {
       "id": "C03",
@@ -2586,9 +2601,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_owned_worker_exit_is_reaped_after_close_error"
       ],
       "node_existence": "予定/未作成。STEP02で作成。現時点実在/PASSとしない",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "sys.executableで短い標準ライブラリchildをsubprocess起動しPIDとPopen所有を保持。通信/ROOM/DBなし。fake closeに例外、制御できるchild終了を注入。",
-      "expected": "waitでreturncodeを回収後だけそのworkerを終了済と記録。start/end/PID/exit実値を残し無関係PID操作なし。"
+      "expected": "waitでreturncodeを回収後だけそのworkerを終了済と記録。start/end/PID/exit実値を残し無関係PID操作なし。",
+      "execution_result": "owned worker exit reaping after close error and timeout handling passed in C16-migration-06"
     },
     {
       "id": "C04",
@@ -2605,10 +2621,12 @@
         "tests_inago/test_maintenance_skill_chain.py::test_resume_after_final_review_reuses_author_and_reviewer_outputs",
         "tests_inago/test_maintenance_store.py::test_resume_maintenance_job_ignores_resume_preconditions"
       ],
-      "node_existence": "実在。全成果物再判定/旧hash復活を避ける期待へ更新",
-      "status": "NOT_RUN",
+      "node_existence": "実在。全成果物再判定/旧hash復活を避ける期待へ更新 2026-10-21追加focused: store node実在、実行したがlegacy fixture helper create_ready_release が削除済MaintenanceStore.create_releaseを呼び2 failed。C04のrunner nodesは別途C16でPASS。",
+      "status": "PARTIAL",
       "fixture": "tmp_pathの同一job文書とSQLite、fake clock。DB queued/blocked/complete旧値それぞれ。",
-      "expected": "指定担当から続き、終了済のworker記録を取り消さず、DB先行complete・カウント・全件検証なし。"
+      "expected": "指定担当から続き、終了済のworker記録を取り消さず、DB先行complete・カウント・全件検証なし。",
+      "focused_result": "C04-C18-store-01: test_resume_maintenance_job_ignores_resume_preconditions FAILED, AttributeError create_release absent, exit 1; do not count PASS.",
+      "execution_result": "current runner resume nodes passed; additional Store node failed before target behavior because stale fixture calls missing MaintenanceStore.create_release"
     },
     {
       "id": "C05",
@@ -2623,9 +2641,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_maintenance_chain_does_not_generate_content_hashes"
       ],
       "node_existence": "予定/未作成。STEP02で実装しnodeを記録",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "hashlib利用や旧helperに失敗sentinelを置く局所fake。既存履歴にhash文字列があるtmp SQLite。保守入口/AI応答/例外/report/ID採番を通す。",
-      "expected": "保守経路が新規hash/fingerprint/marker生成・照合を呼ばない。過去履歴保持。bytes/mtime/size/versionによるgateへの置換なし。ソース実読所見も残す。"
+      "expected": "保守経路が新規hash/fingerprint/marker生成・照合を呼ばない。過去履歴保持。bytes/mtime/size/versionによるgateへの置換なし。ソース実読所見も残す。",
+      "execution_result": "no-content-hash generation node passed in C16-migration-06; no operational hash generation or comparison"
     },
     {
       "id": "C06",
@@ -2643,9 +2662,10 @@
         "tests_inago/test_maintenance_ai.py::test_c26_app_server_blocks_unsupported_fast_tier_and_disabled_feature"
       ],
       "node_existence": "実在。旧preflight拒否期待は実起動試行と実拒否記録へ変更",
-      "status": "NOT_RUN",
+      "status": "PARTIAL",
       "fixture": "monkeypatch AppServer thread/turn requestsと未観測model/tier。ネットなし。",
-      "expected": "high要求を送り観測未取得でも呼出しを試みる。実拒否は当操作失敗と次担当継続。max/xhigh要求なし。"
+      "expected": "high要求を送り観測未取得でも呼出しを試みる。実拒否は当操作失敗と次担当継続。max/xhigh要求なし。",
+      "execution_result": "current AppServer advisory/best-effort node passed; removed legacy AI-adapter nodes excluded; in-run telemetry recorded gpt-6-luna/high"
     },
     {
       "id": "C07",
@@ -2659,14 +2679,13 @@
         "STEP10"
       ],
       "node_refs": [
-        "tests_inago/test_maintenance_deployment.py::test_c38_fixed_root_allows_dirty_tracked_content_with_identity",
-        "tests_inago/test_maintenance_deployment.py::test_same_root_activation_repairs_stale_switch_state",
-        "tests_inago/test_maintenance_deployment_probe.py::test_read_only_deployment_probes_and_shared_exclusion_lock"
+        "tests_inago/test_maintenance_deployment_probe.py::test_deployment_exclusion_lock_serializes_runtime_switch"
       ],
-      "node_existence": "全3関数nodeソース実在。旧Git fixture/別checkout生成箇所をfakeへ改訂し、実際の既知失敗nodeを先行してから他の直接関係nodeを実行",
-      "status": "NOT_RUN",
+      "node_existence": "旧C38 fixed-root/Git deployment nodeとsame-root Scheduler deployment nodeは現行product routeから削除済みでNOT_APPLICABLE。FileDeploymentExclusionGuardだけはorchestrator/human_apiに残るため、lock-only nodeはC16-diagnostic-28とC16-migration-05でPASS。C07全体のold deployment workflowをPASSとはしない。",
+      "status": "PASS",
       "fixture": "subprocess/Scheduler fake、tmp_path内データ、固定root指示。旧_caseのgit init/clone/worktree fixtureを使わない。",
-      "expected": "必要な対象操作だけ試行しGitや全tree/commit/hash/healthyで拒否しない。必要操作の実結果を記録。"
+      "expected": "旧DeploymentCoordinator routeの動作をPASSに数えない。現行shared exclusion lockのserialize動作だけを実測する。",
+      "execution_result": "current shared exclusion-lock serialization node passed in C16-migration-06"
     },
     {
       "id": "C08",
@@ -2682,13 +2701,16 @@
       ],
       "node_refs": [
         "tests_inago/test_maintenance_skill_chain.py::test_production_route_is_separate_from_legacy_controller",
-        "tests_inago/test_maintenance_integration.py::test_workflow_block_status_does_not_block_worker_path",
-        "tests_inago/test_maintenance_workflow_provider.py::test_worker_cli_connects_provider_and_blocks_without_ready_release"
+        "tests_inago/test_maintenance_skill_chain.py::test_worker_stage_failure_completes_queue_without_lease",
+        "tests_inago/test_maintenance_skill_chain.py::test_worker_outer_failure_writes_readable_fallback_with_identity",
+        "tests_inago/test_maintenance_skill_chain.py::test_worker_cli_admits_target_launch_without_lease",
+        "tests_inago/test_maintenance_skill_chain.py::test_seven_roles_receive_markdown_and_run_in_order"
       ],
-      "node_existence": "全3関数nodeソース実在。旧release拒否期待は正規初回受付/非gate動作へ更新。追加する10/20型nodeは予定として実名確定後command/mapを同期",
-      "status": "NOT_RUN",
-      "fixture": "tmp SQLiteにsource_launch/check/queueのみ、maintenance jobなし。固定root型fake。10/17以外のsynthetic launch。",
-      "expected": "正規受付で初回job採番し保存、次再開は同じID。worker IDをjobへ流用せず、worker_dispatch_not_assigned_to_plan拒否なし。推測run/dateなし。"
+      "node_existence": "現行7-role runner/worker nodeは実在。既存4 nodeはC08-11で必要範囲がPASSし、CLI finalization nodeはC08-16でPASS。7担当→reporter/reviewer再実行の実runner sequenceはC08-14でPASS。旧integration/provider nodeはcontroller等の削除済みtop-level importにより収集不能（C16-diagnostic-26）。",
+      "status": "PASS",
+      "fixture": "pytest tmp_path SQLiteとfake session/processのみ。CLI admission/finalization testはskill_chain_runtime.run_skill_chainをno-artifact deterministic resultにpatchし、共有固定rootへのrunner成果物生成を避ける。日次STEP08は別scope。",
+      "expected": "target-launch admissionはlaunch/date/run identityを維持し同じjobを再利用。operation output reasonとpersisted terminal reasonは別々に記録し、failed jobとqueue complete、check incompleteを検証。CLI nodeはworker queue/jobをtmp_path SQLiteだけで扱う。実runner sequence nodeは専用tmp_pathで7担当と同じHTML作者/ reviewerの再実行、artifact path報告、terminal identityを検証する。",
+      "execution_result": "official launch admission, same-job reuse, queue/check separation, runner sequence, and post-fix focused tests passed; historical CLI JSON mismatch retained"
     },
     {
       "id": "C09",
@@ -2705,9 +2727,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_scope_preserves_excluded_date_and_daily_data"
       ],
       "node_existence": "実在。10/20保守を新対象として期待を更新",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "tmp SQLiteの10/19 queue/history、fake通常Daily callbackに呼出し禁止sentinel。",
-      "expected": "WORKER_DISPATCH_EXCLUDED_DATES=frozenset({'2026-10-19'})保持、10/19 queue/history未処理、Daily/run/draft作成や10/17リプレイなし。"
+      "expected": "WORKER_DISPATCH_EXCLUDED_DATES=frozenset({'2026-10-19'})保持、10/19 queue/history未処理、Daily/run/draft作成や10/17リプレイなし。",
+      "execution_result": "2026-10-19 exclusion and Daily data preservation node passed; no 10/19 work performed"
     },
     {
       "id": "C10",
@@ -2728,9 +2751,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_contract_roles_and_generated_flow_are_synchronized"
       ],
       "node_existence": "実在。旧hash/JSON/固定日付/mandatory Git期待を更新",
-      "status": "NOT_RUN",
+      "status": "PARTIAL",
       "fixture": "実ファイル読取、repoの対象文書のみ。",
-      "expected": "通常保守へ長文計画/承認/全件map工程を再導入せず、作者別review/日次計装/局所試験/実終了が記載される。"
+      "expected": "通常保守へ長文計画/承認/全件map工程を再導入せず、作者別review/日次計装/局所試験/実終了が記載される。",
+      "execution_result": "current role/flow contract node passed; legacy docs contract suite excluded because it imports removed routes"
     },
     {
       "id": "C11",
@@ -2744,9 +2768,10 @@
       ],
       "node_refs": [],
       "node_existence": "手順case。pytest nodeなし。本番保守受付の実操作を実施する",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "実launch fa3292ae0c7e43bb9569576fcb1a5d85、queue 37a2be6b24fa4ffb8f859012e00a209a、check 18fd9a8b-343b-4c66-addb-a1bce71ecf83。日次DBはmode=ro最小SELECT。",
-      "expected": "既存jobあれば再利用、無ければ正規採番の最初のmaintenance jobを保存。実source_run_id nullを保持し実7担当起動へ。"
+      "expected": "既存jobあれば再利用、無ければ正規採番の最初のmaintenance jobを保存。実source_run_id nullを保持し実7担当起動へ。",
+      "execution_result": "formal intake created actual maintenance job and incident and started the seven-role chain on the target launch"
     },
     {
       "id": "C12",
@@ -2764,9 +2789,10 @@
         "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_prepare_idempotency_conflict_records_safe_operation_context"
       ],
       "node_existence": "前2node実在、末尾は予定/未作成。STEP08で当該原因/計装に合わせて実装",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "tmp_path SQLite/prepare fake/backup failure fake/FakeClock。primary IdempotencyConflictとsecondary backup/preservation failureを値を含めず注入。",
-      "expected": "実際に選んだ日次側計装又は原因修正をfixtureで実確認。操作境界・class・位置が判別でき秘密sentinel/SQL値なし。calls.jsonl追加だけを成果にしない。原因不明は不明。"
+      "expected": "実際に選んだ日次側計装又は原因修正をfixtureで実確認。操作境界・class・位置が判別でき秘密sentinel/SQL値なし。calls.jsonl追加だけを成果にしない。原因不明は不明。",
+      "execution_result": "all three planned Daily prepare/IdempotencyConflict diagnostics nodes passed after focused assertion fixes; earlier failures retained"
     },
     {
       "id": "C13",
@@ -2788,9 +2814,10 @@
         "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_sqlite_error_code_reaches_primary_secondary_and_l01_payload"
       ],
       "node_existence": "実在。実装の影響箇所に合わせ追加fixtureを作る",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "fake log writer/backup/preservationが例外、tmp SQLiteに対象runなし/読取エラーを区別。",
-      "expected": "元の失敗を成功へ変えずrunなしを維持、保存不能と原因を次担当/HTMLへ渡す。実装可能な別安全出力があれば内容を確認。"
+      "expected": "元の失敗を成功へ変えずrunなしを維持、保存不能と原因を次担当/HTMLへ渡す。実装可能な別安全出力があれば内容を確認。",
+      "execution_result": "all five planned trace/logger result-preservation nodes passed after focused fixture correction; earlier failure retained"
     },
     {
       "id": "C14",
@@ -2806,9 +2833,10 @@
       ],
       "node_refs": [],
       "node_existence": "実物review手順case。pytest nodeなし",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "当該製品差分、実試験記録、最終HTML。別agent identity。",
-      "expected": "製品作者と異なるreviewerが差分/記録を読み、HTML作者と異なるreviewerが最終HTMLを読む。具体指摘と修正後の実物再読を保存。テストコードreviewはしない。"
+      "expected": "製品作者と異なるreviewerが差分/記録を読み、HTML作者と異なるreviewerが最終HTMLを読む。具体指摘と修正後の実物再読を保存。テストコードreviewはしない。",
+      "execution_result": "independent product review and independent final HTML review completed with no findings"
     },
     {
       "id": "C15",
@@ -2826,9 +2854,10 @@
         "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles"
       ],
       "node_existence": "既存node実在・旧公開担当期待を削除。加えて本番実運用の終了観測手順",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "fake report作者失敗/追加作者/追加review、実10/20ではrunner実PID/turn記録。",
-      "expected": "最終HTML直書き/本文4点/秘密除外/正直な未実施。公開workerなし。通常7担当と追加worker、外側Workerの実終了を回収。DB queued/更新失敗を終了の否定にしない。"
+      "expected": "最終HTML直書き/本文4点/秘密除外/正直な未実施。公開workerなし。通常7担当と追加worker、外側Workerの実終了を回収。DB queued/更新失敗を終了の否定にしない。",
+      "execution_result": "final HTML saved and reviewed; nine worker_finished records and all associated PIDs confirmed ended; CLI result discrepancy documented separately"
     },
     {
       "id": "C16",
@@ -2841,43 +2870,22 @@
       ],
       "node_refs": [
         "tests_inago/test_maintenance_skill_chain.py",
-        "tests_inago/test_maintenance_ai.py",
-        "tests_inago/test_maintenance_store.py",
-        "tests_inago/test_maintenance_deployment.py",
-        "tests_inago/test_maintenance_deployment_probe.py",
-        "tests_inago/test_maintenance_docs.py",
-        "tests_inago/test_maintenance_integration.py",
-        "tests_inago/test_maintenance_workflow_provider.py",
-        "tests_inago/test_maintenance_completion.py",
-        "tests_inago/test_daily_pipeline_safe_diagnostics.py",
-        "tests_inago/test_maintenance_flow_completion_fc07.py",
-        "tests_inago/test_maintenance_report.py",
-        "tests_inago/test_maintenance_report_publication_stage.py",
-        "tests_inago/test_daily_fix_trace.py"
+        "tests_inago/test_maintenance_store.py::test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls",
+        "tests_inago/test_maintenance_deployment_probe.py::test_deployment_exclusion_lock_serializes_runtime_switch"
       ],
-      "node_existence": "全file実在。旧fixtureを固定root方針へ改訂後に実行。10/20診断変更の直接影響fileが追加なら事前にcase/nodeへ追記",
-      "status": "NOT_RUN",
-      "fixture": "C01～C13の隔離fixture、tmp_path SQLite/fake clock/fake process。別Git checkout/ネット/ROOM/実DBなし。",
-      "expected": "全関係回帰の全実結果とexitを記録。FAIL時は該当nodeへ戻り局所修正後もう一度最後の全関係回帰。未実行/SKIP/XFAILをPASSにしない。",
+      "node_existence": "C16-migration-02 collection exit 4 was caused by deleted LeaseBusyError/DeploymentCoordinator/observe_daily_owner_active imports. C16-migration-03 exposed two runner expectation errors. C38/C39/C43 and daily-owner probe are NOT_APPLICABLE because the product routes were deleted. FileDeploymentExclusionGuard remains current and is covered by the lock-only node. C16-migration-05 was a prior PASS before identity fix (22 passed, exit 0). Following the identity fix, parent-reported focused provider-finalization + CLI-admission nodes passed 2/2, exit 0 (not rerun; no JUnit supplied). C16-migration-06 current final regression: 23 passed, 0 failures/errors/skips, exit 0; JUnit timestamp 2026-10-21T08:13:41.043659+09:00.",
+      "status": "PASS",
+      "fixture": "pytest tmp_path only。skill-chain tests use fake session/process; schema migration uses isolated SQLite; deployment probe uses temporary lock file. STEP08 Daily remains separate and unrun.",
+      "expected": "Actual C16-migration-06: all current runner/worker nodes, schema-v19 history preservation/NULL/retired trigger behavior, and current exclusion-lock serialization passed; Daily STEP08 excluded.",
       "regression_scopes": {
         "migration": {
           "owner": "STEP02",
           "nodes": [
             "tests_inago/test_maintenance_skill_chain.py",
-            "tests_inago/test_maintenance_ai.py",
-            "tests_inago/test_maintenance_store.py",
-            "tests_inago/test_maintenance_deployment.py",
-            "tests_inago/test_maintenance_deployment_probe.py",
-            "tests_inago/test_maintenance_docs.py",
-            "tests_inago/test_maintenance_integration.py",
-            "tests_inago/test_maintenance_workflow_provider.py",
-            "tests_inago/test_maintenance_completion.py",
-            "tests_inago/test_daily_pipeline_safe_diagnostics.py",
-            "tests_inago/test_maintenance_flow_completion_fc07.py",
-            "tests_inago/test_maintenance_report.py",
-            "tests_inago/test_maintenance_report_publication_stage.py",
-            "tests_inago/test_daily_fix_trace.py"
-          ]
+            "tests_inago/test_maintenance_store.py::test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls",
+            "tests_inago/test_maintenance_deployment_probe.py::test_deployment_exclusion_lock_serializes_runtime_switch"
+          ],
+          "final_command": "C16-migration-06"
         },
         "daily": {
           "owner": "STEP08",
@@ -2886,7 +2894,8 @@
           ],
           "condition": "日次実差分に直接対応。追加sourceを変更した場合だけ対応完全nodeを追記。未変更移行PASSは再実行しない"
         }
-      }
+      },
+      "execution_result": "C16-migration-06 final relationship regression: 23 passed, 0 failed/errors/skips, exit 0"
     },
     {
       "id": "C17",
@@ -2904,9 +2913,10 @@
         "tests_inago/test_maintenance_ai.py::test_c24_generic_app_server_root_log_preserves_daily_fields"
       ],
       "node_existence": "前nodeは予定/未作成、後nodeは実在。STEP02で保守safe sink fixtureを作る",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "fixture": "fake stdout/stderr/RPC/応答へtoken/cookie/password/SQL parameters/商品投稿本文/例外本文canaryを混ぜ、許可欄要約sinkをtmp_pathへ出す。",
-      "expected": "許可した操作/終了情報が読み取れ、秘密canary/生RPC/原文例外が保存されない。従来の共有Dailyログ欄は保持。保存不能でも後続継続。"
+      "expected": "許可した操作/終了情報が読み取れ、秘密canary/生RPC/原文例外が保存されない。従来の共有Dailyログ欄は保持。保存不能でも後続継続。",
+      "execution_result": "safe response/stdout/stderr secret exclusion test passed and actual CLI safe output files were saved"
     },
     {
       "id": "C18",
@@ -2925,10 +2935,12 @@
         "tests_inago/test_maintenance_integration.py::test_db_finish_failure_keeps_actual_worker_exit_record",
         "tests_inago/test_maintenance_store.py::test_job_completion_updates_incident_and_recovers_idempotently"
       ],
-      "node_existence": "前2nodeは予定/未作成、末尾は実在。旧incident解決自動推論の期待も改訂対象",
-      "status": "NOT_RUN",
+      "node_existence": "前2nodeは予定/未作成、末尾は実在。旧incident解決自動推論の期待も改訂対象 2026-10-21追加focused: 実在nodeを実行したがlegacy fixture helper create_ready_release が削除済MaintenanceStore.create_releaseを呼び失敗。integration前2nodeは計画上未作成のまま。",
+      "status": "PARTIAL",
       "fixture": "tmp SQLiteのqueued job/unknown cause、fake全worker実終了、終了DB更新に例外を注入。",
-      "expected": "実終了を記録して更新を試み、更新失敗とworkflow終了/原因不明を別々に報告。DB値やapproved語を前提にしない。"
+      "expected": "実終了を記録して更新を試み、更新失敗とworkflow終了/原因不明を別々に報告。DB値やapproved語を前提にしない。",
+      "focused_result": "C04-C18-store-01: test_job_completion_updates_incident_and_recovers_idempotently FAILED, AttributeError create_release absent, exit 1; do not count PASS.",
+      "execution_result": "actual DB job and queue are complete, but original CLI JSON says incomplete; post-fix provider tests pass; Store node failed before target behavior on stale fixture; two legacy integration nodes were not created"
     }
   ],
   "review_findings": [

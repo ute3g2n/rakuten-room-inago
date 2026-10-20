@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="1.046" timestamp="2026-10-21T06:19:28.391649+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_docs" name="test_c60_contract" time="0.733"><failure message="AssertionError: assert {'001', '002'...', '006', ...} == {'001', '002'...', '006', ...}&#10;  &#10;  Extra items in the left set:&#10;  '029'&#10;  Use -v to get more diff">def test_c60_contract():
+        maintenance_contract = (
+            PROJECT_ROOT
+            / "docs/specifications/inago/AT-MAINT-01_保守対応要件受入契約.md"
+        ).read_text(encoding="utf-8")
+        tracking = (
+            PROJECT_ROOT / "docs/specifications/inago/要件追跡表.md"
+        ).read_text(encoding="utf-8")
+        trace_contract = (
+            PROJECT_ROOT / "docs/specifications/inago/AT-TRACE-01_共通トレース契約.md"
+        ).read_text(encoding="utf-8")
+        settings = (
+            PROJECT_ROOT / "docs/specifications/inago/保守運用設定仕様.md"
+        ).read_text(encoding="utf-8")
+        outputs = (
+            PROJECT_ROOT / "docs/operations/日次タスクのトレース・ログ出力一覧.md"
+        ).read_text(encoding="utf-8")
+        plan = (
+            PROJECT_ROOT
+            / "plans/projects/maintenance/文書整理と日次自動不具合対応_実行計画_2026-10-17.md"
+        ).read_text(encoding="utf-8")
+        review_skill = (
+            PROJECT_ROOT / ".agents/skills/common-review/SKILL.md"
+        ).read_text(encoding="utf-8")
+        planning_skill = (
+            PROJECT_ROOT / ".agents/skills/common-execution-planning/SKILL.md"
+        ).read_text(encoding="utf-8")
+        requirements_html = (
+            PROJECT_ROOT / "docs/specifications/inago/イナゴスキル要件定義書.html"
+        ).read_text(encoding="utf-8")
+    
+        accepted_ids = set(re.findall(r"^\| MA-(\d{3}) \|", maintenance_contract, re.M))
+&gt;       assert accepted_ids == {f"{index:03d}" for index in range(1, 29)}
+E       AssertionError: assert {'001', '002'...', '006', ...} == {'001', '002'...', '006', ...}
+E         
+E         Extra items in the left set:
+E         '029'
+E         Use -v to get more diff
+
+tests_inago\test_maintenance_docs.py:47: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_contract_roles_and_generated_flow_are_synchronized" time="0.001" /></testsuite></testsuites>

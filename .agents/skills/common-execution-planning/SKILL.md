@@ -5,6 +5,10 @@ description: 利用可能な障害調査と要件を実行可能な0〜14節計�
 
 # 障害対応計画
 
+## SC07 現行保守フロー優先規則
+
+構成案2.0と2026-10-21本人指示を優先します。通常の保守工程は7担当です。既存の明示された実行依頼について、計画review承認・hash/bytes/mtime/marker・release/readiness・Git操作を開始/完了条件にしません。運用上の失敗や原因unknownは実値として記録し、独立担当と後続工程を止めません。
+
 ## 使う場面
 
 management stage=planningで使用する。入力は利用可能な調査result、管理job契約、現行要件・受入、コード版、利用可能なモデル/環境。review approvedやhandoff acceptedは開始条件にしない。不足や未確認はそのまま計画へ記録し、利用可能な内容で後続作業を組み立てる。
@@ -55,7 +59,7 @@ handoffはidentity、schema_version、invocation/stage/attempt/operationとparen
 
 reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+今回対象は既存の2026-10-20 launchと正式受付済み同一jobで、source_run_id=nullを保つ。10/19 queue/history処理、通常Dailyの手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Git stage/commit/pushは本人の作業であり、この保守フロー担当は実行しない。
 
 
 ### FC04 部分入力からの計画

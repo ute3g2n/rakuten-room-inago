@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.620" timestamp="2026-10-21T06:20:08.574564+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_worker_cli_connects_provider_and_blocks_without_ready_release" time="0.208"><failure message="AssertionError: assert (DailyCheckRecord(check_id='f1c11f84-94ca-46da-8633-a38ae30df58f', source_launch_id='be1b9f4a705e499ea2b75c528faf0f1a',...='2026-10-17', check_status='incomplete', reason_code='daily_runtime_error', observed_at='2026-10-20T21:20:08.997192Z') is not None and 'incomplete' == 'abnormal'&#10;  &#10;  - abnormal&#10;  + incomplete)">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C08-03/test_worker_cli_connects_provi0')
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x000001B27FD52480&gt;
+
+    def test_worker_cli_connects_provider_and_blocks_without_ready_release(
+        tmp_path, capsys
+    ):
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9501)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9501,
+            )
+    
+        launch = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+    
+        exit_code = maintenance_cli_main(
+            [
+                "--data-root",
+                str(data_root),
+                "--daily-database",
+                str(daily_database),
+                "worker",
+                "--once",
+                "--source-launch-id",
+                launch.launch_id,
+            ]
+        )
+        output = json.loads(capsys.readouterr().out)
+        queue = store.get_worker_queue(launch.launch_id)
+        check = store.get_daily_check_by_launch(launch.launch_id)
+    
+        assert exit_code == 0, output
+        assert output["maintenance_resolution_status"] in {"complete", "unknown"}
+&gt;       assert check is not None and check.check_status == "abnormal"
+E       AssertionError: assert (DailyCheckRecord(check_id='f1c11f84-94ca-46da-8633-a38ae30df58f', source_launch_id='be1b9f4a705e499ea2b75c528faf0f1a',...='2026-10-17', check_status='incomplete', reason_code='daily_runtime_error', observed_at='2026-10-20T21:20:08.997192Z') is not None and 'incomplete' == 'abnormal'
+E         
+E         - abnormal
+E         + incomplete)
+
+tests_inago\test_maintenance_workflow_provider.py:1785: AssertionError</failure></testcase></testsuite></testsuites>

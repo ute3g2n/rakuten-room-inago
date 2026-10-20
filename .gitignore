@@ -2,6 +2,8 @@ node_modules/
 /.venv-kai/
 /rakuten-api.credentials.json
 
+/.pytest-tmp
+
 # Legacy Bakemono local account data and operational state
 /rakuten-room/
 rakuten-room-kai/affiliate-report/*

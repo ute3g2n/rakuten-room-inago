@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.617" timestamp="2026-10-21T06:19:28.296095+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_owned_worker_exit_is_reaped_after_close_error" time="0.322"><failure message="assert 0 == 1&#10; +  where 0 = &lt;test_maintenance_skill_chain._Process object at 0x0000015325480E30&gt;.wait_calls&#10; +    where &lt;test_maintenance_skill_chain._Process object at 0x0000015325480E30&gt; = &lt;test_maintenance_skill_chain._Session object at 0x0000015325480DD0&gt;.process">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C03-C03-01/test_owned_worker_exit_is_reap0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000015325480BF0&gt;
+
+    def test_owned_worker_exit_is_reaped_after_close_error(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root, close_error={skill_chain.ROLE_CALLS[0].name})
+        result = _run(root, factory, start_role=1)
+        first = result["roles"][0]
+        assert sessions[0].closed
+&gt;       assert sessions[0].process.wait_calls == 1
+E       assert 0 == 1
+E        +  where 0 = &lt;test_maintenance_skill_chain._Process object at 0x0000015325480E30&gt;.wait_calls
+E        +    where &lt;test_maintenance_skill_chain._Process object at 0x0000015325480E30&gt; = &lt;test_maintenance_skill_chain._Session object at 0x0000015325480DD0&gt;.process
+
+tests_inago\test_maintenance_skill_chain.py:166: AssertionError</failure></testcase></testsuite></testsuites>

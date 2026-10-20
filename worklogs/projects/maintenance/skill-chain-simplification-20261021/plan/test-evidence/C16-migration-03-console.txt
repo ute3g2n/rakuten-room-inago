@@ -1,0 +1,52 @@
+.F......F.............                                                   [100%]
+================================== FAILURES ===================================
+________ test_non_gating_status_and_early_end_continue_remaining_roles ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-migration-03/test_non_gating_status_and_ear0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000017DEBA09490>
+
+    def test_non_gating_status_and_early_end_continue_remaining_roles(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root, fail={skill_chain.ROLE_CALLS[0].name, skill_chain.ROLE_CALLS[2].name})
+        result = _run(root, factory)
+        assert len(sessions) == result["roles_attempted"] == 9
+        expected_roles = [role.name for role in skill_chain.ROLE_CALLS]
+        assert [role["role"] for role in result["roles"]] == expected_roles + expected_roles[5:]
+        assert result["roles"][0]["error_class"] == "RuntimeError"
+        assert result["roles"][1]["turn_status"] == "completed"
+>       assert result["status"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:177: AssertionError
+________________ test_resume_same_job_without_predecessor_pin _________________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-migration-03/test_resume_same_job_without_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000017DEBAB2CC0>
+
+    def test_resume_same_job_without_predecessor_pin(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root)
+        result = _run(root, factory, start_role=3)
+        assert len(sessions) == result["roles_attempted"] == 7
+        resumed_roles = [role.name for role in skill_chain.ROLE_CALLS[2:]]
+        assert [role["role"] for role in result["roles"]] == resumed_roles + resumed_roles[-2:]
+        assert result["source_run_id"] is None
+>       assert result["status"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:328: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_skill_chain.py::test_non_gating_status_and_early_end_continue_remaining_roles
+FAILED tests_inago/test_maintenance_skill_chain.py::test_resume_same_job_without_predecessor_pin
+2 failed, 20 passed in 2.57s
+PYTEST_EXIT_CODE=1

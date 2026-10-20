@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="0.798" timestamp="2026-10-21T07:59:06.029730+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_pipeline_diagnostic_logger_failures_do_not_change_daily_result" time="0.008" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row" time="0.010"><failure message="AssertionError: assert not [{'phase': 'daily_diagnostic', 'code': 'daily_secondary_operation_failed', 'operation': 'failure_result_run_lookup', 'exception_class': 'OperationalError', ...}]">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C13-01/test_failure_result_run_lookup0')
+
+    def test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row(
+        tmp_path: Path,
+    ):
+        def raise_primary(_connection, _context, _on_draft_commit):
+            raise RuntimeError("primary_CANARY")
+    
+        failed_lookup = run_daily_execution_core(
+            _ports(tmp_path / "lookup-error", run_daily=raise_primary),
+            clock=_clock(),
+        )
+        assert failed_lookup["daily_status"] == "failed"
+        assert failed_lookup["daily_reason"] == "RuntimeError"
+        assert failed_lookup["run_id"] is None
+        assert failed_lookup["committed_count"] == 0
+        assert [
+            item["operation"]
+            for item in failed_lookup["secondary_errors"]
+            if item.get("operation")
+        ] == ["failure_result_run_lookup"]
+        _assert_safe_diagnostic(
+            failed_lookup, "failure_result_run_lookup", "OperationalError"
+        )
+    
+        def create_empty_run_table_then_raise(connection, _context, _on_draft_commit):
+            connection.execute(
+                "CREATE TABLE run (run_id TEXT, mode TEXT, target_date TEXT, "
+                "committed_count INTEGER, attempt_used INTEGER)"
+            )
+            raise RuntimeError("primary_CANARY")
+    
+        no_row = run_daily_execution_core(
+            _ports(tmp_path / "lookup-empty", run_daily=create_empty_run_table_then_raise),
+            clock=_clock(),
+        )
+        assert no_row["daily_status"] == "failed"
+        assert no_row["daily_reason"] == "RuntimeError"
+        assert no_row["run_id"] is None
+        assert no_row["committed_count"] == 0
+&gt;       assert not [
+            item for item in no_row["secondary_errors"] if item.get("operation")
+        ]
+E       AssertionError: assert not [{'phase': 'daily_diagnostic', 'code': 'daily_secondary_operation_failed', 'operation': 'failure_result_run_lookup', 'exception_class': 'OperationalError', ...}]
+
+tests_inago\test_daily_pipeline_safe_diagnostics.py:461: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_completion" name="test_notification_save_failure_keeps_start_and_daily_exit_code" time="0.183" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_secondary_errors_reach_isolated_cli_l01_record_payload" time="0.130" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_sqlite_error_code_reaches_primary_secondary_and_l01_payload" time="0.028" /></testsuite></testsuites>

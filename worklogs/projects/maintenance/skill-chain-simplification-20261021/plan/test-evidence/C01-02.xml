@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="6" time="0.403" timestamp="2026-10-21T06:18:10.538767+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_eight_roles_receive_exact_markdown" time="0.027"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_eight_roles_receive_exact0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001842EAB1DF0&gt;
+
+    def test_eight_roles_receive_exact_markdown(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:262: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_contract_roles_and_generated_flow_are_synchronized" time="0.006"><failure message="AttributeError: module 'automation.inago.maintenance.skill_chain' has no attribute '_extract_role_prompts'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_contract_roles_and_genera0')
+
+    def test_contract_roles_and_generated_flow_are_synchronized(tmp_path: Path):
+        root, _job = _workspace(tmp_path)
+&gt;       prompts = skill_chain._extract_role_prompts(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            root / "plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md"
+        )
+E       AttributeError: module 'automation.inago.maintenance.skill_chain' has no attribute '_extract_role_prompts'
+
+tests_inago\test_maintenance_skill_chain.py:488: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[success]" time="0.007"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_previous_read_acknowledge0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001842EA405C0&gt;
+read_mode = 'success'
+
+    @pytest.mark.parametrize("read_mode", ["success", "missing", "failed", "mismatched"])
+    def test_previous_read_acknowledgement_requires_successful_exact_path_event(
+        tmp_path: Path,
+        monkeypatch,
+        read_mode: str,
+    ):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:579: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[missing]" time="0.007"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_previous_read_acknowledge1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001842EA07290&gt;
+read_mode = 'missing'
+
+    @pytest.mark.parametrize("read_mode", ["success", "missing", "failed", "mismatched"])
+    def test_previous_read_acknowledgement_requires_successful_exact_path_event(
+        tmp_path: Path,
+        monkeypatch,
+        read_mode: str,
+    ):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:579: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[failed]" time="0.006"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_previous_read_acknowledge2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001842EA05340&gt;
+read_mode = 'failed'
+
+    @pytest.mark.parametrize("read_mode", ["success", "missing", "failed", "mismatched"])
+    def test_previous_read_acknowledgement_requires_successful_exact_path_event(
+        tmp_path: Path,
+        monkeypatch,
+        read_mode: str,
+    ):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:579: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_previous_read_acknowledgement_requires_successful_exact_path_event[mismatched]" time="0.007"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C01-02/test_previous_read_acknowledge3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001842EAB1700&gt;
+read_mode = 'mismatched'
+
+    @pytest.mark.parametrize("read_mode", ["success", "missing", "failed", "mismatched"])
+    def test_previous_read_acknowledgement_requires_successful_exact_path_event(
+        tmp_path: Path,
+        monkeypatch,
+        read_mode: str,
+    ):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:579: AttributeError</failure></testcase></testsuite></testsuites>

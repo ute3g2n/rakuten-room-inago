@@ -482,7 +482,9 @@
     },
     "operation_trace": {
       "type": "array",
-      "items": {"$ref": "#/$defs/operationTrace"}
+      "items": {
+        "$ref": "#/$defs/operationTrace"
+      }
     },
     "redaction": {
       "type": "object",
@@ -617,8 +619,7 @@
         "record_count",
         "source_bytes",
         "artifact_ref",
-        "redacted_bytes",
-        "redacted_sha256"
+        "redacted_bytes"
       ],
       "properties": {
         "class_id": {
@@ -717,17 +718,7 @@
           ],
           "minimum": 0
         },
-        "redacted_sha256": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            }
-          ]
-        }
+        "redacted_sha256": {}
       },
       "additionalProperties": false,
       "allOf": [
@@ -1838,17 +1829,52 @@
     },
     "operationTrace": {
       "type": "object",
-      "required": ["correlation_id", "operation", "phase"],
+      "required": [
+        "correlation_id",
+        "operation",
+        "phase"
+      ],
       "properties": {
-        "correlation_id": {"$ref": "#/$defs/safeId"},
-        "operation": {"$ref": "#/$defs/safeId"},
-        "phase": {"enum": ["begin", "end", "failed", "fallback", "interruption_observed"]},
-        "code_revision": {"$ref": "#/$defs/safeId"},
-        "job_id": {"$ref": "#/$defs/safeId"},
-        "source_launch_id": {"$ref": "#/$defs/safeId"},
-        "source_run_id": {"oneOf": [{"$ref": "#/$defs/safeId"}, {"type": "null"}]},
-        "attempt_id": {"$ref": "#/$defs/safeId"},
-        "artifact_ref": {"$ref": "#/$defs/safeId"}
+        "correlation_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "operation": {
+          "$ref": "#/$defs/safeId"
+        },
+        "phase": {
+          "enum": [
+            "begin",
+            "end",
+            "failed",
+            "fallback",
+            "interruption_observed"
+          ]
+        },
+        "code_revision": {
+          "$ref": "#/$defs/safeId"
+        },
+        "job_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_launch_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "source_run_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/safeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempt_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "artifact_ref": {
+          "$ref": "#/$defs/safeId"
+        }
       },
       "additionalProperties": false
     }

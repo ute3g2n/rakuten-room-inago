@@ -1,0 +1,48 @@
+
+=================================== ERRORS ====================================
+___________ ERROR collecting tests_inago/test_maintenance_store.py ____________
+ImportError while importing test module 'C:\project\rakuten-room-inago\tests_inago\test_maintenance_store.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_maintenance_store.py:13: in <module>
+    from automation.inago.maintenance.store import (
+E   ImportError: cannot import name 'LeaseBusyError' from 'automation.inago.maintenance.store' (C:\project\rakuten-room-inago\automation\inago\maintenance\store.py)
+_________ ERROR collecting tests_inago/test_maintenance_deployment.py _________
+ERROR: found no collectors for C:\project\rakuten-room-inago\tests_inago\test_maintenance_store.py::test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls
+
+ERROR: found no collectors for C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment.py::test_c38_fixed_root_allows_dirty_tracked_content
+
+ERROR: found no collectors for C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment.py::test_c39_contract
+
+ERROR: found no collectors for C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment.py::test_c43_contract
+
+ERROR: found no collectors for C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment_probe.py::test_read_only_deployment_probes_and_shared_exclusion_lock
+
+ImportError while importing test module 'C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_maintenance_deployment.py:12: in <module>
+    from automation.inago.maintenance.deployment import (
+E   ImportError: cannot import name 'DeploymentCoordinator' from 'automation.inago.maintenance.deployment' (C:\project\rakuten-room-inago\automation\inago\maintenance\deployment.py)
+______ ERROR collecting tests_inago/test_maintenance_deployment_probe.py ______
+ImportError while importing test module 'C:\project\rakuten-room-inago\tests_inago\test_maintenance_deployment_probe.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_maintenance_deployment_probe.py:3: in <module>
+    from automation.inago.maintenance.deployment import (
+E   ImportError: cannot import name 'observe_daily_owner_active' from 'automation.inago.maintenance.deployment' (C:\project\rakuten-room-inago\automation\inago\maintenance\deployment.py)
+=========================== short test summary info ===========================
+ERROR tests_inago/test_maintenance_store.py
+ERROR tests_inago/test_maintenance_deployment.py
+ERROR tests_inago/test_maintenance_deployment_probe.py
+3 errors in 0.39s
+PYTEST_EXIT_CODE=4

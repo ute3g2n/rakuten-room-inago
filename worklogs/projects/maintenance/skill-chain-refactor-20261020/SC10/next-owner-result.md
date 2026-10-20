@@ -1,0 +1,9 @@
+# 同一job反映・公開再開の結果
+
+- 実行担当: `rr-inago-maintenance-delivery` 別agent session。要求 model/effort/tier/fast_mode=`gpt-6-luna/high/priority/true`、個別実観測はunknown。
+- 固定identityは変更なし。最初にPowerShell `Get-Content -Raw -LiteralPath` で同job publication.mdを読んだ時点のSHA-256は `155c1021f41a8ebe7c100ae65e13eadb5d47b6d4f538955740d086de53a6194d`。その後の追記済み最終 publication.md をSC10側で再度全文読み、SHA-256 `fc797c18758afbd79d98ecfaeddb0eaaa155bcc2f346e549e2f191bb4d8fff8b`、実読文字数22,918を確認。
+- Task Scheduler read-only再照会時刻 `2026-10-20T13:16:32.516323Z`（22:16:32 JST）。`TaskSchedulerRuntimeSwitcher.current_commit()` / `current_content_sha256()` はNone、`healthy('4569a34d89a9538036a3058f4b94417e4d74fedf')`はFalse、`_task_snapshot('Read')` / `_active_identity()`は `DeploymentError:runtime_task_operation_failed`。Python process exit 0。従って今回のlive apply/read-backはnot_performed。active Task Scheduler版が確認できず、適用状態も不明。Task Scheduler read可能性を回復した後、同一jobでactive root/commit/hashを確認してからapply/readbackを再開する。
+- publication source・reviewed report・local public pathは2,897 bytes、hash `1bcae0d002abb25fea2520f6f5f4a05eb5e03a981758cfb1d3963f685c7dc1ef`で一致。`origin/main`追跡blobは2,999 bytes、hash `eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672`で不一致。これはローカル追跡refであり、push後remote readbackではない。
+- 選択Git操作は所有HTMLとpublication.mdに対する`git add -- <2 path>`。`.git/index.lock`作成がPermission denied、exit 1。stage/commit/pushなし、別担当差分のstageなし、global設定やpermission workaroundなし。再開先は同固定workspaceのGit metadataを書ける実行主体から同じ所有2 pathだけを選択stageし、確認・commit/push・remote blob read-backを行う。
+- その結果、SC-A03は本番apply/readbackと新job診断trace欠落でnot_met。SC-A05はlocal byte-identical publicationのみでremote不一致のためpartial。workflowはincomplete/queued、元原因・当時版・投稿数・run未保存理由・回復はunknown。
+- 追加の同一条件担当は本試行中に起動していない。次の再開は外部実行条件（Task Scheduler read可能性とGit index/object書込）が変わった後、同jobの反映・公開担当へ、具体入力・全文prompt `next-owner-prompt.txt` を渡して再開する。status/errorは再起動のgateでなく実行不能の根拠とする。

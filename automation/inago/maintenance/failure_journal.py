@@ -75,7 +75,7 @@ def record_current_operation_failure(operation: str, error: BaseException) -> No
 
 
 def current_code_revision() -> str:
-    """Return the immutable invocation fingerprint, never a helper-file hash."""
+    """Return the invocation's descriptive marker, not a content fingerprint."""
 
     return _current_invocation_code_revision()
 

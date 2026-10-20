@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="6" time="2.761" timestamp="2026-10-21T06:31:37.050523+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_ai" name="test_report_review_session_isolated_by_report_version" time="0.530" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_contract" time="0.748"><failure message="Failed: DID NOT RAISE MaintenanceAIBlockedError">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-03/test_c27_contract0')
+
+    def test_c27_contract(tmp_path):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+        job = create_ready_release(store, incident_id=incident_id)
+        _bind_job(store, incident_id, job.job_id)
+        attempt_id = _start_test_attempt(store, job.job_id)
+        adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+        output_root = attempts_root / job.job_id / attempt_id
+        output_root.mkdir(parents=True)
+        worktree_root = worktrees_root / job.job_id
+        worktree_root.mkdir()
+        common = {
+            "job_id": job.job_id,
+            "attempt_id": attempt_id,
+            "identity": _job_identity(incident_id, job.job_id),
+            "attempt_output_root": output_root,
+            "worktree_root": worktree_root,
+        }
+    
+        for unrelated_output_root in (
+            attempts_root / "different-job" / attempt_id,
+            attempts_root / job.job_id / "different-attempt",
+        ):
+            unrelated_output_root.mkdir(parents=True)
+            with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+                adapter.plan_session(
+                    parent_key="A",
+                    role_name="rr-inago-incident-investigator",
+                    cwd=adapter.project_root,
+                    **{**common, "attempt_output_root": unrelated_output_root},
+                )
+    
+        unrelated_worktree = worktrees_root / "different-job"
+        unrelated_worktree.mkdir()
+        with pytest.raises(MaintenanceAIBlockedError, match="write_root_out_of_scope"):
+            adapter.plan_session(
+                parent_key="B",
+                role_name="common-implementer",
+                cwd=unrelated_worktree,
+                **{**common, "worktree_root": unrelated_worktree},
+            )
+    
+        investigator = adapter.plan_session(
+            parent_key="A",
+            role_name="rr-inago-incident-investigator",
+            cwd=adapter.project_root,
+            **common,
+        )
+        assert investigator.sandbox_policy == {
+            "type": "readOnly",
+            "networkAccess": False,
+        }
+        assert investigator.log_path.is_relative_to(adapter.logs_root.resolve())
+    
+        implementer = adapter.plan_session(
+            parent_key="B",
+            role_name="common-implementer",
+            cwd=adapter.project_root,
+            **{**common, "worktree_root": adapter.project_root},
+        )
+        assert implementer.sandbox_policy == {
+            "type": "workspaceWrite",
+            "networkAccess": False,
+        }
+        assert implementer.log_path.is_relative_to(adapter.logs_root.resolve())
+    
+        reviewer = adapter.plan_session(
+            parent_key="B",
+            role_name="common-reviewer",
+            cwd=adapter.project_root,
+            **{**common, "worktree_root": adapter.project_root},
+        )
+        assert reviewer.sandbox_policy == {
+            "type": "readOnly",
+            "networkAccess": False,
+        }
+        for policy in (
+            investigator.sandbox_policy,
+            implementer.sandbox_policy,
+            reviewer.sandbox_policy,
+        ):
+            assert not {
+                "access",
+                "readOnlyAccess",
+                "readableRoots",
+                "writableRoots",
+            }.intersection(policy)
+    
+&gt;       with pytest.raises(MaintenanceAIBlockedError, match="cwd_out_of_scope"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE MaintenanceAIBlockedError
+
+tests_inago\test_maintenance_ai.py:415: Failed</failure></testcase><testcase classname="tests_inago.test_maintenance_store" name="test_c53_contract" time="0.233" /><testcase classname="tests_inago.test_maintenance_store" name="test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger" time="0.198" /><testcase classname="tests_inago.test_maintenance_integration" name="test_c59_contract" time="0.165" /><testcase classname="tests_inago.test_maintenance_integration" name="test_legacy_enqueue_historical_cli_is_removed" time="0.235" /></testsuite></testsuites>

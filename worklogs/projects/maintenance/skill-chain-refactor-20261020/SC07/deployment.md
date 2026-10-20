@@ -29,3 +29,11 @@
 - 次担当: 固定jobの連続8-role skill-chain invocation。
 - 入力: incident.md、原調査/review、SC01–07記録、commit `dadffcd...`。
 - 次作業: 既存jobのみを明示し、single CLI invocationでrole 1–8を実起動。Daily/worker/10/19/10/20処理は禁止のまま。
+## SC07 同一固定rootへの追補適用（2026-10-20 21:59:03 +09:00）
+
+- read-only preflight: `TaskSchedulerRuntimeSwitcher` を `repository=C:\project\rakuten-room-inago`, `runtime_root=C:\project\rakuten-room-inago\rakuten-room-inago\runtime`, `worktree_root=C:\project` で構成。main HEAD/upstream `4569a34d89a9538036a3058f4b94417e4d74fedf`、適用前4 tasksは固定workspace向きでReady/enabled。switch-stateの旧active digestと現在のtracked working bytesが不一致、`healthy(HEAD)=false` を確認。
+- apply/confirm: `2026-10-20T12:59:03.4257866Z` 実行の `TaskSchedulerRuntimeSwitcher.activate(4569a34d89a9538036a3058f4b94417e4d74fedf); confirm_active(...)` は完了。別read-backでactive commit `4569a34d89a9538036a3058f4b94417e4d74fedf`、active fixed root、pending null、status active、content SHA-256 `0b383aa6592cf86325dd8ea6d01b115fcd088cc0fb5622581ed92fd9bc6ac142`、health true、Daily/Worker/Watchdog/HumanApi全てReady/enabled・同じfixed WorkingDirectoryを確認。実行ラッパーは30秒で出力待ちを切り上げたためconfirmのstdout/exitを直接取得できなかったが、プロセス終了後の状態読戻しでactive/healthyを確認。
+- active content digestはHEADに加えて適用時点のtracked working bytesを束ねる。この時点で既存の未stage変更 `deployment.py`, `runtime_switcher.py`, `test_maintenance_deployment.py` が存在していたため、それらのSHAはdigestに含まれるが、この追補コミットへは混ぜていない。
+- 先行read-only constructor probeは位置引数で呼んだためTypeErrorとなり、状態変更前に終了。直後、必須keyword引数を使った正しい構成でread/apply/confirmを実施した。
+- Dailyを手動起動せず、10/19 queue/historyにも触れていない。同じ10/17 job read-only DB preflight: `status=queued`, `resume_count=30`, `source_run_id=null`; input manifestは同じlaunch ID・target_date `2026-10-17`。worker queueには同launchの新しい行はなかった。
+- 次: 同一job/launchを明示したWorker `--once` の1回だけを実行し、8担当の呼出し・引継ぎ読取・production trace・terminalの新しい証拠を検査する。

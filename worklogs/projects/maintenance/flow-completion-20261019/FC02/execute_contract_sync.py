@@ -99,7 +99,7 @@ for role in roles:
     text = (ROOT / rel).read_text(encoding='utf-8')
     prior = re.search(r'model_reasoning_effort = "(.*?)"', text).group(1)
     model = re.search(r'^model = "(.*?)"', text, re.M).group(1)
-    text = text.replace('model_reasoning_effort = "max"', 'model_reasoning_effort = "high"').replace('effort max', 'effort high')
+    text = text.replace('model_reasoning_effort = "max"', 'model_reasoning_effort = "max"').replace('effort max', 'effort high')
     text = text.replace('Changes assigned product files using the available plan and controller-provided worktree.', 'Changes assigned product files using the available plan in the fixed repository workspace.')
     text = re.sub(r'If Git reports dubious ownership.*?Git configuration files\.',
                   'The only workspace is C:/project/rakuten-room-inago. Do not create, select, or use a different worktree or checkout. Preserve all existing changes.', text)

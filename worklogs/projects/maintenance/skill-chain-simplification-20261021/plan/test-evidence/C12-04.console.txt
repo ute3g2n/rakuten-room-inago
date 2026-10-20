@@ -1,0 +1,65 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_prepare_idempotency_conflict_records_safe_operation_context _______
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C12-04/test_prepare_idempotency_confl0')
+
+    def test_prepare_idempotency_conflict_records_safe_operation_context(tmp_path: Path):
+        sentinel = "IDEMPOTENCY_CONFLICT_SECRET_SENTINEL"
+        calls: list[str] = []
+    
+        def raise_prepare_conflict(_connection, _now, _preflight):
+            calls.append("prepare")
+            raise IdempotencyConflict(f"conflicting private value: {sentinel}")
+    
+        def backup_must_not_run(_connection, _context, _now):
+            calls.append("start_backup")
+            raise RuntimeError("backup failure sentinel")
+    
+        def preservation_must_not_run(_context, _now, _run_id):
+            calls.append("preservation")
+            raise RuntimeError("preservation failure sentinel")
+    
+        ports = replace(
+            _ports(tmp_path, run_daily=lambda *_args: pytest.fail("daily must not run")),
+            prepare=raise_prepare_conflict,
+            start_backup=backup_must_not_run,
+            preserve_end_of_day=preservation_must_not_run,
+        )
+        result = run_daily_execution_core(
+            ports,
+            clock=FakeClock(datetime.fromisoformat("2026-10-20T13:00:00+09:00")),
+        )
+    
+        assert calls == ["prepare"]
+        assert result["daily_status"] == "failed"
+        assert result["phase_results"]["prepare"]["status"] == "failed"
+        assert result["run_id"] is None
+        primary = result["primary_error"]
+        diagnostic = primary["diagnostic"]
+        assert diagnostic["operation"] == "daily_primary_failure"
+        assert diagnostic["failed_operation"] == "prepare"
+        assert diagnostic["exception_class"] == "IdempotencyConflict"
+        assert diagnostic["failure_module"] == daily_pipeline.__name__
+>       assert diagnostic["failure_function"] == "run_daily_execution_core"
+E       AssertionError: assert 'add_primary_diagnostic' == 'run_daily_execution_core'
+E         
+E         - run_daily_execution_core
+E         + add_primary_diagnostic
+
+tests_inago\test_daily_pipeline_safe_diagnostics.py:461: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    automation.inago.daily_pipeline:daily_pipeline.py:52 daily_pipeline_failure
+============================== warnings summary ===============================
+.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469
+  C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469: PytestCacheWarning: could not create cache path C:\project\rakuten-room-inago\.pytest_cache\v\cache\nodeids: [WinError 5] �A�N�Z�X�����ۂ���܂����B: 'C:\\project\\rakuten-room-inago\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:423
+  C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:423: PytestCacheWarning: could not create cache path C:\project\rakuten-room-inago\.pytest_cache\v\cache\lastfailed: [WinError 5] �A�N�Z�X�����ۂ���܂����B: 'C:\\project\\rakuten-room-inago\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_pipeline_safe_diagnostics.py::test_prepare_idempotency_conflict_records_safe_operation_context
+1 failed, 2 warnings in 0.40s

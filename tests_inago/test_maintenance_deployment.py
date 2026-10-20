@@ -13,7 +13,6 @@ from automation.inago.maintenance.deployment import (
     DeploymentCoordinator,
     DeploymentError,
     ManagedWorktreeManager,
-    PendingSnapshot,
     commit_owned_paths,
     push_candidate_commit,
     stage_owned_paths,
@@ -144,7 +143,6 @@ def _case(tmp_path: Path, *, changed_path: str = "src/fix.py") -> dict[str, obje
         status="approved",
         reviewed_at="2026-10-18T01:00:03+00:00",
     )
-    pending = PendingSnapshot(2, "pending-revision-1")
     daily = {"active": False}
     runtime = _Runtime(base)
     coordinator = DeploymentCoordinator(
@@ -152,7 +150,6 @@ def _case(tmp_path: Path, *, changed_path: str = "src/fix.py") -> dict[str, obje
         repository=repo,
         worktree_root=tmp_path / "managed-worktrees",
         daily_active_probe=lambda: daily["active"],
-        pending_probe=lambda: pending,
         runtime_switcher=runtime,
         exclusion_guard=_Guard(),
     )
@@ -163,7 +160,6 @@ def _case(tmp_path: Path, *, changed_path: str = "src/fix.py") -> dict[str, obje
         "base": base,
         "result": result,
         "store": store,
-        "pending": pending,
         "daily": daily,
         "runtime": runtime,
         "coordinator": coordinator,
@@ -296,18 +292,16 @@ def test_runtime_confirmation_failure_does_not_finalize_deployment(
     assert completed.status == "deployed"
 
 
-def test_c38_fixed_root_contract(tmp_path: Path) -> None:
+def test_c38_fixed_root_allows_dirty_tracked_content(tmp_path: Path) -> None:
     case = _case(tmp_path)
     repo = case["repo"]
     source_user_change = repo / "README.md"
     source_user_change.write_text("user change stays here\n", encoding="utf-8")
     manager = ManagedWorktreeManager(repo, tmp_path / "managed")
 
-    with pytest.raises(DeploymentError, match="fixed_repository_dirty"):
-        manager.open(release_id="release-fixture", commit=case["result"])
+    opened = manager.open(release_id="release-fixture", commit=case["result"])
+    assert opened == repo
     assert source_user_change.read_text(encoding="utf-8") == "user change stays here\n"
-
-
 def test_c39_contract(tmp_path: Path) -> None:
     case = _case(tmp_path)
     guard = case["coordinator"].exclusion_guard
@@ -322,7 +316,6 @@ def test_c39_contract(tmp_path: Path) -> None:
     assert waiting.status == "blocked"
     assert waiting.reason_code == "daily_owner_active_or_unknown"
     assert _git(case["remote"], "rev-parse", "refs/heads/main") == case["base"]
-    assert case["pending"] == PendingSnapshot(2, "pending-revision-1")
     assert case["runtime"].active == case["base"]
 
     case["daily"]["active"] = False
@@ -330,7 +323,6 @@ def test_c39_contract(tmp_path: Path) -> None:
 
     assert completed.status == "deployed"
     assert completed.pushed_commit == completed.active_commit == case["result"]
-    assert case["pending"] == PendingSnapshot(2, "pending-revision-1")
 
 
 def test_c40_contract(tmp_path: Path) -> None:
@@ -454,7 +446,6 @@ def test_c43_contract(tmp_path: Path) -> None:
     assert result.active_commit == case["base"]
     assert case["runtime"].active == case["base"]
     assert case["runtime"].switches[-2:] == [case["result"], case["base"]]
-    assert case["pending"] == PendingSnapshot(2, "pending-revision-1")
     record = case["store"].get_deployment(deployment_id=result.deployment_id)
     assert record is not None and record.status == "rolled_back"
 

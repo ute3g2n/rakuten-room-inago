@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="31" time="8.085" timestamp="2026-10-21T06:30:32.768019+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_ai" name="test_c24_contract" time="0.661" /><testcase classname="tests_inago.test_maintenance_ai" name="test_report_review_session_isolated_by_report_version" time="0.395"><failure message="automation.inago.maintenance.ai_adapter.MaintenanceAIBlockedError: session_discriminator_invalid">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_report_review_session_iso0')
+
+    def test_report_review_session_isolated_by_report_version(tmp_path):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+        job = create_ready_release(store, incident_id=incident_id)
+        _bind_job(store, incident_id, job.job_id)
+        attempt_id = _start_test_attempt(store, job.job_id)
+        adapter, attempts_root, worktrees_root = _adapter(tmp_path, store)
+        output_root = attempts_root / job.job_id / attempt_id
+        output_root.mkdir(parents=True)
+        worktree_root = worktrees_root / job.job_id
+        worktree_root.mkdir()
+        identity = _job_identity(incident_id, job.job_id)
+        common = {
+            "parent_key": "B",
+            "role_name": "rr-inago-incident-report-reviewer",
+            "job_id": job.job_id,
+            "attempt_id": attempt_id,
+            "identity": identity,
+            "cwd": adapter.project_root,
+            "attempt_output_root": output_root,
+            "worktree_root": worktree_root,
+        }
+    
+        previous_report = adapter.plan_session(**common)
+        _bind_ai_session(store, previous_report, thread_id="thread-for-prior-report")
+    
+&gt;       current_review = adapter.plan_session(
+            **common,
+            session_discriminator=("report-review-v2:" + "a" * 64),
+        )
+
+tests_inago\test_maintenance_ai.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\maintenance\diagnostic_trace.py:941: in wrapped
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.ai_adapter.MaintenanceAIAdapter object at 0x000001B4A7447560&gt;
+parent_key = 'B', role_name = 'rr-inago-incident-report-reviewer'
+job_id = 'job-release-1', attempt_id = '2a9ba2da-7dab-4eb3-874c-b0004fb0006e'
+identity = {'incident_id': 'ad6c5395-e704-4b4f-ad59-00a8796e0f96', 'source_launch_id': 'launch-1', 'source_run_id': None, 'target_date': '2026-10-17', ...}
+cwd = WindowsPath('C:/project/rakuten-room-inago')
+attempt_output_root = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_report_review_session_iso0/attempts/job-release-1/2a9ba2da-7dab-4eb3-874c-b0004fb0006e')
+worktree_root = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_report_review_session_iso0/worktrees/job-release-1')
+session_discriminator = 'report-review-v2:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+    @audit_maintenance_stage("model")
+    def plan_session(
+        self,
+        *,
+        parent_key: str,
+        role_name: str,
+        job_id: str,
+        attempt_id: str,
+        identity: Mapping[str, object],
+        cwd: str | Path,
+        attempt_output_root: str | Path,
+        worktree_root: str | Path,
+        session_discriminator: str | None = None,
+    ) -&gt; MaintenanceAISessionPlan:
+        if parent_key not in PARENT_SETTINGS:
+            raise MaintenanceAIBlockedError("parent_key_unauthorized")
+        if identity.get("job_id") != job_id:
+            raise MaintenanceAIBlockedError("job_identity_invalid")
+        try:
+            manifest = self.controller.get_job_input_manifest(job_id=job_id)
+        except MaintenanceStoreError as exc:
+            raise MaintenanceAIBlockedError(exc.code) from exc
+        try:
+            attempt = self.controller.get_step_attempt(attempt_id=attempt_id)
+        except MaintenanceStoreError as exc:
+            raise MaintenanceAIBlockedError(exc.code) from exc
+        if attempt.job_id != manifest.job_id:
+            raise MaintenanceAIBlockedError("step_attempt_not_actionable")
+        model, effort, developer_instructions = self._role_config(
+            parent_key=parent_key, role_name=role_name
+        )
+        _default_model, _default_effort, tier, fast_mode = PARENT_SETTINGS[parent_key]
+        attempts_root = _directory(self.attempts_root, "write_root_out_of_scope")
+        fixed_root_readonly_reviewer = (
+            parent_key == "B" and role_name in _FIXED_ROOT_READONLY_REVIEWERS
+        )
+        worktrees_root = (
+            self.project_root
+            if fixed_root_readonly_reviewer
+            else _directory(self.worktrees_root, "write_root_out_of_scope")
+        )
+        expected_attempt_root = attempts_root / manifest.job_id / attempt.attempt_id
+        expected_worktree = worktrees_root / manifest.job_id
+        if _absolute_path(attempt_output_root) != expected_attempt_root:
+            raise MaintenanceAIBlockedError("write_root_out_of_scope")
+        attempt_root = _directory_under_root(
+            expected_attempt_root, attempts_root, "write_root_out_of_scope"
+        )
+        fixed_root_writer = parent_key == "B" and role_name in _WORKTREE_WRITERS
+        if fixed_root_writer or fixed_root_readonly_reviewer:
+            if _absolute_path(worktree_root) != self.project_root:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+            worktree = _directory(self.project_root, "write_root_out_of_scope")
+        else:
+            if _absolute_path(worktree_root) != expected_worktree:
+                raise MaintenanceAIBlockedError("write_root_out_of_scope")
+            worktree = _directory_under_root(
+                expected_worktree, worktrees_root, "write_root_out_of_scope"
+            )
+        working_directory = _directory(Path(cwd), "cwd_out_of_scope")
+        if fixed_root_writer or fixed_root_readonly_reviewer:
+            permitted_cwd = (worktree,)
+        elif parent_key == "A":
+            permitted_cwd = (self.project_root, attempt_root)
+        else:
+            permitted_cwd = (self.project_root, worktree)
+        if not any(_path_within(working_directory, parent) for parent in permitted_cwd):
+            raise MaintenanceAIBlockedError("cwd_out_of_scope")
+    
+        policy = self._sandbox_policy(parent_key=parent_key, role_name=role_name)
+        base_session_key = f"{parent_key}:{role_name}"
+        session_scope = None
+        if session_discriminator is not None:
+            if not isinstance(session_discriminator, str) or not _AGENT_NAME_PATTERN.fullmatch(session_discriminator):
+&gt;               raise MaintenanceAIBlockedError("session_discriminator_invalid")
+E               automation.inago.maintenance.ai_adapter.MaintenanceAIBlockedError: session_discriminator_invalid
+
+automation\inago\maintenance\ai_adapter.py:470: MaintenanceAIBlockedError</failure></testcase><testcase classname="tests_inago.test_maintenance_ai" name="test_c25_contract" time="0.733" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_revalidates_attempt_parent_before_persisting_response" time="0.475" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_ai_response_is_validated_bound_and_saved_in_attempt_output" time="0.508" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_ai_response_contract_mismatch_is_not_saved[identity-response_identity_mismatch]" time="0.558" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_ai_response_contract_mismatch_is_not_saved[missing-null-identity-response_identity_mismatch]" time="0.491" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c27_ai_response_contract_mismatch_is_not_saved[schema-response_schema_invalid]" time="0.460" /><testcase classname="tests_inago.test_maintenance_ai" name="test_u07_job_input_manifest_and_session_bindings_are_immutable" time="0.250" /><testcase classname="tests_inago.test_maintenance_ai" name="test_c24_app_server_passes_role_instructions_and_settings_to_thread_start" time="0.004" /><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_daily_evidence_stage_persists_and_reuses_redacted_bundle" time="0.339"><failure message="AssertionError: daily_evidence_bundle_write_failed&#10;assert 'blocked' == 'complete'&#10;  &#10;  - complete&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_daily_evidence_stage_pers0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B4A7449BB0&gt;
+
+    def test_daily_evidence_stage_persists_and_reuses_redacted_bundle(
+        tmp_path, monkeypatch
+    ):
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9601)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9601,
+            )
+    
+        result = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        launch = store.get_daily_launch(result.launch_id)
+        check = store.get_daily_check_by_launch(result.launch_id)
+        queue = store.get_worker_queue(result.launch_id)
+        assert launch is not None and check is not None and queue is not None
+        lease_now = datetime.now(timezone.utc)
+        lease = store.acquire_lease(
+            lease_key="maintenance:evidence-test",
+            owner_id="evidence-test",
+            owner_pid=9602,
+            owner_start_time=lease_now.isoformat(),
+            now=lease_now,
+        )
+        context = MaintenanceWorkflowContext(
+            launch=launch,
+            check=check,
+            queue=queue,
+            lease=lease,
+            cancel_event=threading.Event(),
+            resume_state=WorkflowResumeState(job=None, attempts=()),
+        )
+    
+        check_result = run_daily_check_incident_stage(
+            context, MaintenanceController(store), store
+        )
+        assert check_result.status == "complete"
+        first_result = run_daily_evidence_stage(context, store)
+&gt;       assert first_result.status == "complete", first_result.reason_code
+E       AssertionError: daily_evidence_bundle_write_failed
+E       assert 'blocked' == 'complete'
+E         
+E         - complete
+E         + blocked
+
+tests_inago\test_maintenance_workflow_provider.py:559: AssertionError</failure></testcase><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_pipeline_failure_records_its_own_capture_location" time="0.155" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_result_mapping_adds_primary_diagnostic_on_all_callback_paths" time="0.123" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_callback_secondary_exception_preserves_primary_failure_and_records_safe_diagnostic" time="0.006" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row" time="0.006" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_pipeline_source_fingerprint_helper_is_removed" time="0.000" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_each_retry_summary_query_failure_keeps_result_and_null_fallbacks[retry_summary_room_attempts-retry_summary_room_attempts]" time="0.153" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_each_retry_summary_query_failure_keeps_result_and_null_fallbacks[retry_summary_trend_acquisitions-retry_summary_trend_acquisitions]" time="0.145" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_each_retry_summary_query_failure_keeps_result_and_null_fallbacks[retry_summary_trend_attempts-retry_summary_trend_attempts]" time="0.144" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_commit_then_export_exception_preserves_commit_and_draft_count" time="0.011" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_commit_then_export_non_ready_return_is_safe_and_persisted[after_commit_result0-failed-1]" time="0.021" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_commit_then_export_non_ready_return_is_safe_and_persisted[after_commit_result1-not_run-1]" time="0.023" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_commit_then_export_non_ready_return_is_safe_and_persisted[after_commit_result2-unknown-1]" time="0.024" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_commit_then_export_non_ready_return_is_safe_and_persisted[after_commit_result3-unknown-1]" time="0.022" /><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_sqlite_error_code_reaches_primary_secondary_and_l01_payload" time="0.021" /><testcase classname="tests_inago.test_daily_fix_trace" name="test_n04" time="0.124" /><testcase classname="tests_inago.test_maintenance_store" name="test_c53_contract" time="0.274"><failure message="AttributeError: 'MaintenanceStore' object has no attribute 'create_incident'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_c53_contract0')
+
+    def test_c53_contract(tmp_path):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+        release = store.create_release(
+            release_id="release-gated",
+            author_id="implementation-agent",
+            base_commit="base-1",
+            result_commit="commit-1",
+            result_version="result-v1",
+            config_version="settings-v1",
+            required_case_ids=("case-a", "case-b"),
+            created_at=BASE_TIME.isoformat(),
+        )
+    
+        blocked = store.evaluate_release_gate(
+            release_id=release.release_id,
+            evaluated_at=(BASE_TIME + timedelta(seconds=1)).isoformat(),
+        )
+        assert blocked.status == "blocked"
+        denied = store.start_fix_job(
+            incident_id=incident_id,
+            release_id=release.release_id,
+            job_id="blocked-job",
+            started_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
+        )
+        assert denied.started
+        assert store.counts()["maintenance_job"] == 1
+    
+        store.record_test_result(
+            release_id=release.release_id,
+            case_id="case-a",
+            attempt=1,
+            result_version="result-v1",
+            status="FAIL",
+            recorded_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
+        )
+        store.record_test_result(
+            release_id=release.release_id,
+            case_id="case-b",
+            attempt=1,
+            result_version="result-v1",
+            status="SKIP",
+            recorded_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
+        )
+        assert (
+            store.evaluate_release_gate(
+                release_id=release.release_id,
+                evaluated_at=(BASE_TIME + timedelta(seconds=4)).isoformat(),
+            ).status
+            == "blocked"
+        )
+    
+        store.record_test_result(
+            release_id=release.release_id,
+            case_id="case-a",
+            attempt=2,
+            result_version="result-v1",
+            status="PASS",
+            recorded_at=(BASE_TIME + timedelta(seconds=5)).isoformat(),
+        )
+        store.record_test_result(
+            release_id=release.release_id,
+            case_id="case-b",
+            attempt=2,
+            result_version="old-version",
+            status="PASS",
+            recorded_at=(BASE_TIME + timedelta(seconds=5)).isoformat(),
+        )
+        assert (
+            store.evaluate_release_gate(
+                release_id=release.release_id,
+                evaluated_at=(BASE_TIME + timedelta(seconds=6)).isoformat(),
+            ).status
+            == "blocked"
+        )
+    
+        store.record_test_result(
+            release_id=release.release_id,
+            case_id="case-b",
+            attempt=3,
+            result_version="result-v1",
+            status="PASS",
+            recorded_at=(BASE_TIME + timedelta(seconds=7)).isoformat(),
+        )
+        store.record_release_review(
+            release_id=release.release_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="old-version",
+            status="approved",
+            reviewed_at=(BASE_TIME + timedelta(seconds=8)).isoformat(),
+        )
+        with pytest.raises(
+            MaintenanceStoreError,
+            match="deployment_success_requires_pending_flow",
+        ):
+            store.record_deployment(
+                release_id=release.release_id,
+                result_commit="other-commit",
+                config_version="settings-v1",
+                status="deployed",
+                deployed_at=(BASE_TIME + timedelta(seconds=9)).isoformat(),
+                source_commit="other-commit",
+                base_commit="base-1",
+                tested_commit="other-commit",
+                pushed_commit="other-commit",
+                active_commit="other-commit",
+                remote_name="origin",
+                target_branch="main",
+            )
+        assert (
+            store.evaluate_release_gate(
+                release_id=release.release_id,
+                evaluated_at=(BASE_TIME + timedelta(seconds=10)).isoformat(),
+            ).status
+            == "blocked"
+        )
+    
+        store.record_release_review(
+            release_id=release.release_id,
+            reviewer_id="independent-reviewer",
+            reviewed_version="result-v1",
+            status="approved",
+            reviewed_at=(BASE_TIME + timedelta(seconds=11)).isoformat(),
+        )
+        with pytest.raises(
+            MaintenanceStoreError,
+            match="deployment_success_requires_pending_flow",
+        ):
+            store.record_deployment(
+                release_id=release.release_id,
+                result_commit="commit-1",
+                config_version="wrong-settings",
+                status="deployed",
+                deployed_at=(BASE_TIME + timedelta(seconds=12)).isoformat(),
+                source_commit="commit-1",
+                base_commit="base-1",
+                tested_commit="commit-1",
+                pushed_commit="commit-1",
+                active_commit="commit-1",
+                remote_name="origin",
+                target_branch="main",
+            )
+        assert (
+            store.evaluate_release_gate(
+                release_id=release.release_id,
+                evaluated_at=(BASE_TIME + timedelta(seconds=13)).isoformat(),
+            ).status
+            == "blocked"
+        )
+    
+        record_successful_deployment_fixture(
+            store,
+            release_id=release.release_id,
+            deployed_at=(BASE_TIME + timedelta(seconds=14)).isoformat(),
+        )
+        gate = store.evaluate_release_gate(
+            release_id=release.release_id,
+            evaluated_at=(BASE_TIME + timedelta(seconds=15)).isoformat(),
+        )
+        assert gate.status == "ready"
+&gt;       second_incident = store.create_incident(
+                          ^^^^^^^^^^^^^^^^^^^^^
+            incident_id="incident-ready",
+            source_launch_id="launch-ready",
+            target_date="2026-10-18",
+            source_run_id=None,
+            check_id="check-ready",
+            created_at=(BASE_TIME + timedelta(seconds=16)).isoformat(),
+        )
+E       AttributeError: 'MaintenanceStore' object has no attribute 'create_incident'
+
+tests_inago\test_maintenance_store.py:867: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_store" name="test_c53_review_rounds_are_unbounded" time="0.298" /><testcase classname="tests_inago.test_maintenance_store" name="test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger" time="0.100"><failure message="assert (18,) == (15,)&#10;  &#10;  At index 0 diff: 18 != 15&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_schema_15_upgrade_drops_o0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B4A5DD13D0&gt;
+
+    def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
+        tmp_path, monkeypatch
+    ):
+        target_schema_version = maintenance_store_module.SCHEMA_VERSION
+        assert target_schema_version &gt;= 15
+    
+        # Recreate the currently deployed schema 14 without touching production.
+        monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 14)
+        store = make_store(tmp_path)
+        with sqlite3.connect(store.database_path) as connection:
+            assert connection.execute("PRAGMA user_version").fetchone() == (14,)
+            assert connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+                "AND name='step_attempt_repair_predecessor_all_or_none'"
+            ).fetchone() == (1,)
+    
+        # The next normal initialize must run the registered migration 015.
+        monkeypatch.setattr(
+            maintenance_store_module, "SCHEMA_VERSION", target_schema_version
+        )
+        assert store.initialize() == target_schema_version
+        with sqlite3.connect(store.database_path) as connection:
+&gt;           assert connection.execute("PRAGMA user_version").fetchone() == (15,)
+E           assert (18,) == (15,)
+E             
+E             At index 0 diff: 18 != 15
+E             Use -v to get more diff
+
+tests_inago\test_maintenance_store.py:1312: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_integration" name="test_c59_contract" time="0.155"><failure message="AssertionError: assert 'dispatch_complete' == 'maintenance_incomplete'&#10;  &#10;  - maintenance_incomplete&#10;  + dispatch_complete">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_c59_contract0')
+
+    def test_c59_contract(tmp_path):
+        store = make_store(tmp_path)
+        observed_during_launch = []
+    
+        def process_probe(pid):
+            launch = next(iter(store.list_daily_launches(target_date="2026-10-17")))
+            if launch.status == "running" and pid == launch.owner_pid:
+                return ProcessObservation("running", launch.owner_start_time)
+            return ProcessObservation("stopped", None)
+    
+        def process_runner(_command, _cwd, on_started):
+            on_started(9202)
+            launch = next(iter(store.list_daily_launches(target_date="2026-10-17")))
+            during = run_worker_once(
+                store,
+                now=BASE_TIME + timedelta(minutes=2),
+                owner_id="worker-c59-during",
+                owner_pid=9203,
+                owner_start_time=(BASE_TIME + timedelta(minutes=2)).isoformat(),
+                process_probe=process_probe,
+                source_launch_id=launch.source_launch_id,
+            )
+            observed_during_launch.append(during)
+            payload = {
+                "schema_version": "daily-run-result-v1",
+                "target_date": "2026-10-17",
+                "status": "complete",
+                "overall_status": "complete",
+                "daily_status": "complete",
+                "run_id": "run-c59",
+            }
+            return DailyProcessResult(
+                returncode=0,
+                stdout=json.dumps(payload).encode("utf-8"),
+                stderr=b"",
+                pid=9202,
+            )
+    
+        launch_outcome = run_daily_launch(
+            store,
+            data_root=tmp_path / "runtime",
+            config_path=tmp_path / "config.json",
+            now=BASE_TIME,
+            process_runner=process_runner,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+        assert launch_outcome.notification_status == "saved"
+        assert observed_during_launch[0].status == "waiting"
+        assert observed_during_launch[0].reason_code == "daily_launch_running"
+    
+        launch_id = launch_outcome.launch_id
+        task_calls = []
+        dispatched = dispatch_ready_worker(
+            store,
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            task_runner=lambda command, **_kwargs: task_calls.append(command)
+            or type("Result", (), {"returncode": 0})(),
+        )
+        assert dispatched.status == "dispatched"
+        assert task_calls == [["schtasks.exe", "/Run", "/TN", "RakutenRoomInagoWorker"]]
+        complete = run_worker_once(
+            store,
+            now=BASE_TIME + timedelta(minutes=3),
+            owner_id="worker-c59-after",
+            owner_pid=9204,
+            owner_start_time=(BASE_TIME + timedelta(minutes=3)).isoformat(),
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            source_launch_id=launch_id,
+        )
+        duplicate = run_worker_once(
+            store,
+            now=BASE_TIME + timedelta(minutes=4),
+            owner_id="worker-c59-duplicate",
+            owner_pid=9205,
+            owner_start_time=(BASE_TIME + timedelta(minutes=4)).isoformat(),
+            process_probe=lambda _pid: ProcessObservation("stopped", None),
+            source_launch_id=launch_id,
+        )
+    
+        assert complete.status == "maintenance_incomplete"
+&gt;       assert duplicate.status == "maintenance_incomplete"
+E       AssertionError: assert 'dispatch_complete' == 'maintenance_incomplete'
+E         
+E         - maintenance_incomplete
+E         + dispatch_complete
+
+tests_inago\test_maintenance_integration.py:620: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_integration" name="test_legacy_enqueue_historical_cli_is_removed" time="0.231"><failure message="NameError: name 'first' is not defined">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-02/test_legacy_enqueue_historical0')
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x000001B4A5DD1490&gt;
+
+    def test_legacy_enqueue_historical_cli_is_removed(tmp_path, capsys):
+        import hashlib
+    
+        data_root = tmp_path / "maintenance-data"
+        daily_database = tmp_path / "ordinary-daily" / "state.sqlite"
+        assert (
+            maintenance_cli_main(
+                [
+                    "--data-root",
+                    str(data_root),
+                    "--daily-database",
+                    str(daily_database),
+                    "init",
+                ]
+            )
+            == 0
+        )
+        capsys.readouterr()
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.create_release(
+            release_id="release-c54",
+            author_id="author-c54",
+            base_commit="a" * 40,
+            result_commit="b" * 40,
+            result_version="result-c54",
+            config_version="config-c54",
+            required_case_ids=("case-c54",),
+            created_at=BASE_TIME.isoformat(),
+        )
+        store.record_test_result(
+            release_id="release-c54",
+            case_id="case-c54",
+            attempt=1,
+            result_version="result-c54",
+            status="PASS",
+            recorded_at=(BASE_TIME + timedelta(seconds=1)).isoformat(),
+        )
+        store.record_release_review(
+            release_id="release-c54",
+            reviewer_id="reviewer-c54",
+            reviewed_version="result-c54",
+            status="approved",
+            reviewed_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
+        )
+        record_successful_deployment_fixture(
+            store,
+            release_id="release-c54",
+            deployed_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
+        )
+        gate = store.evaluate_release_gate(
+            release_id="release-c54",
+            evaluated_at=(BASE_TIME + timedelta(seconds=4)).isoformat(),
+        )
+        assert gate.status == "ready"
+    
+        evidence_bytes = b'{"launch_status":"failed","exit_code":4}\n'
+        evidence_path = data_root / "E0" / "launch-record.json"
+        evidence_path.parent.mkdir(parents=True)
+        evidence_path.write_bytes(evidence_bytes)
+        observation = {
+            "schema_version": "historical-daily-intake-v1",
+            "original_source_launch_id": "original-launch-20261017",
+            "source_run_id": None,
+            "target_date": "2026-10-17",
+            "launch_status": "failed",
+            "daily_status": "failed",
+            "exit_code": 4,
+            "reason_code": "daily_runtime_error",
+            "evidence_ref": "E0/launch-record.json",
+            "evidence_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
+            "observed_at": "2026-10-17T13:20:00+09:00",
+        }
+        observation_path = data_root / "intake" / "historical-2026-10-17.json"
+        observation_path.parent.mkdir(parents=True)
+        observation_path.write_text(
+            json.dumps(observation, sort_keys=True, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        command = [
+            "--data-root",
+            str(data_root),
+            "--daily-database",
+            str(daily_database),
+            "enqueue-historical",
+            "--release-id",
+            "release-c54",
+            "--observation",
+            "intake/historical-2026-10-17.json",
+            "--enqueued-at",
+            "2026-10-18T14:00:00+09:00",
+        ]
+    
+        assert maintenance_cli_main(command) == 2
+        assert "invalid choice" in capsys.readouterr().err
+        assert store.counts()["daily_check"] == 0
+        assert store.counts()["maintenance_job"] == 0
+        assert store.counts()["incident"] == 0
+        assert store.counts()["daily_launch"] == 0
+        assert store.counts()["worker_queue"] == 0
+        with sqlite3.connect(store.database_path) as connection:
+            row = connection.execute(
+                "SELECT source_run_id, target_date FROM daily_check WHERE check_id = ?",
+&gt;               (first["check_id"],),
+                 ^^^^^
+            ).fetchone()
+E           NameError: name 'first' is not defined
+
+tests_inago\test_maintenance_integration.py:820: NameError</failure></testcase></testsuite></testsuites>

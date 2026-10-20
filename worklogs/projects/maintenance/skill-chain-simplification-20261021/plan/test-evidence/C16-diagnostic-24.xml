@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.592" timestamp="2026-10-21T07:00:26.887784+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_store" name="test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls" time="0.110"><failure message="sqlite3.IntegrityError: NOT NULL constraint failed: release.case_manifest_sha256">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-24/test_schema_19_upgrade_preserv0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000026D4B67EC60&gt;
+
+    def test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls(
+        tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 18)
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+&gt;       job = create_ready_release(store, incident_id=incident_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_store.py:1360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\maintenance_support.py:76: in create_ready_release
+    release = store.create_release(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;automation.inago.maintenance.store.MaintenanceStore object at 0x0000026D492FF4D0&gt;
+release_id = 'release-1', author_id = 'implementation-agent'
+base_commit = 'base-1', result_commit = 'commit-1', result_version = 'result-v1'
+config_version = 'settings-v1', required_case_ids = ('contract-case-1',)
+created_at = '2026-10-17T04:00:00+00:00'
+
+    def create_release(
+        self,
+        *,
+        release_id: str,
+        author_id: str,
+        base_commit: str,
+        result_commit: str,
+        result_version: str,
+        config_version: str,
+        required_case_ids: tuple[str, ...],
+        created_at: datetime | str,
+    ) -&gt; ReleaseRecord:
+        release = _safe_id(release_id, "release_id_invalid")
+        author = _safe_id(author_id, "release_author_invalid")
+        base = _safe_id(base_commit, "base_commit_invalid")
+        result = _safe_id(result_commit, "result_commit_invalid")
+        version = _safe_id(result_version, "result_version_invalid")
+        config = _safe_id(config_version, "config_version_invalid")
+        cases = tuple(
+            _safe_id(case_id, "required_case_id_invalid")
+            for case_id in required_case_ids
+        )
+        if len(set(cases)) != len(cases):
+            raise MaintenanceStoreError("required_case_set_invalid")
+        created = _timestamp(created_at)
+        with self._transaction() as connection:
+&gt;           connection.execute(
+                "INSERT INTO release "
+                "(release_id, author_id, base_commit, result_commit, result_version, "
+                "config_version, case_manifest_sha256, state, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'frozen', ?)",
+                (
+                    release,
+                    author,
+                    base,
+                    result,
+                    version,
+                    config,
+                    None,
+                    created,
+                ),
+            )
+E           sqlite3.IntegrityError: NOT NULL constraint failed: release.case_manifest_sha256
+
+automation\inago\maintenance\store.py:4314: IntegrityError</failure></testcase></testsuite></testsuites>

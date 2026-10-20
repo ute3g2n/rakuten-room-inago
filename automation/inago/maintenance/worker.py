@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import os
 import re
-import subprocess
 import threading
 import tempfile
 from typing import Callable, Protocol
@@ -20,8 +19,6 @@ from automation.inago.maintenance.store import (
     DailyCheckRecord,
     DailyLaunchRecord,
     HistoricalJobReference,
-    LeaseBusyError,
-    LeaseToken,
     MaintenanceStore,
     MaintenanceStoreError,
     WorkerQueueRecord,
@@ -69,14 +66,6 @@ class WorkerRunResult:
 
 
 @dataclass(frozen=True, slots=True)
-class WorkerDispatchResult:
-    status: str
-    queue_id: str | None = None
-    source_launch_id: str | None = None
-    reason_code: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class WorkerWorkflowOutcome:
     """Durable result returned by the abnormal-day maintenance workflow."""
 
@@ -91,7 +80,6 @@ WorkflowRunner = Callable[
         WorkflowLaunch,
         DailyCheckRecord,
         WorkerQueueRecord,
-        LeaseToken,
         threading.Event,
     ],
     WorkerWorkflowOutcome,
@@ -200,7 +188,6 @@ def _blocked_result(
     owner_pid: int,
     owner_start_time: str,
     now: datetime,
-    lease: LeaseToken | None = None,
     resolution_status: str = "blocked",
     historical_job_id: str | None = None,
 ) -> WorkerRunResult:
@@ -211,83 +198,59 @@ def _blocked_result(
         or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", reason_code) is None
     ):
         reason_code = "maintenance_workflow_failed"
-    owns_lease = lease is None
-    if lease is None:
-        lease = _acquire_worker_lease(
-            store,
-            owner_id=owner_id,
-            owner_pid=owner_pid,
-            owner_start_time=owner_start_time,
-            now=now,
-        )
-    try:
-        if historical_job_id is not None:
-            if resolution_status == "waiting":
-                return WorkerRunResult(
-                    status="waiting",
-                    worker_job_id=historical_job_id,
-                    source_launch_id=queue.source_launch_id,
-                    check_id=check_id,
-                    reason_code=reason_code,
-                    maintenance_resolution_status="waiting",
-                )
-            try:
-                store.finalize_job(
-                    job_id=historical_job_id,
-                    final_status="failed",
-                    lease=lease,
-                    finalized_at=(
-                        datetime.now(timezone.utc) if not owns_lease else now
-                    ),
-                    reason_code=reason_code,
-                    incident_status="in_progress",
-                )
-            except Exception:
-                reason_code = "historical_job_failure_persist_failed"
+    if historical_job_id is not None:
+        if resolution_status == "waiting":
             return WorkerRunResult(
-                status="maintenance_incomplete",
+                status="waiting",
                 worker_job_id=historical_job_id,
                 source_launch_id=queue.source_launch_id,
                 check_id=check_id,
                 reason_code=reason_code,
-                maintenance_resolution_status=(
-                    "failed" if resolution_status == "blocked" else resolution_status
-                ),
+                maintenance_resolution_status="waiting",
             )
-        blocked = store.block_worker_queue(
-            queue_id=queue.queue_id,
+        try:
+            store.finalize_job(
+                job_id=historical_job_id,
+                final_status="failed",
+                finalized_at=now,
+                reason_code=reason_code,
+                incident_status="in_progress",
+            )
+        except Exception:
+            reason_code = "historical_job_failure_persist_failed"
+        return WorkerRunResult(
+            status="maintenance_incomplete",
+            worker_job_id=historical_job_id,
+            source_launch_id=queue.source_launch_id,
             check_id=check_id,
             reason_code=reason_code,
-            lease=lease,
-            blocked_at=(datetime.now(timezone.utc) if not owns_lease else now),
+            maintenance_resolution_status=(
+                "failed" if resolution_status == "blocked" else resolution_status
+            ),
         )
-        return WorkerRunResult(
-            status="blocked",
-            worker_job_id=blocked.worker_job_id,
-            queue_id=blocked.queue_id,
-            source_launch_id=blocked.source_launch_id,
-            check_id=check_id,
-            reason_code=blocked.reason_code,
-            maintenance_resolution_status=resolution_status,
-        )
-    finally:
-        if owns_lease:
-            store.release_lease(
-                lease=lease,
-                released_at=now,
-            )
+    blocked = store.block_worker_queue(
+        queue_id=queue.queue_id,
+        check_id=check_id,
+        reason_code=reason_code,
+        blocked_at=now,
+    )
+    return WorkerRunResult(
+        status="blocked",
+        worker_job_id=blocked.worker_job_id,
+        queue_id=blocked.queue_id,
+        source_launch_id=blocked.source_launch_id,
+        check_id=check_id,
+        reason_code=blocked.reason_code,
+        maintenance_resolution_status=resolution_status,
+    )
 
 
 def _historical_queue_context(
     reference: HistoricalJobReference,
 ) -> WorkerQueueRecord:
     """Build a transient runner input; this identity is never persisted as a queue."""
-
-    import hashlib
-
-    dispatch_id = hashlib.sha256(reference.job_id.encode("utf-8")).hexdigest()[:24]
     return WorkerQueueRecord(
-        queue_id=f"historical-dispatch-{dispatch_id}",
+        queue_id=f"historical-dispatch-{uuid.uuid4().hex}",
         source_launch_id=reference.source_launch_id,
         worker_job_id=reference.job_id,
         target_date=reference.target_date,
@@ -301,30 +264,6 @@ def _historical_queue_context(
         created_at=reference.created_at,
         updated_at=reference.created_at,
     )
-
-
-def _acquire_worker_lease(
-    store: MaintenanceStore,
-    *,
-    owner_id: str,
-    owner_pid: int,
-    owner_start_time: str,
-    now: datetime,
-) -> LeaseToken:
-    """Create a per-invocation lease without serializing worker startups."""
-
-    while True:
-        try:
-            return store.acquire_lease(
-                lease_key=f"maintenance:worker:{uuid.uuid4().hex}",
-                owner_id=owner_id,
-                owner_pid=owner_pid,
-                owner_start_time=owner_start_time,
-                now=now,
-                ttl_seconds=90,
-            )
-        except LeaseBusyError:
-            continue
 
 
 def _historical_input_failure(
@@ -362,99 +301,75 @@ def _record_outer_workflow_failure(
     """Persist a substantive worker-boundary handoff without stopping reconciliation."""
 
     from automation.inago.maintenance.failure_journal import append_failure_event
-    from automation.inago.maintenance.stage_handoff import dumps_handoff, make_stage_handoff
-
     root = store.database_path.parent.parent
-    identity = store.get_job_input_manifest(job_id=job_id).identity()
-    # A fresh fallback invocation preserves prior raw observations. Every stage
-    # receives an explicit unknown/not-performed observation and handoff.
-    invocation_id = uuid.uuid4().hex
-    directory = root / "workflow-handoffs" / job_id / invocation_id
+    # Keep a readable controller fallback. This is content for the next worker,
+    # not a machine-readable next-owner proof or a claim that a stage ran.
+    directory = root / "workflow-handoffs" / job_id
     temporary: str | None = None
     directory.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
-    for stage in (
-        "check_incident", "evidence", "job", "investigation",
-        "planning", "repair", "deployment", "report",
-    ):
-        handoff = make_stage_handoff(
-            stage=stage,
-            invocation_id=invocation_id,
-            identity=identity,
-            operation="worker.workflow_runner",
-            operation_result="failed" if stage == "job" else "not_performed",
-            summary=(
-                "保守ワークフローの外側で例外または不正な結果を検出しました。終端照合へ進みます。"
-                if stage == "job"
-                else f"外側の実行が継続できず、{stage}工程の通常結果を取得できませんでした。"
-            ),
-            facts=[
-                f"source_launch_id={launch.source_launch_id}",
-                f"check_id={check.check_id}",
-                f"reason_code={reason_code}",
-            ],
-            limitations=["工程結果、公開、原因修正は未確認です。"],
-            next_actions=["同じjobを再開し、この工程の担当が結果を保存してください。"],
-            error=error if stage == "job" else None,
-            reason_code=reason_code,
-            correlation_id=invocation_id,
+    final_path = directory / "workflow-fallback.md"
+    stages = (
+        "調査", "実装", "試験", "独立製品レビュー", "本番反映", "HTML作成", "独立HTMLレビュー",
+    )
+    body = [
+        "# 保守ワークフローの引継ぎ",
+        "",
+        "runnerの外側でエラーが発生しました。下記の工程結果は取得できておらず、実施済みとは扱いません。",
+        "",
+        "## 対象",
+        "",
+        f"- job: {job_id}",
+        f"- 日次起動: {launch.source_launch_id}",
+        f"- 日次run: {launch.source_run_id if launch.source_run_id is not None else '未生成（null）'}",
+        f"- 対象日: {launch.target_date}",
+        f"- check: {check.check_id}",
+        f"- 記録時刻: {now.isoformat()}",
+        f"- runnerの結果: {reason_code}",
+        f"- 捕捉した例外種別: {type(error).__name__}",
+        "",
+        "## 各担当の実行結果",
+        "",
+        *[f"- {stage}: 未確認。通常成果を取得できていません。" for stage in stages],
+        "",
+        "## 次の作業",
+        "",
+        "同じjobの実行記録を確認し、可能な担当工程から続けてください。原因修正、反映、HTML作成、レビューは未確認です。",
+        "",
+    ]
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="\n", dir=directory,
+            prefix=".worker-handoff-", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary = stream.name
+            stream.write("\n".join(body))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, final_path)
+        temporary = None
+    except (OSError, RuntimeError, ValueError, TypeError) as save_error:
+        append_failure_event(
+            root, phase="fallback", operation="worker.workflow_handoff_save",
+            correlation_id=job_id, job_id=job_id,
+            source_launch_id=launch.source_launch_id,
+            source_run_id=launch.source_run_id,
+            reason_code="worker_workflow_handoff_save_failed", error=save_error,
+            capture_location="maintenance.worker._record_outer_workflow_failure",
+            primary_sink="workflow_handoff_file",
         )
-        handoff["stage_progress"] = "handed_off"
-        final_path = directory / f"{stage}.json"
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="wb", dir=directory, prefix=".worker-handoff-", suffix=".tmp", delete=False
-            ) as stream:
-                temporary = stream.name
-                stream.write(dumps_handoff(handoff).encode("utf-8"))
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary, final_path)
-            temporary = None
-        except (OSError, RuntimeError, ValueError, TypeError) as save_error:
-            append_failure_event(
-                root, phase="fallback", operation=f"worker.workflow_handoff_save.{stage}",
-                correlation_id=invocation_id, job_id=job_id,
-                incident_id=str(identity.get("incident_id") or ""),
-                source_launch_id=launch.source_launch_id,
-                source_run_id=launch.source_run_id,
-                reason_code="worker_workflow_handoff_save_failed", error=save_error,
-                capture_location="maintenance.worker._record_outer_workflow_failure",
-                primary_sink="workflow_handoff_file",
-            )
-        finally:
-            if temporary:
-                try:
-                    os.unlink(temporary)
-                except OSError:
-                    pass
-        try:
-            store.record_workflow_stage_observation(
-                invocation_id=invocation_id, job_id=job_id,
-                source_launch_id=launch.source_launch_id,
-                source_run_id=launch.source_run_id, target_date=launch.target_date,
-                stage_name=stage, status="unknown", reason_code=reason_code,
-                observed_at=now,
-            )
-        except Exception as observation_error:
-            append_failure_event(
-                root, phase="failed", operation=f"worker.workflow_observation.{stage}",
-                correlation_id=invocation_id, job_id=job_id,
-                incident_id=str(identity.get("incident_id") or ""),
-                source_launch_id=launch.source_launch_id,
-                source_run_id=launch.source_run_id,
-                reason_code="worker_workflow_observation_save_failed",
-                error=observation_error,
-                capture_location="maintenance.worker._record_outer_workflow_failure",
-                primary_sink="maintenance_workflow_stage_observation",
-            )
+    finally:
+        if temporary:
+            try:
+                os.unlink(temporary)
+            except OSError:
+                pass
     append_failure_event(
         root,
         phase="failed",
         operation="worker.workflow_runner",
-        correlation_id=invocation_id,
+        correlation_id=job_id,
         job_id=job_id,
-        incident_id=str(identity.get("incident_id") or ""),
         source_launch_id=launch.source_launch_id,
         source_run_id=launch.source_run_id,
         reason_code=reason_code,
@@ -614,7 +529,7 @@ def run_worker_once(
                 source_launch_id=queue.source_launch_id,
                 reason_code="daily_launch_running",
             )
-        if not _launch_processes_stopped(launch, process_probe):
+        if source_launch_id is None and not _launch_processes_stopped(launch, process_probe):
             return WorkerRunResult(
                 status="waiting",
                 worker_job_id=queue.worker_job_id,
@@ -682,180 +597,68 @@ def run_worker_once(
         )
 
     requires_workflow = check.check_status in {"abnormal", "incomplete", "unknown"}
-    lease = _acquire_worker_lease(
-        store,
-        owner_id=owner,
-        owner_pid=pid,
-        owner_start_time=process_start,
-        now=now,
-    )
-
-    stop_heartbeat = threading.Event()
     cancel_workflow = threading.Event()
-    heartbeat_errors: list[str] = []
-    heartbeat_thread: threading.Thread | None = None
-
-    if requires_workflow:
-
-        def maintain_worker_lease() -> None:
-            while not stop_heartbeat.wait(30):
-                try:
-                    store.heartbeat_lease(
-                        lease=lease,
-                        now=datetime.now(timezone.utc),
-                        ttl_seconds=90,
-                    )
-                except Exception:
-                    heartbeat_errors.append("worker_lease_heartbeat_failed")
-                    return
-
-        heartbeat_thread = threading.Thread(
-            target=maintain_worker_lease,
-            name="inago-maintenance-worker-heartbeat",
-            daemon=True,
-        )
-        heartbeat_thread.start()
 
     resolution_status = "not_started"
     workflow_reason_code: str | None = None
     runner_failure: BaseException | None = None
-    try:
-        if requires_workflow:
+    if requires_workflow:
+        try:
+            if workflow_runner is None:
+                raise RuntimeError("maintenance workflow provider is unavailable")
+            outcome = workflow_runner(launch, check, queue, cancel_workflow)
+        except Exception as exc:
+            runner_failure = exc
+            safe_reason = getattr(exc, "code", None)
+            if (
+                not isinstance(safe_reason, str)
+                or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", safe_reason) is None
+            ):
+                safe_reason = "maintenance_workflow_failed"
+            workflow_reason_code = safe_reason
+            outcome = WorkerWorkflowOutcome(
+                status="unknown", check_id=check.check_id,
+                reason_code=workflow_reason_code,
+            )
+        if not isinstance(outcome, WorkerWorkflowOutcome):
+            runner_failure = TypeError(
+                f"workflow_runner returned {type(outcome).__name__}, expected WorkerWorkflowOutcome"
+            )
+            workflow_reason_code = "maintenance_workflow_result_invalid"
+            outcome = WorkerWorkflowOutcome(
+                status="unknown", check_id=check.check_id,
+                reason_code=workflow_reason_code,
+            )
+        if outcome.check_id != check.check_id:
+            runner_failure = ValueError(
+                "workflow_runner outcome check_id does not match the completed daily check"
+            )
+            workflow_reason_code = "maintenance_workflow_check_mismatch"
+            outcome = WorkerWorkflowOutcome(
+                status="unknown", check_id=check.check_id,
+                reason_code=workflow_reason_code,
+            )
+        if historical_item is not None:
             try:
-                if workflow_runner is None:
-                    raise RuntimeError("maintenance workflow provider is unavailable")
-                outcome = workflow_runner(launch, check, queue, lease, cancel_workflow)
+                identity = store.get_job_input_manifest(
+                    job_id=historical_item.job.job_id
+                ).identity()
             except Exception as exc:
-                runner_failure = exc
-                safe_reason = getattr(exc, "code", None)
-                if (
-                    not isinstance(safe_reason, str)
-                    or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", safe_reason) is None
-                ):
-                    safe_reason = "maintenance_workflow_failed"
-                workflow_reason_code = (
-                    heartbeat_errors[0] if heartbeat_errors else safe_reason
-                )
-                outcome = WorkerWorkflowOutcome(
-                    status="unknown", check_id=check.check_id,
-                    reason_code=workflow_reason_code,
-                )
-            if not isinstance(outcome, WorkerWorkflowOutcome):
-                runner_failure = TypeError(
-                    f"workflow_runner returned {type(outcome).__name__}, expected WorkerWorkflowOutcome"
-                )
-                workflow_reason_code = "maintenance_workflow_result_invalid"
-                outcome = WorkerWorkflowOutcome(
-                    status="unknown", check_id=check.check_id,
-                    reason_code=workflow_reason_code,
-                )
-            if outcome.check_id != check.check_id:
-                runner_failure = ValueError(
-                    "workflow_runner outcome check_id does not match the completed daily check"
-                )
-                workflow_reason_code = "maintenance_workflow_check_mismatch"
-                outcome = WorkerWorkflowOutcome(
-                    status="unknown", check_id=check.check_id,
-                    reason_code=workflow_reason_code,
-                )
-            if historical_item is not None:
+                identity = None
+                terminal_error = exc
+            else:
+                terminal_error = None
+            if runner_failure is not None and identity is not None:
                 try:
-                    identity = store.get_job_input_manifest(
-                        job_id=historical_item.job.job_id
-                    ).identity()
-                except Exception as exc:
-                    identity = None
-                    terminal_error = exc
-                else:
-                    terminal_error = None
-                if runner_failure is not None and identity is not None:
-                    try:
-                        _record_outer_workflow_failure(
-                            store,
-                            job_id=historical_item.job.job_id,
-                            launch=launch,
-                            check=check,
-                            error=runner_failure,
-                            reason_code=workflow_reason_code or "maintenance_workflow_failed",
-                        )
-                    except Exception as handoff_error:
-                        try:
-                            from automation.inago.maintenance.failure_journal import (
-                                append_failure_event,
-                            )
-
-                            append_failure_event(
-                                store.database_path.parent.parent,
-                                phase="failed",
-                                operation="worker.workflow.fallback_handoff",
-                                correlation_id=historical_item.source_launch_id,
-                                job_id=historical_item.job.job_id,
-                                incident_id=historical_item.job.incident_id,
-                                source_launch_id=historical_item.source_launch_id,
-                                source_run_id=None,
-                                reason_code="worker_workflow_fallback_handoff_failed",
-                                error=handoff_error,
-                                capture_location="maintenance.worker.run_worker",
-                                primary_sink="worker_fallback_handoff",
-                            )
-                        except Exception:
-                            pass
-                if identity is not None:
-                    if outcome.terminal_adapter == "skill-chain-markdown":
-                        try:
-                            from automation.inago.maintenance.skill_chain import (
-                                inspect_skill_chain_terminal,
-                            )
-
-                            terminal = inspect_skill_chain_terminal(
-                                job_root=(
-                                    store.database_path.parent.parent
-                                    / "maintenance-flow"
-                                    / historical_item.job.job_id
-                                ),
-                                repository_root=store.database_path.parent.parent.parent.parent,
-                                identity=identity,
-                            )
-                            if terminal.get("status") != "complete":
-                                terminal_code = terminal.get("reason_code")
-                                safe_code = (
-                                    terminal_code
-                                    if isinstance(terminal_code, str)
-                                    and re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", terminal_code)
-                                    else "skill_chain_terminal_incomplete"
-                                )
-                                terminal_error = RuntimeError(safe_code)
-                                workflow_reason_code = safe_code
-                                outcome = WorkerWorkflowOutcome(
-                                    status="unknown",
-                                    check_id=check.check_id,
-                                    reason_code=safe_code,
-                                    terminal_adapter="skill-chain-markdown",
-                                )
-                        except Exception as exc:
-                            terminal_error = exc
-                            workflow_reason_code = "skill_chain_terminal_readback_failed"
-                            outcome = WorkerWorkflowOutcome(
-                                status="unknown",
-                                check_id=check.check_id,
-                                reason_code=workflow_reason_code,
-                                terminal_adapter="skill-chain-markdown",
-                            )
-                    else:
-                        try:
-                            from automation.inago.maintenance.workflow_reconciliation import (
-                                reconcile_workflow_terminal,
-                            )
-
-                            reconcile_workflow_terminal(
-                                store,
-                                job_id=historical_item.job.job_id,
-                                lease=lease,
-                                expected_identity=identity,
-                            )
-                        except Exception as exc:
-                            terminal_error = exc
-                if terminal_error is not None:
+                    _record_outer_workflow_failure(
+                        store,
+                        job_id=historical_item.job.job_id,
+                        launch=launch,
+                        check=check,
+                        error=runner_failure,
+                        reason_code=workflow_reason_code or "maintenance_workflow_failed",
+                    )
+                except Exception as handoff_error:
                     try:
                         from automation.inago.maintenance.failure_journal import (
                             append_failure_event,
@@ -864,195 +667,163 @@ def run_worker_once(
                         append_failure_event(
                             store.database_path.parent.parent,
                             phase="failed",
-                            operation="worker.workflow.terminal_reconcile",
-                            correlation_id=(historical_item.source_launch_id or "workflow-terminal-unknown"),
+                            operation="worker.workflow.fallback_handoff",
+                            correlation_id=historical_item.source_launch_id,
                             job_id=historical_item.job.job_id,
                             incident_id=historical_item.job.incident_id,
                             source_launch_id=historical_item.source_launch_id,
                             source_run_id=None,
-                            reason_code="workflow_terminal_reconcile_failed",
-                            error=terminal_error,
+                            reason_code="worker_workflow_fallback_handoff_failed",
+                            error=handoff_error,
                             capture_location="maintenance.worker.run_worker",
-                            primary_sink="workflow_terminal_reconcile",
+                            primary_sink="worker_fallback_handoff",
                         )
                     except Exception:
                         pass
-            if outcome.status != "complete":
-                # Stage failure/wait states describe operations; they do not
-                # prevent the worker from recording the result and advancing.
-                workflow_reason_code = outcome.reason_code or (
-                    "maintenance_workflow_stage_waiting"
-                    if outcome.status == "waiting"
-                    else "maintenance_workflow_stage_blocked"
-                )
-            if heartbeat_errors and workflow_reason_code is None:
-                workflow_reason_code = heartbeat_errors[0]
-            resolution_status = outcome.status
+            if identity is not None:
+                if outcome.terminal_adapter == "skill-chain-markdown":
+                    try:
+                        from automation.inago.maintenance.skill_chain import (
+                            inspect_skill_chain_terminal,
+                        )
 
-        completed_at = datetime.now(timezone.utc) if requires_workflow else now
-        if historical_item is not None:
-            completed_jobs = store.list_workflow_jobs_for_launch(
-                source_launch_id=historical_item.source_launch_id,
-                source_run_id=None,
-                target_date=historical_item.target_date,
+                        terminal = inspect_skill_chain_terminal(
+                            job_root=(
+                                store.database_path.parent.parent
+                                / "maintenance-flow"
+                                / historical_item.job.job_id
+                            ),
+                            repository_root=store.database_path.parent.parent.parent.parent,
+                            identity=identity,
+                        )
+                        if terminal.get("status") != "complete":
+                            terminal_code = terminal.get("reason_code")
+                            safe_code = (
+                                terminal_code
+                                if isinstance(terminal_code, str)
+                                and re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", terminal_code)
+                                else "skill_chain_terminal_incomplete"
+                            )
+                            terminal_error = RuntimeError(safe_code)
+                            workflow_reason_code = safe_code
+                            outcome = WorkerWorkflowOutcome(
+                                status="unknown",
+                                check_id=check.check_id,
+                                reason_code=safe_code,
+                                terminal_adapter="skill-chain-markdown",
+                            )
+                    except Exception as exc:
+                        terminal_error = exc
+                        workflow_reason_code = "skill_chain_terminal_readback_failed"
+                        outcome = WorkerWorkflowOutcome(
+                            status="unknown",
+                            check_id=check.check_id,
+                            reason_code=workflow_reason_code,
+                            terminal_adapter="skill-chain-markdown",
+                        )
+                else:
+                    terminal_error = RuntimeError(
+                        "legacy_workflow_terminal_reconciliation_retired"
+                    )
+                    workflow_reason_code = (
+                        "legacy_workflow_terminal_reconciliation_retired"
+                    )
+                    outcome = WorkerWorkflowOutcome(
+                        status="unknown",
+                        check_id=check.check_id,
+                        reason_code=workflow_reason_code,
+                    )
+            if terminal_error is not None:
+                try:
+                    from automation.inago.maintenance.failure_journal import (
+                        append_failure_event,
+                    )
+
+                    append_failure_event(
+                        store.database_path.parent.parent,
+                        phase="failed",
+                        operation="worker.workflow.terminal_reconcile",
+                        correlation_id=(historical_item.source_launch_id or "workflow-terminal-unknown"),
+                        job_id=historical_item.job.job_id,
+                        incident_id=historical_item.job.incident_id,
+                        source_launch_id=historical_item.source_launch_id,
+                        source_run_id=None,
+                        reason_code="workflow_terminal_reconcile_failed",
+                        error=terminal_error,
+                        capture_location="maintenance.worker.run_worker",
+                        primary_sink="workflow_terminal_reconcile",
+                    )
+                except Exception:
+                    pass
+        if outcome.status != "complete":
+            # Stage failure/wait states describe operations; they do not
+            # prevent the worker from recording the result and advancing.
+            workflow_reason_code = outcome.reason_code or (
+                "maintenance_workflow_stage_waiting"
+                if outcome.status == "waiting"
+                else "maintenance_workflow_stage_blocked"
             )
-            completed_job = next(
-                (
-                    job
-                    for job in completed_jobs
-                    if job.job_id == historical_item.job.job_id
-                ),
-                None,
+        resolution_status = outcome.status
+
+    completed_at = datetime.now(timezone.utc) if requires_workflow else now
+    if historical_item is not None:
+        completed_jobs = store.list_workflow_jobs_for_launch(
+            source_launch_id=historical_item.source_launch_id,
+            source_run_id=None,
+            target_date=historical_item.target_date,
+        )
+        completed_job = next(
+            (
+                job
+                for job in completed_jobs
+                if job.job_id == historical_item.job.job_id
+            ),
+            None,
+        )
+        if completed_job is None or completed_job.status != "complete":
+            final_resolution_status = (
+                resolution_status
+                if resolution_status != "complete"
+                else "incomplete"
             )
-            if completed_job is None or completed_job.status != "complete":
-                final_resolution_status = (
-                    resolution_status
-                    if resolution_status != "complete"
-                    else "incomplete"
-                )
-                return WorkerRunResult(
-                    status="maintenance_incomplete",
-                    worker_job_id=historical_item.job.job_id,
-                    source_launch_id=historical_item.source_launch_id,
-                    check_id=check.check_id,
-                    reason_code=(
-                        workflow_reason_code or "historical_job_completion_unrecorded"
-                    ),
-                    maintenance_resolution_status=final_resolution_status,
-                )
             return WorkerRunResult(
-                status=(
-                    "maintenance_complete"
-                    if resolution_status == "complete"
-                    else "maintenance_incomplete"
-                ),
+                status="maintenance_incomplete",
                 worker_job_id=historical_item.job.job_id,
                 source_launch_id=historical_item.source_launch_id,
                 check_id=check.check_id,
-                reason_code=workflow_reason_code,
-                maintenance_resolution_status=resolution_status,
+                reason_code=(
+                    workflow_reason_code or "historical_job_completion_unrecorded"
+                ),
+                maintenance_resolution_status=final_resolution_status,
             )
-        completed = store.complete_worker_queue(
-            queue_id=queue.queue_id,
-            check_id=check.check_id,
-            lease=lease,
-            completed_at=completed_at,
-        )
-        result = _result(completed, duplicate=False)
         return WorkerRunResult(
             status=(
                 "maintenance_complete"
                 if resolution_status == "complete"
                 else "maintenance_incomplete"
             ),
-            worker_job_id=result.worker_job_id,
-            queue_id=result.queue_id,
-            source_launch_id=result.source_launch_id,
-            check_id=result.check_id,
+            worker_job_id=historical_item.job.job_id,
+            source_launch_id=historical_item.source_launch_id,
+            check_id=check.check_id,
             reason_code=workflow_reason_code,
             maintenance_resolution_status=resolution_status,
         )
-    finally:
-        stop_heartbeat.set()
-        if heartbeat_thread is not None:
-            heartbeat_thread.join(timeout=2)
-        try:
-            store.release_lease(
-                lease=lease,
-                released_at=(datetime.now(timezone.utc) if requires_workflow else now),
-            )
-        except Exception:
-            # A failed lease release is observable in the lease row; it does
-            # not erase a completed workflow/report result.
-            pass
-
-
-def dispatch_ready_worker(
-    store: MaintenanceStore,
-    *,
-    process_probe: ProcessProbe = observe_process,
-    task_runner: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
-) -> WorkerDispatchResult:
-    """Start the worker for a stopped daily launch or a queued historical job."""
-
-    queue = _next_queued_worker_queue(store)
-    historical_reference = None
-    if queue is None or queue.target_date in WORKER_DISPATCH_EXCLUDED_DATES:
-        references = store.list_historical_job_references(
-            limit=1,
-            exclude_target_dates=WORKER_DISPATCH_EXCLUDED_DATES,
-        )
-        if references:
-            historical_reference = references[0]
-            queue = None
-        elif queue is None:
-            excluded_references = store.list_historical_job_references(limit=1)
-            if not excluded_references:
-                return WorkerDispatchResult(status="idle")
-            excluded_reference = excluded_references[0]
-            return WorkerDispatchResult(
-                status="blocked",
-                source_launch_id=excluded_reference.source_launch_id,
-                reason_code="target_date_worker_dispatch_disabled",
-            )
-    if historical_reference is not None:
-        source_launch_id = historical_reference.source_launch_id
-        target_date = historical_reference.target_date
-    else:
-        if queue is None:
-            return WorkerDispatchResult(status="idle")
-        source_launch_id = queue.source_launch_id
-        target_date = queue.target_date
-    queue_id = queue.queue_id if queue is not None else None
-    if target_date in WORKER_DISPATCH_EXCLUDED_DATES:
-        return WorkerDispatchResult(
-            status="blocked",
-            queue_id=queue_id,
-            source_launch_id=source_launch_id,
-            reason_code="target_date_worker_dispatch_disabled",
-        )
-    if historical_reference is None:
-        launch = store.get_daily_launch(source_launch_id)
-        if launch is None or launch.status == "running":
-            return WorkerDispatchResult(
-                status="waiting",
-                queue_id=queue_id,
-                source_launch_id=source_launch_id,
-                reason_code="daily_launch_running",
-            )
-        if not _launch_processes_stopped(launch, process_probe):
-            return WorkerDispatchResult(
-                status="waiting",
-                queue_id=queue_id,
-                source_launch_id=source_launch_id,
-                reason_code="daily_launch_process_state_unconfirmed",
-            )
-    try:
-        completed = task_runner(
-            ["schtasks.exe", "/Run", "/TN", "RakutenRoomInagoWorker"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-            timeout=10,
-            shell=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return WorkerDispatchResult(
-            status="unavailable",
-            queue_id=queue_id,
-            source_launch_id=source_launch_id,
-            reason_code="worker_task_start_unavailable",
-        )
-    if completed.returncode != 0:
-        return WorkerDispatchResult(
-            status="unavailable",
-            queue_id=queue_id,
-            source_launch_id=source_launch_id,
-            reason_code="worker_task_not_registered",
-        )
-    return WorkerDispatchResult(
-        status="dispatched",
-        queue_id=queue_id,
-        source_launch_id=source_launch_id,
+    completed = store.complete_worker_queue(
+        queue_id=queue.queue_id,
+        check_id=check.check_id,
+        completed_at=completed_at,
+    )
+    result = _result(completed, duplicate=False)
+    return WorkerRunResult(
+        status=(
+            "maintenance_complete"
+            if resolution_status == "complete"
+            else "maintenance_incomplete"
+        ),
+        worker_job_id=result.worker_job_id,
+        queue_id=result.queue_id,
+        source_launch_id=result.source_launch_id,
+        check_id=result.check_id,
+        reason_code=workflow_reason_code,
+        maintenance_resolution_status=resolution_status,
     )

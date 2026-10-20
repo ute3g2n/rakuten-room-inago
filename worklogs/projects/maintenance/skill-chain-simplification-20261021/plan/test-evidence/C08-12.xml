@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.590" timestamp="2026-10-21T07:44:04.557904+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_cli_admits_target_launch_without_lease" time="0.331"><failure message="AssertionError: assert 'skill_chain_log_missing' == 'skill_chain_failed'&#10;  &#10;  - skill_chain_failed&#10;  + skill_chain_log_missing">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C08-12/test_worker_cli_admits_target_0')
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x000002559ED9E900&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002559ED9EE70&gt;
+
+    def test_worker_cli_admits_target_launch_without_lease(tmp_path: Path, capsys, monkeypatch):
+        from datetime import datetime, timezone
+    
+        from automation.inago.maintenance.cli import main as maintenance_cli_main
+        from automation.inago.maintenance.settings import ensure_settings_file
+        from automation.inago.maintenance.store import MaintenanceStore
+    
+        monkeypatch.setattr(
+            "automation.inago.maintenance.skill_chain_runtime._codex",
+            lambda: None,
+        )
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+        launch = _create_failed_launch(store, tmp_path)
+    
+        exit_code = maintenance_cli_main(
+            [
+                "--data-root", str(data_root),
+                "--daily-database", str(daily_database),
+                "worker", "--once", "--source-launch-id", launch.launch_id,
+            ]
+        )
+        output = json.loads(capsys.readouterr().out)
+        queue = store.get_worker_queue(launch.launch_id)
+        check = store.get_daily_check_by_launch(launch.launch_id)
+        jobs = store.list_workflow_jobs_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+        )
+        (tmp_path / "worker-result.json").write_text(
+            json.dumps(output, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+        )
+        assert queue is not None
+        first_admission = store.ensure_skill_chain_job_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+            queue_id=queue.queue_id,
+            observed_at=datetime(2026, 10, 21, tzinfo=timezone.utc),
+        )
+        repeated_admission = store.ensure_skill_chain_job_for_launch(
+            source_launch_id=launch.launch_id,
+            source_run_id=None,
+            target_date="2026-10-20",
+            queue_id=queue.queue_id,
+            observed_at=datetime(2026, 10, 21, tzinfo=timezone.utc),
+        )
+    
+        assert exit_code == 0, output
+        assert output["status"] == "maintenance_incomplete"
+        assert output["maintenance_resolution_status"] == "unknown"
+        assert check is not None and check.check_status == "incomplete"
+        assert queue is not None and queue.status == "complete"
+        assert len(jobs) == 1
+        assert jobs[0].job_id != queue.worker_job_id
+        assert first_admission.job_id == repeated_admission.job_id == jobs[0].job_id
+        assert jobs[0].source_run_id is None
+        assert queue.target_date == "2026-10-20"
+        assert check is not None and check.target_date == "2026-10-20"
+        assert jobs[0].status == "failed"
+&gt;       assert jobs[0].terminal_reason_code == output["reason_code"]
+E       AssertionError: assert 'skill_chain_log_missing' == 'skill_chain_failed'
+E         
+E         - skill_chain_failed
+E         + skill_chain_log_missing
+
+tests_inago\test_maintenance_skill_chain.py:554: AssertionError</failure></testcase></testsuite></testsuites>

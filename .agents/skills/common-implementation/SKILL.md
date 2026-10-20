@@ -5,6 +5,10 @@ description: 利用可能な計画の割当ファイルを実装し、差分と�
 
 # 共通実装
 
+## SC07 現行保守フロー優先規則
+
+構成案2.0と本人の今回の指示を、このskill内の古いU/FC/SC契約より優先します。通常は調査→実装→試験→独立製品review→本番反映→HTML作成→独立HTML reviewの7担当です。固定rootで作業し、Git操作やcommit/pushを行わず、ハッシュやbytes/mtime/marker等で担当開始・完了を止めません。review/test/FAIL/unknown/証拠不足は次工程へ事実として渡します。workerは実turn、所有process終了・終了コード、close失敗を記録します。HTML作者は reports/incidents/{target_date}/{job_id}.html へ直接作成し、review所見があれば同作者が修正します。古い日付固定、公開専用worker、controller本文合成、全成果再検査の指示はこの作業で適用しません。
+
 ## 使う場面
 
 management stage=implementationで、利用可能な計画版、base_commit、作業場所、allowed_outputsを受け取ったら開始する。plan review approvedやtest handoff statusは開始条件にしない。
@@ -42,13 +46,13 @@ management stage=implementationで、利用可能な計画版、base_commit、�
 
 handoffはidentity、schema_version、invocation/stage/attempt/operationとparent_operation、入力版/参照、stage_progress、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin（agent/controller_fallback）、実行担当、review対象版、開始/終了/観測時刻、code revisionを持つ。本文は「何を行い、何が分かり、何が不明で、何を次に行うか」を含む。新attempt IDはcontrollerの正式採番値だけを使う。
 
-工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
+工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・read-backの成否を後続担当の開始条件にしない。未実施や失敗は理由付きで記録し、可能な後続工程を続ける。
 
 各失敗は操作名、例外classと安全化したcause chain/stack frames、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
-reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
+reporterと独立report reviewerを実起動し、指摘はHTML作者が修正する。HTML作者は最終保存先へ直接HTMLを作成し、controller本文合成・公開専用worker・hash/bytes/version照合を必須にしない。本文は不具合、原因（不明なら不明）、修正、追加trace/logの4点を平易に説明する。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+source_launch_id、source_run_id（nullを含む）、target_date、job_idは、このjobに渡された値をそのまま使い、推測や差替えをしない。通常Dailyの手動起動、別のlaunch/run/jobでの代用、別workspace/worktreeは禁止。Gitのstage/commit/pushは行わず、本人の作業として残す。
 
 ## FC03 operation failure capture
 
@@ -61,4 +65,4 @@ maintenance repair authorは唯一のプロジェクトroot C:/project/rakuten-r
 
 ## SC skill連鎖での担当
 
-承認済み実行計画と調査Markdownを実際に読み、割当製品ファイルだけを固定workspaceで変更する。10/17原因が不明でも、確認された日次診断不足があれば日次コードの実差分を作る。保守runnerのログだけで日次計装を代替しない。10/19除外、通常Daily、日次業務データは変えない。実装者が`implementation.md`を直接書き、次担当へ手渡す。
+承認済み実行計画と調査Markdownを実際に読み、割当製品ファイルだけを固定workspaceで変更する。対象日の原因が不明でも、確認された日次診断不足があれば日次コードの実差分を作る。保守runnerのログだけで日次計装を代替しない。10/19除外、通常Daily、日次業務データは変えない。実装者が`implementation.md`を直接書き、次担当へ手渡す。

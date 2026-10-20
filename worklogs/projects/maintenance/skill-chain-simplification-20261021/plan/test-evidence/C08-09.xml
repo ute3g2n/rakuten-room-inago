@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="0.645" timestamp="2026-10-21T07:38:39.719841+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_production_route_is_separate_from_legacy_controller" time="0.002" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_stage_failure_completes_queue_without_lease" time="0.154"><failure message="automation.inago.maintenance.store.UnknownMaintenanceSchemaError: database_schema_unrecognized">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C08-09/test_worker_stage_failure_comp0')
+
+    def test_worker_stage_failure_completes_queue_without_lease(tmp_path: Path):
+        from datetime import datetime, timezone
+    
+        from automation.inago.maintenance.process_identity import ProcessObservation
+        from automation.inago.maintenance.store import MaintenanceStore
+        from automation.inago.maintenance.worker import (
+            WorkerWorkflowOutcome,
+            run_worker_once,
+        )
+    
+        runtime_root = tmp_path / "runtime"
+        store = MaintenanceStore(runtime_root, daily_database_path=tmp_path / "daily" / "state.sqlite")
+&gt;       store.initialize()
+
+tests_inago\test_maintenance_skill_chain.py:401: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\maintenance\store.py:927: in initialize
+    self._assert_schema(connection)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = &lt;sqlite3.Connection object at 0x000002938211E3E0&gt;
+
+    @staticmethod
+    def _assert_schema(connection: sqlite3.Connection) -&gt; None:
+        try:
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            migration = connection.execute(
+                "SELECT version FROM schema_migration WHERE version = ?",
+                (SCHEMA_VERSION,),
+            ).fetchone()
+            tables = {
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+            }
+        except sqlite3.Error as exc:
+            raise UnknownMaintenanceSchemaError("database_schema_unrecognized") from exc
+        if (
+            application_id != APPLICATION_ID
+            or version != SCHEMA_VERSION
+            or migration is None
+            or tables != _SCHEMA_TABLES
+        ):
+&gt;           raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+E           automation.inago.maintenance.store.UnknownMaintenanceSchemaError: database_schema_unrecognized
+
+automation\inago\maintenance\store.py:986: UnknownMaintenanceSchemaError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_cli_admits_target_launch_without_lease" time="0.151"><failure message="automation.inago.maintenance.store.UnknownMaintenanceSchemaError: database_schema_unrecognized">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C08-09/test_worker_cli_admits_target_0')
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x00000293821A7A10&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000293821A75F0&gt;
+
+    def test_worker_cli_admits_target_launch_without_lease(tmp_path: Path, capsys, monkeypatch):
+        from automation.inago.maintenance.cli import main as maintenance_cli_main
+        from automation.inago.maintenance.settings import ensure_settings_file
+        from automation.inago.maintenance.store import MaintenanceStore
+    
+        monkeypatch.setattr(
+            "automation.inago.maintenance.skill_chain_runtime._codex",
+            lambda: None,
+        )
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+&gt;       store.initialize()
+
+tests_inago\test_maintenance_skill_chain.py:445: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\maintenance\store.py:927: in initialize
+    self._assert_schema(connection)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = &lt;sqlite3.Connection object at 0x000002938211F100&gt;
+
+    @staticmethod
+    def _assert_schema(connection: sqlite3.Connection) -&gt; None:
+        try:
+            application_id = int(
+                connection.execute("PRAGMA application_id").fetchone()[0]
+            )
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            migration = connection.execute(
+                "SELECT version FROM schema_migration WHERE version = ?",
+                (SCHEMA_VERSION,),
+            ).fetchone()
+            tables = {
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+            }
+        except sqlite3.Error as exc:
+            raise UnknownMaintenanceSchemaError("database_schema_unrecognized") from exc
+        if (
+            application_id != APPLICATION_ID
+            or version != SCHEMA_VERSION
+            or migration is None
+            or tables != _SCHEMA_TABLES
+        ):
+&gt;           raise UnknownMaintenanceSchemaError("database_schema_unrecognized")
+E           automation.inago.maintenance.store.UnknownMaintenanceSchemaError: database_schema_unrecognized
+
+automation\inago\maintenance\store.py:986: UnknownMaintenanceSchemaError</failure></testcase></testsuite></testsuites>

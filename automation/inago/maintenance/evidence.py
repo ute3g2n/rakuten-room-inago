@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
-import hashlib
 import json
 import math
 import os
@@ -447,7 +446,6 @@ class SQLiteSnapshot:
     foreign_key_errors: int
     row_count: int
     byte_count: int
-    sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -1285,7 +1283,6 @@ def collect_evidence(
             "source_bytes": None,
             "artifact_ref": None,
             "redacted_bytes": None,
-            "redacted_sha256": None,
         }
         if source.format in {"sqlite", "binary", "html_snapshot", "text", "xml"}:
             read_status, source_size = _source_metadata(
@@ -1400,7 +1397,8 @@ def collect_evidence(
         artifact["reason_code"] = "allowlisted_fields_only"
         artifact["artifact_ref"] = artifact_path
         artifact["redacted_bytes"] = len(encoded)
-        artifact["redacted_sha256"] = hashlib.sha256(encoded).hexdigest()
+        # Preserve the historical optional field as null; maintenance evidence
+        # is read by its declared references and IDs, not a content digest gate.
         copy_expiry = default_copy_expiry
         if expiry_utc is not None:
             source_expiry_time = _parse_timestamp(expiry_utc, None).utc
@@ -1717,7 +1715,6 @@ def expire_evidence_copies(
                                         ] = "copy_retention_expired"
                                         artifact["record_count"] = None
                                         artifact["redacted_bytes"] = None
-                                        artifact["redacted_sha256"] = None
                                 updated["events"] = [
                                     event
                                     for event in updated["events"]
@@ -1830,18 +1827,12 @@ def snapshot_sqlite(
         source_connection = None
         if integrity != "ok" or foreign_key_errors:
             raise EvidenceCollectionError("sqlite_snapshot_integrity_failed")
-        digest_state = hashlib.sha256()
-        with destination.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                digest_state.update(chunk)
-        digest = digest_state.hexdigest()
         completed = True
         return SQLiteSnapshot(
             integrity_check=integrity,
             foreign_key_errors=foreign_key_errors,
             row_count=row_count,
             byte_count=destination.stat().st_size,
-            sha256=digest,
         )
     except EvidenceCollectionError:
         raise

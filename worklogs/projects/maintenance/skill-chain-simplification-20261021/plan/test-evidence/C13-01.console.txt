@@ -1,0 +1,66 @@
+.F...                                                                    [100%]
+================================== FAILURES ===================================
+____ test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row ____
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C13-01/test_failure_result_run_lookup0')
+
+    def test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row(
+        tmp_path: Path,
+    ):
+        def raise_primary(_connection, _context, _on_draft_commit):
+            raise RuntimeError("primary_CANARY")
+    
+        failed_lookup = run_daily_execution_core(
+            _ports(tmp_path / "lookup-error", run_daily=raise_primary),
+            clock=_clock(),
+        )
+        assert failed_lookup["daily_status"] == "failed"
+        assert failed_lookup["daily_reason"] == "RuntimeError"
+        assert failed_lookup["run_id"] is None
+        assert failed_lookup["committed_count"] == 0
+        assert [
+            item["operation"]
+            for item in failed_lookup["secondary_errors"]
+            if item.get("operation")
+        ] == ["failure_result_run_lookup"]
+        _assert_safe_diagnostic(
+            failed_lookup, "failure_result_run_lookup", "OperationalError"
+        )
+    
+        def create_empty_run_table_then_raise(connection, _context, _on_draft_commit):
+            connection.execute(
+                "CREATE TABLE run (run_id TEXT, mode TEXT, target_date TEXT, "
+                "committed_count INTEGER, attempt_used INTEGER)"
+            )
+            raise RuntimeError("primary_CANARY")
+    
+        no_row = run_daily_execution_core(
+            _ports(tmp_path / "lookup-empty", run_daily=create_empty_run_table_then_raise),
+            clock=_clock(),
+        )
+        assert no_row["daily_status"] == "failed"
+        assert no_row["daily_reason"] == "RuntimeError"
+        assert no_row["run_id"] is None
+        assert no_row["committed_count"] == 0
+>       assert not [
+            item for item in no_row["secondary_errors"] if item.get("operation")
+        ]
+E       AssertionError: assert not [{'phase': 'daily_diagnostic', 'code': 'daily_secondary_operation_failed', 'operation': 'failure_result_run_lookup', 'exception_class': 'OperationalError', ...}]
+
+tests_inago\test_daily_pipeline_safe_diagnostics.py:461: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    automation.inago.daily_pipeline:daily_pipeline.py:52 daily_pipeline_failure
+ERROR    automation.inago.daily_pipeline:daily_pipeline.py:52 daily_pipeline_failure
+============================== warnings summary ===============================
+.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469
+  C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:469: PytestCacheWarning: could not create cache path C:\project\rakuten-room-inago\.pytest_cache\v\cache\nodeids: [WinError 5] �A�N�Z�X�����ۂ���܂����B: 'C:\\project\\rakuten-room-inago\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:423
+  C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\_pytest\cacheprovider.py:423: PytestCacheWarning: could not create cache path C:\project\rakuten-room-inago\.pytest_cache\v\cache\lastfailed: [WinError 5] �A�N�Z�X�����ۂ���܂����B: 'C:\\project\\rakuten-room-inago\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_pipeline_safe_diagnostics.py::test_failure_result_run_lookup_error_is_safe_and_distinct_from_no_row
+1 failed, 4 passed, 2 warnings in 0.85s

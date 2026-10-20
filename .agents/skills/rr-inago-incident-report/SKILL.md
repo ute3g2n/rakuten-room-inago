@@ -5,6 +5,10 @@ description: 利用可能な調査・計画・試験・反映記録から、平�
 
 # イナゴ障害対応HTML
 
+## SC07 現行保守フロー優先規則
+
+構成案2.0と本人の今回の指示を、このskill内の古い契約より優先します。HTML作者が reports/incidents/{target_date}/{job_id}.html へ最終実物を直接保存し、job/report.mdも作成します。本文に平易な言葉で不具合、原因（不明なら不明）、実際の修正、追加trace/logと記録内容を説明します。hash・bytes一致、公開・status・前段PASSを作成gateにせず、review指摘があれば作者自身がHTMLを更新します。
+
 ## 使う場面
 
 management stage=reportで、利用可能な調査・計画・試験・反映記録を入力として使用する。各stageのapproved状態は開始条件にしない。
@@ -32,7 +36,7 @@ management stage=reportで、利用可能な調査・計画・試験・反映記
 
 reporterは本文を次の4点が伝わる内容にまとめます。①どのような不具合が発生したか、②原因（不明なら不明）、③実施した修正、④追加したトレース・ログと記録できる内容です。原因が不明な場合も、推測せず、実施した修正・計装と未解決事項を正確に書きます。
 
-独立reviewerは、この4点の欠落・事実誤認・根拠のない断定・理解を妨げる文章だけを内容上の指摘にします。秘密・個人情報の露出も確認します。それ以外のHTML要素はレビュー対象にしません。
+独立reviewerは、この4点の欠落・事実誤認・根拠のない断定・理解を妨げる文章だけを内容上の指摘にします。秘密・個人情報の露出も確認します。それ以外のHTML要素はレビュー対象にしません。所見は通常の文章で保存し、定型markerを必須にしません。runnerはレビュー本文をHTML作者へ渡し、作者の変更有無にかかわらず同じ独立reviewerに最終保存先のHTMLを再読させます。
 
 発生区分ラベル、合成例ラベル、資料一覧の名前や管理資料へのリンク、全工程の版対応表、工程statusの言い換え、調査review・報告review・公開・終端間の管理情報の対応は、4点の理解に必要でない限り指摘してはいけません。試験PASSは前提であり、「試験で確認」等の区分を本文へ追加する必要はありません。HTMLが任意で試験結果を述べる場合に限り、虚偽の合格説明がないか確認します。テンプレートはこの指示を理由に変更しません。
 
@@ -56,17 +60,17 @@ reporterは本文を次の4点が伝わる内容にまとめます。①どの�
 
 handoffはidentity、schema_version、invocation/stage/attempt/operationとparent_operation、入力版/参照、stage_progress、content_result、operation_results、errors、unknowns、next_actions、output_refs、artifact_origin（agent/controller_fallback）、実行担当、review対象版、開始/終了/観測時刻、code revisionを持つ。本文は「何を行い、何が分かり、何が不明で、何を次に行うか」を含む。新attempt IDはcontrollerの正式採番値だけを使う。
 
-工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・必須成果永続登録・終端read-backが揃わなければ完遂としない。公開未達でもHTML、原因と再開位置を保存し、同じjobの公開・終端整合操作を続ける。
+工程の引継ぎ完了、操作の成否、試験/review/反映/公開結果、workflow_completion、incident_resolutionを別々に保存する。jobのフロー完遂からincident resolvedを自動推論しない。原因/業務回復unknownのまま同一jobのフロー完遂は可能だが、公開・read-backの成否を後続担当の開始条件にしない。未実施や失敗は理由付きで記録し、可能な後続工程を続ける。
 
-各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・hash・相対pathのみに限定し、自由文を含めない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
+各失敗は操作名、例外classと安全化したcause chain/stack frames、例外code/reason_code連鎖、発生/捕捉位置、実行版、相関ID、入力/成果物参照へ結ぶ。必要なoperation contextはID・件数・相対pathに限定し、新しいhashを生成しない。例外本文、SQL/parameters、商品/投稿、token/cookie、秘密/個人情報をtraceへ出さない。通常loggerの失敗は独立fallbackへ保存して本処理を続け、復帰時に同じ相関値で追記整合する。全保存先喪失の未記録区間は復帰時にunknownと明記する。
 
-reporterと独立report reviewerを実起動し、指摘はreporterが修正する。通常生成失敗時も平易な最小HTMLをcontrollerが生成し、その実在版をreview・公開へ渡す。本文は中学生が理解できる文章にし、内部ID/STEP/status/reason/SHAは参考付録へ置く。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
+reporterと独立report reviewerを実起動し、指摘はHTML作者が修正する。HTML作者は最終保存先へ直接HTMLを作成し、controller本文合成・公開専用worker・hash/bytes/version照合を必須にしない。本文は不具合、原因（不明なら不明）、修正、追加trace/logの4点を平易に説明する。テストコードの独立reviewは行わず、製品コードの独立reviewを実施する。
 
-今回対象は10/17の同一jobとlaunch、source_run_id=nullを保持する。10/19 queue/history処理、通常Daily手動起動、新job代替、日次run捏造、下書き追生成、別workspace/worktreeは禁止。Gitはcontrollerが所有file/hunkだけを確認・選択stage・commit/pushする。
+source_launch_id、source_run_id（nullを含む）、target_date、job_idは、このjobに渡された値をそのまま使い、推測や差替えをしない。通常Dailyの手動起動、別のlaunch/run/jobでの代用、別workspace/worktreeは禁止。Gitのstage/commit/pushは行わず、本人の作業として残す。
 
 ## FC06 report continuation
 
-本文は中学生にも分かる短い日本語で、不具合、原因、実施した修正、追加したトレース・ログと記録内容を説明する。内部ID、STEP、状態コード、reason_code、SHA、版キーは参考付録に置く。通常reporterが失敗してもcontrollerが最小HTMLを作り、同じreport attemptへinput/output/reviewを版とhash付きで保存する。独立report reviewerを実起動し、4点の範囲内の指摘を反映した版を再reviewする。review不能はunavailableとして残し、承認を作らず公開を試す。公開結果とworkflow完了、incident解決は別の機械記録に残す。
+本文は不具合、原因（不明なら不明）、実施した修正、追加したトレース・ログと記録内容を平易な日本語で説明する。内部IDや状態コードを説明の代わりにしない。HTML作者が最終保存先へ直接HTMLを作成し、controller本文合成、公開専用worker、hash/bytes/version照合を必須にしない。独立report reviewerを実起動し、4点の範囲内の指摘を反映した版を再reviewする。review不能は実際の結果として残し、承認を作らない。公開・workflow完了・incident解決は別に記録する。
 本文で必ず伝える内容は、発生した不具合、原因（不明なら不明）、実際に行った修正、追加したトレース・ログと記録内容です。発生区分や管理工程の表示、資料一覧の詳しさ、工程版対応表、review/publicationと終端の管理記録の説明は、この4点を正しく伝えるために必要な場合を除いて本文・reviewの要件にしません。reportと独立reviewerは指定範囲だけを対象にし、範囲外の管理詳細を理由に差し戻しません。
 
 入力記録のreview・反映等の管理状態は機械記録に正確に保持します。本文への表示、資料リンクの一覧、版対応表は、4点の理解に必要な場合だけにします。停止理由がnull/欠測なら「記録がないため未確認」とし、「理由なし」と断定しません。本文に内部status、reason code、版キー、ID、SHAを出さず、詳しい工程treeと識別値は参考付録へ置きます。
@@ -76,4 +80,4 @@ HTML本文の独立レビューは4点の内容確認に絞る。reviewerはそ�
 
 ## SC skill連鎖での担当
 
-同jobの調査・実装・試験・review・反映Markdownを読み、4点の事実だけを短い日本語で伝えるHTMLを直接作る。原因や実投稿数が不明なら明記し、計装を根本原因修正と言い換えない。別reviewerの所見後に自身でHTMLを修正し、更新後の実物を渡す。
+同jobの調査・実装・試験・review・反映Markdownを読み、4点の事実だけを短い日本語で伝えるHTMLを直接作る。原因や実投稿数が不明なら明記し、計装を根本原因修正と言い換えない。保存後のhandoffは自然文で要約し、実際に保存したreport.mdとHTMLのpathを記す。別reviewerの所見本文を受けたら、定型markerの有無ではなく内容に応じて自身でHTMLを修正し、更新後の実物を同じreviewerへ渡す。

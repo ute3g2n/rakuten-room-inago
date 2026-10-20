@@ -1,0 +1,42 @@
+F.....................                                                   [100%]
+================================== FAILURES ===================================
+_____________ test_seven_roles_receive_markdown_and_run_in_order ______________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-migration-04/test_seven_roles_receive_markd0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025FF17BCFE0>
+
+    def test_seven_roles_receive_markdown_and_run_in_order(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root)
+        result = _run(root, factory)
+        ledger = root / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID / "calls.jsonl"
+        events = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert [role.name for role in skill_chain.ROLE_CALLS] == [
+            "rr-inago-incident-investigator", "common-implementer", "common-tester",
+            "common-reviewer", "rr-inago-maintenance-delivery", "rr-inago-incident-reporter",
+            "rr-inago-incident-report-reviewer",
+        ]
+        expected_roles = [role.name for role in skill_chain.ROLE_CALLS]
+        expected_roles.extend(expected_roles[5:])
+        assert [event["role"] for event in events] == expected_roles
+        assert [event["stage"] for event in events] == (
+            [role.stage for role in skill_chain.ROLE_CALLS]
+            + [role.stage for role in skill_chain.ROLE_CALLS[5:]]
+        )
+        assert len(sessions) == result["roles_attempted"] == 9
+        assert all(s.closed for s in sessions)
+        assert all(role["turn_status"] == "completed" for role in result["roles"]), result["roles"]
+        assert result["source_run_id"] is None
+>       assert result["status"] == "incomplete"
+E       AssertionError: assert 'complete' == 'incomplete'
+E         
+E         - incomplete
+E         ? --
+E         + complete
+
+tests_inago\test_maintenance_skill_chain.py:147: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_skill_chain.py::test_seven_roles_receive_markdown_and_run_in_order
+1 failed, 21 passed in 2.43s
+PYTEST_EXIT_CODE=1

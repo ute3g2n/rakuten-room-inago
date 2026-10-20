@@ -129,7 +129,6 @@ _EVENT_FIELDS = {
     "failure_module",
     "failure_function",
     "failure_line",
-    "code_sha256",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -430,12 +429,6 @@ def make_trace_event(
                 continue
             if type(value) is not int or value < 1:
                 raise TraceContractError("failure_line must be a positive integer")
-            event[key] = value
-        elif key == "code_sha256":
-            if value is None:
-                continue
-            if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
-                raise TraceContractError("code_sha256 is outside the safe format")
             event[key] = value
         elif key in {"failure_module", "failure_function"}:
             if value is None:

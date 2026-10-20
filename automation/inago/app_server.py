@@ -129,7 +129,6 @@ class AppServerSession:
         service_tier: str | None = None,
         fast_mode: bool | None = None,
         role_name: str | None = None,
-        role_config_sha256: str | None = None,
         developer_instructions: str | None = None,
         sandbox_policy: Mapping[str, Any] | None = None,
         on_thread_ready: Callable[[str], None] | None = None,
@@ -155,7 +154,6 @@ class AppServerSession:
         self.service_tier = service_tier
         self.fast_mode = fast_mode
         self.role_name = role_name
-        self.role_config_sha256 = role_config_sha256
         self.developer_instructions = developer_instructions
         self.sandbox_policy = dict(sandbox_policy or {"type": "readOnly"})
         self.on_thread_ready = on_thread_ready
@@ -200,6 +198,8 @@ class AppServerSession:
         self._pending_notifications = []
         self._reader_thread = None
         self._stderr_thread = None
+        self.safe_stderr_output: list[str] = []
+        self.close_error_class: str | None = None
         self._writer_thread = None
 
     @property
@@ -226,7 +226,6 @@ class AppServerSession:
             "service_tier",
             "fast_mode",
             "role_name",
-            "role_config_sha256",
             "sandbox_profile",
             "observation_status",
         }
@@ -309,7 +308,6 @@ class AppServerSession:
             "service_tier": self.service_tier,
             "fast_mode": self.fast_mode,
             "role_name": self.role_name,
-            "role_config_sha256": self.role_config_sha256,
             "sandbox_profile": self.sandbox_policy.get("type"),
             "observation_status": observation_status,
         }
@@ -376,12 +374,27 @@ class AppServerSession:
             self._messages.put(AppServerError("rpc_read_failed"))
 
     def _discard_stderr(self):
-        # Drain the pipe to avoid deadlock; stderr may contain private prompts.
+        # Preserve only bounded, redacted diagnostic text from this owned child.
         try:
-            while self.process.stderr.read(4096):
-                pass
+            while True:
+                raw = self.process.stderr.readline(4096)
+                if not raw:
+                    return
+                line = raw.decode("utf-8", errors="replace").strip()
+                if not line:
+                    continue
+                line = re.sub(
+                    r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+|((?:token|cookie|password|secret|api[_-]?key)\s*[:=]\s*)[^\s,;]+",
+                    lambda match: (match.group(1) or match.group(2) or "") + "[redacted]",
+                    line,
+                )
+                line = re.sub(r"https?://[^\s\"']+", "[url omitted]", line)
+                line = re.sub(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", "[address omitted]", line, flags=re.IGNORECASE)
+                self.safe_stderr_output.append(line[:500])
+                if len(self.safe_stderr_output) > 40:
+                    del self.safe_stderr_output[:-40]
         except OSError:
-            pass
+            self.safe_stderr_output.append("[stderr read failed]")
 
     def _send(self, message):
         with self._send_lock:
@@ -706,7 +719,7 @@ class AppServerSession:
     def run_turn(
         self,
         prompt: str,
-        output_schema: Mapping[str, Any],
+        output_schema: Mapping[str, Any] | None = None,
         *,
         cwd: Path,
         deadline: float,
@@ -722,7 +735,11 @@ class AppServerSession:
                     "threadId": self.thread_id,
                     "cwd": str(Path(cwd).resolve()),
                     "input": [{"type": "text", "text": prompt}],
-                    "outputSchema": dict(output_schema),
+                    **(
+                        {"outputSchema": dict(output_schema)}
+                        if output_schema is not None
+                        else {}
+                    ),
                     "approvalPolicy": "never",
                     "sandboxPolicy": dict(self.sandbox_policy),
                     **({"model": self.model} if self.model is not None else {}),
@@ -903,29 +920,50 @@ class AppServerSession:
                 pass
 
     def close(self):
-        if self._closed:
+        process = self.process
+        if self._closed and (process is None or process.poll() is not None):
             return
         self.interrupt()
         self._closed = True
-        process = self.process
+        close_error = None
         if process is not None:
             # Closing a buffered stdin can wait forever behind a blocked writer.
             # Terminate the owned process first for an unfinished job.
             if self._job_lock.locked() and process.poll() is None:
-                process.terminate()
+                try:
+                    process.terminate()
+                    self._log("process_terminate", method="terminate", process_pid=process.pid, status="requested")
+                except OSError as exc:
+                    close_error = close_error or exc
+                    self._log("process_terminate", method="terminate", process_pid=process.pid, status="error", code=type(exc).__name__)
             try:
                 process.stdin.close()
-            except OSError:
-                pass
+            except OSError as exc:
+                close_error = close_error or exc
             try:
                 process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                process.terminate()
+                self._log("process_wait", method="wait", process_pid=process.pid, status="exited", returncode=process.returncode)
+            except (subprocess.TimeoutExpired, OSError) as exc:
+                self._log("process_wait", method="wait", process_pid=process.pid, status="timeout" if isinstance(exc, subprocess.TimeoutExpired) else "error", code=type(exc).__name__, returncode=process.returncode)
+                try:
+                    process.terminate()
+                    self._log("process_terminate", method="terminate", process_pid=process.pid, status="requested")
+                except OSError as exc:
+                    close_error = close_error or exc
+                    self._log("process_terminate", method="terminate", process_pid=process.pid, status="error", code=type(exc).__name__)
                 try:
                     process.wait(timeout=1)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=1)
+                    self._log("process_wait", method="wait", process_pid=process.pid, status="exited", returncode=process.returncode)
+                except (subprocess.TimeoutExpired, OSError) as exc:
+                    self._log("process_wait", method="wait", process_pid=process.pid, status="timeout" if isinstance(exc, subprocess.TimeoutExpired) else "error", code=type(exc).__name__, returncode=process.returncode)
+                    try:
+                        process.kill()
+                        self._log("process_kill", method="kill", process_pid=process.pid, status="requested")
+                        process.wait(timeout=1)
+                        self._log("process_wait", method="wait", process_pid=process.pid, status="exited", returncode=process.returncode)
+                    except (OSError, subprocess.TimeoutExpired) as exc:
+                        close_error = close_error or exc
+                        self._log("process_wait", method="wait", process_pid=process.pid, status="error", code=type(exc).__name__, returncode=process.returncode)
             self._log(
                 "process_closed", process_pid=process.pid, returncode=process.returncode
             )
@@ -943,7 +981,13 @@ class AppServerSession:
                     worker.join(timeout=1)
             for stream in (process.stdout, process.stderr):
                 if stream is not None:
-                    stream.close()
+                    try:
+                        stream.close()
+                    except OSError as exc:
+                        close_error = close_error or exc
+        if close_error is not None:
+            self.close_error_class = type(close_error).__name__
+            raise AppServerError("process_close_failed") from close_error
 
     def __enter__(self):
         return self

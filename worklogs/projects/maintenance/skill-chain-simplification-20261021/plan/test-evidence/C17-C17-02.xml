@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.679" timestamp="2026-10-21T06:19:28.403649+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_safe_stdout_stderr_and_response_exclude_secrets" time="0.254"><failure message="assert 'abc.def.ghi' not in '{&quot;artifact&quot;...ompleted&quot;}\n'&#10;  &#10;  'abc.def.ghi' is contained here:&#10;  ?           ^^&#10;     [&quot;Bearer abc.def.ghi&quot;, &quot;token=canary-secret&quot;], &quot;stdout_summary&quot;: [{&quot;method&quot;: &quot;turn/completed&quot;, &quot;status&quot;: &quot;completed&quot;}], &quot;thread_id&quot;: &quot;thread-rr-inago-incident-investigator&quot;, &quot;turn_id&quot;: &quot;turn-rr-inago-incident-investigator&quot;, &quot;turn_status&quot;: &quot;completed&quot;}&#10;  ?           ^^^^^^^^^^^^^&#10;    {&quot;artifact&quot;: &quot;implementation.md&quot;, &quot;close_error_class&quot;: null, &quot;error_class&quot;: null, &quot;error_code&quot;: null, &quot;event&quot;: &quot;worker_finished&quot;, &quot;process_id&quot;: 1234, &quot;process_returncode&quot;: 0, &quot;requested_effort&quot;: &quot;high&quot;, &quot;requested_model&quot;: &quot;gpt-6-luna&quot;, &quot;response&quot;: &quot;Bearer [redacte...&#10;  &#10;  ...Full output truncated (6 lines hidden), use '-vv' to show">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C17-C17-02/test_safe_stdout_stderr_and_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001DDE7A76120&gt;
+
+    def test_safe_stdout_stderr_and_response_exclude_secrets(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, _sessions = _factory(root, response="Bearer abc.def.ghi token=canary-secret secret=private")
+        _run(root, factory, start_role=1)
+        ledger = root / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID / "calls.jsonl"
+        content = ledger.read_text(encoding="utf-8")
+&gt;       assert "abc.def.ghi" not in content
+E       assert 'abc.def.ghi' not in '{"artifact"...ompleted"}\n'
+E         
+E         'abc.def.ghi' is contained here:
+E         ?           ^^
+E            ["Bearer abc.def.ghi", "token=canary-secret"], "stdout_summary": [{"method": "turn/completed", "status": "completed"}], "thread_id": "thread-rr-inago-incident-investigator", "turn_id": "turn-rr-inago-incident-investigator", "turn_status": "completed"}
+E         ?           ^^^^^^^^^^^^^
+E           {"artifact": "implementation.md", "close_error_class": null, "error_class": null, "error_code": null, "event": "worker_finished", "process_id": 1234, "process_returncode": 0, "requested_effort": "high", "requested_model": "gpt-6-luna", "response": "Bearer [redacte...
+E         
+E         ...Full output truncated (6 lines hidden), use '-vv' to show
+
+tests_inago\test_maintenance_skill_chain.py:250: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_ai" name="test_c24_generic_app_server_root_log_preserves_daily_fields" time="0.004" /></testsuite></testsuites>

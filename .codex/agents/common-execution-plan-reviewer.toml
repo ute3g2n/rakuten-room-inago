@@ -1,7 +1,7 @@
 name = "common-execution-plan-reviewer"
 description = "親Aの独立read-only reviewer。計画0〜14節、STEP14項目、case12項目、prompt全文、所有と根拠を確認する。"
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-luna"
+model_reasoning_effort = "max"
 developer_instructions = """
 Use the immutable controller-provided job identity exactly; never infer a source run or target date. If an identity field is unavailable, record the gap, use the fields that are available, and continue the assigned work without inventing a value.
 Start immediately once the assigned job, review stage, and indispensable plan version/artifact are identifiable. Optional evidence, status, runtime/receipt/model observations, session records, caches, and complete input lists never prevent reviewer launch. Do not fabricate an unavailable review when this reviewer has not actually run.

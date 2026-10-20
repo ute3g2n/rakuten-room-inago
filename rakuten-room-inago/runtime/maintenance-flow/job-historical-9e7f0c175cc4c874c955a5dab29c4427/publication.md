@@ -257,3 +257,229 @@ publication_result: succeeded
 reviewed_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
 published_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
 remote_html_sha256: 6427a7204a18231c1ea5c7dbb845f228ae0e64b9448d450c2b271c549d4a6a62
+
+---
+
+# 公開記録
+
+## 共通記録
+
+- 担当: 反映・公開（公開）。skill: .agents/skills/rr-inago-maintenance-delivery/SKILL.md。
+- 固定identity: job_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、`target_date`=2026-10-17、source_run_id=null。欠測IDを補っていない。
+- 固定workspace: C:/project/rakuten-room-inago。要求設定: model=gpt-6-luna、effort=high、service_tier=priority、`fast_mode`=true。公開担当の実session/model/tier/fast_mode観測欄は与えられていないためunknown。要求と実観測は分離した。
+- 開始確認時刻: 2026-10-20T22:31:05.7135197+09:00。公開操作・read-back時刻: 2026-10-20T22:31:43.4822931+09:00。
+- artifact origin: agent。過去statusや10/19 queue/historyを変更していない。Daily起動、run、draft、新jobは作成していない。
+- 入力実読: incident.md、implementation.md、test.md、code-review.md、deployment.md、report.md、report.html、html-review.md、call-failures.md。report.htmlはreview対象bytesと実測一致した。
+
+## 前担当Markdown実読証跡
+
+- exact relative path: `rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/report.md`
+- SHA-256: `7c6a39ec94f5f419b0fac9240bf7e7f2701d4dfef598d4c2b0450771512e04d1`。PowerShell `Get-Content -Raw -LiteralPath` で実読。
+- 分かったこと: 原因と実行記録が残らなかった理由は未確認で、report.htmlは原因修正を主張していない。HTML独立レビューは所見なしと記録している。
+
+## 公開対象と実行結果
+
+- 出典: `rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/report.html`; SHA-256 `a828cc68e1f96ca2021f6b1cf7899dae0ce7bae096c1ff88974781c060817f9f`; bytes `3005`。
+- 独立HTMLレビュー: `rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/html-review.md` は対象hash `a828cc68e1f96ca2021f6b1cf7899dae0ce7bae096c1ff88974781c060817f9f` を所見なしと記録。この値と出典HTMLの実測hashが一致した。
+- 公開先: `reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html`。incident.mdに記載の同一公開先を使用した。
+- 実行: PowerShell/.NET `[System.IO.File]::ReadAllBytes(source)` → `[System.IO.File]::WriteAllBytes(target, bytes)` → SHA-256/length read-back。操作時刻 `2026-10-20T22:31:43.4822931+09:00`。期待値: 出典と公開先の全bytes一致。実値: 出典=a828cc68e1f96ca2021f6b1cf7899dae0ce7bae096c1ff88974781c060817f9f (3005 bytes)、公開後=a828cc68e1f96ca2021f6b1cf7899dae0ce7bae096c1ff88974781c060817f9f (3005 bytes)、一致=yes。コマンド成功、整数exit code=0。
+- 公開前の公開先SHA-256: `1bcae0d002abb25fea2520f6f5f4a05eb5e03a981758cfb1d3963f685c7dc1ef` (3005 bytes)。これは過去の公開物でありreview対象hashとは別だったため、承認済み今回HTMLを同じ既定公開先へ置換した。公開後read-backはreview対象と一致。
+- 安全な実行記録: この `publication.md` と出典 `report.html`、review `html-review.md` のhash/bytesのみ。秘密、個人情報、例外本文は記録へ複写していない。
+
+## 状態の区別と残件
+
+- HTML公開: 実施済み。公開先のbytesはreview対象と一致。
+- 本番適用: `deployment.md` に記録されたTask Scheduler snapshot Read失敗により未完了。今回の公開担当でその失敗を再実行・成功扱いしていない。再開先はSchedulerのReadが利用可能になった後、固定rootのactive identity/health/contentを読み、tested/committed/applied/runtime/job hashを比較すること。
+- workflow完遂: 本記録の公開操作は完了。本番適用の未完了を含む保守workflow全体は完了と扱わない。
+- 元の10/17障害解消: 未確認。原因、run記録欠落理由、実投稿数、復旧、production診断記録はunknown。
+- Git: 開始時HEAD `4569a34d89a9538036a3058f4b94417e4d74fedf`、branch `main`、tracking `origin/main`。今回の公開に伴うHTML公開先の変更はこの担当の操作。 `publication.md` はこの担当の所有成果。他者の変更はstage/commit/pushしていない。本成果のみのcommit/pushは親担当が全所有hunkを照合して選択実施する。
+
+## 次の担当
+
+- 次担当: 親担当による同job workflowの最終整理。
+- 次の入力: `incident.md`、`implementation.md`、`test.md`、`code-review.md`、`deployment.md`、`report.md`、`report.html`、`html-review.md`、本 `publication.md`、公開先HTMLの実read-back、および最終 `git status --short`。
+- 次の作業: 公開結果を反映・workflow完遂・元障害解消と分けて最終記録する。今回変更の所有範囲だけを確認し、10/19 queue/history、Daily、日次run/draftを操作しない。適用未完了は同一jobでScheduler Read再開後のactive identity/health/hash read-backへ結ぶ。
+
+
+---
+
+# 公開記録 — 2026-10-20 反映・公開（SC08/SC09）
+
+## 共通記録
+
+- 担当: 反映・公開（公開）。skill: .agents/skills/rr-inago-maintenance-delivery/SKILL.md。計画: plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md SC08/SC09、構成案1.1。
+- 固定identity: job_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427; source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427; target_date=2026-10-17; source_run_id=null。欠測IDは補完していない。
+- 要求設定: gpt-6-luna / high / priority / fast_mode=true。本roleのtool対応、model/tier/session実観測はunknown。要求と実観測を分離しunknownを起動条件にしていない。
+- 固定workspace: C:/project/rakuten-room-inago。開始UTC: 2026-10-20T13:40:40.275539+00:00。公開・read-back観測UTC: 2026-10-20T13:42:42.688200+00:00。
+- 開始Git観測: HEAD 4569a34d89a9538036a3058f4b94417e4d74fedf; branch main; tracking origin/main。開始時statusを確認。deployment/spec/plan/test/SC07/SC10変更と.pytest-tmp/が既存。他者・既存差分を戻さず、今回割当の公開HTMLと本記録だけを所有対象として扱う。
+- 実読入力SHA-256: incident.md b6d5e5d0470096614b3bcae3418df57110d7f41dc9700be0b8ab173a870779b5; investigation.md 4522becbe2112c6a5ec23cb4a710981a15063cad1a3a5fa8f370bdfc8923c8af; implementation.md 4632c759e0d04ecb1ed50fd2e3ce564b741661582365217d03cfa80a82e806d3; test.md 633ffb86209e3a22bdeaaa54b63bf9209c3db0459db070db13342a3bd7aa935a; code-review.md 2fa8fb22039b1124fa57e5ecc1018264be65eb0772b8c58f1f919ecf151acdd4; deployment.md cfba1cb157519576e9cd029f65bf2a6e75003db40446465fa06def0e270e2b9b; report.md 123df79f5aa0883a3bef9ffbc6b322f6e4f03a690751a793f5fa22cd53ab88b3; report.html 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0; html-review.md c3e5800910d075378cf9d16ef6225cb9cfcb738c85172959647d7b96d5e5408f; call-failures.md 132f2ccd7a924c4d4114011b1bc06bb43d52656bd8069fb48ed08addae97a0db。
+- 対象製品版: automation/inago/daily_pipeline.py SHA-256 05778660bb112b5aa71bbff7abdd009aafa8e7c22903fe9f1a2ba182890ff688d。implementation/test/製品review記録で同一hash。現在版であり、10/17障害発生版ではない。
+
+## 前担当Markdown実読証跡
+
+- exact relative path: rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/html-review.md
+- 実読SHA-256: c3e5800910d075378cf9d16ef6225cb9cfcb738c85172959647d7b96d5e5408f。PowerShell Get-Content -Raw -LiteralPathで実読。
+- 読んで分かった事実: HTML実物hash 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0 を本文4点と秘密/個人情報の対象に確認し、approved・指摘なし。
+
+## 担当別本文
+
+### 公開対象とread-back
+
+- 公開対象: 同job report.html。レビュー実物と一致するSHA-256 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0、2218 bytes。レビュー対象を再実測し、HTML本文は変更していない。
+- 公開先: reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html。公開前hash a828cc68e1f96ca2021f6b1cf7899dae0ce7bae096c1ff88974781c060817f9f。source bytesをbinary writeしread-back。期待値はsource/review対象と全bytes一致。実値hash 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0 / 2218 bytes、完全一致=yes。操作成功。
+- 追跡先origin/mainの公開pathを開始時にgit showでread-backしたSHA-256: eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672 (exit 0、push前のtracking-ref内容)。remote公開とローカル公開を混同しない。秘密・個人情報・例外本文は記録へ複写していない。
+
+### 同job日次対応の5連鎖実物照合
+
+1. 日次実差分: implementation.mdとdaily_pipeline.py対象hashは一致。例外ごとの安全なrepo内frameを最大8件保持し、省略booleanを一次/二次診断へ加える計装。原因修正ではない。
+2. 試験実ログ: test.mdに同hashのfocused pytest 14 passed、warning 1、整数exit 0と記録。境界probeとprimary/secondary payload probeも記録上成功。L01 truncated payload永続化read-backと実Dailyは未確認。
+3. 別製品review: code-review.mdは同hashをapproved、修正必須findingなしと記録。本番適用・incident解決の証明ではない。F-01のskill_chain.py所見は製品diff外で今回割当外。
+4. 本番適用版: deployment.mdの実操作はTask Scheduler snapshot Read失敗（integer exit 1）。activate/confirmおよび実runtime hash read-back未完了。現在版を本番実適用と扱えない。
+5. 同job新証跡: 試験/review成果は同job記録にあるが適用後の日次trace/new run evidenceは未確認。source_run_id=null。5連鎖後半は未達で成功扱いにしない。
+
+### 状態区分と未達
+
+- HTML公開: 成功。ローカル公開先read-backはreview対象と同一bytes。
+- Git remote反映: この追記時点では未実施。後続に選択commit/pushとremote read-backを記録する。
+- workflow完遂: 未確認/未達。日次実差分→試験→製品review→本番適用版→同job新証跡の連鎖が未完了。
+- 元障害解消: unknown。原因・run未保存理由・実投稿数・回復はunknown。
+- 過去raw statusは変更していない。10/19 queue/history、除外設定、通常Daily、日次run/draft、新jobには触れていない。
+
+### 実command・期待/実値
+
+| 操作 | command | 期待値 | 実値 | 整数exit / 証拠 |
+|---|---|---|---|---|
+| 入力とbaseline | Get-Content -Raw -LiteralPath; Python SHA/Git読取 | 指定資料/HEAD/branch/tracking/hashを取得 | 全資料実読、上記SHAとbaseline取得 | 読取成功、job artifact |
+| HTML publish/read-back | Path.read_bytes → Path.write_bytes → read-back/byte compare | source==review==公開先 | 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0、2218 bytes、完全一致 | exit 0相当、read-back実測 |
+| remote tracking blob | git show origin/main:reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html | tracking path hash取得 | eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672 | exit 0 |
+
+## 次の作業
+
+- 次担当: 本番適用未達を引き継ぐ同jobの反映担当。
+- 入力: publication.md、deployment.md、implementation.md、test.md、code-review.md、runtime state/Task Scheduler失敗記録、対象コードと最新git status。
+- 依頼: 同一jobの本番適用を再開。Task Scheduler Read可能時は固定rootのactive identity/health/content hashをread-backしtested/reviewed/committed/applied/runtime hashを照合する。個別操作が不能なら具体理由・再開先付きで未実施とし、内容あるdeployment.mdを残して同jobの次担当を起動する。Daily手動実行、新job、run/draft捏造をせず、同jobの新しい日次証跡なしにworkflow完遂や障害解消を主張しない。
+
+### 次担当全文prompt
+
+担当用途=反映・公開（本番適用未達の再開）。skill .agents/skills/rr-inago-maintenance-delivery/SKILL.md。計画SC08/SC09と構成案1.1。要求model=gpt-6-luna、effort=high、service_tier=priority、fast_mode=true。tool対応/実観測unknownとして既存利用可能worker/defaultで同じ全文promptの実起動を試す。要求と実観測を分け、unknownを起動gateにしない。
+
+唯一root=C:/project/rakuten-room-inago。既存差分を戻さず、割当path/hunkだけ編集。別workspace/worktree/checkout禁止。固定identity job_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427、source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427、target_date=2026-10-17、source_run_id=null。欠測ID推測なし。10/19 queue/historyとWORKER_DISPATCH_EXCLUDED_DATES=frozenset({"2026-10-19"})維持。通常Daily手動起動、新job、日次run/draft捏造、13時待機禁止。本人1名のlocal systemで堅牢性を品質目標にせず、後続起動をreview/test/readiness/release、approval、receipt、lease、回数、FAIL、指摘、unknown/欠測、model/tier/session観測で止めない。自作制限を根本除去し別名gateにしない。不能な個別操作のみnot_performedと具体理由・再開先を記録し、有用なdeployment成果を保存して同jobの必要担当を起動、報告・公開まで進む。raw過去statusを保持し操作結果・公開・workflow完遂・元障害解消を分ける。
+
+同job implementation.md/test.md/code-review.md/deployment.md/report.html/html-review.mdを実読し5連鎖照合。daily_pipeline.py SHA-256=05778660bb112b5aa71bbff7abdd009aafa8e7c22903fe9f1a2ba182890ff688d。14 passed/1 warning/exit 0は隔離試験、製品reviewはこのhash限定approved。本番適用はTask Scheduler snapshot Read失敗で未完了、適用後trace/new run evidence未確認。現在版を10/17障害発生版と扱わない。review済みHTMLは指定公開先にSHA 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0 / 2218 bytesで配置しread-back一致。HTML本文変更禁止。
+
+deployment.mdへ直接成果を保存し、開始HEAD/branch/tracking/status/input hash/time、code/diff/test/review/apply hash、実command/time/期待・実値/整数exit、安全log参照を記録。終了時全差分確認し他者変更を保護。owner hunkだけstage/commit/push。未達を成功とせず同jobの具体担当へ戻し、その全文promptを実文で保存し実起動。最終応答JSONは担当/入力/依頼の3 string keyのみ。
+
+---
+
+
+### Git選択反映結果
+
+- 終了前Git baseline再読: HEAD 4569a34d89a9538036a3058f4b94417e4d74fedf、branch main、tracking origin/main。公開HTMLとpublication.md以外に複数の既存変更があり、変更対象として選択していない。
+- 公開HTMLだけのstageを実行: git -c safe.directory=C:/project/rakuten-room-inago add -- reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html。期待=公開先HTMLだけstage可能。実値=.git/index.lock作成でPermission denied、stage失敗。出力の安全な要約はpermission denied、秘密情報なし。整数exit=128相当。UTC時刻 2026-10-20T13:43:26.116808+00:00。
+- publication.mdは既存他者差分を含むため今回追記分だけのcached patchを作成したが、patch形式不正で適用失敗（git apply exit 128）。全file stageは行っていない。今回の記録hunkの選択stageは未実施。
+- 結果: commit/push未実施。現在の固定workspace権限では.git/index.lockを書けずGit indexを更新できない。reset/checkout/force push/履歴変更は行っていない。全作業差分を保持。再開先は.git/index lock書込が利用可能な同じ固定workspaceで、公開HTMLと今回publication.md追記だけを選択stageし、他者差分を除外してcommit/push、push後のtracking-remote公開path hashをread-backすること。
+- remote_html_sha256はpush前に実読したlocal tracking-ref origin/main pathのSHA-256であり、公開先のSHAとは別。remote側は旧hashのまま。ローカル公開の成功をremote公開成功へ拡張していない。
+- Git diff/diff --checkはindex書込制限のためstaged確認できず。今回の公開HTMLソースはreview対象とread-back一致。HTML本文に変更はない。
+
+### 終了時状態
+
+- HTML公開とローカルread-back: succeeded。
+- commit/pushおよびremote update: not_performed。理由=.git/index.lock PermissionDenied。
+- workflow完遂: 未達（本番適用read-backと同jobの適用後診断証跡が未達）。
+- 10/17 incident解消: unknown。
+- 終了UTC: 2026-10-20T13:43:26.116808+00:00。publication.md SHA-256: a73cf5d45f1fac410df421c0b6534863183808c6d6f4ecb90aace06332bf1f31（記録追記前hash。最終記録後hashは再採取して追記する）。
+
+## 再開先
+
+同jobの反映担当はpublication.md、deployment.mdと実差分を読み、同じjob_id/launch/date/null runでTask Scheduler Read可能性を再試行する。Gitが利用可能なら所有HTML/publication追記だけをcommit/pushする。Git不能でも適用・試験・同job証跡など独立作業を続け、未達を成功とせず次担当へ渡す。
+
+- 機械差分確認: git diff --check -- reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html はexit 2。唯一の指摘はreview済みsource末尾CRLF由来のclosing html行のtrailing whitespace。bytes/hashを保つため改変していない。Git indexはPermissionDeniedでstage状態のdiff checkは実行不能。
+
+
+### 後続反映担当の実起動結果
+
+- 未達の本番適用を同じjobで続けるため、worker/default相当の反映担当を実起動し、deployment.mdを担当所有成果として更新した。role要求はgpt-6-luna/high/priority/fast_mode=true。role内の実観測はunknown。
+- 読み戻したdeployment.md SHA-256: 91b9b3b3edf3881b92284f859df126f86bad994c81f6fb1df4dec2be03bb3170。
+- 再試行結果: TaskSchedulerRuntimeSwitcher.activate/confirmは最初のTaskScheduler snapshot Readでruntime_task_operation_failed、integer exit 1。低層のtask_runtime_working_directory.ps1 -Mode Readもruntime_task_operation_failed、integer exit 3。Set/Release/confirmは実行されていない。runtime stateは読めたが、Scheduler実体を読めず、記録content hashと作業tree content hashも不一致のため適用・healthを認定していない。
+- 次の再開位置: 同じjobの反映担当がScheduler Read可能な状態で4 task snapshotと実WorkingDirectoryを取得し、daily_pipeline.py対象hashを照合した後、既存switcherでactivate/confirmと実体read-backを行う。Daily手動起動、日次run/new traceの捏造はしない。適用・同job新証跡未達、workflow完遂未確認、元障害解消unknownの区別を維持する。
+- 終了前のrepo statusを再取得し、他担当差分を含む全一覧を確認。publication.mdと指定HTML以外のstatus項目は今回変更していない。deployment.mdは.gitignore対象runtime成果でstatusには表示されないが、publication.mdはgit statusにMとして出る追跡対象の変更である。その選択stageは.git/index.lock PermissionDeniedで未実施。
+
+
+---
+
+# 公開記録 — 2026-10-20 最新版再公開（SC08/SC09）
+
+## 共通記録
+
+- 担当: 反映・公開（公開）。skill: .agents/skills/rr-inago-maintenance-delivery/SKILL.md。固定計画: plans/projects/maintenance/保守フローskill直列化と10月17日実動完遂_実行計画_2026-10-20.md SC08/SC09、構成案1.1。
+- identityは供給値を維持: job_id=job-historical-9e7f0c175cc4c874c955a5dab29c4427; source_launch_id=historical-9e7f0c175cc4c874c955a5dab29c4427; target_date=2026-10-17; source_run_id=null。欠測IDを補完していない。
+- 要求設定: model=gpt-6-luna、effort=high、service_tier=priority、fast_mode=true。本実行のtool対応とmodel/tier/sessionの実観測はunknown。要求と実観測を分け、unknownを起動gateにしていない。
+- 唯一workspace=C:/project/rakuten-room-inago。作業開始UTC=2026-10-20T13:52:12.575329+00:00、公開/read-backUTC=2026-10-20T13:53:29.201867+00:00 。
+- 開始Git: HEAD=4569a34d89a9538036a3058f4b94417e4d74fedf、branch=main、tracking=origin/main。開始statusで他担当のdeployment/runtime switcher、spec/plan/test、SC07/SC10等の変更を確認。公開HTMLとpublication.md以外は触れていない。status読取時に.pytest-tmp内の2 directoryはPermission denied警告が出たが、リポジトリ状態の全出力は保存した。
+- 実読入力hash: report.html=a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e（2501 bytes）; html-review.md=14b37a8aa2d2b1daf74e1b48655f3f0e1e0e6fe4840d32eae9e4a72f80b3cd9c; report.md=e55168a8dd0203b8451aa384ee730026511e1957d08c03b1506b1cb0897d8724; deployment.md=d95f8f18fa488a6d04547d7d090dcc04c38142f6f16b78ba8b9d2de38df7f24b; incident.md=b6d5e5d0470096614b3bcae3418df57110d7f41dc9700be0b8ab173a870779b5; 公開記録開始時のpublication.md=496ff0c58dcdc9314efc0c0b58142f130549812df0b49e1440989e652191d3b8。
+- html-review.mdの最新最終記録はreview_round=final_after_author、対象SHA=a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e、review_result=approved。deployment.mdは指示SHA d95f8f18fa488a6d04547d7d090dcc04c38142f6f16b78ba8b9d2de38df7f24bと一致。
+
+## 前担Markdown実読証跡
+
+- exact relative path: rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/html-review.md
+- SHA-256=14b37a8aa2d2b1daf74e1b48655f3f0e1e0e6fe4840d32eae9e4a72f80b3cd9c。PowerShell Get-Content -Raw -LiteralPathで実読。
+- 読んで確認したこと: 更新後report.htmlとdeployment.mdの実物を照合し、本文4点に指摘なしとする別reviewerのfinal_after_author/approved記録。
+
+## 担当別本文
+
+### 公開対象と時系列
+
+| 時点 | 公開先の実物 | SHA-256 | 結果 |
+|---|---|---|---|
+| この実行開始時 | 直前に公開・read-back済みHTML | 2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0 | 前回レビュー済みのローカル公開物 |
+| 2026-10-20T13:53:29.201867+00:00 | 今回review済みreport.htmlで置換・read-back | a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e | source/review/publication read-backが2501 bytesで完全一致 |
+
+- 出典: rakuten-room-inago/runtime/maintenance-flow/job-historical-9e7f0c175cc4c874c955a5dab29c4427/report.html。公開先: reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html。
+- 公開前公開先hash=2d7fc15c8fbc5d89894d15f044d2e83f885df378d64f2d0fb2a3bb913cb272d0。sourceを本文編集なしでbinary writeし、公開先を再readして一致を確認した。期待=reviewed sourceとpublic targetの全bytes一致。実値=source 2501 bytes / SHA a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e、target read-back 2501 bytes / SHA a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e、byte equality=true。公開操作は成功。
+- 追跡先blobは別に実read: git show origin/main:reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html exit 0、2999 bytes、SHA-256 eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672。これは今回の公開対象と異なる旧tracking blobで、remoteへは反映していない。本依頼の明示指示によりGit stage/commit/pushは再試行していない。過去3回の.git/index.lock PermissionDeniedを保持し、ACL変更や回避はしていない。
+- 公開対象差分の確認: git diff --unified=1 -- reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html exit 0、diff SHA-256=9b8e79ea861286a069aa528c471df503bb8d17d9d281958a7a8aa9c78b044932。5433 bytes。差分はreview対象の本文更新とformatting/whitespaceのみ。追加のトークンや秘密情報はない。
+- 機械秘密パターンスキャン（AWSアクセスキー、GitHub token、OpenAIキー、credential assignment）は各0 matches。reviewerも秘密/個人情報の露出なしを確認している。
+- diff --check -- 公開HTML exit 2。report.htmlの元バイト列にある最終CRLFとEOF空行をGitがtrailing whitespace/new blank lineとして報告した。review対象bytesを保つためHTMLを正規化・編集していない。元ファイルに対するこの警告はHTML内容に秘密があることを示さない。
+
+### 結果の分離と同jobの未達
+
+- ローカルHTML公開/read-back: succeeded。review対象とbytes/hash一致。
+- remote GitHub反映: 未実施。origin/mainのローカルtracking blobは旧hash eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672。commitの有無は別操作として扱う。
+- production apply / runtime health: deployment.md最新22:47 JST read-only観測でScheduler 4 taskとdaily code hashはreadできたが、runtime-state content hashとactive content hashが不一致、aggregate healthy(HEAD)=false。今回は適用操作をしておらず、production apply/healthyは未達。
+- 日次trace: 10/17原因を示す証拠は未確認。保守呼出し記録は日次原因traceではない。
+- workflow完遂: 未確認/未達。本公開操作の成功で一連の未完了を埋めない。
+- 元障害解消: unknown。原因、run未保存理由、投稿件数、回復を成功と推測しない。本文方針はレポートの最新独立review対象として保っている。
+- 10/19/10/20処理、new job/run/draft、Daily手動起動、DB/queue/job変更: 行っていない。
+
+### 実command / 期待値 / 実値
+
+| 操作 | command / 時刻 | 期待 | 実値 | exit |
+|---|---|---|---|---|
+| 入力実読とGit start | Get-Content -Raw -LiteralPath; git status --short / rev-parse / branch / upstream、2026-10-20T13:52Z | 指定入力、HEAD、既存statusを読む | 上記入力hash、HEAD 4569a34...、main/origin/main。.pytest-tmpのpermission warning | Git/readは完了、warningは保持 |
+| local publish/read-back | Python Path.read_bytes/write_bytes/readback compare、2026-10-20T13:52:25Z | source/review/public targetの完全一致 | a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e、2501 bytes、byte equality=true | 0相当、ローカルread-back実測 |
+| 追跡remote blob | git show origin/main:reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html | remote bytes/hashを読む | eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672、2999 bytes | exit 0 |
+| owned HTML diff/check/secret scan | git diff --unified=1; git diff --check; local byte scan | 差分を読み秘密パターンがない | diff exit 0 / SHA 9b8e79ea861286a069aa528c471df503bb8d17d9d281958a7a8aa9c78b044932; diff --check exit 2 (CRLF/EOF whitespace); 秘密パターン4種0 matches | ログを安全保存、HTMLは変更せず |
+| Git publish操作 | 本依頼の指示に従い実行せず | 過去3回のindex lock failureを再試行しない | stage/commit/push not_performed; ACL変更/回避なし | n/a（意図的な未実施） |
+
+## 次の作業
+
+- 次担当: 同一jobの未達本番適用を継続する反映担当。
+- 入力: 本publication.md、deployment.md（SHA d95f8f18fa488a6d04547d7d090dcc04c38142f6f16b78ba8b9d2de38df7f24b）、report.html/html-review.mdの今回hash、runtime-switch-stateとactive content hashの実物。
+- 依頼: 同じjobでruntime-state/active content hash不一致の由来とhealthy=falseの構成をread-onlyで調べ、割当範囲の適用と実読戻しを続ける。過去3回のGit index lock失敗とremote差異は保持。Daily、DB、queue/jobは変更しない。本公開はローカルで成功、remoteは未反映であることを区別する。
+
+
+
+## 追記 — 親側read-only DB観測（2026-10-20 22:56 JST）
+
+親側がstate.sqliteをURI mode=roで読み取り、固定job/launch/date/null runに限って照会した観測値の転記である。本追記でDBは再照会・変更していない。
+
+- maintenance_job: status=queued、resume_count=30、source_run_id=null、updated_at=2026-10-20T06:51:19.751363Z。
+- 固定source_launch_idのworker_queue行数=0。
+- 既存daily_check行: 同launch/date=2026-10-17/source_run_id=null、created_at=2026-10-18T21:32:51.391861Z。これは既存の古いdaily_check行で、今回の新規Daily trace/runではない。
+- incident_runも既存rowでsource_run_id=null、created_at=2026-10-18T21:32:51.391861Z。
+- このDB観測はpublication.mdの時点追跡情報として記録した。status=queued/resume_count=30を操作成功に読み替えず、日次traceがあるとも記載しない。新job/run/queue、10/19処理は作成・変更していない。
+
+publication_result: succeeded
+reviewed_html_sha256: a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e
+published_html_sha256: a81d5debc9fd626b6460d9712bd98c3b875561143828ee879f0d12ab0781605e
+remote_html_sha256: eda463f0480624dc1a2f68aed3bd64a4349cae410e57ca959508e17fcb2ae672

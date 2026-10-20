@@ -44,9 +44,9 @@ def test_c60_contract():
     ).read_text(encoding="utf-8")
 
     accepted_ids = set(re.findall(r"^\| MA-(\d{3}) \|", maintenance_contract, re.M))
-    assert accepted_ids == {f"{index:03d}" for index in range(1, 29)}
+    assert accepted_ids == {f"{index:03d}" for index in range(1, 30)}
     traced_ids = set(re.findall(r"^\| MR-(\d{3}) / MA-\d{3} \|", tracking, re.M))
-    assert traced_ids == {f"{index:03d}" for index in range(1, 29)}
+    assert traced_ids == {f"{index:03d}" for index in range(1, 30)}
 
     expected_skills = {
         "rr-inago-incident-investigation",

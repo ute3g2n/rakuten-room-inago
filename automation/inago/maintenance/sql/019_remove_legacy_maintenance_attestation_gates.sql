@@ -1,0 +1,53 @@
+-- Remove legacy maintenance hashes, receipts, leases, and readiness trigger gates.
+-- Every table copy below retains all columns and historical row values; new tables no longer enforce old attestations.
+DROP TRIGGER IF EXISTS deployment_final_state_once;
+DROP TRIGGER IF EXISTS deployment_identity_immutable;
+DROP TRIGGER IF EXISTS deployment_identity_insert_valid;
+DROP TRIGGER IF EXISTS deployment_success_exact_version;
+DROP TRIGGER IF EXISTS deployment_success_exact_version_update;
+DROP TRIGGER IF EXISTS deployment_success_insert_host_only;
+DROP TRIGGER IF EXISTS deployment_success_update_host_only;
+DROP TRIGGER IF EXISTS job_input_manifest_immutable_delete;
+DROP TRIGGER IF EXISTS job_input_manifest_immutable_update;
+DROP TRIGGER IF EXISTS maintenance_ai_session_immutable_delete;
+DROP TRIGGER IF EXISTS maintenance_ai_session_immutable_update;
+DROP TRIGGER IF EXISTS repair_campaign_case_frozen_insert_guard;
+DROP TRIGGER IF EXISTS repair_campaign_case_frozen_monotonic;
+DROP TRIGGER IF EXISTS repair_campaign_case_identity_immutable;
+DROP TRIGGER IF EXISTS repair_campaign_case_insert_guard;
+DROP TRIGGER IF EXISTS repair_campaign_case_no_delete;
+DROP TRIGGER IF EXISTS repair_campaign_full_transition_host_only;
+DROP TRIGGER IF EXISTS repair_campaign_host_only;
+DROP TRIGGER IF EXISTS repair_campaign_identity_immutable;
+DROP TRIGGER IF EXISTS repair_campaign_result_no_delete;
+DROP TRIGGER IF EXISTS repair_campaign_result_no_update;
+DROP TRIGGER IF EXISTS repair_campaign_result_receipt_bind;
+DROP TRIGGER IF EXISTS repair_campaign_runner_identity_transition;
+DROP TRIGGER IF EXISTS repair_campaign_state_transition;
+DROP TRIGGER IF EXISTS repair_campaign_token_immutable;
+DROP TRIGGER IF EXISTS repair_case_run_receipt_recorded;
+DROP TRIGGER IF EXISTS repair_case_run_start_child_transition;
+DROP TRIGGER IF EXISTS repair_case_run_start_host_only;
+DROP TRIGGER IF EXISTS repair_case_run_start_identity_immutable;
+DROP TRIGGER IF EXISTS repair_case_run_start_no_delete;
+DROP TRIGGER IF EXISTS repair_case_run_start_transition;
+DROP TRIGGER IF EXISTS repair_case_run_start_update_host_only;
+DROP TRIGGER IF EXISTS repair_host_review_execution_bind;
+DROP TRIGGER IF EXISTS repair_host_review_execution_host_only;
+DROP TRIGGER IF EXISTS repair_host_review_execution_immutable;
+DROP TRIGGER IF EXISTS repair_host_review_execution_no_delete;
+DROP TRIGGER IF EXISTS repair_review_receipt_attempt_bind;
+DROP TRIGGER IF EXISTS repair_review_receipt_consumption_once;
+DROP TRIGGER IF EXISTS repair_review_receipt_host_only;
+DROP TRIGGER IF EXISTS repair_review_receipt_immutable;
+DROP TRIGGER IF EXISTS repair_review_receipt_no_delete;
+DROP TRIGGER IF EXISTS repair_run_receipt_bind_start;
+DROP TRIGGER IF EXISTS repair_run_receipt_consumption_once;
+DROP TRIGGER IF EXISTS repair_run_receipt_host_only;
+DROP TRIGGER IF EXISTS repair_run_receipt_immutable;
+DROP TRIGGER IF EXISTS repair_run_receipt_no_delete;
+DROP TRIGGER IF EXISTS step_attempt_repair_predecessor_all_or_none;
+DROP TRIGGER IF EXISTS step_attempt_repair_predecessor_immutable;
+
+-- Table-level hash, receipt, and lease constraints are removed by the schema-preserving v19 runner.
+SELECT 1;

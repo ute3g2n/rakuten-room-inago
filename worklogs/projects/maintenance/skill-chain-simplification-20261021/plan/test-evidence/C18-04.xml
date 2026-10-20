@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.480" timestamp="2026-10-21T06:23:29.432709+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_integration" name="test_queued_job_finishes_after_workers_exit_without_prior_db_complete" time="0.023" /><testcase classname="tests_inago.test_maintenance_integration" name="test_db_finish_failure_keeps_actual_worker_exit_record" time="0.024"><failure message="assert 0 == 7&#10; +  where 0 = len([])">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C18-04/test_db_finish_failure_keeps_a0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002B734EA3EF0&gt;
+
+    def test_db_finish_failure_keeps_actual_worker_exit_record(tmp_path, monkeypatch):
+        from automation.inago.maintenance import skill_chain_runtime
+        from automation.inago.maintenance.worker import WorkerWorkflowOutcome
+    
+        provider, _store, launch, check, queue, sessions, _events = _skill_chain_provider_fixture(
+            tmp_path, monkeypatch, exit_code=23, finish_error=OSError("synthetic database finish failure")
+        )
+        outcome = provider(launch, check, queue, object(), None)
+        assert isinstance(outcome, WorkerWorkflowOutcome)
+        assert outcome.status == "complete"
+        ledger = (
+            _store.database_path.parent.parent
+            / "maintenance-flow"
+            / "job-c18-fixture"
+            / "calls.jsonl"
+        )
+        records = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        role_records = [record for record in records if record.get("event") == "worker_finished"]
+&gt;       assert len(role_records) == 7
+E       assert 0 == 7
+E        +  where 0 = len([])
+
+tests_inago\test_maintenance_integration.py:1515: AssertionError</failure></testcase></testsuite></testsuites>

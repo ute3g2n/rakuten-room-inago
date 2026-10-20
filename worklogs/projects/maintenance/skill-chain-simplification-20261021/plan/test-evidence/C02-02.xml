@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="0.661" timestamp="2026-10-21T06:18:10.538767+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.010"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C02-02/test_non_gating_status_and_ear0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A2B9027560&gt;
+
+    def test_non_gating_status_and_early_end_continue_remaining_roles(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:305: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_operation_failures_keep_raw_and_continue" time="0.008"><failure message="AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C02-02/test_operation_failures_keep_r0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A2B901C8F0&gt;
+
+    def test_operation_failures_keep_raw_and_continue(tmp_path: Path, monkeypatch):
+        root, job = _workspace(tmp_path)
+&gt;       monkeypatch.setattr(skill_chain, "_executable", lambda: "synthetic-codex")
+E       AttributeError: &lt;module 'automation.inago.maintenance.skill_chain' from 'C:\\project\\rakuten-room-inago\\automation\\inago\\maintenance\\skill_chain.py'&gt; has no attribute '_executable'
+
+tests_inago\test_maintenance_skill_chain.py:323: AttributeError</failure></testcase><testcase classname="tests_inago.test_maintenance_ai" name="test_c26_transport_log_failure_still_interrupts_and_closes" time="0.003" /><testcase classname="tests_inago.test_maintenance_integration" name="test_workflow_block_status_does_not_block_worker_path" time="0.168" /></testsuite></testsuites>

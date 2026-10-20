@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.349" timestamp="2026-10-21T08:00:47.235984+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_daily_pipeline_safe_diagnostics" name="test_prepare_idempotency_conflict_records_safe_operation_context" time="0.008"><failure message="AssertionError: assert 'add_primary_diagnostic' == 'run_daily_execution_core'&#10;  &#10;  - run_daily_execution_core&#10;  + add_primary_diagnostic">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C12-04/test_prepare_idempotency_confl0')
+
+    def test_prepare_idempotency_conflict_records_safe_operation_context(tmp_path: Path):
+        sentinel = "IDEMPOTENCY_CONFLICT_SECRET_SENTINEL"
+        calls: list[str] = []
+    
+        def raise_prepare_conflict(_connection, _now, _preflight):
+            calls.append("prepare")
+            raise IdempotencyConflict(f"conflicting private value: {sentinel}")
+    
+        def backup_must_not_run(_connection, _context, _now):
+            calls.append("start_backup")
+            raise RuntimeError("backup failure sentinel")
+    
+        def preservation_must_not_run(_context, _now, _run_id):
+            calls.append("preservation")
+            raise RuntimeError("preservation failure sentinel")
+    
+        ports = replace(
+            _ports(tmp_path, run_daily=lambda *_args: pytest.fail("daily must not run")),
+            prepare=raise_prepare_conflict,
+            start_backup=backup_must_not_run,
+            preserve_end_of_day=preservation_must_not_run,
+        )
+        result = run_daily_execution_core(
+            ports,
+            clock=FakeClock(datetime.fromisoformat("2026-10-20T13:00:00+09:00")),
+        )
+    
+        assert calls == ["prepare"]
+        assert result["daily_status"] == "failed"
+        assert result["phase_results"]["prepare"]["status"] == "failed"
+        assert result["run_id"] is None
+        primary = result["primary_error"]
+        diagnostic = primary["diagnostic"]
+        assert diagnostic["operation"] == "daily_primary_failure"
+        assert diagnostic["failed_operation"] == "prepare"
+        assert diagnostic["exception_class"] == "IdempotencyConflict"
+        assert diagnostic["failure_module"] == daily_pipeline.__name__
+&gt;       assert diagnostic["failure_function"] == "run_daily_execution_core"
+E       AssertionError: assert 'add_primary_diagnostic' == 'run_daily_execution_core'
+E         
+E         - run_daily_execution_core
+E         + add_primary_diagnostic
+
+tests_inago\test_daily_pipeline_safe_diagnostics.py:461: AssertionError</failure></testcase></testsuite></testsuites>

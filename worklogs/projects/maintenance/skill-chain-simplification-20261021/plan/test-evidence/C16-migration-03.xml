@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="22" time="2.490" timestamp="2026-10-21T07:49:41.888437+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_seven_roles_receive_markdown_and_run_in_order" time="0.042" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_non_gating_status_and_early_end_continue_remaining_roles" time="0.034"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-migration-03/test_non_gating_status_and_ear0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000017DEBA09490&gt;
+
+    def test_non_gating_status_and_early_end_continue_remaining_roles(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root, fail={skill_chain.ROLE_CALLS[0].name, skill_chain.ROLE_CALLS[2].name})
+        result = _run(root, factory)
+        assert len(sessions) == result["roles_attempted"] == 9
+        expected_roles = [role.name for role in skill_chain.ROLE_CALLS]
+        assert [role["role"] for role in result["roles"]] == expected_roles + expected_roles[5:]
+        assert result["roles"][0]["error_class"] == "RuntimeError"
+        assert result["roles"][1]["turn_status"] == "completed"
+&gt;       assert result["status"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:177: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_operation_failures_keep_safe_record_and_continue" time="0.034" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[empty_ledger]" time="0.004" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[missing_role]" time="0.013" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_empty_or_incomplete_worker_ledger_is_not_terminal_complete[empty_response]" time="0.016" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_owned_worker_exit_is_reaped_after_close_error" time="0.042" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_owned_worker_timeout_terminates_kills_and_records_exit" time="0.045" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_same_job_without_predecessor_pin" time="0.032"><failure message="AssertionError: assert 'incomplete' == 'complete'&#10;  &#10;  - complete&#10;  + incomplete&#10;  ? ++">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-migration-03/test_resume_same_job_without_p0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000017DEBAB2CC0&gt;
+
+    def test_resume_same_job_without_predecessor_pin(tmp_path: Path, monkeypatch):
+        root = _root(tmp_path)
+        monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
+        factory, sessions = _factory(root)
+        result = _run(root, factory, start_role=3)
+        assert len(sessions) == result["roles_attempted"] == 7
+        resumed_roles = [role.name for role in skill_chain.ROLE_CALLS[2:]]
+        assert [role["role"] for role in result["roles"]] == resumed_roles + resumed_roles[-2:]
+        assert result["source_run_id"] is None
+&gt;       assert result["status"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+tests_inago\test_maintenance_skill_chain.py:328: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_resume_after_final_review_reuses_author_and_reviewer_outputs" time="0.024" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_maintenance_chain_does_not_generate_content_hashes" time="0.036" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_appserver_best_effort_logging_and_advisory_probe" time="0.026" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_scope_preserves_excluded_date_and_daily_data" time="0.013" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_production_route_is_separate_from_legacy_controller" time="0.001" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_stage_failure_completes_queue_without_lease" time="0.220" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_outer_failure_writes_readable_fallback_with_identity" time="0.023" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_worker_cli_admits_target_launch_without_lease" time="0.338" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_contract_roles_and_generated_flow_are_synchronized" time="0.001" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_safe_stdout_stderr_and_response_exclude_secrets" time="0.043" /><testcase classname="tests_inago.test_maintenance_skill_chain" name="test_daily_gap_emits_useful_safe_diagnostics" time="0.838" /><testcase classname="tests_inago.test_maintenance_store" name="test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls" time="0.246" /><testcase classname="tests_inago.test_maintenance_deployment" name="test_c43_health_failure_rolls_back_runtime_switch" time="0.001" /></testsuite></testsuites>

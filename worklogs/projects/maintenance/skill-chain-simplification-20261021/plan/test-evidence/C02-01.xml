@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.487" timestamp="2026-10-21T06:17:43.342766+09:00" hostname="OUE-RYZEN3950X"><testcase classname="" name="tests_inago.test_maintenance_integration" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\project\rakuten-room-inago\tests_inago\test_maintenance_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\ute3g\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_maintenance_integration.py:39: in &lt;module&gt;
+    from tests_inago.test_maintenance_deployment import _case, _deploy, _git
+tests_inago\test_maintenance_deployment.py:12: in &lt;module&gt;
+    from automation.inago.maintenance.deployment import (
+E   ImportError: cannot import name 'working_tree_content_sha256' from 'automation.inago.maintenance.deployment' (C:\project\rakuten-room-inago\automation\inago\maintenance\deployment.py)</error></testcase></testsuite></testsuites>

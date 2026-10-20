@@ -1,0 +1,109 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__________ test_resume_maintenance_job_ignores_resume_preconditions ___________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C04-C18-store-01/test_resume_maintenance_job_ig0')
+
+    def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
+        store = make_store(tmp_path)
+        source_launch_id = "historical-resume-without-gates"
+        check = store.record_daily_check(
+            source_launch_id=source_launch_id,
+            source_run_id=None,
+            target_date="2026-10-17",
+            check_status="abnormal",
+            observed_at=BASE_TIME.isoformat(),
+            reason_code="historical_daily_failure_observed",
+            incident={
+                "dedupe_key": source_launch_id,
+                "component": "daily_pipeline",
+                "event_code": "historical_daily_failure",
+            },
+        )
+        assert check.incident_id is not None
+        release_id = "release-resume-without-gates"
+>       job = create_ready_release(
+            store,
+            incident_id=check.incident_id,
+            release_id=release_id,
+        )
+
+tests_inago\test_maintenance_store.py:1189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+store = <automation.inago.maintenance.store.MaintenanceStore object at 0x0000029BFE31C9E0>
+incident_id = '5aa6f151-6282-479c-9980-d4266cceac2e'
+release_id = 'release-resume-without-gates', base_commit = 'base-1'
+result_commit = 'commit-1', result_version = 'result-v1'
+config_version = 'settings-v1'
+
+    def create_ready_release(
+        store: MaintenanceStore,
+        *,
+        incident_id: str,
+        release_id: str = "release-1",
+        base_commit: str = "base-1",
+        result_commit: str = "commit-1",
+        result_version: str = "result-v1",
+        config_version: str = "settings-v1",
+    ):
+>       release = store.create_release(
+                  ^^^^^^^^^^^^^^^^^^^^
+            release_id=release_id,
+            author_id="implementation-agent",
+            base_commit=base_commit,
+            result_commit=result_commit,
+            result_version=result_version,
+            config_version=config_version,
+            required_case_ids=("contract-case-1",),
+            created_at=BASE_TIME.isoformat(),
+        )
+E       AttributeError: 'MaintenanceStore' object has no attribute 'create_release'
+
+tests_inago\maintenance_support.py:76: AttributeError
+_______ test_job_completion_updates_incident_and_recovers_idempotently ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C04-C18-store-01/test_job_completion_updates_in0')
+
+    def test_job_completion_updates_incident_and_recovers_idempotently(tmp_path):
+        store = make_store(tmp_path)
+        incident_id = create_incident(store)
+>       job = create_ready_release(store, incident_id=incident_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_maintenance_store.py:470: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+store = <automation.inago.maintenance.store.MaintenanceStore object at 0x0000029BFE3B9CA0>
+incident_id = 'b2446268-744a-469c-96e8-fdb2391e0ec9', release_id = 'release-1'
+base_commit = 'base-1', result_commit = 'commit-1', result_version = 'result-v1'
+config_version = 'settings-v1'
+
+    def create_ready_release(
+        store: MaintenanceStore,
+        *,
+        incident_id: str,
+        release_id: str = "release-1",
+        base_commit: str = "base-1",
+        result_commit: str = "commit-1",
+        result_version: str = "result-v1",
+        config_version: str = "settings-v1",
+    ):
+>       release = store.create_release(
+                  ^^^^^^^^^^^^^^^^^^^^
+            release_id=release_id,
+            author_id="implementation-agent",
+            base_commit=base_commit,
+            result_commit=result_commit,
+            result_version=result_version,
+            config_version=config_version,
+            required_case_ids=("contract-case-1",),
+            created_at=BASE_TIME.isoformat(),
+        )
+E       AttributeError: 'MaintenanceStore' object has no attribute 'create_release'
+
+tests_inago\maintenance_support.py:76: AttributeError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_maintenance_store.py::test_resume_maintenance_job_ignores_resume_preconditions
+FAILED tests_inago/test_maintenance_store.py::test_job_completion_updates_incident_and_recovers_idempotently
+2 failed in 0.65s

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.980" timestamp="2026-10-21T06:56:33.017567+09:00" hostname="OUE-RYZEN3950X"><testcase classname="tests_inago.test_maintenance_workflow_provider" name="test_worker_cli_connects_provider_without_release_gate" time="0.263"><failure message="AssertionError: assert 'unknown' == 'complete'&#10;  &#10;  - complete&#10;  + unknown">tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/skill-chain-simplification-20261021/C16-diagnostic-22/test_worker_cli_connects_provi0')
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x00000238D31A32F0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000238D31A3620&gt;
+
+    def test_worker_cli_connects_provider_without_release_gate(
+        tmp_path, capsys, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "automation.inago.maintenance.skill_chain_runtime._codex",
+            lambda: None,
+        )
+        data_root = tmp_path / "runtime"
+        daily_database = tmp_path / "daily" / "state.sqlite"
+        ensure_settings_file(data_root / "maintenance" / "settings.json")
+        store = MaintenanceStore(data_root, daily_database_path=daily_database)
+        store.initialize()
+    
+        def failed_daily_process(_command, _cwd, on_started):
+            on_started(9501)
+            return DailyProcessResult(
+                returncode=4,
+                stdout=b'{"status":"runtime_error","reason":"SyntheticError"}',
+                stderr=b"",
+                pid=9501,
+            )
+    
+        launch = run_daily_launch(
+            store,
+            data_root=data_root,
+            config_path=tmp_path / "config.json",
+            now=datetime(2026, 10, 20, 4, tzinfo=timezone.utc),
+            process_runner=failed_daily_process,
+            command=("synthetic-daily-child",),
+            cwd=tmp_path,
+        )
+    
+        exit_code = maintenance_cli_main(
+            [
+                "--data-root",
+                str(data_root),
+                "--daily-database",
+                str(daily_database),
+                "worker",
+                "--once",
+                "--source-launch-id",
+                launch.launch_id,
+            ]
+        )
+        output = json.loads(capsys.readouterr().out)
+        (tmp_path / "worker-result.json").write_text(
+            json.dumps(output, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+        )
+        queue = store.get_worker_queue(launch.launch_id)
+        check = store.get_daily_check_by_launch(launch.launch_id)
+    
+        assert exit_code == 0, output
+&gt;       assert output["maintenance_resolution_status"] == "complete"
+E       AssertionError: assert 'unknown' == 'complete'
+E         
+E         - complete
+E         + unknown
+
+tests_inago\test_maintenance_workflow_provider.py:650: AssertionError</failure></testcase><testcase classname="tests_inago.test_maintenance_integration" name="test_legacy_enqueue_historical_cli_is_removed" time="0.005" /></testsuite></testsuites>

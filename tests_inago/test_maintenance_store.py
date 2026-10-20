@@ -12,7 +12,6 @@ import pytest
 from automation.inago.maintenance import store as maintenance_store_module
 from automation.inago.maintenance.store import (
     IdempotencyConflictError,
-    LeaseBusyError,
     MaintenanceStoreError,
 )
 from tests_inago.maintenance_support import (
@@ -864,11 +863,21 @@ def test_c53_contract(tmp_path):
         evaluated_at=(BASE_TIME + timedelta(seconds=15)).isoformat(),
     )
     assert gate.status == "ready"
+    ready_release = store.create_release(
+        release_id="release-ready-no-gate",
+        author_id="implementation-agent",
+        base_commit="base-ready",
+        result_commit="commit-ready",
+        result_version="result-ready",
+        config_version="settings-ready",
+        required_case_ids=("case-ready",),
+        created_at=(BASE_TIME + timedelta(seconds=16)).isoformat(),
+    )
     started = store.start_fix_job(
         incident_id=incident_id,
-        release_id=release.release_id,
+        release_id=ready_release.release_id,
         job_id="ready-job",
-        started_at=(BASE_TIME + timedelta(seconds=16)).isoformat(),
+        started_at=(BASE_TIME + timedelta(seconds=17)).isoformat(),
     )
     assert started.started
     assert started.job_id == "ready-job"
@@ -1017,7 +1026,7 @@ def test_c53_review_rounds_are_unbounded(tmp_path):
         started_at=(BASE_TIME + timedelta(seconds=25)).isoformat(),
     )
     assert fake_denied.started
-    assert fake_denied.gate_status == "blocked"
+    assert fake_denied.gate_status == "not_evaluated"
     assert store.counts()["maintenance_job"] == 3
 
 
@@ -1282,8 +1291,7 @@ def test_resume_maintenance_job_ignores_resume_preconditions(tmp_path):
 def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
     tmp_path, monkeypatch
 ):
-    target_schema_version = maintenance_store_module.SCHEMA_VERSION
-    assert target_schema_version == 15
+    target_schema_version = 15
 
     # Recreate the currently deployed schema 14 without touching production.
     monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 14)
@@ -1340,3 +1348,170 @@ def test_schema_15_upgrade_drops_only_optional_repair_predecessor_trigger(
             "WHERE attempt_id = ?",
             (repair_attempt.attempt_id,),
         ).fetchone() == (None, None, None)
+
+
+def test_schema_19_upgrade_preserves_legacy_attestation_values_and_allows_nulls(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 18)
+    store = make_store(tmp_path)
+    incident_id = create_incident(store)
+    legacy_job_id = "legacy-job-with-attestation"
+    legacy_manifest_digest = "a" * 64
+    legacy_role_digest = "b" * 64
+
+    with sqlite3.connect(store.database_path) as connection:
+        connection.execute(
+            "INSERT INTO release "
+            "(release_id, author_id, base_commit, result_commit, result_version, "
+            "config_version, case_manifest_sha256, state, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'frozen', ?)",
+            (
+                "legacy-release",
+                "legacy-author",
+                "base-v18",
+                "result-v18",
+                "legacy-version",
+                "legacy-config",
+                "c" * 64,
+                BASE_TIME.isoformat(),
+            ),
+        )
+        connection.execute(
+            "INSERT INTO maintenance_job "
+            "(job_id, incident_id, release_id, source_run_id, result_version, "
+            "status, created_at, updated_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?)",
+            (
+                legacy_job_id,
+                incident_id,
+                "legacy-release",
+                "legacy-version",
+                "queued",
+                BASE_TIME.isoformat(),
+                BASE_TIME.isoformat(),
+            ),
+        )
+        before_triggers = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )
+        }
+        assert "deployment_success_exact_version" in before_triggers
+        assert "repair_campaign_result_receipt_bind" in before_triggers
+        connection.execute(
+            "INSERT INTO job_input_manifest "
+            "(job_id, incident_id, source_launch_id, source_run_id, target_date, "
+            "manifest_sha256, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?)",
+            (
+                legacy_job_id,
+                incident_id,
+                "legacy-launch",
+                "2026-10-17",
+                legacy_manifest_digest,
+                BASE_TIME.isoformat(),
+            ),
+        )
+        connection.execute(
+            "INSERT INTO maintenance_ai_session "
+            "(job_id, session_key, parent_key, role_name, thread_id, "
+            "manifest_sha256, requested_model, requested_effort, "
+            "requested_service_tier, requested_fast_mode, role_config_sha256, "
+            "sandbox_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                legacy_job_id,
+                "legacy-review",
+                "B",
+                "common-reviewer",
+                "thread-legacy-review",
+                legacy_manifest_digest,
+                "gpt-6-luna",
+                "high",
+                "default",
+                0,
+                legacy_role_digest,
+                "{}",
+                BASE_TIME.isoformat(),
+            ),
+        )
+
+    monkeypatch.setattr(maintenance_store_module, "SCHEMA_VERSION", 19)
+    assert store.initialize(applied_at=BASE_TIME) == 19
+
+    with sqlite3.connect(store.database_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone() == (19,)
+        retained_manifest = connection.execute(
+            "SELECT manifest_sha256 FROM job_input_manifest WHERE job_id = ?",
+            (legacy_job_id,),
+        ).fetchone()
+        retained_session = connection.execute(
+            "SELECT manifest_sha256, role_config_sha256 "
+            "FROM maintenance_ai_session WHERE job_id = ?",
+            (legacy_job_id,),
+        ).fetchone()
+        assert retained_manifest == (legacy_manifest_digest,)
+        assert retained_session == (legacy_manifest_digest, legacy_role_digest)
+        remaining_triggers = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )
+        }
+        assert "deployment_success_exact_version" not in remaining_triggers
+        assert "repair_campaign_result_receipt_bind" not in remaining_triggers
+
+        new_job_id = "job-without-attestation"
+        connection.execute(
+            "INSERT INTO maintenance_job "
+            "(job_id, incident_id, release_id, source_run_id, result_version, "
+            "status, created_at, updated_at) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?)",
+            (
+                new_job_id,
+                incident_id,
+                "new-version",
+                "failed",
+                BASE_TIME.isoformat(),
+                BASE_TIME.isoformat(),
+            ),
+        )
+        connection.execute(
+            "INSERT INTO job_input_manifest "
+            "(job_id, incident_id, source_launch_id, source_run_id, target_date, "
+            "manifest_sha256, created_at) VALUES (?, ?, ?, NULL, ?, NULL, ?)",
+            (
+                new_job_id,
+                incident_id,
+                "new-launch",
+                "2026-10-21",
+                BASE_TIME.isoformat(),
+            ),
+        )
+        connection.execute(
+            "INSERT INTO maintenance_ai_session "
+            "(job_id, session_key, parent_key, role_name, thread_id, "
+            "manifest_sha256, requested_model, requested_effort, "
+            "requested_service_tier, requested_fast_mode, role_config_sha256, "
+            "sandbox_json, created_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, NULL, ?, ?)",
+            (
+                new_job_id,
+                "new-review",
+                "B",
+                "common-reviewer",
+                "thread-new-review",
+                "gpt-6-luna",
+                "high",
+                "default",
+                0,
+                "{}",
+                BASE_TIME.isoformat(),
+            ),
+        )
+        assert connection.execute(
+            "SELECT manifest_sha256 FROM job_input_manifest WHERE job_id = ?",
+            (new_job_id,),
+        ).fetchone() == (None,)
+        assert connection.execute(
+            "SELECT manifest_sha256, role_config_sha256 "
+            "FROM maintenance_ai_session WHERE job_id = ?",
+            (new_job_id,),
+        ).fetchone() == (None, None)

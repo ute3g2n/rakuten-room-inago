@@ -616,7 +616,7 @@ def test_c59_contract(tmp_path):
         source_launch_id=launch_id,
     )
 
-    assert complete.status == "dispatch_complete"
+    assert complete.status == "maintenance_incomplete"
     assert duplicate.status == "dispatch_complete"
     assert duplicate.duplicate is True
     assert duplicate.worker_job_id == complete.worker_job_id
@@ -715,130 +715,15 @@ def test_workflow_block_status_does_not_block_worker_path(tmp_path):
     assert queue is not None and queue.status == "complete"
 
 
-def test_c54_contract(tmp_path, capsys):
-    import hashlib
-
+def test_legacy_enqueue_historical_cli_is_removed(tmp_path, capsys):
     data_root = tmp_path / "maintenance-data"
-    daily_database = tmp_path / "ordinary-daily" / "state.sqlite"
-    assert (
-        maintenance_cli_main(
-            [
-                "--data-root",
-                str(data_root),
-                "--daily-database",
-                str(daily_database),
-                "init",
-            ]
-        )
-        == 0
+    result = maintenance_cli_main(
+        ["--data-root", str(data_root), "enqueue-historical"]
     )
-    capsys.readouterr()
-    store = MaintenanceStore(data_root, daily_database_path=daily_database)
-    store.create_release(
-        release_id="release-c54",
-        author_id="author-c54",
-        base_commit="a" * 40,
-        result_commit="b" * 40,
-        result_version="result-c54",
-        config_version="config-c54",
-        required_case_ids=("case-c54",),
-        created_at=BASE_TIME.isoformat(),
-    )
-    store.record_test_result(
-        release_id="release-c54",
-        case_id="case-c54",
-        attempt=1,
-        result_version="result-c54",
-        status="PASS",
-        recorded_at=(BASE_TIME + timedelta(seconds=1)).isoformat(),
-    )
-    store.record_release_review(
-        release_id="release-c54",
-        reviewer_id="reviewer-c54",
-        reviewed_version="result-c54",
-        status="approved",
-        reviewed_at=(BASE_TIME + timedelta(seconds=2)).isoformat(),
-    )
-    record_successful_deployment_fixture(
-        store,
-        release_id="release-c54",
-        deployed_at=(BASE_TIME + timedelta(seconds=3)).isoformat(),
-    )
-    gate = store.evaluate_release_gate(
-        release_id="release-c54",
-        evaluated_at=(BASE_TIME + timedelta(seconds=4)).isoformat(),
-    )
-    assert gate.status == "ready"
 
-    evidence_bytes = b'{"launch_status":"failed","exit_code":4}\n'
-    evidence_path = data_root / "E0" / "launch-record.json"
-    evidence_path.parent.mkdir(parents=True)
-    evidence_path.write_bytes(evidence_bytes)
-    observation = {
-        "schema_version": "historical-daily-intake-v1",
-        "original_source_launch_id": "original-launch-20261017",
-        "source_run_id": None,
-        "target_date": "2026-10-17",
-        "launch_status": "failed",
-        "daily_status": "failed",
-        "exit_code": 4,
-        "reason_code": "daily_runtime_error",
-        "evidence_ref": "E0/launch-record.json",
-        "evidence_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
-        "observed_at": "2026-10-17T13:20:00+09:00",
-    }
-    observation_path = data_root / "intake" / "historical-2026-10-17.json"
-    observation_path.parent.mkdir(parents=True)
-    observation_path.write_text(
-        json.dumps(observation, sort_keys=True, separators=(",", ":")),
-        encoding="utf-8",
-    )
-    command = [
-        "--data-root",
-        str(data_root),
-        "--daily-database",
-        str(daily_database),
-        "enqueue-historical",
-        "--release-id",
-        "release-c54",
-        "--observation",
-        "intake/historical-2026-10-17.json",
-        "--enqueued-at",
-        "2026-10-18T14:00:00+09:00",
-    ]
-
-    assert maintenance_cli_main(command) == 0
-    first = json.loads(capsys.readouterr().out)
-    assert maintenance_cli_main(command) == 0
-    second = json.loads(capsys.readouterr().out)
-
-    assert first["status"] == second["status"] == "queued"
-    assert first["target_date"] == second["target_date"] == "2026-10-17"
-    assert first["source_run_id"] is second["source_run_id"] is None
-    assert first["source_launch_id"] == second["source_launch_id"]
-    assert first["check_id"] == second["check_id"]
-    assert first["incident_id"] == second["incident_id"]
-    assert first["job_id"] == second["job_id"]
-    assert first["duplicate"] is False and second["duplicate"] is True
-    assert store.counts()["daily_check"] == 1
-    assert store.counts()["maintenance_job"] == 1
-    assert store.counts()["incident"] == 1
-    assert store.counts()["daily_launch"] == 0
-    assert store.counts()["worker_queue"] == 0
-    with sqlite3.connect(store.database_path) as connection:
-        row = connection.execute(
-            "SELECT source_run_id, target_date FROM daily_check WHERE check_id = ?",
-            (first["check_id"],),
-        ).fetchone()
-        job_row = connection.execute(
-            "SELECT status, source_run_id FROM maintenance_job WHERE job_id = ?",
-            (first["job_id"],),
-        ).fetchone()
-    assert row == (None, "2026-10-17")
-    assert job_row == ("queued", None)
-    assert not daily_database.exists()
-    evidence_path = data_root / first["evidence_ref"]
-    assert evidence_path.is_file()
+    assert result == 2
+    assert "invalid choice" in capsys.readouterr().err
+    assert not (data_root / "maintenance" / "state.sqlite").exists()
 
 
 def test_c56_contract(tmp_path):
@@ -1403,3 +1288,120 @@ def test_c50_contract(tmp_path):
         )
         == 4
     )
+
+
+def _skill_chain_provider_fixture(tmp_path, monkeypatch, *, exit_code=0, finish_error=None):
+    from types import SimpleNamespace
+    from automation.inago.maintenance import skill_chain_runtime
+
+    events = []
+    sessions = []
+
+    class Process:
+        def __init__(self, code):
+            self.returncode = code
+            self.waited = False
+
+        def wait(self, timeout=None):
+            self.waited = True
+            return self.returncode
+
+    class Session:
+        def __init__(self, **kwargs):
+            self.role_name = kwargs["role_name"]
+            self.process_id = 4100 + len(sessions)
+            self.process = Process(exit_code)
+            self.safe_stderr_output = []
+            self.closed = False
+            sessions.append(self)
+
+        def run_turn(self, *_args, **_kwargs):
+            return SimpleNamespace(
+                final_text="",
+                thread_id=f"thread-{self.role_name}",
+                turn_id=f"turn-{self.role_name}",
+                events=({"method": "turn/completed", "params": {"turn": {"status": "completed"}}},),
+            )
+
+        def close(self):
+            self.closed = True
+            self.process.wait()
+
+    monkeypatch.setattr(skill_chain_runtime, "_codex", lambda: "codex-fixture")
+    monkeypatch.setattr(skill_chain_runtime, "_session", lambda _root, _job, role, _factory: Session(role_name=role.name))
+
+    job = SimpleNamespace(job_id="job-c18-fixture", status="queued")
+
+    class Store:
+        database_path = (
+            tmp_path / "repo" / "rakuten-room-inago" / "runtime"
+            / "maintenance" / "state.sqlite"
+        )
+
+        def ensure_skill_chain_job_for_launch(self, **kwargs):
+            events.append(("intake", kwargs))
+            return job
+
+        def finalize_job(self, **kwargs):
+            events.append(("finalize", kwargs))
+            if finish_error is not None:
+                raise finish_error
+
+    store = Store()
+    provider = skill_chain_runtime.build_skill_chain_workflow_provider(
+        store, repository_root=tmp_path / "repo"
+    )
+    launch = SimpleNamespace(
+        source_launch_id="launch-c18-fixture",
+        source_run_id=None,
+        target_date="2026-10-20",
+        status="failed",
+        exit_code=4,
+    )
+    check = SimpleNamespace(check_id="check-c18-fixture")
+    queue = SimpleNamespace(queue_id="queue-c18-fixture")
+    return provider, store, launch, check, queue, sessions, events
+
+
+def test_queued_job_finishes_after_workers_exit_without_prior_db_complete(
+    tmp_path, monkeypatch
+):
+    from automation.inago.maintenance.worker import WorkerWorkflowOutcome
+
+    provider, store, launch, check, queue, sessions, events = _skill_chain_provider_fixture(
+        tmp_path, monkeypatch
+    )
+    outcome = provider(launch, check, queue, object(), None)
+    assert isinstance(outcome, WorkerWorkflowOutcome)
+    assert outcome.status == "complete"
+    assert events[0][0] == "intake"
+    assert events[-1][0] == "finalize"
+    assert len(sessions) == 7 and all(session.closed and session.process.waited for session in sessions)
+    assert store.database_path.parent.parent.joinpath(
+        "maintenance-flow", "job-c18-fixture", "calls.jsonl"
+    ).is_file()
+
+
+def test_db_finish_failure_keeps_actual_worker_exit_record(tmp_path, monkeypatch):
+    from automation.inago.maintenance import skill_chain_runtime
+    from automation.inago.maintenance.worker import WorkerWorkflowOutcome
+
+    provider, _store, launch, check, queue, sessions, _events = _skill_chain_provider_fixture(
+        tmp_path, monkeypatch, exit_code=23, finish_error=OSError("synthetic database finish failure")
+    )
+    outcome = provider(launch, check, queue, object(), None)
+    assert isinstance(outcome, WorkerWorkflowOutcome)
+    assert outcome.status == "complete"
+    ledger = (
+        _store.database_path.parent.parent
+        / "maintenance-flow"
+        / "job-c18-fixture"
+        / "calls.jsonl"
+    )
+    records = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+    role_records = [record for record in records if record.get("event") == "worker_finished"]
+    assert len(role_records) == 7
+    assert role_records[0]["process_returncode"] == 23
+    assert all(session.closed and session.process.waited for session in sessions)
+    finalization = next(record for record in records if record.get("event") == "job_finalization_observed")
+    assert finalization["turn_status"] == "not_recorded:OSError"
