@@ -1,0 +1,119 @@
+{
+  "schema_version": "fc11-same-job-publication-failure-evidence-v1",
+  "observed_at_utc": "2026-10-20T00:35:18.775636+00:00",
+  "source_ref": "runtime/maintenance/failure-journal/events.jsonl",
+  "source_journal_sha256": "bfe01865838f0be1383227bc5dcb4f50a593c6c633d012ef800ccdb8fd10a766",
+  "event": {
+    "event_id": "a87feb216b6e4e0cb3baf5096d1654c5",
+    "correlation_id": "workflow-3dc239a461a948c19dbea9cc7c24263a",
+    "parent_operation": "workflow.report.publication",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "invocation_id": "workflow-3dc239a461a948c19dbea9cc7c24263a",
+    "stage": "report",
+    "attempt_id": "f6d77422-5b25-4011-9101-ac0d11531ce6",
+    "operation": "workflow.report.publication.prepare_target",
+    "phase": "failed",
+    "observed_at": "2026-10-20T00:32:34.242+00:00",
+    "code_revision": "maintenance-source-v1-e6c767b91cfb75315d6bb1bf2ad7b058f8f6460e1665a37eb2d9410fe00c21a6",
+    "reason_code": "report_publication_path_conflict",
+    "exception_chain": [
+      "ReportContractError"
+    ],
+    "exception_reason_codes": [
+      "report_publication_path_conflict"
+    ],
+    "exception_errno": null,
+    "stack_frames": [
+      {
+        "file": "production_workflow.py",
+        "function": "run_daily_report_publication_stage",
+        "line": 12155
+      }
+    ],
+    "capture_location": "run_daily_report_publication_stage",
+    "input_refs": [
+      "evidence/2026-10-17/fff0d77048a7162c01da9f6a/manifest.json",
+      "historical-input/2026-10-17/e0-manifest.json",
+      "historical-input/2026-10-17/observation.json",
+      "historical-input/2026-10-17/production-cli.filtered.json",
+      "historical-input/2026-10-17/read-aggregate.json",
+      "historical-input/2026-10-17/scheduler.filtered.json",
+      "historical-input/2026-10-17/source-evidence.json",
+      "historical-intake/2026-10-17/historical-9e7f0c175cc4c874c955a5dab29c4427.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/b33f01b3-a608-4b43-b3c2-62331e251bba/stage-handoff.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/e07193ae-6016-40e7-87e6-0a56aa01624f/repair-handoff.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/feb4fb86-679c-44a0-85dd-93a64e88b87f/result.json"
+    ],
+    "artifact_refs": [
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/f6d77422-5b25-4011-9101-ac0d11531ce6/result.json",
+      "job-historical-9e7f0c175cc4c874c955a5dab29c4427/f6d77422-5b25-4011-9101-ac0d11531ce6/report-fallback-35890643079fd6ca1d3f.html"
+    ],
+    "primary_sink": "report_publication",
+    "fallback_status": null,
+    "operation_context": {
+      "existing_report_replaceable": false,
+      "existing_report_replacement_evidence": {
+        "candidate_causes": [
+          "f3f13768-6ea6-411b-b33a-de89c275c3a7:cause:ReportContractError:report_artifact_unavailable",
+          "be3f85da-aac7-446f-98ba-6dee354dade2:cause:ReportContractError:report_artifact_unavailable",
+          "e58035cc-14dc-4d8b-9a54-958367b1f6a5:cause:ReportContractError:report_artifact_unavailable",
+          "e0f4cd47-f469-4669-afb0-1a8463888ba7:cause:ReportContractError:report_artifact_unavailable",
+          "3316feb6-43ed-4d46-a41b-04bbb6b13896:cause:ReportContractError:report_artifact_unavailable",
+          "3d052796-95b1-477b-975b-2db264cbe7ee:cause:ReportContractError:report_artifact_unavailable",
+          "bad6e70a-755d-4afc-bb3b-2d303baa44bb:cause:ReportContractError:report_artifact_unavailable",
+          "caa3d72e-acb6-4e62-9ea4-4870dd7b26da:cause:ReportContractError:report_artifact_unavailable",
+          "2835c1d2-87b9-48c2-95b2-c1940c849ada:cause:ReportContractError:report_artifact_unavailable",
+          "b722e3df-65d4-400b-b970-b9a06e2bf285:cause:ReportContractError:report_artifact_unavailable",
+          "a4d986bd-f0dc-4391-9328-6dc3f08f120c:cause:ReportContractError:report_artifact_unavailable"
+        ],
+        "candidate_results": [
+          "997531c9-8799-4b12-bd05-834218fc5b02:prior_result_not_bound_to_same_job_approved_or_fallback_report",
+          "8d699d8b-6af2-40b9-aa5b-79826fe5ad9b:prior_result_not_bound_to_same_job_approved_or_fallback_report",
+          "f3f13768-6ea6-411b-b33a-de89c275c3a7:prior_result_or_publication_unavailable",
+          "248743c6-c710-4ef3-af53-9336fbe2e3c1:prior_result_not_bound_to_same_job_approved_or_fallback_report",
+          "be3f85da-aac7-446f-98ba-6dee354dade2:prior_result_or_publication_unavailable",
+          "e58035cc-14dc-4d8b-9a54-958367b1f6a5:prior_result_or_publication_unavailable",
+          "e0f4cd47-f469-4669-afb0-1a8463888ba7:prior_result_or_publication_unavailable",
+          "3316feb6-43ed-4d46-a41b-04bbb6b13896:prior_result_or_publication_unavailable",
+          "3d052796-95b1-477b-975b-2db264cbe7ee:prior_result_or_publication_unavailable",
+          "bad6e70a-755d-4afc-bb3b-2d303baa44bb:prior_result_or_publication_unavailable",
+          "caa3d72e-acb6-4e62-9ea4-4870dd7b26da:prior_result_or_publication_unavailable",
+          "2fc47a86-4bbf-42f8-8347-baf521124425:prior_result_not_bound_to_same_job_approved_or_fallback_report",
+          "2835c1d2-87b9-48c2-95b2-c1940c849ada:prior_result_or_publication_unavailable",
+          "739f3463-3ca6-47cb-b0aa-affdd21132f9:prior_result_not_bound_to_same_job_approved_or_fallback_report",
+          "b722e3df-65d4-400b-b970-b9a06e2bf285:prior_result_or_publication_unavailable",
+          "a4d986bd-f0dc-4391-9328-6dc3f08f120c:prior_result_or_publication_unavailable"
+        ],
+        "decision": "not_authorized",
+        "rejection_reason": "prior_result_or_publication_unavailable"
+      },
+      "expected_target_commit": "832122863a3f5e9e76cfb5c42082a5e404e088c2",
+      "remote_existing_report_sha256": "06794328757cd5efb2d543b79c201121b5413afca6547c6434440cebd7ed485d",
+      "remote_name": "origin",
+      "remote_target_head": "b12fa875ca6069193077ca90f28e512e239ab935",
+      "report_path": "reports/incidents/2026-10-17/job-39e268f67f036cc9225e.html",
+      "report_sha256": "35890643079fd6ca1d3fbe8e0e3939039bcc57155690b85c81c801ca0c0b4a57",
+      "source_code_commit": "832122863a3f5e9e76cfb5c42082a5e404e088c2",
+      "target_branch": "main"
+    }
+  },
+  "related_report_attempt": {
+    "attempt_id": "f6d77422-5b25-4011-9101-ac0d11531ce6",
+    "html_sha256": "35890643079fd6ca1d3fbe8e0e3939039bcc57155690b85c81c801ca0c0b4a57",
+    "review_status": "approved",
+    "reviewed_sha256": "35890643079fd6ca1d3fbe8e0e3939039bcc57155690b85c81c801ca0c0b4a57"
+  },
+  "prior_published_report": {
+    "attempt_id": "997531c9-8799-4b12-bd05-834218fc5b02",
+    "origin": "controller_fallback",
+    "stage_status": "reviewed",
+    "reviewer_id": "rr-inago-incident-report-reviewer",
+    "review_status": "approved",
+    "reviewed_sha256": "06794328757cd5efb2d543b79c201121b5413afca6547c6434440cebd7ed485d",
+    "publication_commit": "aebdb86a7d93325c040c1e4cac0057dbe985db2b"
+  },
+  "diagnosis": "Replacement guard rejected the exact previously published report because it allowed an approved independent review only when report_origin was null; it did not accept the same approved review binding when the prior report had been generated by the controller fallback. Other identity/hash/sidecar/remote ancestry checks remain in place."
+}

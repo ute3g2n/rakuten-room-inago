@@ -1,0 +1,92 @@
+{
+  "schema_version": "fc11-same-job-resume-cli-v1",
+  "observed_at_utc": "2026-10-20T00:31:13.170152+00:00",
+  "repository_commit": "b12fa875ca6069193077ca90f28e512e239ab935",
+  "command": [
+    "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "resume-worker",
+    "--source-launch-id",
+    "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "--job-id",
+    "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  ],
+  "identity_expected": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "before": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "resume_count": 25,
+      "status": "complete",
+      "finished_at": "2026-10-20T00:18:23.144874Z",
+      "terminal_reason_code": null
+    },
+    "manifest": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    },
+    "target_worker_queue": [],
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ]
+  },
+  "process": {
+    "exit_code": 0,
+    "stdout_tail": "{\"job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\", \"resume_count\": 26, \"resume_event_id\": \"634621d9737f4607b92d9720b47dd53a\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"queued\"}\n",
+    "stderr_tail": ""
+  },
+  "response": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "resume_count": 26,
+    "resume_event_id": "634621d9737f4607b92d9720b47dd53a",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "queued"
+  },
+  "after": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "resume_count": 26,
+      "status": "queued",
+      "finished_at": null,
+      "terminal_reason_code": null
+    },
+    "manifest": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    },
+    "target_worker_queue": [],
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ]
+  },
+  "identity_preserved": true,
+  "result": "queued_same_job",
+  "side_effect_scope": {
+    "new_job_created": false,
+    "daily_launch_created": false,
+    "target_launch_only": true,
+    "october19_queue_changed": false
+  }
+}

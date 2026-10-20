@@ -2445,6 +2445,59 @@ def test_only_same_job_proven_report_publication_can_authorize_blob_replacement(
         replacement_diagnostics
     )
 
+    # A controller-produced fallback that received a real independent approval
+    # is also a reviewed prior report. Its exact identity, result, review,
+    # publication sidecar, remote ancestry, and HTML blob still have to match.
+    fallback_reviewed_version = "fallback-reviewed-fc10-v1"
+    review = {**review, "reviewed_version": fallback_reviewed_version}
+    result = {
+        **result,
+        "result_version": fallback_reviewed_version,
+        "report_origin": "controller_fallback",
+        "review": review,
+    }
+    fallback_result_bytes = json.dumps(
+        result, sort_keys=True, separators=(",", ":")
+    ).encode()
+    result_path.write_bytes(fallback_result_bytes)
+    fallback_result_sha256 = hashlib.sha256(fallback_result_bytes).hexdigest()
+    publication = {
+        **publication,
+        "result_version": fallback_reviewed_version,
+        "result_sha256": fallback_result_sha256,
+    }
+    publication_path.write_text(
+        json.dumps(publication, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    previous = replace(
+        previous,
+        result_version=fallback_reviewed_version,
+        output_sha256=fallback_result_sha256,
+    )
+    attempts[0] = previous
+    review_record.update(
+        {
+            "reviewer_id": review["reviewer_id"],
+            "reviewed_version": fallback_reviewed_version,
+            "status": "approved",
+        }
+    )
+    fallback_diagnostics: dict[str, object] = {}
+    assert _daily_report_replaceable_prior_publication_sha256(
+        repository=repository,
+        store=Store(),
+        job=job,
+        current_attempt=current,
+        identity=identity,
+        report_path=report_path,
+        existing_sha256=public_sha256,
+        remote_name="origin",
+        target_branch="main",
+        diagnostics=fallback_diagnostics,
+    ) == public_sha256
+    assert fallback_diagnostics["authorized_attempt_id"] == previous_id
+
     publication_path = result_path.parent / "report-publication.json"
     original_result = result_path.read_bytes()
     original_publication = publication_path.read_bytes()

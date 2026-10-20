@@ -11818,11 +11818,17 @@ def _daily_report_replaceable_prior_publication_sha256(
             and prior_review.get("reviewer_id") == _REPORT_REVIEWER_ROLE
             and prior_review.get("status") == "approved"
         )
+        approved_fallback_review = isinstance(prior_review, dict) and (
+            prior_result.get("stage_status") == "reviewed"
+            and prior_result.get("report_origin") == "controller_fallback"
+            and prior_review.get("reviewer_id") == _REPORT_REVIEWER_ROLE
+            and prior_review.get("status") == "approved"
+        )
         if (
             prior_result.get("identity") != identity
             or prior_result.get("attempt_id") != previous.attempt_id
             or prior_result.get("result_version") != previous.result_version
-            or not (fallback_review or approved_review)
+            or not (fallback_review or approved_review or approved_fallback_review)
             or prior_result.get("report_status") != "pending"
             or prior_result.get("next_action") != "publish"
             or not isinstance(prior_output, dict)
