@@ -514,6 +514,49 @@ def _report_status(sources: Mapping[str, Any]) -> str:
     return "complete"
 
 
+def _workflow_trace_change_note(trace: Mapping[str, Any] | None) -> str | None:
+    """Describe the report's trace integration from the bound same-job source."""
+
+    if trace is None:
+        return None
+    status = trace.get("status")
+    if status == "recorded":
+        return (
+            "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+            "記録項目には、工程・操作・段階、失敗理由、例外情報、捕捉位置、実行版、"
+            "入力資料と成果物の参照があります。項目に値があるかは操作ごとに異なります。"
+            "今回読み込めた内容は次のとおりです。"
+            + str(trace["summary"])
+            + "元の工程記録を保存する仕組みを追加した時期は確認できていません。"
+        )
+    if status == "not_found":
+        return (
+            "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+            "記録の読み出しは完了しましたが、この実行に結び付く記録は見つかりませんでした。"
+            + str(trace["summary"])
+        )
+    if status == "unavailable":
+        return (
+            "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+            "この実行では記録の読み出しに失敗し、内容を確認できませんでした。"
+            + str(trace["summary"])
+        )
+    return None
+
+
+def _append_report_summary_fact(summary: str, fact: str) -> str:
+    if fact in summary:
+        return summary
+    separator = " " if summary and not summary.endswith(("。", "！", "？")) else ""
+    combined = f"{summary}{separator}{fact}"
+    if len(combined) <= 4000:
+        return combined
+    available = 4000 - len(fact) - 2
+    if available < 0:
+        raise ReportContractError("report_workflow_trace_summary_too_long")
+    return f"{summary[:available].rstrip()}… {fact}"
+
+
 def _evidence_display_label(reference: str) -> str:
     name = PurePosixPath(reference).name.casefold()
     if name in {"manifest.json", "source-evidence.json", "source.json"}:
@@ -1287,6 +1330,14 @@ def prepare_incident_report(
         additional_allowed_refs=validated_internal_refs,
         fallback_evidence_ref=sources["evidence_index_href"],
     )
+    trace = sources.get("workflow_trace")
+    trace_note = _workflow_trace_change_note(
+        trace if isinstance(trace, Mapping) else None
+    )
+    if trace_note is not None:
+        report["summary"] = _append_report_summary_fact(
+            report["summary"], trace_note
+        )
     try:
         template_file = Path(template_path).resolve(strict=True)
         _assert_no_reparse_components(template_file)

@@ -1,0 +1,88 @@
+{
+  "schema_version": "fc11-owned-file-manifest-v1",
+  "purpose": "Only files owned by FC11 report-trace factuality correction and its same-job resume-25 evidence; no unrelated user files.",
+  "branch": "main",
+  "base_commit": "aebdb86a7d93325c040c1e4cac0057dbe985db2b",
+  "cached_paths_before_stage": 0,
+  "files": [
+    {
+      "path": "automation/inago/maintenance/production_workflow.py",
+      "status_before_stage": "modified",
+      "bytes": 622114,
+      "sha256": "423f6da15874674b2cd873ba7983a9a5826d0048b884c3ec7c36df0381da06d2"
+    },
+    {
+      "path": "automation/inago/maintenance/reporting.py",
+      "status_before_stage": "modified",
+      "bytes": 80232,
+      "sha256": "5d4da9cf78af2ac33c07ce05c0f92cd1f328d5469324be7f737c7c8b3771a4fa"
+    },
+    {
+      "path": "plans/projects/maintenance/自動不具合対応フロー完遂と全工程追跡_実行計画_2026-10-19.md",
+      "status_before_stage": "modified",
+      "bytes": 321139,
+      "sha256": "e5dc7854303642052bd43a9b602a7dbe2a19f398ee80969555ff9bf7d3a4b955"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report.py",
+      "status_before_stage": "modified",
+      "bytes": 38367,
+      "sha256": "fb67f5190ddbc9d37491d1224b3491da8fa8fadd07e5cb860315cbb67ee162a0"
+    },
+    {
+      "path": "tests_inago/test_maintenance_report_publication_stage.py",
+      "status_before_stage": "modified",
+      "bytes": 176909,
+      "sha256": "bd312eeae063e18a0a2bfe1d40e9285380f2a46ad8160bf190d56599cb3d2d7a"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/report-trace-factuality-fix-r1.md",
+      "status_before_stage": "task-created evidence",
+      "bytes": 3548,
+      "sha256": "6a4c713a963a8170ec9db7fce99200fa9bdf0dbe0a7501d1fbfbf8bb8accf2e0"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/report-trace-factuality-review-r1.md",
+      "status_before_stage": "task-created evidence",
+      "bytes": 926,
+      "sha256": "ca755716cdcad42ff18e4f103b133befed0d2f4e8680d002e8b1ca2d70e99b72"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-a491ba8-readback.json",
+      "status_before_stage": "task-created evidence",
+      "bytes": 3425,
+      "sha256": "bcb625f6608eb20f6df30a992a60dd9a0040c0642794c450ee802949cc613bbf"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-a491ba8-r2.json",
+      "status_before_stage": "task-created evidence",
+      "bytes": 3185,
+      "sha256": "5048e79bce8a1d1c4249df6b9e6596b9bb0ea17463fff6e209d78e62be8c13e7"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-a491ba8.json",
+      "status_before_stage": "task-created evidence",
+      "bytes": 3729,
+      "sha256": "edfa951bae3198f420e31903aef15fdcee0668710e172173009d819157bff6b5"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-25-cli.json",
+      "status_before_stage": "task-created evidence",
+      "bytes": 3063,
+      "sha256": "302114e79011f504308b7b6ee44d938ab156056e4fec51b4c683f0f803030e6e"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-25-worker.console.txt",
+      "status_before_stage": "task-created evidence",
+      "bytes": 410,
+      "sha256": "42b514319f58d1fd29842598a7f71ec61ce38bc32cff57da7028e2e68157b097"
+    },
+    {
+      "path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-25-worker.json",
+      "status_before_stage": "task-created evidence",
+      "bytes": 361044,
+      "sha256": "6aef7eae37ff1f3a3289f29f53f6e5cc8c18142ac02af2ee5947e3a47038d218"
+    }
+  ],
+  "manifest_self_hash": "excluded to avoid self-reference"
+}

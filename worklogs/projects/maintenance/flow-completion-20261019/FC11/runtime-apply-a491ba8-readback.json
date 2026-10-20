@@ -1,0 +1,105 @@
+{
+  "schema_version": "fc11-runtime-apply-readback-v1",
+  "observed_at_utc": "2026-10-20T00:13:45.191020+00:00",
+  "repository_root": "C:\\project\\rakuten-room-inago",
+  "runtime_root": "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+  "branch": "main",
+  "commit": "a491ba8e7d693939fa3a977137b9a72f44a430e5",
+  "official_switcher": "TaskSchedulerRuntimeSwitcher",
+  "operation": "activate(commit, checkout=None); confirm_active(commit)",
+  "result": "applied_and_confirmed",
+  "before": {
+    "active_identity": [
+      "C:\\project\\rakuten-room-inago",
+      "a491ba8e7d693939fa3a977137b9a72f44a430e5"
+    ],
+    "state": {
+      "active": {
+        "commit": "28c3b1c814c9e8c2e350b2acd44842e2dd10a0a3",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "tasks": [
+      {
+        "TaskName": "RakutenRoomInagoDaily",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWorker",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWatchdog",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoHumanApi",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "after": {
+    "active_identity": [
+      "C:\\project\\rakuten-room-inago",
+      "a491ba8e7d693939fa3a977137b9a72f44a430e5"
+    ],
+    "state": {
+      "active": {
+        "commit": "a491ba8e7d693939fa3a977137b9a72f44a430e5",
+        "root": "C:\\project\\rakuten-room-inago"
+      },
+      "pending": null,
+      "schema_version": "maintenance-runtime-switch-v1",
+      "status": "active"
+    },
+    "healthy": true,
+    "tasks": [
+      {
+        "TaskName": "RakutenRoomInagoDaily",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWorker",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoWatchdog",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      },
+      {
+        "TaskName": "RakutenRoomInagoHumanApi",
+        "WorkingDirectory": "C:\\project\\rakuten-room-inago",
+        "state": "Ready",
+        "enabled": true
+      }
+    ]
+  },
+  "exception": null,
+  "acceptance": {
+    "active_commit_matches_head": true,
+    "active_root_is_fixed_repository": true,
+    "healthy": true,
+    "pending_is_null": true,
+    "all_four_tasks_ready_enabled": true
+  },
+  "artifact_path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/runtime-apply-a491ba8-readback.json",
+  "configuration_unchanged": true,
+  "readback_note": "Task Scheduler argument strings were compared in memory before/after but omitted from this artifact because they include a local profile path."
+}

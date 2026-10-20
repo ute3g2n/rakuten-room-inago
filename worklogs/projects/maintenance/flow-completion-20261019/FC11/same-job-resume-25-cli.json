@@ -1,0 +1,85 @@
+{
+  "schema_version": "fc11-same-job-resume-cli-v1",
+  "observed_at_utc": "2026-10-20T00:16:05.597346+00:00",
+  "repository_commit": "a491ba8e7d693939fa3a977137b9a72f44a430e5",
+  "identity_expected": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "side_effect_scope": "resume the existing historical maintenance job only; no enqueue-historical, no Daily launch, no other launch id",
+  "before": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "resume_count": 24,
+      "status": "complete",
+      "finished_at": "2026-10-19T23:50:59.253305Z"
+    },
+    "manifest": {
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    },
+    "running_attempts": [],
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ]
+  },
+  "command": [
+    "C:\\project\\rakuten-room-inago\\.venv-inago\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "automation.inago.maintenance.cli",
+    "--data-root",
+    "C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime",
+    "resume-worker",
+    "--source-launch-id",
+    "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "--job-id",
+    "job-historical-9e7f0c175cc4c874c955a5dab29c4427"
+  ],
+  "process": {
+    "exit_code": 0,
+    "stdout_tail": "{\"job_id\": \"job-historical-9e7f0c175cc4c874c955a5dab29c4427\", \"resume_count\": 25, \"resume_event_id\": \"e952505e40234dfbac01688091334b8c\", \"source_launch_id\": \"historical-9e7f0c175cc4c874c955a5dab29c4427\", \"status\": \"queued\"}\n",
+    "stderr_tail": ""
+  },
+  "response": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "resume_count": 25,
+    "resume_event_id": "e952505e40234dfbac01688091334b8c",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "status": "queued"
+  },
+  "after": {
+    "job": {
+      "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "resume_count": 25,
+      "status": "queued",
+      "finished_at": null
+    },
+    "manifest": {
+      "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+      "source_run_id": null,
+      "target_date": "2026-10-17"
+    },
+    "running_attempts": [],
+    "october19_worker_queue": [
+      {
+        "queue_id": "82e35e362a064e3292355d27ed0f4289",
+        "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+        "target_date": "2026-10-19",
+        "status": "queued"
+      }
+    ]
+  },
+  "result": "queued",
+  "artifact_path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-resume-25-cli.json"
+}

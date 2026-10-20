@@ -9867,9 +9867,29 @@ def _persist_minimal_daily_report(
                 + "記録が存在することだけでは、工程ログ自体を今回新たに追加したとは確認できません。"
                 + "10月17日の不具合を直す変更は確認できていません。"
             )
+        elif (
+            isinstance(workflow_trace, dict)
+            and workflow_trace.get("status") == "not_found"
+        ):
+            fallback_content["actual_changes"] = (
+                "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+                "記録の読み出しは完了しましたが、この実行に結び付く記録は見つかりませんでした。"
+                "10月17日の不具合を直す変更は確認できていません。"
+            )
+        elif (
+            isinstance(workflow_trace, dict)
+            and workflow_trace.get("status") == "unavailable"
+        ):
+            fallback_content["actual_changes"] = (
+                "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+                "この実行では記録の読み出しに失敗し、内容を確認できませんでした。"
+                "10月17日の不具合を直す変更は確認できていません。"
+            )
         else:
-            fallback_content["actual_changes"] += (
-                "工程トレースを今回の記録から確認できず、追加状況は分かりません。"
+            fallback_content["actual_changes"] = (
+                "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+                "しかし、この実行の記録を読み出せたかどうかは確認できず、内容も確認できませんでした。"
+                "10月17日の不具合を直す変更は確認できていません。"
             )
         fallback = build_fallback_report(
             identity=identity,

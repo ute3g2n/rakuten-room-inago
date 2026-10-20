@@ -1,0 +1,80 @@
+{
+  "schema_version": "fc11-same-job-preflight-v2",
+  "observed_at_utc": "2026-10-20T00:15:43.380798+00:00",
+  "read_only": true,
+  "repository_commit": "a491ba8e7d693939fa3a977137b9a72f44a430e5",
+  "recovered_from": "same-job-preflight-a491ba8.json: sqlite query requested daily_launch.created_at; schema uses started_at/completed_at",
+  "identity_expected": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "operations": [
+    {
+      "operation": "production_cli_preflight",
+      "exit_code": 0,
+      "stdout_tail": "{\"config_sha256\": \"ccbd9c2af0c7118ff3c6f683e2e6e1c0c5149aebcda6b0320f2d562c4db680d8\", \"daily_database_separate\": true, \"database_health\": \"ok\", \"environment\": \"production\", \"maintenance_database\": \"available\", \"schema_version\": 16, \"settings_version\": \"1.6\", \"status\": \"ready\"}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "production_preflight": {
+    "config_sha256": "ccbd9c2af0c7118ff3c6f683e2e6e1c0c5149aebcda6b0320f2d562c4db680d8",
+    "daily_database_separate": true,
+    "database_health": "ok",
+    "environment": "production",
+    "maintenance_database": "available",
+    "schema_version": 16,
+    "settings_version": "1.6",
+    "status": "ready"
+  },
+  "database": {
+    "quick_check": "ok",
+    "schema_version": 16
+  },
+  "job": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "release_id": "U21-BASELINE-be04335",
+    "source_run_id": null,
+    "result_version": "be04335443dc6cb1eddd7f464062eeaaf8d48a5a",
+    "resume_count": 24,
+    "status": "complete",
+    "created_at": "2026-10-18T21:32:50.000000Z",
+    "updated_at": "2026-10-19T23:50:59.253305Z",
+    "finished_at": "2026-10-19T23:50:59.253305Z",
+    "terminal_reason_code": null
+  },
+  "manifest": {
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "incident_id": "352492da-ac58-4680-b1fd-fe5f24000229",
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "source_run_id": null,
+    "target_date": "2026-10-17",
+    "manifest_sha256": "e97b191fdde1eb2f178c53bf51a5ad61979b69b80868a9a31b8accf31ab48d30",
+    "created_at": "2026-10-18T21:32:50.000000Z"
+  },
+  "running_attempts": [],
+  "attempt_status_counts": {
+    "blocked": 1,
+    "complete": 21,
+    "failed": 19,
+    "handoff_accepted": 1,
+    "interrupted": 6
+  },
+  "target_worker_queue": [],
+  "october19_worker_queue": [
+    {
+      "queue_id": "82e35e362a064e3292355d27ed0f4289",
+      "source_launch_id": "642daa0ac86a4535bb34448373d08259",
+      "target_date": "2026-10-19",
+      "status": "queued"
+    }
+  ],
+  "october19_watchdog_queue": [],
+  "target_date_daily_launch_rows": [],
+  "identity_matches": true,
+  "side_effects": "none; production preflight and SQLite access were read-only",
+  "result": "preflight_complete",
+  "artifact_path": "worklogs/projects/maintenance/flow-completion-20261019/FC11/same-job-preflight-a491ba8-r2.json"
+}

@@ -3975,6 +3975,12 @@ def test_fc07_missing_identity_still_persists_substantive_fallback_html(
         resume_state=WorkflowResumeState(job=job, attempts=()),
         state={
             "job": job,
+            "report_source_snapshot": {
+                "workflow_trace": {
+                    "status": "unavailable",
+                    "summary": "工程記録を読み出せませんでした。",
+                }
+            },
             "precheck_identity": {
                 **authoritative_identity,
                 "input_refs": ["daily-launch/launch-fc07-missing-identity"],
@@ -4001,6 +4007,8 @@ def test_fc07_missing_identity_still_persists_substantive_fallback_html(
     assert len(html) > 500
     assert "識別情報の不足: incident_id" in html
     assert "確認できていません" in html
+    assert "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。" in html
+    assert "この実行では記録の読み出しに失敗し、内容を確認できませんでした。" in html
     input_ref = workflow.state["report_result"]["report_input"]
     input_document = json.loads(
         (report_path / Path(*input_ref["path"].split("/")).name).read_text(encoding="utf-8")

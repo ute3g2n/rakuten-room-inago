@@ -196,17 +196,17 @@ def test_fc11_report_accepts_and_renders_bound_workflow_trace_summary():
     sources["workflow_trace"] = {
         "schema_version": "maintenance-workflow-trace-summary-v1",
         "status": "recorded",
-        "summary": "工程ごとの操作と引継ぎ、失敗の参照先を記録しました。",
+        "summary": "この実行では工程トレースを1件読み込み、うち0件に失敗理由、例外情報、または中断の記録がありました。通常の引継ぎだけの記録は失敗として数えていません。",
         "record_count": 1,
-        "failure_count": 1,
+        "failure_count": 0,
         "recorded_fields": ["operation", "phase", "correlation_id", "artifact_refs"],
         "records": [
             {
                 "correlation_id": "corr-fc11-report-trace",
                 "stage": "planning",
                 "operation": "workflow.stage.planning",
-                "phase": "handoff",
-                "reason_code": "ai_transport_failed",
+                "phase": "begin",
+                "reason_code": None,
                 "code_revision": "maintenance-source-v1-" + "a" * 64,
                 "capture_location": "workflow_provider.MaintenanceWorkflowProvider.__call__",
                 "exception_chain": [],
@@ -223,7 +223,7 @@ def test_fc11_report_accepts_and_renders_bound_workflow_trace_summary():
     response = _report_response()
     response["issues"][0][
         "changed_behavior"
-    ] = "工程ごとの操作・引継ぎ・失敗位置を相関情報と記録参照に結び付けました。"
+    ] = "日次不具合を直す変更は確認できていません。"
     response["issues"][0]["evidence_ref"] = "evidence/U16/plan.md"
 
     report = prepare_incident_report(
@@ -235,10 +235,83 @@ def test_fc11_report_accepts_and_renders_bound_workflow_trace_summary():
     )
 
     assert (
-        "工程ごとの操作・引継ぎ・失敗位置を相関情報と記録参照に結び付けました。"
+        "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
         in report.html
     )
+    assert (
+        "記録項目には、工程・操作・段階、失敗理由、例外情報、捕捉位置、実行版、入力資料と成果物の参照があります。"
+        in report.html
+    )
+    assert "項目に値があるかは操作ごとに異なります。" in report.html
+    assert "今回読み込めた内容は次のとおりです。この実行では工程トレースを1件読み込み" in report.html
+    assert (
+        "元の工程記録を保存する仕組みを追加した時期は確認できていません。"
+        in report.html
+    )
+    assert "例外の原因" not in report.html
     assert report.report_status == "pending"
+
+
+def test_fc11_report_explains_trace_read_failure_without_claiming_records():
+    sources = _source_snapshot()
+    sources["workflow_trace"] = {
+        "schema_version": "maintenance-workflow-trace-summary-v1",
+        "status": "unavailable",
+        "summary": "工程記録を読み出せませんでした。",
+        "record_count": 0,
+        "failure_count": 0,
+        "recorded_fields": [],
+        "records": [],
+        "evidence_refs": [],
+        "errors": [
+            {
+                "operation": "report.read_workflow_trace",
+                "exception_chain": ["sqlite3.OperationalError"],
+            }
+        ],
+    }
+
+    report = prepare_incident_report(
+        _job_context(),
+        sources,
+        _report_response(),
+        template_path=Path(__file__).resolve().parents[1]
+        / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+
+    assert (
+        "今回の変更では、同じ保守実行の工程記録を最終報告へ取り込む処理を追加しました。"
+        "この実行では記録の読み出しに失敗し、内容を確認できませんでした。"
+        in report.html
+    )
+    assert "例外の原因と捕捉場所" not in report.html
+
+
+def test_fc11_report_distinguishes_successful_empty_trace_read():
+    sources = _source_snapshot()
+    sources["workflow_trace"] = {
+        "schema_version": "maintenance-workflow-trace-summary-v1",
+        "status": "not_found",
+        "summary": "この実行に結び付く工程トレースを確認できませんでした。追加記録の有無は不明です。",
+        "record_count": 0,
+        "failure_count": 0,
+        "recorded_fields": ["operation", "phase"],
+        "records": [],
+        "evidence_refs": [],
+        "errors": [],
+    }
+
+    report = prepare_incident_report(
+        _job_context(),
+        sources,
+        _report_response(),
+        template_path=Path(__file__).resolve().parents[1]
+        / "docs/templates/incidents/日次不具合対応レポート_ひな形.html",
+    )
+
+    assert "記録の読み出しは完了しましたが、この実行に結び付く記録は見つかりませんでした。" in report.html
+    assert "追加記録の有無は不明です。" in report.html
+    assert "記録の読み出しに失敗し" not in report.html
 def test_c56_report_keeps_recurrent_observation_as_pending_review():
     sources = _source_snapshot()
     sources["next_day"] = {
