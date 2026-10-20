@@ -1,0 +1,258 @@
+{
+  "schema_version": "sc05-f6-followup-node-list-v1",
+  "identity": {
+    "source_launch_id": "historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "job_id": "job-historical-9e7f0c175cc4c874c955a5dab29c4427",
+    "target_date": "2026-10-17",
+    "source_run_id": null
+  },
+  "workspace": "C:/project/rakuten-room-inago",
+  "plan_sha256": "27febad6aa79025a88cbb29679969952f7c2ac27094f4b8e9ae9a0c2a8bbd284",
+  "head": "dadffcd01ee7cc7672ad7f7c446839128dbe12e7",
+  "branch": "main",
+  "tracking": "origin/main",
+  "product": {
+    "path": "automation/inago/maintenance/skill_chain.py",
+    "sha256": "fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39a8db873aca5c2b2b3976a"
+  },
+  "test": {
+    "path": "tests_inago/test_maintenance_skill_chain.py",
+    "sha256": "bceb82fcfaa2c0d408f71f3c4451c173c486828319b60c59048e0527edfbba1b"
+  },
+  "additional_inputs": [
+    {
+      "path": "automation/inago/app_server.py",
+      "sha256": "e64291f2875d9043222963bbe81b058aa84929654ba73630885a4d3861686f71"
+    },
+    {
+      "path": "tests_inago/test_maintenance_ai.py",
+      "sha256": "f3c97ae9a65707953113b7b96731251394d146d18e4d48c32310546837d41a26"
+    }
+  ],
+  "collection": {
+    "started_jst": "2026-10-20T14:44:31.9780917+09:00",
+    "ended_jst": "2026-10-20T14:44:32.8445658+09:00",
+    "collected": 21,
+    "command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_skill_chain.py --collect-only -q",
+    "exit_code": 0
+  },
+  "execution": {
+    "command": ".venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_skill_chain.py tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start tests_inago/test_maintenance_ai.py::test_c24_app_server_passes_role_instructions_and_settings_to_thread_start tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root -q --basetemp %TEMP%/inago-sc05-f6-20261020-1610 --junitxml=worklogs/projects/maintenance/skill-chain-refactor-20261020/SC05/F6-followup/junit.xml",
+    "skipped": 0,
+    "basetemp": "%TEMP%/inago-sc05-f6-20261020-1610",
+    "duration_seconds": 5.65,
+    "daily_worker_production_db": "not accessed",
+    "exit_code": 0,
+    "ended_jst": "2026-10-20T14:44:39.2680704+09:00",
+    "failed": 0,
+    "errors": 0,
+    "started_jst": "2026-10-20T14:44:32.8844349+09:00",
+    "persistent_runtime": "not accessed or modified",
+    "passed": 25
+  },
+  "nodes": [
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT02",
+        "SCT10"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_eight_roles_receive_exact_markdown"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_non_gating_status_and_early_end_continue_remaining_roles"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT04",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_operation_failures_keep_raw_and_continue"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT05",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_resume_same_job_without_predecessor_pin"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT10",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_resume_after_final_review_reuses_author_and_reviewer_outputs"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT08",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_appserver_best_effort_logging_and_advisory_probe"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT13",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_scope_preserves_excluded_date_and_daily_data"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT08",
+        "SCT14"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_production_route_is_separate_from_legacy_controller"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT01",
+        "SCT14"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_contract_roles_and_generated_flow_are_synchronized"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT12",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_git_failure_preserves_scope_and_resumes[available]"
+    },
+    {
+      "result": "PASS",
+      "sct": "SCT12",
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_git_failure_preserves_scope_and_resumes[unavailable]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[success-transport_failure]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[success-invalid_handoff]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[success-omit_report_html]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-transport_failure]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-invalid_handoff]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT03",
+        "SCT11"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_reporter_failure_gets_same_author_recovery_then_later_roles[failure-omit_report_html]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT02",
+        "SCT04"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event[success]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT02",
+        "SCT04"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event[missing]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT02",
+        "SCT04"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event[failed]"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT02",
+        "SCT04"
+      ],
+      "nodeid": "tests_inago/test_maintenance_skill_chain.py::test_previous_read_acknowledgement_requires_successful_exact_path_event[mismatched]"
+    }
+  ],
+  "additional_nodes": [
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT04"
+      ],
+      "nodeid": "tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT08"
+      ],
+      "nodeid": "tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT08"
+      ],
+      "nodeid": "tests_inago/test_maintenance_ai.py::test_c24_app_server_passes_role_instructions_and_settings_to_thread_start"
+    },
+    {
+      "result": "PASS",
+      "sct": [
+        "SCT07",
+        "SCT08"
+      ],
+      "nodeid": "tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root"
+    }
+  ],
+  "not_run": [
+    {
+      "reason": "FC11 explicitly prohibited; not run.",
+      "nodeid": "tests_inago/test_maintenance_store.py::test_fc11_operation_events_are_read_by_exact_job_launch_and_invocation"
+    },
+    {
+      "reason": "FC07 explicitly prohibited; not run.",
+      "nodeid": "tests_inago/test_maintenance_flow_completion_fc07.py::test_fc07_fallback_report_and_october_19_exclusion_are_preserved"
+    },
+    {
+      "sct": "SCT06",
+      "reason": "Daily/worker outside SC05; not run."
+    },
+    {
+      "sct": "SCT07",
+      "reason": "C27 test coverage is not an independent product-review verdict."
+    },
+    {
+      "sct": "SCT09",
+      "reason": "Same-job operation belongs to later stage; not simulated."
+    }
+  ]
+}

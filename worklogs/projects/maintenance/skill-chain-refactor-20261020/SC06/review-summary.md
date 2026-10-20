@@ -28,3 +28,10 @@ FC01–FC11 were not run. SCT06 (same-job daily diagnostic diff test) and SCT09 
 | `follow-up-review-v4.md` | `3e8e3f34cd87739ef2ef57f88bc76f0fcd1fc93fa51a4fcea50ccd79e10d9e12` | **approved, no findings in review scope** | Review file SHA-256 `3eccc4f42453abf63dbe6bb3bd4841e73bc8338704aaf1a43ffb29cc4ffff4ab`. F5 evidence: 25/25 PASS against runner `3e8e3f34...` and test source `6c2d480d...`. |
 
 The approved v4 review read the F5 follow-up record and verifies F1–F4, fixed identity, excluded date, event-backed Markdown reads, resume/publication boundaries and the secret boundary for the exact final product hash. It is a product review only; production application, live-job execution, same-job daily instrumentation, final HTML review and publication remain open for SC07–SC10.
+## Final source_run_id parser review — v5 (2026-10-20)
+
+| Record | Reviewed product hash | Outcome | Follow-up |
+|---|---|---|---|
+| `follow-up-review-v5.md` | `fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39a8db873aca5c2b2b3976a` | **approved, no findings in review scope** | Review file SHA-256 `8b2b3109b6e906c5cc7331c5722f687d0508943a68d99a720524ba6faf063ff5`; F6 25/25 PASS against test source `bceb82fcfaa2c0d408f71f3c4451c173c486828319b60c59048e0527edfbba1b`. |
+
+SC06 v5 separately verified that the actual incident line retains `source_run_id=null`; suffix parsing captures only the backtick-delimited value and exact comparison rejects a different ID. It also reread the F6 evidence and carried forward the earlier F1–F4 and privacy-boundary review. This code approval does not certify runtime apply or live operation. The failed pre-role invocation did not create calls or job outputs; SC08 records it separately.

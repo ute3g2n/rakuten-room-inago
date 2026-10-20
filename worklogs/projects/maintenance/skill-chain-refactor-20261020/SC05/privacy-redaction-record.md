@@ -42,3 +42,16 @@ The F5 follow-up files were copied byte-for-byte to the same host-local temporar
 | `test.md` | `dcaf5ac20076d6963df564b1ce4d4b9cac730eb1e788c18b5d7ccf35934cc043` | `0b1c474d770bc91f7c29610ea9c2da32e4fa9e898b2aab0479be57feed0071ed` | 3594 → 3567 |
 
 Archive: `<host-temp>/inago-evidence-raw-20261020/SC05-F5-followup`.
+
+## F6 follow-up evidence copied and normalized
+
+F6 evidence files were copied byte-for-byte into a host-local temp archive before normalization. Only local temp/profile path text in command and metadata fields was replaced by `%TEMP%` / `%USERPROFILE%` in repository copies. Raw archive: `<host-temp>/inago-evidence-raw-20261020/SC05-F6-followup`. Exact command bytes remain in archived `test.md`, `test.log`, and `node-list.json`.
+
+| File | Original SHA-256 | Normalized SHA-256 | Bytes (original → normalized) |
+|---|---|---|---:|
+| `collect.log` | `9f34a663089c46400acc826233d3bea6b680bd4765b914a34ec9c37bdf168e2c` | `9f34a663089c46400acc826233d3bea6b680bd4765b914a34ec9c37bdf168e2c` | 2459 → 2459 |
+| `junit.xml` | `e85dd17285eded7f273a0fe483314b05979413b9465a464cb334c02116d9569b` | `e85dd17285eded7f273a0fe483314b05979413b9465a464cb334c02116d9569b` | 4054 → 4054 |
+| `node-list.json` | `49ddb46f451893926c9f57456ec7dc3122208de87c5189480ad8dc65cd6dfc69` | `2403835ee0f7d02a1f5a1c5da2b325eab923a034e8ccd8da95727eb0ceed921c` | 8933 → 8879 |
+| `node-list.txt` | `82bbe414a2fc7b708f2793a5873910053057fc2fe50d3784d98823c26ac93491` | `82bbe414a2fc7b708f2793a5873910053057fc2fe50d3784d98823c26ac93491` | 2885 → 2885 |
+| `test.log` | `2680da15e2ecd64f8b2f4dbc4fc6f02e458f717bd916af42ab2d5463b47a6678` | `08a6ac2fd1b3477173c4b38447887c2c5d29fba6989a7231834c4aa9e8bf62da` | 1197 → 1170 |
+| `test.md` | `4548b48c788d961daae609cf4c678c9baac51577f3d371e8c6b0443779e40343` | `b8200bf5f32093fe22e67d469ef16f5295b87398fe91739b837ccae7f89f1daa` | 3399 → 3372 |

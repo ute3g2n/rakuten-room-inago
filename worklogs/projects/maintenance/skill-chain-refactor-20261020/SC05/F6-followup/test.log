@@ -1,0 +1,9 @@
+.........................                                                [100%]
+25 passed in 5.65s
+
+F6 follow-up run summary:
+Expected 21 focused maintenance-chain nodes and four exact mapped existing nodes to pass. Actual 25 passed in 5.65s; exit=0, failed=0, errors=0, skipped=0.
+Command: .venv-inago/Scripts/python.exe -m pytest tests_inago/test_maintenance_skill_chain.py tests_inago/test_maintenance_ai.py::test_c26_transport_log_failure_still_interrupts_and_closes tests_inago/test_maintenance_ai.py::test_c26_app_server_checks_model_and_effort_before_thread_start tests_inago/test_maintenance_ai.py::test_c24_app_server_passes_role_instructions_and_settings_to_thread_start tests_inago/test_maintenance_ai.py::test_c27_app_server_log_is_confined_to_host_owned_root -q --basetemp %TEMP%/inago-sc05-f6-20261020-1610 --junitxml=worklogs/projects/maintenance/skill-chain-refactor-20261020/SC05/F6-followup/junit.xml
+Start/end JST: 2026-10-20T14:44:32.8844349+09:00 / 2026-10-20T14:44:39.2680704+09:00
+Runner SHA-256: fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39a8db873aca5c2b2b3976a
+SC05 test SHA-256: bceb82fcfaa2c0d408f71f3c4451c173c486828319b60c59048e0527edfbba1b

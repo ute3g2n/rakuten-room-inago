@@ -48,3 +48,15 @@ The SC06 history and fixes are retained in `SC06/`: F1 adds a same-role reporter
 After the F4 fixes, a whitespace-only EOF cleanup produced final runner SHA-256 `3e8e3f34cd87739ef2ef57f88bc76f0fcd1fc93fa51a4fcea50ccd79e10d9e12`. The final focused test source is `6c2d480d29e33d19c57dacd2251a5df20bd01dbbe3d47073769ff7d89951328f`. F5 reran the 21 focused runner nodes and four plan-mapped existing nodes against these exact hashes: 25 passed, 0 failed/errors/skipped, exit 0. Exact command, node IDs, clock, JUnit and normalized console evidence are in `SC05/F5-followup/`; original bytes for profile-path-bearing evidence are held only in the host-local temporary archive, with hashes recorded in `SC05/privacy-redaction-record.md`.
 
 Separate SC06 reviewer approval for the final runner is recorded in `SC06/follow-up-review-v4.md` (review file SHA-256 `3eccc4f42453abf63dbe6bb3bd4841e73bc8338704aaf1a43ffb29cc4ffff4ab`), with no new findings. This still does not establish SC07 deployment or SC08/09 same-job operations.
+## F6 identity-line parser repair (2026-10-20)
+
+The pre-role SC08 command failed with `skill_chain_incident_identity_unreadable`; diagnosis and no-side-effect readback are in `SC08/invocation-attempt-1.md`. The actual incident line contains explanatory text after `のまま。`. The corrected runner `fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39a8db873aca5c2b2b3976a` now captures the run ID while allowing that suffix, and the test fixture matches the actual incident text (`bceb82fcfaa2c0d408f71f3c4451c173c486828319b60c59048e0527edfbba1b`).
+
+SC05 F6 reran 21 focused maintenance-chain nodes and the four mapped SCT04/SCT08 nodes against these exact hashes: 25 passed, 0 failed/errors/skipped, exit 0. Exact command, 21 collected nodes, timestamps, JUnit and normalized console evidence are in `SC05/F6-followup/`; original path-bearing artifacts and their normalized repository hashes are recorded in `SC05/privacy-redaction-record.md`.
+
+This verification does not change the live incident or create a role call. The review v5 and production apply/readback for the repaired runner must precede the actual same-job eight-role invocation.
+## F6 final identity parser review — 2026-10-20
+
+The explanatory source_run_id suffix fix is runner `fcc23783b14f626c97d32c1f804c9dad5f0f95f1a39a8db873aca5c2b2b3976a` with test source `bceb82fcfaa2c0d408f71f3c4451c173c486828319b60c59048e0527edfbba1b`. SC05 F6 selected 25 plan-scoped nodes: 25 passed, zero failed/error/skipped, exit 0. Separate SC06 review v5 approved this exact runner hash with no finding (`SC06/follow-up-review-v5.md`, SHA-256 `8b2b3109b6e906c5cc7331c5722f687d0508943a68d99a720524ba6faf063ff5`). The reviewer verified that suffix text is ignored while the backtick capture must still equal `null`.
+
+Next: record the corrected code unit in Git and push, reapply/read back its commit in SC07, then start the actual same-job 8-role chain once. The first attempt remains a pre-role input-parser failure and is not counted as an agent call.

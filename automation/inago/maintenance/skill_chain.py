@@ -939,7 +939,7 @@ def run_skill_chain(
         "job_id": re.search(r"(?m)^- 対象job: `([^`]+)`$", incident_text),
         "source_launch_id": re.search(r"(?m)^- 対象起動: `([^`]+)`$", incident_text),
         "target_date": re.search(r"(?m)^- 対象日: ([0-9]{4}-[0-9]{2}-[0-9]{2})$", incident_text),
-        "source_run_id": re.search(r"(?m)^- 日次run: `([^`]+)` のまま。$", incident_text),
+        "source_run_id": re.search(r"(?m)^- 日次run: `([^`]+)` のまま。.*$", incident_text),
     }
     if any(match is None for match in incident_identity.values()):
         raise SkillChainError("skill_chain_incident_identity_unreadable")

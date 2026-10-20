@@ -41,7 +41,7 @@ def _workspace(tmp_path: Path) -> tuple[Path, Path]:
         "- 対象job: `" + JOB_ID + "`\n"
         "- 対象起動: `" + LAUNCH_ID + "`\n"
         "- 対象日: " + TARGET_DATE + "\n"
-        "- 日次run: `null` のまま。\n",
+        "- 日次run: `null` のまま。既存値を推測で埋めない。\n",
         encoding="utf-8",
     )
     return root, job
