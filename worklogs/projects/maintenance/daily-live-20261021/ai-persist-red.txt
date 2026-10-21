@@ -1,0 +1,86 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_______ test_daily_root_initial_context_is_persisted_without_inference ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/ai-persist-red/test_daily_root_initial_contex0')
+
+    def test_daily_root_initial_context_is_persisted_without_inference(tmp_path):
+        root = session(tmp_path)
+        root.persist_initial_context = True
+        try:
+            root.start(deadline=deadline())
+        finally:
+            root.close()
+        events = [json.loads(line) for line in root.log_path.read_text().splitlines()]
+        methods = [event.get("method") for event in events if event["event"] == "rpc_sent"]
+>       assert "thread/inject_items" in methods
+E       AssertionError: assert 'thread/inject_items' in ['initialize', 'account/read', 'thread/start']
+
+tests_inago\test_step21_ai_root.py:623: AssertionError
+_______ test_unused_missing_root_is_replaced_with_preserved_provenance ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/ai-persist-red/test_unused_missing_root_is_re0')
+legacy_v2 = <sqlite3.Connection object at 0x0000025532553790>
+
+    def test_unused_missing_root_is_replaced_with_preserved_provenance(tmp_path, legacy_v2):
+        runner = bound_runner(tmp_path, legacy_v2)
+        runner.context["root_thread_id"] = "UNUSED-ROOT"
+        runner.sync_daily_checkpoint(legacy_v2)
+        replacement = DailyAIRootRunner(data_root=tmp_path / "runtime")
+        replacement.prepare_daily_run(legacy_v2, "R1")
+        script = tmp_path / "missing_rollout_server.py"
+        script.write_text(FAKE, encoding="utf-8")
+    
+        def factory(**kwargs):
+            kwargs["command"] = (sys.executable, "-X", "utf8", str(script), "missing_rollout")
+            return AppServerSession(**kwargs)
+    
+        replacement.session_factory = factory
+        try:
+>           replacement.start_daily_root(deadline_monotonic=time.monotonic() + 5)
+
+tests_inago\test_step21_ai_root.py:642: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\daily_ai.py:182: in start_daily_root
+    self.context["root_thread_id"] = self.session.start(deadline=bounded)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+automation\inago\app_server.py:581: in start
+    result = self._call(method, params, deadline=deadline)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <automation.inago.app_server.AppServerSession object at 0x000002552E814950>
+method = 'thread/resume'
+params = {'cwd': 'C:\\project\\rakuten-room-inago\\����J��ƃf�[�^\\�C�i�S��������\\ai-persist-red\\test_unused_missing_root_is_re0\\runtime\\jobs\\daily-root-eb_5thvb', 'sandbox': 'read-only', 'approvalPolicy': 'never', 'threadId': 'UNUSED-ROOT'}
+deadline = 1069880.593, cancel_event = None
+
+    def _call(self, method, params, *, deadline, cancel_event=None):
+        self._next_id += 1
+        request_id = self._next_id
+        self._send({"id": request_id, "method": method, "params": params})
+        self._log("rpc_sent", method=method, process_pid=self.process_id)
+        while True:
+            message = self._receive(deadline, cancel_event)
+            if "method" in message:
+                if "id" in message:
+                    self._deny_server_request(message)
+                else:
+                    self._pending_notifications.append(message)
+                continue
+            if message.get("id") != request_id:
+                # An earlier interrupt response is harmless; it is not a job.
+                continue
+            if "error" in message:
+                self._log("rpc_failed", method=method, code="rpc_error")
+                details = _provider_error_details(message.get("error"))
+                if any(details.values()):
+                    cause = AppServerProviderRejection(**details)
+                    raise AppServerError("rpc_error", **details) from cause
+>               raise AppServerError("rpc_error")
+E               automation.inago.app_server.AppServerError: rpc_error
+
+automation\inago\app_server.py:489: AppServerError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_ai_root.py::test_daily_root_initial_context_is_persisted_without_inference
+FAILED tests_inago/test_step21_ai_root.py::test_unused_missing_root_is_replaced_with_preserved_provenance
+2 failed in 1.10s

@@ -30,8 +30,11 @@ for line in sys.stdin:
  elif method=='initialized': pass
  elif method=='account/read': send({'id':p['id'],'result':{'account':{'type':'apiKey' if mode=='auth' else 'chatgpt','email':'PRIVATE-EMAIL'}}})
  elif method in ('thread/start','thread/resume'):
+  if method=='thread/resume' and mode=='missing_rollout':
+   send({'id':p['id'],'error':{'code':-32600,'message':'no rollout found for thread id '+params['threadId']}});continue
   send({'id':p['id'],'result':{'thread':{'id':'OTHER' if mode=='bad_resume' else params.get('threadId','ROOT-ONE')}}})
   if mode=='stop_reading': time.sleep(1)
+ elif method=='thread/inject_items': send({'id':p['id'],'result':{}})
  elif method=='turn/start':
   turn+=1; tid='TURN-'+str(turn)
   send({'id':p['id'],'result':{'turn':{'id':tid,'status':'inProgress','items':[]}}})
@@ -606,6 +609,44 @@ def test_idle_session_start_is_idempotent_and_closed_root_cannot_restart(tmp_pat
     root.close()
     with pytest.raises(AppServerError, match="closed"):
         root.start(deadline=deadline())
+
+
+def test_daily_root_initial_context_is_persisted_without_inference(tmp_path):
+    root = session(tmp_path)
+    root.persist_initial_context = True
+    try:
+        root.start(deadline=deadline())
+    finally:
+        root.close()
+    events = [json.loads(line) for line in root.log_path.read_text().splitlines()]
+    methods = [event.get("method") for event in events if event["event"] == "rpc_sent"]
+    assert "thread/inject_items" in methods
+    assert "turn/start" not in methods
+
+
+def test_unused_missing_root_is_replaced_with_preserved_provenance(tmp_path, legacy_v2):
+    runner = bound_runner(tmp_path, legacy_v2)
+    runner.context["root_thread_id"] = "UNUSED-ROOT"
+    runner.sync_daily_checkpoint(legacy_v2)
+    replacement = DailyAIRootRunner(data_root=tmp_path / "runtime")
+    replacement.prepare_daily_run(legacy_v2, "R1")
+    script = tmp_path / "missing_rollout_server.py"
+    script.write_text(FAKE, encoding="utf-8")
+
+    def factory(**kwargs):
+        kwargs["command"] = (sys.executable, "-X", "utf8", str(script), "missing_rollout")
+        return AppServerSession(**kwargs)
+
+    replacement.session_factory = factory
+    try:
+        replacement.start_daily_root(deadline_monotonic=time.monotonic() + 5)
+        replacement.sync_daily_checkpoint(legacy_v2)
+        saved = json.loads(legacy_v2.execute("SELECT checkpoint FROM run WHERE run_id='R1'").fetchone()[0])["ai_daily_root"]
+        assert saved["root_thread_id"] == "ROOT-ONE"
+        assert saved["replaced_unused_root_thread_id"] == "UNUSED-ROOT"
+        assert saved["process_starts"] == 2
+    finally:
+        replacement.close_daily_run()
 
 
 def bound_runner(tmp_path, connection):
