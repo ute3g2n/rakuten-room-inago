@@ -66,6 +66,7 @@ function trace(stage, details = {}) {
     'row_failure_count','identified_row_count',
     'search_candidate_count','visible_input_count','label_locator_match_count',
     'search_button_count','explore_button_count','period_option_count',
+    'top_table_count','top_rows_count',
     'retry_after_seconds','popup_url_length','widget_dom_count',
     'widget_visible_count','widget_match_count','widget_match_visible_count',
     'widget_wrong_visible_count','related_widget_generation',
@@ -221,7 +222,8 @@ function installBrowserDiagnostics(context) {
     page.on('request', request => {
       const hostClass = safeHostClass(request.url());
       const captureNavigation = pageRole === 'popup' ||
-        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed'].includes(activeTrace.stage);
+        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed',
+          'trends_explore_navigation','trends_explore_commit_observed'].includes(activeTrace.stage);
       if (captureNavigation && request.isNavigationRequest() && request.resourceType() === 'document')
         diagnostic('navigation_request',{
           page_role:pageRole,
@@ -233,7 +235,8 @@ function installBrowserDiagnostics(context) {
       const request = response.request();
       const hostClass = safeHostClass(response.url());
       const captureNavigation = pageRole === 'popup' ||
-        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed'].includes(activeTrace.stage);
+        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed',
+          'trends_explore_navigation','trends_explore_commit_observed'].includes(activeTrace.stage);
       if (captureNavigation && request.isNavigationRequest() && request.resourceType() === 'document')
         diagnostic('navigation_response',{
           page_role:pageRole,
@@ -245,7 +248,8 @@ function installBrowserDiagnostics(context) {
     page.on('requestfinished', request => {
       const hostClass = safeHostClass(request.url());
       const captureNavigation = pageRole === 'popup' ||
-        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed'].includes(activeTrace.stage);
+        pageRole === 'main' && ['trends_home_navigation','trends_home_commit_observed',
+          'trends_explore_navigation','trends_explore_commit_observed'].includes(activeTrace.stage);
       if (captureNavigation && request.isNavigationRequest() && request.resourceType() === 'document')
         diagnostic('navigation_finished',{
           page_role:pageRole,
@@ -287,6 +291,9 @@ function validateInput(input) {
       (config.fixture_room_scroll_delay_ms !== undefined &&
         (!Number.isInteger(config.fixture_room_scroll_delay_ms) || config.fixture_room_scroll_delay_ms < 0 ||
          (config.environment !== 'fixture' && config.fixture_room_scroll_delay_ms !== 0))) ||
+      (config.fixture_trends_new_explore !== undefined &&
+        (typeof config.fixture_trends_new_explore !== 'boolean' ||
+         (config.environment !== 'fixture' && config.fixture_trends_new_explore))) ||
       (config.fixture_expire_deadline_before_room_restore !== undefined &&
         (typeof config.fixture_expire_deadline_before_room_restore !== 'boolean' ||
          (config.environment !== 'fixture' && config.fixture_expire_deadline_before_room_restore))) ||
@@ -1474,20 +1481,290 @@ async function clickBeforeDeadline(locator, deadline, options = {}) {
   ensureBeforeDeadline(deadline);
 }
 
-export async function collectTrends(page, request, config, deadline, access) {
-  const homeUrl = config.environment === 'fixture'
-    ? new URL('/trends/', config.fixture_url)
-    : new URL('https://trends.google.co.jp/trends/');
-  const check = guardPage(page,homeUrl.hostname,access);
-  if (deadline - Date.now() < 1000) throw new SourceFailure('source_timeout');
-  await installTrendsWidgetObserver(page);
-  trace('trends_home_navigation');
-  // The home page may cancel ancillary fetches during its initial render.
-  // Wait for the navigation commit here, then wait for the rendered search
-  // control below instead of coupling startup to DOMContentLoaded.
-  await page.goto(homeUrl.href, { waitUntil:'commit' });
-  trace('trends_home_commit_observed');
+async function waitForTrendsActionReady(page, locator, deadline, check) {
   await check();
+  await locator.click({trial:true,timeout:deadlineTimeout(deadline)});
+  if (deadline - Date.now() < 1000) throw new SourceFailure('source_timeout');
+  await page.waitForTimeout(1000);
+  ensureBeforeDeadline(deadline);
+  await check();
+}
+
+async function clickTrendsAfterReady(page, locator, deadline, check) {
+  await waitForTrendsActionReady(page,locator,deadline,check);
+  await locator.click({timeout:deadlineTimeout(deadline)});
+  ensureBeforeDeadline(deadline);
+  await check();
+}
+
+async function fillTrendsAfterReady(page, locator, value, deadline, check) {
+  await waitForTrendsActionReady(page,locator,deadline,check);
+  await locator.fill(value,{timeout:deadlineTimeout(deadline)});
+  ensureBeforeDeadline(deadline);
+  await check();
+}
+
+function decodedTrendsQuery(url) {
+  let value = url.searchParams.get('q') ?? '';
+  for (let index=0; index<2 && /%[0-9a-f]{2}/i.test(value); index++) {
+    try { value = decodeURIComponent(value); }
+    catch { return null; }
+  }
+  return value;
+}
+
+async function collectExploreTrends(page, request, deadline, check) {
+  trace('trends_explore_query_wait_begin');
+  const search = page.getByRole('combobox',{name:'検索キーワードを追加',exact:true})
+    .filter({visible:true});
+  await search.waitFor({state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now()))});
+  if (await search.count() !== 1) throw new SourceFailure('query_widget_ambiguous');
+  trace('trends_explore_query_ready');
+  await fillTrendsAfterReady(page,search.first(),request.parent_word,deadline,check);
+  trace('trends_explore_query_entered');
+
+  const searchKeywordOption = page.getByRole('option',{
+    name:`${request.parent_word} 検索キーワード`,exact:true,
+  }).filter({visible:true});
+  await searchKeywordOption.waitFor({
+    state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+  });
+  const optionCount = await searchKeywordOption.count();
+  if (optionCount !== 1) throw new SourceFailure('query_widget_ambiguous');
+  trace('trends_explore_query_option_visible');
+  await clickTrendsAfterReady(page,searchKeywordOption.first(),deadline,check);
+  trace('trends_explore_query_selected');
+  await check();
+  const searchKeywordChip = page.getByRole('button',{
+    name:`${request.parent_word} 検索キーワード`,exact:true,
+  }).filter({visible:true});
+  await searchKeywordChip.waitFor({
+    state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+  });
+  await waitDOM(page,check,query => {
+    const input = Array.from(document.querySelectorAll('input[role="combobox"]')).find(
+      element => element.disabled && element.getAttribute('aria-label') === query,
+    );
+    let value = new URL(location.href).searchParams.get('q') ?? '';
+    for (let index=0; index<2 && /%[0-9a-f]{2}/i.test(value); index++) {
+      try { value = decodeURIComponent(value); }
+      catch { return false; }
+    }
+    const chip = Array.from(document.querySelectorAll('button')).some(element =>
+      element.getAttribute('aria-label') === `${query} 検索キーワード`);
+    return Boolean(input && chip && value === query);
+  },request.parent_word,deadline);
+
+  const japanButton = page.getByRole('button',{
+    name:'日本、地域を選択',exact:true,
+  }).filter({visible:true});
+  if (await japanButton.count() !== 1) {
+    const allCountries = page.getByRole('button',{
+      name:'すべての国、地域を選択',exact:true,
+    }).filter({visible:true});
+    if (await allCountries.count() !== 1)
+      throw new SourceFailure('trends_scope_not_reflected');
+    await clickTrendsAfterReady(page,allCountries.first(),deadline,check);
+    const japanOption = page.getByRole('menuitemradio',{
+      name:'日本',exact:true,
+    }).filter({visible:true});
+    await japanOption.waitFor({
+      state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+    });
+    if (await japanOption.count() !== 1) throw new SourceFailure('query_widget_ambiguous');
+    await clickTrendsAfterReady(page,japanOption.first(),deadline,check);
+    const allRegions = page.getByRole('menuitem',{
+      name:'すべての地域',exact:true,
+    }).filter({visible:true});
+    await allRegions.waitFor({
+      state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+    });
+    if (await allRegions.count() !== 1) throw new SourceFailure('query_widget_ambiguous');
+    await clickTrendsAfterReady(page,allRegions.first(),deadline,check);
+  }
+  trace('trends_explore_country_selected');
+
+  const periodControl = page.getByRole('button',{name:/期間を選択$/}).filter({visible:true});
+  await periodControl.waitFor({
+    state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+  });
+  if (await periodControl.count() !== 1) throw new SourceFailure('trends_scope_not_reflected');
+  let periodControlLabel = await periodControl.getAttribute('aria-label') ??
+    await periodControl.innerText();
+  let period = compact(periodControlLabel).replace(/、?期間を選択$/,'');
+  if (!allowedPeriods.has(period)) {
+    trace('trends_period_menu_open_begin');
+    await clickTrendsAfterReady(page,periodControl.first(),deadline,check);
+    trace('trends_period_menu_opened');
+    const periodOptions = page.getByRole('menuitemradio',{
+      name:/^過去\s*3\s*[かヶ]月間$/,
+    }).filter({visible:true});
+    trace('trends_period_option_wait_begin');
+    await periodOptions.first().waitFor({
+      state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+    });
+    const periodOptionCount = await periodOptions.count();
+    trace('trends_period_option_visible',{period_option_count:periodOptionCount});
+    if (periodOptionCount !== 1) throw new SourceFailure('query_widget_ambiguous');
+    await clickTrendsAfterReady(page,periodOptions.first(),deadline,check);
+    trace('trends_period_option_clicked');
+    trace('trends_period_reflection_wait_begin');
+    await waitDOM(page,check,() => {
+      const control = document.querySelector('button[aria-label*="期間を選択"]');
+      const label = (control?.getAttribute('aria-label') ?? '')
+        .normalize('NFKC').replace(/\s/g,'').replace(/、?期間を選択$/,'');
+      const date = new URL(location.href).searchParams.get('date');
+      return ['過去90日間','過去90日','過去3か月間','過去3か月','過去3ヶ月間','過去3ヶ月'].includes(label) &&
+        ['today 3-m','today 90-d'].includes(date);
+    },null,deadline);
+    trace('trends_period_reflected');
+    periodControlLabel = await periodControl.getAttribute('aria-label') ??
+      await periodControl.innerText();
+    period = compact(periodControlLabel).replace(/、?期間を選択$/,'');
+  }
+
+  const propertyControl = page.getByRole('button',{
+    name:/プロパティを選択$/,
+  }).filter({visible:true});
+  await propertyControl.waitFor({
+    state:'visible',timeout:Math.min(20000,Math.max(1,deadline-Date.now())),
+  });
+  if (await propertyControl.count() !== 1) throw new SourceFailure('trends_scope_not_reflected');
+  let propertyLabel = await propertyControl.getAttribute('aria-label') ??
+    await propertyControl.innerText();
+  if (!propertyLabel.includes('ウェブ検索')) {
+    await clickTrendsAfterReady(page,propertyControl.first(),deadline,check);
+    const webRadio = page.getByRole('menuitemradio',{
+      name:'ウェブ検索',exact:true,
+    }).filter({visible:true});
+    const webMenuItem = page.getByRole('menuitem',{
+      name:'ウェブ検索',exact:true,
+    }).filter({visible:true});
+    await waitDOM(page,check,() => {
+      const matches = Array.from(document.querySelectorAll('[role="menuitemradio"],[role="menuitem"]'))
+        .filter(element => element.getClientRects().length &&
+          element.textContent.normalize('NFKC').trim() === 'ウェブ検索');
+      return matches.length > 0;
+    },null,Math.min(deadline,Date.now()+10000));
+    const radioCount = await webRadio.count();
+    const itemCount = await webMenuItem.count();
+    if (radioCount + itemCount !== 1) throw new SourceFailure('query_widget_ambiguous');
+    await clickTrendsAfterReady(page,radioCount ? webRadio.first() : webMenuItem.first(),deadline,check);
+    propertyLabel = await propertyControl.getAttribute('aria-label') ??
+      await propertyControl.innerText();
+  }
+
+  await check();
+  const exploreUrl = new URL(page.url());
+  const countryLabel = await japanButton.getAttribute('aria-label');
+  if (!allowedPeriods.has(period) || !['today 3-m','today 90-d'].includes(exploreUrl.searchParams.get('date')) ||
+      exploreUrl.searchParams.get('geo') !== 'JP' || decodedTrendsQuery(exploreUrl) !== request.parent_word ||
+      countryLabel !== '日本、地域を選択' || !propertyLabel.includes('ウェブ検索') ||
+      await searchKeywordChip.count() !== 1)
+    throw new SourceFailure('trends_scope_not_reflected');
+  trace('trends_explore_scope_reflected');
+
+  // A full page navigation discards any result rows left behind while the
+  // Explore controls changed. Google serializes the selected query and scope
+  // into this URL, so reload the page once all controls have been verified.
+  trace('trends_explore_scope_reload_begin');
+  await page.reload({
+    waitUntil:'domcontentloaded',
+    timeout:deadlineTimeout(deadline),
+  });
+  ensureBeforeDeadline(deadline);
+  trace('trends_explore_scope_reload_complete');
+  await waitDOM(page,check,query => {
+    const controls = Array.from(document.querySelectorAll('button'));
+    const country = controls.some(button => button.getAttribute('aria-label') === '日本、地域を選択');
+    const period = controls.find(button => (button.getAttribute('aria-label') ?? '').includes('期間を選択'));
+    const periodLabel = (period?.getAttribute('aria-label') ?? '')
+      .normalize('NFKC').replace(/\s/g,'');
+    const property = controls.some(button =>
+      (button.getAttribute('aria-label') ?? '').includes('ウェブ検索') &&
+      (button.getAttribute('aria-label') ?? '').includes('プロパティを選択'));
+    const chip = controls.some(button => button.getAttribute('aria-label') === `${query} 検索キーワード`);
+    const input = Array.from(document.querySelectorAll('input[role="combobox"]')).some(element =>
+      element.disabled && element.getAttribute('aria-label') === query);
+    let urlQuery = new URL(location.href).searchParams.get('q') ?? '';
+    for (let index=0; index<2 && /%[0-9a-f]{2}/i.test(urlQuery); index++) {
+      try { urlQuery = decodeURIComponent(urlQuery); }
+      catch { return false; }
+    }
+    const url = new URL(location.href);
+    return country && periodLabel.includes('過去3か月間') && property && chip && input &&
+      url.searchParams.get('geo') === 'JP' &&
+      ['today 3-m','today 90-d'].includes(url.searchParams.get('date')) &&
+      urlQuery === query;
+  },request.parent_word,Math.min(deadline,Date.now()+30000));
+  trace('trends_explore_scope_reload_reflected');
+
+  const topTable = page.getByRole('table',{name:'上位の語句',exact:true}).filter({visible:true});
+  trace('trends_explore_top_rows_wait_begin');
+  trace('trends_explore_top_refresh_wait_begin');
+  await waitDOM(page,check,() => {
+    const table = document.querySelector('table[aria-label="上位の語句"]');
+    if (!table || !table.getClientRects().length) return false;
+    let ancestor = table;
+    while (ancestor) {
+      if (ancestor.getAttribute('aria-busy') === 'true') return false;
+      ancestor = ancestor.parentElement;
+    }
+    return true;
+  },null,Math.min(deadline,Date.now()+30000));
+  const topTableCount = await topTable.count();
+  trace('trends_explore_top_table_ready',{top_table_count:topTableCount});
+  if (topTableCount !== 1) throw new SourceFailure('query_widget_ambiguous');
+
+  const words = [];
+  while (words.length < 20) {
+    const expectedRank = words.length + 1;
+    await waitDOM(page,check,startRank => {
+      const table = document.querySelector('table[aria-label="上位の語句"]');
+      const ranks = Array.from(table?.querySelectorAll('tbody tr') ?? []).map(row => {
+        const value = row.querySelector('td')?.innerText.trim() ?? '';
+        return /^\d+$/.test(value) ? Number(value) : null;
+      }).filter(Number.isInteger);
+      return ranks.length > 0 && ranks[0] === startRank &&
+        ranks.every((rank,index) => rank === startRank + index);
+    },expectedRank,Math.min(deadline,Date.now()+30000));
+    const observed = await topTable.first().evaluate(table =>
+      Array.from(table.querySelectorAll('tbody tr')).map(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        const rankText = cells[0]?.innerText.trim() ?? '';
+        const raw = (cells[1]?.innerText ?? '').replace(/[\u200e\u200f]/g,'').trim();
+        const interestLabel = cells[2]?.querySelector('[role="img"]')?.getAttribute('aria-label') ?? '';
+        const interest = interestLabel.match(/検索インタレスト\s*[:：]\s*(\d+(?:\.\d+)?)/);
+        return {raw,source_rank:/^\d+$/.test(rankText) ? Number(rankText) : null,
+          popularity_index:interest ? Number(interest[1]) : null};
+      }).filter(row => Number.isInteger(row.source_rank))
+    );
+    trace('trends_explore_top_rows_updated',{top_rows_count:observed.length});
+    if (!observed.length) throw new SourceFailure('top_rows_unreadable');
+    for (const row of observed) {
+      if (words.length === 20) break;
+      if (!row.raw || row.raw.length > 500 || row.source_rank !== words.length + 1)
+        throw new SourceFailure('top_rank_not_fresh');
+      words.push({word_id:`${request.request_id}:w${row.source_rank}`,...row});
+    }
+    if (words.length === 20) break;
+    const container = topTable.first().locator('xpath=../..');
+    const next = container.getByRole('button',{name:'次のページに移動',exact:true});
+    if (await next.count() !== 1 || !(await next.isEnabled())) break;
+    await clickTrendsAfterReady(page,next,deadline,check);
+    await check();
+    trace('trends_explore_page_changed');
+  }
+
+  return {response:{request_id:request.request_id,snapshot_id:request.request_id,run_id:request.run_id,
+    settings_version:request.settings_version,source:'google_trends_public_ui',parent_word:request.parent_word,
+    current_parent:request.parent_word,refresh_complete:true,language:'ja',geo:'JP',search_type:'web',
+    range:'3m',list_type:'Top',ui_period_label:period,status:'observed',fetched_at:timestamp(),
+    error_code:null,words},product_facts:{},diagnostics:{source:'public_dom',
+      selector_version:'explore-table-v1',word_count:words.length,period_label:period,original_top:true}};
+}
+
+async function collectLegacyTrends(page, request, config, deadline, check) {
   const consent = page.getByRole('button', { name: 'OK, got it', exact: true });
   if (await consent.isVisible()) {
     await clickBeforeDeadline(consent, deadline);
@@ -1679,6 +1956,48 @@ export async function collectTrends(page, request, config, deadline, access) {
     status:'observed',fetched_at:timestamp(),error_code:null,words }, product_facts:{},
     diagnostics:{source:'public_dom',selector_version:TRENDS_WIDGET_SELECTOR_VERSION,
       word_count:words.length,period_label:period,original_top:true} };
+}
+
+export async function collectTrends(page, request, config, deadline, access) {
+  const useExplore = config.environment === 'public_ui' || config.fixture_trends_new_explore;
+  const exploreUrl = config.environment === 'fixture'
+    ? new URL(useExplore ? '/explore?hl=ja' : '/trends/',config.fixture_url)
+    : new URL('https://trends.google.co.jp/explore?hl=ja');
+  const exploreCheck = guardPage(page,exploreUrl.hostname,access);
+  if (deadline - Date.now() < 1000) throw new SourceFailure('source_timeout');
+  if (!useExplore) await installTrendsWidgetObserver(page);
+  trace(useExplore ? 'trends_explore_navigation' : 'trends_home_navigation');
+  await page.goto(exploreUrl.href,{waitUntil:'commit'});
+  trace(useExplore ? 'trends_explore_commit_observed' : 'trends_home_commit_observed');
+  await exploreCheck();
+
+  if (useExplore) {
+    const search = page.locator('input[role="combobox"][aria-label="検索キーワードを追加"]');
+    let modernExplore = false;
+    try {
+      await search.waitFor({state:'visible',timeout:Math.min(15000,Math.max(1,deadline-Date.now()))});
+      modernExplore = true;
+    } catch (error) {
+      if (error?.name !== 'TimeoutError') throw error;
+    }
+    await exploreCheck();
+    if (modernExplore) {
+      trace('trends_explore_page_ready');
+      return await collectExploreTrends(page,request,deadline,exploreCheck);
+    }
+    if (config.environment !== 'public_ui')
+      throw new SourceFailure('query_widget_contract_mismatch');
+    await installTrendsWidgetObserver(page);
+    const homeUrl = new URL('https://trends.google.co.jp/trends/');
+    trace('trends_home_navigation');
+    await page.goto(homeUrl.href,{waitUntil:'commit'});
+    trace('trends_home_commit_observed');
+    const homeCheck = guardPage(page,homeUrl.hostname,access);
+    await homeCheck();
+    return await collectLegacyTrends(page,request,config,deadline,homeCheck);
+  }
+
+  return await collectLegacyTrends(page,request,config,deadline,exploreCheck);
 }
 
 export async function main(input) {

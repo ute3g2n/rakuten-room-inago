@@ -46,6 +46,24 @@ _FAILURE_ARTIFACT_STAGES = frozenset(
         "trends_home_commit_observed",
         "trends_home_navigation",
         "trends_home_query_entered",
+        "trends_explore_navigation",
+        "trends_explore_commit_observed",
+        "trends_explore_page_ready",
+        "trends_explore_query_wait_begin",
+        "trends_explore_query_ready",
+        "trends_explore_query_entered",
+        "trends_explore_query_option_visible",
+        "trends_explore_query_selected",
+        "trends_explore_country_selected",
+        "trends_explore_scope_reflected",
+        "trends_explore_scope_reload_begin",
+        "trends_explore_scope_reload_complete",
+        "trends_explore_scope_reload_reflected",
+        "trends_explore_top_rows_wait_begin",
+        "trends_explore_top_refresh_wait_begin",
+        "trends_explore_top_table_ready",
+        "trends_explore_top_rows_updated",
+        "trends_explore_page_changed",
         "trends_home_search_candidates",
         "trends_home_search_visible",
         "trends_home_search_wait_begin",
@@ -121,6 +139,7 @@ _FAILURE_ARTIFACT_CODES = frozenset(
         "incomplete_search",
         "owned_cleanup_unconfirmed",
         "query_widget_ambiguous",
+        "query_widget_contract_mismatch",
         "query_not_reflected",
         "response_contract_invalid",
         "response_not_object",
@@ -136,6 +155,9 @@ _FAILURE_ARTIFACT_CODES = frozenset(
         "source_response_invalid",
         "source_timeout",
         "source_unavailable",
+        "top_rank_not_fresh",
+        "top_rows_unreadable",
+        "trends_scope_not_reflected",
         "unknown",
         "word_identity_invalid",
         "product_row_timeout",
@@ -183,6 +205,7 @@ class PublicSourceConfig:
     fixture_product_delay_ms: int = 0
     fixture_browser_startup_delay_ms: int = 0
     fixture_room_scroll_delay_ms: int = 0
+    fixture_trends_new_explore: bool = False
     fixture_expire_deadline_before_room_restore: bool = False
     fixture_detail_click_timeout_ms: int = 0
     fixture_product_destination_timeout_ms: int = 0
@@ -257,6 +280,10 @@ class PublicBrowserSource:
             raise ValueError(
                 "fixture ROOM scroll delay must be a non-negative fixture value"
             )
+        if not isinstance(config.fixture_trends_new_explore, bool) or (
+            config.environment != "fixture" and config.fixture_trends_new_explore
+        ):
+            raise ValueError("new Trends Explore fixture mode is fixture-only")
         if not isinstance(config.fixture_expire_deadline_before_room_restore, bool) or (
             config.environment != "fixture"
             and config.fixture_expire_deadline_before_room_restore
@@ -1727,6 +1754,8 @@ class PublicBrowserSource:
                 "room_condition_search_control_count",
                 "timeout_ms",
                 "wait_elapsed_ms",
+                "top_table_count",
+                "top_rows_count",
             }
             generation_fields = {
                 "related_widget_generation",
@@ -1747,6 +1776,8 @@ class PublicBrowserSource:
                 "search_button_count",
                 "explore_button_count",
                 "period_option_count",
+                "top_table_count",
+                "top_rows_count",
                 "retry_after_seconds",
                 "widget_dom_count",
                 "widget_visible_count",

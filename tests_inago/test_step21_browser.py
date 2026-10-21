@@ -221,6 +221,94 @@ def trends_html(
     function render(){{let s='';for(let rank=page*5+1;rank<=Math.min({count},page*5+5);rank++)s+='<a class="progress-label transition-width"><div class="label-line-number">'+rank+'</div><div class="label-text"><span>'+ (topMode?'関連  語':'注目 語') +rank+'</span></div><div class="progress-value">'+(101-rank)+'</div></a>';if({str(rising_empty).lower()} && !topMode || {count}===0)s='<span>データがありません</span>';document.querySelector('#words').innerHTML=s;document.querySelector('button[aria-label="Next"]').disabled=(page+1)*5>={count}}}render(){refresh_marker}</script>"""
 
 
+def trends_new_explore_html():
+    return """<!doctype html><main>
+    <input type="text" role="combobox" aria-label="検索キーワードを追加">
+    <div id="suggestions" role="listbox" hidden></div>
+    <div id="chip"></div>
+    <button id="country" aria-label="すべての国、地域を選択">すべての国</button>
+    <div id="country-menu" hidden><button role="menuitemradio">日本</button></div>
+    <div id="regions-menu" hidden><button role="menuitem">すべての地域</button></div>
+    <button id="period" aria-label="過去 1 年間、期間を選択">過去 1 年間</button>
+    <div id="period-menu" hidden><button role="menuitemradio">過去 3 か月間</button></div>
+    <button id="property" aria-label="ウェブ検索、プロパティを選択">ウェブ検索</button>
+    <div id="top-container" hidden><div><table aria-label="上位の語句">
+      <thead><tr><th>クエリ</th><th>検索インタレスト</th><th>変化率</th></tr></thead>
+      <tbody id="top-rows"><tr><td><div></div></td></tr></tbody>
+    </table></div><button aria-label="前のページに移動" disabled></button>
+    <button id="next" aria-label="次のページに移動" disabled></button></div>
+    <table aria-label="増加傾向の語句"><tbody><tr><td>急上昇の語句</td></tr></tbody></table>
+    <script>
+      const input=document.querySelector('input');let pageIndex=0,chosen=false;
+      const suggestions=document.querySelector('#suggestions');
+      input.addEventListener('input',()=>{
+        suggestions.hidden=false;
+        suggestions.innerHTML='<div role="option">スキンケア 検索キーワード</div><div role="option">スキンケア トピック</div>';
+      });
+      suggestions.addEventListener('click',event=>{
+        if(event.target.getAttribute('role')!=='option'||!event.target.textContent.includes('検索キーワード'))return;
+        chosen=true;input.disabled=true;input.setAttribute('aria-label','スキンケア');
+        document.querySelector('#chip').innerHTML='<button aria-label="スキンケア 検索キーワード">スキンケア 検索キーワード</button>';
+        suggestions.hidden=true;const url=new URL(location.href);url.searchParams.set('q',encodeURIComponent('スキンケア'));history.replaceState({},'',url);renderIfReady();
+      });
+      document.querySelector('#country').addEventListener('click',()=>document.querySelector('#country-menu').hidden=false);
+      document.querySelector('#country-menu button').addEventListener('click',()=>{
+        document.querySelector('#country-menu').hidden=true;document.querySelector('#regions-menu').hidden=false;
+      });
+      document.querySelector('#regions-menu button').addEventListener('click',()=>{
+        document.querySelector('#regions-menu').hidden=true;const button=document.querySelector('#country');
+        button.setAttribute('aria-label','日本、地域を選択');button.textContent='日本';
+        const url=new URL(location.href);url.searchParams.set('geo','JP');history.replaceState({},'',url);renderIfReady();
+      });
+      document.querySelector('#period').addEventListener('click',()=>document.querySelector('#period-menu').hidden=false);
+      document.querySelector('#period-menu button').addEventListener('click',()=>{
+        document.querySelector('#period-menu').hidden=true;const button=document.querySelector('#period');
+        button.setAttribute('aria-label','過去 3 か月間、期間を選択');button.textContent='過去 3 か月間';
+        const url=new URL(location.href);url.searchParams.set('date','today 3-m');history.replaceState({},'',url);renderIfReady();
+      });
+      function renderIfReady(){
+        if(!chosen||document.querySelector('#country').getAttribute('aria-label')!=='日本、地域を選択'||
+           document.querySelector('#period').getAttribute('aria-label')!=='過去 3 か月間、期間を選択')return;
+        document.querySelector('#top-container').hidden=false;
+        const table=document.querySelector('table[aria-label="上位の語句"]');
+        if(table.dataset.refreshStarted)return;
+        table.dataset.refreshStarted='true';table.setAttribute('aria-busy','true');renderPage(false);
+        setTimeout(()=>{renderPage(true);table.removeAttribute('aria-busy')},700);
+      }
+      function renderPage(fresh){
+        const body=document.querySelector('#top-rows');body.innerHTML='<tr><td><div></div></td></tr>';
+        const start=pageIndex*10+1;for(let rank=start;rank<start+10;rank++){
+          const word=fresh?'スキンケア関連語 ':'別期間の検索結果 ';
+          const row=document.createElement('tr');row.innerHTML='<td>'+rank+'</td><td>'+word+rank+'</td>'+
+            '<td><div role="img" aria-label="検索インタレスト: '+(101-rank)+'" data-search-interest="'+(101-rank)+'"></div></td><td>+1%</td>';
+          body.appendChild(row);
+        }
+        document.querySelector('#next').disabled=pageIndex>0;
+      }
+      function queryFromUrl(){
+        let value=new URL(location.href).searchParams.get('q')||'';
+        for(let index=0;index<2&&/%[0-9a-f]{2}/i.test(value);index++)value=decodeURIComponent(value);
+        return value;
+      }
+      function restoreFromUrl(){
+        const params=new URL(location.href).searchParams,query=queryFromUrl();
+        if(params.get('geo')==='JP'){
+          const button=document.querySelector('#country');button.setAttribute('aria-label','日本、地域を選択');button.textContent='日本';
+        }
+        if(['today 3-m','today 90-d'].includes(params.get('date'))){
+          const button=document.querySelector('#period');button.setAttribute('aria-label','過去 3 か月間、期間を選択');button.textContent='過去 3 か月間';
+        }
+        if(query){
+          chosen=true;input.value=query;input.disabled=true;input.setAttribute('aria-label',query);
+          document.querySelector('#chip').innerHTML='<button aria-label="'+query+' 検索キーワード">'+query+' 検索キーワード</button>';
+        }
+        renderIfReady();
+      }
+      document.querySelector('#next').addEventListener('click',()=>{pageIndex++;renderPage(true)});
+      restoreFromUrl();
+    </script></main>"""
+
+
 def trends_home_html(*, input_delay_ms=0):
     return f"""<form id="search-form"><input aria-label="検索"><button type="submit">検索</button></form>
     <script>if ({input_delay_ms}) document.querySelector('input').addEventListener('input',()=>{{
@@ -356,6 +444,7 @@ def source(
     fixture_browser_startup_delay_ms=0,
     fixture_room_scroll_delay_ms=0,
     fixture_expire_deadline_before_room_restore=False,
+    fixture_trends_new_explore=False,
 ):
     if not CHROME.is_file():
         pytest.fail("explicit test Chrome executable unavailable")
@@ -380,6 +469,7 @@ def source(
             fixture_expire_deadline_before_room_restore=(
                 fixture_expire_deadline_before_room_restore
             ),
+            fixture_trends_new_explore=fixture_trends_new_explore,
         )
     )
 
@@ -1316,6 +1406,63 @@ def test_trends_starts_from_home_searches_and_selects_rendered_90_day_period(
         "trends_period_option_clicked",
         "trends_period_reflected",
     } <= stages
+
+
+def test_trends_new_explore_selects_scope_and_reads_top20_only(tmp_path, ui_server):
+    ui_server["pages"].update({"/explore": trends_new_explore_html()})
+    request = TrendsRequest(
+        "K-NEW-EXPLORE", "R-NEW-EXPLORE", "V1", "スキンケア", range="3m"
+    )
+
+    payload = source(
+        tmp_path,
+        ui_server,
+        timeout=25,
+        fixture_trends_new_explore=True,
+    ).fetch(request)
+
+    result = parse_grouped_top_response(payload, request)
+    assert result.status == "observed", payload.get("error_code")
+    assert [word.source_rank for word in result.words] == list(range(1, 21))
+    assert [word.raw for word in result.words] == [
+        f"スキンケア関連語 {rank}" for rank in range(1, 21)
+    ]
+    assert all(word.popularity_index == 101 - word.source_rank for word in result.words)
+    assert result.ui_period_label == "過去3か月間"
+    requested_pages = [urlsplit(path).path for path in ui_server["requests"]]
+    assert requested_pages.count("/explore") == 2
+    assert "/trends/" not in requested_pages
+    record = json.loads(
+        next((tmp_path / "observations").glob("trends-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    stages = {
+        event.get("stage")
+        for event in record["node_events"]
+        if event.get("event") == "public_source_stage"
+    }
+    assert {
+        "trends_explore_navigation",
+        "trends_explore_commit_observed",
+        "trends_explore_page_ready",
+        "trends_explore_query_selected",
+        "trends_explore_country_selected",
+        "trends_explore_scope_reflected",
+        "trends_explore_scope_reload_complete",
+        "trends_explore_scope_reload_reflected",
+        "trends_explore_top_rows_updated",
+    } <= stages
+    table_event = next(
+        event for event in record["node_events"]
+        if event.get("stage") == "trends_explore_top_table_ready"
+    )
+    assert table_event["top_table_count"] == 1
+    row_events = [
+        event for event in record["node_events"]
+        if event.get("stage") == "trends_explore_top_rows_updated"
+    ]
+    assert [event["top_rows_count"] for event in row_events] == [10, 10]
 
 
 def test_trends_home_search_ambiguity_fails_closed_with_safe_dom_counts(
