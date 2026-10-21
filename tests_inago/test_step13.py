@@ -12,7 +12,7 @@ import time
 import shutil
 from io import StringIO
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -31,7 +31,7 @@ from automation.inago.contracts import (
 from automation.inago.copy_service import CopyGenerationSpec
 from automation.inago.paths import SAFE_FIXTURE_BASE, resolve_runtime_paths
 from automation.inago.repository import open_database
-from automation.inago.room_adapter import RoomSearchRequest
+from automation.inago.room_adapter import ROOM_REQUEST_TIMEOUT_SECONDS, RoomSearchRequest
 from automation.inago.run_lock import RunLock, RunLockBusy, process_start_time
 from automation.inago.settings import register_external_settings
 from automation.inago.orchestrator import (
@@ -1452,17 +1452,20 @@ def test_room_budget_accepts_slow_fifty_product_observation(
     first = bundle.room.requests[0]
     remaining = datetime.fromisoformat(first.deadline_at) - datetime.fromisoformat(NOW)
     assert 30 * first.max_posts <= remaining.total_seconds() <= 1800
-    assert runtime_case.connection.execute(
-        "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
-        (RUN_ID,),
-    ).fetchone()[0] == 0
+    assert (
+        runtime_case.connection.execute(
+            "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
+            (RUN_ID,),
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def _advance_clock_past_request_timeout(
     runtime_case: RuntimeCase, started: threading.Event
 ) -> None:
     assert started.wait(timeout=3), "owned job did not start"
-    runtime_case.clock.advance(480)
+    runtime_case.clock.advance(ROOM_REQUEST_TIMEOUT_SECONDS)
 
 
 def test_blocked_room_call_uses_request_timeout_and_ignores_late_posts(
@@ -1501,7 +1504,10 @@ def test_blocked_room_call_uses_request_timeout_and_ignores_late_posts(
     assert outcome.committed_count == 15
     assert len(bundle.room.requests) > 1
     assert len(bundle.runner.requests) == 15
-    assert bundle.metrics.started_at == ["2026-10-12T13:08:00+09:00"]
+    expected_metrics_start = (
+        datetime.fromisoformat(NOW) + timedelta(seconds=ROOM_REQUEST_TIMEOUT_SECONDS)
+    ).isoformat()
+    assert bundle.metrics.started_at == [expected_metrics_start]
     attempt = runtime_case.connection.execute(
         "SELECT ended_at, source_status, error_code FROM search_attempt WHERE run_id=?",
         (RUN_ID,),

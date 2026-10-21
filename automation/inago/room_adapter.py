@@ -35,7 +35,9 @@ _OBS_SCHEMA_PATH = (
 )
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_PRODUCT_RESOLUTION_FAILURES = 10
-ROOM_REQUEST_TIMEOUT_SECONDS = 480
+# A request resolves up to fifty product pages. Public UI observations have
+# taken over eight minutes for twenty pages; allow thirty minutes, still finite.
+ROOM_REQUEST_TIMEOUT_SECONDS = 1800
 _OBSERVABLE_FIELDS = frozenset(
     {"query", "likes_min", "current_search_id", "search_loaded", "internal_order"}
 )
