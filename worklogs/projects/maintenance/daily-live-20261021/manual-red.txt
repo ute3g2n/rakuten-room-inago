@@ -7,7 +7,7 @@ tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[
 
     def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_path):
         from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture
-    
+
         config, *_ = _make_daily_fixture(monkeypatch, tmp_path)
         clock = FakeClock(datetime.fromisoformat("2026-10-15T09:15:00+09:00"))
         scheduled = production_runtime.run_production_daily(config, clock=clock)

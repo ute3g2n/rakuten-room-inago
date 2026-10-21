@@ -1,0 +1,62 @@
+........................................................................ [ 22%]
+............F
+================================== FAILURES ===================================
+___ test_fourteen_committed_bodies_resume_same_run_seed_and_search_results ____
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x0000027AB1BBF880>, data_root=WindowsPath('C:/project/rakuten-ro...ock(current=datetime.datetime(2026, 10, 12, 13, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+
+    def test_fourteen_committed_bodies_resume_same_run_seed_and_search_results(
+        runtime_case: RuntimeCase,
+    ) -> None:
+        state = {"built": 0, "raised": False}
+
+        def interrupt_at_fifteenth(
+            connection: sqlite3.Connection, **values: Any
+        ) -> CopyGenerationSpec:
+            state["built"] += 1
+            if state["built"] == 15 and not state["raised"]:
+                state["raised"] = True
+                raise RuntimeError("fixture interruption after fourteen commits")
+            offer_key = values["offer_key"]
+            ref = f"INPUT-{offer_key.replace(':', '-')}-V1"
+            return CopyGenerationSpec(
+                run_id=values["run_id"],
+                offer_key=offer_key,
+                draft_version=1,
+                target_date=values["target_date"],
+                settings_version=values["settings_version"],
+                input_refs=(ref,),
+                evidence_refs=(ref,),
+                input_payload={
+                    "offer": {"offer_key": offer_key, "draft_version": 1},
+                    "purpose": "fixture copy generation",
+                    "facts": _unknown_facts(),
+                    "author_experience": {"availability": "unknown", "value": None},
+                },
+                deadline_at=values["deadline_at"],
+                deadline_monotonic=values["deadline_monotonic"],
+                generator_version="step13-fixture-copy-v1",
+                pattern_version=values["settings_version"],
+            )
+
+        bundle = _make_ports(
+            runtime_case,
+            posts_per_search=5,
+            copy_spec_factory=interrupt_at_fifteenth,
+        )
+        first = _run(runtime_case, bundle)
+        before = runtime_case.connection.execute(
+            "SELECT run_id, target_date, settings_version, seed, attempt_used, committed_count, checkpoint FROM run WHERE run_id=?",
+            (RUN_ID,),
+        ).fetchone()
+>       assert first.status == "partial"
+E       AssertionError: assert 'complete' == 'partial'
+E
+E         - partial
+E         + complete
+
+tests_inago\test_step13.py:1355: AssertionError
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 84 passed in 78.83s (0:01:18)
+C:\project\rakuten-room-inago\.venv-inago\Lib\site-packages\coverage\inorout.py:561: CoverageWarning: Module automation.inago.recovery was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.5/messages.html#warning-module-not-imported
+  self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")

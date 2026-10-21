@@ -1,0 +1,11 @@
+Restart old daily code after observed JOB_INPUT_UNREADABLE; preserve SQLite checkpoint, same run and attempt history. Verified daily PID 87348 and owned children only.
+SUCCESS: The process with PID 77144 (child process of PID 97720) has been terminated.
+SUCCESS: The process with PID 75164 (child process of PID 77640) has been terminated.
+SUCCESS: The process with PID 33640 (child process of PID 81144) has been terminated.
+SUCCESS: The process with PID 99504 (child process of PID 81144) has been terminated.
+SUCCESS: The process with PID 55520 (child process of PID 77996) has been terminated.
+SUCCESS: The process with PID 97720 (child process of PID 77996) has been terminated.
+SUCCESS: The process with PID 77640 (child process of PID 77996) has been terminated.
+SUCCESS: The process with PID 81144 (child process of PID 77996) has been terminated.
+SUCCESS: The process with PID 77996 (child process of PID 87348) has been terminated.
+SUCCESS: The process with PID 87348 (child process of PID 2564) has been terminated.

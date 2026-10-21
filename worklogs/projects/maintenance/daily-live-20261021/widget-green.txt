@@ -14,7 +14,7 @@ manual = True
         bundle = _make_ports(runtime_case)
         stdout = StringIO()
         stderr = StringIO()
-    
+
         exit_code = run_cli(
             [
                 "daily",
@@ -33,7 +33,7 @@ manual = True
             stdout=stdout,
             stderr=stderr,
         )
-    
+
 >       assert exit_code == 0
 E       assert 5 == 0
 

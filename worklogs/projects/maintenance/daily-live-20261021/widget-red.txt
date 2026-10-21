@@ -20,7 +20,7 @@ ui_server = {'html': '', 'status': 200, 'requests': ['/trends/', '/trends/explor
 >       assert snapshot.status == "observed", response.get("error_code")
 E       AssertionError: query_widget_contract_mismatch
 E       assert 'unavailable' == 'observed'
-E         
+E
 E         - observed
 E         + unavailable
 
@@ -39,7 +39,7 @@ manual = True
         bundle = _make_ports(runtime_case)
         stdout = StringIO()
         stderr = StringIO()
-    
+
         exit_code = run_cli(
             [
                 "daily",
@@ -58,11 +58,11 @@ manual = True
             stdout=stdout,
             stderr=stderr,
         )
-    
+
         assert exit_code == 0
 >       assert json.loads(stdout.getvalue())["status"] == ("complete" if manual else "not_due")
 E       AssertionError: assert 'not_due' == 'complete'
-E         
+E
 E         - complete
 E         + not_due
 

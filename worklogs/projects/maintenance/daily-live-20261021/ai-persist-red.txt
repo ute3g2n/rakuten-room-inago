@@ -30,16 +30,16 @@ legacy_v2 = <sqlite3.Connection object at 0x0000025532553790>
         replacement.prepare_daily_run(legacy_v2, "R1")
         script = tmp_path / "missing_rollout_server.py"
         script.write_text(FAKE, encoding="utf-8")
-    
+
         def factory(**kwargs):
             kwargs["command"] = (sys.executable, "-X", "utf8", str(script), "missing_rollout")
             return AppServerSession(**kwargs)
-    
+
         replacement.session_factory = factory
         try:
 >           replacement.start_daily_root(deadline_monotonic=time.monotonic() + 5)
 
-tests_inago\test_step21_ai_root.py:642: 
+tests_inago\test_step21_ai_root.py:642:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 automation\inago\daily_ai.py:182: in start_daily_root
     self.context["root_thread_id"] = self.session.start(deadline=bounded)

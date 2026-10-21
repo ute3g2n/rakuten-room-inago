@@ -1,0 +1,608 @@
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+...........................................F....F.....FF.FF.FF.......... [ 94%]
+...............s                                                         [100%]
+================================== FAILURES ===================================
+_______ test_task_render_uses_repository_and_leaves_scheduler_untouched _______
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_task_render_uses_reposito0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002027E4CC830>
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows task XML generation")
+    def test_task_render_uses_repository_and_leaves_scheduler_untouched(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        first_day = (date.today() + timedelta(days=1)).isoformat()
+        document["start_date"] = first_day
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("must not execute", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        user_profile = tmp_path / "UserProfile"
+        local_app_data = tmp_path / "LocalAppData"
+        environment = dict(
+            os.environ,
+            USERPROFILE=str(user_profile),
+            LOCALAPPDATA=str(local_app_data),
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(script),
+                "-ProjectRoot",
+                str(tmp_path),
+                "-StartBoundary",
+                first_day + "T13:00:00+09:00",
+                "-RenderOnly",
+            ],
+            capture_output=True,
+            env=environment,
+            check=False,
+        )
+        assert process.returncode == 0, process.stderr
+        rendered = json.loads(process.stdout.decode("utf-8-sig"))
+        assert rendered["Registered"] is False
+        namespace = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+        for name in ("DailyXml", "HumanApiXml"):
+            assert not rendered[name].lstrip().startswith("<?xml")
+            xml = ET.fromstring(rendered[name])
+            working_directory = xml.find(".//t:WorkingDirectory", namespace)
+            command = xml.find(".//t:Command", namespace)
+            arguments = xml.findtext(".//t:Arguments", namespaces=namespace) or ""
+            assert working_directory is not None
+            assert Path(working_directory.text) == tmp_path
+            assert command is not None and Path(command.text) == python
+>           assert "--user-profile" in arguments
+E           assert '--user-profile' in '-B -m automation.inago.maintenance.daily_launcher --config "C:\\project\\rakuten-room-inago\\����J��ƃf�[�^\\�C�i�S��������\\regre...ject\\rakuten-room-inago\\����J��ƃf�[�^\\�C�i�S��������\\regression\\test_task_render_uses_reposito0\\rakuten-room-inago\\runtime"'
+
+tests_inago\test_step24_production.py:1789: AssertionError
+_ test_task_switch_only_replaces_known_idle_installed_definition[Ready-current_wake_disabled-replaced] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_task_switch_only_replaces1')
+state = 'Ready', kind = 'current_wake_disabled', expected = 'replaced'
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "state,kind,expected",
+        [
+            ("Ready", "known", "replaced"),
+            ("Ready", "current_wake_disabled", "replaced"),
+            ("Running", "known", "blocked"),
+            ("Queued", "known", "blocked"),
+            ("Unknown", "known", "blocked"),
+            ("Disabled", "known", "replaced"),
+            ("Ready", "custom", "blocked"),
+        ],
+    )
+    def test_task_switch_only_replaces_known_idle_installed_definition(
+        tmp_path: Path, state: str, kind: str, expected: str
+    ) -> None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$State,[string]$Kind)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRoot = Join-Path $env:USERPROFILE 'InagoRuntime'
+    $previousApp = Join-Path $previousRoot 'app-20261014-120000'
+    $previousPython = Join-Path $previousApp '.venv-inago\Scripts\python.exe'
+    $previousConfig = Join-Path $previousRoot 'config\settings.json'
+    $previousArgs = "-B -m automation.inago.cli daily --environment production --config `"$previousConfig`" --data-root `"$previousRoot`""
+    $taskExecute = $previousPython
+    $taskArgs = $previousArgs
+    $taskWorkingDirectory = $previousApp
+    $triggerBoundary = '2026-10-01T13:00:00+09:00'
+    if ($Kind -eq 'custom') { $taskArgs = 'custom task' }
+    if ($Kind -eq 'current_wake_disabled') {
+        $taskExecute = $pythonExe
+        $taskArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $taskWorkingDirectory = $applicationRoot
+        $triggerBoundary = $Boundary
+    }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$taskExecute; Arguments=$taskArgs; WorkingDirectory=$taskWorkingDirectory})
+        Principal = [pscustomobject]@{UserId=$identity.Name; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false}
+        Triggers = @([pscustomobject]@{Enabled=$true; DaysInterval=1; StartBoundary=$triggerBoundary; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskDailyTrigger'}})
+        State = $State
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { param($TaskName,$TaskPath,$ErrorAction); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'; $status='replaced' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered)} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-State",
+                state,
+                "-Kind",
+                kind,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+>       assert observed["Status"] == expected
+E       AssertionError: assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:1969: AssertionError
+_ test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Ready-replaced-1] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_daily_task_execution_time0')
+execution_limit = 'PT6H', state = 'Ready', expected = 'replaced'
+registration_count = 1
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -> None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+>       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError
+_ test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Disabled-replaced-1] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_daily_task_execution_time1')
+execution_limit = 'PT6H', state = 'Disabled', expected = 'replaced'
+registration_count = 1
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -> None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+>       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError
+_ test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT0S-Ready-accepted-0] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_daily_task_execution_time3')
+execution_limit = 'PT0S', state = 'Ready', expected = 'accepted'
+registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -> None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+>       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'accepted'
+E
+E         - accepted
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError
+_ test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[00:00:00-Ready-accepted-0] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_daily_task_execution_time4')
+execution_limit = '00:00:00', state = 'Ready', expected = 'accepted'
+registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -> None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+>       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'accepted'
+E
+E         - accepted
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError
+_ test_previous_repository_human_task_without_trigger_user_is_updated[current-accepted-0] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_previous_repository_human1')
+definition = 'current', expected = 'accepted', registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "definition,expected,registration_count",
+        [
+            ("previous", "accepted", 1),
+            ("current", "accepted", 0),
+            ("current_sid", "accepted", 0),
+            ("current_mismatch", "blocked", 0),
+            ("principal_mismatch", "blocked", 0),
+        ],
+    )
+    def test_previous_repository_human_task_without_trigger_user_is_updated(
+        tmp_path: Path, definition: str, expected: str, registration_count: int
+    ) -> None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "human-api-task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$Definition)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+    $triggerUser = $null
+    if ($Definition -eq 'current' -or $Definition -eq 'current_sid' -or $Definition -eq 'current_mismatch' -or $Definition -eq 'principal_mismatch') {
+        $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $triggerUser = $userId
+    }
+    if ($Definition -eq 'current_mismatch') { $triggerUser = 'S-1-5-18' }
+    $principalUser = $identity.Name
+    if ($Definition -eq 'current_sid') { $principalUser = $userId }
+    if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
+        Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false; ExecutionTimeLimit='PT0S'}
+        Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
+        State = 'Ready'
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'; $status='accepted' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-Definition",
+                definition,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+        assert observed["Status"] == expected
+>       assert len(observed["Registrations"]) == registration_count
+E       assert 1 == 0
+E        +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/...�ƃf�[�^\\�C�i�S��������\\regression\\test_previous_repository_human1</WorkingDirectory></Exec></Actions></Task>', 'Force': True}])
+
+tests_inago\test_step24_production.py:2321: AssertionError
+_ test_previous_repository_human_task_without_trigger_user_is_updated[current_sid-accepted-0] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/regression/test_previous_repository_human2')
+definition = 'current_sid', expected = 'accepted', registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "definition,expected,registration_count",
+        [
+            ("previous", "accepted", 1),
+            ("current", "accepted", 0),
+            ("current_sid", "accepted", 0),
+            ("current_mismatch", "blocked", 0),
+            ("principal_mismatch", "blocked", 0),
+        ],
+    )
+    def test_previous_repository_human_task_without_trigger_user_is_updated(
+        tmp_path: Path, definition: str, expected: str, registration_count: int
+    ) -> None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "human-api-task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$Definition)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+    $triggerUser = $null
+    if ($Definition -eq 'current' -or $Definition -eq 'current_sid' -or $Definition -eq 'current_mismatch' -or $Definition -eq 'principal_mismatch') {
+        $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $triggerUser = $userId
+    }
+    if ($Definition -eq 'current_mismatch') { $triggerUser = 'S-1-5-18' }
+    $principalUser = $identity.Name
+    if ($Definition -eq 'current_sid') { $principalUser = $userId }
+    if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
+        Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false; ExecutionTimeLimit='PT0S'}
+        Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
+        State = 'Ready'
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'; $status='accepted' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-Definition",
+                definition,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+        assert observed["Status"] == expected
+>       assert len(observed["Registrations"]) == registration_count
+E       assert 1 == 0
+E        +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/...�ƃf�[�^\\�C�i�S��������\\regression\\test_previous_repository_human2</WorkingDirectory></Exec></Actions></Task>', 'Force': True}])
+
+tests_inago\test_step24_production.py:2321: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step24_production.py::test_task_render_uses_repository_and_leaves_scheduler_untouched
+FAILED tests_inago/test_step24_production.py::test_task_switch_only_replaces_known_idle_installed_definition[Ready-current_wake_disabled-replaced]
+FAILED tests_inago/test_step24_production.py::test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Ready-replaced-1]
+FAILED tests_inago/test_step24_production.py::test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Disabled-replaced-1]
+FAILED tests_inago/test_step24_production.py::test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT0S-Ready-accepted-0]
+FAILED tests_inago/test_step24_production.py::test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[00:00:00-Ready-accepted-0]
+FAILED tests_inago/test_step24_production.py::test_previous_repository_human_task_without_trigger_user_is_updated[current-accepted-0]
+FAILED tests_inago/test_step24_production.py::test_previous_repository_human_task_without_trigger_user_is_updated[current_sid-accepted-0]
+8 failed, 295 passed, 1 skipped in 312.97s (0:05:12)

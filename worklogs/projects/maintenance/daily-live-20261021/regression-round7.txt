@@ -1,0 +1,26 @@
+........................................................................ [ 16%]
+........................................................................ [ 32%]
+......................................................................F
+================================== FAILURES ===================================
+____ test_fifty_source_rows_are_saved_but_only_five_per_theme_are_assigned ____
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001BF611A2B60>, data_root=WindowsPath('C:/project/rakuten-ro...ock(current=datetime.datetime(2026, 10, 12, 13, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+
+    def test_fifty_source_rows_are_saved_but_only_five_per_theme_are_assigned(runtime_case):
+        bundle = current_bundle(runtime_case, counts=(80,))
+        outcome = _run(runtime_case, bundle)
+        assert outcome.committed_count == 15 and outcome.attempt_used == 3
+        assert len(bundle.runner.requests) == 15
+        rows = runtime_case.connection.execute(
+            "SELECT observed_posts,loaded_posts,end_reason FROM search_attempt WHERE run_id=? ORDER BY attempt_no",
+            (RUN_ID,),
+        ).fetchall()
+>       assert [tuple(row) for row in rows] == [(50, 80, "limit_reached")] * 3
+E       AssertionError: assert [(25, 80, 'li...mit_reached')] == [(50, 80, 'li...mit_reached')]
+E
+E         At index 0 diff: (25, 80, 'limit_reached') != (50, 80, 'limit_reached')
+E         Use -v to get more diff
+
+tests_inago\test_step21_daily.py:1053: AssertionError
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 214 passed in 157.57s (0:02:37)

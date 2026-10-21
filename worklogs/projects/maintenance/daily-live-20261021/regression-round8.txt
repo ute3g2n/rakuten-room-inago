@@ -1,0 +1,108 @@
+........................................................................ [ 16%]
+........................................................................ [ 32%]
+........................................................................ [ 48%]
+........................................................................ [ 64%]
+........................................................................ [ 80%]
+.........................................................s.......F
+================================== FAILURES ===================================
+___________ test_n20m_ai_cancel_confirmation_is_reset_for_each_job ____________
+
+    def test_n20m_ai_cancel_confirmation_is_reset_for_each_job():
+        clock = FakeClock(datetime.fromisoformat(NOW))
+        started = threading.Event()
+        cancelled = threading.Event()
+        cancel_calls = []
+
+        class Runner:
+            def run(self, request):
+                if request.job_id == "JOB-FIRST":
+                    started.set()
+                    cancelled.wait(timeout=3)
+                    return SimpleNamespace(result_status="timed_out")
+                return SimpleNamespace(result_status="timed_out")
+
+        def cancel(request):
+            cancel_calls.append("JOB-FIRST")
+            cancelled.set()
+            return True
+
+        wrapped = daily._DeadlineCopyRunner(Runner(), clock=clock, cancel=cancel)
+
+        def request(job_id: str, deadline: float):
+            return SimpleNamespace(
+                job_id=job_id,
+                run_id="RUN-N20M",
+                attempt=1,
+                task_id="TASK-N20M",
+                target_date=TARGET_DATE,
+                settings_version=SETTINGS_VERSION,
+                input_refs=("INPUT-N20M",),
+                evidence_refs=(),
+                deadline_at=NOW,
+                deadline_monotonic=deadline,
+            )
+
+        def advance_clock():
+            assert started.wait(timeout=3), "first AI job did not start"
+            clock.advance(8)
+
+        clock_driver = threading.Thread(target=advance_clock, daemon=True)
+        clock_driver.start()
+>       first = wrapped.run(request("JOB-FIRST", clock.monotonic() + 8))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_daily_fix_outcome.py:395:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <automation.inago.orchestrator._DeadlineCopyRunner object at 0x0000027AD5E19CA0>
+request = namespace(job_id='JOB-FIRST', run_id='RUN-N20M', attempt=1, task_id='TASK-N20M', target_date='2026-10-16', settings_ve...ttings', input_refs=('INPUT-N20M',), evidence_refs=(), deadline_at='2026-10-16T13:00:00+09:00', deadline_monotonic=8.0)
+
+    def run(self, request: AIJobRequest) -> AIJobResult:
+        self.last_cancel_confirmed = None
+
+        def cancel_request() -> bool:
+            self.last_cancel_confirmed = self._cancel(request) is True
+            return self.last_cancel_confirmed
+
+        completed, result = _call_before_deadline(
+            lambda: self._runner.run(request),
+            deadline_monotonic=request.deadline_monotonic,
+            clock=self._clock,
+            cancel=cancel_request,
+        )
+        if completed:
+            return result
+        error_code = (
+            "ai_request_timeout"
+            if self.last_cancel_confirmed
+            else "ai_request_timeout_cancel_unconfirmed"
+        )
+        return AIJobResult(
+            job_id=request.job_id,
+            run_id=request.run_id,
+            attempt=request.attempt,
+            task_id=request.task_id,
+            agent_id="AI-O",
+            skill_name="rakuten-room-inago",
+            target_date=request.target_date,
+            settings_version=request.settings_version,
+            input_refs=request.input_refs,
+            evidence_refs=request.evidence_refs,
+>           input_hash=compute_input_hash(request.input_payload),
+                                          ^^^^^^^^^^^^^^^^^^^^^
+            deadline_at=request.deadline_at,
+            result_status="timed_out",
+            adoption_status="pending",
+            payload=None,
+            error={"code": error_code},
+            artifact=None,
+            started_at=None,
+            finished_at=_now(self._clock).isoformat(),
+        )
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'input_payload'
+
+automation\inago\orchestrator.py:259: AttributeError
+=========================== short test summary info ===========================
+SKIPPED [1] tests_inago\test_daily_fix_scheduler.py:161: N30 is executed only by its temporary normal-principal task
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 424 passed, 1 skipped in 326.87s (0:05:26)

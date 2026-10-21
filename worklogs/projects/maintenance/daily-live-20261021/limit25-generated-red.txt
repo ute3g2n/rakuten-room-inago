@@ -14,7 +14,7 @@ generated = True
         if not generated:
             legacy_v2.execute("UPDATE search_attempt SET custom_notes='keep this value'")
         before = _rows(legacy_v2)
-    
+
 >       with pytest.raises(UnsupportedSchemaVersion):
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E       Failed: DID NOT RAISE UnsupportedSchemaVersion

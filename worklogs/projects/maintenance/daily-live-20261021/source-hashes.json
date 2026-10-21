@@ -1,0 +1,19 @@
+{
+  "automation/inago/adapters/public_sources.mjs": "ac365e90b4e8c0fba42ca2f56e5259c081084af322dfa367adf6951b7df8ef90",
+  "automation/inago/app_server.py": "9773a377a1115bc8c15eb55896dbcad48e96b7a38532108630312f3edc7d7143",
+  "automation/inago/cli.py": "0cbd61e1f49a7c42e3a55375ed7ac2cb65a341fc42a7ad726d856cbfac0e5abb",
+  "automation/inago/daily_ai.py": "c65a28434f3aef1cfa016133233a0dc1bd94bf3d43d95f8f6e5284344a851b9a",
+  "automation/inago/live_sources.py": "96a3d18d4cbebf86cf3fa534dcc88f0dd1bb160e2d57f1adb0e565a31d8425af",
+  "automation/inago/orchestrator.py": "792fc919ce3673a265f0ce752c4f96019d96d1dd560dd6c4e75c9026ed2e8936",
+  "automation/inago/production_runtime.py": "2ac2760a62d01b6584cfdcf74dc7a36ef1575fbce44add579ff5eafc0aa02427",
+  "automation/inago/recovery.py": "78a6d46c430f39fb6298eae08ff61bbb4302d97830a5836493c95ba4400e125a",
+  "automation/inago/settings.py": "b1589aca417a3c969bec2211e0c2476f1c91cb61bfa2773ee26f35105c5099b1",
+  "automation/inago/trends_adapter.py": "058e2de56c1f5e35f3b1038e24893b60887fde5ab5154793363f34cc95a69456",
+  "automation/inago/trigger.py": "855b47cf372662a0e589a8677821e18b53efd38a235d681da1126d9a206f777f",
+  "tests_inago/test_daily_fix_pipeline.py": "48903c435fd332af8167d7c35e0eeb16e43b253f3c3d7d88be90131f8ec672fe",
+  "tests_inago/test_daily_fix_trends.py": "9dd937c1b183b841f18d955a815be778d6e35648bfff48d41e4dc7d1b5253e05",
+  "tests_inago/test_step04.py": "7229d1157bfb675d8c07044f7bd1bf60971bf919b12c7fe08836525351f9c624",
+  "tests_inago/test_step13.py": "4aa0a40a68c55c053290a51c2596dae83a2ad5f13bb6efd6ad334a2a045f6e71",
+  "tests_inago/test_step21_ai_root.py": "338453df05a63cd24b828cd5c3c445f932e2acb52a92495dc3ccd3fd99c53c2d",
+  "tests_inago/test_step21_trends_retry.py": "f01b9305680f568ec274d1100b9763510b078430ade2761dfee1cc050aef26b4"
+}

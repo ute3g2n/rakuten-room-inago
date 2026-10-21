@@ -13,9 +13,9 @@ runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x0000020968
             finish_after_call=1,
             advance_seconds=485,
         )
-    
+
         outcome = _run(runtime_case, bundle)
-    
+
         assert outcome.status == "complete"
         assert outcome.committed_count == 15
 >       assert len(bundle.room.requests) == 3

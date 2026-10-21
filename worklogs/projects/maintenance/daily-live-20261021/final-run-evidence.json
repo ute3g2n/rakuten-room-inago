@@ -1,0 +1,156 @@
+{
+  "status": "complete",
+  "run_id": "INAGO-2026-10-21",
+  "target_date": "2026-10-21",
+  "committed_count": 15,
+  "attempt_used": 7,
+  "metrics_status": "observed",
+  "resumed": true,
+  "reason": "daily_target_reached",
+  "daily_target": 15,
+  "initial_allocation_count": 15,
+  "supplemental_allocation_count": 5,
+  "shortfall_count": 0,
+  "actual_posted_count": 0,
+  "source_failures": 2,
+  "error_count": 0,
+  "primary_error": null,
+  "secondary_errors": [],
+  "overall_status": "complete",
+  "cli_exit_code": 0,
+  "finished_at": "2026-10-21T11:21:14.873746+09:00",
+  "schema_version": 7,
+  "integrity_check": "ok",
+  "foreign_key_errors": 0,
+  "draft_signature": {
+    "committed_drafts": 15,
+    "draft_rows_sha256": "7f633f9ba934f7ce7b09ca70a2d87bfdb44ca1010bfaf4106e83dd9f9d725c87",
+    "search_attempt_count": 7,
+    "generation_attempt_count": 20,
+    "ai_job_count": 38
+  },
+  "searches": [
+    {
+      "attempt_id": "b7128f68ca7f52268230acf95932930e",
+      "attempt_no": 1,
+      "max_posts": 50,
+      "source_status": "observed",
+      "observed_posts": 20,
+      "loaded_posts": 20,
+      "error_code": null,
+      "end_reason": "exhausted",
+      "theme_id": "G01-T01",
+      "decision_counts": {
+        "eligible": 19,
+        "same_search_offer_duplicate": 1
+      },
+      "theme_committed_drafts": 5
+    },
+    {
+      "attempt_id": "7d258d7cc20354b59ac78dbe11ad49c4",
+      "attempt_no": 2,
+      "max_posts": 50,
+      "source_status": "unavailable",
+      "observed_posts": 0,
+      "loaded_posts": 0,
+      "error_code": "room_request_timeout",
+      "end_reason": "error",
+      "theme_id": "G02-T03",
+      "decision_counts": {},
+      "theme_committed_drafts": 5
+    },
+    {
+      "attempt_id": "1594a65576cc51b89e434309a63606c2",
+      "attempt_no": 3,
+      "max_posts": 50,
+      "source_status": "unavailable",
+      "observed_posts": 0,
+      "loaded_posts": null,
+      "error_code": "process_interrupted",
+      "end_reason": null,
+      "theme_id": "G02-T03",
+      "decision_counts": {},
+      "theme_committed_drafts": 5
+    },
+    {
+      "attempt_id": "4bfa7314dcc9571ca2bfb35bd3df5778",
+      "attempt_no": 4,
+      "max_posts": 50,
+      "source_status": "observed",
+      "observed_posts": 20,
+      "loaded_posts": 20,
+      "error_code": null,
+      "end_reason": "exhausted",
+      "theme_id": "G02-T03",
+      "decision_counts": {
+        "eligible": 18,
+        "same_search_offer_duplicate": 2
+      },
+      "theme_committed_drafts": 5
+    },
+    {
+      "attempt_id": "05320a061fa65ad58603bd87d9f9d9e1",
+      "attempt_no": 5,
+      "max_posts": 25,
+      "source_status": "observed",
+      "observed_posts": 5,
+      "loaded_posts": 5,
+      "error_code": null,
+      "end_reason": "exhausted",
+      "theme_id": "G03-T06",
+      "decision_counts": {
+        "eligible": 2,
+        "non_product": 1,
+        "same_search_offer_duplicate": 2
+      },
+      "theme_committed_drafts": 2
+    },
+    {
+      "attempt_id": "ff1084fffd0556e2b7852f195951080e",
+      "attempt_no": 6,
+      "max_posts": 25,
+      "source_status": "observed",
+      "observed_posts": 1,
+      "loaded_posts": 1,
+      "error_code": null,
+      "end_reason": "exhausted",
+      "theme_id": "G01-T02",
+      "decision_counts": {
+        "eligible": 1
+      },
+      "theme_committed_drafts": 1
+    },
+    {
+      "attempt_id": "998caaa4d62d5d83bba34df187649a97",
+      "attempt_no": 7,
+      "max_posts": 25,
+      "source_status": "observed",
+      "observed_posts": 20,
+      "loaded_posts": 20,
+      "error_code": null,
+      "end_reason": "exhausted",
+      "theme_id": "G02-T01",
+      "decision_counts": {
+        "eligible": 18,
+        "same_search_offer_duplicate": 2
+      },
+      "theme_committed_drafts": 2
+    }
+  ],
+  "phase_statuses": {
+    "preflight": "ready",
+    "database_open": "ready",
+    "prepare": "ready",
+    "start_backup": "ready",
+    "daily": "complete",
+    "metrics": "observed",
+    "operations_monitor": "stopped",
+    "database_close": "closed",
+    "export": "ready",
+    "preservation": "ready",
+    "trace": "degraded"
+  },
+  "trace_error_code": "quota_already_reached",
+  "historical_unfinished_generation_count": 1,
+  "resolved_error_batches": 1
+}

@@ -1,0 +1,15 @@
+Name                                     Stmts   Miss  Cover
+------------------------------------------------------------
+automation\inago\app_server.py             591    252    57%
+automation\inago\cli.py                    330     91    72%
+automation\inago\daily_ai.py               185     32    83%
+automation\inago\live_sources.py           814    361    56%
+automation\inago\orchestrator.py          1129    226    80%
+automation\inago\production_runtime.py    1007    339    66%
+automation\inago\recovery.py               150     80    47%
+automation\inago\room_adapter.py           448     81    82%
+automation\inago\settings.py               356     29    92%
+automation\inago\trends_adapter.py        1169    577    51%
+automation\inago\trigger.py                 13      0   100%
+------------------------------------------------------------
+TOTAL                                     6192   2068    67%

@@ -1,0 +1,83 @@
+{
+  "source_commit": "827b17eb9bbe7a02e9f4f7d5d587fec555e2d34d",
+  "manifest_matches": true,
+  "manifest_mismatches": [],
+  "covered": 89,
+  "changed_statements": 93,
+  "percent": 95.7,
+  "files": [
+    {
+      "file": "automation/inago/app_server.py",
+      "changed_statements": 6,
+      "covered": 6,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/cli.py",
+      "changed_statements": 1,
+      "covered": 1,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/daily_ai.py",
+      "changed_statements": 16,
+      "covered": 15,
+      "missing_lines": [
+        99
+      ]
+    },
+    {
+      "file": "automation/inago/live_sources.py",
+      "changed_statements": 13,
+      "covered": 13,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/orchestrator.py",
+      "changed_statements": 12,
+      "covered": 12,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/production_runtime.py",
+      "changed_statements": 7,
+      "covered": 6,
+      "missing_lines": [
+        2416
+      ]
+    },
+    {
+      "file": "automation/inago/recovery.py",
+      "changed_statements": 1,
+      "covered": 1,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/repository.py",
+      "changed_statements": 17,
+      "covered": 17,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/room_adapter.py",
+      "changed_statements": 7,
+      "covered": 7,
+      "missing_lines": []
+    },
+    {
+      "file": "automation/inago/settings.py",
+      "changed_statements": 10,
+      "covered": 8,
+      "missing_lines": [
+        496,
+        497
+      ]
+    },
+    {
+      "file": "automation/inago/trends_adapter.py",
+      "changed_statements": 3,
+      "covered": 3,
+      "missing_lines": []
+    }
+  ]
+}

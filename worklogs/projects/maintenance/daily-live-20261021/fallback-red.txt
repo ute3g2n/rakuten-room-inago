@@ -23,7 +23,7 @@ retry_case = (<sqlite3.Connection object at 0x00000231205267A0>, FakeClock(curre
             seed="SEED-1", event_kind="initial", ordinal=1,
         )
 
-tests_inago\test_step21_trends_retry.py:173: 
+tests_inago\test_step21_trends_retry.py:173:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 connection = <sqlite3.Connection object at 0x00000231205267A0>

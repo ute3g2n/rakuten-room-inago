@@ -13,9 +13,9 @@ elapsed_seconds = 485
             runtime_case, posts_per_search=5,
             finish_after_call=1, advance_seconds=elapsed_seconds,
         )
-    
+
         outcome = _run(runtime_case, bundle)
-    
+
         assert outcome.status == "complete"
         assert outcome.committed_count == 15
         assert len(bundle.room.requests) == 3
@@ -38,9 +38,9 @@ elapsed_seconds = 1801
             runtime_case, posts_per_search=5,
             finish_after_call=1, advance_seconds=elapsed_seconds,
         )
-    
+
         outcome = _run(runtime_case, bundle)
-    
+
         assert outcome.status == "complete"
         assert outcome.committed_count == 15
 >       assert len(bundle.room.requests) == 3
@@ -63,9 +63,9 @@ elapsed_seconds = 17101
             runtime_case, posts_per_search=5,
             finish_after_call=1, advance_seconds=elapsed_seconds,
         )
-    
+
         outcome = _run(runtime_case, bundle)
-    
+
         assert outcome.status == "complete"
         assert outcome.committed_count == 15
 >       assert len(bundle.room.requests) == 3
@@ -82,11 +82,11 @@ ui_server = {'html': '<input id="search-box" value="�������"><div 
 
     def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server):
         from dataclasses import replace
-    
+
         ui_server["html"] = room_html(1, initial=1, terminal=True)
         port = source(tmp_path, ui_server, timeout=1, fixture_product_delay_ms=1500)
         request = replace(room_request(), deadline_at=None)
-    
+
 >       assert port._request_timeout_seconds(request) is None
 E       AssertionError: assert 1.0 is None
 E        +  where 1.0 = _request_timeout_seconds(RoomSearchRequest(attempt_id='S1', run_id='R1', query='�������', parent_refs=('T1',), level='theme_fallback', attempt_no=...e_at=None, likes_min=300, max_posts=50, query_kind='theme_fallback', keyword_snapshot_ref=None, selected_word_ref=None))

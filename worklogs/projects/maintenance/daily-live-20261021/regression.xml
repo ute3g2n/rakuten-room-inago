@@ -1,0 +1,569 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="1" tests="304" time="312.843" timestamp="2026-10-21T09:46:17.741924+09:00" hostname="LOCAL-REDACTED"><testcase classname="tests_inago.test_step04" name="test_reimport_after_document_move_preserves_existing_settings" time="0.778" /><testcase classname="tests_inago.test_step04" name="test_document_move_does_not_hide_changed_settings_provenance" time="0.269" /><testcase classname="tests_inago.test_step04" name="test_registers_adopted_basic_settings_without_enabling_detailed_candidate" time="0.160" /><testcase classname="tests_inago.test_step04" name="test_candidate_rules_are_keyed_by_pattern_id_and_explicitly_mapped" time="0.074" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_must_be_present_for_direct_candidate_loading" time="0.030" /><testcase classname="tests_inago.test_step04" name="test_import_preserves_null_material_data_and_does_not_use_observation_counts" time="0.154" /><testcase classname="tests_inago.test_step04" name="test_missing_required_basic_fields_report_field_and_write_nothing[genres]" time="0.042" /><testcase classname="tests_inago.test_step04" name="test_missing_required_basic_fields_report_field_and_write_nothing[themes]" time="0.044" /><testcase classname="tests_inago.test_step04" name="test_missing_required_basic_fields_report_field_and_write_nothing[patterns]" time="0.039" /><testcase classname="tests_inago.test_step04" name="test_missing_required_basic_fields_report_field_and_write_nothing[pattern_refs]" time="0.042" /><testcase classname="tests_inago.test_step04" name="test_invalid_basic_shape_or_source_analysis_is_rejected_before_registration[theme_count-themes]" time="0.047" /><testcase classname="tests_inago.test_step04" name="test_invalid_basic_shape_or_source_analysis_is_rejected_before_registration[theme_membership-genre_id]" time="0.063" /><testcase classname="tests_inago.test_step04" name="test_invalid_basic_shape_or_source_analysis_is_rejected_before_registration[pattern_ids-patterns]" time="0.061" /><testcase classname="tests_inago.test_step04" name="test_invalid_basic_shape_or_source_analysis_is_rejected_before_registration[selection_count-selection_count]" time="0.062" /><testcase classname="tests_inago.test_step04" name="test_invalid_basic_shape_or_source_analysis_is_rejected_before_registration[analysis_filter-reaction_condition_status]" time="0.041" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[genre_id-G01\u2013G05]" time="0.064" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[theme_id-theme IDs]" time="0.069" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[uneven_membership-six active themes]" time="0.068" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[duplicate_ref-unique]" time="0.066" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[reference_fragment-inconsistent]" time="0.065" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[detail_fragment-identify a pattern by ID]" time="0.064" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[body_guidance-optional 150\u2013300]" time="0.064" /><testcase classname="tests_inago.test_step04" name="test_basic_identity_membership_and_optional_guidance_are_checked[tag_guidance-optional 5\u201312]" time="0.063" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[p05_sources-analysis_basis]" time="0.032" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[p05_aggregate-analysis_basis]" time="0.031" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[duplicate_pattern-contain P01\u2013P05 once]" time="0.074" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[markdown_ref-source_markdown is inconsistent]" time="0.074" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[rule_sequence-W01\u2013W17 in order]" time="0.072" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[p05_basis-rule_derivation_basis is out of scope]" time="0.072" /><testcase classname="tests_inago.test_step04" name="test_detailed_candidate_rejects_scope_and_source_mapping_drift[common_rule_id-W-C01\u2013W-C14 in order]" time="0.075" /><testcase classname="tests_inago.test_step04" name="test_import_rejects_missing_invalid_or_timezone_naive_timestamp[None]" time="0.063" /><testcase classname="tests_inago.test_step04" name="test_import_rejects_missing_invalid_or_timezone_naive_timestamp[]" time="0.061" /><testcase classname="tests_inago.test_step04" name="test_import_rejects_missing_invalid_or_timezone_naive_timestamp[not-a-time]" time="0.063" /><testcase classname="tests_inago.test_step04" name="test_import_rejects_missing_invalid_or_timezone_naive_timestamp[2026-10-12T20:00:00]" time="0.064" /><testcase classname="tests_inago.test_step04" name="test_unavailable_detailed_candidate_does_not_block_basic_registration" time="0.112" /><testcase classname="tests_inago.test_step04" name="test_new_version_cannot_enable_candidate_without_matching_owner_answer[None]" time="0.179" /><testcase classname="tests_inago.test_step04" name="test_new_version_cannot_enable_candidate_without_matching_owner_answer[owner_adoption1]" time="0.243" /><testcase classname="tests_inago.test_step04" name="test_new_version_cannot_enable_candidate_without_matching_owner_answer[owner_adoption2]" time="0.247" /><testcase classname="tests_inago.test_step04" name="test_new_version_cannot_enable_candidate_without_matching_owner_answer[owner_adoption3]" time="0.251" /><testcase classname="tests_inago.test_step04" name="test_new_version_cannot_enable_candidate_without_matching_owner_answer[owner_adoption4]" time="0.249" /><testcase classname="tests_inago.test_step04" name="test_adoption_rejects_blank_or_padded_new_settings_version[]" time="0.251" /><testcase classname="tests_inago.test_step04" name="test_adoption_rejects_blank_or_padded_new_settings_version[   ]" time="0.246" /><testcase classname="tests_inago.test_step04" name="test_adoption_rejects_blank_or_padded_new_settings_version[ fixture-settings-S2]" time="0.253" /><testcase classname="tests_inago.test_step04" name="test_adoption_requires_a_distinct_registered_base_version" time="0.248" /><testcase classname="tests_inago.test_step04" name="test_adoption_requires_the_adopted_base_to_be_registered" time="0.133" /><testcase classname="tests_inago.test_step04" name="test_adoption_creates_new_version_and_keeps_running_run_and_reservation" time="0.701" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path0-False]" time="0.389" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path1-another-candidate]" time="0.383" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path2-\u5225\u306e\u5019\u88dc.json]" time="0.386" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path3- ]" time="0.387" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path4-2026-10-12T20:00:00+09:00]" time="0.392" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path5-\u5225\u306e\u8a2d\u5b9a\u7248]" time="0.385" /><testcase classname="tests_inago.test_step04" name="test_candidate_activation_fails_closed_when_adoption_record_is_inconsistent[field_path6-replacement6]" time="0.389" /><testcase classname="tests_inago.test_step04" name="test_malformed_adoption_record_does_not_enable_detailed_candidate[not-json]" time="0.388" /><testcase classname="tests_inago.test_step04" name="test_malformed_adoption_record_does_not_enable_detailed_candidate[change_reason1]" time="0.396" /><testcase classname="tests_inago.test_step04" name="test_same_settings_version_with_different_content_is_an_idempotency_conflict" time="0.275" /><testcase classname="tests_inago.test_step04" name="test_import_savepoint_rollback_preserves_the_callers_transaction" time="0.269" /><testcase classname="tests_inago.test_step04" name="test_settings_schema_is_valid_and_declares_basic_and_candidate_contracts" time="0.110" /><testcase classname="tests_inago.test_step04" name="test_candidate_markdown_references_resolve_to_all_85_pattern_rules" time="0.048" /><testcase classname="tests_inago.test_step13" name="test_windows_owned_process_lock_rejects_second_process_and_reacquires" time="0.680" /><testcase classname="tests_inago.test_step13" name="test_run_lock_owner_is_atomic_and_same_process_reentry_is_rejected" time="0.020" /><testcase classname="tests_inago.test_step13" name="test_daily_before_1300_does_nothing_and_after_1800_runs" time="7.709" /><testcase classname="tests_inago.test_step13" name="test_1750_start_applies_reports_then_continues_daily_search" time="8.887" /><testcase classname="tests_inago.test_step13" name="test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[False]" time="0.172" /><testcase classname="tests_inago.test_step13" name="test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[True]" time="7.983" /><testcase classname="tests_inago.test_step13" name="test_fixture_cli_rejects_database_outside_validated_data_root" time="0.168" /><testcase classname="tests_inago.test_step13" name="test_fixture_cli_rejects_unmarked_or_non_fixture_adapters" time="0.167" /><testcase classname="tests_inago.test_step13" name="test_expired_pending_metrics_are_finalized_on_restart_without_recollection" time="7.990" /><testcase classname="tests_inago.test_step13" name="test_metrics_call_is_read_only_cancelled_at_request_timeout_and_late_value_is_ignored" time="7.948" /><testcase classname="tests_inago.test_step13" name="test_three_theme_five_each_completes_15_and_starts_metrics_immediately" time="1.240" /><testcase classname="tests_inago.test_step13" name="test_order_is_related_then_theme_fallback_and_all_untried_themes" time="7.940" /><testcase classname="tests_inago.test_step13" name="test_missing_offer_is_intaken_from_fixture_snapshot_before_copy" time="1.182" /><testcase classname="tests_inago.test_step13" name="test_legacy_identity_offer_is_refreshed_before_candidate_selection" time="0.168" /><testcase classname="tests_inago.test_step13" name="test_additional_theme_plan_failure_reuses_same_selection_event_on_resume" time="8.148" /><testcase classname="tests_inago.test_step13" name="test_unavailable_search_retries_same_query_three_times_then_stops_source" time="0.629" /><testcase classname="tests_inago.test_step13" name="test_fourteen_committed_bodies_resume_same_run_seed_and_search_results" time="1.229" /><testcase classname="tests_inago.test_step13" name="test_daily_flow_continues_after_1745_and_1800" time="8.943" /><testcase classname="tests_inago.test_step13" name="test_blocked_room_call_uses_request_timeout_and_ignores_late_posts" time="1.314" /><testcase classname="tests_inago.test_step13" name="test_unconfirmed_owned_job_cancellation_is_recorded_as_failure" time="0.483" /><testcase classname="tests_inago.test_step13" name="test_blocked_ai_copy_uses_request_timeout_and_discards_late_body" time="5.020" /><testcase classname="tests_inago.test_step13" name="test_new_offer_intake_failure_does_not_mark_search_processed_and_resumes_same_attempt" time="1.240" /><testcase classname="tests_inago.test_step13" name="test_pending_historical_reports_are_applied_before_search" time="8.439" /><testcase classname="tests_inago.test_step21_daily" name="test_scheduled_daily_applies_raw_retention_before_processing" time="1.144" /><testcase classname="tests_inago.test_step21_daily" name="test_scheduled_daily_stops_before_search_when_retention_cannot_clean" time="0.222" /><testcase classname="tests_inago.test_step21_daily" name="test_scheduled_daily_validates_lexical_data_root_before_resolving" time="0.175" /><testcase classname="tests_inago.test_step21_daily" name="test_first_related_word_fills_each_theme_and_does_not_prefetch_next_theme" time="1.178" /><testcase classname="tests_inago.test_step21_daily" name="test_short_room_batches_and_ten_unresolved_products_continue_daily_search" time="1.415" /><testcase classname="tests_inago.test_step21_daily" name="test_durable_trends_and_same_root_key_job_feed_the_daily_theme_plan" time="1.326" /><testcase classname="tests_inago.test_step21_daily" name="test_pending_successful_key_result_is_atomically_adopted_with_its_snapshot" time="1.364" /><testcase classname="tests_inago.test_step21_daily" name="test_key_result_persistence_failure_rolls_back_grouping_and_job_acceptance" time="0.360" /><testcase classname="tests_inago.test_step21_daily" name="test_pending_key_result_is_reused_after_daily_process_interruption" time="1.474" /><testcase classname="tests_inago.test_step21_daily" name="test_successful_key_result_is_recovered_if_process_stops_before_db_index" time="1.417" /><testcase classname="tests_inago.test_step21_daily" name="test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search" time="1.566" /><testcase classname="tests_inago.test_step21_daily" name="test_late_key_result_after_1745_is_adopted_and_daily_continues" time="1.271" /><testcase classname="tests_inago.test_step21_daily" name="test_each_theme_uses_related_queue_then_theme_fallback_before_next_theme" time="4.200" /><testcase classname="tests_inago.test_step21_daily" name="test_fewer_groups_use_actual_queue_and_single_fallback_without_new_words[0]" time="4.616" /><testcase classname="tests_inago.test_step21_daily" name="test_fewer_groups_use_actual_queue_and_single_fallback_without_new_words[3]" time="14.550" /><testcase classname="tests_inago.test_step21_daily" name="test_keyword_failure_goes_to_metrics_without_fallback_or_next_theme" time="0.300" /><testcase classname="tests_inago.test_step21_daily" name="test_room_failure_has_finite_retries_and_does_not_start_other_queries" time="0.676" /><testcase classname="tests_inago.test_step21_daily" name="test_old_checkpoint_is_not_relabelled_as_current_search_rules" time="0.164" /><testcase classname="tests_inago.test_step21_daily" name="test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning" time="1.310" /><testcase classname="tests_inago.test_step21_daily" name="test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit" time="1.346" /><testcase classname="tests_inago.test_step21_daily" name="test_recovery_preserves_twelve_used_searches_and_permits_remaining_work" time="0.022" /><testcase classname="tests_inago.test_step21_daily" name="test_initial_eleven_are_replenished_by_four_from_one_new_theme" time="2.380" /><testcase classname="tests_inago.test_step21_daily" name="test_fifty_source_rows_are_saved_but_only_five_per_theme_are_assigned" time="1.846" /><testcase classname="tests_inago.test_step21_daily" name="test_old_persisted_run_is_rejected_before_mutating_its_status" time="1.249" /><testcase classname="tests_inago.test_step21_daily" name="test_theme_plan_cannot_replace_saved_original_expression" time="0.324" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[none]" time="1.246" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[old_fields]" time="0.383" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[missing_fallback]" time="0.385" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[foreign_theme]" time="0.386" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[wrong_rules]" time="0.404" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[wrong_kind]" time="0.392" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[foreign_word]" time="0.402" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[wrong_order]" time="0.400" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[fallback_word]" time="0.405" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[duplicate_task]" time="0.399" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[bad_lists]" time="0.408" /><testcase classname="tests_inago.test_step21_daily" name="test_resume_from_saved_plan_checks_contents_before_queueing[empty_query]" time="0.393" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_raw_response_artifact_has_raw_retention_deadline" time="0.028" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_job_runner_recovers_valid_success_after_return_before_db_index" time="0.329" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_job_runner_does_not_recover_response_without_terminal_success_trace" time="0.081" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_job_runner_rejects_dangling_artifact_symlink_before_exists_check" time="0.011" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_trace_append_never_follows_dangling_trace_symlink" time="0.029" /><testcase classname="tests_inago.test_step21_ai_root" name="test_ai_job_runner_rejects_symlinked_data_root_before_resolving_it" time="0.007" /><testcase classname="tests_inago.test_step21_ai_root" name="test_two_jobs_share_one_process_and_root_but_have_distinct_turns" time="0.178" /><testcase classname="tests_inago.test_step21_ai_root" name="test_resume_uses_saved_root_and_never_starts_a_new_thread" time="0.184" /><testcase classname="tests_inago.test_step21_ai_root" name="test_invalid_failed_or_foreign_turn_is_not_a_completed_job[malformed]" time="0.170" /><testcase classname="tests_inago.test_step21_ai_root" name="test_invalid_failed_or_foreign_turn_is_not_a_completed_job[rpc_error]" time="0.167" /><testcase classname="tests_inago.test_step21_ai_root" name="test_invalid_failed_or_foreign_turn_is_not_a_completed_job[foreign]" time="0.180" /><testcase classname="tests_inago.test_step21_ai_root" name="test_timeout_interrupts_and_closes_only_owned_server" time="0.229" /><testcase classname="tests_inago.test_step21_ai_root" name="test_cancelled_job_does_not_receive_a_late_answer" time="0.238" /><testcase classname="tests_inago.test_step21_ai_root" name="test_daily_runner_reuses_root_and_preserves_checkpoint_without_fake_exitcode" time="0.682" /><testcase classname="tests_inago.test_step21_ai_root" name="test_rollout_window_excludes_previous_turn_evidence" time="0.001" /><testcase classname="tests_inago.test_step21_ai_root" name="test_daily_control_begins_and_closes_one_root_on_program_thread" time="1.245" /><testcase classname="tests_inago.test_step21_ai_root" name="test_root_resume_identity_errors_do_not_start_processes[foreign_run]" time="0.192" /><testcase classname="tests_inago.test_step21_ai_root" name="test_root_resume_identity_errors_do_not_start_processes[foreign_seed]" time="0.201" /><testcase classname="tests_inago.test_step21_ai_root" name="test_root_resume_identity_errors_do_not_start_processes[bad_thread]" time="0.201" /><testcase classname="tests_inago.test_step21_ai_root" name="test_root_resume_identity_errors_do_not_start_processes[nonobject_checkpoint]" time="0.207" /><testcase classname="tests_inago.test_step21_ai_root" name="test_startup_failure_never_falls_back_to_new_root_or_billing_mode[auth]" time="0.166" /><testcase classname="tests_inago.test_step21_ai_root" name="test_startup_failure_never_falls_back_to_new_root_or_billing_mode[bad_resume]" time="0.192" /><testcase classname="tests_inago.test_step21_ai_root" name="test_missing_or_duplicate_final_answer_is_a_contract_error[bad_turn]" time="0.171" /><testcase classname="tests_inago.test_step21_ai_root" name="test_missing_or_duplicate_final_answer_is_a_contract_error[duplicate_final]" time="0.187" /><testcase classname="tests_inago.test_step21_ai_root" name="test_concurrent_turn_is_rejected_without_releasing_other_job_lock" time="0.006" /><testcase classname="tests_inago.test_step21_ai_root" name="test_idle_session_start_is_idempotent_and_closed_root_cannot_restart" time="0.172" /><testcase classname="tests_inago.test_step21_ai_root" name="test_daily_root_initial_context_is_persisted_without_inference" time="0.184" /><testcase classname="tests_inago.test_step21_ai_root" name="test_unused_missing_root_is_replaced_with_preserved_provenance" time="1.590" /><testcase classname="tests_inago.test_step21_ai_root" name="test_root_checkpoint_update_is_atomic_and_rejects_caller_transaction" time="0.197" /><testcase classname="tests_inago.test_step21_ai_root" name="test_existing_runner_cannot_rebind_to_changed_daily_identity" time="0.196" /><testcase classname="tests_inago.test_step21_ai_root" name="test_staging_cleanup_refuses_path_outside_owned_jobs" time="0.195" /><testcase classname="tests_inago.test_step21_ai_root" name="test_failed_bootstrap_auth_keeps_actual_start_count_and_does_not_start_inference" time="0.433" /><testcase classname="tests_inago.test_step21_ai_root" name="test_foreign_job_and_foreign_cancel_do_not_touch_daily_root" time="0.246" /><testcase classname="tests_inago.test_step21_ai_root" name="test_full_stdin_pipe_cannot_make_job_deadline_unbounded" time="0.196" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes" time="0.147" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_widget_repair_then_exhaustion_allows_verified_theme_fallback" time="0.291" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_urlsafe_run_seed_accepts_base64url_leading_symbols[_]" time="0.057" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_urlsafe_run_seed_accepts_base64url_leading_symbols[-]" time="0.057" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_run_seed_rejects_characters_outside_persisted_seed_contract" time="0.058" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retries_twice_then_returns_first_success_and_persists_each_attempt" time="0.187" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_daily_trends_request_has_no_run_wide_deadline" time="0.095" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retry_after_is_honored_when_longer_than_default" time="0.138" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_attempt_result_and_next_retry_state_are_committed_atomically" time="0.063" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_normal_zero_is_adopted_as_success_and_uses_theme_fallback" time="0.103" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_observed_daily_plan_cannot_skip_durable_acquisition_adoption" time="0.104" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_five_failures_become_exhausted_without_inventing_a_snapshot" time="0.258" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_exhausted_acquisition_produces_only_exact_theme_fallback" time="0.266" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_deadline_acquisition_is_saved_without_fallback_or_room_task" time="0.096" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_interrupted_started_attempt_is_counted_and_resume_does_not_reset_budget" time="0.226" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_saved_response_is_reused_without_a_second_external_fetch" time="0.128" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_response_saved_by_source_evidence_recovers_after_interruption_before_db_save" time="0.131" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_saved_invalid_source_contract_stops_after_interruption_without_retry" time="0.095" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_transport_exceptions_are_recorded_as_retryable_source_failures[error0]" time="0.138" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_transport_exceptions_are_recorded_as_retryable_source_failures[error1]" time="0.142" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_unexpected_port_exception_is_processing_error_not_theme_fallback" time="0.058" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_access_denial_is_terminal_and_never_exhausts_into_theme_fallback" time="0.087" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_invalid_theme_or_settings_response_is_processing_error_not_retry" time="0.086" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_invalid_source_contract_does_not_retry_or_trigger_theme_fallback[invalid_request]" time="0.087" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_invalid_source_contract_does_not_retry_or_trigger_theme_fallback[source_response_invalid]" time="0.090" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_browser_implementation_errors_do_not_retry_or_trigger_theme_fallback[source_process_error]" time="0.094" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_browser_implementation_errors_do_not_retry_or_trigger_theme_fallback[browser_adapter_error]" time="0.104" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retry_wait_beyond_request_deadline_skips_next_attempt" time="0.088" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_success_returned_after_request_deadline_is_not_adopted" time="0.090" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_saved_success_after_request_deadline_is_not_reused" time="0.100" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_acquisition_query_cannot_change_when_request_id_changes" time="0.094" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retention_expires_raw_response_but_preserves_trends_attempt_state[89-False]" time="0.103" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retention_expires_raw_response_but_preserves_trends_attempt_state[90-True]" time="0.114" /><testcase classname="tests_inago.test_step21_trends_retry" name="test_retention_expires_raw_response_but_preserves_trends_attempt_state[91-True]" time="0.105" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_full_flow_acceptance_registry_maps_h05_and_h08_to_new_evidence" time="0.059" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_h07_acceptance_registry_includes_file_reports_and_daily_import" time="0.045" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_h07_registry_maps_new_report_count_nodes" time="0.057" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_daily_imports_browser_reports_before_applying_pending_actions" time="2.545" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_scheduler_composition_commits_fifteen_copies_and_exports_final_state" time="2.404" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_scheduler_composition_continues_after_former_daily_cutoffs[continues-after-1745]" time="2.412" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_scheduler_composition_continues_after_former_daily_cutoffs[continues-after-1800]" time="2.431" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_observed_zero_supply_is_a_shortfall_with_an_empty_day_html" time="6.598" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_total_room_source_outage_fails_without_claiming_zero_supply" time="1.193" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_all_product_intake_failures_remain_distinct_from_normal_zero_supply" time="0.917" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_copy_generation_failure_keeps_zero_commits_and_exports_failure" time="1.280" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_copy_save_failure_rolls_back_draft_and_reservation" time="0.948" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_metrics_failure_does_not_erase_completed_drafts" time="2.289" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_html_failure_preserves_prior_html_and_committed_drafts" time="2.137" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_final_backup_failure_keeps_daily_result_and_html" time="2.208" /><testcase classname="tests_inago.test_step23_12_daily_e2e" name="test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy" time="1.511" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_requires_exact_runtime_and_public_owner_room_url" time="0.035" /><testcase classname="tests_inago.test_step24_production" name="test_ready_runtime_does_not_need_local_legacy_archive" time="0.099" /><testcase classname="tests_inago.test_step24_production" name="test_ready_runtime_rejects_missing_database_without_creating_one" time="0.058" /><testcase classname="tests_inago.test_step24_production" name="test_setup_migration_requires_archived_legacy_source" time="0.049" /><testcase classname="tests_inago.test_step24_production" name="test_setup_migration_rejects_legacy_junction_added_after_config_load" time="0.068" /><testcase classname="tests_inago.test_step24_production" name="test_migration_roots_reject_a_junction" time="0.031" /><testcase classname="tests_inago.test_step24_production" name="test_migration_source_file_rejects_nested_junction" time="0.034" /><testcase classname="tests_inago.test_step24_production" name="test_setup_migration_rechecks_source_before_apply" time="0.118" /><testcase classname="tests_inago.test_step24_production" name="test_setup_migration_rejects_non_string_existing_status[status0]" time="0.052" /><testcase classname="tests_inago.test_step24_production" name="test_setup_migration_rejects_non_string_existing_status[status1]" time="0.051" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_config_does_not_require_browser_or_ai_dependencies" time="0.040" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_config_rejects_unverified_previous_runtime_database" time="0.037" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_database_open_does_not_create_missing_database" time="0.032" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_database_open_preserves_durable_write_settings" time="0.064" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_database_open_does_not_initialize_unrecognized_database" time="0.031" /><testcase classname="tests_inago.test_step24_production" name="test_serve_cli_uses_minimal_human_api_configuration" time="0.013" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_profile_outside_current_windows_user" time="0.014" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_local_app_data_outside_current_windows_user" time="0.016" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_resolves_expected_dedicated_browser_profile" time="0.055" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_reports_missing_dedicated_browser_profile" time="0.033" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_non_owner_or_unsafe_room_urls[https://room.rakuten.co.jp.evil.example/room_0123456789/items]" time="0.028" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_non_owner_or_unsafe_room_urls[http://room.rakuten.co.jp/room_0123456789/items]" time="0.026" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_non_owner_or_unsafe_room_urls[https://user:pass@room.rakuten.co.jp/room_0123456789/items]" time="0.027" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_non_owner_or_unsafe_room_urls[https://room.rakuten.co.jp/room_0123456789/other]" time="0.026" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_boolean_schema_version" time="0.034" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_mismatched_private_roots[runtime_root]" time="0.035" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_mismatched_private_roots[backup_root]" time="0.040" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_chrome_outside_standard_installation" time="0.051" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_legacy_source_outside_repository" time="0.054" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_runtime_junction_before_resolving_target" time="0.043" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_backup_junction_before_resolving_target" time="0.052" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_chrome_junction_before_resolving_target" time="0.057" /><testcase classname="tests_inago.test_step24_production" name="test_production_config_rejects_legacy_junction_before_resolving_target" time="0.067" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_does_not_start_before_first_1300_boundary" time="0.041" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_startwhenavailable_does_not_run_before_1300_next_day" time="0.040" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_rejects_setup_state_parent_junction" time="0.080" /><testcase classname="tests_inago.test_step24_production" name="test_setup_state_writer_rejects_parent_junction" time="0.073" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_rejects_missing_or_unsupported_setup_state_schema[None]" time="0.060" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_rejects_missing_or_unsupported_setup_state_schema[2]" time="0.061" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_rejects_missing_or_unsupported_setup_state_schema[True]" time="0.060" /><testcase classname="tests_inago.test_step24_production" name="test_production_daily_reports_invalid_utf8_setup_state_as_unreadable" time="0.052" /><testcase classname="tests_inago.test_step24_production" name="test_metrics_adapter_preserves_zero_null_and_provisional_scopes" time="0.004" /><testcase classname="tests_inago.test_step24_production" name="test_task_templates_bind_daily_and_human_api_to_safe_modes" time="0.013" /><testcase classname="tests_inago.test_step24_production" name="test_task_registration_uses_repository_python_without_acl_or_installer" time="0.021" /><testcase classname="tests_inago.test_step24_production" name="test_human_api_task_liveness_does_not_send_or_read_bearer_token" time="0.004" /><testcase classname="tests_inago.test_step24_production" name="test_task_registration_validates_setup_state_schema_before_registration" time="0.004" /><testcase classname="tests_inago.test_step24_production" name="test_metrics_process_receives_the_configured_chrome_executable" time="0.030" /><testcase classname="tests_inago.test_step24_production" name="test_public_components_pass_configured_chrome_to_metrics_port" time="0.038" /><testcase classname="tests_inago.test_step24_production" name="test_production_cli_rejects_paths_outside_repository_runtime_before_opening_db" time="0.016" /><testcase classname="tests_inago.test_step24_production" name="test_production_cli_passes_explicit_profile_roots_to_runtime_loader" time="0.018" /><testcase classname="tests_inago.test_step24_production" name="test_production_cli_logs_sanitized_preflight_failure_to_repository_runtime" time="0.029" /><testcase classname="tests_inago.test_step24_production" name="test_production_cli_logs_profile_visibility_as_booleans_only" time="0.056" /><testcase classname="tests_inago.test_step24_production" name="test_production_cli_does_not_log_preflight_failure_through_runtime_junction" time="0.044" /><testcase classname="tests_inago.test_step24_production" name="test_repository_config_needs_no_install_manifest_or_copied_tools" time="0.040" /><testcase classname="tests_inago.test_step24_production" name="test_repository_config_accepts_installed_tools_without_copying" time="0.051" /><testcase classname="tests_inago.test_step24_production" name="test_codex_auth_is_referenced_without_creating_runtime_copy" time="0.046" /><testcase classname="tests_inago.test_step24_production" name="test_task_render_uses_repository_and_leaves_scheduler_untouched" time="5.535"><failure message="assert '--user-profile' in '-B -m automation.inago.maintenance.daily_launcher --config &quot;C:\\project\\rakuten-room-inago\\非公開作業データ\\イナゴ実装試験\\regre...ject\\rakuten-room-inago\\非公開作業データ\\イナゴ実装試験\\regression\\test_task_render_uses_reposito0\\rakuten-room-inago\\runtime&quot;'">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_task_render_uses_reposito0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002027E4CC830&gt;
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows task XML generation")
+    def test_task_render_uses_repository_and_leaves_scheduler_untouched(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -&gt; None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        first_day = (date.today() + timedelta(days=1)).isoformat()
+        document["start_date"] = first_day
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("must not execute", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        user_profile = tmp_path / "UserProfile"
+        local_app_data = tmp_path / "LocalAppData"
+        environment = dict(
+            os.environ,
+            USERPROFILE=str(user_profile),
+            LOCALAPPDATA=str(local_app_data),
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(script),
+                "-ProjectRoot",
+                str(tmp_path),
+                "-StartBoundary",
+                first_day + "T13:00:00+09:00",
+                "-RenderOnly",
+            ],
+            capture_output=True,
+            env=environment,
+            check=False,
+        )
+        assert process.returncode == 0, process.stderr
+        rendered = json.loads(process.stdout.decode("utf-8-sig"))
+        assert rendered["Registered"] is False
+        namespace = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+        for name in ("DailyXml", "HumanApiXml"):
+            assert not rendered[name].lstrip().startswith("&lt;?xml")
+            xml = ET.fromstring(rendered[name])
+            working_directory = xml.find(".//t:WorkingDirectory", namespace)
+            command = xml.find(".//t:Command", namespace)
+            arguments = xml.findtext(".//t:Arguments", namespaces=namespace) or ""
+            assert working_directory is not None
+            assert Path(working_directory.text) == tmp_path
+            assert command is not None and Path(command.text) == python
+&gt;           assert "--user-profile" in arguments
+E           assert '--user-profile' in '-B -m automation.inago.maintenance.daily_launcher --config "C:\\project\\rakuten-room-inago\\非公開作業データ\\イナゴ実装試験\\regre...ject\\rakuten-room-inago\\非公開作業データ\\イナゴ実装試験\\regression\\test_task_render_uses_reposito0\\rakuten-room-inago\\runtime"'
+
+tests_inago\test_step24_production.py:1789: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_existing_affiliate_auth_is_read_only_reference_without_copy" time="0.037" /><testcase classname="tests_inago.test_step24_production" name="test_external_state_is_not_silently_abandoned_on_repository_setup" time="0.037" /><testcase classname="tests_inago.test_step24_production" name="test_lifecycle_log_rejects_junction_to_outside_repository" time="0.034" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Ready-known-replaced]" time="3.030" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Ready-current_wake_disabled-replaced]" time="2.934"><failure message="AssertionError: assert 'blocked' == 'replaced'&#10;  &#10;  - replaced&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_task_switch_only_replaces1')
+state = 'Ready', kind = 'current_wake_disabled', expected = 'replaced'
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "state,kind,expected",
+        [
+            ("Ready", "known", "replaced"),
+            ("Ready", "current_wake_disabled", "replaced"),
+            ("Running", "known", "blocked"),
+            ("Queued", "known", "blocked"),
+            ("Unknown", "known", "blocked"),
+            ("Disabled", "known", "replaced"),
+            ("Ready", "custom", "blocked"),
+        ],
+    )
+    def test_task_switch_only_replaces_known_idle_installed_definition(
+        tmp_path: Path, state: str, kind: str, expected: str
+    ) -&gt; None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$State,[string]$Kind)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRoot = Join-Path $env:USERPROFILE 'InagoRuntime'
+    $previousApp = Join-Path $previousRoot 'app-20261014-120000'
+    $previousPython = Join-Path $previousApp '.venv-inago\Scripts\python.exe'
+    $previousConfig = Join-Path $previousRoot 'config\settings.json'
+    $previousArgs = "-B -m automation.inago.cli daily --environment production --config `"$previousConfig`" --data-root `"$previousRoot`""
+    $taskExecute = $previousPython
+    $taskArgs = $previousArgs
+    $taskWorkingDirectory = $previousApp
+    $triggerBoundary = '2026-10-01T13:00:00+09:00'
+    if ($Kind -eq 'custom') { $taskArgs = 'custom task' }
+    if ($Kind -eq 'current_wake_disabled') {
+        $taskExecute = $pythonExe
+        $taskArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $taskWorkingDirectory = $applicationRoot
+        $triggerBoundary = $Boundary
+    }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$taskExecute; Arguments=$taskArgs; WorkingDirectory=$taskWorkingDirectory})
+        Principal = [pscustomobject]@{UserId=$identity.Name; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false}
+        Triggers = @([pscustomobject]@{Enabled=$true; DaysInterval=1; StartBoundary=$triggerBoundary; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskDailyTrigger'}})
+        State = $State
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { param($TaskName,$TaskPath,$ErrorAction); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoDaily' $dailyXml 'daily'; $status='replaced' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered)} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-State",
+                state,
+                "-Kind",
+                kind,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+&gt;       assert observed["Status"] == expected
+E       AssertionError: assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:1969: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Running-known-blocked]" time="2.723" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Queued-known-blocked]" time="2.844" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Unknown-known-blocked]" time="3.020" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Disabled-known-replaced]" time="2.983" /><testcase classname="tests_inago.test_step24_production" name="test_task_switch_only_replaces_known_idle_installed_definition[Ready-custom-blocked]" time="2.813" /><testcase classname="tests_inago.test_step24_production" name="test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Ready-replaced-1]" time="3.059"><failure message="AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.&#10;assert 'blocked' == 'replaced'&#10;  &#10;  - replaced&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_daily_task_execution_time0')
+execution_limit = 'PT6H', state = 'Ready', expected = 'replaced'
+registration_count = 1
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -&gt; None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+&gt;       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Disabled-replaced-1]" time="3.042"><failure message="AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.&#10;assert 'blocked' == 'replaced'&#10;  &#10;  - replaced&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_daily_task_execution_time1')
+execution_limit = 'PT6H', state = 'Disabled', expected = 'replaced'
+registration_count = 1
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -&gt; None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+&gt;       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'replaced'
+E
+E         - replaced
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT6H-Running-blocked-0]" time="2.849" /><testcase classname="tests_inago.test_step24_production" name="test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[PT0S-Ready-accepted-0]" time="2.856"><failure message="AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.&#10;assert 'blocked' == 'accepted'&#10;  &#10;  - accepted&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_daily_task_execution_time3')
+execution_limit = 'PT0S', state = 'Ready', expected = 'accepted'
+registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -&gt; None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+&gt;       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'accepted'
+E
+E         - accepted
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle[00:00:00-Ready-accepted-0]" time="3.064"><failure message="AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.&#10;assert 'blocked' == 'accepted'&#10;  &#10;  - accepted&#10;  + blocked">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_daily_task_execution_time4')
+execution_limit = '00:00:00', state = 'Ready', expected = 'accepted'
+registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "execution_limit,state,expected,registration_count",
+        [
+            ("PT6H", "Ready", "replaced", 1),
+            ("PT6H", "Disabled", "replaced", 1),
+            ("PT6H", "Running", "blocked", 0),
+            ("PT0S", "Ready", "accepted", 0),
+            ("00:00:00", "Ready", "accepted", 0),
+        ],
+    )
+    def test_daily_task_execution_time_limit_drift_is_repaired_only_when_idle(
+        tmp_path: Path,
+        execution_limit: str,
+        state: str,
+        expected: str,
+        registration_count: int,
+    ) -&gt; None:
+        import shutil
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        boundary, config_path, python = _prepare_daily_task_limit_drift_fixture(tmp_path)
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = _write_daily_task_limit_drift_harness(tmp_path)
+        observed = _run_daily_task_limit_drift_harness(
+            tmp_path, harness, script, boundary, execution_limit, state, powershell
+        )
+
+&gt;       assert observed["Status"] == expected, observed.get("Error")
+E       AssertionError: Daily task 'RakutenRoomInagoDaily' action did not switch to the daily launcher.
+E       assert 'blocked' == 'accepted'
+E
+E         - accepted
+E         + blocked
+
+tests_inago\test_step24_production.py:2212: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_previous_repository_human_task_without_trigger_user_is_updated[previous-accepted-1]" time="2.915" /><testcase classname="tests_inago.test_step24_production" name="test_previous_repository_human_task_without_trigger_user_is_updated[current-accepted-0]" time="2.807"><failure message="assert 1 == 0&#10; +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '&lt;Task version=&quot;1.4&quot; xmlns=&quot;http://schemas.microsoft.com/windows/2004/02/...業データ\\イナゴ実装試験\\regression\\test_previous_repository_human1&lt;/WorkingDirectory&gt;&lt;/Exec&gt;&lt;/Actions&gt;&lt;/Task&gt;', 'Force': True}])">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_previous_repository_human1')
+definition = 'current', expected = 'accepted', registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "definition,expected,registration_count",
+        [
+            ("previous", "accepted", 1),
+            ("current", "accepted", 0),
+            ("current_sid", "accepted", 0),
+            ("current_mismatch", "blocked", 0),
+            ("principal_mismatch", "blocked", 0),
+        ],
+    )
+    def test_previous_repository_human_task_without_trigger_user_is_updated(
+        tmp_path: Path, definition: str, expected: str, registration_count: int
+    ) -&gt; None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "human-api-task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$Definition)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+    $triggerUser = $null
+    if ($Definition -eq 'current' -or $Definition -eq 'current_sid' -or $Definition -eq 'current_mismatch' -or $Definition -eq 'principal_mismatch') {
+        $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $triggerUser = $userId
+    }
+    if ($Definition -eq 'current_mismatch') { $triggerUser = 'S-1-5-18' }
+    $principalUser = $identity.Name
+    if ($Definition -eq 'current_sid') { $principalUser = $userId }
+    if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
+        Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false; ExecutionTimeLimit='PT0S'}
+        Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
+        State = 'Ready'
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'; $status='accepted' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-Definition",
+                definition,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+        assert observed["Status"] == expected
+&gt;       assert len(observed["Registrations"]) == registration_count
+E       assert 1 == 0
+E        +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '&lt;Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/...業データ\\イナゴ実装試験\\regression\\test_previous_repository_human1&lt;/WorkingDirectory&gt;&lt;/Exec&gt;&lt;/Actions&gt;&lt;/Task&gt;', 'Force': True}])
+
+tests_inago\test_step24_production.py:2321: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_previous_repository_human_task_without_trigger_user_is_updated[current_sid-accepted-0]" time="2.772"><failure message="assert 1 == 0&#10; +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '&lt;Task version=&quot;1.4&quot; xmlns=&quot;http://schemas.microsoft.com/windows/2004/02/...業データ\\イナゴ実装試験\\regression\\test_previous_repository_human2&lt;/WorkingDirectory&gt;&lt;/Exec&gt;&lt;/Actions&gt;&lt;/Task&gt;', 'Force': True}])">tmp_path = WindowsPath('C:/project/rakuten-room-inago/非公開作業データ/イナゴ実装試験/regression/test_previous_repository_human2')
+definition = 'current_sid', expected = 'accepted', registration_count = 0
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows mocked scheduler")
+    @pytest.mark.parametrize(
+        "definition,expected,registration_count",
+        [
+            ("previous", "accepted", 1),
+            ("current", "accepted", 0),
+            ("current_sid", "accepted", 0),
+            ("current_mismatch", "blocked", 0),
+            ("principal_mismatch", "blocked", 0),
+        ],
+    )
+    def test_previous_repository_human_task_without_trigger_user_is_updated(
+        tmp_path: Path, definition: str, expected: str, registration_count: int
+    ) -&gt; None:
+        import shutil
+        from datetime import date
+
+        powershell = shutil.which("powershell.exe")
+        if powershell is None:
+            pytest.skip("PowerShell unavailable")
+        config_path = _write_config(
+            tmp_path, owner_room_url="https://room.rakuten.co.jp/room_0123456789/items"
+        )
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+        document["start_date"] = (date.today() + timedelta(days=1)).isoformat()
+        config_path.write_text(json.dumps(document), encoding="utf-8")
+        setup = config_path.parents[1] / "state/setup-status.json"
+        setup.parent.mkdir()
+        setup.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "ready",
+                    "migration_selection_allowed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        python = tmp_path / ".venv-inago/Scripts/python.exe"
+        python.parent.mkdir(parents=True)
+        python.write_text("not executable", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "automation/inago/register_tasks.ps1"
+        harness = tmp_path / "human-api-task-switch-fixture.ps1"
+        harness.write_text(
+            r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$Definition)
+    . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
+    $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
+    $triggerUser = $null
+    if ($Definition -eq 'current' -or $Definition -eq 'current_sid' -or $Definition -eq 'current_mismatch' -or $Definition -eq 'principal_mismatch') {
+        $previousRepositoryArgs = "-B -m automation.inago.cli serve --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+        $triggerUser = $userId
+    }
+    if ($Definition -eq 'current_mismatch') { $triggerUser = 'S-1-5-18' }
+    $principalUser = $identity.Name
+    if ($Definition -eq 'current_sid') { $principalUser = $userId }
+    if ($Definition -eq 'principal_mismatch') { $principalUser = 'S-1-5-18' }
+    $script:existing = [pscustomobject]@{
+        Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$previousRepositoryArgs; WorkingDirectory=$applicationRoot})
+        Principal = [pscustomobject]@{UserId=$principalUser; LogonType='Interactive'; RunLevel='Limited'}
+        Settings = [pscustomobject]@{MultipleInstances='IgnoreNew'; Hidden=$true; WakeToRun=$false; ExecutionTimeLimit='PT0S'}
+        Triggers = @([pscustomobject]@{Enabled=$true; UserId=$triggerUser; CimClass=[pscustomobject]@{CimClassName='MSFT_TaskLogonTrigger'}})
+        State = 'Ready'
+    }
+    $script:registered = @()
+    function Get-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath); return $script:existing }
+    function Register-ScheduledTask { [CmdletBinding()] param($TaskName,$TaskPath,$Xml,[switch]$Force); $script:registered += [pscustomobject]@{Name=$TaskName; Xml=$Xml; Force=[bool]$Force} }
+    try { Register-ExactTask 'RakutenRoomInagoHumanApi' $humanXml 'serve'; $status='accepted' } catch { $status='blocked' }
+    [pscustomobject]@{Status=$status; Registrations=@($script:registered); User=$userId} | ConvertTo-Json -Depth 5 -Compress
+    """,
+            encoding="utf-8",
+        )
+        process = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(harness),
+                "-RegistrationScript",
+                str(script),
+                "-Root",
+                str(tmp_path),
+                "-Boundary",
+                document["start_date"] + "T13:00:00+09:00",
+                "-Definition",
+                definition,
+            ],
+            capture_output=True,
+            env=dict(
+                os.environ,
+                LOCALAPPDATA=str(tmp_path / "LocalAppData"),
+                USERPROFILE=str(tmp_path / "UserProfile"),
+            ),
+            check=False,
+        )
+
+        assert process.returncode == 0, process.stderr
+        observed = json.loads(process.stdout.decode("utf-8-sig"))
+        assert observed["Status"] == expected
+&gt;       assert len(observed["Registrations"]) == registration_count
+E       assert 1 == 0
+E        +  where 1 = len([{'Name': 'RakutenRoomInagoHumanApi', 'Xml': '&lt;Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/...業データ\\イナゴ実装試験\\regression\\test_previous_repository_human2&lt;/WorkingDirectory&gt;&lt;/Exec&gt;&lt;/Actions&gt;&lt;/Task&gt;', 'Force': True}])
+
+tests_inago\test_step24_production.py:2321: AssertionError</failure></testcase><testcase classname="tests_inago.test_step24_production" name="test_previous_repository_human_task_without_trigger_user_is_updated[current_mismatch-blocked-0]" time="3.027" /><testcase classname="tests_inago.test_step24_production" name="test_previous_repository_human_task_without_trigger_user_is_updated[principal_mismatch-blocked-0]" time="2.833" /><testcase classname="tests_inago.test_step24_production" name="test_new_database_file_alone_does_not_prove_external_history_transfer" time="0.033" /><testcase classname="tests_inago.test_step24_production" name="test_successful_production_result_survives_lifecycle_log_failure[setup-ready]" time="0.012" /><testcase classname="tests_inago.test_step24_production" name="test_successful_production_result_survives_lifecycle_log_failure[daily-completed]" time="0.012" /><testcase classname="tests_inago.test_step24_production" name="test_production_readiness_rejects_blocked_state_under_python_optimization" time="2.614" /><testcase classname="tests_inago.test_step24_production" name="test_content_verified_external_database_transfer_is_accepted" time="0.092" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n22_probe_executes_daily_html_backup_and_restore_as_one_pipeline" time="2.815" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n22b_production_entry_uses_shared_core_after_production_guards" time="2.404" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_manual_production_daily_runs_before_scheduled_hour" time="2.402" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_manual_daily_resumes_corrected_widget_before_scheduled_hour" time="2.923" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally" time="3.265" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n23b_wrong_input_hash_stops_before_any_daily_adoption" time="1.362" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n24a_report_apply_restarts_same_fourteen_run_across_old_cutoffs" time="2.881" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n24b_late_ai_response_is_discarded_and_next_offer_continues" time="1.210" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n25_partial_metrics_and_full_retention_preserve_only_supported_evidence" time="2.984" /><testcase classname="tests_inago.test_daily_fix_pipeline" name="test_n22c_monitor_start_failure_survives_successful_stop_status" time="0.009" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n06" time="3.588" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n07" time="1.085" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n07b_trends_retry_crosses_former_daily_cutoffs_with_bounded_timeouts" time="0.561" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_related_widget_waits_for_nonzero_layout" time="3.537" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_trends_request_has_its_own_finite_timeout" time="0.518" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n08" time="15.401" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n08b_related_keyword_heading_alias_and_semantic_level" time="2.498" /><testcase classname="tests_inago.test_daily_fix_trends" name="test_n08c_title_container_alias_and_unknown_heading_stay_safe" time="8.251" /><testcase classname="tests_inago.test_daily_fix_scheduler" name="test_n30" time="0.005"><skipped type="pytest.skip" message="N30 is executed only by its temporary normal-principal task">C:\project\rakuten-room-inago\tests_inago\test_daily_fix_scheduler.py:161: N30 is executed only by its temporary normal-principal task</skipped></testcase></testsuite></testsuites>

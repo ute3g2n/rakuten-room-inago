@@ -1,0 +1,5 @@
+...........................................................F............ [ 22%]
+............
+SUCCESS: The process with PID 90092 (child process of PID 95108) has been terminated.
+SUCCESS: The process with PID 95108 (child process of PID 110440) has been terminated.
+INTERRUPTED: first failure was old 8-minute deadline expectation in test_step11. A targeted correction occurred before the ownership-verified stop; this run is not used as final evidence.

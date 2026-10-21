@@ -10,7 +10,7 @@ cause_resolved = True
     def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(monkeypatch, tmp_path, cause_resolved):
         from automation.inago.cli import production_daily_exit_code
         from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
-    
+
         config, database_path, clock, source, *_ = _make_daily_fixture(monkeypatch, tmp_path)
         first = production_runtime.run_production_daily(config, clock=clock)
         assert first["committed_count"] == 15
@@ -24,7 +24,7 @@ cause_resolved = True
             connection.commit()
         finally:
             connection.close()
-    
+
         result = production_runtime.run_production_daily(config, clock=clock, resume_confirmed=True, cause_resolved=cause_resolved)
         assert result["committed_count"] == 15
 >       assert production_daily_exit_code(result) == (0 if cause_resolved else 4)

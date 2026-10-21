@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "cli_exit_code": 0,
+  "committed_count": 15,
+  "before": {
+    "committed_drafts": 15,
+    "draft_rows_sha256": "7f633f9ba934f7ce7b09ca70a2d87bfdb44ca1010bfaf4106e83dd9f9d725c87",
+    "search_attempt_count": 7,
+    "generation_attempt_count": 20,
+    "ai_job_count": 38
+  },
+  "after": {
+    "committed_drafts": 15,
+    "draft_rows_sha256": "7f633f9ba934f7ce7b09ca70a2d87bfdb44ca1010bfaf4106e83dd9f9d725c87",
+    "search_attempt_count": 7,
+    "generation_attempt_count": 20,
+    "ai_job_count": 38
+  },
+  "unchanged": true,
+  "phase_statuses": {
+    "preflight": "ready",
+    "database_open": "ready",
+    "prepare": "ready",
+    "start_backup": "ready",
+    "daily": "complete",
+    "metrics": "observed",
+    "operations_monitor": "stopped",
+    "database_close": "closed",
+    "export": "ready",
+    "preservation": "ready",
+    "trace": "degraded"
+  }
+}

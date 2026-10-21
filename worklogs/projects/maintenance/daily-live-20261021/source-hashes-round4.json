@@ -1,0 +1,23 @@
+{
+  "automation/inago/adapters/public_sources.mjs": "ac365e90b4e8c0fba42ca2f56e5259c081084af322dfa367adf6951b7df8ef90",
+  "automation/inago/app_server.py": "9773a377a1115bc8c15eb55896dbcad48e96b7a38532108630312f3edc7d7143",
+  "automation/inago/cli.py": "e096c99bef162658dc4264a60ff33bdbde6f103f3fec76766ad492de958b8726",
+  "automation/inago/daily_ai.py": "59a943eb8b0c27abba016348efbd2bdac2416e8d8365d148b0ff93bc6e798e92",
+  "automation/inago/live_sources.py": "96a3d18d4cbebf86cf3fa534dcc88f0dd1bb160e2d57f1adb0e565a31d8425af",
+  "automation/inago/orchestrator.py": "5eb6d8d9f96f22e1d569cc204fe5f1f28f19903e2bd842c9d5389353ac93270a",
+  "automation/inago/production_runtime.py": "0c62eab1fc949a6d0631bee7b01d210878d57d17764fc008b56807b0ad326d7b",
+  "automation/inago/recovery.py": "78a6d46c430f39fb6298eae08ff61bbb4302d97830a5836493c95ba4400e125a",
+  "automation/inago/register_tasks.ps1": "3cdae32d17a471f38134db464a2661e261a9985d1e04454e1c752a6bd0315ec8",
+  "automation/inago/room_adapter.py": "27ab939d6a0e357fb146b6c3da6539c46e1a217b059419978cdbc169a04c6cdb",
+  "automation/inago/settings.py": "b1589aca417a3c969bec2211e0c2476f1c91cb61bfa2773ee26f35105c5099b1",
+  "automation/inago/trends_adapter.py": "058e2de56c1f5e35f3b1038e24893b60887fde5ab5154793363f34cc95a69456",
+  "automation/inago/trigger.py": "84e4f183f043413b939fb91387d3e517f938aea94cd2aa8413a3d75c3698256d",
+  "tests_inago/test_daily_fix_pipeline.py": "20116c68439267e6b3f9d109ced8f448e21cdf7a31f25000bdc8ee164748ce24",
+  "tests_inago/test_daily_fix_trends.py": "9dd937c1b183b841f18d955a815be778d6e35648bfff48d41e4dc7d1b5253e05",
+  "tests_inago/test_step04.py": "7229d1157bfb675d8c07044f7bd1bf60971bf919b12c7fe08836525351f9c624",
+  "tests_inago/test_step11.py": "7159f6fdbc54d9012c0eb76adecc51ea556493d607c1abbb73eaecca147a4088",
+  "tests_inago/test_step13.py": "550a92005c0582ae6a76d67ef73ca7ba38d00eca09827d8217dfee36a67124d0",
+  "tests_inago/test_step21_ai_root.py": "338453df05a63cd24b828cd5c3c445f932e2acb52a92495dc3ccd3fd99c53c2d",
+  "tests_inago/test_step21_trends_retry.py": "f01b9305680f568ec274d1100b9763510b078430ade2761dfee1cc050aef26b4",
+  "tests_inago/test_step24_production.py": "149338ba0eb4663ae15d4fb14ac87b87cf8efeb32e791a6ab6786b78cb3d6417"
+}

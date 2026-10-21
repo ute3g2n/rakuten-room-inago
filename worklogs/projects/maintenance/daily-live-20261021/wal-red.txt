@@ -7,7 +7,7 @@ tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[
 
     def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(monkeypatch, tmp_path):
         from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
-    
+
         config, database_path, *_ = _make_daily_fixture(monkeypatch, tmp_path)
         connection = _database_connection(database_path)
         try:
@@ -19,7 +19,7 @@ tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[
             before = database_path.read_bytes()
 >           assert production_runtime._startup_preflight_database(config) == (None, None)
 E           AssertionError: assert ('database_re...ending', None) == (None, None)
-E             
+E
 E             At index 0 diff: 'database_recovery_pending' != None
 E             Use -v to get more diff
 

@@ -15,11 +15,11 @@ settings_inputs = ({'artifact_kind': 'external_analysis_result', 'version': 'con
         settings_db.execute("UPDATE settings_version SET change_reason=?", (legacy_reason,))
         settings_db.commit()
         before = tuple(_settings_row(settings_db, SETTINGS_VERSION))
-    
+
 >       result = register_external_settings(settings_db, basic, detailed, created_at="2026-10-21T09:00:00+09:00")
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests_inago\test_step04.py:84: 
+tests_inago\test_step04.py:84:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 automation\inago\settings.py:671: in register_external_settings
     _store_settings_version(connection, entity)

@@ -10,11 +10,11 @@ retry_case = (<sqlite3.Connection object at 0x000001810CDEA980>, FakeClock(curre
         with pytest.raises(trends.TrendsContractError):
             session(connection, clock, port).fetch(THEME_WORD)
         assert len(port.requests) == 1
-    
+
 >       result = session(connection, clock, port).fetch(THEME_WORD)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests_inago\test_step21_trends_retry.py:149: 
+tests_inago\test_step21_trends_retry.py:149:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <automation.inago.trends_adapter.DurableGroupKeywordSession object at 0x000001810CBF5040>

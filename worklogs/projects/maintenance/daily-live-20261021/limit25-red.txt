@@ -6,9 +6,9 @@ runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x00000284F7
 
     def test_new_daily_searches_take_twenty_five_rows(runtime_case):
         bundle = _make_ports(runtime_case, posts_per_search=30)
-    
+
         result = _run(runtime_case, bundle)
-    
+
         assert result.status == "complete" and result.committed_count == 15
         assert len(bundle.room.requests) == 3
 >       assert all(request.max_posts == 25 for request in bundle.room.requests)
@@ -25,13 +25,13 @@ ui_server = {'html': '<input id="search-box" value="�������"><div 
         ui_server["html"] = room_html(80, initial=30)
         port = source(tmp_path, ui_server)
         request = replace(room_request(), max_posts=25, deadline_at=None)
-    
+
         result = port.search(request)
-    
+
 >       assert result["status"] == "observed", result.get("error_code")
 E       AssertionError: invalid_request
 E       assert 'unavailable' == 'observed'
-E         
+E
 E         - observed
 E         + unavailable
 
@@ -44,7 +44,7 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000284F55E10D0>
     def test_v7_preserves_v6_searches_and_references(legacy_v2, monkeypatch):
         _v6(legacy_v2, monkeypatch)
         before = _rows(legacy_v2)
-    
+
 >       assert repository.initialize_database(legacy_v2) == 7
 E       assert 6 == 7
 E        +  where 6 = <function initialize_database at 0x00000284F5526FC0>(<sqlite3.Connection object at 0x00000284F6E948B0>)
@@ -60,7 +60,7 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000284F55E0440>
         _v6(legacy_v2, monkeypatch)
         legacy_v2.execute("CREATE INDEX custom_search_query ON search_attempt(query)")
         before = _rows(legacy_v2)
-    
+
 >       with pytest.raises(UnsupportedSchemaVersion):
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E       Failed: DID NOT RAISE UnsupportedSchemaVersion
