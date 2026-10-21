@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import sqlite3
 import threading
@@ -14,6 +15,11 @@ from typing import Any, Mapping
 from automation.inago.ai_runner import AIJobRunner
 from automation.inago.app_server import AppServerSession, AppServerError
 from automation.inago.contracts import AIJobRequest
+from automation.inago.conversation_logs import (
+    ConversationLogSyncResult,
+    ConversationLogWatcher,
+    sync_conversation_logs,
+)
 
 
 _ROOT_CHECKPOINT_KEY = "ai_daily_root"
@@ -43,6 +49,9 @@ class DailyAIRootRunner(AIJobRunner):
         self._active_job_run_id: str | None = None
         self._active_job_id: str | None = None
         self._active_job_cancel_event: threading.Event | None = None
+        self._active_conversation_request: AIJobRequest | None = None
+        self._conversation_watcher: ConversationLogWatcher | None = None
+        self._last_conversation_log_diagnostic: tuple[str, str | None] | None = None
         self.process_starts = 0
         self._unused_root_can_be_replaced = False
 
@@ -237,6 +246,7 @@ class DailyAIRootRunner(AIJobRunner):
             self._active_job_run_id = request.run_id
             self._active_job_id = request.job_id
             self._active_job_cancel_event = active_cancel_event
+            self._active_conversation_request = request
         try:
             return super().run(request, cancel_event=active_cancel_event)
         finally:
@@ -245,7 +255,96 @@ class DailyAIRootRunner(AIJobRunner):
                     self._active_job_run_id = None
                     self._active_job_id = None
                     self._active_job_cancel_event = None
+                    self._active_conversation_request = None
             self._job_guard.release()
+
+    def _record_conversation_log_result(
+        self, result: ConversationLogSyncResult
+    ) -> None:
+        if result.status == "complete":
+            self._last_conversation_log_diagnostic = None
+            return
+        if result.status == "waiting":
+            return
+        diagnostic = (result.status, result.reason_code)
+        if diagnostic == self._last_conversation_log_diagnostic:
+            return
+        self._last_conversation_log_diagnostic = diagnostic
+        request = self._active_conversation_request
+        if request is not None:
+            self._trace_event(
+                request,
+                "conversation_log_sync",
+                conversation_log_status=result.status,
+                conversation_log_reason_code=result.reason_code or "none",
+                conversation_log_copied_count=result.copied_count,
+            )
+        logging.getLogger(__name__).warning(
+            "AI conversation log sync status=%s reason_code=%s run_id=%s role=ai-o",
+            result.status,
+            result.reason_code or "none",
+            self.context.get("run_id") if self.context else "unbound",
+        )
+
+    def _start_conversation_log_watcher(self) -> None:
+        if self.context is None:
+            return
+        self._stop_conversation_log_watcher()
+        try:
+            environment = self._env() or {}
+            self._conversation_watcher = ConversationLogWatcher(
+                self.data_root,
+                flow="daily",
+                started_on=self.context["target_date"],
+                flow_id=self.context["run_id"],
+                role="ai-o",
+                root_thread_id=lambda: (
+                    self.context.get("root_thread_id") if self.context else None
+                ),
+                codex_home=environment.get("CODEX_HOME"),
+                on_result=self._record_conversation_log_result,
+            ).start()
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "AI conversation log watcher start failed error_type=%s",
+                type(exc).__name__,
+            )
+
+    def _stop_conversation_log_watcher(self) -> None:
+        watcher = self._conversation_watcher
+        self._conversation_watcher = None
+        if watcher is None:
+            return
+        try:
+            result = watcher.stop()
+            if result is not None:
+                self._record_conversation_log_result(result)
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "AI conversation log watcher stop failed error_type=%s",
+                type(exc).__name__,
+            )
+
+    def _save_final_conversation_logs(self) -> None:
+        if self.context is None:
+            return
+        try:
+            environment = self._env() or {}
+            result = sync_conversation_logs(
+                self.data_root,
+                flow="daily",
+                started_on=self.context["target_date"],
+                flow_id=self.context["run_id"],
+                role="ai-o",
+                root_thread_id=self.context.get("root_thread_id"),
+                codex_home=environment.get("CODEX_HOME"),
+            )
+            self._record_conversation_log_result(result)
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "AI final conversation log sync failed error_type=%s",
+                type(exc).__name__,
+            )
 
     def _cleanup_job_dir(self, job_dir: Path):
         # Keep initial agent definitions available to the persistent root until
@@ -293,6 +392,7 @@ class DailyAIRootRunner(AIJobRunner):
                 if cancel_event is not None and cancel_event.is_set():
                     self.session.close()
                     return "cancelled", None, b"", b""
+            self._start_conversation_log_watcher()
             instruction = (
                 "\nContinue this Python-controlled daily root. Treat this turn as a "
                 "new job whose identity comes only from the JSON object in this turn. "
@@ -365,6 +465,8 @@ class DailyAIRootRunner(AIJobRunner):
                 b"",
                 b"",
             )
+        finally:
+            self._stop_conversation_log_watcher()
 
     def cancel_owned_jobs(self, run_id: str) -> bool:
         if self.context is None or self.context["run_id"] != run_id:
@@ -389,8 +491,12 @@ class DailyAIRootRunner(AIJobRunner):
             return self.session is None or self.session.is_closed
 
     def close_daily_run(self):
-        if self.session is not None:
-            self.session.close()
+        try:
+            if self.session is not None:
+                self.session.close()
+        finally:
+            self._stop_conversation_log_watcher()
+            self._save_final_conversation_logs()
         jobs_root = (self.data_root / "jobs").resolve()
         for directory in self._retained_dirs:
             if directory.parent != jobs_root or directory.is_symlink():

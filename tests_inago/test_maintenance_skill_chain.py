@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -57,11 +58,50 @@ class _Session:
         self.safe_stderr_output = ["Bearer abc.def.ghi", "token=canary-secret"]
         self.closed = False
         self.prompts = []
+        self.thread_id = None
+        self.rollout_path = None
+
+    def start(self, *, deadline):
+        del deadline
+        self.thread_id = f"thread-{self.role_name}"
+        codex_home = Path(os.environ.get("CODEX_HOME", self.cwd / "codex-home"))
+        sessions = codex_home / "sessions" / "2026" / "10" / "20"
+        sessions.mkdir(parents=True, exist_ok=True)
+        self.rollout_path = sessions / f"rollout-2026-10-20T00-00-00-{self.thread_id}.jsonl"
+        self.rollout_path.write_bytes(
+            json.dumps(
+                {"type": "session_meta", "payload": {"id": self.thread_id}},
+                separators=(",", ":"),
+            ).encode("utf-8")
+            + b"\n"
+        )
+        return self.thread_id
 
     def run_turn(self, prompt, schema=None, **kwargs):
         self.prompts.append(prompt)
         assert '"source_run_id": null' in prompt
         assert "reasoning effortはhigh" in prompt
+        role_folder = {
+            "rr-inago-incident-investigator": "investigator",
+            "common-implementer": "implementer",
+            "common-tester": "tester",
+            "common-reviewer": "product-reviewer",
+            "rr-inago-maintenance-delivery": "delivery",
+            "rr-inago-incident-reporter": "reporter",
+            "rr-inago-incident-report-reviewer": "html-reviewer",
+        }[self.role_name]
+        live_copy = (
+            self.cwd
+            / "rakuten-room-inago"
+            / "runtime"
+            / "conversation-logs"
+            / "maintenance"
+            / f"{TARGET_DATE}__{JOB_ID}"
+            / role_folder
+            / f"main__{self.thread_id}.jsonl"
+        )
+        assert self.thread_id is not None
+        assert live_copy.is_file(), "the watcher should sync after thread start, before the turn"
         index = next(i for i, role in enumerate(skill_chain.ROLE_CALLS, 1) if role.name == self.role_name)
         job_root = self.cwd / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID
         artifact = skill_chain.ROLE_CALLS[index - 1].artifact
@@ -81,6 +121,9 @@ class _Session:
                 else Path("rakuten-room-inago") / "runtime" / "maintenance-flow" / JOB_ID / artifact
             )
             response = f"完了しました。保存先: {reported_path.as_posix()}"
+        assert self.rollout_path is not None
+        with self.rollout_path.open("ab") as stream:
+            stream.write(b"MAINTENANCE_CONVERSATION\n")
         return _Turn(self.role_name, response)
 
     def close(self):
@@ -112,22 +155,32 @@ def _factory(root: Path, *, fail: set[str] | None = None, close_error: set[str] 
 
 
 def _run(root: Path, factory, **kwargs):
-    return skill_chain.run_skill_chain(
-        repository_root=root,
-        **IDENTITY,
-        session_factory=factory,
-        timeout_seconds=1,
-        **kwargs,
-    )
+    prior_codex_home = os.environ.get("CODEX_HOME")
+    os.environ["CODEX_HOME"] = str(root / "codex-home")
+    try:
+        return skill_chain.run_skill_chain(
+            repository_root=root,
+            **IDENTITY,
+            session_factory=factory,
+            timeout_seconds=1,
+            **kwargs,
+        )
+    finally:
+        if prior_codex_home is None:
+            os.environ.pop("CODEX_HOME", None)
+        else:
+            os.environ["CODEX_HOME"] = prior_codex_home
 
 
 def test_seven_roles_receive_markdown_and_run_in_order(tmp_path: Path, monkeypatch):
     root = _root(tmp_path)
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-home"))
     monkeypatch.setattr("automation.inago.maintenance.skill_chain_runtime._codex", lambda: "codex-fixture")
     factory, sessions = _factory(root)
     result = _run(root, factory)
     ledger = root / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID / "calls.jsonl"
     events = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+    worker_events = [event for event in events if event.get("event") == "worker_finished"]
     assert [role.name for role in skill_chain.ROLE_CALLS] == [
         "rr-inago-incident-investigator", "common-implementer", "common-tester",
         "common-reviewer", "rr-inago-maintenance-delivery", "rr-inago-incident-reporter",
@@ -135,8 +188,8 @@ def test_seven_roles_receive_markdown_and_run_in_order(tmp_path: Path, monkeypat
     ]
     expected_roles = [role.name for role in skill_chain.ROLE_CALLS]
     expected_roles.extend(expected_roles[5:])
-    assert [event["role"] for event in events] == expected_roles
-    assert [event["stage"] for event in events] == (
+    assert [event["role"] for event in worker_events] == expected_roles
+    assert [event["stage"] for event in worker_events] == (
         [role.stage for role in skill_chain.ROLE_CALLS]
         + [role.stage for role in skill_chain.ROLE_CALLS[5:]]
     )
@@ -157,11 +210,27 @@ def test_seven_roles_receive_markdown_and_run_in_order(tmp_path: Path, monkeypat
     assert terminal["all_role_save_paths_reported"] is True
     assert terminal["artifact_contents_reinspected"] is False
     assert result["html_review_author_recheck_attempted"] is True
+    conversation_root = (
+        root
+        / "rakuten-room-inago"
+        / "runtime"
+        / "conversation-logs"
+        / "maintenance"
+        / f"{TARGET_DATE}__{JOB_ID}"
+    )
+    investigation_logs = conversation_root / "investigator"
+    assert (
+        investigation_logs / "main__thread-rr-inago-incident-investigator.jsonl"
+    ).read_bytes().endswith(b"MAINTENANCE_CONVERSATION\n")
+    assert "thread_id=thread-rr-inago-incident-investigator" in (
+        investigation_logs / "status.txt"
+    ).read_text(encoding="utf-8")
+    assert not (conversation_root / "role-that-was-not-run").exists()
     assert "html-review.md" in sessions[-2].prompts[0]
     assert "定型markerの有無で分岐せず" in sessions[-2].prompts[0]
     assert all(
         all(event.get(key) == value for key, value in IDENTITY.items())
-        for event in events
+        for event in worker_events
     )
 
 
@@ -410,7 +479,8 @@ def test_workflow_provider_records_finalization_after_job_is_finalized(tmp_path,
     from automation.inago.maintenance.worker import WorkerWorkflowOutcome
 
     root = tmp_path / "repo"
-    job = SimpleNamespace(job_id=JOB_ID)
+    job = SimpleNamespace(job_id=JOB_ID, created_at="2026-10-21T01:00:00Z")
+    run_calls = []
 
     class Store:
         database_path = root / "rakuten-room-inago" / "runtime" / "maintenance" / "state.sqlite"
@@ -421,7 +491,11 @@ def test_workflow_provider_records_finalization_after_job_is_finalized(tmp_path,
         def finalize_job(self, **_kwargs):
             return SimpleNamespace(status="complete")
 
-    monkeypatch.setattr(skill_chain_runtime, "run_skill_chain", lambda **_kwargs: {})
+    monkeypatch.setattr(
+        skill_chain_runtime,
+        "run_skill_chain",
+        lambda **kwargs: run_calls.append(kwargs) or {},
+    )
     monkeypatch.setattr(
         skill_chain_runtime,
         "inspect_skill_chain_terminal",
@@ -441,6 +515,8 @@ def test_workflow_provider_records_finalization_after_job_is_finalized(tmp_path,
     queue = SimpleNamespace(queue_id="queue-fixture")
 
     outcome = provider(launch, check, queue, None)
+
+    assert run_calls[0]["job_created_at"] == job.created_at
 
     ledger = (
         root / "rakuten-room-inago" / "runtime" / "maintenance-flow" / JOB_ID / "calls.jsonl"

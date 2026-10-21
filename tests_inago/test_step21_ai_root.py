@@ -387,7 +387,7 @@ def test_cancelled_job_does_not_receive_a_late_answer(tmp_path):
 
 
 def test_daily_runner_reuses_root_and_preserves_checkpoint_without_fake_exitcode(
-    tmp_path, legacy_v2
+    tmp_path, legacy_v2, monkeypatch
 ):
     from dataclasses import replace
     from datetime import datetime
@@ -401,6 +401,8 @@ def test_daily_runner_reuses_root_and_preserves_checkpoint_without_fake_exitcode
 
     initialize_database(legacy_v2)
     legacy_v2.execute("UPDATE run SET checkpoint='{}' WHERE run_id='R1'")
+    codex_home = tmp_path / "codex-home"
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
     jobs = {}
     instances = []
 
@@ -413,6 +415,12 @@ def test_daily_runner_reuses_root_and_preserves_checkpoint_without_fake_exitcode
             instances.append(self)
 
         def start(self, **kwargs):
+            sessions = codex_home / "sessions" / "2026" / "10" / "13"
+            sessions.mkdir(parents=True, exist_ok=True)
+            (sessions / "rollout-2026-10-13T04-00-00-ROOT-ONE.jsonl").write_bytes(
+                b'{"type":"session_meta","payload":{"id":"ROOT-ONE"}}\n'
+                b"RAW_DAILY_CONVERSATION\n"
+            )
             return "ROOT-ONE"
 
         def run_turn(self, prompt, schema, *, cwd, **kwargs):
@@ -482,6 +490,20 @@ def test_daily_runner_reuses_root_and_preserves_checkpoint_without_fake_exitcode
     )["ai_daily_root"]
     assert metadata["root_thread_id"] == "ROOT-ONE" and metadata["seed"] == "SAVED-SEED"
     runner.close_daily_run()
+    conversation_logs = (
+        tmp_path
+        / "runtime"
+        / "conversation-logs"
+        / "daily"
+        / "2026-10-13__R1"
+        / "ai-o"
+    )
+    assert (
+        conversation_logs / "main__ROOT-ONE.jsonl"
+    ).read_bytes().endswith(b"RAW_DAILY_CONVERSATION\n")
+    assert "thread_id=ROOT-ONE" in (conversation_logs / "status.txt").read_text(
+        encoding="utf-8"
+    )
     assert all(not path.exists() for path in instances[0].calls)
     runner.sync_daily_checkpoint(legacy_v2)
     assert runner.root_metadata()["closed"] is True

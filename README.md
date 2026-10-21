@@ -11,7 +11,7 @@
 
 ## 主な場所
 
-- **automation/inago/**：日次処理、CLI、データ管理、アダプター、保守workerの実装。
+- **automation/inago/**：日次処理、CLI、データ管理、会話ログ同期、アダプター、保守workerの実装。
 - **tests_inago/**：日次・保守処理のpytest試験とfixture。
 - **docs/**：仕様、構成資料、運用標準、テンプレート。
 - **plans/**：要件、実装、準備、保守の計画。
@@ -21,6 +21,6 @@
 
 ## ローカル環境とデータ
 
-**.venv-inago/**、**node_modules/**、キャッシュ類はローカルの実行・開発環境です。**rakuten-room-inago/runtime/**と**rakuten-room-inago/backups/**には日次運用の状態やバックアップが保存され、Git管理対象外です。**非公開作業データ/**と認証情報も公開資料・コミットへ含めないでください。
+**.venv-inago/**、**node_modules/**、キャッシュ類はローカルの実行・開発環境です。**rakuten-room-inago/runtime/**と**rakuten-room-inago/backups/**には日次運用の状態、Codex会話ログの原本コピー、バックアップが保存され、Git管理対象外です。**非公開作業データ/**と認証情報も公開資料・コミットへ含めないでください。
 
 固定された作業場所、試験、Git操作などのルールは[AGENTS.md](AGENTS.md)を参照してください。

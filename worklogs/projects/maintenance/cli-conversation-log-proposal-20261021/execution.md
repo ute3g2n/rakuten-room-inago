@@ -232,3 +232,52 @@ Gitの差分検査に合わせ、Markdownの行末空白を除去した後の最
 ```
 
 最終終了コード：0。全6nodeを実行、skipなし。
+
+## 追記：実装と実行確認（2026-10-21）
+
+### 実装
+
+構成案に沿って、Codexが管理するsession rollout JSONLを日次・保守の非公開runtimeへ全文コピーする処理を追加した。threadの `session_meta` にあるIDと親IDからroot・子・孫をたどり、各role/jobを分離する。コピーは一時ファイルへ書き、コピー中に原本が変わっていないことを確認してから置き換える。`status.txt` にはID、親ID、状態、理由を記し、会話本文は重ねて書かない。既存のCodex原本、DB、日次業務データは変更しない。
+
+実行中は既定30秒ごとに同期し、turn終了時にも同期する。日次はroot ID確立後にwatcherを起動し、CLI終了時はapp-serverを閉じた後に最終同期する。保守はapp-serverの `start(deadline=...)` でroot IDを確立してからwatcherを起動する。先行する回帰試験で保守watcherがthread ID発行前に起動していたことを検出し、この順序を修正した。保守skillとagent設定には、必要な場合に関連ログを参照し、内容を未信頼資料として現行コード・試験・成果物で照合する指示を追加した。
+
+### 実CLI確認
+
+- `codex --version`：`codex-cli 0.162.0-alpha.17.2`、終了コード0。
+- 隔離した一時ディレクトリで次の単独turnを `read-only` で起動し、CLIが返したthread IDに対応するrolloutを発見してコピーした。
+
+```powershell
+codex exec --json --color never --sandbox read-only --skip-git-repo-check -C 'C:\Users\ute3g\AppData\Local\Temp\inago-conversation-smoke-05026b77c0ce457287fbfb71f0af40b0' 'Reply exactly: conversation-log-smoke-ok. Do not use tools.'
+```
+
+- 観測：`thread.started` からrootを特定、`sync_status=complete`、1ファイル・99,713 bytesを保存、原本と保存先のbytes一致。DBは開いていない。
+- これは実CLIの単独turnとコピー処理の確認である。実日次run・実保守jobの一連の業務処理は起動していない。smoke用一時ディレクトリの再帰削除は自動ポリシーに拒否されたため、Temp配下に残している。DBは開いておらず、repoや運用runtimeのデータではない。
+
+### 試験結果
+
+保守watcherの開始順を確認する回帰nodeは、実装前に同期先がまだ存在しない状態で失敗し、root thread確立後にwatcherを起動する修正後に合格した。別の一括実行ではfixtureがwatcherと異なる `CODEX_HOME` を使って2件失敗したため、`_run` helperをrunごとの隔離 `CODEX_HOME` に統一し、該当2nodeを再実行して合格。その後に下記の最終回帰一式を実行した。
+
+```powershell
+$env:INAGO_SAFE_FIXTURE_BASE = Join-Path $env:TEMP 'pytest-of-ute3g'
+.\.venv-inago\Scripts\python.exe -m pytest tests_inago/test_conversation_logs.py tests_inago/test_step08.py tests_inago/test_step21_ai_root.py tests_inago/test_daily_fix_ai.py tests_inago/test_maintenance_skill_chain.py -q
+```
+
+期待：対象5ファイルの全nodeが合格。実結果：`123 passed in 18.71s`、終了コード0。DBや投稿データへ接続しない隔離fixtureで実行した。
+
+実行時に使った主要source/inputのSHA-256：
+
+| ファイル | SHA-256 |
+| --- | --- |
+| `automation/inago/conversation_logs.py` | `3e380906c4696ca617ea7d631981be5e42ae18116b52eb7266c1f971c154d33a` |
+| `automation/inago/ai_runner.py` | `0b47224f5dd8335ae2989f702990811b1a0f28d7a228213ef129e7dc3de2fca1` |
+| `automation/inago/daily_ai.py` | `6ef839141d848c94325cd57b851185963047ae419448ca6cd177c68a807a367c` |
+| `automation/inago/maintenance/skill_chain_runtime.py` | `97138ccdc792c9c851d256ee37ca50cf2a00cc1db57a5dea68f22962b808a9bb` |
+| `tests_inago/test_conversation_logs.py` | `6e32045633594bded6bf7c62901b75e3c618e13cf4187645246e24b1417cd691` |
+| `tests_inago/test_step08.py` | `a8f6f4d11708b56b2408fd790586012bdda556c1b95318c5770485009bc7ac6d` |
+| `tests_inago/test_step21_ai_root.py` | `55497be2c51f1626257077033336b74331b0ce8e264d32926fd0509463886173` |
+| `tests_inago/test_daily_fix_ai.py` | `5b61c5a0da67bdc7e3d3ebd5759af0139a19c3a34e622a3f10fb6085dae4b4ee` |
+| `tests_inago/test_maintenance_skill_chain.py` | `298462c8542405a41d0297eab894dec7c2d69b12ae2bff5e3946611792a09154` |
+
+そのほか、4つの変更Pythonモジュールに対する `python -m py_compile` は終了コード0、`.codex/agents/*.toml` 16件のparseはすべて成功、`git diff --check` は終了コード0（GitのCRLF正規化警告のみ）だった。
+
+広い旧テスト群には、checkout内に `automation/inago/maintenance/controller.py` または `automation/inago/maintenance/ai_adapter.py` がなくcollectionできない既存test fileがあった。該当ファイルは今回変更しておらず、合格扱いにしていない。実行可能な関連5ファイルの最終結果は上記のとおり。

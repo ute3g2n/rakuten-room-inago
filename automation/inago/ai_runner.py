@@ -26,6 +26,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from automation.inago.clock import Clock, SystemClock
+from automation.inago.conversation_logs import iter_rollout_paths, read_rollout_header
 from automation.inago.contracts import (
     AIJobRequest,
     AIJobResult,
@@ -412,22 +413,6 @@ def _read_rollout(path: Path) -> tuple[dict[str, Any], ...] | None:
     return tuple(events)
 
 
-def _read_rollout_header(path: Path) -> Mapping[str, Any] | None:
-    """Check parent identity before reading another session's messages."""
-    try:
-        with path.open("r", encoding="utf-8") as stream:
-            line = stream.readline(1024 * 1024 + 1)
-        if len(line) > 1024 * 1024:
-            return None
-        event = json.loads(line)
-        if not isinstance(event, Mapping) or event.get("type") != "session_meta":
-            return None
-        payload = event.get("payload")
-        return payload if isinstance(payload, Mapping) else None
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return None
-
-
 def _rollout_meta(events: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
     for event in events:
         if event.get("type") == "session_meta":
@@ -659,22 +644,11 @@ class AIJobRunner:
             environment.get("CODEX_HOME") or (Path.home() / ".codex")
         ).expanduser()
         sessions_root = codex_home / "sessions"
-        day_directories: list[Path] = []
-        current_day = first_day
-        while current_day <= last_day:
-            day_directories.append(
-                sessions_root
-                / f"{current_day.year:04d}"
-                / f"{current_day.month:02d}"
-                / f"{current_day.day:02d}"
-            )
-            current_day += timedelta(days=1)
-
+        rollout_paths = iter_rollout_paths(sessions_root, first_day, last_day)
         root_paths = [
             path
-            for directory in day_directories
-            if directory.is_dir()
-            for path in directory.glob(f"rollout-*-{thread_id}.jsonl")
+            for path in rollout_paths
+            if path.name.endswith(f"-{thread_id}.jsonl")
         ]
         if len(root_paths) != 1:
             return None
@@ -691,54 +665,51 @@ class AIJobRunner:
         calls = _spawn_calls(root_events)
         call_counts = Counter(str(call["agent_type"]).casefold() for call in calls)
         children: list[_ObservedSubagent] = []
-        for directory in day_directories:
-            if not directory.is_dir():
+        for path in rollout_paths:
+            if path == root_paths[0]:
                 continue
-            for path in directory.glob("rollout-*.jsonl"):
-                if path == root_paths[0]:
-                    continue
-                header = _read_rollout_header(path)
-                if (
-                    header is None
-                    or header.get("parent_thread_id") != thread_id
-                    or header.get("thread_source") != "subagent"
-                ):
-                    continue
-                events = _read_rollout(path)
-                if events is None:
-                    continue
-                meta = _rollout_meta(events)
-                if (
-                    not isinstance(meta, Mapping)
-                    or meta.get("parent_thread_id") != thread_id
-                    or meta.get("thread_source") != "subagent"
-                ):
-                    continue
-                if self.trace_window_by_job and not any(
-                    event.get("type") == "session_meta"
-                    for event in _rollout_in_window(events, first_time, last_time)
-                ):
-                    continue
-                agent_type = meta.get("agent_role")
-                child_thread_id = meta.get("id")
-                agent_path = meta.get("agent_path")
-                if (
-                    not isinstance(agent_type, str)
-                    or not agent_type.strip()
-                    or not isinstance(child_thread_id, str)
-                    or not isinstance(agent_path, str)
-                    or not agent_path.startswith("/root/")
-                ):
-                    continue
-                model, reasoning = _rollout_settings(events)
-                children.append(
-                    _ObservedSubagent(
-                        agent_type=agent_type.strip(),
-                        thread_id=child_thread_id,
-                        model=model,
-                        reasoning_setting=reasoning,
-                    )
+            header = read_rollout_header(path)
+            if (
+                header is None
+                or header.get("parent_thread_id") != thread_id
+                or header.get("thread_source") != "subagent"
+            ):
+                continue
+            events = _read_rollout(path)
+            if events is None:
+                continue
+            meta = _rollout_meta(events)
+            if (
+                not isinstance(meta, Mapping)
+                or meta.get("parent_thread_id") != thread_id
+                or meta.get("thread_source") != "subagent"
+            ):
+                continue
+            if self.trace_window_by_job and not any(
+                event.get("type") == "session_meta"
+                for event in _rollout_in_window(events, first_time, last_time)
+            ):
+                continue
+            agent_type = meta.get("agent_role")
+            child_thread_id = meta.get("id")
+            agent_path = meta.get("agent_path")
+            if (
+                not isinstance(agent_type, str)
+                or not agent_type.strip()
+                or not isinstance(child_thread_id, str)
+                or not isinstance(agent_path, str)
+                or not agent_path.startswith("/root/")
+            ):
+                continue
+            model, reasoning = _rollout_settings(events)
+            children.append(
+                _ObservedSubagent(
+                    agent_type=agent_type.strip(),
+                    thread_id=child_thread_id,
+                    model=model,
+                    reasoning_setting=reasoning,
                 )
+            )
 
         child_counts = Counter(child.agent_type.casefold() for child in children)
         incomplete_calls = any(not call["completed"] for call in calls)
@@ -1315,6 +1286,9 @@ class AIJobRunner:
             "jsonl_valid",
             "spawn_count",
             "sandbox_mode",
+            "conversation_log_status",
+            "conversation_log_reason_code",
+            "conversation_log_copied_count",
         }
         for key, value in fields.items():
             if key not in allowed_fields:
