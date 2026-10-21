@@ -747,8 +747,9 @@ def test_1750_start_applies_reports_then_continues_daily_search(
     )
 
 
+@pytest.mark.parametrize("manual", [False, True])
 def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
-    runtime_case: RuntimeCase, fixture_config_path: Path
+    runtime_case: RuntimeCase, fixture_config_path: Path, manual: bool
 ) -> None:
     runtime_case.clock.current = datetime(2026, 10, 12, 12, 59, 59, tzinfo=JST)
     bundle = _make_ports(runtime_case)
@@ -758,6 +759,7 @@ def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
     exit_code = run_cli(
         [
             "daily",
+            *(["--manual"] if manual else []),
             "--config",
             str(fixture_config_path),
             "--data-root",
@@ -774,10 +776,10 @@ def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
     )
 
     assert exit_code == 0
-    assert json.loads(stdout.getvalue())["status"] == "not_due"
+    assert json.loads(stdout.getvalue())["status"] == ("complete" if manual else "not_due")
     assert stderr.getvalue() == ""
     assert (
-        runtime_case.connection.execute("SELECT COUNT(*) FROM run").fetchone()[0] == 0
+        runtime_case.connection.execute("SELECT COUNT(*) FROM run").fetchone()[0] == int(manual)
     )
 
 

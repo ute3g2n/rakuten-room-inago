@@ -1,0 +1,73 @@
+F.F                                                                      [100%]
+================================== FAILURES ===================================
+________________ test_related_widget_waits_for_nonzero_layout _________________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/widget-red/test_related_widget_waits_for_0')
+ui_server = {'html': '', 'status': 200, 'requests': ['/trends/', '/trends/explore?date=today+12-m&geo=JP&q=%E9%9B%BB%E5%AD%90%E3%8...an\');if(refreshedRelatedNode)refreshedRelatedNode.replaceWith(refreshedRelatedNode.cloneNode(true));}</script>'}, ...}
+
+    def test_related_widget_waits_for_nonzero_layout(tmp_path, ui_server):
+        html = browser_fixtures.trends_html(count=20, refresh_after_period=True).replace(
+            '<div class="fe-related-queries"><h2>�֘A�L�[���[�h</h2>',
+            '<div class="fe-related-queries" style="width:0;height:0;overflow:hidden"><h2>�֘A�L�[���[�h</h2>',
+        )
+        snapshot, response, events = _n08_fetch(
+            tmp_path, ui_server, "layout-pending",
+            _n08_period_page(
+                html, inject_period_script=True,
+                on_period_selected="setTimeout(()=>{document.querySelectorAll('.fe-related-queries')[1].removeAttribute('style')},650)",
+            ),
+        )
+>       assert snapshot.status == "observed", response.get("error_code")
+E       AssertionError: query_widget_contract_mismatch
+E       assert 'unavailable' == 'observed'
+E         
+E         - observed
+E         + unavailable
+
+tests_inago\test_daily_fix_trends.py:454: AssertionError
+_ test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[True] _
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001443A43A110>, data_root=WindowsPath('C:/project/rakuten-ro...urrent=datetime.datetime(2026, 10, 12, 12, 59, 59, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+fixture_config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+manual = True
+
+    @pytest.mark.parametrize("manual", [False, True])
+    def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
+        runtime_case: RuntimeCase, fixture_config_path: Path, manual: bool
+    ) -> None:
+        runtime_case.clock.current = datetime(2026, 10, 12, 12, 59, 59, tzinfo=JST)
+        bundle = _make_ports(runtime_case)
+        stdout = StringIO()
+        stderr = StringIO()
+    
+        exit_code = run_cli(
+            [
+                "daily",
+                *(["--manual"] if manual else []),
+                "--config",
+                str(fixture_config_path),
+                "--data-root",
+                str(runtime_case.data_root),
+            ],
+            ports=DailyCLIContext(
+                connection=runtime_case.connection,
+                data_root=runtime_case.data_root,
+                ports=bundle.ports,
+                clock=runtime_case.clock,
+            ),
+            stdout=stdout,
+            stderr=stderr,
+        )
+    
+        assert exit_code == 0
+>       assert json.loads(stdout.getvalue())["status"] == ("complete" if manual else "not_due")
+E       AssertionError: assert 'not_due' == 'complete'
+E         
+E         - complete
+E         + not_due
+
+tests_inago\test_step13.py:779: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trends.py::test_related_widget_waits_for_nonzero_layout
+FAILED tests_inago/test_step13.py::test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[True]
+2 failed, 1 passed in 3.04s

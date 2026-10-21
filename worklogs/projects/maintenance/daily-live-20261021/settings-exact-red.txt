@@ -1,0 +1,53 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_reimport_after_document_move_preserves_existing_settings ________
+
+settings_db = <sqlite3.Connection object at 0x000001D68997AF20>
+settings_inputs = ({'artifact_kind': 'external_analysis_result', 'version': 'confirmed-0.3-step46-all132', 'generated_at': '2026-10-12T1...n': '1.0', 'version': 'detailed-writing-rules-candidate-0.1-step68', 'generated_at': '2026-10-12T16:09:10+09:00', ...})
+
+    def test_reimport_after_document_move_preserves_existing_settings(settings_db, settings_inputs):
+        basic, detailed = settings_inputs
+        register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
+        row = _settings_row(settings_db, SETTINGS_VERSION)
+        reason = json.loads(row["change_reason"])
+        reason["source"]["settings_path"] = "plan/�C�i�S�X�L�����O����/�����ݒ���n��.json"
+        legacy_reason = json.dumps(reason, ensure_ascii=False, separators=(",", ":"))
+        settings_db.execute("UPDATE settings_version SET change_reason=?", (legacy_reason,))
+        settings_db.commit()
+        before = tuple(_settings_row(settings_db, SETTINGS_VERSION))
+    
+>       result = register_external_settings(settings_db, basic, detailed, created_at="2026-10-21T09:00:00+09:00")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_step04.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\settings.py:671: in register_external_settings
+    _store_settings_version(connection, entity)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = <sqlite3.Connection object at 0x000001D68997AF20>
+entity = {'version': 'confirmed-0.3-step46-all132', 'confirmed_at': None, 'genres': [{'genre_id': 'G01', 'name': '�H�i�E����', 'defi... {'theme_id': 'G01-T06', 'genre_id': 'G01', 'name': '�����E���E��', 'definition': '���A���A�R�[�q�[�A���������A��ށA�����p���i�B', ...}, ...], ...}
+
+    def _store_settings_version(
+        connection: sqlite3.Connection, entity: Mapping[str, Any]
+    ) -> None:
+        owns_transaction = not connection.in_transaction
+        if owns_transaction:
+            connection.execute("BEGIN IMMEDIATE")
+        else:
+            connection.execute(f"SAVEPOINT {_SETTINGS_SAVEPOINT}")
+        try:
+            existing = connection.execute(
+                "SELECT * FROM settings_version WHERE version = ?", (entity["version"],)
+            ).fetchone()
+            if existing is not None:
+                if not _row_matches_entity(existing, entity):
+>                   raise IdempotencyConflict(
+                        f"settings version {entity['version']} already has different content"
+                    )
+E                   automation.inago.contracts.IdempotencyConflict: settings version confirmed-0.3-step46-all132 already has different content
+
+automation\inago\settings.py:530: IdempotencyConflict
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step04.py::test_reimport_after_document_move_preserves_existing_settings
+1 failed in 0.63s

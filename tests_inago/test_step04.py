@@ -75,7 +75,7 @@ def test_reimport_after_document_move_preserves_existing_settings(settings_db, s
     register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
     row = _settings_row(settings_db, SETTINGS_VERSION)
     reason = json.loads(row["change_reason"])
-    reason["source"]["settings_path"] = "plan/イナゴスキル準備/初期設定引渡し.json"
+    reason["source"]["settings_path"] = "plan/イナゴスキル事前準備/初期設定引渡し.json"
     legacy_reason = json.dumps(reason, ensure_ascii=False, separators=(",", ":"))
     settings_db.execute("UPDATE settings_version SET change_reason=?", (legacy_reason,))
     settings_db.commit()
@@ -91,7 +91,7 @@ def test_document_move_does_not_hide_changed_settings_provenance(settings_db, se
     basic, detailed = settings_inputs
     register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
     reason = json.loads(_settings_row(settings_db, SETTINGS_VERSION)["change_reason"])
-    reason["source"]["settings_path"] = "plan/イナゴスキル準備/初期設定引渡し.json"
+    reason["source"]["settings_path"] = "plan/イナゴスキル事前準備/初期設定引渡し.json"
     reason["source"]["confirmation_ref"] = "different-confirmation.md"
     settings_db.execute("UPDATE settings_version SET change_reason=?", (json.dumps(reason),))
     settings_db.commit()

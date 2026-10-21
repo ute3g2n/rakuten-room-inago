@@ -439,6 +439,23 @@ def _n08_fetch(tmp_path, ui_server, case: str, explore_html: str):
     return snapshot, response, observation["node_events"]
 
 
+def test_related_widget_waits_for_nonzero_layout(tmp_path, ui_server):
+    html = browser_fixtures.trends_html(count=20, refresh_after_period=True).replace(
+        '<div class="fe-related-queries"><h2>関連キーワード</h2>',
+        '<div class="fe-related-queries" style="width:0;height:0;overflow:hidden"><h2>関連キーワード</h2>',
+    )
+    snapshot, response, events = _n08_fetch(
+        tmp_path, ui_server, "layout-pending",
+        _n08_period_page(
+            html, inject_period_script=True,
+            on_period_selected="setTimeout(()=>{document.querySelectorAll('.fe-related-queries')[1].removeAttribute('style')},650)",
+        ),
+    )
+    assert snapshot.status == "observed", response.get("error_code")
+    assert len(snapshot.words) == 20
+    assert any(event.get("stage") == "trends_related_widget_wait_ready" for event in events)
+
+
 def test_n08(tmp_path, ui_server):
     """Distinguish absent, duplicated, wrong-type, hidden, and exact widgets."""
 
