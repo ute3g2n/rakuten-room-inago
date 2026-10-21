@@ -382,6 +382,7 @@ def test_n20m_ai_cancel_confirmation_is_reset_for_each_job():
             settings_version=SETTINGS_VERSION,
             input_refs=("INPUT-N20M",),
             evidence_refs=(),
+            input_payload={"fixture_job_id": job_id},
             deadline_at=NOW,
             deadline_monotonic=deadline,
         )
@@ -432,6 +433,7 @@ def test_n20p_ai_cancel_confirmation_is_job_scoped_after_request_identity_change
             settings_version=SETTINGS_VERSION,
             input_refs=("INPUT-N20P",),
             evidence_refs=(),
+            input_payload={"fixture_job_id": job_id},
             deadline_at=NOW,
             deadline_monotonic=deadline,
         )

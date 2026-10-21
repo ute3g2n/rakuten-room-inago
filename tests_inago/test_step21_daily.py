@@ -1041,7 +1041,7 @@ def test_initial_eleven_are_replenished_by_four_from_one_new_theme(runtime_case)
     assert state["theme_targets"][bundle.planner.calls[-1]] == 4
 
 
-def test_fifty_source_rows_are_saved_but_only_five_per_theme_are_assigned(runtime_case):
+def test_twenty_five_source_rows_are_saved_but_only_five_per_theme_are_assigned(runtime_case):
     bundle = current_bundle(runtime_case, counts=(80,))
     outcome = _run(runtime_case, bundle)
     assert outcome.committed_count == 15 and outcome.attempt_used == 3
@@ -1050,7 +1050,7 @@ def test_fifty_source_rows_are_saved_but_only_five_per_theme_are_assigned(runtim
         "SELECT observed_posts,loaded_posts,end_reason FROM search_attempt WHERE run_id=? ORDER BY attempt_no",
         (RUN_ID,),
     ).fetchall()
-    assert [tuple(row) for row in rows] == [(50, 80, "limit_reached")] * 3
+    assert [tuple(row) for row in rows] == [(25, 80, "limit_reached")] * 3
     state = json.loads(
         runtime_case.connection.execute(
             "SELECT checkpoint FROM run WHERE run_id=?", (RUN_ID,)
