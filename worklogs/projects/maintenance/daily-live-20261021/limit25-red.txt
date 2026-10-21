@@ -1,0 +1,74 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+________________ test_new_daily_searches_take_twenty_five_rows ________________
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x00000284F70027A0>, data_root=WindowsPath('C:/project/rakuten-ro...ock(current=datetime.datetime(2026, 10, 12, 13, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+
+    def test_new_daily_searches_take_twenty_five_rows(runtime_case):
+        bundle = _make_ports(runtime_case, posts_per_search=30)
+    
+        result = _run(runtime_case, bundle)
+    
+        assert result.status == "complete" and result.committed_count == 15
+        assert len(bundle.room.requests) == 3
+>       assert all(request.max_posts == 25 for request in bundle.room.requests)
+E       assert False
+E        +  where False = all(<generator object test_new_daily_searches_take_twenty_five_rows.<locals>.<genexpr> at 0x00000284F548A670>)
+
+tests_inago\test_daily_live_limits.py:21: AssertionError
+____________ test_browser_stops_product_resolution_at_twenty_five _____________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/limit25-red/test_browser_stops_product_res0')
+ui_server = {'html': '<input id="search-box" value="�������"><div class="search-detail-wrap" onclick="const popup=document.querySelec...');history.replaceState({},\'\',url);document.querySelector(\'#period-menu\').style.display=\'none\';}</script>'}, ...}
+
+    def test_browser_stops_product_resolution_at_twenty_five(tmp_path, ui_server):
+        ui_server["html"] = room_html(80, initial=30)
+        port = source(tmp_path, ui_server)
+        request = replace(room_request(), max_posts=25, deadline_at=None)
+    
+        result = port.search(request)
+    
+>       assert result["status"] == "observed", result.get("error_code")
+E       AssertionError: invalid_request
+E       assert 'unavailable' == 'observed'
+E         
+E         - observed
+E         + unavailable
+
+tests_inago\test_daily_live_limits.py:36: AssertionError
+________________ test_v7_preserves_v6_searches_and_references _________________
+
+legacy_v2 = <sqlite3.Connection object at 0x00000284F6E948B0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000284F55E10D0>
+
+    def test_v7_preserves_v6_searches_and_references(legacy_v2, monkeypatch):
+        _v6(legacy_v2, monkeypatch)
+        before = _rows(legacy_v2)
+    
+>       assert repository.initialize_database(legacy_v2) == 7
+E       assert 6 == 7
+E        +  where 6 = <function initialize_database at 0x00000284F5526FC0>(<sqlite3.Connection object at 0x00000284F6E948B0>)
+E        +    where <function initialize_database at 0x00000284F5526FC0> = repository.initialize_database
+
+tests_inago\test_daily_live_limits.py:64: AssertionError
+________ test_v7_rejects_unreviewed_custom_objects_without_losing_data ________
+
+legacy_v2 = <sqlite3.Connection object at 0x00000284F6E94A90>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000284F55E0440>
+
+    def test_v7_rejects_unreviewed_custom_objects_without_losing_data(legacy_v2, monkeypatch):
+        _v6(legacy_v2, monkeypatch)
+        legacy_v2.execute("CREATE INDEX custom_search_query ON search_attempt(query)")
+        before = _rows(legacy_v2)
+    
+>       with pytest.raises(UnsupportedSchemaVersion):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE UnsupportedSchemaVersion
+
+tests_inago\test_daily_live_limits.py:86: Failed
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_live_limits.py::test_new_daily_searches_take_twenty_five_rows
+FAILED tests_inago/test_daily_live_limits.py::test_browser_stops_product_resolution_at_twenty_five
+FAILED tests_inago/test_daily_live_limits.py::test_v7_preserves_v6_searches_and_references
+FAILED tests_inago/test_daily_live_limits.py::test_v7_rejects_unreviewed_custom_objects_without_losing_data
+4 failed in 2.71s
