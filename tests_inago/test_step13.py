@@ -1433,6 +1433,31 @@ def test_daily_flow_continues_after_1745_and_1800(
     assert len(later_bundle.metrics.calls) == 1
 
 
+def test_room_budget_accepts_slow_fifty_product_observation(
+    runtime_case: RuntimeCase,
+) -> None:
+    bundle = _make_ports(
+        runtime_case,
+        posts_per_search=5,
+        finish_after_call=1,
+        advance_seconds=485,
+    )
+
+    outcome = _run(runtime_case, bundle)
+
+    assert outcome.status == "complete"
+    assert outcome.committed_count == 15
+    assert len(bundle.room.requests) == 3
+    assert bundle.cancellations == []
+    first = bundle.room.requests[0]
+    remaining = datetime.fromisoformat(first.deadline_at) - datetime.fromisoformat(NOW)
+    assert 30 * first.max_posts <= remaining.total_seconds() <= 1800
+    assert runtime_case.connection.execute(
+        "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
+        (RUN_ID,),
+    ).fetchone()[0] == 0
+
+
 def _advance_clock_past_request_timeout(
     runtime_case: RuntimeCase, started: threading.Event
 ) -> None:

@@ -1,0 +1,30 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_room_budget_accepts_slow_fifty_product_observation ___________
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x0000020968D356C0>, data_root=WindowsPath('C:/project/rakuten-ro...urrent=datetime.datetime(2026, 10, 12, 13, 8, 5, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=485.0))
+
+    def test_room_budget_accepts_slow_fifty_product_observation(
+        runtime_case: RuntimeCase,
+    ) -> None:
+        bundle = _make_ports(
+            runtime_case,
+            posts_per_search=5,
+            finish_after_call=1,
+            advance_seconds=485,
+        )
+    
+        outcome = _run(runtime_case, bundle)
+    
+        assert outcome.status == "complete"
+        assert outcome.committed_count == 15
+>       assert len(bundle.room.requests) == 3
+E       AssertionError: assert 4 == 3
+E        +  where 4 = len([RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')])
+E        +    where [RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')] = <test_step13.FakeRoomPort object at 0x0000020968DBBC20>.requests
+E        +      where <test_step13.FakeRoomPort object at 0x0000020968DBBC20> = PortsBundle(ports=DailyPorts(current_settings_version=<function _make_ports.<locals>.current_settings_version at 0x000...t 0x0000020968DBBDD0>, cancellations=['STEP13-RUN'], intake=<test_step13.FakeOfferIntake object at 0x0000020968DBBB90>).room
+
+tests_inago\test_step13.py:1450: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step13.py::test_room_budget_accepts_slow_fifty_product_observation
+1 failed in 1.61s
