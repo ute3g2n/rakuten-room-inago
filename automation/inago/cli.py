@@ -718,6 +718,7 @@ def main(
                 ports=ports.ports,
                 clock=ports.clock,
                 manual=args.manual,
+                cause_resolved=args.cause_resolved,
             )
         except Exception as exc:
             _emit(

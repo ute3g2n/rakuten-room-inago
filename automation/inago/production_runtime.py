@@ -1999,6 +1999,7 @@ def run_production_daily(
             clock=selected_clock,
             on_draft_commit=on_draft_commit,
             manual=manual,
+            cause_resolved=cause_resolved,
         )
 
     def export_dashboard(_context: Any) -> Mapping[str, Any]:
@@ -2398,7 +2399,7 @@ def _startup_preflight_setup_failure(exc: ProductionRuntimeError) -> str:
 def _startup_preflight_database(
     config: ProductionRuntimeConfig,
 ) -> tuple[str | None, str | None]:
-    """Inspect SQLite without recovery, journal creation, or schema mutation."""
+    """Read committed SQLite state without application writes or schema mutation."""
 
     from automation.inago.repository import schema_version
 
@@ -2410,12 +2411,15 @@ def _startup_preflight_database(
             return "database_path_invalid", None
         if not database_path.is_file():
             return "database_missing", None
-        for suffix in ("-wal", "-journal"):
-            sidecar = Path(f"{database_path}{suffix}")
-            if sidecar.is_file() and sidecar.stat().st_size > 0:
-                return "database_recovery_pending", None
-        database_uri = (
-            f"{database_path.resolve(strict=True).as_uri()}?mode=ro&immutable=1"
+        journal = Path(f"{database_path}-journal")
+        if journal.is_file() and journal.stat().st_size > 0:
+            return "database_recovery_pending", None
+        wal = Path(f"{database_path}-wal")
+        has_wal = wal.is_file() and wal.stat().st_size > 0
+        # Committed WAL records are ordinary SQLite state, including after a
+        # process exits. immutable=1 ignores them and can observe stale data.
+        database_uri = f"{database_path.resolve(strict=True).as_uri()}?mode=ro" + (
+            "" if has_wal else "&immutable=1"
         )
         connection = sqlite3.connect(
             database_uri,

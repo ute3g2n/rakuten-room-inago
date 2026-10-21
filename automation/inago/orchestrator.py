@@ -2362,6 +2362,7 @@ def run_daily(
     seed_factory: Callable[[], str] | None = None,
     on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
     manual: bool = False,
+    cause_resolved: bool = False,
 ) -> DailyRunOutcome:
     """Run or resume today's finite daily flow under its shared runtime lock."""
 
@@ -2498,6 +2499,25 @@ def run_daily(
             diagnostic_trace=run_trace,
         )
         run_id = str(run["run_id"])
+        if resumed and cause_resolved:
+            _, previous_state = _daily_state(run["checkpoint"])
+            previous_count = int(previous_state.get("error_count", 0))
+            if previous_count:
+                previous_state.setdefault("resolved_error_batches", []).append(
+                    {
+                        "resolved_at": _now(system_clock).isoformat(),
+                        "error_count": previous_count,
+                        "errors": list(previous_state.get("errors", [])),
+                        "primary_error": previous_state.get("primary_error"),
+                    }
+                )
+                previous_state.update(error_count=0, errors=[])
+                previous_state.pop("primary_error", None)
+                previous_state.pop("recoverable_error_pending", None)
+                _save_state(connection, run_id, previous_state)
+                run = connection.execute(
+                    "SELECT * FROM run WHERE run_id=?", (run_id,)
+                ).fetchone()
         if run["status"] in {"complete", "missed"}:
             if run["status"] == "complete" and run["metrics_status"] in {
                 "pending",

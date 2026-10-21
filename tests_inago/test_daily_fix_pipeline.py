@@ -242,31 +242,53 @@ def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_pat
 
 
 @pytest.mark.parametrize("cause_resolved", [False, True])
-def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(monkeypatch, tmp_path, cause_resolved):
+def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(
+    monkeypatch, tmp_path, cause_resolved
+):
     from automation.inago.cli import production_daily_exit_code
-    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
+    from tests_inago.test_step23_12_daily_e2e import (
+        _make_daily_fixture,
+        _database_connection,
+    )
 
-    config, database_path, clock, source, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+    config, database_path, clock, source, *_ = _make_daily_fixture(
+        monkeypatch, tmp_path
+    )
     first = production_runtime.run_production_daily(config, clock=clock)
     assert first["committed_count"] == 15
     request_count = len(source.search_requests)
     connection = _database_connection(database_path)
     error = {"code": "ai_generation_error", "phase": "copy"}
     try:
-        checkpoint = json.loads(connection.execute("SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)).fetchone()[0])
-        checkpoint["daily_orchestration"].update(error_count=1, errors=[error], primary_error=error)
-        connection.execute("UPDATE run SET checkpoint=? WHERE run_id=?", (json.dumps(checkpoint), first["run_id"]))
+        checkpoint = json.loads(
+            connection.execute(
+                "SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)
+            ).fetchone()[0]
+        )
+        checkpoint["daily_orchestration"].update(
+            error_count=1, errors=[error], primary_error=error
+        )
+        connection.execute(
+            "UPDATE run SET checkpoint=? WHERE run_id=?",
+            (json.dumps(checkpoint), first["run_id"]),
+        )
         connection.commit()
     finally:
         connection.close()
 
-    result = production_runtime.run_production_daily(config, clock=clock, resume_confirmed=True, cause_resolved=cause_resolved)
+    result = production_runtime.run_production_daily(
+        config, clock=clock, resume_confirmed=True, cause_resolved=cause_resolved
+    )
     assert result["committed_count"] == 15
     assert production_daily_exit_code(result) == (0 if cause_resolved else 4)
     assert len(source.search_requests) == request_count
     connection = _database_connection(database_path)
     try:
-        checkpoint = json.loads(connection.execute("SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)).fetchone()[0])["daily_orchestration"]
+        checkpoint = json.loads(
+            connection.execute(
+                "SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)
+            ).fetchone()[0]
+        )["daily_orchestration"]
         if cause_resolved:
             assert checkpoint["error_count"] == 0
             assert checkpoint["resolved_error_batches"][-1]["errors"] == [error]
@@ -278,8 +300,13 @@ def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(monkeyp
         connection.close()
 
 
-def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(monkeypatch, tmp_path):
-    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
+def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(
+    monkeypatch, tmp_path
+):
+    from tests_inago.test_step23_12_daily_e2e import (
+        _make_daily_fixture,
+        _database_connection,
+    )
 
     config, database_path, *_ = _make_daily_fixture(monkeypatch, tmp_path)
     connection = _database_connection(database_path)
@@ -299,15 +326,17 @@ def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(monkey
         )
         connection.commit()
         assert production_runtime._startup_preflight_database(config) == (
-            None, "adopted_settings_mismatch"
+            None,
+            "adopted_settings_mismatch",
         )
         assert database_path.read_bytes() == before
     finally:
         connection.close()
 
 
+@pytest.mark.parametrize("fixed", [False, True])
 def test_manual_daily_resumes_corrected_widget_before_scheduled_hour(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, fixed
 ):
     from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture
 
@@ -331,7 +360,7 @@ def test_manual_daily_resumes_corrected_widget_before_scheduled_hour(
     monkeypatch.setattr(source, "fetch", broken_widget)
     failed = production_runtime.run_production_daily(config, clock=clock, manual=True)
     assert failed["status"] == "failed"
-    monkeypatch.setattr(source, "fetch", original_fetch)
+    monkeypatch.setattr(source, "fetch", original_fetch if fixed else broken_widget)
     result = production_runtime.run_production_daily(
         config,
         clock=clock,
@@ -340,7 +369,11 @@ def test_manual_daily_resumes_corrected_widget_before_scheduled_hour(
         cause_resolved=True,
     )
     assert result["run_id"] == failed["run_id"]
-    assert (result["status"], result["committed_count"]) == ("complete", 15)
+    if fixed:
+        assert (result["status"], result["committed_count"]) == ("complete", 15)
+    else:
+        assert result["status"] == "failed"
+        assert result["error_count"] == 1
 
 
 def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(

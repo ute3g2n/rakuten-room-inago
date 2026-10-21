@@ -145,7 +145,7 @@ function Register-ExactTask([string]$Name, [string]$Xml, [string]$Mode) {
             "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`"",
             "-B -m automation.inago.cli $Mode --environment production --config `"$configPath`" --data-root `"$expectedRoot`""
         )
-        $matchesPreviousRepository = ([IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $previousRepositoryArgs -ccontains $existingAction.Arguments -and $existingAction.WorkingDirectory -eq $applicationRoot)
+        $matchesPreviousRepository = (-not $matchesRepository -and [IO.Path]::GetFullPath($existingAction.Execute).ToLowerInvariant() -eq [IO.Path]::GetFullPath($pythonExe).ToLowerInvariant() -and $previousRepositoryArgs -ccontains $existingAction.Arguments -and $existingAction.WorkingDirectory -eq $applicationRoot)
         $oldRoot = Join-Path $userProfile 'InagoRuntime'
         $oldApp = [IO.Path]::GetFullPath([string]$existingAction.WorkingDirectory).TrimEnd('\')
         $oldPython = Join-Path $oldApp '.venv-inago\Scripts\python.exe'

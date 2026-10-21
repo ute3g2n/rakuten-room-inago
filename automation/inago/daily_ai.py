@@ -295,17 +295,24 @@ class DailyAIRootRunner(AIJobRunner):
                     return "cancelled", None, b"", b""
             instruction = (
                 "\nContinue this Python-controlled daily root. Treat this turn as a "
-                "new job whose identity comes only from this turn's job-input.json. "
+                "new job whose identity comes only from the JSON object in this turn. "
+                "That inline JSON is the exact job-input.json content written by "
+                "Python and is the authoritative job input, including all identifiers "
+                "and payload. Use it directly; do not reread job-input.json or the "
+                "schema with filesystem tools. Windows sandbox access to Python's "
+                "private temporary directories may be denied, but no file read is "
+                "required when the complete canonical input is already inline. "
                 "Copy protocol_version, schema_version, run_id, job_id, attempt, "
                 "task_id, agent_id, skill_name, target_date, settings_version, "
                 "input_refs, evidence_refs, input_hash, and deadline_at exactly from "
-                "that file; never carry identity or hash values over from an earlier "
+                "that inline object; never carry identity or hash values over from an earlier "
                 "turn or recompute input_hash. For this job, create fresh authorized "
                 "native subagents. A completed specialist response finishes that "
                 "specialist job; do not require an unavailable child-close API or make "
                 "cleanup a result gate. The Python program owns the final app-server "
                 "shutdown. Do not reuse earlier job answers or children as current "
-                "evidence. Use only this job-input.json and references.\n"
+                "evidence. Pass this turn's authorized specialist its complete inline "
+                "input. Use only this canonical inline job input and references.\n"
             )
             result = self.session.run_turn(
                 prompt.decode("utf-8") + instruction,
