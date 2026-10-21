@@ -139,6 +139,23 @@ def session(connection, clock, port, *, deadline_at=None):
     )
 
 
+def test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes(retry_case):
+    connection, clock = retry_case
+    port = SequencePort([response_for_dummy_unavailable("query_widget_contract_mismatch"), response_for])
+    with pytest.raises(trends.TrendsContractError):
+        session(connection, clock, port).fetch(THEME_WORD)
+    assert len(port.requests) == 1
+
+    result = session(connection, clock, port).fetch(THEME_WORD)
+
+    assert result.status == "response_ready"
+    assert result.attempts_used == 2
+    rows = attempts(connection)
+    assert rows[0][2:4] == ("processing_error", "query_widget_contract_mismatch")
+    assert rows[1][1:3] == (2, "response_ready")
+    assert rows[1][4] == rows[0][0]
+
+
 @pytest.mark.parametrize("leading_symbol", ["_", "-"])
 def test_urlsafe_run_seed_accepts_base64url_leading_symbols(
     retry_case, leading_symbol

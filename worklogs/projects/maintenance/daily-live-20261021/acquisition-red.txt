@@ -1,0 +1,70 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes ____
+
+retry_case = (<sqlite3.Connection object at 0x000001810CDEA980>, FakeClock(current=datetime.datetime(2026, 10, 14, 13, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+
+    def test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes(retry_case):
+        connection, clock = retry_case
+        port = SequencePort([response_for_dummy_unavailable("query_widget_contract_mismatch"), response_for])
+        with pytest.raises(trends.TrendsContractError):
+            session(connection, clock, port).fetch(THEME_WORD)
+        assert len(port.requests) == 1
+    
+>       result = session(connection, clock, port).fetch(THEME_WORD)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_step21_trends_retry.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <automation.inago.trends_adapter.DurableGroupKeywordSession object at 0x000001810CBF5040>
+query_word = '�d�q�����W'
+
+    def fetch(self, query_word: str) -> TrendsAcquisitionResult:
+        query = _required_text(query_word, "query_word")
+        self._ensure_acquisition(query)
+        while True:
+            row = self._load_acquisition()
+            status = str(row["status"])
+            attempts_used = int(row["attempts_used"])
+            if status == "collecting":
+                pending_success = self.connection.execute(
+                    "SELECT 1 FROM trends_acquisition_attempt WHERE acquisition_id=? "
+                    "AND status='response_ready' LIMIT 1",
+                    (self.acquisition_id,),
+                ).fetchone()
+                if pending_success is not None:
+                    self._set_acquisition_status("response_ready", None, None)
+                    row = self._load_acquisition()
+                    status = "response_ready"
+            if status == "response_ready":
+                if self.expire_pending_response_at_deadline():
+                    row = self._load_acquisition()
+                    return TrendsAcquisitionResult(
+                        self.acquisition_id,
+                        "deadline",
+                        int(row["attempts_used"]),
+                        None,
+                        row["next_retry_at"],
+                    )
+                return self._saved_response(row)
+            if status in {"observed", "normal_zero"}:
+                return self._saved_adopted_snapshot(row)
+            if status in {"exhausted", "deadline"}:
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    status,
+                    attempts_used,
+                    None,
+                    row["next_retry_at"],
+                )
+            if status == "processing_error":
+>               raise TrendsContractError(
+                    "saved Trends acquisition is a processing error and requires diagnosis"
+                )
+E               automation.inago.trends_adapter.TrendsContractError: saved Trends acquisition is a processing error and requires diagnosis
+
+automation\inago\trends_adapter.py:1981: TrendsContractError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_trends_retry.py::test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes
+1 failed in 0.61s

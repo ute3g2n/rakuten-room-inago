@@ -775,8 +775,8 @@ def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
         stderr=stderr,
     )
 
-    assert exit_code == 0
-    assert json.loads(stdout.getvalue())["status"] == ("complete" if manual else "not_due")
+    assert exit_code == (5 if manual else 0)
+    assert json.loads(stdout.getvalue())["status"] == ("shortfall" if manual else "not_due")
     assert stderr.getvalue() == ""
     assert (
         runtime_case.connection.execute("SELECT COUNT(*) FROM run").fetchone()[0] == int(manual)

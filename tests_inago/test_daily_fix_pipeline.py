@@ -239,6 +239,31 @@ def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_pat
     assert result["preservation"]["status"] == "ready"
 
 
+def test_manual_daily_resumes_corrected_widget_before_scheduled_hour(monkeypatch, tmp_path):
+    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture
+
+    config, _db, _clock, source, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+    clock = FakeClock(datetime.fromisoformat("2026-10-15T09:15:00+09:00"))
+    original_fetch = source.fetch
+
+    def broken_widget(request):
+        response = original_fetch(request)
+        response.update(status="unavailable", words=[], current_parent=None, refresh_complete=False,
+                        fetched_at=None, error_code="query_widget_contract_mismatch")
+        response.pop("ui_period_label", None)
+        return response
+
+    monkeypatch.setattr(source, "fetch", broken_widget)
+    failed = production_runtime.run_production_daily(config, clock=clock, manual=True)
+    assert failed["status"] == "failed"
+    monkeypatch.setattr(source, "fetch", original_fetch)
+    result = production_runtime.run_production_daily(
+        config, clock=clock, manual=True, resume_confirmed=True, cause_resolved=True,
+    )
+    assert result["run_id"] == failed["run_id"]
+    assert (result["status"], result["committed_count"]) == ("complete", 15)
+
+
 def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(
     monkeypatch,
     tmp_path: Path,
