@@ -2348,13 +2348,14 @@ def run_daily(
     run_id_factory: Callable[[date], str] | None = None,
     seed_factory: Callable[[], str] | None = None,
     on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
+    manual: bool = False,
 ) -> DailyRunOutcome:
     """Run or resume today's finite daily flow under its shared runtime lock."""
 
     system_clock = clock or SystemClock()
     now = _now(system_clock)
     target_date = now.date().isoformat()
-    if now.time() < DAILY_START:
+    if not manual and now.time() < DAILY_START:
         return DailyRunOutcome("not_due", None, target_date, 0, 0, "not_started")
     id_factory = run_id_factory or (lambda target: f"INAGO-{target.isoformat()}")
     actual_seed_factory = seed_factory or (lambda: secrets.token_urlsafe(24))

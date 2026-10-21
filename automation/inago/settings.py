@@ -489,13 +489,27 @@ def _row_entity(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def _normalized_import_reason(value: str) -> Any:
+    """Treat the documented settings relocation as the same import source."""
+    try:
+        reason = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return value
+    if isinstance(reason, dict) and reason.get("format") == _INITIAL_IMPORT_REASON_FORMAT:
+        source = reason.get("source")
+        if isinstance(source, dict) and source.get("settings_path") == "plan/イナゴスキル準備/初期設定引渡し.json":
+            source["settings_path"] = "docs/specifications/preparation/初期設定引渡し.json"
+    return reason
+
+
 def _row_matches_entity(row: sqlite3.Row, entity: Mapping[str, Any]) -> bool:
     return (
         row["confirmed_at"] == entity["confirmed_at"]
         and json.loads(row["genres_json"]) == entity["genres"]
         and json.loads(row["themes_json"]) == entity["themes"]
         and json.loads(row["pattern_refs_json"]) == entity["pattern_refs"]
-        and row["change_reason"] == entity["change_reason"]
+        and _normalized_import_reason(row["change_reason"])
+        == _normalized_import_reason(entity["change_reason"])
     )
 
 

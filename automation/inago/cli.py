@@ -151,6 +151,7 @@ def _parser() -> argparse.ArgumentParser:
             mode_parser.add_argument("--cause-resolved", action="store_true")
             mode_parser.add_argument("--export-only-failed", action="store_true")
         if mode == "daily":
+            mode_parser.add_argument("--manual", action="store_true", help="Start today's daily run immediately, including before 13:00 JST")
             mode_parser.add_argument("--resume-confirmed", action="store_true")
             mode_parser.add_argument("--cause-resolved", action="store_true")
     return parser
@@ -539,6 +540,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             phase = "daily"
             result = run_production_daily(
                 config,
+                manual=args.manual,
                 resume_confirmed=args.resume_confirmed,
                 cause_resolved=args.cause_resolved,
             )

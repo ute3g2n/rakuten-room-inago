@@ -1808,6 +1808,7 @@ def run_production_daily(
     clock: Clock | None = None,
     resume_confirmed: bool = False,
     cause_resolved: bool = False,
+    manual: bool = False,
     process_start_time_reader: Callable[[int], str] | None = None,
     process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
@@ -1826,7 +1827,9 @@ def run_production_daily(
     selected_clock = clock or SystemClock()
     now = selected_clock.now_jst()
     first_day = date.fromisoformat(config.start_date)
-    if now.date() < first_day or now.timetz().replace(tzinfo=None) < time(13, 0):
+    if now.date() < first_day or (
+        not manual and now.timetz().replace(tzinfo=None) < time(13, 0)
+    ):
         return {
             "status": "not_due",
             "target_date": now.date().isoformat(),
@@ -1992,6 +1995,7 @@ def run_production_daily(
             cancel_metrics_job=components["cancel_metrics_job"],
             clock=selected_clock,
             on_draft_commit=on_draft_commit,
+            manual=manual,
         )
 
     def export_dashboard(_context: Any) -> Mapping[str, Any]:
