@@ -225,6 +225,20 @@ def test_n22b_production_entry_uses_shared_core_after_production_guards(
         connection.close()
 
 
+def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_path):
+    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture
+
+    config, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+    clock = FakeClock(datetime.fromisoformat("2026-10-15T09:15:00+09:00"))
+    scheduled = production_runtime.run_production_daily(config, clock=clock)
+    assert scheduled["status"] == "not_due"
+    result = production_runtime.run_production_daily(config, clock=clock, manual=True)
+    assert (result["status"], result["committed_count"]) == ("complete", 15)
+    assert result["metrics_status"] == "observed"
+    assert result["export"]["status"] == "ready"
+    assert result["preservation"]["status"] == "ready"
+
+
 def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(
     monkeypatch,
     tmp_path: Path,

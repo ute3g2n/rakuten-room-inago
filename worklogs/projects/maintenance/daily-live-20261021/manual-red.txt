@@ -1,0 +1,22 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_manual_production_daily_runs_before_scheduled_hour ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028AE6221EB0>
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/manual-red/test_manual_production_daily_r0')
+
+    def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_path):
+        from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture
+    
+        config, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+        clock = FakeClock(datetime.fromisoformat("2026-10-15T09:15:00+09:00"))
+        scheduled = production_runtime.run_production_daily(config, clock=clock)
+        assert scheduled["status"] == "not_due"
+>       result = production_runtime.run_production_daily(config, clock=clock, manual=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: run_production_daily() got an unexpected keyword argument 'manual'
+
+tests_inago\test_daily_fix_pipeline.py:235: TypeError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_pipeline.py::test_manual_production_daily_runs_before_scheduled_hour
+1 failed in 0.68s
