@@ -134,6 +134,7 @@ class AppServerSession:
         on_thread_ready: Callable[[str], None] | None = None,
         advisory_capability_probes: bool = False,
         best_effort_logging: bool = False,
+        persist_initial_context: bool = False,
     ):
         if not command or any(
             not isinstance(item, str) or not item for item in command
@@ -159,6 +160,7 @@ class AppServerSession:
         self.on_thread_ready = on_thread_ready
         self.advisory_capability_probes = advisory_capability_probes
         self.best_effort_logging = best_effort_logging
+        self.persist_initial_context = persist_initial_context
         self.log_write_failed = False
         self.capability_probe_observations: dict[str, dict[str, str]] = {}
         self.observed_settings = {
@@ -482,6 +484,15 @@ class AppServerSession:
                 continue
             if "error" in message:
                 self._log("rpc_failed", method=method, code="rpc_error")
+                error = message["error"]
+                if (
+                    method == "thread/resume"
+                    and isinstance(error, dict)
+                    and error.get("code") == -32600
+                    and error.get("message")
+                    == f"no rollout found for thread id {params.get('threadId')}"
+                ):
+                    raise AppServerError("thread_history_not_found")
                 details = _provider_error_details(message.get("error"))
                 if any(details.values()):
                     cause = AppServerProviderRejection(**details)
@@ -597,6 +608,28 @@ class AppServerSession:
                 if isinstance(configured_effort, str) and configured_effort:
                     self.thread_settings["effort"] = configured_effort
             self.thread_id = thread
+            if self.persist_initial_context and not self.resume_thread_id:
+                # Starting a thread alone need not create its rollout. Persist
+                # context without inference so source failures remain resumable.
+                self._call(
+                    "thread/inject_items",
+                    {
+                        "threadId": thread,
+                        "items": [
+                            {
+                                "type": "message",
+                                "role": "developer",
+                                "content": [
+                                    {
+                                        "type": "input_text",
+                                        "text": "Python-controlled daily root initialized. Wait for the next structured job.",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    deadline=deadline,
+                )
             if self.on_thread_ready is not None:
                 self.on_thread_ready(thread)
             root_ready_fields = {

@@ -44,6 +44,7 @@ class DailyAIRootRunner(AIJobRunner):
         self._active_job_id: str | None = None
         self._active_job_cancel_event: threading.Event | None = None
         self.process_starts = 0
+        self._unused_root_can_be_replaced = False
 
     def prepare_daily_run(self, connection: sqlite3.Connection, run_id: str):
         row = connection.execute(
@@ -94,6 +95,16 @@ class DailyAIRootRunner(AIJobRunner):
             "root_thread_id": (saved.get("root_thread_id") if saved else None)
             or (self.context.get("root_thread_id") if self.context else None),
         }
+        if saved and saved.get("replaced_unused_root_thread_id"):
+            self.context["replaced_unused_root_thread_id"] = saved[
+                "replaced_unused_root_thread_id"
+            ]
+        self._unused_root_can_be_replaced = (
+            connection.execute(
+                "SELECT 1 FROM ai_job WHERE run_id=? LIMIT 1", (run_id,)
+            ).fetchone()
+            is None
+        )
         return dict(self.context)
 
     def sync_daily_checkpoint(self, connection: sqlite3.Connection):
@@ -121,6 +132,15 @@ class DailyAIRootRunner(AIJobRunner):
                 previous
                 and previous.get("root_thread_id")
                 and previous["root_thread_id"] != metadata["root_thread_id"]
+                and not (
+                    previous["root_thread_id"]
+                    == metadata.get("replaced_unused_root_thread_id")
+                    and connection.execute(
+                        "SELECT 1 FROM ai_job WHERE run_id=? LIMIT 1",
+                        (metadata["run_id"],),
+                    ).fetchone()
+                    is None
+                )
             ):
                 raise AppServerError("root_thread_cannot_change")
             root[_ROOT_CHECKPOINT_KEY] = metadata
@@ -159,7 +179,7 @@ class DailyAIRootRunner(AIJobRunner):
         bounded = time.monotonic() + min(
             self.max_timeout_seconds, self.clock.deadline_remaining(deadline_monotonic)
         )
-        self.session = self.session_factory(
+        session_options = dict(
             command=(
                 *self.cli_command,
                 "app-server",
@@ -177,9 +197,25 @@ class DailyAIRootRunner(AIJobRunner):
             / self.context["target_date"]
             / "ai-root-transport.jsonl",
             resume_thread_id=self.context["root_thread_id"],
+            persist_initial_context=True,
         )
+        self.session = self.session_factory(**session_options)
         try:
-            self.context["root_thread_id"] = self.session.start(deadline=bounded)
+            try:
+                self.context["root_thread_id"] = self.session.start(deadline=bounded)
+            except AppServerError as exc:
+                if (
+                    exc.code != "thread_history_not_found"
+                    or not self._unused_root_can_be_replaced
+                ):
+                    raise
+                self.process_starts += self.session.starts
+                self.context["replaced_unused_root_thread_id"] = self.context[
+                    "root_thread_id"
+                ]
+                session_options["resume_thread_id"] = None
+                self.session = self.session_factory(**session_options)
+                self.context["root_thread_id"] = self.session.start(deadline=bounded)
         finally:
             self.process_starts += self.session.starts
 

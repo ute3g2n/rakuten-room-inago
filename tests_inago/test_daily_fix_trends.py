@@ -445,15 +445,29 @@ def test_related_widget_waits_for_nonzero_layout(tmp_path, ui_server):
         '<div class="fe-related-queries" style="width:0;height:0;overflow:hidden"><h2>関連キーワード</h2>',
     )
     snapshot, response, events = _n08_fetch(
-        tmp_path, ui_server, "layout-pending",
+        tmp_path,
+        ui_server,
+        "layout-pending",
         _n08_period_page(
-            html, inject_period_script=True,
+            html,
+            inject_period_script=True,
             on_period_selected="setTimeout(()=>{document.querySelectorAll('.fe-related-queries')[1].removeAttribute('style')},650)",
         ),
     )
     assert snapshot.status == "observed", response.get("error_code")
     assert len(snapshot.words) == 20
-    assert any(event.get("stage") == "trends_related_widget_wait_ready" for event in events)
+    assert any(
+        event.get("stage") == "trends_related_widget_wait_ready" for event in events
+    )
+
+
+def test_trends_request_has_its_own_finite_timeout(tmp_path, ui_server):
+    port = browser_fixtures.source(tmp_path, ui_server, timeout=17100)
+    request = TrendsRequest(
+        "trends-time-budget", "RUN-BUDGET", "V1", "電子レンジ", range="3m"
+    )
+    assert port._request_timeout_seconds(request) == 120
+    assert port.config.timeout_seconds == 17100
 
 
 def test_n08(tmp_path, ui_server):

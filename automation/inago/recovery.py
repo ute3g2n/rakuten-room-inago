@@ -269,6 +269,7 @@ def plan_resume(
     owner_confirmed: bool,
     cause_resolved: bool,
     export_only_failed: bool = False,
+    manual: bool = False,
 ) -> dict[str, Any]:
     """Return a non-executing plan while preserving run identity and budgets."""
 
@@ -331,7 +332,7 @@ def plan_resume(
             ),
         )
         return base
-    if current.timetz().replace(tzinfo=None) < _DAILY_START:
+    if not manual and current.timetz().replace(tzinfo=None) < _DAILY_START:
         base.update(
             action="daily_start_not_reached",
             reason_code="daily_start_1300",

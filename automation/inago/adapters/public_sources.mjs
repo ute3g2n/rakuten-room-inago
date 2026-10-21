@@ -1369,8 +1369,9 @@ async function relatedWidgetState(page) {
     const isVisible = element => {
       if (!element.isConnected) return false;
       const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' &&
-        element.getClientRects().length > 0;
+        rect.width > 0 && rect.height > 0;
     };
     const widgets = Array.from(document.querySelectorAll('.fe-related-queries'));
     const records = widgets.map(element => {
@@ -1431,10 +1432,10 @@ async function waitForRelatedWidget(page, check, deadline, generationBeforePerio
         )) matchingIndexes.push(index);
       }
       if (matchingIndexes.length !== 1) {
-        trace('trends_related_widget_contract_error',{
-          ...details(),widget_outcome:'contract_mismatch',
-        });
-        throw new SourceFailure('query_widget_contract_mismatch');
+        // Angular can replace or lay out the widget between the state read and
+        // locator resolution. Reobserve within the existing deadline.
+        await page.waitForTimeout(Math.min(100,Math.max(1,deadline-Date.now())));
+        continue;
       }
       trace('trends_related_widget_wait_ready',{
         ...details(),widget_outcome:'ready',

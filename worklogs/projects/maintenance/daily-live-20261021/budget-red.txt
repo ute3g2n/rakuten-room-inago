@@ -1,0 +1,19 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_trends_request_has_its_own_finite_timeout ________________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/budget-red/test_trends_request_has_its_ow0')
+ui_server = {'html': '', 'status': 200, 'requests': [], 'pages': {}, ...}
+
+    def test_trends_request_has_its_own_finite_timeout(tmp_path, ui_server):
+        port = browser_fixtures.source(tmp_path, ui_server, timeout=17100)
+        request = TrendsRequest("trends-time-budget", "RUN-BUDGET", "V1", "�d�q�����W", range="3m")
+>       assert port._request_timeout_seconds(request) == 120
+E       AssertionError: assert 17100.0 == 120
+E        +  where 17100.0 = _request_timeout_seconds(TrendsRequest(request_id='trends-time-budget', run_id='RUN-BUDGET', settings_version='V1', parent_word='�d�q�����W', language='ja', geo='JP', search_type='web', range='3m', list_type='Top', deadline_at=None))
+E        +    where _request_timeout_seconds = <automation.inago.live_sources.PublicBrowserSource object at 0x000001F9D7DCF8F0>._request_timeout_seconds
+
+tests_inago\test_daily_fix_trends.py:462: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_trends.py::test_trends_request_has_its_own_finite_timeout
+1 failed in 1.04s

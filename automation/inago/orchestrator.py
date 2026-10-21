@@ -1422,7 +1422,7 @@ def _validate_plan_snapshot(
         ):
             raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
         attempt_rows = connection.execute(
-            "SELECT attempt_no,status FROM trends_acquisition_attempt "
+            "SELECT attempt_no,status,error_code FROM trends_acquisition_attempt "
             "WHERE acquisition_id=? ORDER BY attempt_no",
             (plan.acquisition_ref,),
         ).fetchall()
@@ -1438,6 +1438,11 @@ def _validate_plan_snapshot(
                 or attempt_rows[-1][1] != "response_ready"
                 or any(
                     item[1] not in {"unavailable", "interrupted"}
+                    and not (
+                        item[1] == "processing_error"
+                        and item[2]
+                        in {"query_widget_contract_mismatch", "query_widget_ambiguous"}
+                    )
                     for item in attempt_rows[:-1]
                 )
             ):
@@ -1448,7 +1453,15 @@ def _validate_plan_snapshot(
             if plan.acquisition_status == "deadline" and attempt_rows:
                 if attempt_rows[-1][1] == "deadline":
                     allowed_attempt_states.add("deadline")
-            if any(item[1] not in allowed_attempt_states for item in attempt_rows):
+            if any(
+                item[1] not in allowed_attempt_states
+                and not (
+                    item[1] == "processing_error"
+                    and item[2]
+                    in {"query_widget_contract_mismatch", "query_widget_ambiguous"}
+                )
+                for item in attempt_rows
+            ):
                 error = (
                     "theme_acquisition_exhaustion_unverified"
                     if plan.acquisition_status == "exhausted"

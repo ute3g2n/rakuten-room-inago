@@ -1,0 +1,43 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+_ test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[True] _
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001C8582C1F30>, data_root=WindowsPath('C:/project/rakuten-ro...urrent=datetime.datetime(2026, 10, 12, 12, 59, 59, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0))
+fixture_config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+manual = True
+
+    @pytest.mark.parametrize("manual", [False, True])
+    def test_fixture_cli_daily_requires_explicit_context_and_respects_not_due(
+        runtime_case: RuntimeCase, fixture_config_path: Path, manual: bool
+    ) -> None:
+        runtime_case.clock.current = datetime(2026, 10, 12, 12, 59, 59, tzinfo=JST)
+        bundle = _make_ports(runtime_case)
+        stdout = StringIO()
+        stderr = StringIO()
+    
+        exit_code = run_cli(
+            [
+                "daily",
+                *(["--manual"] if manual else []),
+                "--config",
+                str(fixture_config_path),
+                "--data-root",
+                str(runtime_case.data_root),
+            ],
+            ports=DailyCLIContext(
+                connection=runtime_case.connection,
+                data_root=runtime_case.data_root,
+                ports=bundle.ports,
+                clock=runtime_case.clock,
+            ),
+            stdout=stdout,
+            stderr=stderr,
+        )
+    
+>       assert exit_code == 0
+E       assert 5 == 0
+
+tests_inago\test_step13.py:778: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step13.py::test_fixture_cli_daily_requires_explicit_context_and_respects_not_due[True]
+1 failed, 1 passed in 7.96s

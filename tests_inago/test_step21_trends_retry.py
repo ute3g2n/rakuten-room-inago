@@ -141,7 +141,9 @@ def session(connection, clock, port, *, deadline_at=None):
 
 def test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes(retry_case):
     connection, clock = retry_case
-    port = SequencePort([response_for_dummy_unavailable("query_widget_contract_mismatch"), response_for])
+    port = SequencePort(
+        [response_for_dummy_unavailable("query_widget_contract_mismatch"), response_for]
+    )
     with pytest.raises(trends.TrendsContractError):
         session(connection, clock, port).fetch(THEME_WORD)
     assert len(port.requests) == 1
@@ -154,6 +156,43 @@ def test_restarted_widget_acquisition_preserves_failed_attempt_and_resumes(retry
     assert rows[0][2:4] == ("processing_error", "query_widget_contract_mismatch")
     assert rows[1][1:3] == (2, "response_ready")
     assert rows[1][4] == rows[0][0]
+
+
+def test_widget_repair_then_exhaustion_allows_verified_theme_fallback(retry_case):
+    connection, clock = retry_case
+    port = SequencePort(
+        [response_for_dummy_unavailable("query_widget_contract_mismatch")]
+        + [response_for_dummy_unavailable("http_429")] * 4
+    )
+    with pytest.raises(trends.TrendsContractError):
+        session(connection, clock, port).fetch(THEME_WORD)
+    result = session(connection, clock, port).fetch(THEME_WORD)
+    assert (result.status, result.attempts_used) == ("exhausted", 5)
+    plan = daily.DailyThemePlan(
+        theme_id=THEME_ID,
+        keyword_refs=(),
+        related=(),
+        snapshot_ref=None,
+        fallback=daily.DailySearchPlan(
+            "fallback",
+            THEME_ID,
+            THEME_WORD,
+            (THEME_ID,),
+            "theme_fallback",
+            "theme_fallback",
+        ),
+        acquisition_ref=ACQUISITION_ID,
+        acquisition_status="exhausted",
+    )
+    daily._validate_plan_snapshot(
+        connection,
+        plan,
+        run_id=RUN_ID,
+        settings_version=SETTINGS_VERSION,
+        seed="SEED-1",
+        event_kind="initial",
+        ordinal=1,
+    )
 
 
 @pytest.mark.parametrize("leading_symbol", ["_", "-"])

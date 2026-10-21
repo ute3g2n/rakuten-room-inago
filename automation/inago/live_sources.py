@@ -1379,9 +1379,14 @@ class PublicBrowserSource:
     def _request_timeout_seconds(self, request) -> float:
         """Use the optional request deadline or the configured finite timeout."""
 
+        timeout = float(self.config.timeout_seconds)
+        if isinstance(request, TrendsRequest):
+            # Trends has one widget and twenty rows; it must not inherit the
+            # multi-hour allowance for resolving fifty ROOM product pages.
+            timeout = min(timeout, 120.0)
         request_deadline = getattr(request, "deadline_at", None)
         if request_deadline is None:
-            return float(self.config.timeout_seconds)
+            return timeout
         try:
             deadline = datetime.fromisoformat(request_deadline)
         except (TypeError, ValueError):
@@ -1389,7 +1394,7 @@ class PublicBrowserSource:
         if deadline.tzinfo is None or deadline.utcoffset() is None:
             return 0.0
         now = datetime.now(deadline.tzinfo)
-        return max(0.0, (deadline - now).total_seconds())
+        return min(timeout, max(0.0, (deadline - now).total_seconds()))
 
     @staticmethod
     def _should_stop_run(kind: str, request, error_code: object) -> bool:

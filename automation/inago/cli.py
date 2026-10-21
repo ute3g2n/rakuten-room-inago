@@ -151,7 +151,11 @@ def _parser() -> argparse.ArgumentParser:
             mode_parser.add_argument("--cause-resolved", action="store_true")
             mode_parser.add_argument("--export-only-failed", action="store_true")
         if mode == "daily":
-            mode_parser.add_argument("--manual", action="store_true", help="Start today's daily run immediately, including before 13:00 JST")
+            mode_parser.add_argument(
+                "--manual",
+                action="store_true",
+                help="Start today's daily run immediately, including before 13:00 JST",
+            )
             mode_parser.add_argument("--resume-confirmed", action="store_true")
             mode_parser.add_argument("--cause-resolved", action="store_true")
     return parser
@@ -713,6 +717,7 @@ def main(
                 data_root=context_root,
                 ports=ports.ports,
                 clock=ports.clock,
+                manual=args.manual,
             )
         except Exception as exc:
             _emit(

@@ -1,0 +1,131 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_widget_repair_then_exhaustion_allows_verified_theme_fallback ______
+
+retry_case = (<sqlite3.Connection object at 0x00000231205267A0>, FakeClock(current=datetime.datetime(2026, 10, 14, 13, 3, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=180.0))
+
+    def test_widget_repair_then_exhaustion_allows_verified_theme_fallback(retry_case):
+        connection, clock = retry_case
+        port = SequencePort([response_for_dummy_unavailable("query_widget_contract_mismatch")]
+                            + [response_for_dummy_unavailable("http_429")] * 4)
+        with pytest.raises(trends.TrendsContractError):
+            session(connection, clock, port).fetch(THEME_WORD)
+        result = session(connection, clock, port).fetch(THEME_WORD)
+        assert (result.status, result.attempts_used) == ("exhausted", 5)
+        plan = daily.DailyThemePlan(
+            theme_id=THEME_ID, keyword_refs=(), related=(), snapshot_ref=None,
+            fallback=daily.DailySearchPlan("fallback", THEME_ID, THEME_WORD,
+                                           (THEME_ID,), "theme_fallback", "theme_fallback"),
+            acquisition_ref=ACQUISITION_ID, acquisition_status="exhausted",
+        )
+>       daily._validate_plan_snapshot(
+            connection, plan, run_id=RUN_ID, settings_version=SETTINGS_VERSION,
+            seed="SEED-1", event_kind="initial", ordinal=1,
+        )
+
+tests_inago\test_step21_trends_retry.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+connection = <sqlite3.Connection object at 0x00000231205267A0>
+plan = DailyThemePlan(theme_id='T01', keyword_refs=(), related=(), fallback=DailySearchPlan(task_id='fallback', theme_id='T01...ref=None, acquisition_status='exhausted', acquisition_ref='RETRY-RUN:initial:01:T01', rules_version='requirements-1.5')
+run_id = 'RETRY-RUN', settings_version = 'confirmed-0.3-step46-all132'
+seed = 'SEED-1', event_kind = 'initial', ordinal = 1
+allow_legacy_acquisition = False
+
+    def _validate_plan_snapshot(
+        connection,
+        plan,
+        *,
+        run_id,
+        settings_version,
+        seed,
+        event_kind,
+        ordinal,
+        allow_legacy_acquisition=False,
+    ) -> None:
+        acquisition = None
+        if plan.acquisition_ref is None and not (
+            allow_legacy_acquisition and plan.acquisition_status == "observed"
+        ):
+            raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+        if plan.acquisition_ref is not None:
+            row = connection.execute(
+                "SELECT run_id,settings_version,event_kind,ordinal,theme_id,query_word,seed,"
+                "status,attempts_used,snapshot_id FROM trends_acquisition "
+                "WHERE acquisition_id=?",
+                (plan.acquisition_ref,),
+            ).fetchone()
+            if (
+                row is None
+                or tuple(row[:5])
+                != (run_id, settings_version, event_kind, ordinal, plan.theme_id)
+                or row["seed"] != seed
+                or not isinstance(row["query_word"], str)
+                or not row["query_word"].strip()
+                or (plan.fallback is not None and row["query_word"] != plan.fallback.query)
+                or (
+                    plan.acquisition_status == "observed"
+                    and (
+                        row["status"] not in {"observed", "normal_zero"}
+                        or row["snapshot_id"] != plan.snapshot_ref
+                        or not 1 <= row["attempts_used"] <= 5
+                    )
+                )
+                or (
+                    plan.acquisition_status != "observed"
+                    and (
+                        row["status"] != plan.acquisition_status
+                        or row["snapshot_id"] is not None
+                    )
+                )
+                or (plan.acquisition_status == "exhausted" and row["attempts_used"] != 5)
+                or (
+                    plan.acquisition_status == "deadline"
+                    and not 0 <= row["attempts_used"] <= 5
+                )
+            ):
+                raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+            attempt_rows = connection.execute(
+                "SELECT attempt_no,status,error_code FROM trends_acquisition_attempt "
+                "WHERE acquisition_id=? ORDER BY attempt_no",
+                (plan.acquisition_ref,),
+            ).fetchall()
+            if [item[0] for item in attempt_rows] != list(
+                range(1, row["attempts_used"] + 1)
+            ):
+                raise DailyOrchestrationError(
+                    "theme_acquisition_attempt_history_incomplete"
+                )
+            if plan.acquisition_status == "observed":
+                if (
+                    not attempt_rows
+                    or attempt_rows[-1][1] != "response_ready"
+                    or any(
+                        item[1] not in {"unavailable", "interrupted"}
+                        and not (
+                            item[1] == "processing_error"
+                            and item[2] in {"query_widget_contract_mismatch", "query_widget_ambiguous"}
+                        )
+                        for item in attempt_rows[:-1]
+                    )
+                ):
+                    raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+                acquisition = row
+            else:
+                allowed_attempt_states = {"unavailable", "interrupted"}
+                if plan.acquisition_status == "deadline" and attempt_rows:
+                    if attempt_rows[-1][1] == "deadline":
+                        allowed_attempt_states.add("deadline")
+                if any(item[1] not in allowed_attempt_states for item in attempt_rows):
+                    error = (
+                        "theme_acquisition_exhaustion_unverified"
+                        if plan.acquisition_status == "exhausted"
+                        else "theme_acquisition_deadline_unverified"
+                    )
+>                   raise DailyOrchestrationError(error)
+E                   automation.inago.orchestrator.DailyOrchestrationError: theme_acquisition_exhaustion_unverified
+
+automation\inago\orchestrator.py:1461: DailyOrchestrationError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_trends_retry.py::test_widget_repair_then_exhaustion_allows_verified_theme_fallback
+1 failed in 0.78s

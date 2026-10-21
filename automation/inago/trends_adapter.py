@@ -1942,6 +1942,16 @@ class DurableGroupKeywordSession:
     def fetch(self, query_word: str) -> TrendsAcquisitionResult:
         query = _required_text(query_word, "query_word")
         self._ensure_acquisition(query)
+        previous = self._load_acquisition()
+        if (
+            previous["status"] == "processing_error"
+            and previous["error_code"]
+            in {"query_widget_contract_mismatch", "query_widget_ambiguous"}
+            and int(previous["attempts_used"]) < self.MAX_ATTEMPTS
+        ):
+            # A new invocation can use the repaired UI adapter. Retain every
+            # failed attempt and continue the same acquisition's attempt budget.
+            self._set_acquisition_status("collecting", None, None)
         while True:
             row = self._load_acquisition()
             status = str(row["status"])

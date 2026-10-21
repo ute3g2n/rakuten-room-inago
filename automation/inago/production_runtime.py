@@ -1536,6 +1536,7 @@ def run_production_recovery(
     owner_confirmed: bool = False,
     cause_resolved: bool = False,
     export_only_failed: bool = False,
+    manual: bool = False,
     process_start_time_reader: Callable[[int], str] | None = None,
     process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
@@ -1683,6 +1684,7 @@ def run_production_recovery(
             owner_confirmed=owner_confirmed,
             cause_resolved=cause_resolved,
             export_only_failed=export_only_failed,
+            manual=manual,
         )
         terminal_status = str(row["status"])
         if (
@@ -1866,6 +1868,7 @@ def run_production_daily(
                 now=selected_clock.now_jst(),
                 owner_confirmed=resume_confirmed or terminal,
                 cause_resolved=cause_resolved or terminal,
+                manual=manual,
                 process_start_time_reader=process_start_time_reader,
                 process_tree_reader=process_tree_reader,
             )

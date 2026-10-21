@@ -495,10 +495,19 @@ def _normalized_import_reason(value: str) -> Any:
         reason = json.loads(value)
     except (TypeError, json.JSONDecodeError):
         return value
-    if isinstance(reason, dict) and reason.get("format") == _INITIAL_IMPORT_REASON_FORMAT:
+    if (
+        isinstance(reason, dict)
+        and reason.get("format") == _INITIAL_IMPORT_REASON_FORMAT
+    ):
         source = reason.get("source")
-        if isinstance(source, dict) and source.get("settings_path") == "plan/イナゴスキル準備/初期設定引渡し.json":
-            source["settings_path"] = "docs/specifications/preparation/初期設定引渡し.json"
+        if (
+            isinstance(source, dict)
+            and source.get("settings_path")
+            == "plan/イナゴスキル事前準備/初期設定引渡し.json"
+        ):
+            source["settings_path"] = (
+                "docs/specifications/preparation/初期設定引渡し.json"
+            )
     return reason
 
 

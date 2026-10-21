@@ -634,14 +634,24 @@ def test_unused_missing_root_is_replaced_with_preserved_provenance(tmp_path, leg
     script.write_text(FAKE, encoding="utf-8")
 
     def factory(**kwargs):
-        kwargs["command"] = (sys.executable, "-X", "utf8", str(script), "missing_rollout")
+        kwargs["command"] = (
+            sys.executable,
+            "-X",
+            "utf8",
+            str(script),
+            "missing_rollout",
+        )
         return AppServerSession(**kwargs)
 
     replacement.session_factory = factory
     try:
         replacement.start_daily_root(deadline_monotonic=time.monotonic() + 5)
         replacement.sync_daily_checkpoint(legacy_v2)
-        saved = json.loads(legacy_v2.execute("SELECT checkpoint FROM run WHERE run_id='R1'").fetchone()[0])["ai_daily_root"]
+        saved = json.loads(
+            legacy_v2.execute(
+                "SELECT checkpoint FROM run WHERE run_id='R1'"
+            ).fetchone()[0]
+        )["ai_daily_root"]
         assert saved["root_thread_id"] == "ROOT-ONE"
         assert saved["replaced_unused_root_thread_id"] == "UNUSED-ROOT"
         assert saved["process_starts"] == 2

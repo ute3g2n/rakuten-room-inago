@@ -70,7 +70,9 @@ def _settings_row(connection, version: str):
     ).fetchone()
 
 
-def test_reimport_after_document_move_preserves_existing_settings(settings_db, settings_inputs):
+def test_reimport_after_document_move_preserves_existing_settings(
+    settings_db, settings_inputs
+):
     basic, detailed = settings_inputs
     register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
     row = _settings_row(settings_db, SETTINGS_VERSION)
@@ -81,19 +83,25 @@ def test_reimport_after_document_move_preserves_existing_settings(settings_db, s
     settings_db.commit()
     before = tuple(_settings_row(settings_db, SETTINGS_VERSION))
 
-    result = register_external_settings(settings_db, basic, detailed, created_at="2026-10-21T09:00:00+09:00")
+    result = register_external_settings(
+        settings_db, basic, detailed, created_at="2026-10-21T09:00:00+09:00"
+    )
 
     assert result.active_basic_version == SETTINGS_VERSION
     assert tuple(_settings_row(settings_db, SETTINGS_VERSION)) == before
 
 
-def test_document_move_does_not_hide_changed_settings_provenance(settings_db, settings_inputs):
+def test_document_move_does_not_hide_changed_settings_provenance(
+    settings_db, settings_inputs
+):
     basic, detailed = settings_inputs
     register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
     reason = json.loads(_settings_row(settings_db, SETTINGS_VERSION)["change_reason"])
     reason["source"]["settings_path"] = "plan/イナゴスキル事前準備/初期設定引渡し.json"
     reason["source"]["confirmation_ref"] = "different-confirmation.md"
-    settings_db.execute("UPDATE settings_version SET change_reason=?", (json.dumps(reason),))
+    settings_db.execute(
+        "UPDATE settings_version SET change_reason=?", (json.dumps(reason),)
+    )
     settings_db.commit()
     with pytest.raises(IdempotencyConflict):
         register_external_settings(settings_db, basic, detailed, created_at=CREATED_AT)
