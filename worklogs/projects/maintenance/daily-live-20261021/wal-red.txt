@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_startup_preflight_reads_committed_wal_without_rejecting_recovery ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001ACCD3B69C0>
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/wal-red/test_startup_preflight_reads_c0')
+
+    def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(monkeypatch, tmp_path):
+        from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
+    
+        config, database_path, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+        connection = _database_connection(database_path)
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("CREATE TABLE committed_wal_probe(value INTEGER)")
+            connection.execute("INSERT INTO committed_wal_probe VALUES (1)")
+            connection.commit()
+            assert Path(str(database_path) + "-wal").stat().st_size > 0
+            before = database_path.read_bytes()
+>           assert production_runtime._startup_preflight_database(config) == (None, None)
+E           AssertionError: assert ('database_re...ending', None) == (None, None)
+E             
+E             At index 0 diff: 'database_recovery_pending' != None
+E             Use -v to get more diff
+
+tests_inago\test_daily_fix_pipeline.py:254: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_fix_pipeline.py::test_startup_preflight_reads_committed_wal_without_rejecting_recovery
+1 failed in 0.97s

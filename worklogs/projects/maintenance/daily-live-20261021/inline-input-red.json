@@ -1,0 +1,1 @@
+{"run_id":"INAGO-2026-10-21","attempt":1,"result_status":"error","error_code":"JOB_INPUT_UNREADABLE","specialist_result_status":"success","observation":"Runtime root shell could not read private temporary job files; the same input was already delivered inline by Python.","source":"production ai_job and root rollout, observed before prompt fix"}

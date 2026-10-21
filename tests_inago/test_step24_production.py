@@ -1786,10 +1786,11 @@ def test_task_render_uses_repository_and_leaves_scheduler_untouched(
         assert working_directory is not None
         assert Path(working_directory.text) == tmp_path
         assert command is not None and Path(command.text) == python
-        assert "--user-profile" in arguments
-        assert "--local-app-data" in arguments
-        assert f'--user-profile "{user_profile}"' in arguments
-        assert f'--local-app-data "{local_app_data}"' in arguments
+        if name == "DailyXml":
+            assert "-m automation.inago.maintenance.daily_launcher " in arguments
+        else:
+            assert f'--user-profile "{user_profile}"' in arguments
+            assert f'--local-app-data "{local_app_data}"' in arguments
         wake_to_run = xml.findtext(".//t:Settings/t:WakeToRun", namespaces=namespace)
         assert wake_to_run == ("false" if name == "HumanApiXml" else "true")
         if name == "HumanApiXml":
@@ -1919,7 +1920,7 @@ $triggerBoundary = '2026-10-01T13:00:00+09:00'
 if ($Kind -eq 'custom') { $taskArgs = 'custom task' }
 if ($Kind -eq 'current_wake_disabled') {
     $taskExecute = $pythonExe
-    $taskArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+    $taskArgs = "-B -m automation.inago.maintenance.daily_launcher --config `"$configPath`" --data-root `"$expectedRoot`""
     $taskWorkingDirectory = $applicationRoot
     $triggerBoundary = $Boundary
 }
@@ -2032,7 +2033,7 @@ def _write_daily_task_limit_drift_harness(tmp_path: Path) -> Path:
     harness.write_text(
         r"""param([string]$RegistrationScript,[string]$Root,[string]$Boundary,[string]$ExecutionLimit,[string]$State)
 . $RegistrationScript -ProjectRoot $Root -StartBoundary $Boundary -RenderOnly | Out-Null
-$expectedArgs = "-B -m automation.inago.cli daily --environment production --config `"$configPath`" --data-root `"$expectedRoot`" --user-profile `"$userProfile`" --local-app-data `"$localAppData`""
+$expectedArgs = "-B -m automation.inago.maintenance.daily_launcher --config `"$configPath`" --data-root `"$expectedRoot`""
 $script:existing = [pscustomobject]@{
     Actions = @([pscustomobject]@{Execute=$pythonExe; Arguments=$expectedArgs; WorkingDirectory=$applicationRoot})
     Principal = [pscustomobject]@{UserId=$userId; LogonType='Interactive'; RunLevel='Limited'}
@@ -2121,10 +2122,8 @@ def _assert_daily_task_action_xml(
         ".//t:Actions/t:Exec/t:WorkingDirectory", namespaces=namespace
     ) == str(tmp_path)
     expected_args = (
-        "-B -m automation.inago.cli daily --environment production --config "
-        f'"{runtime_root / "config/settings.json"}" --data-root "{runtime_root}" '
-        f'--user-profile "{tmp_path / "UserProfile"}" '
-        f'--local-app-data "{tmp_path / "LocalAppData"}"'
+        "-B -m automation.inago.maintenance.daily_launcher --config "
+        f'"{runtime_root / "config/settings.json"}" --data-root "{runtime_root}"'
     )
     assert (
         xml.findtext(".//t:Actions/t:Exec/t:Arguments", namespaces=namespace)

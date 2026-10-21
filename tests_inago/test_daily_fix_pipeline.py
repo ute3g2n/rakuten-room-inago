@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import sqlite3
 from datetime import datetime
@@ -237,6 +239,71 @@ def test_manual_production_daily_runs_before_scheduled_hour(monkeypatch, tmp_pat
     assert result["metrics_status"] == "observed"
     assert result["export"]["status"] == "ready"
     assert result["preservation"]["status"] == "ready"
+
+
+@pytest.mark.parametrize("cause_resolved", [False, True])
+def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(monkeypatch, tmp_path, cause_resolved):
+    from automation.inago.cli import production_daily_exit_code
+    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
+
+    config, database_path, clock, source, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+    first = production_runtime.run_production_daily(config, clock=clock)
+    assert first["committed_count"] == 15
+    request_count = len(source.search_requests)
+    connection = _database_connection(database_path)
+    error = {"code": "ai_generation_error", "phase": "copy"}
+    try:
+        checkpoint = json.loads(connection.execute("SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)).fetchone()[0])
+        checkpoint["daily_orchestration"].update(error_count=1, errors=[error], primary_error=error)
+        connection.execute("UPDATE run SET checkpoint=? WHERE run_id=?", (json.dumps(checkpoint), first["run_id"]))
+        connection.commit()
+    finally:
+        connection.close()
+
+    result = production_runtime.run_production_daily(config, clock=clock, resume_confirmed=True, cause_resolved=cause_resolved)
+    assert result["committed_count"] == 15
+    assert production_daily_exit_code(result) == (0 if cause_resolved else 4)
+    assert len(source.search_requests) == request_count
+    connection = _database_connection(database_path)
+    try:
+        checkpoint = json.loads(connection.execute("SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)).fetchone()[0])["daily_orchestration"]
+        if cause_resolved:
+            assert checkpoint["error_count"] == 0
+            assert checkpoint["resolved_error_batches"][-1]["errors"] == [error]
+        else:
+            assert checkpoint["error_count"] == 1
+            assert checkpoint["errors"] == [error]
+        assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
+    finally:
+        connection.close()
+
+
+def test_startup_preflight_reads_committed_wal_without_rejecting_recovery(monkeypatch, tmp_path):
+    from tests_inago.test_step23_12_daily_e2e import _make_daily_fixture, _database_connection
+
+    config, database_path, *_ = _make_daily_fixture(monkeypatch, tmp_path)
+    connection = _database_connection(database_path)
+    try:
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("CREATE TABLE committed_wal_probe(value INTEGER)")
+        connection.execute("INSERT INTO committed_wal_probe VALUES (1)")
+        connection.commit()
+        assert Path(str(database_path) + "-wal").stat().st_size > 0
+        before = database_path.read_bytes()
+        assert production_runtime._startup_preflight_database(config) == (None, None)
+        connection.execute(
+            "INSERT INTO settings_version "
+            "(version,confirmed_at,genres_json,themes_json,pattern_refs_json,change_reason,created_at) "
+            "SELECT 'WAL-ONLY-MISMATCH',confirmed_at,genres_json,themes_json,pattern_refs_json,change_reason,created_at "
+            "FROM settings_version LIMIT 1"
+        )
+        connection.commit()
+        assert production_runtime._startup_preflight_database(config) == (
+            None, "adopted_settings_mismatch"
+        )
+        assert database_path.read_bytes() == before
+    finally:
+        connection.close()
 
 
 def test_manual_daily_resumes_corrected_widget_before_scheduled_hour(
