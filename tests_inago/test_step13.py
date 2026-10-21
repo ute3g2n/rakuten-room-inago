@@ -12,7 +12,7 @@ import time
 import shutil
 from io import StringIO
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -31,7 +31,7 @@ from automation.inago.contracts import (
 from automation.inago.copy_service import CopyGenerationSpec
 from automation.inago.paths import SAFE_FIXTURE_BASE, resolve_runtime_paths
 from automation.inago.repository import open_database
-from automation.inago.room_adapter import ROOM_REQUEST_TIMEOUT_SECONDS, RoomSearchRequest
+from automation.inago.room_adapter import RoomSearchRequest
 from automation.inago.run_lock import RunLock, RunLockBusy, process_start_time
 from automation.inago.settings import register_external_settings
 from automation.inago.orchestrator import (
@@ -1433,14 +1433,13 @@ def test_daily_flow_continues_after_1745_and_1800(
     assert len(later_bundle.metrics.calls) == 1
 
 
-def test_room_budget_accepts_slow_fifty_product_observation(
-    runtime_case: RuntimeCase,
+@pytest.mark.parametrize("elapsed_seconds", [485, 1801, 17101])
+def test_room_observation_has_no_overall_time_limit(
+    runtime_case: RuntimeCase, elapsed_seconds: int,
 ) -> None:
     bundle = _make_ports(
-        runtime_case,
-        posts_per_search=5,
-        finish_after_call=1,
-        advance_seconds=485,
+        runtime_case, posts_per_search=5,
+        finish_after_call=1, advance_seconds=elapsed_seconds,
     )
 
     outcome = _run(runtime_case, bundle)
@@ -1449,138 +1448,11 @@ def test_room_budget_accepts_slow_fifty_product_observation(
     assert outcome.committed_count == 15
     assert len(bundle.room.requests) == 3
     assert bundle.cancellations == []
-    first = bundle.room.requests[0]
-    remaining = datetime.fromisoformat(first.deadline_at) - datetime.fromisoformat(NOW)
-    assert 30 * first.max_posts <= remaining.total_seconds() <= 1800
-    assert (
-        runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
-            (RUN_ID,),
-        ).fetchone()[0]
-        == 0
-    )
-
-
-def _advance_clock_past_request_timeout(
-    runtime_case: RuntimeCase, started: threading.Event
-) -> None:
-    assert started.wait(timeout=3), "owned job did not start"
-    runtime_case.clock.advance(ROOM_REQUEST_TIMEOUT_SECONDS)
-
-
-def test_blocked_room_call_uses_request_timeout_and_ignores_late_posts(
-    runtime_case: RuntimeCase,
-) -> None:
-    bundle = _make_ports(runtime_case, posts_per_search=5)
-    started = threading.Event()
-    cancelled = threading.Event()
-    late_returned = threading.Event()
-    original_search = bundle.room.search
-
-    def blocked_search(request: RoomSearchRequest) -> dict[str, Any]:
-        started.set()
-        cancelled.wait(timeout=5)
-        try:
-            return original_search(request)
-        finally:
-            late_returned.set()
-
-    bundle.room.search = blocked_search
-
-    def cancel(run_id: str, request_id: str) -> bool:
-        bundle.cancellations.append(run_id)
-        cancelled.set()
-        return True
-
-    bundle.ports = replace(bundle.ports, cancel_room_request=cancel)
-    clock_driver = threading.Thread(
-        target=_advance_clock_past_request_timeout,
-        args=(runtime_case, started),
-        daemon=True,
-    )
-    clock_driver.start()
-    outcome = _run(runtime_case, bundle)
-    assert cancelled.is_set()
-    assert outcome.committed_count == 15
-    assert len(bundle.room.requests) > 1
-    assert len(bundle.runner.requests) == 15
-    expected_metrics_start = (
-        datetime.fromisoformat(NOW) + timedelta(seconds=ROOM_REQUEST_TIMEOUT_SECONDS)
-    ).isoformat()
-    assert bundle.metrics.started_at == [expected_metrics_start]
-    attempt = runtime_case.connection.execute(
-        "SELECT ended_at, source_status, error_code FROM search_attempt WHERE run_id=?",
+    assert all(request.deadline_at is None for request in bundle.room.requests)
+    assert runtime_case.connection.execute(
+        "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
         (RUN_ID,),
-    ).fetchone()
-    assert attempt["ended_at"] is not None
-    assert attempt["source_status"] == "unavailable"
-    assert attempt["error_code"] == "room_request_timeout"
-    assert (
-        runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM source_post WHERE attempt_id=(SELECT attempt_id FROM search_attempt WHERE run_id=?)",
-            (RUN_ID,),
-        ).fetchone()[0]
-        == 0
-    )
-    assert late_returned.wait(timeout=3)
-    assert (
-        runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM source_post WHERE attempt_id=(SELECT attempt_id FROM search_attempt WHERE run_id=?)",
-            (RUN_ID,),
-        ).fetchone()[0]
-        == 0
-    )
-
-
-def test_unconfirmed_owned_job_cancellation_is_recorded_as_failure(
-    runtime_case: RuntimeCase,
-) -> None:
-    bundle = _make_ports(runtime_case, posts_per_search=5)
-    started = threading.Event()
-    cancel_requested = threading.Event()
-    late_returned = threading.Event()
-    original_search = bundle.room.search
-
-    def blocked_search(request: RoomSearchRequest) -> dict[str, Any]:
-        started.set()
-        cancel_requested.wait(timeout=5)
-        try:
-            return original_search(request)
-        finally:
-            late_returned.set()
-
-    def cancel_without_confirmation(run_id: str, request_id: str) -> bool:
-        bundle.cancellations.append(run_id)
-        cancel_requested.set()
-        return False
-
-    bundle.room.search = blocked_search
-    bundle.ports = replace(
-        bundle.ports, cancel_room_request=cancel_without_confirmation
-    )
-    clock_driver = threading.Thread(
-        target=_advance_clock_past_request_timeout,
-        args=(runtime_case, started),
-        daemon=True,
-    )
-    clock_driver.start()
-
-    outcome = _run(runtime_case, bundle)
-
-    assert outcome.status == "failed"
-    assert cancel_requested.is_set()
-    assert bundle.cancellations == [RUN_ID]
-    errors = json.loads(
-        runtime_case.connection.execute(
-            "SELECT checkpoint FROM run WHERE run_id=?", (RUN_ID,)
-        ).fetchone()[0]
-    )["daily_orchestration"]["errors"]
-    assert any(
-        error["phase"] == "room"
-        and error["code"] == "room_request_timeout_cancel_failed"
-        for error in errors
-    )
-    assert late_returned.wait(timeout=3)
+    ).fetchone()[0] == 0
 
 
 def test_blocked_ai_copy_uses_request_timeout_and_discards_late_body(

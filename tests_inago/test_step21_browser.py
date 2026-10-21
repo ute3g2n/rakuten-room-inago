@@ -1997,3 +1997,18 @@ def test_old_empty_hide_then_reshow_never_establishes_top_zero(tmp_path, ui_serv
         source(tmp_path, ui_server).fetch(request), request
     )
     assert result.status == "observed" and len(result.words) == 3
+
+
+def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server):
+    from dataclasses import replace
+
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    port = source(tmp_path, ui_server, timeout=1, fixture_product_delay_ms=1500)
+    request = replace(room_request(), deadline_at=None)
+
+    assert port._request_timeout_seconds(request) is None
+    response = port.search(request)
+
+    assert response["status"] == "observed", response.get("error_code")
+    assert len(response["posts"]) == 1
+    assert port._active == {}

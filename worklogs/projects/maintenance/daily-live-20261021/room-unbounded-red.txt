@@ -1,0 +1,101 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+____________ test_room_observation_has_no_overall_time_limit[485] _____________
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001C5166EB3D0>, data_root=WindowsPath('C:/project/rakuten-ro...urrent=datetime.datetime(2026, 10, 12, 13, 8, 5, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=485.0))
+elapsed_seconds = 485
+
+    @pytest.mark.parametrize("elapsed_seconds", [485, 1801, 17101])
+    def test_room_observation_has_no_overall_time_limit(
+        runtime_case: RuntimeCase, elapsed_seconds: int,
+    ) -> None:
+        bundle = _make_ports(
+            runtime_case, posts_per_search=5,
+            finish_after_call=1, advance_seconds=elapsed_seconds,
+        )
+    
+        outcome = _run(runtime_case, bundle)
+    
+        assert outcome.status == "complete"
+        assert outcome.committed_count == 15
+        assert len(bundle.room.requests) == 3
+        assert bundle.cancellations == []
+>       assert all(request.deadline_at is None for request in bundle.room.requests)
+E       assert False
+E        +  where False = all(<generator object test_room_observation_has_no_overall_time_limit.<locals>.<genexpr> at 0x000001C515211CB0>)
+
+tests_inago\test_step13.py:1451: AssertionError
+____________ test_room_observation_has_no_overall_time_limit[1801] ____________
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001C5166EB790>, data_root=WindowsPath('C:/project/rakuten-ro...rent=datetime.datetime(2026, 10, 12, 13, 30, 1, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=1801.0))
+elapsed_seconds = 1801
+
+    @pytest.mark.parametrize("elapsed_seconds", [485, 1801, 17101])
+    def test_room_observation_has_no_overall_time_limit(
+        runtime_case: RuntimeCase, elapsed_seconds: int,
+    ) -> None:
+        bundle = _make_ports(
+            runtime_case, posts_per_search=5,
+            finish_after_call=1, advance_seconds=elapsed_seconds,
+        )
+    
+        outcome = _run(runtime_case, bundle)
+    
+        assert outcome.status == "complete"
+        assert outcome.committed_count == 15
+>       assert len(bundle.room.requests) == 3
+E       AssertionError: assert 4 == 3
+E        +  where 4 = len([RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')])
+E        +    where [RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')] = <test_step13.FakeRoomPort object at 0x000001C5150B9A00>.requests
+E        +      where <test_step13.FakeRoomPort object at 0x000001C5150B9A00> = PortsBundle(ports=DailyPorts(current_settings_version=<function _make_ports.<locals>.current_settings_version at 0x000...t 0x000001C5150BA450>, cancellations=['STEP13-RUN'], intake=<test_step13.FakeOfferIntake object at 0x000001C514C90320>).room
+
+tests_inago\test_step13.py:1449: AssertionError
+___________ test_room_observation_has_no_overall_time_limit[17101] ____________
+
+runtime_case = RuntimeCase(connection=<sqlite3.Connection object at 0x000001C5166EBD30>, data_root=WindowsPath('C:/project/rakuten-ro...ent=datetime.datetime(2026, 10, 12, 17, 45, 1, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=17101.0))
+elapsed_seconds = 17101
+
+    @pytest.mark.parametrize("elapsed_seconds", [485, 1801, 17101])
+    def test_room_observation_has_no_overall_time_limit(
+        runtime_case: RuntimeCase, elapsed_seconds: int,
+    ) -> None:
+        bundle = _make_ports(
+            runtime_case, posts_per_search=5,
+            finish_after_call=1, advance_seconds=elapsed_seconds,
+        )
+    
+        outcome = _run(runtime_case, bundle)
+    
+        assert outcome.status == "complete"
+        assert outcome.committed_count == 15
+>       assert len(bundle.room.requests) == 3
+E       AssertionError: assert 4 == 3
+E        +  where 4 = len([RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')])
+E        +    where [RoomSearchRequest(attempt_id='b470455379215c5b9484a77e58a09eee', run_id='STEP13-RUN', query='related-1::G05-T03', par...=300, max_posts=50, query_kind='related', keyword_snapshot_ref='ACQ-STEP13-RUN-initial-03-a1', selected_word_ref='W1')] = <test_step13.FakeRoomPort object at 0x000001C515024F20>.requests
+E        +      where <test_step13.FakeRoomPort object at 0x000001C515024F20> = PortsBundle(ports=DailyPorts(current_settings_version=<function _make_ports.<locals>.current_settings_version at 0x000...t 0x000001C515026510>, cancellations=['STEP13-RUN'], intake=<test_step13.FakeOfferIntake object at 0x000001C5150252E0>).room
+
+tests_inago\test_step13.py:1449: AssertionError
+__________ test_room_without_deadline_ignores_source_duration_limit ___________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/room-unbounded-red/test_room_without_deadline_ign0')
+ui_server = {'html': '<input id="search-box" value="�������"><div class="search-detail-wrap" onclick="const popup=document.querySelec...');history.replaceState({},\'\',url);document.querySelector(\'#period-menu\').style.display=\'none\';}</script>'}, ...}
+
+    def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server):
+        from dataclasses import replace
+    
+        ui_server["html"] = room_html(1, initial=1, terminal=True)
+        port = source(tmp_path, ui_server, timeout=1, fixture_product_delay_ms=1500)
+        request = replace(room_request(), deadline_at=None)
+    
+>       assert port._request_timeout_seconds(request) is None
+E       AssertionError: assert 1.0 is None
+E        +  where 1.0 = _request_timeout_seconds(RoomSearchRequest(attempt_id='S1', run_id='R1', query='�������', parent_refs=('T1',), level='theme_fallback', attempt_no=...e_at=None, likes_min=300, max_posts=50, query_kind='theme_fallback', keyword_snapshot_ref=None, selected_word_ref=None))
+E        +    where _request_timeout_seconds = <automation.inago.live_sources.PublicBrowserSource object at 0x000001C5150BBCB0>._request_timeout_seconds
+
+tests_inago\test_step21_browser.py:2009: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step13.py::test_room_observation_has_no_overall_time_limit[485]
+FAILED tests_inago/test_step13.py::test_room_observation_has_no_overall_time_limit[1801]
+FAILED tests_inago/test_step13.py::test_room_observation_has_no_overall_time_limit[17101]
+FAILED tests_inago/test_step21_browser.py::test_room_without_deadline_ignores_source_duration_limit
+4 failed in 3.90s
