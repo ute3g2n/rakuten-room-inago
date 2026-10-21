@@ -1,0 +1,322 @@
+{
+  "source_commit": "e2083ce",
+  "probe_sha256": "5ef7f940a33640113ca9498b1a5c06b91c50c60abd364fd186c9838acdb7bf4f",
+  "one_second_trials": [
+    {
+      "id": "button-1",
+      "status": "unavailable",
+      "raw_error": "TimeoutError",
+      "interpreted_error": "source_timeout",
+      "started_at": "2026-10-21T02:52:19.649Z",
+      "finished_at": "2026-10-21T02:52:54.04Z",
+      "query": "スキンケア",
+      "delay_ms": 1000,
+      "input_method": "fill",
+      "submit_method": "button",
+      "source_sha256": "62f99ebdb8791f52587988bdb9ad9d3b23326386301e91ff6282c650d58615b5",
+      "actions": [
+        {
+          "action": "fill",
+          "selector": "getByLabel('検索', { exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 575,
+          "post_ready_wait_ms": 1010,
+          "outcome": "complete"
+        },
+        {
+          "action": "click",
+          "selector": "getByRole('button', { name: '調べる', exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 71,
+          "post_ready_wait_ms": 1000,
+          "outcome": "complete"
+        }
+      ],
+      "cli_exit_code": 1
+    },
+    {
+      "id": "button-2",
+      "status": "unavailable",
+      "raw_error": "TimeoutError",
+      "interpreted_error": "source_timeout",
+      "started_at": "2026-10-21T02:54:13.411Z",
+      "finished_at": "2026-10-21T02:54:48.379Z",
+      "query": "スキンケア",
+      "delay_ms": 1000,
+      "input_method": "fill",
+      "submit_method": "button",
+      "source_sha256": "62f99ebdb8791f52587988bdb9ad9d3b23326386301e91ff6282c650d58615b5",
+      "actions": [
+        {
+          "action": "fill",
+          "selector": "getByLabel('検索', { exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 522,
+          "post_ready_wait_ms": 1011,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "INPUT",
+            "type": "text",
+            "text": "",
+            "value": "",
+            "disabled": false
+          },
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        },
+        {
+          "action": "click",
+          "selector": "getByRole('button', { name: '調べる', exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 73,
+          "post_ready_wait_ms": 1007,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "BUTTON",
+            "type": null,
+            "text": "調べる",
+            "value": "",
+            "disabled": false
+          },
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        }
+      ],
+      "cli_exit_code": 1
+    },
+    {
+      "id": "enter",
+      "status": "unavailable",
+      "raw_error": "TimeoutError",
+      "interpreted_error": "source_timeout",
+      "started_at": "2026-10-21T02:55:56.637Z",
+      "finished_at": "2026-10-21T02:56:30.914Z",
+      "query": "スキンケア",
+      "delay_ms": 1000,
+      "input_method": "fill",
+      "submit_method": "enter",
+      "source_sha256": "62f99ebdb8791f52587988bdb9ad9d3b23326386301e91ff6282c650d58615b5",
+      "actions": [
+        {
+          "action": "fill",
+          "selector": "getByLabel('検索', { exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 94,
+          "post_ready_wait_ms": 1003,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "INPUT",
+            "type": "text",
+            "text": "",
+            "value": "",
+            "disabled": false
+          },
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        },
+        {
+          "action": "press",
+          "selector": "getByLabel('検索', { exact: true }).and(locator('input')).filter({ visible: true })",
+          "ready_after_ms": 48,
+          "post_ready_wait_ms": 1009,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "INPUT",
+            "type": "text",
+            "text": "",
+            "value": "スキンケア",
+            "disabled": false
+          },
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        }
+      ],
+      "cli_exit_code": 1
+    },
+    {
+      "id": "typed-characters",
+      "status": "unavailable",
+      "raw_error": "TimeoutError",
+      "interpreted_error": "source_timeout",
+      "started_at": "2026-10-21T02:57:05.197Z",
+      "finished_at": "2026-10-21T02:57:40.258Z",
+      "query": "スキンケア",
+      "delay_ms": 1000,
+      "input_method": "pressSequentially",
+      "submit_method": "button",
+      "source_sha256": "62f99ebdb8791f52587988bdb9ad9d3b23326386301e91ff6282c650d58615b5",
+      "actions": [
+        {
+          "action": "fill",
+          "selector": "getByLabel('検索', { exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 543,
+          "post_ready_wait_ms": 1005,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "INPUT",
+            "type": "text",
+            "text": "",
+            "value": "",
+            "disabled": false
+          },
+          "input_method": "pressSequentially",
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        },
+        {
+          "action": "click",
+          "selector": "getByRole('button', { name: '調べる', exact: true }).filter({ visible: true }).first()",
+          "ready_after_ms": 51,
+          "post_ready_wait_ms": 1007,
+          "outcome": "complete",
+          "before": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          },
+          "target": {
+            "tag": "BUTTON",
+            "type": null,
+            "text": "調べる",
+            "value": "",
+            "disabled": false
+          },
+          "after": {
+            "path": "/trends/",
+            "ready_state": "complete",
+            "visible_options": []
+          }
+        }
+      ],
+      "cli_exit_code": 1
+    }
+  ],
+  "legacy_ui": {
+    "checked_at": "2026-10-21T03:02:32.969Z",
+    "path": "/trends/explore",
+    "query": "スキンケア",
+    "input_count": 1,
+    "input_value": "スキンケア",
+    "period_controls": [
+      {
+        "tag": "MD-SELECT",
+        "role": "listbox",
+        "label": "Select time period: \n    過去 12 か月間\n  ",
+        "text": "過去 12 か月間"
+      }
+    ],
+    "actions": [
+      {
+        "kind": "click",
+        "selector": "getByRole('tab', { name: '調べる', exact: true })",
+        "wait_ms": 1014,
+        "path": "/trends/explore"
+      },
+      {
+        "kind": "fill",
+        "selector": "getByLabel('検索キーワードを追加', { exact: true })",
+        "wait_ms": 1012,
+        "path": "/trends/explore"
+      },
+      {
+        "kind": "press",
+        "key": "Enter",
+        "wait_ms": 1002,
+        "denials_before": 1
+      }
+    ],
+    "access_denials": [
+      {
+        "status": 429,
+        "type": "xhr"
+      },
+      {
+        "status": 429,
+        "type": "xhr"
+      }
+    ],
+    "related_keyword_visible_count": 0
+  },
+  "new_ui": {
+    "path": "/explore",
+    "visible_input_count": 0,
+    "old_query_locator_count": 0,
+    "old_period_locator_count": 0,
+    "old_related_locator_count": 0,
+    "shows_login_guidance": true,
+    "transition_links": [
+      {
+        "text": "探す",
+        "href": "/trends/explore?geo=JP&hl=ja"
+      },
+      {
+        "text": "新しい [探す] ページに移動",
+        "href": "/explore"
+      }
+    ],
+    "context": "initial_dedicated_profile_observation_only_not_a_general_rule"
+  },
+  "self_check": {
+    "status": "passed",
+    "events": [
+      {
+        "action": "click",
+        "selector": "getByRole('button')",
+        "ready_after_ms": 660,
+        "post_ready_wait_ms": 1013,
+        "outcome": "complete"
+      },
+      {
+        "action": "fill",
+        "selector": "getByRole('textbox')",
+        "ready_after_ms": 64,
+        "post_ready_wait_ms": 1003,
+        "outcome": "complete",
+        "input_method": "pressSequentially"
+      },
+      {
+        "action": "press",
+        "selector": "getByRole('textbox')",
+        "ready_after_ms": 38,
+        "post_ready_wait_ms": 1002,
+        "outcome": "complete"
+      }
+    ]
+  },
+  "successful_user_chrome_probe": "new-ui-success.json"
+}
