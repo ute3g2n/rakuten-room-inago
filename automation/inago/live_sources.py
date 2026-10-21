@@ -1865,6 +1865,7 @@ class PublicBrowserSource:
                         "explicit_end",
                         "stable_no_progress",
                         "first_50",
+                        "row_limit",
                     },
                 ),
                 ("row_status", {"identified", "unresolved"}),

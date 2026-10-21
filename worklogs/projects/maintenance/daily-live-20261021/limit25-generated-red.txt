@@ -1,0 +1,25 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_v7_preserves_unknown_columns_by_refusing_migration[True] ________
+
+legacy_v2 = <sqlite3.Connection object at 0x000001B085C4E5C0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B08464E210>
+generated = True
+
+    @pytest.mark.parametrize("generated", [False, True])
+    def test_v7_preserves_unknown_columns_by_refusing_migration(legacy_v2, monkeypatch, generated):
+        _v6(legacy_v2, monkeypatch)
+        suffix = " GENERATED ALWAYS AS (query) VIRTUAL" if generated else ""
+        legacy_v2.execute("ALTER TABLE search_attempt ADD COLUMN custom_notes TEXT" + suffix)
+        if not generated:
+            legacy_v2.execute("UPDATE search_attempt SET custom_notes='keep this value'")
+        before = _rows(legacy_v2)
+    
+>       with pytest.raises(UnsupportedSchemaVersion):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE UnsupportedSchemaVersion
+
+tests_inago\test_daily_live_limits.py:123: Failed
+=========================== short test summary info ===========================
+FAILED tests_inago/test_daily_live_limits.py::test_v7_preserves_unknown_columns_by_refusing_migration[True]
+1 failed in 0.83s

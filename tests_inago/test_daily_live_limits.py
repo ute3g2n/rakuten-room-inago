@@ -49,12 +49,17 @@ def _v6(connection, monkeypatch):
 
 
 def _rows(connection):
-    tables = [row[0] for row in connection.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' "
-        "AND name != 'schema_migration' ORDER BY name"
-    )]
-    return {name: [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}"')]
-            for name in tables}
+    tables = [
+        row[0]
+        for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' "
+            "AND name != 'schema_migration' ORDER BY name"
+        )
+    ]
+    return {
+        name: [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}"')]
+        for name in tables
+    }
 
 
 def test_v7_preserves_v6_searches_and_references(legacy_v2, monkeypatch):
@@ -73,12 +78,24 @@ def test_v7_preserves_v6_searches_and_references(legacy_v2, monkeypatch):
         "SELECT 'A25',run_id,query,parent_refs_json,level,10,started_at,'invalid','internal',25 "
         "FROM search_attempt WHERE attempt_id='A1'"
     )
-    assert legacy_v2.execute("SELECT max_posts FROM search_attempt WHERE attempt_id='A1'").fetchone()[0] == 50
-    assert legacy_v2.execute("SELECT max_posts FROM search_attempt WHERE attempt_id='A25'").fetchone()[0] == 25
+    assert (
+        legacy_v2.execute(
+            "SELECT max_posts FROM search_attempt WHERE attempt_id='A1'"
+        ).fetchone()[0]
+        == 50
+    )
+    assert (
+        legacy_v2.execute(
+            "SELECT max_posts FROM search_attempt WHERE attempt_id='A25'"
+        ).fetchone()[0]
+        == 25
+    )
     assert repository.initialize_database(legacy_v2) == 7
 
 
-def test_v7_rejects_unreviewed_custom_objects_without_losing_data(legacy_v2, monkeypatch):
+def test_v7_rejects_unreviewed_custom_objects_without_losing_data(
+    legacy_v2, monkeypatch
+):
     _v6(legacy_v2, monkeypatch)
     legacy_v2.execute("CREATE INDEX custom_search_query ON search_attempt(query)")
     before = _rows(legacy_v2)
@@ -89,4 +106,46 @@ def test_v7_rejects_unreviewed_custom_objects_without_losing_data(legacy_v2, mon
     assert legacy_v2.execute("PRAGMA user_version").fetchone()[0] == 6
     assert _rows(legacy_v2) == before
     assert legacy_v2.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-    assert legacy_v2.execute("SELECT name FROM sqlite_master WHERE name='custom_search_query'").fetchone()
+    assert legacy_v2.execute(
+        "SELECT name FROM sqlite_master WHERE name='custom_search_query'"
+    ).fetchone()
+
+
+@pytest.mark.parametrize("generated", [False, True])
+def test_v7_preserves_unknown_columns_by_refusing_migration(
+    legacy_v2, monkeypatch, generated
+):
+    _v6(legacy_v2, monkeypatch)
+    suffix = " GENERATED ALWAYS AS (query) VIRTUAL" if generated else ""
+    legacy_v2.execute(
+        "ALTER TABLE search_attempt ADD COLUMN custom_notes TEXT" + suffix
+    )
+    if not generated:
+        legacy_v2.execute("UPDATE search_attempt SET custom_notes='keep this value'")
+    before = _rows(legacy_v2)
+
+    with pytest.raises(UnsupportedSchemaVersion):
+        repository.initialize_database(legacy_v2)
+
+    assert legacy_v2.execute("PRAGMA user_version").fetchone()[0] == 6
+    assert _rows(legacy_v2) == before
+    assert legacy_v2.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+
+
+def test_maintenance_lock_keeps_exact_restored_owner(tmp_path):
+    from automation.inago.run_lock import (
+        LockOwner,
+        RunLock,
+        RunLockBusy,
+        _write_owner_atomically,
+        read_lock_owner,
+    )
+
+    lock_path = tmp_path / "daily.lock"
+    owner_path = tmp_path / "owner.json"
+    original = LockOwner(1073741824, "2026-10-21T01:27:29+00:00", "FIXTURE-STOPPED")
+    with RunLock.acquire(lock_path, owner_path, run_id="FIXTURE-UPGRADE"):
+        with pytest.raises(RunLockBusy):
+            RunLock.acquire(lock_path, owner_path, run_id="FIXTURE-CONCURRENT")
+        _write_owner_atomically(owner_path, original)
+    assert read_lock_owner(owner_path).owner == original

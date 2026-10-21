@@ -29,8 +29,8 @@ from automation.inago.contracts import (
     UnsupportedSchemaVersion,
 )
 
-CURRENT_SCHEMA_VERSION = 6
-READABLE_SCHEMA_VERSIONS = frozenset({5, 6})
+CURRENT_SCHEMA_VERSION = 7
+READABLE_SCHEMA_VERSIONS = frozenset({5, 6, 7})
 LEGACY_UNASSIGNED_THEME_ID = "legacy-unassigned"
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 JST = ZoneInfo("Asia/Tokyo")
@@ -44,6 +44,7 @@ _MIGRATION_SQL_PATHS = {
     4: Path(__file__).resolve().parent / "sql" / "004_trends_retry_state.sql",
     5: Path(__file__).resolve().parent / "sql" / "005_pending_post_correction_ref.sql",
     6: Path(__file__).resolve().parent / "sql" / "006_nullable_run_deadlines.sql",
+    7: Path(__file__).resolve().parent / "sql" / "007_per_search_row_budget.sql",
 }
 
 _ENTITY_TABLES = frozenset(
@@ -263,8 +264,10 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                 return version
 
             next_version = version + 1
-            if next_version in {3, 6}:
+            if next_version in {3, 6, 7}:
                 _verify_rebuild_objects(connection)
+            if next_version == 7:
+                _verify_search_budget_columns(connection)
             migration_path = _MIGRATION_SQL_PATHS.get(next_version)
             if migration_path is None or not migration_path.is_file():
                 raise UnsupportedSchemaVersion(
@@ -286,6 +289,7 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
                         4: "durable per-theme Google Trends retry state",
                         5: "preserve corrections that refer to pending posted reports",
                         6: "make historical run deadlines nullable and audit-only",
+                        7: "allow per-search row budgets while preserving fifty-row history",
                     }[next_version],
                 ),
             )
@@ -296,6 +300,25 @@ def _advance_database_migrations(connection: sqlite3.Connection) -> int:
             if connection.in_transaction:
                 connection.rollback()
             raise
+
+
+def _verify_search_budget_columns(connection: sqlite3.Connection) -> None:
+    """Refuse to drop unknown columns or changed column contracts in v7."""
+
+    source = _MIGRATION_SQL_PATHS[3].read_text(encoding="utf-8")
+    start = source.index("CREATE TABLE search_attempt_v3")
+    end = source.index("INSERT INTO search_attempt_v3", start)
+    reference = sqlite3.connect(":memory:")
+    try:
+        reference.execute(source[start:end].strip())
+        expected = reference.execute("PRAGMA table_xinfo(search_attempt_v3)").fetchall()
+    finally:
+        reference.close()
+    actual = connection.execute("PRAGMA table_xinfo(search_attempt)").fetchall()
+    if [tuple(row) for row in actual] != expected:
+        raise UnsupportedSchemaVersion(
+            "search budget migration requires review of custom column structure"
+        )
 
 
 def _verify_foreign_keys(connection: sqlite3.Connection) -> None:

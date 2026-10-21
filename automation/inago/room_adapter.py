@@ -35,6 +35,7 @@ _OBS_SCHEMA_PATH = (
 )
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_PRODUCT_RESOLUTION_FAILURES = 10
+DAILY_SEARCH_POST_LIMIT = 25
 _OBSERVABLE_FIELDS = frozenset(
     {"query", "likes_min", "current_search_id", "search_loaded", "internal_order"}
 )
@@ -200,6 +201,7 @@ class RoomSearchSession:
         if level not in {"combined", "parent", "related", "theme_fallback"}:
             raise RoomContractError("search level is invalid")
         current = level in {"related", "theme_fallback"}
+        max_posts = DAILY_SEARCH_POST_LIMIT if current else 50
         if current:
             if query_kind != level:
                 raise RoomContractError("current query kind must match its level")
@@ -317,7 +319,7 @@ class RoomSearchSession:
                 "ended_at": None,
                 "source_status": "invalid",
                 "source_order": "internal",
-                "max_posts": 50,
+                "max_posts": max_posts,
                 "retry_of": retry_of,
                 "error_code": _RESERVATION_ERROR,
                 **(
@@ -337,7 +339,7 @@ class RoomSearchSession:
                     (attempt_id, run_id, query, parent_refs_json, level,
                      attempt_no, started_at, ended_at, source_status,
                      source_order, max_posts, retry_of, error_code,query_kind,keyword_snapshot_ref,selected_word_ref)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'invalid', 'internal', 50, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'invalid', 'internal', ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     attempt_id,
@@ -347,6 +349,7 @@ class RoomSearchSession:
                     level,
                     attempt_no,
                     started_at,
+                    max_posts,
                     retry_of,
                     _RESERVATION_ERROR,
                     query_kind if current else "legacy",
@@ -377,6 +380,7 @@ class RoomSearchSession:
             attempt_no=attempt_no,
             retry_of=retry_of,
             deadline_at=None,
+            max_posts=max_posts,
             query_kind=query_kind,
             keyword_snapshot_ref=keyword_snapshot_ref,
             selected_word_ref=selected_word_ref,
@@ -464,7 +468,7 @@ class RoomSearchSession:
                 "ended_at": ended_at,
                 "source_status": result.status,
                 "source_order": "internal",
-                "max_posts": 50,
+                "max_posts": result.request.max_posts,
                 "retry_of": result.request.retry_of,
                 "error_code": result.error_code,
                 **(
@@ -634,7 +638,8 @@ def _parse_current_room_response(
     if (
         request.query_kind != request.level
         or request.likes_min != 300
-        or request.max_posts != 50
+        or type(request.max_posts) is not int
+        or not 1 <= request.max_posts <= 50
         or (
             request.level == "related"
             and not (request.keyword_snapshot_ref and request.selected_word_ref)
@@ -661,7 +666,7 @@ def _parse_current_room_response(
     accepted = []
     seen = {}
     for row in rows:
-        if len(accepted) == 50:
+        if len(accepted) == request.max_posts:
             break
         if not isinstance(row, Mapping):
             return _invalid_result(request, "post_field_invalid")
@@ -690,8 +695,8 @@ def _parse_current_room_response(
         if any(row["likes"] is not None and row["likes"] < 300 for row in accepted):
             return _invalid_result(request, "search_condition_contradicted")
     # Reuse the historical row/URL validator after the new bounded contract has
-    # been checked. Reaching 50 is a successful end condition, not a timeout.
-    at_limit = len(accepted) == 50
+    # been checked. Reaching the requested budget is a successful end condition.
+    at_limit = len(accepted) == request.max_posts
     actual_end = response["end_reached"]
     if at_limit and response["status"] == "observed":
         limited["end_reached"] = True
@@ -752,7 +757,7 @@ def _parse_legacy_room_response(
         "parent_refs": list(request.parent_refs),
         "level": request.level,
         "likes_min": 300,
-        "max_posts": 50,
+        "max_posts": request.max_posts,
     }
     if any(response.get(field) != value for field, value in expected.items()):
         return _invalid_result(request, "search_conditions_mismatch")
@@ -792,7 +797,7 @@ def _parse_legacy_room_response(
                 return _invalid_result(request, "post_field_invalid")
             if stable_room_id in seen_room_ids:
                 continue
-        if len(posts) >= 50:
+        if len(posts) >= request.max_posts:
             over_limit = True
             break
         if stable_room_id is not None:
@@ -929,7 +934,7 @@ def _unavailable_response(
         "parent_refs": list(request.parent_refs),
         "level": request.level,
         "likes_min": 300,
-        "max_posts": 50,
+        "max_posts": request.max_posts,
         "current_search_id": None,
         "search_loaded": False,
         "internal_order_confirmed": False,

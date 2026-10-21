@@ -1019,7 +1019,7 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     )
     assert (
         runtime_case.connection.execute(
-            "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND max_posts=50",
+            "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND max_posts=25",
             (RUN_ID,),
         ).fetchone()[0]
         == 3
@@ -1042,7 +1042,7 @@ def test_order_is_related_then_theme_fallback_and_all_untried_themes(
         "theme_fallback",
     ]
     assert len({item.parent_refs[0] for item in bundle.room.requests[:3]}) == 1
-    assert all(request.max_posts == 50 for request in bundle.room.requests)
+    assert all(request.max_posts == 25 for request in bundle.room.requests)
     assert bundle.metrics.calls
 
 

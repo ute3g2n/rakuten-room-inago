@@ -315,7 +315,9 @@
           "const": "internal"
         },
         "max_posts": {
-          "const": 50
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
         },
         "retry_of": {
           "$ref": "#/$defs/nullableString"

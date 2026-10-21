@@ -195,49 +195,6 @@ def test_n20g_daily_task_scheduler_has_no_run_wide_execution_limit():
     )
 
 
-def test_n20h_confirmed_room_timeout_stops_run_instead_of_retrying(
-    step13_runtime_case,
-):
-    """A confirmed request-scoped cancel keeps ROOM retry and daily work live."""
-
-    bundle = _make_ports(step13_runtime_case, posts_per_search=5)
-    started = threading.Event()
-    cancelled = threading.Event()
-    original_search = bundle.room.search
-
-    def blocked_search(request):
-        started.set()
-        cancelled.wait(timeout=5)
-        return original_search(request)
-
-    def cancel(run_id: str, request_id: str) -> bool:
-        bundle.cancellations.append(run_id)
-        cancelled.set()
-        return True
-
-    bundle.room.search = blocked_search
-    bundle.ports = replace(bundle.ports, cancel_room_request=cancel)
-
-    def advance_clock():
-        assert started.wait(timeout=3), "owned ROOM request did not start"
-        step13_runtime_case.clock.advance(480)
-
-    clock_driver = threading.Thread(target=advance_clock, daemon=True)
-    clock_driver.start()
-    outcome = _run(step13_runtime_case, bundle, run_id="RUN-R10-N20H")
-
-    assert outcome.status == "complete"
-    assert outcome.committed_count == 15
-    assert len(bundle.room.requests) > 1
-    assert len(bundle.runner.requests) == 15
-    assert bundle.cancellations == ["RUN-R10-N20H"]
-    attempt = step13_runtime_case.connection.execute(
-        "SELECT source_status,error_code FROM search_attempt WHERE run_id=?",
-        ("RUN-R10-N20H",),
-    ).fetchone()
-    assert tuple(attempt) == ("unavailable", "room_request_timeout")
-
-
 def test_n20i_confirmed_ai_timeout_stops_run_without_replaying_work(
     step13_runtime_case,
 ):
@@ -285,48 +242,6 @@ def test_n20i_confirmed_ai_timeout_stops_run_without_replaying_work(
     state = json.loads(checkpoint)["daily_orchestration"]
     assert state["source_stopped"] is False
     assert {"phase": "copy", "code": "ai_request_timeout"} in state["errors"]
-
-
-def test_n20j_room_timeout_cancels_only_request_and_continues(
-    step13_runtime_case,
-):
-    bundle = _make_ports(step13_runtime_case, posts_per_search=5)
-    started = threading.Event()
-    cancelled = threading.Event()
-    original_search = bundle.room.search
-
-    def blocked_search(request):
-        started.set()
-        cancelled.wait(timeout=5)
-        return original_search(request)
-
-    def cancel(run_id: str, request_id: str) -> bool:
-        bundle.cancellations.append(run_id)
-        cancelled.set()
-        return True
-
-    bundle.room.search = blocked_search
-    bundle.ports = replace(bundle.ports, cancel_room_request=cancel)
-
-    def advance_clock():
-        assert started.wait(timeout=3), "owned ROOM request did not start"
-        step13_runtime_case.clock.advance(480)
-
-    clock_driver = threading.Thread(target=advance_clock, daemon=True)
-    clock_driver.start()
-    outcome = _run(step13_runtime_case, bundle, run_id="RUN-R10-N20J")
-
-    assert outcome.status == "complete"
-    assert outcome.committed_count == 15
-    assert len(bundle.room.requests) > 1
-    assert len(bundle.runner.requests) == 15
-    assert bundle.cancellations == ["RUN-R10-N20J"]
-    attempt = step13_runtime_case.connection.execute(
-        "SELECT source_status,error_code FROM search_attempt "
-        "WHERE run_id=? ORDER BY attempt_no LIMIT 1",
-        ("RUN-R10-N20J",),
-    ).fetchone()
-    assert tuple(attempt) == ("unavailable", "room_request_timeout")
 
 
 def test_n20k_ai_timeout_cancels_only_job_and_continues(

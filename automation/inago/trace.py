@@ -169,6 +169,7 @@ _ROOM_END_EVIDENCE = {
     "explicit_end",
     "stable_no_progress",
     "first_50",
+    "row_limit",
 }
 _WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
 _ROOM_CONDITION_CLOSE_METHODS = {

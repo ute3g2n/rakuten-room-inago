@@ -114,7 +114,7 @@ function trace(stage, details = {}) {
     widget_kind:['related_keywords','related_topics','unknown','multiple'],
     widget_empty_evidence:['none','explicit_no_data'],
     widget_outcome:['ready','deadline','ambiguous','contract_mismatch'],
-    end_evidence:['explicit_no_results','explicit_end','stable_no_progress','first_50'],
+    end_evidence:['explicit_no_results','explicit_end','stable_no_progress','first_50','row_limit'],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (allowed.includes(details[key])) safe[key] = details[key];
@@ -304,7 +304,8 @@ function validateInput(input) {
         url.username || url.password) throw new SourceFailure('invalid_fixture_endpoint');
   } else if (config.fixture_url != null) throw new SourceFailure('invalid_fixture_endpoint');
   if (kind === 'room') {
-    if (!REF.test(request.attempt_id) || request.likes_min !== 300 || request.max_posts !== 50 ||
+    if (!REF.test(request.attempt_id) || request.likes_min !== 300 ||
+        !Number.isInteger(request.max_posts) || request.max_posts < 1 || request.max_posts > 50 ||
         !['related', 'theme_fallback'].includes(request.level) || request.query_kind !== request.level)
       throw new SourceFailure('invalid_request');
   } else if (!REF.test(request.request_id) || !REF.test(request.settings_version) ||
@@ -1166,7 +1167,7 @@ export async function collectRoom(page, request, config, deadline, access) {
       trace('room_list_progress',{scope:'query',loaded_posts:loaded});
       priorLoaded = loaded;
     }
-    if (loaded >= 50 || exhausted) break;
+    if (loaded >= request.max_posts || exhausted) break;
     if (config.environment === 'fixture' && config.fixture_room_scroll_delay_ms > 0) {
       const delayMs = Math.min(config.fixture_room_scroll_delay_ms,Math.max(0,deadline-Date.now()+1));
       await new Promise(resolve => setTimeout(resolve,delayMs));
@@ -1227,24 +1228,24 @@ export async function collectRoom(page, request, config, deadline, access) {
   ]).has(endMarker);
   if (loaded === 0 && exhausted && !explicitNoResult)
     throw new SourceFailure('incomplete_search');
-  if (loaded < 50 && !exhausted && !stableShortBatch)
+  if (loaded < request.max_posts && !exhausted && !stableShortBatch)
     throw new SourceFailure('incomplete_search');
   const endEvidence = loaded === 0 ? 'explicit_no_results' :
-    exhausted ? 'explicit_end' : stableShortBatch ? 'stable_no_progress' : 'first_50';
+    exhausted ? 'explicit_end' : stableShortBatch ? 'stable_no_progress' : 'row_limit';
   trace('room_results_complete',{
     scope:'query',
     loaded_posts:loaded,
-    accepted_posts:Math.min(50,loaded),
+    accepted_posts:Math.min(request.max_posts,loaded),
     end_evidence:endEvidence,
   });
   trace('room_resolve_products',{
-    scope:'query',loaded_posts:loaded,accepted_posts:Math.min(50,loaded),
+    scope:'query',loaded_posts:loaded,accepted_posts:Math.min(request.max_posts,loaded),
   });
   const fetched = timestamp();
   const posts = [];
   const facts = {};
   let productResolutionFailures = 0;
-  for (let index = 0; index < Math.min(50, loaded); index++) {
+  for (let index = 0; index < Math.min(request.max_posts, loaded); index++) {
     if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
     const card = cards.nth(index);
     const name = await card.locator('.imgLink img').first().getAttribute('alt').catch(() => null);

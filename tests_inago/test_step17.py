@@ -946,7 +946,7 @@ def test_daily_backup_is_consistent_keeps_seven_generations_and_bundles_artifact
         )
         latest = generations[-1]
         manifest = json.loads((latest / "manifest.json").read_text(encoding="utf-8"))
-        assert manifest["schema_version"] == 6
+        assert manifest["schema_version"] == 7
         assert manifest["table_counts"]["run"] == 1
         assert manifest["table_counts"]["draft"] == 17
         assert manifest["table_counts"]["backup"] == 7

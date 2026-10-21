@@ -23,7 +23,7 @@
       ]
     },
     "likes_min": {"const": 300},
-    "max_posts": {"const": 50},
+    "max_posts": {"type": "integer", "minimum": 1, "maximum": 50},
     "current_search_id": {"$ref": "#/$defs/nullableId"},
     "search_loaded": {"type": "boolean"},
     "internal_order_confirmed": {"type": "boolean"},
