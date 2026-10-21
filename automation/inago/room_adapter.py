@@ -12,7 +12,7 @@ import re
 import sqlite3
 import uuid
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 from urllib.parse import unquote, urlsplit
@@ -35,9 +35,6 @@ _OBS_SCHEMA_PATH = (
 )
 _SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_PRODUCT_RESOLUTION_FAILURES = 10
-# A request resolves up to fifty product pages. Public UI observations have
-# taken over eight minutes for twenty pages; allow thirty minutes, still finite.
-ROOM_REQUEST_TIMEOUT_SECONDS = 1800
 _OBSERVABLE_FIELDS = frozenset(
     {"query", "likes_min", "current_search_id", "search_loaded", "internal_order"}
 )
@@ -61,7 +58,7 @@ class RoomSearchRequest:
     level: str
     attempt_no: int
     retry_of: str | None
-    deadline_at: str
+    deadline_at: str | None
     likes_min: int = 300
     max_posts: int = 50
     query_kind: str | None = None
@@ -106,9 +103,9 @@ class RoomSearchPort(Protocol):
     def search(self, request: RoomSearchRequest) -> Mapping[str, Any]:
         """Return one data-only observation for exactly this reserved attempt.
 
-        The orchestrator invokes this port on an owned worker thread and enforces
-        a finite per-request timeout. Implementations must not use the caller's
-        SQLite connection and must support cancellation of the active request.
+        ROOM observations have no overall request time limit. Implementations
+        must support cancellation of the active request and must not use the
+        caller's SQLite connection.
         A browser adapter must establish that its supported browser driver is
         safe to use from this execution model before it is connected here; no
         browser integration is assumed by this contract.
@@ -379,9 +376,7 @@ class RoomSearchSession:
             level=level,
             attempt_no=attempt_no,
             retry_of=retry_of,
-            deadline_at=(
-                now + timedelta(seconds=ROOM_REQUEST_TIMEOUT_SECONDS)
-            ).isoformat(),
+            deadline_at=None,
             query_kind=query_kind,
             keyword_snapshot_ref=keyword_snapshot_ref,
             selected_word_ref=selected_word_ref,

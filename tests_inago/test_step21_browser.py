@@ -1441,13 +1441,19 @@ def test_wrong_visible_query_never_returns_old_results(tmp_path, ui_server, kind
     )
 
 
-def test_cancel_terminates_owned_process_and_returns_no_candidate(tmp_path, ui_server):
+@pytest.mark.parametrize("without_deadline", [False, True])
+def test_cancel_terminates_owned_process_and_returns_no_candidate(
+    tmp_path, ui_server, without_deadline
+):
+    from dataclasses import replace
+
     ui_server["html"] = "<h1>loading</h1>"
     port = source(tmp_path, ui_server, timeout=30)
     responses = []
-    thread = threading.Thread(
-        target=lambda: responses.append(port.search(room_request()))
-    )
+    request = room_request()
+    if without_deadline:
+        request = replace(request, deadline_at=None)
+    thread = threading.Thread(target=lambda: responses.append(port.search(request)))
     thread.start()
     deadline = time.monotonic() + 10
     while port.active_process_count == 0 and time.monotonic() < deadline:

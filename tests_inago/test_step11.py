@@ -162,7 +162,7 @@ def test_attempt_is_reserved_before_search_and_successful_zero_is_not_failure(
                 assert request.query == "揚げ物"
                 assert request.likes_min == 300
                 assert request.max_posts == 50
-                assert request.deadline_at == "2026-10-12T13:31:00+09:00"
+                assert request.deadline_at is None
                 assert (
                     connection.execute(
                         "SELECT attempt_used FROM run WHERE run_id = ?",

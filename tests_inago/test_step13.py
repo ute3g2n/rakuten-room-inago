@@ -1435,11 +1435,14 @@ def test_daily_flow_continues_after_1745_and_1800(
 
 @pytest.mark.parametrize("elapsed_seconds", [485, 1801, 17101])
 def test_room_observation_has_no_overall_time_limit(
-    runtime_case: RuntimeCase, elapsed_seconds: int,
+    runtime_case: RuntimeCase,
+    elapsed_seconds: int,
 ) -> None:
     bundle = _make_ports(
-        runtime_case, posts_per_search=5,
-        finish_after_call=1, advance_seconds=elapsed_seconds,
+        runtime_case,
+        posts_per_search=5,
+        finish_after_call=1,
+        advance_seconds=elapsed_seconds,
     )
 
     outcome = _run(runtime_case, bundle)
@@ -1449,10 +1452,13 @@ def test_room_observation_has_no_overall_time_limit(
     assert len(bundle.room.requests) == 3
     assert bundle.cancellations == []
     assert all(request.deadline_at is None for request in bundle.room.requests)
-    assert runtime_case.connection.execute(
-        "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
-        (RUN_ID,),
-    ).fetchone()[0] == 0
+    assert (
+        runtime_case.connection.execute(
+            "SELECT COUNT(*) FROM search_attempt WHERE run_id=? AND source_status='unavailable'",
+            (RUN_ID,),
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def test_blocked_ai_copy_uses_request_timeout_and_discards_late_body(

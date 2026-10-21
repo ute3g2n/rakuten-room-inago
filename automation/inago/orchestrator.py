@@ -41,7 +41,6 @@ from automation.inago.repository import (
     validate_entity,
 )
 from automation.inago.room_adapter import (
-    ROOM_REQUEST_TIMEOUT_SECONDS,
     RoomSearchPort,
     RoomSearchSession,
 )
@@ -268,72 +267,6 @@ class _DeadlineCopyRunner:
             started_at=None,
             finished_at=_now(self._clock).isoformat(),
         )
-
-
-class _RequestTimeoutRoomSearchPort:
-    """Enforce one finite timeout for each ROOM observation request."""
-
-    def __init__(
-        self,
-        port: RoomSearchPort,
-        *,
-        timeout_seconds: int,
-        clock: Clock,
-        cancel: Callable[[Any], Any],
-    ) -> None:
-        self._port = port
-        self._timeout_seconds = timeout_seconds
-        self._clock = clock
-        self._cancel = cancel
-
-    def search(self, request):
-        cancellation_confirmed = True
-
-        def cancel_request() -> bool:
-            nonlocal cancellation_confirmed
-            cancellation_confirmed = self._cancel(request) is True
-            return cancellation_confirmed
-
-        completed, response = _call_before_deadline(
-            lambda: self._port.search(request),
-            deadline_monotonic=self._clock.monotonic() + self._timeout_seconds,
-            clock=self._clock,
-            cancel=cancel_request,
-        )
-        if completed:
-            return response
-        return {
-            "attempt_id": request.attempt_id,
-            "run_id": request.run_id,
-            "query": request.query,
-            "parent_refs": list(request.parent_refs),
-            "level": request.level,
-            "likes_min": request.likes_min,
-            "max_posts": request.max_posts,
-            **(
-                {
-                    "query_kind": request.query_kind,
-                    "keyword_snapshot_ref": request.keyword_snapshot_ref,
-                    "selected_word_ref": request.selected_word_ref,
-                    "loaded_posts": 0,
-                    "condition_evidence_ref": None,
-                }
-                if request.query_kind
-                else {}
-            ),
-            "current_search_id": None,
-            "search_loaded": False,
-            "internal_order_confirmed": False,
-            "status": "unavailable",
-            "fetched_at": None,
-            "end_reached": False,
-            "error_code": (
-                "room_request_timeout"
-                if cancellation_confirmed
-                else "room_request_timeout_cancel_unconfirmed"
-            ),
-            "posts": [],
-        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -2626,14 +2559,6 @@ def run_daily(
         original_copy_runner = ports.copy_runner
         ports = replace(
             ports,
-            room_port=_RequestTimeoutRoomSearchPort(
-                ports.room_port,
-                timeout_seconds=ROOM_REQUEST_TIMEOUT_SECONDS,
-                clock=system_clock,
-                cancel=lambda request: _cancel_request_job(
-                    ports.cancel_room_request, request.run_id, request.attempt_id
-                ),
-            ),
             copy_runner=_DeadlineCopyRunner(
                 ports.copy_runner,
                 clock=system_clock,

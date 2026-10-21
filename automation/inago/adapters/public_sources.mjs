@@ -294,7 +294,8 @@ function validateInput(input) {
         config[key] !== undefined &&
         (!Number.isInteger(config[key]) || config[key] < 0 || config[key] > 60000 ||
          (config.environment !== 'fixture' && config[key] !== 0))) ||
-      !Number.isFinite(config.timeout_seconds) || config.timeout_seconds < 1 || config.timeout_seconds > MAX_SOURCE_TIMEOUT_SECONDS ||
+      (!(kind === 'room' && config.timeout_seconds === null) &&
+        (!Number.isFinite(config.timeout_seconds) || config.timeout_seconds < 1 || config.timeout_seconds > MAX_SOURCE_TIMEOUT_SECONDS)) ||
       !REF.test(request.run_id) || typeof (request.query ?? request.parent_word) !== 'string' ||
       !(request.query ?? request.parent_word).trim()) throw new SourceFailure('invalid_request');
   if (config.environment === 'fixture') {
@@ -1682,8 +1683,9 @@ export async function collectTrends(page, request, config, deadline, access) {
 export async function main(input) {
   validateInput(input);
   const {config,request,kind} = input;
-  const fixtureDeadline = config.fixture_request_deadline_ms || config.timeout_seconds*1000;
-  const configuredDeadline = Date.now()+Math.min(config.timeout_seconds*1000,fixtureDeadline);
+  const timeoutMs = config.timeout_seconds === null ? Infinity : config.timeout_seconds*1000;
+  const fixtureDeadline = config.fixture_request_deadline_ms || timeoutMs;
+  const configuredDeadline = Date.now()+Math.min(timeoutMs,fixtureDeadline);
   const requestDeadline = request.deadline_at == null ? null : Date.parse(request.deadline_at);
   if (request.deadline_at != null && !Number.isFinite(requestDeadline))
     throw new SourceFailure('invalid_request');
@@ -1760,8 +1762,8 @@ export async function main(input) {
     trace('browser_page_begin');
     const page = await context.newPage();
     trace('browser_page_complete');
-    page.setDefaultTimeout(Math.min(10000,config.timeout_seconds*1000));
-    page.setDefaultNavigationTimeout(Math.min(30000,config.timeout_seconds*1000));
+    page.setDefaultTimeout(Math.min(10000,timeoutMs));
+    page.setDefaultNavigationTimeout(Math.min(30000,timeoutMs));
     return await (kind === 'room' ? collectRoom(page,request,config,deadline,access) : collectTrends(page,request,config,deadline,access));
   } catch (error) {
     // A later DOM/navigation timeout must not erase an already observed denial.

@@ -920,19 +920,19 @@ class PublicBrowserSource:
         request_timeout = self._request_timeout_seconds(request)
         # The Node adapter rejects timeouts below one second as an invalid
         # request, so report an ordinary timeout without launching it.
-        if request_timeout < 1:
+        if request_timeout is not None and request_timeout < 1:
             self._trace_error(trace_session, "source_timeout", kind)
             return {"error_code": "source_timeout"}
         config = asdict(self.config)
-        config["timeout_seconds"] = min(config["timeout_seconds"], request_timeout)
+        config["timeout_seconds"] = request_timeout
         config["chrome_executable"] = str(self.config.chrome_executable.resolve())
         config["user_data_dir"] = (
             str(self._user_data_dir) if self._user_data_dir is not None else None
         )
         config["fixture_product_delay_ms"] = self.config.fixture_product_delay_ms
-        config[
-            "fixture_browser_startup_delay_ms"
-        ] = self.config.fixture_browser_startup_delay_ms
+        config["fixture_browser_startup_delay_ms"] = (
+            self.config.fixture_browser_startup_delay_ms
+        )
         config[
             "fixture_room_scroll_delay_ms"
         ] = self.config.fixture_room_scroll_delay_ms
@@ -965,7 +965,8 @@ class PublicBrowserSource:
                         trace_session, "source_cancelled", kind, cancel=True
                     )
                     return {"error_code": "source_cancelled"}
-                if self._request_timeout_seconds(request) < 1:
+                remaining = self._request_timeout_seconds(request)
+                if remaining is not None and remaining < 1:
                     self._trace_error(trace_session, "source_timeout", kind)
                     return {"error_code": "source_timeout"}
                 process = subprocess.Popen(
@@ -982,8 +983,12 @@ class PublicBrowserSource:
                 self._active_request_tokens[process] = request_key
             output, node_stderr = process.communicate(
                 payload,
-                timeout=config["timeout_seconds"]
-                + (2 if getattr(request, "deadline_at", None) else 5),
+                timeout=(
+                    None
+                    if request_timeout is None
+                    else request_timeout
+                    + (2 if getattr(request, "deadline_at", None) else 5)
+                ),
             )
             result = json.loads(output)
             error_shapes = {
@@ -1376,9 +1381,11 @@ class PublicBrowserSource:
         except ValueError:
             return None
 
-    def _request_timeout_seconds(self, request) -> float:
-        """Use the optional request deadline or the configured finite timeout."""
+    def _request_timeout_seconds(self, request) -> float | None:
+        """ROOM without a deadline waits for its result or explicit cancellation."""
 
+        if isinstance(request, RoomSearchRequest) and request.deadline_at is None:
+            return None
         timeout = float(self.config.timeout_seconds)
         if isinstance(request, TrendsRequest):
             # Trends has one widget and twenty rows; it must not inherit the
