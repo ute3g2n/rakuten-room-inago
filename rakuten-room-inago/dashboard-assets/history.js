@@ -175,18 +175,23 @@
     const events = activeEvents(item);
     const appliedSkipped = item.status === "見送り反映済み";
     const pendingPosted = pending && latest.action === "posted";
+    const pendingCorrection = pending && latest.action === "correction";
     const appliedPosted = events.length > 0
       || (!latest && item.status === "投稿反映済み")
       || (latest?.action === "posted" && latest.apply_status === "applied");
     const canReport = Boolean(outboxDb || (API_ORIGIN && apiState)) && !pending;
-    const canPost = canReport && !appliedPosted && !appliedSkipped
+    const canQueuePosted = Boolean(outboxDb || (API_ORIGIN && apiState));
+    const canPost = canQueuePosted && (!pending || pendingCorrection)
+      && (!appliedPosted || pendingCorrection) && !appliedSkipped
+      && item.status !== "既投稿のため後続版は投稿対象外";
+    const canSkip = canReport && !appliedPosted && !appliedSkipped
       && item.status !== "既投稿のため後続版は投稿対象外";
     const canUndo = Boolean(API_ORIGIN && (apiState || outboxDb))
       && (pendingPosted || (!pending && appliedPosted));
     const canCorrectPendingPost = pendingPosted && Boolean(API_ORIGIN && apiState);
     posted.checked = pending ? pendingPosted : appliedPosted;
     posted.disabled = !(canPost || canUndo);
-    skip.disabled = !canPost;
+    skip.disabled = !canSkip;
     if (correctionButton) {
       correctionButton.disabled = !(canReport && events.length > 0) && !canCorrectPendingPost;
     }
@@ -201,6 +206,7 @@
         ? `ブラウザー保留・SQLite未受付（${actionName}）`
         : `SQLite受付済み・翌日反映待ち（${actionName}）`;
       if (pendingPosted) reportStatus.textContent += "。チェックを外すと理由入力なしで訂正を送信します。";
+      if (pendingCorrection) reportStatus.textContent += "。チェックすると訂正後の投稿報告を追加できます。";
     } else if (appliedPosted) {
       reportStatus.textContent = "SQLite管理反映済みの投稿。チェックを外すと訂正を送信します（理由入力不要）。";
     } else if (appliedSkipped) {
