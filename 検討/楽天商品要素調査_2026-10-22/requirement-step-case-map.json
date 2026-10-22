@@ -8,7 +8,7 @@
   },
   "plan_ref": "検討/楽天商品要素調査_2026-10-22/OCR技術検証計画.md",
   "plan_version": "1.2",
-  "plan_sha256": "F75693DB05FF2897F03C82897781258721EDCCE9D020073E3E9FBAC8C94B6D42",
+  "plan_sha256": "69089CFE076BA81C4C159DBD352414C5FADDA45B5A9EB67F5C0AC3E029DDB1A0",
   "facts": [
     {"id":"F-01","evidence":["検討/楽天商品要素調査_2026-10-22/README.md","検討/楽天商品要素調査_2026-10-22/index.json"],"requirements":["R-03","R-04","R-06"],"steps":["STEP-01","STEP-02","STEP-03","STEP-04"],"cases":["CASE-01","CASE-03","CASE-04","CASE-05"],"owner":"調査担当/検証担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/候補比較.md; input-sha256.txt; results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
     {"id":"F-02","evidence":["検討/楽天商品要素調査_2026-10-22/画像が商品説明専用かの確認.md","検討/楽天商品要素調査_2026-10-22/<各商品>/manifest.json"],"requirements":["R-03","R-06"],"steps":["STEP-02","STEP-03"],"cases":["CASE-03","CASE-04"],"owner":"実装担当/試験担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/input-sha256.txt; results/ocr-results.jsonl","reviewer":"独立reviewer (STEP-05)"},

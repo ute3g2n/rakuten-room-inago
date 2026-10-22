@@ -1,0 +1,325 @@
+{
+  "schema_version": "ocr-asset-manifest-v1",
+  "created_at_jst": "2026-10-22",
+  "plan_ref": "../OCR技術検証計画.md",
+  "plan_version": "1.2",
+  "plan_sha256": "69089CFE076BA81C4C159DBD352414C5FADDA45B5A9EB67F5C0AC3E029DDB1A0",
+  "selected_engine": "PaddleOCR",
+  "environment": {
+    "os": "Windows x64",
+    "python_implementation": "CPython",
+    "python_version": "3.12.13",
+    "python_distribution": "Scoop-managed uv interpreter; absolute user-profile path omitted",
+    "virtual_environment": ".venv-ocr",
+    "install_command": ".venv-ocr/Scripts/python.exe -m pip install paddlepaddle==3.3.1 paddleocr==3.7.0",
+    "requirements_lock": "requirements-ocr.lock",
+    "pip_version_at_install": "25.0.1"
+  },
+  "packages": [
+    {
+      "name": "paddleocr",
+      "version": "3.7.0",
+      "license": "Apache-2.0",
+      "source_url": "https://pypi.org/project/paddleocr/3.7.0/",
+      "project_url": "https://github.com/PaddlePaddle/PaddleOCR",
+      "installed_path": ".venv-ocr/Lib/site-packages"
+    },
+    {
+      "name": "paddlepaddle",
+      "version": "3.3.1",
+      "license": "Apache-2.0",
+      "source_url": "https://pypi.org/project/paddlepaddle/3.3.1/",
+      "project_url": "https://github.com/PaddlePaddle/Paddle",
+      "installed_path": ".venv-ocr/Lib/site-packages"
+    },
+    {
+      "name": "paddlex",
+      "version": "3.7.2",
+      "license": "Apache-2.0",
+      "source_url": "https://pypi.org/project/paddlex/3.7.2/",
+      "project_url": "https://github.com/PaddlePaddle/PaddleX",
+      "installed_path": ".venv-ocr/Lib/site-packages"
+    },
+    {
+      "name": "all transitive dependencies",
+      "version": "exact versions recorded individually",
+      "license": "per-package metadata",
+      "source_url": "PyPI; see requirements-ocr.lock",
+      "installed_path": ".venv-ocr/Lib/site-packages"
+    }
+  ],
+  "models": [
+    {
+      "name": "PP-OCRv6_medium_det",
+      "version": "PP-OCRv6 model repository main revision at download",
+      "license": "Apache-2.0",
+      "source_url": "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_det",
+      "local_path": "models/paddlex/official_models/PP-OCRv6_medium_det",
+      "files": [
+        {
+          "path": "inference.json",
+          "bytes": 312150,
+          "sha256": "0f1a7ec35da36173529c7a60238b7f7919e3831929c3f700ad90ad4896adecd5"
+        },
+        {
+          "path": "inference.pdiparams",
+          "bytes": 61960476,
+          "sha256": "85218d2e3d98f5a21c58b4220627be923a97aee5db3cc71f39536ab31ac53960"
+        },
+        {
+          "path": "inference.yml",
+          "bytes": 886,
+          "sha256": "7298d5ead546584af2504d03355f881ac7a7bc0eb1e282d3e159277c1d0af871"
+        }
+      ]
+    },
+    {
+      "name": "PP-OCRv6_medium_rec",
+      "version": "PP-OCRv6 model repository main revision at download",
+      "license": "Apache-2.0",
+      "source_url": "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec",
+      "local_path": "models/paddlex/official_models/PP-OCRv6_medium_rec",
+      "files": [
+        {
+          "path": "inference.json",
+          "bytes": 221814,
+          "sha256": "0b2e25e990bd072f1bf77d59d67d508bce6c4bd44af6624e0fb27d6da2cd00e8"
+        },
+        {
+          "path": "inference.pdiparams",
+          "bytes": 76465087,
+          "sha256": "1b01c79a914587933f615569e75de54f2e638ebb5d3f3b3c1b38c24ede8c7319"
+        },
+        {
+          "path": "inference.yml",
+          "bytes": 150580,
+          "sha256": "991b700facf5b50a7de193468207d5f4255b538dde0d312ae3b7c7a9b6873129"
+        }
+      ]
+    }
+  ],
+  "runtime_configuration": {
+    "engine": "PaddleOCR",
+    "ocr_version": "PP-OCRv6",
+    "model_selection": "lang=japan selects PP-OCRv6_medium_det and PP-OCRv6_medium_rec",
+    "language": "japan",
+    "device": "cpu",
+    "use_doc_orientation_classify": false,
+    "use_doc_unwarping": false,
+    "use_textline_orientation": false,
+    "enable_mkldnn": false,
+    "text_det_thresh": 0.3,
+    "text_det_box_thresh": 0.6,
+    "text_rec_score_thresh": 0.0,
+    "confidence_or_image_classification_filter": "none in runner; every engine-returned response is retained",
+    "threshold_reference": "PaddleOCR/PaddleX installed package defaults for detection were 0.3 and 0.6; PaddleX 3.7.2 recognition default was 0.0. Runner passes these values explicitly."
+  },
+  "runner_integrity": {
+    "path": "ocr_runner.py",
+    "sha256_after_final_path_guards": "59D0C784DBB86F6FA82EB9B428486D32BEFD4AE3B81BDCA83103B6B49F366170",
+    "runner_root_containment": "OCR_STUDY_ROOT must resolve to the runner folder before any cache/temp directories are created",
+    "index_path_containment": "resolved index path must equal the parent folder index.json",
+    "input_containment": "resolved product image directories and files must remain under the collection index directory",
+    "output_containment": "resolved output must remain under the OCR study folder",
+    "wrapper_path": "run_ocr.ps1",
+    "wrapper_sha256": "6FE0319AEB7917EE41974EEF408FAE78429FFC9E0A80225926E0D8A821DA9A4B",
+    "wrapper_cleanup": "a temporary R: alias is removed only when the wrapper created it; pre-existing aliases are resolved against the fixed study root before reuse; process environment variables are restored"
+  },
+  "isolated_paths": {
+    "pip_cache": "cache/pip",
+    "temp": "tmp",
+    "tmp": "tmp",
+    "xdg_cache": "cache/xdg",
+    "huggingface_cache": "cache/huggingface",
+    "paddle_model_cache": "models/paddlex",
+    "native_executables": "native (none required)",
+    "ascii_path_alias": "temporary R: alias points to this study folder while the runner is active"
+  },
+  "input_manifest": {
+    "path": "input-sha256.txt",
+    "image_count": 59,
+    "sha256": "6A0B9A57C8AE565F98242CD741D0AB5995D442C1E77B556B15865A0E4D4E409A",
+    "product_counts": {
+      "01_meiji-ya_129": 9,
+      "02_dripcoffee_house-500-4": 11,
+      "03_blueritual_kh001": 6,
+      "04_sawaicoffee-tea_ac-sale-1960": 24,
+      "05_kkonlinestore_cafe07": 9
+    }
+  },
+  "smoke_runs": [
+    {
+      "command": ".\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-runner-smoke-config2.jsonl'",
+      "status": "performed",
+      "return_code": 0,
+      "counts": {
+        "success": 1,
+        "empty": 0,
+        "error": 0
+      },
+      "output": "results/ocr-runner-smoke-config2.jsonl",
+      "summary": "results/ocr-smoke-summary.json",
+      "elapsed_seconds": 7.381
+    },
+    {
+      "command": ".\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-runner-smoke-final.jsonl'",
+      "status": "performed after runner output-path containment change",
+      "started_at_jst": "2026-10-22T22:52:01+09:00",
+      "finished_at_jst": "2026-10-22T22:52:10+09:00",
+      "return_code": 0,
+      "counts": {
+        "success": 1,
+        "empty": 0,
+        "error": 0
+      },
+      "output": "results/ocr-runner-smoke-final.jsonl",
+      "summary": "results/ocr-runner-smoke-final.summary.json"
+    },
+    {
+      "command": ".\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-runner-containment-smoke.jsonl'",
+      "status": "performed after input-containment fix",
+      "started_at_jst": "2026-10-22T23:14:25+09:00",
+      "finished_at_jst": "2026-10-22T23:14:34+09:00",
+      "return_code": 0,
+      "counts": {
+        "success": 1,
+        "empty": 0,
+        "error": 0
+      },
+      "output": "results/ocr-runner-containment-smoke.jsonl",
+      "summary": "results/ocr-runner-containment-smoke.summary.json"
+    },
+    {
+      "command": ".\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-runner-smoke-root-guard.jsonl'",
+      "status": "performed after runner root/index guards and wrapper alias-cleanup change",
+      "started_at_jst": "2026-10-22T23:28:30+09:00",
+      "finished_at_jst": "2026-10-22T23:28:40+09:00",
+      "return_code": 0,
+      "counts": {
+        "success": 1,
+        "empty": 0,
+        "error": 0
+      },
+      "output": "results/ocr-runner-smoke-root-guard.jsonl",
+      "temporary_alias_removed": true
+    },
+    {
+      "command": ".\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-runner-smoke-alias-path-final.jsonl'",
+      "status": "performed after existing-alias physical-path verification change",
+      "started_at_jst": "2026-10-22T23:35:13+09:00",
+      "finished_at_jst": "2026-10-22T23:35:23+09:00",
+      "return_code": 0,
+      "counts": {
+        "success": 1,
+        "empty": 0,
+        "error": 0
+      },
+      "output": "results/ocr-runner-smoke-alias-path-final.jsonl",
+      "temporary_alias_removed": true
+    }
+  ],
+  "full_run": {
+    "command": ".\\run_ocr.ps1 -OutputName 'ocr-results.jsonl'",
+    "started_at_jst": "2026-10-22T22:53:14+09:00",
+    "finished_at_jst": "2026-10-22T23:08:26+09:00",
+    "elapsed_seconds": 912,
+    "return_code": 0,
+    "result_records": 59,
+    "unique_input_paths": 59,
+    "counts": {
+      "success": 59,
+      "empty": 0,
+      "error": 0
+    },
+    "hash_mismatch_count": 0,
+    "input_changed_during_ocr_count": 0,
+    "blank_returned_text_count": 0,
+    "returned_text_characters": 16103,
+    "output": "results/ocr-results.jsonl",
+    "summary": "results/ocr-results.summary.json",
+    "output_sha256": "9A475D37F6A306154D1E02656FB8B364EC227C6AA312077A84A17BD90B2ABA0A",
+    "large_image_observation": "PaddleOCR emitted one max_side_limit=4000 resize warning for an image with a 7350-pixel side; original file hash remained unchanged."
+  },
+  "input_path_containment_probe": {
+    "status": "performed after runner fix",
+    "input": "temporary index under tmp/ with product directory ../outside",
+    "runner_exit_code": 1,
+    "expected": "reject out-of-collection path before creating output",
+    "output_created": false,
+    "probe_index_removed": true
+  },
+  "known_runtime_observations": [
+    {
+      "issue": "PaddlePaddle 3.3.1 CPU oneDNN PIR inference failure",
+      "observed": "With default enable_mkldnn=True, model construction completed but predict() raised NotImplementedError: ConvertPirAttribute2RuntimeAttribute not support pir::ArrayAttribute<pir::DoubleAttribute>.",
+      "workaround": "Runner sets enable_mkldnn=False. A one-image runner smoke then returned six nonempty text regions.",
+      "source": "https://github.com/PaddlePaddle/Paddle/issues/79749"
+    },
+    {
+      "issue": "Non-ASCII full path model initialization parse error",
+      "observed": "An initial PaddleX model load using the full Japanese study-folder path raised a JSON parse error. Re-running via temporary ASCII R: alias passed model initialization. The exact cause is not confirmed.",
+      "source": "https://github.com/PaddlePaddle/PaddleOCR/issues/17630"
+    },
+    {
+      "issue": "Incidental user-profile cache directories",
+      "observed": "Initial pre-install check found no %USERPROFILE%/.paddlex. At 2026-10-22 22:42 JST the path was later observed with only empty func_ret, locks, and temp directories; no files were present. The creation source is uncertain and may be the diagnostic import run before PADDLE_PDX_CACHE_HOME was set.",
+      "handling": "Recorded as an incidental external observation; left untouched and excluded from task-owned output."
+    }
+  ],
+  "disk_observation_bytes": {
+    "venv": 881421598,
+    "cache": 231111205,
+    "models": 139163881
+  },
+  "execution_status": {
+    "step_01": "performed",
+    "step_02": "performed; isolated install, smoke, and runner/wrapper path containment guards verified, including same-hash wrong-root alias rejection",
+    "step_03": "performed; 59 success, 0 empty, 0 error; image hashes unchanged",
+    "step_04": "performed; 59 per-image visual comparisons recorded; product information confirmed in 5/5 products and 27/59 images",
+    "step_05": "performed; independent read-only reviewer confirmed code and negative-probe evidence records; no remaining findings"
+  },
+  "index_path_containment_probe": {
+    "status": "performed after final root/index guards",
+    "input": "C:/Windows/win.ini instead of the existing collection index.json",
+    "runner_exit_code": 2,
+    "expected": "reject non-collection index path before writing output",
+    "output_created": false,
+    "temporary_alias_removed": true
+  },
+  "study_root_override_probe": {
+    "status": "performed after final root/index guards",
+    "input": "OCR_STUDY_ROOT=C:/Windows",
+    "runner_exit_code": 2,
+    "expected": "reject root that does not resolve to the runner's folder before creating cache/temp paths",
+    "output_created": false,
+    "temporary_alias_removed": true
+  },
+  "manual_visual_review": {
+    "reviewer": "Codex (assistant)",
+    "recorded_at_jst": "2026-10-22T23:29:17+09:00",
+    "image_count": 59,
+    "product_specific_information_confirmed": 27,
+    "products_with_at_least_one_confirmed_image": 5,
+    "per_image_record": "OCR画像照合一覧.md",
+    "per_image_record_sha256": "3919597CC3D29393763B29D670F47B77736A05E3077767F17745C41B279AE60D",
+    "criteria_note": "IMG-057 (store-wide quality claim and generic brewing guidance), IMG-058 (general brewing use), and IMG-059 (different blend) were not counted as target-product-specific."
+  },
+  "existing_alias_path_probe": {
+    "status": "performed after wrapper physical-path verification change",
+    "input": "R: mapped to a temporary study-folder decoy containing an identical ocr_runner.py (matching SHA256)",
+    "wrapper_result": "rejected before OCR start because resolved R: root did not match the fixed study root",
+    "setup_command": "$studyRoot=(Resolve-Path .).Path; $decoyRoot=Join-Path (Join-Path $studyRoot 'tmp') 'alias-decoy'; New-Item -ItemType Directory -Path $decoyRoot -Force | Out-Null; Copy-Item -LiteralPath '.\\ocr_runner.py' -Destination (Join-Path $decoyRoot 'ocr_runner.py') -Force; & subst R: $decoyRoot",
+    "wrapper_command": "powershell.exe -NoLogo -NoProfile -NonInteractive -File .\\run_ocr.ps1 -Limit 1 -OutputName 'ocr-alias-mismatch-probe-final.jsonl'",
+    "wrapper_process_exit_code": 1,
+    "output_path": "results/ocr-alias-mismatch-probe-final.jsonl",
+    "output_created": false,
+    "study_runner_sha256": "59D0C784DBB86F6FA82EB9B428486D32BEFD4AE3B81BDCA83103B6B49F366170",
+    "decoy_runner_sha256": "59D0C784DBB86F6FA82EB9B428486D32BEFD4AE3B81BDCA83103B6B49F366170",
+    "alias_present_before_harness_cleanup": true,
+    "alias_cleanup_command": "subst R: /d",
+    "alias_cleanup_exit_code": 0,
+    "R_alias_after_cleanup": false,
+    "decoy_directory": "tmp/alias-decoy",
+    "alias_removed_by_probe_harness": true
+  }
+}

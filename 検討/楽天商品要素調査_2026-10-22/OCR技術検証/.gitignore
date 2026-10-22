@@ -1,0 +1,8 @@
+.venv-ocr/
+cache/
+models/
+native/
+tmp/
+results/*.jsonl
+results/*.summary.json
+results/*.json

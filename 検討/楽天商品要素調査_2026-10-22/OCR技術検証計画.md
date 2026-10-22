@@ -164,7 +164,7 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 
 ### STEP 01 — OCR OSSの比較と採用
 
-1. **番号・名称・状態:** STEP 01、OCR OSS比較と採用、未実施。
+1. **番号・名称・状態:** STEP 01、OCR OSS比較と採用、実施済み。結果は `OCR技術検証/候補比較.md`。
 2. **目的と成立状態:** 現時点の公開指標・公式仕様で候補を比較し、1候補と代替候補を根拠付きで決め `OCR技術検証/候補比較.md` に残す。
 3. **要件・受入・原典:** R-01、R-07。F-05、F-07、F-09。原典は候補の公式repository、PyPI、導入/日本語対応/ライセンス文書、download統計提供元、および共通計画スキルの本人専用方針。
 4. **先行・開始条件:** 計画を確認できれば開始。review承認、tier観測、事前status、全sourceの応答を待たない。
@@ -183,7 +183,7 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 
 ### STEP 02 — 検討用環境・runnerの作成
 
-1. **番号・名称・状態:** STEP 02、隔離環境と一回限りrunner、未実施。
+1. **番号・名称・状態:** STEP 02、隔離環境と一回限りrunner、実施済み。PaddleOCR一式、runner、lock、asset記録を `OCR技術検証/` に配置。
 2. **目的と成立状態:** 比較で選定したOCRと、その実行に必要なpackage/native/model/dataを検討用環境へ隔離し、全59画像を処理できるrunnerを用意する。永続資材を隔離できない候補はその資材を生成せず、候補操作を `not_performed` にして次候補へ進む。
 3. **要件・受入・原典:** R-02、R-03、R-05、R-06、R-07。F-01、F-03、F-05、F-06、F-08、F-09。原典はSTEP 01比較資料とOSS公式install/API docs。
 4. **先行・開始条件:** STEP 01の利用可能な比較結果を入力に開始。review approvedや比較値の完全取得は条件にしない。候補が不適合なら比較にある次点を選び、理由を記録。
@@ -202,7 +202,7 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 
 ### STEP 03 — 59画像の全件OCR
 
-1. **番号・名称・状態:** STEP 03、既存59画像のOCR、未実施。
+1. **番号・名称・状態:** STEP 03、既存59画像のOCR、実施済み。59 success / 0 empty / 0 error、return code 0。
 2. **目的と成立状態:** 5フォルダーの対象画像を選別なしで全件処理し、全画像に一つずつ結果またはエラーを記録する。
 3. **要件・受入・原典:** R-03、R-05、R-06、R-07。F-01〜F-04、F-06、F-09。原典はindex、各manifest、input SHA256。
 4. **先行・開始条件:** STEP 02で利用可能になったengine/runnerで開始。source completenessを事前gateにしない。不足画像は個別記録し、残りを続ける。
@@ -221,7 +221,7 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 
 ### STEP 04 — 説明テキストの確認と結果報告
 
-1. **番号・名称・状態:** STEP 04、OCR結果の内容確認、未実施。
+1. **番号・名称・状態:** STEP 04、OCR結果の内容確認、実施済み。59画像を照合し、5商品中5商品で説明情報を確認。
 2. **目的と成立状態:** 5商品の各画像でOCR結果を元画像と照合し、商品別の説明情報確認数を記録する。手続き完了（5商品すべてに成功数を付けること）と技術実証の結論を分け、確認商品が0/5なら「実証されず」とする。
 3. **要件・受入・原典:** R-04〜R-07。F-01〜F-07、F-09。原典はraw OCR、画像59点、商品別manifest、確認レポート、共通計画スキルの本人専用方針。
 4. **先行・開始条件:** STEP 03の利用可能な出力で開始。不完全な全件処理や一部エラーがあっても確認可能な画像を評価する。
@@ -240,7 +240,7 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 
 ### STEP 05 — 独立reviewと差分の確定
 
-1. **番号・名称・状態:** STEP 05、独立reviewと最終実行記録、未実施。
+1. **番号・名称・状態:** STEP 05、独立reviewと最終実行記録、実施済み。独立reviewを複数回実施し、コード所見と負例の実行記録所見を修正。最終read-only再確認で残る所見なし。詳細は `OCR技術検証/review.md`。
 2. **目的と成立状態:** 候補根拠、隔離、runner、結果網羅性、評価根拠を独立に点検し、所見を残す。必要な修正と確認を実施記録に反映する。
 3. **要件・受入・原典:** R-01〜R-07。F-01〜F-09。本計画、候補比較、runner/lock、raw OCR、評価、Git差分。
 4. **先行・開始条件:** STEP 01〜04の利用可能な成果で開始。各工程が完了またはpassであること、full 59件、review合格は開始条件にしない。
@@ -399,12 +399,12 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 | Controller job id | unknown — 未提供 |
 | Source run id | unknown / not supplied — 推測しない |
 | Controller target date | unknown / not supplied。folder名の `2026-10-22` と同一視しない |
-| Planning status | 計画案作成済み。独立review待ち |
-| Execution status | not_performed — 本依頼の現在stageは計画作成 |
-| Source image OCR | not_performed — この計画作成時に実行していない |
-| Package research/install | not_performed — 次段の実行対象 |
-| Tests/nodes | 既存node未提示。技術検証caseは10節に定義 |
-| Review | 未実施。指摘時も実行開始gateにしない |
-| Git revision / status | 実行時に取得。今回確認した未追跡ユーザーデータは `rakuten-room-inago/非公開作業データ/`、作業対象外 |
-| Unknowns | 12節を参照。実施時に判明した情報で更新 |
-| Next action | 独立read-onlyで計画を確認後、本人が検討を進めると指示した場合はSTEP 01から実施。 |
+| Planning status | 計画v1.2作成済み。v1.2独立再レビューのR-02 path所見は解消済み |
+| Execution status | STEP 01〜05実施済み。STEP 05は独立reviewの所見を反映し、負例の再現情報も記録。最終read-only再確認で残る所見なし |
+| Source image OCR | `2026-10-22 22:53:14〜23:08:26 JST`、`.\run_ocr.ps1 -OutputName 'ocr-results.jsonl'`、59 success / 0 empty / 0 error、return code 0。hash manifest不一致0、OCR前後の画像変更0。詳細は `OCR技術検証/OCR検証結果.md` |
+| Package research/install | PaddleOCR 3.7.0 / PaddlePaddle 3.3.1 / PaddleX 3.7.2、PP-OCRv6 medium、日本語、CPU。隔離venv/model/cache/tempとlockを `OCR技術検証/` に作成 |
+| Tests/nodes | 製品側の既存nodeは未提示・未実施。最終runnerの1画像smokeはsuccess 1、終了コード0、wrapper実行後のR:解除も確認。範囲外index pathとstudy-root env overrideは各終了コード2、出力なし。index内の範囲外商品pathは終了コード1、出力なし。同一hashの誤った既存R:はwrapper process終了コード1でOCR開始前に拒否し、`results/ocr-alias-mismatch-probe-final.jsonl` は未作成。study/decoy runner hashは両方 `59D0C784DBB86F6FA82EB9B428486D32BEFD4AE3B81BDCA83103B6B49F366170`。harness alias解除は終了コード0。全件OCRと59画像の目視照合はCASEに沿って記録。空画像がなかったためempty入力は未確認 |
+| Review | 初回独立reviewの3指摘と再reviewのコード所見を修正し、照合一覧の整合を確認。追加LOW所見の負例証拠について、wrapper command、終了コード、出力path、study/decoy hashを記録。最終read-only再確認で記録間の整合が確認され、残る所見なし。承認gateとは扱わない。詳細は `OCR技術検証/review.md` |
+| Git revision / status | 実行開始時HEAD `b38cbd9fbca17591998ae5b9c6bb32d493ffefa1`、branch `main`、tracking `origin/main`。今回確認した未追跡ユーザーデータ `rakuten-room-inago/非公開作業データ/` は対象外。最終Git処理を完了時に追記 |
+| Unknowns | OCRのCER/WERや正解文字との精度評価は未実施。対象は `span.sale_desc` 由来画像59点で、DOMテキストや他要素画像の網羅性は未確認。 |
+| Next action | OCR技術検証の成果を使い、商品画像OCR結果を投稿文生成入力へ渡す構成・ノイズ対策を別途検討。 |
