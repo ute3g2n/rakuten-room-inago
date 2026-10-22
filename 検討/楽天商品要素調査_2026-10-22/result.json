@@ -1,0 +1,104 @@
+{
+  "schema_version": "planning-result-v1",
+  "controller_identity": {
+    "job_id": null,
+    "source_run_id": null,
+    "target_date": null,
+    "missing_reason": "Controller-provided identity was not included in the assigned planning input. No identity value is inferred. The folder date is not used as target_date."
+  },
+  "plan_ref": "検討/楽天商品要素調査_2026-10-22/OCR技術検証計画.md",
+  "plan_version": "1.2",
+  "plan_sha256": "F75693DB05FF2897F03C82897781258721EDCCE9D020073E3E9FBAC8C94B6D42",
+  "overall_status": "plan_drafted",
+  "daily_status": null,
+  "reason_code": "planning_artifact_created",
+  "failure_phase": null,
+  "trace_status": "not_applicable",
+  "stage": "planning",
+  "stage_progress": "independent review v1.0 and v1.1 findings reflected in plan v1.2; v1.2 map path finding corrected; OCR research, installation, and execution remain not performed",
+  "operation_results": [
+    {
+      "operation": "read_planning_skill_and_local_contract",
+      "status": "performed",
+      "evidence": [".agents/skills/common-execution-planning/SKILL.md", ".agents/skills/common-execution-planning/references/contracts.md"]
+    },
+    {
+      "operation": "read_existing_image_collection_evidence",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/README.md", "検討/楽天商品要素調査_2026-10-22/index.json", "検討/楽天商品要素調査_2026-10-22/画像が商品説明専用かの確認.md"]
+    },
+    {
+      "operation": "write_ocr_technical_validation_plan",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/OCR技術検証計画.md"]
+    },
+    {
+      "operation": "write_requirement_step_case_map",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/requirement-step-case-map.json"]
+    },
+    {
+      "operation": "write_result_record",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/result.json"]
+    },
+    {
+      "operation": "correct_R02_map_output_path",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/requirement-step-case-map.json", "検討/楽天商品要素調査_2026-10-22/result.json"]
+    },
+    {
+      "operation": "independent_recheck_R02_map_output_path",
+      "status": "performed",
+      "evidence": ["検討/楽天商品要素調査_2026-10-22/OCR技術検証計画レビュー_v1.2.md"]
+    },
+    {
+      "operation": "research_current_oss_popularity",
+      "status": "not_performed",
+      "reason": "Current assigned stage is planning only; live OSS research is planned as STEP-01."
+    },
+    {
+      "operation": "install_ocr_oss",
+      "status": "not_performed",
+      "reason": "Current assigned stage is planning only; isolated installation is planned as STEP-02."
+    },
+    {
+      "operation": "run_ocr_on_59_images",
+      "status": "not_performed",
+      "reason": "Current assigned stage is planning only; full OCR is planned as STEP-03."
+    }
+  ],
+  "test_status": "not_run",
+  "test_reason": "No OCR research, installation, image processing, or execution test was requested in the plan-writing stage. Existing pytest nodes were not provided and were not invented.",
+  "review_status": "findings_resolved_after_re_review",
+  "review_findings_reflected": [
+    "Per-product confirmed OCR image counts and matching record/source image references are required; procedural completion is separated from technical conclusion, and 0 confirmed products is reported as 実証されず without stopping later work.",
+    "PIP/model/TEMP/TMP/cache and all persistent package/native/model/data assets are placed under the study folder. Candidate assets that cannot be isolated are not generated or installed; only that candidate operation is not_performed and the next candidate is considered. Unexpected external writes are recorded by actual path/type as incidents and excluded from task-owned outputs; no approval gate is added.",
+    "If Tesseract is selected, portable tesseract.exe and required DLLs are placed under native/, jpn.traineddata under native/tessdata/, and pytesseract.pytesseract.tesseract_cmd plus --tessdata-dir are configured explicitly. Record executable/data versions, source URLs, licenses, and paths. If portable isolation is not possible, do not generate the candidate asset and continue to the next candidate.",
+    "Corrected the R-02 output path in the requirement-step-case-map to the fixed parent folder 検討/楽天商品要素調査_2026-10-22/OCR技術検証/; plan body, version, and SHA remain unchanged.",
+    "R-07 is traced through fact F-09 to the common planning skill and its evidence source."
+  ],
+  "unknowns": [
+    "job_id, source_run_id, and controller target_date were not provided",
+    "original environment observation log path not provided",
+    "current OSS popularity metrics and compatibility data not yet researched",
+    "isolated environment and OCR results do not exist yet"
+  ],
+  "next_actions": [
+    "Upon user direction, execute STEP-01 OSS comparison, then continue planned technical validation without adding review/test/readiness gates"
+  ],
+  "output_refs": [
+    "検討/楽天商品要素調査_2026-10-22/OCR技術検証計画.md",
+    "検討/楽天商品要素調査_2026-10-22/requirement-step-case-map.json",
+    "検討/楽天商品要素調査_2026-10-22/result.json"
+  ],
+  "artifact_origin": "agent",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "service_tier": null,
+  "service_tier_missing_reason": "Not supplied in the controller input.",
+  "code_revision": null,
+  "code_revision_missing_reason": "No revision was bound to the job input; planning output is independent of application code.",
+  "git_actions": "not_performed_by_this_planning_subtask; parent handles repository completion policy",
+  "separation_note": "Operation results describe this planning stage only; workflow completion and incident resolution are not inferred."
+}

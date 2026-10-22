@@ -1,0 +1,56 @@
+{
+  "schema_version": "planning-map-v1",
+  "controller_identity": {
+    "job_id": null,
+    "source_run_id": null,
+    "target_date": null,
+    "missing_reason": "入力に不変controller job identityとattempt output pathが提供されていない。値を推測しない。2026-10-22は既存検討フォルダーの日付でありtarget_dateとして扱わない。"
+  },
+  "plan_ref": "検討/楽天商品要素調査_2026-10-22/OCR技術検証計画.md",
+  "plan_version": "1.2",
+  "plan_sha256": "F75693DB05FF2897F03C82897781258721EDCCE9D020073E3E9FBAC8C94B6D42",
+  "facts": [
+    {"id":"F-01","evidence":["検討/楽天商品要素調査_2026-10-22/README.md","検討/楽天商品要素調査_2026-10-22/index.json"],"requirements":["R-03","R-04","R-06"],"steps":["STEP-01","STEP-02","STEP-03","STEP-04"],"cases":["CASE-01","CASE-03","CASE-04","CASE-05"],"owner":"調査担当/検証担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/候補比較.md; input-sha256.txt; results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-02","evidence":["検討/楽天商品要素調査_2026-10-22/画像が商品説明専用かの確認.md","検討/楽天商品要素調査_2026-10-22/<各商品>/manifest.json"],"requirements":["R-03","R-06"],"steps":["STEP-02","STEP-03"],"cases":["CASE-03","CASE-04"],"owner":"実装担当/試験担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/input-sha256.txt; results/ocr-results.jsonl","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-03","evidence":["検討/楽天商品要素調査_2026-10-22/画像が商品説明専用かの確認.md"],"requirements":["R-04","R-05"],"steps":["STEP-02","STEP-03","STEP-04"],"cases":["CASE-04","CASE-05"],"owner":"実装担当/試験担当/評価担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-04","evidence":["検討/楽天商品要素調査_2026-10-22/画像が商品説明専用かの確認.md"],"requirements":["R-03","R-04"],"steps":["STEP-01","STEP-03","STEP-04"],"cases":["CASE-01","CASE-04","CASE-05"],"owner":"比較担当/試験担当/評価担当","output":"候補比較.md; results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-05","evidence":["親依頼に共有された事前環境確認事実。Windows/Python 3.12.13。pytesseract等は未導入、tesseractとpaddleocr CLIはPATHにない。元ログのpath不明。実施開始時に再確認する。"],"requirements":["R-01","R-02"],"steps":["STEP-01","STEP-02"],"cases":["CASE-01","CASE-02"],"owner":"比較担当/実装担当","output":"候補比較.md; requirements-ocr.lock; asset-manifest.json (package/native/model version, source, license, paths); 環境/導入記録","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-06","evidence":["ユーザーの今回依頼・先行会話"],"requirements":["R-05","R-07"],"steps":["STEP-02","STEP-03","STEP-04"],"cases":["CASE-04","CASE-05"],"owner":"実装担当/試験担当/評価担当","output":"ocr_runner.py; results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-07","evidence":["ユーザーの今回依頼"],"requirements":["R-01","R-04","R-07"],"steps":["STEP-01","STEP-04"],"cases":["CASE-01","CASE-05"],"owner":"比較担当/評価担当","output":"候補比較.md; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-08","evidence":["ユーザーの今回依頼"],"requirements":["R-02","R-06"],"steps":["STEP-02","STEP-03","STEP-04","STEP-05"],"cases":["CASE-02","CASE-03","CASE-04","CASE-05"],"owner":"実装担当/試験担当/評価担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/ 以下の今回成果物","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"F-09","evidence":[".agents/skills/common-execution-planning/SKILL.md — 必ず守る本人専用ローカル方針。ユーザー専用の別ファイル出典はなく、この共通skillの記録内容を今回適用。"],"requirements":["R-07"],"steps":["STEP-01","STEP-02","STEP-03","STEP-04","STEP-05"],"cases":["CASE-01","CASE-02","CASE-03","CASE-04","CASE-05"],"owner":"全実行担当","output":"全STEP成果物と操作別実行記録","reviewer":"独立reviewer (STEP-05)"}
+  ],
+  "requirements": [
+    {"id":"R-01","evidence":["F-05","F-07","ユーザーの今回依頼"],"steps":["STEP-01","STEP-05"],"cases":["CASE-01"],"owner":"比較担当","output":"OCR技術検証/候補比較.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-02","evidence":["F-05","F-08"],"steps":["STEP-02","STEP-05"],"cases":["CASE-02"],"owner":"実装担当","output":"検討/楽天商品要素調査_2026-10-22/OCR技術検証/.venv-ocr; native executable/DLL; models/traineddata; pip/model/TEMP/TMP/cache paths; requirements-ocr.lock; asset-manifest.json with package/native/model versions, source, license, and paths. For Tesseract, keep portable tesseract.exe and jpn.traineddata under study folder and set pytesseract.tesseract_cmd plus --tessdata-dir. Do not generate or install any candidate asset that cannot be isolated; mark only that candidate operation not_performed and consider the next candidate.","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-03","evidence":["F-01","F-02","F-04"],"steps":["STEP-02","STEP-03","STEP-05"],"cases":["CASE-03","CASE-04"],"owner":"実装担当/試験担当","output":"ocr_runner.py; input-sha256.txt; results/ocr-results.jsonl","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-04","evidence":["F-01","F-03","F-04","F-07"],"steps":["STEP-04","STEP-05"],"cases":["CASE-05"],"owner":"評価担当","output":"商品別説明情報確認画像数/対象画像数、確認できた商品数/5、0件の場合の実証されず結論を含むOCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-05","evidence":["F-03","F-06"],"steps":["STEP-02","STEP-03","STEP-04","STEP-05"],"cases":["CASE-03","CASE-04","CASE-05"],"owner":"実装担当/試験担当/評価担当","output":"ocr_runner.py; results/ocr-results.jsonl; OCR検証結果.md","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-06","evidence":["F-01","F-02","F-08"],"steps":["STEP-02","STEP-03","STEP-04","STEP-05"],"cases":["CASE-02","CASE-03","CASE-04","CASE-05"],"owner":"全実行担当","output":"すべての予定生成物をOCR技術検証/配下に保存する。外部生成が偶発した場合は実path/種類を事故記録し、今回の所有物・成果物・出力から除外する。","reviewer":"独立reviewer (STEP-05)"},
+    {"id":"R-07","evidence":["F-09",".agents/skills/common-execution-planning/SKILL.md"],"steps":["STEP-01","STEP-02","STEP-03","STEP-04","STEP-05"],"cases":["CASE-01","CASE-02","CASE-03","CASE-04","CASE-05"],"owner":"全実行担当","output":"全STEP成果物と実行記録","reviewer":"独立reviewer (STEP-05)"}
+  ],
+  "steps": [
+    {"id":"STEP-01","owner":"比較担当 (worker/default)","output":"OCR技術検証/候補比較.md","cases":["CASE-01"],"reviewer":"STEP-05 independent reviewer","model":"gpt-6.1-sol","effort":"high","tier":"unknown / not supplied"},
+    {"id":"STEP-02","owner":"実装担当 (worker/default)","output":"OCR技術検証/.venv-ocr; native/; models/; cache/; tmp/; asset-manifest.json; runner; locks; hashes. PIP/model/TEMP/TMP/cache and all persistent package/native/model/data assets stay under study folder. Tesseract executable and jpn.traineddata use explicit pytesseract.tesseract_cmd and --tessdata-dir. Unisolatable assets are not generated; only that candidate operation is not_performed and the next candidate is considered. Unexpected external writes are incidents, not outputs.","cases":["CASE-02","CASE-03"],"reviewer":"STEP-05 independent reviewer","model":"gpt-6.1-sol","effort":"high","tier":"unknown / not supplied"},
+    {"id":"STEP-03","owner":"試験担当 (worker/default)","output":"OCR技術検証/results/ocr-results.jsonl; 実行記録","cases":["CASE-03","CASE-04"],"reviewer":"STEP-05 independent reviewer","model":"gpt-6.1-sol","effort":"high","tier":"unknown / not supplied"},
+    {"id":"STEP-04","owner":"評価担当 (worker/default)","output":"OCR技術検証/OCR検証結果.md with per-product confirmed-image counts, evidence record IDs/source paths, procedural completion separated from technical conclusion","cases":["CASE-05"],"reviewer":"STEP-05 independent reviewer","model":"gpt-6.1-sol","effort":"high","tier":"unknown / not supplied"},
+    {"id":"STEP-05","owner":"独立reviewer (worker/default; read-only)","output":"OCR技術検証/review.md; final execution record","cases":["CASE-01","CASE-02","CASE-03","CASE-04","CASE-05"],"reviewer":"当初の依頼ではreview結果を追加gateにしない。reviewer未実行時の実測状態を記録。","model":"gpt-6.1-sol","effort":"high","tier":"unknown / not supplied"}
+  ],
+  "cases": [
+    {"id":"CASE-01","requirements":["R-01","R-07"],"steps":["STEP-01","STEP-05"],"owner":"比較担当","output":"候補比較.md/source URLs/観測時刻","reviewer":"STEP-05","complete_node":"N/A: 既存test node未提示。CASE-01のWeb調査方法はplan section 10に記載。"},
+    {"id":"CASE-02","requirements":["R-02","R-06","R-07"],"steps":["STEP-02","STEP-05"],"owner":"実装担当","output":"Isolated package/native/model/data versions, source URLs, licenses and paths; PIP/model/TEMP/TMP/cache locations; for Tesseract, portable tesseract.exe and jpn.traineddata under study folder with pytesseract.tesseract_cmd and --tessdata-dir evidence, version/source/license; if any candidate asset cannot be isolated, generate nothing for that asset, record only that candidate operation not_performed, and consider the next candidate. Unexpected external writes are recorded as incidents by actual path/type and excluded from task outputs.","reviewer":"STEP-05","complete_node":"N/A: 既存test node未提示。plan section 10の実コマンドを実施時に確定記録。"},
+    {"id":"CASE-03","requirements":["R-03","R-05","R-06","R-07"],"steps":["STEP-02","STEP-03","STEP-05"],"owner":"試験担当","output":"input-sha256.txt/hash comparison","reviewer":"STEP-05","complete_node":"N/A: 既存test node未提示。plan section 10のPowerShell確認操作。"},
+    {"id":"CASE-04","requirements":["R-03","R-05","R-06","R-07"],"steps":["STEP-02","STEP-03","STEP-05"],"owner":"試験担当","output":"results/ocr-results.jsonl/command and result record","reviewer":"STEP-05","complete_node":"N/A: 既存test node未提示。runner commandはSTEP-02後に確定。"},
+    {"id":"CASE-05","requirements":["R-04","R-05","R-06","R-07"],"steps":["STEP-04","STEP-05"],"owner":"評価担当","output":"OCR検証結果.md with each product's confirmed-image count/target-image count, matching OCR record IDs/source images, confirmed product count out of 5, and zero-case conclusion '実証されず'","reviewer":"STEP-05","complete_node":"N/A: 人手で全利用可能OCR recordと対応record/元画像を照合。自動test nodeは未提示。"}
+  ],
+  "constraints": {
+    "current_stage": "planning_only; OCR research, install, and execution have not been performed",
+    "personal_local_policy": "one-person local system; robustness is not a quality goal; review/test/readiness/evidence/unknown/failure do not gate downstream work",
+    "asset_location_policy": "all Python packages, native executables and DLLs, models/traineddata, pip/model/TEMP/TMP/cache, and every other persistent or temporary generated asset must be placed under the study folder. If any candidate asset cannot be isolated, do not generate or install that asset; record only the relevant candidate operation as not_performed and continue with the next candidate.",
+    "tesseract_isolation_policy": "if selected, place portable tesseract.exe and required DLLs under native/ and jpn.traineddata under native/tessdata/, and set pytesseract.pytesseract.tesseract_cmd and --tessdata-dir explicitly; record version, source URL, license, and paths",
+    "unexpected_external_generation_policy": "record actual path and type as an exceptional incident; do not treat that generated item as task-owned, an output, or a deliverable; add no approval gate",
+    "working_root": "C:\\project\\rakuten-room-inago",
+    "production_and_existing_input_policy": "production venv, product files, and collected images remain unchanged",
+    "existing_private_untracked_data_out_of_scope": "rakuten-room-inago/非公開作業データ/"
+  }
+}
