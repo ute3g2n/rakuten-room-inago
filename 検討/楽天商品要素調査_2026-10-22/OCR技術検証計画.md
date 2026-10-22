@@ -405,6 +405,6 @@ Pythonから利用できるOSSの中で、利用状況と保守・実行適合�
 | Package research/install | PaddleOCR 3.7.0 / PaddlePaddle 3.3.1 / PaddleX 3.7.2、PP-OCRv6 medium、日本語、CPU。隔離venv/model/cache/tempとlockを `OCR技術検証/` に作成 |
 | Tests/nodes | 製品側の既存nodeは未提示・未実施。最終runnerの1画像smokeはsuccess 1、終了コード0、wrapper実行後のR:解除も確認。範囲外index pathとstudy-root env overrideは各終了コード2、出力なし。index内の範囲外商品pathは終了コード1、出力なし。同一hashの誤った既存R:はwrapper process終了コード1でOCR開始前に拒否し、`results/ocr-alias-mismatch-probe-final.jsonl` は未作成。study/decoy runner hashは両方 `59D0C784DBB86F6FA82EB9B428486D32BEFD4AE3B81BDCA83103B6B49F366170`。harness alias解除は終了コード0。全件OCRと59画像の目視照合はCASEに沿って記録。空画像がなかったためempty入力は未確認 |
 | Review | 初回独立reviewの3指摘と再reviewのコード所見を修正し、照合一覧の整合を確認。追加LOW所見の負例証拠について、wrapper command、終了コード、出力path、study/decoy hashを記録。最終read-only再確認で記録間の整合が確認され、残る所見なし。承認gateとは扱わない。詳細は `OCR技術検証/review.md` |
-| Git revision / status | 実行開始時HEAD `b38cbd9fbca17591998ae5b9c6bb32d493ffefa1`、branch `main`、tracking `origin/main`。今回確認した未追跡ユーザーデータ `rakuten-room-inago/非公開作業データ/` は対象外。最終Git処理を完了時に追記 |
+| Git revision / status | 実行開始時HEAD `b38cbd9fbca17591998ae5b9c6bb32d493ffefa1`、branch `main`、tracking `origin/main`。タスク所有ファイル14件をcommitし `origin/main` へpush済み。commit hashはタスク完了報告に記録。未追跡ユーザーデータ `rakuten-room-inago/非公開作業データ/` はstage対象外 |
 | Unknowns | OCRのCER/WERや正解文字との精度評価は未実施。対象は `span.sale_desc` 由来画像59点で、DOMテキストや他要素画像の網羅性は未確認。 |
 | Next action | OCR技術検証の成果を使い、商品画像OCR結果を投稿文生成入力へ渡す構成・ノイズ対策を別途検討。 |
