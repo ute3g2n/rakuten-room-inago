@@ -22,6 +22,7 @@ from automation.inago.ai_runner import (
     authorized_agent_task,
     compute_input_hash,
     _child_agent_type,
+    _rollout_settings,
 )
 from automation.inago.clock import FakeClock, JST
 from automation.jsonschema_formats import rfc3339_format_checker
@@ -372,6 +373,52 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
     ]
 
 
+@pytest.mark.parametrize("invented_keywords", [False, True])
+def test_copy_only_job_does_not_authorize_missing_keyword_work(
+    tmp_path: Path, invented_keywords: bool
+) -> None:
+    request = _base_request(input_payload={"offer": {"offer_key": "shop-A:item-1"}})
+    agent_id = "AG-KEY" if invented_keywords else "AG-COPY"
+    skill = "rr-inago-keywords" if invented_keywords else "rr-inago-copywriter"
+    payload = (
+        {"snapshot_id": "unavailable", "query_word": "unavailable", "decisions": []}
+        if invented_keywords
+        else {
+            "offer_key": "shop-A:item-1",
+            "draft_version": 1,
+            "body": "確認できる商品情報に基づく紹介文です。",
+            "pattern_id": "P01",
+            "evidence_refs": ["EVIDENCE-ROOM-1"],
+            "selection_reason": "確認できる特徴を紹介するため",
+            "used_input_refs": ["INPUT-OFFERS-1"],
+            "omitted_unknowns": [],
+        }
+    )
+    response = _root_response(
+        request, delegations=[_delegation(agent_id, "T02", skill, payload)]
+    )
+    runner, record_path, _ = _runner(
+        tmp_path,
+        response=json.dumps(response, ensure_ascii=False).encode("utf-8"),
+        events=[_spawn_event(skill)],
+    )
+
+    result = runner.run(request)
+
+    recorded = json.loads(record_path.read_text(encoding="utf-8"))
+    staged_input = json.loads(recorded["stdin"].splitlines()[-1])
+    assert "AG-KEY" not in {
+        child["agent_id"] for child in staged_input["authorized_subagents"]
+    }
+    assert "rr-inago-keywords.toml" not in recorded["agent_configs"]
+    if invented_keywords:
+        assert result.adoption_status == "rejected_contract"
+        assert result.error == {"code": "delegations[0].agent_id"}
+    else:
+        assert result.result_status == "success"
+        assert [child.agent_id for child in result.subjobs] == ["AG-COPY"]
+
+
 def test_runner_persists_sanitized_per_job_trace_events(tmp_path: Path) -> None:
     private_marker = "PRIVATE_FIXTURE_TEXT_MUST_NOT_ENTER_TRACE"
     request = _base_request(
@@ -443,8 +490,10 @@ def test_api_key_auth_is_rejected_before_cli_start(tmp_path: Path) -> None:
     assert records[-1]["error_code"] == "auth_mode_not_permitted"
 
 
+@pytest.mark.parametrize("inherited_history", [False, True])
 def test_load_session_trace_links_root_spawn_to_completed_native_child(
     tmp_path: Path,
+    inherited_history: bool,
 ) -> None:
     thread_id = "fake-root-01"
     sessions = tmp_path / "codex-home" / "sessions" / "2026" / "10" / "12"
@@ -453,7 +502,10 @@ def test_load_session_trace_links_root_spawn_to_completed_native_child(
         {"type": "session_meta", "payload": {"id": thread_id}},
         {
             "type": "turn_context",
-            "payload": {"model": "gpt-6.1-sol", "effort": "xhigh"},
+            "payload": {
+                "model": "gpt-6-luna" if inherited_history else "gpt-6.1-sol",
+                "effort": "max" if inherited_history else "xhigh",
+            },
         },
         {
             "type": "response_item",
@@ -491,6 +543,21 @@ def test_load_session_trace_links_root_spawn_to_completed_native_child(
             "payload": {"model": "gpt-6.1-sol", "effort": "xhigh"},
         },
     ]
+    if inherited_history:
+        child_events[1:1] = [
+            {"type": "session_meta", "payload": {"id": thread_id}},
+            {
+                "type": "turn_context",
+                "payload": {"model": "gpt-6-luna", "effort": "max"},
+            },
+            {
+                "type": "event_msg",
+                "payload": {
+                    "type": "thread_settings_applied",
+                    "thread_id": "fake-child-01",
+                },
+            },
+        ]
     root_path = sessions / f"rollout-2026-10-12T04-00-00-{thread_id}.jsonl"
     child_path = sessions / "rollout-2026-10-12T04-00-01-fake-child-01.jsonl"
     root_path.write_text(
@@ -513,13 +580,50 @@ def test_load_session_trace_links_root_spawn_to_completed_native_child(
     assert trace is not None
     assert trace.error is None
     assert trace.thread_id == thread_id
-    assert trace.root_model == "gpt-6.1-sol"
-    assert trace.root_reasoning_setting == "xhigh"
+    assert trace.root_model == ("gpt-6-luna" if inherited_history else "gpt-6.1-sol")
+    assert trace.root_reasoning_setting == ("max" if inherited_history else "xhigh")
     assert len(trace.spawn_events) == 1
     assert len(trace.children) == 1
     assert trace.children[0].agent_type == "rr-inago-observation"
     assert trace.children[0].model == "gpt-6.1-sol"
     assert trace.children[0].reasoning_setting == "xhigh"
+
+
+@pytest.mark.parametrize(
+    "boundary_thread,own_contexts",
+    [
+        ("root", [{"model": "gpt-6.1-sol", "effort": "xhigh"}]),
+        ("child", []),
+        (
+            "child",
+            [
+                {"model": "gpt-6.1-sol", "effort": "xhigh"},
+                {"model": "gpt-6.1-sol", "effort": "high"},
+            ],
+        ),
+    ],
+)
+def test_forked_rollout_requires_consistent_observed_own_settings(
+    boundary_thread: str, own_contexts: list[dict[str, str]]
+) -> None:
+    events = [
+        {"type": "session_meta", "payload": {"id": "child"}},
+        {"type": "session_meta", "payload": {"id": "root"}},
+        {
+            "type": "turn_context",
+            "payload": {"model": "gpt-6-luna", "effort": "max"},
+        },
+        {
+            "type": "event_msg",
+            "payload": {
+                "type": "thread_settings_applied",
+                "thread_id": boundary_thread,
+            },
+        },
+        *({"type": "turn_context", "payload": context} for context in own_contexts),
+    ]
+
+    assert _rollout_settings(events) == (None, None)
 
 
 def test_live_ai_case_registry_covers_seven_roles_with_synthetic_safe_inputs() -> None:
