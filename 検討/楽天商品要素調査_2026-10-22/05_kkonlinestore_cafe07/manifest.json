@@ -1,0 +1,279 @@
+{
+  "capturedAt": "2026-10-22T12:05:20.709Z",
+  "browser": "Playwright Chromium 155.0.4283.62 (Microsoft Edge channel)",
+  "requestedUrl": "https://item.rakuten.co.jp/kkonlinestore/cafe07/",
+  "finalUrl": "https://item.rakuten.co.jp/kkonlinestore/cafe07/",
+  "pageTitleLength": 103,
+  "httpStatus": 200,
+  "navigationError": null,
+  "selectors": [
+    {
+      "selector": "span.sale_desc",
+      "matchCount": 1,
+      "matches": [
+        {
+          "index": 1,
+          "tag": "span",
+          "id": null,
+          "classes": [
+            "sale_desc"
+          ],
+          "textLength": 11,
+          "elementChildCount": 9,
+          "markupFile": "span_sale_desc_match_01.html",
+          "imageCandidateCount": 18,
+          "imageUrls": [
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_01_m.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_02_m.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_03.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_04.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_05.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_06.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_07.jpg",
+            "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_08.jpg",
+            "https://www.rakuten.ne.jp/gold/kkonlinestore/img/cafe07/cafe07_00.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "selector": "span.normal_reserve_item_name",
+      "matchCount": 1,
+      "matches": [
+        {
+          "index": 1,
+          "tag": "span",
+          "id": null,
+          "classes": [
+            "normal_reserve_item_name"
+          ],
+          "textLength": 90,
+          "elementChildCount": 1,
+          "markupFile": "span_normal_reserve_item_name_match_01.html",
+          "imageCandidateCount": 0,
+          "imageUrls": []
+        }
+      ]
+    },
+    {
+      "selector": "span.normal_reserve_catch_copy",
+      "matchCount": 1,
+      "matches": [
+        {
+          "index": 1,
+          "tag": "span",
+          "id": null,
+          "classes": [
+            "normal_reserve_catch_copy"
+          ],
+          "textLength": 39,
+          "elementChildCount": 0,
+          "markupFile": "span_normal_reserve_catch_copy_match_01.html",
+          "imageCandidateCount": 0,
+          "imageUrls": []
+        }
+      ]
+    }
+  ],
+  "imageFiles": [
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_01_m.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_001.jpg",
+      "bytes": 837752,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_02_m.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_002.jpg",
+      "bytes": 777629,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_03.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_003.jpg",
+      "bytes": 938665,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_04.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_004.jpg",
+      "bytes": 724101,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_05.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_005.jpg",
+      "bytes": 843256,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_06.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_006.jpg",
+      "bytes": 701209,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_07.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_007.jpg",
+      "bytes": 675426,
+      "error": null
+    },
+    {
+      "url": "https://image.rakuten.co.jp/kkonlinestore/cabinet/upload/12930034/cafe_08.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_008.jpg",
+      "bytes": 551194,
+      "error": null
+    },
+    {
+      "url": "https://www.rakuten.ne.jp/gold/kkonlinestore/img/cafe07/cafe07_00.jpg",
+      "sources": [
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "currentSrc",
+          "elementTag": "img"
+        },
+        {
+          "selector": "span.sale_desc",
+          "matchIndex": 1,
+          "source": "src",
+          "elementTag": "img"
+        }
+      ],
+      "status": 200,
+      "contentType": "image/jpeg",
+      "file": "images/image_009.jpg",
+      "bytes": 1004546,
+      "error": null
+    }
+  ],
+  "note": "HTMLファイルはタグ構造を保持し、テキストノード・HTMLコメント・alt/title等の属性値を省略しています。画像URLと構造識別に必要な属性値だけ残しています。商品説明文をそのまま再掲しないための構造確認用スナップショットです。画像は許可したRakuten画像ホストからのみダウンロードします。"
+}
