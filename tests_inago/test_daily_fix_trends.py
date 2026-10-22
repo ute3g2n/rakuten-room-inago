@@ -637,7 +637,7 @@ def test_n08b_related_keyword_heading_alias_and_semantic_level(tmp_path, ui_serv
         for event in events
         if event.get("stage") == "trends_related_widget_wait_ready"
     )
-    assert ready["widget_selector_version"] == "related-widget-v4"
+    assert ready["widget_selector_version"] == "related-widget-v5"
     assert ready["widget_kind"] == "related_keywords"
     assert ready["related_widget_generation"] > ready["generation_before_period"]
 
@@ -669,7 +669,7 @@ def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_s
         for event in events
         if event.get("stage") == "trends_related_widget_wait_ready"
     )
-    assert ready["widget_selector_version"] == "related-widget-v4"
+    assert ready["widget_selector_version"] == "related-widget-v5"
     assert ready["widget_kind"] == "related_keywords"
     assert ready["related_widget_generation"] > ready["generation_before_period"]
 
@@ -697,7 +697,7 @@ def test_n08c_title_container_alias_and_unknown_heading_stay_safe(tmp_path, ui_s
         for event in unknown_events
         if event.get("stage") == "trends_related_widget_contract_error"
     )
-    assert mismatch["widget_selector_version"] == "related-widget-v4"
+    assert mismatch["widget_selector_version"] == "related-widget-v5"
     assert mismatch["widget_match_count"] == 0
     assert mismatch["widget_visible_count"] == 2
     assert mismatch["widget_wrong_visible_count"] == 2

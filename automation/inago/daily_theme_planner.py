@@ -22,6 +22,7 @@ from automation.inago.repository import (
     load_pending_key_job_result,
     persist_pending_key_job_result,
 )
+from automation.inago.theme_queries import choose_theme_query
 from automation.inago.trends_adapter import (
     BrowserSnapshotPort,
     DurableGroupKeywordSession,
@@ -87,6 +88,15 @@ class DurableTrendsThemePlanner:
             raise DailyOrchestrationError("theme_planner_run_identity_invalid")
         theme_word = self._theme_word(connection, settings_version, theme_id)
         acquisition_id = f"{run_id}:{event_kind}:{ordinal:02d}:{theme_id}"
+        previous = connection.execute(
+            "SELECT query_word FROM trends_acquisition WHERE acquisition_id=?",
+            (acquisition_id,),
+        ).fetchone()
+        query_word = (
+            previous[0]
+            if previous is not None
+            else choose_theme_query(theme_word, seed, acquisition_id)
+        )
         session = DurableGroupKeywordSession(
             connection,
             self.trends_port,
@@ -100,7 +110,7 @@ class DurableTrendsThemePlanner:
             deadline_at=None,
             acquisition_id=acquisition_id,
         )
-        acquisition = session.fetch(theme_word)
+        acquisition = session.fetch(query_word)
         if acquisition.status == "exhausted":
             return self._plan(
                 theme_id,
@@ -210,7 +220,7 @@ class DurableTrendsThemePlanner:
                 status="deadline",
             )
         session.adopt_snapshot(snapshot)
-        adopted = session.fetch(theme_word)
+        adopted = session.fetch(query_word)
         if adopted.status == "deadline":
             return self._plan(
                 theme_id,

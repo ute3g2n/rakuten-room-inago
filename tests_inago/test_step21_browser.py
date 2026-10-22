@@ -1408,8 +1408,20 @@ def test_trends_starts_from_home_searches_and_selects_rendered_90_day_period(
     } <= stages
 
 
-def test_trends_new_explore_selects_scope_and_reads_top20_only(tmp_path, ui_server):
-    ui_server["pages"].update({"/explore": trends_new_explore_html()})
+@pytest.mark.parametrize("period_90_days", [False, True])
+def test_trends_new_explore_selects_scope_and_reads_top20_only(
+    tmp_path, ui_server, period_90_days
+):
+    html = trends_new_explore_html()
+    if period_90_days:
+        html = html.replace(
+            "button.setAttribute('aria-label','過去 3 か月間、期間を選択');button.textContent='過去 3 か月間';",
+            "button.setAttribute('aria-label','過去 90 日間、期間を選択');button.textContent='過去 90 日間';",
+        ).replace(
+            "document.querySelector('#period').getAttribute('aria-label')!=='過去 3 か月間、期間を選択'",
+            "document.querySelector('#period').getAttribute('aria-label')!=='過去 90 日間、期間を選択'",
+        )
+    ui_server["pages"].update({"/explore": html})
     request = TrendsRequest(
         "K-NEW-EXPLORE", "R-NEW-EXPLORE", "V1", "スキンケア", range="3m"
     )
@@ -1428,7 +1440,7 @@ def test_trends_new_explore_selects_scope_and_reads_top20_only(tmp_path, ui_serv
         f"スキンケア関連語 {rank}" for rank in range(1, 21)
     ]
     assert all(word.popularity_index == 101 - word.source_rank for word in result.words)
-    assert result.ui_period_label == "過去3か月間"
+    assert result.ui_period_label == ("過去90日間" if period_90_days else "過去3か月間")
     requested_pages = [urlsplit(path).path for path in ui_server["requests"]]
     assert requested_pages.count("/explore") == 2
     assert "/trends/" not in requested_pages
@@ -1569,6 +1581,88 @@ def test_trends_explicit_zero_and_fewer_rows_do_not_fill_from_other_source(
         source(tmp_path, ui_server).fetch(request), request
     )
     assert (result.status, len(result.words)) == ("observed", count), result.error_code
+
+
+@pytest.mark.parametrize("whole_widget_zero", [False, True])
+def test_trends_missing_sort_control_requires_explicit_whole_widget_zero(
+    tmp_path, ui_server, whole_widget_zero
+):
+    import re
+
+    html = trends_html(count=0, refresh_after_period=True, top_selected=True)
+    html = re.sub(r'<md-select class="bullets-view-selector".*?</md-select>', '', html)
+    if whole_widget_zero:
+        html = html.replace('データがありません', 'ここに表示するデータはありません。')
+    html += """<script>
+      if(['today 3-m','today 90-d'].includes(new URL(location.href).searchParams.get('date')))
+        document.querySelector('[aria-label^="Select time period"]').textContent='過去 90 日間';
+    </script>"""
+    ui_server["html"] = html
+    request = TrendsRequest("K-ZERO", "R-ZERO", "V1", "電子レンジ", range="3m")
+
+    result = parse_grouped_top_response(source(tmp_path, ui_server).fetch(request), request)
+
+    if whole_widget_zero:
+        assert (result.status, len(result.words), result.error_code) == ("observed", 0, None)
+    else:
+        assert result.status == "unavailable"
+        assert result.error_code == "query_widget_contract_mismatch"
+
+
+def test_trends_old_whole_widget_zero_is_rechecked_after_scope_reload(
+    tmp_path, ui_server
+):
+    import re
+
+    stale = trends_html(count=0, refresh_after_period=True, top_selected=True)
+    stale = re.sub(r'<md-select class="bullets-view-selector".*?</md-select>', '', stale)
+    stale = stale.replace('データがありません', 'ここに表示するデータはありません。')
+    fresh = trends_html(count=3, top_selected=True)
+
+    class ChangingPages(dict):
+        visits = 0
+
+        def get(self, key, default=None):
+            if key == "/trends/explore":
+                self.visits += 1
+                return trends_with_period_picker(stale) if self.visits == 1 else fresh
+            return super().get(key, default)
+
+    ui_server["pages"] = ChangingPages({"/trends/": trends_home_html()})
+    request = TrendsRequest("K-FRESH-ZERO", "R-FRESH-ZERO", "V1", "電子レンジ", range="3m")
+
+    result = parse_grouped_top_response(source(tmp_path, ui_server).fetch(request), request)
+
+    assert result.status == "observed", result.error_code
+    assert len(result.words) == 3
+    assert ui_server["pages"].visits == 2
+
+
+def test_trends_related_widget_stays_bound_when_region_widget_is_inserted(
+    tmp_path, ui_server
+):
+    from html import escape
+
+    html = trends_html(count=20, refresh_after_period=True)
+    region = (
+        '<div class="fe-related-queries"><h2>地域</h2>'
+        '<md-select class="bullets-view-selector">人気</md-select>'
+        '<a class="progress-label"><span class="label-line-number">1</span>'
+        '<span class="label-text">誤った地域</span><span class="progress-value">100</span></a></div>'
+    )
+    html = html.replace(
+        "this.parentElement.style.display='none';setTimeout",
+        "this.parentElement.style.display='none';"
+        f"document.querySelectorAll('.fe-related-queries')[1].insertAdjacentHTML('beforebegin',`{escape(region, quote=True)}`);setTimeout",
+    )
+    ui_server["html"] = html
+    request = TrendsRequest("K-BOUND", "R-BOUND", "V1", "電子レンジ", range="3m")
+
+    result = parse_grouped_top_response(source(tmp_path, ui_server).fetch(request), request)
+
+    assert result.status == "observed", result.error_code
+    assert len(result.words) == 20
+    assert all(word.raw.startswith("関連  語") for word in result.words)
 
 
 @pytest.mark.parametrize("kind", ["room", "trends"])

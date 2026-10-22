@@ -24,7 +24,7 @@ const PRODUCT_DESTINATION_TIMEOUT_MS = 30000;
 const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
-const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v4';
+const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v5';
 let activeTrace = {stage:'startup',row_index:null};
 let traceEventCount = 0;
 let traceSuppressionWritten = false;
@@ -1299,7 +1299,7 @@ export async function collectRoom(page, request, config, deadline, access) {
 }
 
 async function emptyEvidence(widget) {
-  const matches = await widget.getByText(/^(データがありません|この検索キーワードのデータはありません)$/).all();
+  const matches = await widget.getByText(/^(データがありません|この検索キーワードのデータはありません|ここに表示するデータはありません。)$/).all();
   for (const match of matches) {
     if (await match.isVisible() && await match.evaluate(e=>!e.closest('a.progress-label'))) return match;
   }
@@ -1357,6 +1357,13 @@ async function installTrendsWidgetObserver(page) {
     };
     window.__inagoTrendsWidgetGeneration = 0;
     const observer = new MutationObserver(records => {
+      // Bind by the rendered heading, rather than an index that can change
+      // when the region/map widget is inserted or Angular replaces a panel.
+      for (const widget of document.querySelectorAll('.fe-related-queries')) {
+        const kind = kindFor(widget);
+        if (widget.getAttribute('data-inago-trends-kind') !== kind)
+          widget.setAttribute('data-inago-trends-kind',kind);
+      }
       if (records.some(record => isRelatedKeywordNode(record.target) ||
           Array.from(record.addedNodes).some(containsRelatedKeyword) ||
           Array.from(record.removedNodes).some(containsRelatedKeyword)))
@@ -1388,7 +1395,7 @@ async function relatedWidgetState(page) {
       const visible = isVisible(element);
       const empty = visible && Array.from(element.querySelectorAll('*')).some(node =>
         isVisible(node) && !node.closest('a.progress-label') &&
-        ['データがありません','この検索キーワードのデータはありません'].includes(node.textContent.trim()));
+        ['データがありません','この検索キーワードのデータはありません','ここに表示するデータはありません。'].includes(node.textContent.trim()));
       return {kind,visible,empty};
     });
     const keyword = records.filter(item => item.kind === 'related_keywords');
@@ -1449,7 +1456,8 @@ async function waitForRelatedWidget(page, check, deadline, generationBeforePerio
       trace('trends_related_widget_wait_ready',{
         ...details(),widget_outcome:'ready',
       });
-      return visibleWidgets.nth(matchingIndexes[0]);
+      return page.locator('.fe-related-queries[data-inago-trends-kind="related_keywords"]')
+        .filter({visible:true});
     }
     await page.waitForTimeout(Math.min(100,Math.max(1,deadline-Date.now())));
   }
@@ -1692,7 +1700,9 @@ async function collectExploreTrends(page, request, deadline, check) {
       catch { return false; }
     }
     const url = new URL(location.href);
-    return country && periodLabel.includes('過去3か月間') && property && chip && input &&
+    const selectedPeriod = periodLabel.replace(/、?期間を選択$/,'');
+    const validPeriod = ['過去90日間','過去90日','過去3か月間','過去3か月','過去3ヶ月間','過去3ヶ月'].includes(selectedPeriod);
+    return country && validPeriod && property && chip && input &&
       url.searchParams.get('geo') === 'JP' &&
       ['today 3-m','today 90-d'].includes(url.searchParams.get('date')) &&
       urlQuery === query;
@@ -1762,6 +1772,15 @@ async function collectExploreTrends(page, request, deadline, check) {
     range:'3m',list_type:'Top',ui_period_label:period,status:'observed',fetched_at:timestamp(),
     error_code:null,words},product_facts:{},diagnostics:{source:'public_dom',
       selector_version:'explore-table-v1',word_count:words.length,period_label:period,original_top:true}};
+}
+
+function legacyTrendsResult(request, period, words) {
+  return {response:{request_id:request.request_id,snapshot_id:request.request_id,run_id:request.run_id,
+    settings_version:request.settings_version,source:'google_trends_public_ui',parent_word:request.parent_word,current_parent:request.parent_word,
+    refresh_complete:true,language:'ja',geo:'JP',search_type:'web',range:'3m',list_type:'Top',ui_period_label:period,
+    status:'observed',fetched_at:timestamp(),error_code:null,words},product_facts:{},
+    diagnostics:{source:'public_dom',selector_version:TRENDS_WIDGET_SELECTOR_VERSION,
+      word_count:words.length,period_label:period,original_top:true}};
 }
 
 async function collectLegacyTrends(page, request, config, deadline, check) {
@@ -1868,7 +1887,64 @@ async function collectLegacyTrends(page, request, config, deadline, check) {
   const widget = await waitForRelatedWidget(
     page,check,deadline,generationBeforePeriod,
   );
+  return await collectLegacyRelatedTop(page,request,period,widget,deadline,check,false);
+}
+
+async function collectLegacyRelatedTop(page,request,period,widget,deadline,check,emptyReloaded) {
+  trace('trends_list_control_wait_begin');
+  await waitDOM(page,check,() => {
+    const widgets = Array.from(document.querySelectorAll(
+      '.fe-related-queries[data-inago-trends-kind="related_keywords"]',
+    )).filter(element => element.getClientRects().length);
+    if (widgets.length !== 1) return false;
+    const widget = widgets[0];
+    for (let node=widget; node; node=node.parentElement) {
+      if (node.getAttribute('aria-busy') === 'true') return false;
+    }
+    const empty = Array.from(widget.querySelectorAll('*')).some(element =>
+      element.getClientRects().length && !element.closest('a.progress-label') &&
+      ['データがありません','この検索キーワードのデータはありません','ここに表示するデータはありません。'].includes(element.textContent.trim()));
+    return Boolean(widget.querySelector('md-select.bullets-view-selector') || empty);
+  },null,Math.min(deadline,Date.now()+20000));
   const dropdown = widget.locator('md-select.bullets-view-selector');
+  const dropdownCount = await dropdown.count();
+  if (dropdownCount !== 1) {
+    const empty = await emptyEvidence(widget);
+    // Current Google renders a whole-panel no-data message without a sort
+    // control. A generic Rising-only zero cannot establish Top zero.
+    if (dropdownCount === 0 && empty &&
+        (await empty.innerText()).trim() === 'ここに表示するデータはありません。' &&
+        await widget.locator('a.progress-label').count() === 0) {
+      await check();
+      if (!emptyReloaded) {
+        // The period control can update before the old no-data panel changes.
+        // Reload its verified public URL before adopting a whole-panel zero.
+        trace('trends_legacy_zero_reload_begin');
+        await page.reload({waitUntil:'domcontentloaded',timeout:deadlineTimeout(deadline)});
+        await waitDOM(page,check,query => {
+          const url = new URL(location.href);
+          const input = document.querySelector('input[aria-label="検索キーワードを追加"]');
+          const period = document.querySelector('[aria-label^="Select time period"]');
+          const label = (period?.innerText ?? '').normalize('NFKC').replace(/\s/g,'');
+          const property = document.querySelector('[aria-label^="Select stories location"]');
+          return input?.value === query && url.searchParams.get('q') === query &&
+            url.searchParams.get('geo') === 'JP' &&
+            ['today 3-m','today 90-d'].includes(url.searchParams.get('date')) &&
+            ['過去90日間','過去90日','過去3か月間','過去3か月','過去3ヶ月間','過去3ヶ月'].includes(label) &&
+            property?.innerText.includes('ウェブ検索');
+        },request.parent_word,Math.min(deadline,Date.now()+20000));
+        const refreshedWidget = await waitForRelatedWidget(page,check,deadline,null);
+        trace('trends_legacy_zero_reload_reflected');
+        return await collectLegacyRelatedTop(page,request,period,refreshedWidget,deadline,check,true);
+      }
+      trace('trends_related_widget_normal_zero',{
+        top_rows_count:0,widget_empty_evidence:'explicit_no_data',
+      });
+      return legacyTrendsResult(request,period,[]);
+    }
+    trace('trends_list_control_contract_error');
+    throw new SourceFailure('query_widget_contract_mismatch');
+  }
   const prior = await widget.locator('a.progress-label').allTextContents();
   const priorEmpty = await emptyEvidence(widget);
   const priorEmptyHandle = priorEmpty ? await priorEmpty.elementHandle() : null;
@@ -1950,12 +2026,7 @@ async function collectLegacyTrends(page, request, config, deadline, check) {
     await check();
   }
   await priorEmptyHandle?.dispose();
-  return { response: { request_id:request.request_id,snapshot_id:request.request_id,run_id:request.run_id,
-    settings_version:request.settings_version,source:'google_trends_public_ui',parent_word:request.parent_word,current_parent:request.parent_word,
-    refresh_complete:true,language:'ja',geo:'JP',search_type:'web',range:'3m',list_type:'Top',ui_period_label:period,
-    status:'observed',fetched_at:timestamp(),error_code:null,words }, product_facts:{},
-    diagnostics:{source:'public_dom',selector_version:TRENDS_WIDGET_SELECTOR_VERSION,
-      word_count:words.length,period_label:period,original_top:true} };
+  return legacyTrendsResult(request,period,words);
 }
 
 export async function collectTrends(page, request, config, deadline, access) {

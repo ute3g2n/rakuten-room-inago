@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Google Trends取得の安定化 — 2026年10月22日</title>
+<style>
+body{margin:0;background:#f2f5f7;color:#172b38;font:17px/1.85 system-ui,sans-serif}main{max-width:880px;margin:36px auto;padding:32px;background:white;border-radius:14px}h1{font-size:1.65rem;line-height:1.5}h2{font-size:1.2rem;margin-top:2rem;color:#1c586c}.result{padding:18px 22px;background:#e8f5ec;border-left:5px solid #398058}small{color:#526570}a{color:#12627a}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th,td{border-bottom:1px solid #d9e3e8;padding:9px 12px;text-align:left}thead{background:#edf5f7}@media(max-width:600px){main{margin:0;padding:22px;border-radius:0}}
+</style>
+</head>
+<body><main>
+<small>2026年10月22日・本人依頼によるデバッグ</small>
+<h1>Google Trends取得の安定化</h1>
+<p class="result">取得完了後に3分空ける条件で、実サイトの関連キーワードを5回連続、各20件取得できました。「調味料」「靴下」のように、今日失敗した複合テーマの構成語でも取得を確認しました。</p>
+<h2>起きていた不具合と原因</h2>
+<p>「下着・靴下」は検索ページが開いても、関連キーワード欄に「ここに表示するデータはありません。」と表示され、並べ替え欄がありませんでした。プログラムがこの表示を認識せず、存在しない欄を待ってタイムアウトしていました。複合テーマすべてが同じ結果になるとは断定できません。</p>
+<p>また、画面内に地域のパネルが追加されると、位置番号で保持していた関連キーワード欄が別のパネルへずれる問題がありました。期間の「過去90日間」を正しく受け付けない判定も修正しました。</p>
+<p>表示の問題とは別に、GoogleからHTTP 429も返っていました。取得完了後60秒間隔の確認では、3回成功した後の4回目に429が出ました。Google側の具体的な制限値や今回の制限理由は分かっていません。</p>
+<h2>修正したこと</h2>
+<ul>
+<li>関連キーワードの見出しから読む欄を特定し、パネルの挿入に影響されないようにしました。</li>
+<li>「データなし」は検索条件を再確認してから正常0件として記録します。0件を20件取得の成功には数えません。</li>
+<li>複合テーマは構成語のうち1語を選んでTrendsへ入力します。「用品」は「ペット用品」など、元の意味が残る形にします。選んだ検索語を保存し、再開時も同じ語を使います。</li>
+<li>日次処理では取得完了から最低3分空けます。Googleがより長い待機時間を指定した場合は、その時間を待ちます。テーマ切替時、5回目の失敗後、中断からの再開時にも適用します。</li>
+</ul>
+<h2>実サイトでの結果</h2>
+<p>本番と同じ専用ブラウザープロファイルで、日本・ウェブ検索・過去90日・Topの原文と順位1～20を確認しました。各行の時刻は取得完了時刻です。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>順番</th><th>検索語</th><th>完了時刻（日本時間）</th><th>関連語</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>スキンケア</td><td>16:05:54</td><td>20件</td></tr>
+<tr><td>2</td><td>収納</td><td>16:09:18</td><td>20件</td></tr>
+<tr><td>3</td><td>コスメ</td><td>16:12:42</td><td>20件</td></tr>
+<tr><td>4</td><td>調味料</td><td>16:16:08</td><td>20件</td></tr>
+<tr><td>5</td><td>靴下</td><td>16:19:33</td><td>20件</td></tr>
+</tbody></table></div>
+<p>昨日も「スキンケア」の20件取得はできていましたが、本番アダプターの記録は単発の確認でした。今回は連続取得を確認しています。本番DBは変更せず、日次フロー全体の再実行は行っていません。</p>
+<h2>試験とレビュー</h2>
+<p id="regression">ブラウザー取得、再試行、構成語の保存・再開、関連語の後続処理、日次処理の最終回帰は188件すべて合格しました（369.58秒、終了コード0）。途中の失敗と修正内容も実行記録へ保存しています。コードとPythonの独立レビューでは、最終試行後の待機時間引継ぎや旧計画との互換性を確認し、双方の承認を得ています。</p>
+<h2>追加した記録と今後の判断</h2>
+<p>表示欄の種類・選択方法の版、並べ替え欄の確認、0件を確認するための再読込み、取得間隔の待機期限を記録します。取得結果と429は区別し、コマンド・対象ソースのハッシュ・修正前後の試験結果も残しました。</p>
+<p>関連語が存在しない語は、今後も0件になり得ます。また、今回の5回連続成功は、Google側の制限が将来も変わらないという保証ではありません。429や指定待機時間は引き続き記録します。</p>
+<p><a href="../../../worklogs/projects/maintenance/trends-stability-20261022/execution.md">実行記録・試験結果</a> ／ <a href="../../../worklogs/projects/maintenance/trends-stability-20261022/live-results.json">実サイトの取得結果一覧</a></p>
+</main></body></html>

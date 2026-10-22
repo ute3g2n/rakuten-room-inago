@@ -40,6 +40,7 @@ ACCESS_FAILURES = frozenset({"http_401", "http_403", "http_429", "access_denied"
 STOP_FAILURES = ACCESS_FAILURES | {"owned_cleanup_unconfirmed"}
 SAFE_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 MAX_SOURCE_TIMEOUT_SECONDS = 17100
+TRENDS_MIN_INTERVAL_SECONDS = 180
 FAILURE_ARTIFACT_SCHEMA_VERSION = 1
 _FAILURE_ARTIFACT_STAGES = frozenset(
     {
@@ -85,6 +86,11 @@ _FAILURE_ARTIFACT_STAGES = frozenset(
         "trends_top_rows_wait",
         "trends_top_rows_updated",
         "trends_top_rows_wait_begin",
+        "trends_list_control_wait_begin",
+        "trends_list_control_contract_error",
+        "trends_related_widget_normal_zero",
+        "trends_legacy_zero_reload_begin",
+        "trends_legacy_zero_reload_reflected",
         "room_navigation",
         "room_document_loaded",
         "room_search_box_ready",
@@ -338,6 +344,9 @@ class PublicBrowserSource:
             raise ValueError("Node executable unavailable")
         self.config = config
         self.fixture_only = config.environment == "fixture"
+        self.trends_min_interval_seconds = (
+            0 if self.fixture_only else TRENDS_MIN_INTERVAL_SECONDS
+        )
         self._lock = threading.Lock()
         self._serial = threading.Lock()
         self._active: dict[subprocess.Popen, str] = {}
@@ -1878,7 +1887,12 @@ class PublicBrowserSource:
                 ("widget_scope", {"explore_related_queries"}),
                 (
                     "widget_selector_version",
-                    {"related-widget-v2", "related-widget-v3", "related-widget-v4"},
+                    {
+                        "related-widget-v2",
+                        "related-widget-v3",
+                        "related-widget-v4",
+                        "related-widget-v5",
+                    },
                 ),
                 (
                     "widget_kind",

@@ -11,6 +11,7 @@ import pytest
 from automation.inago import orchestrator as daily
 from automation.inago import trends_adapter as trends
 from automation.inago.retention import RetentionError
+from automation.inago.theme_queries import theme_query_candidates
 from tests_inago.test_step13 import (
     runtime_case,
     _make_ports,
@@ -398,7 +399,11 @@ def _theme_words_for_bundle(case, bundle):
     themes = case.connection.execute(
         "SELECT themes_json FROM settings_version WHERE version=?", (version,)
     ).fetchone()[0]
-    return {item["name"]: item["theme_id"] for item in json.loads(themes)}
+    return {
+        query: item["theme_id"]
+        for item in json.loads(themes)
+        for query in (item["name"], *theme_query_candidates(item["name"]))
+    }
 
 
 def test_first_related_word_fills_each_theme_and_does_not_prefetch_next_theme(

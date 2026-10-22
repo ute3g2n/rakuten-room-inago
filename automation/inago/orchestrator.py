@@ -45,6 +45,7 @@ from automation.inago.room_adapter import (
     RoomSearchSession,
 )
 from automation.inago.run_lock import RunLock, RunLockBusy
+from automation.inago.theme_queries import theme_query_candidates
 from automation.inago.trends_adapter import TrendsRequest, load_grouped_snapshot
 from automation.inago.trace import TraceSession, TraceWriter, make_trace_event
 from automation.inago.selection import (
@@ -1300,6 +1301,37 @@ def _get_plan(
     return plan
 
 
+def _theme_query_matches_fallback(connection, plan, query, settings_version) -> bool:
+    if plan.fallback is None:
+        return True
+    if query == plan.fallback.query:
+        # Preserve the existing full-query contract for saved legacy plans.
+        return True
+    row = connection.execute(
+        "SELECT themes_json FROM settings_version WHERE version=?",
+        (settings_version,),
+    ).fetchone()
+    try:
+        themes = json.loads(row[0]) if row else []
+    except (TypeError, json.JSONDecodeError):
+        return False
+    if not isinstance(themes, list):
+        return False
+    names = [
+        item.get("name")
+        for item in themes
+        if isinstance(item, dict) and item.get("theme_id") == plan.theme_id
+    ]
+    if not names:
+        return False
+    if len(names) != 1 or not isinstance(names[0], str) or not names[0].strip():
+        return False
+    name = names[0].strip()
+    return plan.fallback.query == name and (
+        query == name or query in theme_query_candidates(name)
+    )
+
+
 def _validate_plan_snapshot(
     connection,
     plan,
@@ -1330,7 +1362,9 @@ def _validate_plan_snapshot(
             or row["seed"] != seed
             or not isinstance(row["query_word"], str)
             or not row["query_word"].strip()
-            or (plan.fallback is not None and row["query_word"] != plan.fallback.query)
+            or not _theme_query_matches_fallback(
+                connection, plan, row["query_word"], settings_version
+            )
             or (
                 plan.acquisition_status == "observed"
                 and (
@@ -1404,7 +1438,11 @@ def _validate_plan_snapshot(
     if plan.fallback is None or plan.snapshot_ref is None:
         raise DailyOrchestrationError("theme_snapshot_or_fallback_missing")
     request = TrendsRequest(
-        plan.snapshot_ref, run_id, settings_version, plan.fallback.query, range="3m"
+        plan.snapshot_ref,
+        run_id,
+        settings_version,
+        acquisition["query_word"] if acquisition is not None else plan.fallback.query,
+        range="3m",
     )
     saved = load_grouped_snapshot(connection, plan.snapshot_ref, request=request)
     if (

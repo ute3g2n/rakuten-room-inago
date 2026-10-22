@@ -7,6 +7,7 @@ Google Trends. STEP 01 did not establish a permitted unattended UI connection.
 from __future__ import annotations
 
 import json
+import logging
 import math
 import random
 import re
@@ -1922,6 +1923,17 @@ class DurableGroupKeywordSession:
             else None
         )
         self.acquisition_id = _required_text(acquisition_id, "acquisition_id")
+        interval = getattr(port, "trends_min_interval_seconds", 0)
+        if (
+            isinstance(interval, bool)
+            or not isinstance(interval, (int, float))
+            or not math.isfinite(interval)
+            or interval < 0
+        ):
+            raise TrendsContractError(
+                "Trends source interval must be finite and non-negative"
+            )
+        self.minimum_request_interval_seconds = float(interval)
         for value, field in (
             (self.run_id, "run_id"),
             (self.settings_version, "settings_version"),
@@ -2049,6 +2061,15 @@ class DurableGroupKeywordSession:
                     self.acquisition_id, "deadline", attempts_used, None
                 )
 
+            if not self._wait_for_source_interval():
+                paced = self._load_acquisition()
+                return TrendsAcquisitionResult(
+                    self.acquisition_id,
+                    "deadline",
+                    attempts_used,
+                    None,
+                    paced["next_retry_at"],
+                )
             request = self._reserve_attempt(query, attempts_used + 1)
             try:
                 response = self.port.fetch(request)
@@ -2183,11 +2204,18 @@ class DurableGroupKeywordSession:
                 )
 
             wait_seconds = max(
-                self.MIN_RETRY_SECONDS, retry_after if retry_after is not None else 0
+                self.MIN_RETRY_SECONDS,
+                self.minimum_request_interval_seconds,
+                retry_after if retry_after is not None else 0,
             )
             retry_at = self.clock.now_jst() + timedelta(seconds=wait_seconds)
+            # The acquisition stops at five attempts. The public source's
+            # not-before time still applies to the next theme and survives restart.
             next_retry = (
-                retry_at.isoformat() if attempts_used + 1 < self.MAX_ATTEMPTS else None
+                retry_at.isoformat()
+                if attempts_used + 1 < self.MAX_ATTEMPTS
+                or self.minimum_request_interval_seconds
+                else None
             )
             if attempts_used + 1 >= self.MAX_ATTEMPTS:
                 acquisition_status = "exhausted"
@@ -2223,6 +2251,48 @@ class DurableGroupKeywordSession:
                     None,
                     retry_at.isoformat(),
                 )
+
+    def _wait_for_source_interval(self) -> bool:
+        """Keep public requests apart across themes and process restarts."""
+        if not self.minimum_request_interval_seconds:
+            return True
+        previous = self.connection.execute(
+            "SELECT ended_at,next_retry_at FROM trends_acquisition_attempt "
+            "WHERE ended_at IS NOT NULL ORDER BY julianday(ended_at) DESC,request_id DESC LIMIT 1"
+        ).fetchone()
+        if previous is None:
+            return True
+        ready_at = _parse_aware_datetime(previous[0], "ended_at") + timedelta(
+            seconds=self.minimum_request_interval_seconds
+        )
+        if previous[1]:
+            ready_at = max(
+                ready_at, _parse_aware_datetime(previous[1], "next_retry_at")
+            )
+        now = self.clock.now_jst()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise TrendsContractError("retry clock must return an aware time")
+        if ready_at <= now:
+            return True
+        if self.deadline_at is not None and ready_at >= self.deadline_at:
+            self._set_acquisition_status(
+                "deadline", ready_at.isoformat(), "retry_after_deadline"
+            )
+            return False
+        self._set_acquisition_status("collecting", ready_at.isoformat(), None)
+        logging.getLogger(__name__).info(
+            "Trends public interval acquisition_id=%s ready_at=%s wait_seconds=%.1f",
+            self.acquisition_id,
+            ready_at.isoformat(),
+            (ready_at - now).total_seconds(),
+        )
+        self.clock.wait((ready_at - now).total_seconds())
+        if self._deadline_reached():
+            self._set_acquisition_status(
+                "deadline", ready_at.isoformat(), "retry_after_deadline"
+            )
+            return False
+        return True
 
     def adopt_snapshot(self, snapshot: TrendsSnapshot) -> None:
         """Link the already persisted raw/grouped snapshot to its acquisition."""
@@ -2506,14 +2576,17 @@ class DurableGroupKeywordSession:
             next_number = int(row["attempt_no"]) + 1
             next_retry = None
             retry_at = None
-            if next_number <= self.MAX_ATTEMPTS:
+            if (
+                next_number <= self.MAX_ATTEMPTS
+                or self.minimum_request_interval_seconds
+            ):
                 wait_seconds = max(
                     self.MIN_RETRY_SECONDS,
+                    self.minimum_request_interval_seconds,
                     retry_after if retry_after is not None else 0,
                 )
                 retry_at = self.clock.now_jst() + timedelta(seconds=wait_seconds)
-                if next_number <= self.MAX_ATTEMPTS:
-                    next_retry = retry_at.isoformat()
+                next_retry = retry_at.isoformat()
             if next_number > self.MAX_ATTEMPTS:
                 acquisition_status = "exhausted"
                 acquisition_next_retry_at = None
@@ -2542,7 +2615,12 @@ class DurableGroupKeywordSession:
             )
             return
         retry_at = (
-            self.clock.now_jst() + timedelta(seconds=self.MIN_RETRY_SECONDS)
+            self.clock.now_jst()
+            + timedelta(
+                seconds=max(
+                    self.MIN_RETRY_SECONDS, self.minimum_request_interval_seconds
+                )
+            )
         ).isoformat()
 
         def mark():
