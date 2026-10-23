@@ -209,6 +209,26 @@ def test_worker_preserves_only_known_image_error_codes() -> None:
     )
 
 
+def test_unreadable_gif_returns_explicit_decode_error(monkeypatch) -> None:
+    fake_pil = ModuleType("PIL")
+    fake_image = ModuleType("PIL.Image")
+
+    def _raise_decode_error(_stream):
+        raise OSError("decode failed")
+
+    fake_image.open = _raise_decode_error
+    fake_sequence = ModuleType("PIL.ImageSequence")
+    fake_pil.Image = fake_image
+    fake_pil.ImageSequence = fake_sequence
+    monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.Image", fake_image)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.ImageSequence", fake_sequence)
+
+    frames = product_ocr._decode_image_frames(b"GIF89a-fixture", object(), object())
+    with pytest.raises(ValueError, match="^ocr_image_decode_failed$"):
+        next(frames)
+
+
 def test_real_engine_uses_runtime_assets_and_handles_japanese_image_path(
     tmp_path: Path, monkeypatch
 ) -> None:
