@@ -79,7 +79,8 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
 
         @staticmethod
         def imdecode(_encoded: bytes, _mode: int):
-            return None
+            assert _encoded.startswith(b"GIF89a")
+            return "opencv-first-frame"
 
         @staticmethod
         def cvtColor(frame: str, _conversion: int) -> str:
@@ -112,7 +113,7 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
             self.inputs.append(frame)
             return [_Page(f"text-{frame}")]
 
-    frames = product_ocr._decode_image_frames(b"animated-gif-fixture", _Cv2, _Numpy)
+    frames = product_ocr._decode_image_frames(b"GIF89a-fixture", _Cv2, _Numpy)
     engine = _Engine()
     raw, text = product_ocr._predict_image_frames(engine, frames)
 
