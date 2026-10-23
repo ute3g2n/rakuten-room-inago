@@ -1,0 +1,24 @@
+{
+  "schema_version": "safe-trace-summary-v1",
+  "summarized_at": "2026-10-23T20:56:28+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source_launch_id": "ab58a21e35bf47b1a7147c4c336a06af",
+  "reader": "automation.inago.trace.read_trace_events (bounded summary)",
+  "raw_trace_written": false,
+  "trace_event_count": 1863,
+  "retry_window": {
+    "start": "2026-10-23T20:48:53.013+09:00",
+    "end": "2026-10-23T20:50:26.092+09:00",
+    "event_count": 107,
+    "room_condition_search_submit_begin": 3,
+    "room_condition_search_timeout_errors": 2,
+    "room_condition_search_submit_clicked": 1,
+    "room_condition_search_submit_complete": 1,
+    "room_list_no_progress_status_events": 9,
+    "room_short_batch_stable_errors": 3,
+    "incomplete_search_failures": 3,
+    "product_page_component_events": 0
+  },
+  "finding": "This official retry used the 10-second click maximum. Two condition-search clicks ended in TimeoutError at that limit; one click and submit completed. All three result scans then lacked progress and ended as incomplete_search. No product_page event occurred.",
+  "privacy": "No query text, page body, OCR text, URL, raw trace, or private runtime body is stored."
+}

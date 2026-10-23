@@ -1,0 +1,101 @@
+{
+  "schema_version": "inago-production-failure-safe-summary-v1",
+  "observed_at": "2026-10-23T19:31:51.299883+00:00",
+  "mode": "daily",
+  "status": "failed",
+  "phase": "daily",
+  "reason_code": "product_page_capture_failed",
+  "overall_status": "failed",
+  "daily_status": "partial",
+  "daily_reason": "daily_interrupted_or_candidate_shortage",
+  "committed_count": 10,
+  "shortfall_count": 5,
+  "source_failures": 34,
+  "error_count": 11,
+  "primary_error": {
+    "code": "product_page_capture_failed",
+    "phase": "product_page_capture",
+    "reference_count": null
+  },
+  "secondary_error_count": 10,
+  "secondary_errors": [
+    {
+      "code": "step13_error_RoomContractError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "step13_error_DailyOrchestrationError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "step13_error_DailyOrchestrationError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "step13_error_DailyOrchestrationError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "step13_error_DailyOrchestrationError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "step13_error_DailyOrchestrationError",
+      "phase": "orchestration"
+    },
+    {
+      "code": "product_page_capture_failed",
+      "phase": "product_page_capture"
+    },
+    {
+      "code": "product_page_capture_failed",
+      "phase": "product_page_capture"
+    },
+    {
+      "code": "product_page_capture_failed",
+      "phase": "product_page_capture"
+    },
+    {
+      "code": "product_page_capture_failed",
+      "phase": "product_page_capture"
+    }
+  ],
+  "phase_results": {
+    "preflight": {
+      "status": "ready"
+    },
+    "database_open": {
+      "status": "ready"
+    },
+    "prepare": {
+      "status": "ready"
+    },
+    "start_backup": {
+      "status": "ready"
+    },
+    "daily": {
+      "status": "partial"
+    },
+    "metrics": {
+      "status": "observed"
+    },
+    "operations_monitor": {
+      "status": "stopped"
+    },
+    "database_close": {
+      "status": "closed"
+    },
+    "export": {
+      "status": "ready"
+    },
+    "preservation": {
+      "status": "ready"
+    },
+    "trace": {
+      "status": "degraded",
+      "error_code": "quota_already_reached"
+    }
+  },
+  "raw_log_reprinted": false,
+  "product_identifiers_text_urls_or_payloads_reprinted": false
+}

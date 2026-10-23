@@ -1,0 +1,13 @@
+{
+  "schema_version": "inago-owner-process-readonly-sample-v1",
+  "run_id": "INAGO-2026-10-23",
+  "observed_at": "2026-10-24T00:27:42.8387736+09:00",
+  "pid": 86668,
+  "process_name": "python",
+  "cpu_seconds": 75.0625,
+  "responding": true,
+  "working_set_bytes": 57643008,
+  "handles": 270,
+  "process_start_time": "2026-10-23T22:24:10.5799541+09:00",
+  "source": "Get-Process read-only, owner PID only"
+}

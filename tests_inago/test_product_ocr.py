@@ -63,6 +63,7 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
         size = (2, 2)
         n_frames = 2
         frames = [_Frame("frame-one"), _Frame("frame-two")]
+        current_frame = None
 
         def __enter__(self):
             return self
@@ -70,16 +71,18 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
         def __exit__(self, *_args) -> None:
             return None
 
+        def seek(self, index: int) -> None:
+            self.current_frame = self.frames[index]
+
+        def convert(self, mode: str) -> str:
+            return self.current_frame.convert(mode)
+
     fake_pil = ModuleType("PIL")
     fake_image = ModuleType("PIL.Image")
     fake_image.open = lambda _stream: _Gif()
-    fake_sequence = ModuleType("PIL.ImageSequence")
-    fake_sequence.Iterator = lambda source: iter(source.frames)
     fake_pil.Image = fake_image
-    fake_pil.ImageSequence = fake_sequence
     monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
     monkeypatch.setitem(__import__("sys").modules, "PIL.Image", fake_image)
-    monkeypatch.setitem(__import__("sys").modules, "PIL.ImageSequence", fake_sequence)
 
     class _Cv2:
         IMREAD_COLOR = 1
@@ -160,18 +163,27 @@ def test_animated_gif_limits_return_explicit_error_codes(
             return self.marker
 
     image_open_count = 0
-    iterator_yield_count = 0
+    frame_seek_count = 0
 
     class _Gif:
         size = (2, 2)
         n_frames = 2
         frames = [_Frame("frame-one"), _Frame("frame-two")]
+        current_frame = None
 
         def __enter__(self):
             return self
 
         def __exit__(self, *_args) -> None:
             return None
+
+        def seek(self, index: int) -> None:
+            nonlocal frame_seek_count
+            frame_seek_count += 1
+            self.current_frame = self.frames[index]
+
+        def convert(self, mode: str) -> str:
+            return self.current_frame.convert(mode)
 
     fake_pil = ModuleType("PIL")
     fake_image = ModuleType("PIL.Image")
@@ -182,20 +194,9 @@ def test_animated_gif_limits_return_explicit_error_codes(
         return _Gif()
 
     fake_image.open = _open_image
-    fake_sequence = ModuleType("PIL.ImageSequence")
-
-    def _iterate_frames(source):
-        nonlocal iterator_yield_count
-        for frame in source.frames:
-            iterator_yield_count += 1
-            yield frame
-
-    fake_sequence.Iterator = _iterate_frames
     fake_pil.Image = fake_image
-    fake_pil.ImageSequence = fake_sequence
     monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
     monkeypatch.setitem(__import__("sys").modules, "PIL.Image", fake_image)
-    monkeypatch.setitem(__import__("sys").modules, "PIL.ImageSequence", fake_sequence)
 
     class _Cv2:
         COLOR_RGB2BGR = 2
@@ -216,7 +217,7 @@ def test_animated_gif_limits_return_explicit_error_codes(
         assert str(exc) == error_code
     else:
         raise AssertionError(f"expected {error_code}")
-    assert iterator_yield_count == 0
+    assert frame_seek_count == 0
     assert image_open_count == (0 if limit_name == "_MAX_OCR_IMAGE_BYTES" else 1)
 
 
@@ -407,6 +408,46 @@ def test_every_image_and_exact_returned_text_survive_conversion(
     ]
     assert len(saved["input_refs"]) == 4
     assert saved["evidence_refs"] == [actual[0]["ref"], actual[1]["ref"]]
+
+
+def test_oversized_image_is_rejected_before_reading_or_worker_send(
+    tmp_path: Path, monkeypatch
+) -> None:
+    run_id = "OCR-BYTE-LIMIT-01"
+    images = _image_records(1)
+    page = write_page(tmp_path, run_id, "shop", "item", images=images)
+    image_path = product_dir(tmp_path, run_id, "shop", "item") / images[0]["file"]
+    image_path.parent.mkdir(parents=True, exist_ok=True)
+    image_path.write_bytes(b"oversized")
+    monkeypatch.setattr(product_ocr, "_MAX_OCR_IMAGE_BYTES", 4)
+
+    original_read_bytes = Path.read_bytes
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path == image_path:
+            raise AssertionError("oversized image must be rejected before read_bytes")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    engine = ProductPageOCR()
+    engine._worker_for = lambda *_args: pytest.fail("oversized image reached OCR worker")
+
+    result = engine.process_product(
+        None,
+        run_id=run_id,
+        offer_key="shop:item",
+        shop_id="shop",
+        item_id="item",
+        page_ref=page["page_ref"],
+        source_evidence_ref=page["source_evidence_ref"],
+        data_root=tmp_path,
+    )
+
+    assert result["status"] == "failed"
+    assert result["error_code"] == "ocr_image_byte_limit_exceeded"
+    assert result["images"][0]["error_code"] == "ocr_image_byte_limit_exceeded"
+    raw_file = image_path.parent.parent / "ocr-raw.json"
+    raw = json.loads(raw_file.read_text(encoding="utf-8"))
+    assert raw["images"][0]["error_code"] == "ocr_image_byte_limit_exceeded"
 
 
 def test_study_fifty_nine_images_round_trip_through_product_format(

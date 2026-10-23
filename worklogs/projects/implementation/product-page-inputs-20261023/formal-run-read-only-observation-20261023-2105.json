@@ -1,0 +1,59 @@
+{
+  "schema_version": "formal-run-read-only-observation-v1",
+  "observed_at": "2026-10-23T21:05:34.8666916+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli status --environment production --config <settings-path> --data-root <runtime-path> --run-id INAGO-2026-10-23",
+    "exit_code": 0,
+    "observed_at": "2026-10-23T12:05:31+00:00",
+    "status": "failed",
+    "heartbeat_status": "fresh",
+    "heartbeat_age_seconds": 11,
+    "progress_status": "advancing",
+    "progress_age_seconds": 11,
+    "owner_status": "unknown_owner_metadata_unavailable",
+    "lock_status": "missing_owner_file_missing",
+    "lock_file_present": true,
+    "attempt_used": 26,
+    "committed_count": 0,
+    "finished_at": "2026-10-23T21:05:19.962500+09:00",
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "recovery": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli recovery --environment production --config <settings-path> --data-root <runtime-path> --run-id INAGO-2026-10-23 --target-date 2026-10-23 --manual --owner-confirmed",
+    "exit_code": 0,
+    "status": "advisory",
+    "action": "resume_remaining",
+    "reason_code": "same_run_remaining_work",
+    "owner_state": "stopped",
+    "execution_requested": false,
+    "cause_resolved_observed": false,
+    "search_attempts": 26,
+    "committed_count": 0,
+    "lock_file_present": true,
+    "allowed": {
+      "search": true,
+      "generation": true,
+      "metrics": true,
+      "saved_export": true,
+      "report_intake": true,
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "process_scan": {
+    "query": "exact Python automation.inago.maintenance.daily_launcher module process after status and recovery completed",
+    "matching_count": 0,
+    "pids": [],
+    "observed_at": "2026-10-23T21:05:34.8666916+09:00"
+  },
+  "notes": "Same run may resume remaining work. Cause remains unresolved. No process, lock, or database was directly changed."
+}

@@ -24,6 +24,7 @@ def compose_public_daily_ports(
     copy_spec_factory: Callable[..., Any],
     metrics_port: Any,
     cancel_metrics_job: Callable[[str], bool],
+    product_page_ocr: Any | None = None,
     clock: Clock | None = None,
 ) -> DailyPorts:
     """Build the sole public-UI daily composition without starting a run/task.
@@ -118,4 +119,6 @@ def compose_public_daily_ports(
         fixture_only=fixture_only,
         cancel_room_request=cancel_room_request,
         cancel_ai_request=cancel_ai_request,
+        product_page_ocr=product_page_ocr,
+        product_page_capture=source,
     )

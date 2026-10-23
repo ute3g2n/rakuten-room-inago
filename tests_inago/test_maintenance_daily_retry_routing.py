@@ -7,6 +7,7 @@ from automation.inago.maintenance.daily_launcher import (
     DailyProcessResult,
     JST,
     _completion_is_consistent,
+    _extract_safe_failure_diagnostic,
     _summarize_result,
 )
 from automation.inago.maintenance.store import MaintenanceStore
@@ -182,3 +183,169 @@ def test_retry_issue_is_persisted_as_incomplete_and_queued(tmp_path):
     assert queue is not None and queue.status == "queued"
     assert stored_observation is not None
     assert stored_observation.observation["retry_summary"]["unresolved_count"] == 1
+
+
+def test_failure_diagnostic_keeps_only_safe_repository_frames():
+    payload = {
+        "status": "failed",
+        "overall_status": "failed",
+        "daily_status": "failed",
+        "reason": "daily_runtime_error",
+        "target_date": "2026-10-23",
+        "run_id": "INAGO-2026-10-23",
+        "primary_error": {
+            "phase": "orchestration",
+            "code": "DailyOrchestrationError",
+            "diagnostic": {
+                "exception_class": "DailyOrchestrationError",
+                "exception_chain": [
+                    {
+                        "relation": "raised",
+                        "exception_class": "DailyOrchestrationError",
+                    }
+                ],
+                "exception_chain_truncated": False,
+                "exception_frames": [],
+                "exception_frames_truncated": False,
+                "message": "secret exception message",
+            },
+            "daily_primary_failure_diagnostic": {
+                "exception_class": "RoomContractError",
+                "exception_chain": [
+                    {"relation": "raised", "exception_class": "RoomContractError"}
+                ],
+                "exception_chain_truncated": False,
+                "exception_frames": [
+                    {
+                        "exception_class": "RoomContractError",
+                        "relation": "raised",
+                        "path": "automation/inago/room_adapter.py",
+                        "module": "automation.inago.room_adapter",
+                        "function": "_reserve_search_attempt",
+                        "line": 492,
+                    }
+                ],
+                "exception_frames_truncated": False,
+            },
+        },
+        "secondary_errors": [
+            {
+                "operation": "daily_orchestration",
+                "exception_class": "RoomContractError",
+                "exception_chain": [
+                    {"relation": "raised", "exception_class": "RoomContractError"},
+                    {"relation": ["raised"], "exception_class": "RoomContractError"},
+                ],
+                "exception_chain_truncated": False,
+                "exception_frames": [
+                    {
+                        "exception_class": "RoomContractError",
+                        "relation": "raised",
+                        "path": "automation/inago/room_adapter.py",
+                        "module": "automation.inago.room_adapter",
+                        "function": "_reserve_search_attempt",
+                        "line": 492,
+                    },
+                    {
+                        "exception_class": "RoomContractError",
+                        "relation": "raised",
+                        "path": "C:/Users/private/source.py",
+                        "module": "private.module",
+                        "function": "private_function",
+                        "line": 1,
+                    },
+                    {
+                        "exception_class": "RoomContractError",
+                        "relation": "raised",
+                        "path": "../../private/source.py",
+                        "module": "private.module",
+                        "function": "private_function",
+                        "line": 1,
+                    },
+                    {
+                        "exception_class": "RoomContractError",
+                        "relation": ["raised"],
+                        "path": "automation/inago/room_adapter.py",
+                        "module": "automation.inago.room_adapter",
+                        "function": "_reserve_search_attempt",
+                        "line": 492,
+                    },
+                ],
+                "exception_frames_truncated": False,
+                "message": "secret secondary message",
+            }
+        ],
+    }
+    process_result = DailyProcessResult(
+        returncode=4,
+        stdout=(json.dumps(payload) + "\n").encode("utf-8"),
+        stderr=b"",
+        pid=1234,
+    )
+
+    _summary, stderr_summary, _observation = _summarize_result(
+        launch_id="launch-diagnostic",
+        target_date="2026-10-23",
+        process_result=process_result,
+        completed_at=datetime(2026, 10, 23, tzinfo=JST),
+    )
+
+    safe = json.loads(stderr_summary)
+    assert safe["primary_error_class"] == "DailyOrchestrationError"
+    assert safe["failure_diagnostic"]["primary"][0]["exception_class"] == (
+        "DailyOrchestrationError"
+    )
+    assert safe["failure_diagnostic"]["secondary"][0]["operation"] == (
+        "daily_orchestration"
+    )
+    assert safe["failure_diagnostic"]["primary"][1]["exception_frames"] == [
+        {
+            "exception_class": "RoomContractError",
+            "relation": "raised",
+            "path": "automation/inago/room_adapter.py",
+            "module": "automation.inago.room_adapter",
+            "function": "_reserve_search_attempt",
+            "line": 492,
+        }
+    ]
+    assert safe["failure_diagnostic"]["secondary"][0]["exception_frames"] == [
+        {
+            "exception_class": "RoomContractError",
+            "relation": "raised",
+            "path": "automation/inago/room_adapter.py",
+            "module": "automation.inago.room_adapter",
+            "function": "_reserve_search_attempt",
+            "line": 492,
+        }
+    ]
+    assert "secret exception message" not in stderr_summary
+    assert "secret secondary message" not in stderr_summary
+    assert "C:/Users/private" not in stderr_summary
+    assert "../../private" not in stderr_summary
+
+
+def test_failure_diagnostic_marks_launcher_frame_truncation():
+    frame = {
+        "exception_class": "RuntimeError",
+        "relation": "raised",
+        "path": "automation/inago/orchestrator.py",
+        "module": "automation.inago.orchestrator",
+        "function": "run_daily",
+        "line": 123,
+    }
+    diagnostic = _extract_safe_failure_diagnostic(
+        {
+            "primary_error": {
+                "diagnostic": {
+                    "exception_class": "RuntimeError",
+                    "exception_frames": [frame] * 97,
+                    "exception_frames_truncated": False,
+                }
+            }
+        }
+    )
+
+    assert diagnostic is not None
+    primary = diagnostic["primary"][0]
+    assert len(primary["exception_frames"]) == 96
+    assert primary["exception_frames_truncated"] is True

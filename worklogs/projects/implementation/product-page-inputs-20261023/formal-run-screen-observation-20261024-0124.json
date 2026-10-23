@@ -1,0 +1,33 @@
+{
+  "schema_version": "inago-live-browser-observation-v1",
+  "observed_at": "2026-10-24T01:24:15+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source": "Codex browser extension tab inventory and read-only DOM inspection",
+  "exposed_room_tab": {
+    "url": "https://room.rakuten.co.jp/items#!preview",
+    "title": "ROOM - 欲しい! に出会える。",
+    "search_input_value": ""
+  },
+  "live_run_search_tab_exposed": false,
+  "current_run_query": null,
+  "previous_user_screenshot": {
+    "query_displayed": "肉・魚・たんぱく食材",
+    "result_displayed": "0件",
+    "scope": "Earlier user-supplied screenshot only; not attributable to current live run"
+  },
+  "current_run_status": {
+    "status": "stalled",
+    "attempt_used": 120,
+    "committed_count": 0,
+    "heartbeat": "fresh",
+    "owner_pid": 86668,
+    "progress_checkpoint_at": "2026-10-24T01:11:20+09:00"
+  },
+  "recovery_observation": {
+    "decision": "wait_for_daily_owner",
+    "owner_state": "active",
+    "kill_process": false,
+    "release_lock": false
+  },
+  "conclusion": "The current search query could not be verified. The connected ROOM page is an old feed preview with an empty search box; the active run browser is not exposed as a browser tab, and the available traces omit query text. No screenshot of the current run was captured."
+}

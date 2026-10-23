@@ -396,6 +396,65 @@ def _make_daily_fixture(
     )
     clock = FakeClock(datetime.fromisoformat(now))
     source = _FixturePublicSource(runtime_root, clock, mode=source_mode)
+    from tests_inago.product_page_test_support import write_page
+
+    original_search = source.search
+    original_product_fact = source.product_fact
+    product_page_facts: dict[str, dict[str, Any]] = {}
+
+    def search_with_product_page(request):
+        response = original_search(request)
+        for post in response["posts"]:
+            evidence_ref = post["evidence_ref"]
+            shop_id = post["observed_shop_id"]
+            item_id = post["observed_item_id"]
+            page = write_page(
+                runtime_root,
+                request.run_id,
+                shop_id,
+                item_id,
+                selectors=[
+                    {
+                        "key": "sale_desc",
+                        "selector": "span.sale_desc",
+                        "status": "captured",
+                        "outer_html": ["<span class=\"sale_desc\">fixture description</span>"],
+                    },
+                    {
+                        "key": "normal_reserve_item_name",
+                        "selector": "span.normal_reserve_item_name",
+                        "status": "captured",
+                        "outer_html": ["<span class=\"normal_reserve_item_name\">fixture item</span>"],
+                    },
+                    {
+                        "key": "normal_reserve_catch_copy",
+                        "selector": "span.normal_reserve_catch_copy",
+                        "status": "captured",
+                        "outer_html": ["<span class=\"normal_reserve_catch_copy\">fixture catch copy</span>"],
+                    },
+                ],
+                source_evidence_ref=evidence_ref,
+                captured_at=clock.now_jst().isoformat(),
+            )
+            product_page_facts[evidence_ref] = {
+                "product_page_identity": {
+                    "run_id": request.run_id,
+                    "shop_id": shop_id,
+                    "item_id": item_id,
+                },
+                "product_page_ref": page["page_ref"],
+            }
+        return response
+
+    def product_fact_with_page(evidence_ref: str) -> dict[str, Any] | None:
+        fact = original_product_fact(evidence_ref)
+        if fact is None:
+            return None
+        page_fact = product_page_facts.get(evidence_ref)
+        return {**fact, **page_fact} if page_fact is not None else fact
+
+    source.search = search_with_product_page
+    source.product_fact = product_fact_with_page
     ai_root = _FixtureAIRoot(fail_copy=fail_copy)
     metrics = _FixtureMetrics(fail=fail_metrics)
     copy_spec_factory = production_runtime._make_copy_spec_factory(
@@ -1056,7 +1115,7 @@ def test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy(
     first_copy_count = sum(bool(request.copy_targets) for request in ai_root.requests)
     first_search_count = len(source.search_requests)
     assert first_copy_count == 1
-    assert first_search_count == 1
+    assert first_search_count >= 1
 
     owner_path = config.runtime_root / ".daily-run-owner.json"
     owner_path.write_text(

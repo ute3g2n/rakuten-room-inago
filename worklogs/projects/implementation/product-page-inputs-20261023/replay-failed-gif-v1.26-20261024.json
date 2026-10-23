@@ -1,0 +1,28 @@
+{
+  "schema_version": "inago-ocr-isolated-replay-v1",
+  "plan_version": "1.26",
+  "observed_at": "2026-10-24T04:23:12.937+09:00",
+  "command": ".venv-inago/Scripts/python.exe -B worklogs/projects/implementation/product-page-inputs-20261023/replay_failed_gif_isolated.py",
+  "exit_code": 0,
+  "expected": "The exact failed GIF replays through the configured PaddleOCR runtime, all 38 frames are processed in order, and no OCR error is returned.",
+  "actual": {
+    "status": "complete",
+    "error_code": null,
+    "source_sha256_matches": true,
+    "source_sha256": "ad2f7249afe35992739580a20942d666de4d58eb51f999eeea2c6e47230271a4",
+    "source_bytes": 271051,
+    "frame_count": 38,
+    "frame_indices_complete": true,
+    "ocr_text_nonempty": true
+  },
+  "isolation": {
+    "product_page_input_copy": "temporary directory",
+    "official_run_artifacts_modified": false,
+    "product_or_ocr_text_recorded": false
+  },
+  "sha256": {
+    "automation/inago/product_ocr.py": "41dfe7f9f8b46d0c598e192d5ffd1ffe38f3e8bc44a46b000ff77a74d94703ea",
+    "tests_inago/test_product_ocr.py": "de3d7c129fd6a13dfa8f8a05bb8a19964ac5bc481bd7202f7a3be563e49a43b8",
+    "worklogs\\projects\\implementation\\product-page-inputs-20261023\\replay_failed_gif_isolated.py": "e556f8a8f59580251985c99fb98c7ad50d29f5b409c5b10bcf8cf48a891d84c8"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "run_id": "INAGO-2026-10-23",
+  "status": "healthy",
+  "observed_at": "2026-10-24T00:54:13+09:00",
+  "reason_codes": [
+    "run_observed_current"
+  ],
+  "fields": {
+    "heartbeat": {
+      "status": "fresh",
+      "last_updated_at": "2026-10-24T00:53:49+09:00",
+      "age_seconds": 24,
+      "stale_after_seconds": 120,
+      "expected_interval_seconds": 30
+    },
+    "progress": {
+      "status": "advancing",
+      "last_updated_at": "2026-10-24T00:51:49+09:00",
+      "age_seconds": 144,
+      "stalled_after_seconds": 600
+    },
+    "process": {
+      "status": "alive",
+      "pid": 86668,
+      "expected_start_time": "2026-10-23T22:24:10.579954+09:00",
+      "observed_start_time": "2026-10-23T22:24:10.579954+09:00",
+      "reason": "process_identity_matches"
+    },
+    "lock": {
+      "status": "owner_metadata_present",
+      "observation": "owner_file_metadata_only",
+      "owner": {
+        "pid": 86668,
+        "process_start_time": "2026-10-23T22:24:10.579954+09:00",
+        "run_id": "INAGO-2026-10-23"
+      },
+      "reason": "owner_metadata_observed"
+    },
+    "monitor": {
+      "status": "current",
+      "age_seconds": 0,
+      "stale_after_seconds": 120,
+      "observed_at": "2026-10-24T00:54:13+09:00"
+    }
+  },
+  "previous_snapshot_reused": false,
+  "permissions": {
+    "kill_process": false,
+    "release_lock": false,
+    "restore_database": false,
+    "send_notification": false
+  },
+  "mode": "status",
+  "monitor_observation_source": "read_only_status_cli",
+  "operations_observation_available": true,
+  "lock_file_present": true,
+  "run": {
+    "target_date": "2026-10-23",
+    "settings_version": "confirmed-0.3-step46-all132",
+    "started_at": "2026-10-23T13:33:26.080405+09:00",
+    "draft_deadline": null,
+    "end_deadline": null,
+    "attempt_used": 113,
+    "committed_count": 0,
+    "finished_at": null
+  },
+  "lock_owner": {
+    "pid": 86668,
+    "process_start_time": "2026-10-23T22:24:10.579954+09:00",
+    "run_id": "INAGO-2026-10-23"
+  },
+  "child_processes": {
+    "status": "observed",
+    "count": 9,
+    "pids": [
+      25908,
+      30608,
+      48948,
+      53380,
+      71000,
+      76104,
+      90556,
+      91144,
+      108524
+    ],
+    "reason": "process_tree_observed"
+  }
+}

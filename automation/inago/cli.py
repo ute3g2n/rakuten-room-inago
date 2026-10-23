@@ -147,10 +147,14 @@ def _parser() -> argparse.ArgumentParser:
         if mode in {"status", "recovery"}:
             mode_parser.add_argument("--run-id")
         if mode == "recovery":
+            mode_parser.add_argument("--target-date")
+        if mode == "recovery":
+            mode_parser.add_argument("--manual", action="store_true")
             mode_parser.add_argument("--owner-confirmed", action="store_true")
             mode_parser.add_argument("--cause-resolved", action="store_true")
             mode_parser.add_argument("--export-only-failed", action="store_true")
         if mode == "daily":
+            mode_parser.add_argument("--target-date")
             mode_parser.add_argument(
                 "--manual",
                 action="store_true",
@@ -534,6 +538,8 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
             result = run_production_recovery(
                 config,
                 run_id=args.run_id,
+                target_date=args.target_date,
+                manual=args.manual,
                 owner_confirmed=args.owner_confirmed,
                 cause_resolved=args.cause_resolved,
                 export_only_failed=args.export_only_failed,
@@ -547,6 +553,7 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                 manual=args.manual,
                 resume_confirmed=args.resume_confirmed,
                 cause_resolved=args.cause_resolved,
+                target_date=args.target_date,
             )
             status = str(result.get("overall_status", result.get("status", "failed")))
             exit_code = production_daily_exit_code(result)
@@ -612,6 +619,28 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
         _emit(output, {"status": "not_implemented", "mode": args.mode})
         return EXIT_NOT_IMPLEMENTED
     except Exception as exc:
+        safe_error_class = type(exc).__name__
+        failure_diagnostic = None
+        if args.mode == "daily":
+            try:
+                from automation.inago import daily_pipeline
+
+                safe_error_class = daily_pipeline._safe_diagnostic_class(exc)
+                exception_chain, chain_truncated = (
+                    daily_pipeline._safe_exception_chain_details(exc)
+                )
+                exception_frames, frames_truncated = (
+                    daily_pipeline._safe_exception_frame_details(exc)
+                )
+                failure_diagnostic = {
+                    "exception_class": safe_error_class,
+                    "exception_chain": exception_chain,
+                    "exception_chain_truncated": chain_truncated,
+                    "exception_frames": exception_frames,
+                    "exception_frames_truncated": frames_truncated,
+                }
+            except Exception:
+                failure_diagnostic = None
         reason = (
             str(exc)[:200]
             if isinstance(exc, ProductionRuntimeError)
@@ -648,7 +677,16 @@ def _run_production(args, *, output: TextIO, error_output: TextIO) -> int:
                             "reason": type(log_exc).__name__,
                         },
                     )
-        _emit(error_output, {"status": "runtime_error", "reason": type(exc).__name__})
+        error_result: dict[str, object] = {
+            "status": "runtime_error",
+            "reason": safe_error_class,
+        }
+        if failure_diagnostic is not None:
+            error_result["primary_error"] = {
+                "code": safe_error_class,
+                "diagnostic": failure_diagnostic,
+            }
+        _emit(error_output, error_result)
         return EXIT_RUNTIME_ERROR
 
 
@@ -719,6 +757,7 @@ def main(
                 clock=ports.clock,
                 manual=args.manual,
                 cause_resolved=args.cause_resolved,
+                target_date=args.target_date,
             )
         except Exception as exc:
             _emit(

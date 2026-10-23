@@ -107,6 +107,7 @@ _FAILURE_ARTIFACT_STAGES = frozenset(
         "room_detail_button_click_error",
         "room_list_no_progress",
         "room_list_progress",
+        "room_search_incomplete",
         "room_results_scan_begin",
         "room_scroll_deadline_expired",
         "room_product_destination_wait_error",
@@ -450,6 +451,29 @@ class PublicBrowserSource:
             )
             return failure
         return response["response"]
+
+    def capture_product_page_inputs(self, request) -> dict[str, Any]:
+        """Capture one saved Rakuten item URL without repeating its ROOM search."""
+
+        response = self._invoke("product_page", request)
+        if "error_code" in response and "response" not in response:
+            return {"status": "failed", "error_code": response["error_code"]}
+        return response["response"]
+
+    def load_product_page_inputs(
+        self, run_id: str, shop_id: str, item_id: str, *, expected_ref: str | None = None
+    ) -> dict[str, Any] | None:
+        """Read one captured product page by its explicit run and item identity."""
+
+        from automation.inago.product_page_inputs import load_product_page_inputs
+
+        return load_product_page_inputs(
+            self._data_root,
+            run_id,
+            shop_id,
+            item_id,
+            expected_ref=expected_ref,
+        )
 
     def fetch(self, request: TrendsRequest) -> dict[str, Any]:
         response = self._invoke("trends", request)
@@ -854,6 +878,24 @@ class PublicBrowserSource:
             error_code = item.get("error_code")
             if isinstance(error_code, str) and error_code in _FAILURE_ARTIFACT_CODES:
                 event["error_code"] = error_code
+            loaded_posts = item.get("loaded_posts")
+            if (
+                isinstance(loaded_posts, int)
+                and not isinstance(loaded_posts, bool)
+                and 0 <= loaded_posts <= 50
+            ):
+                event["loaded_posts"] = loaded_posts
+            end_evidence = item.get("end_evidence")
+            if isinstance(end_evidence, str) and end_evidence in {
+                "explicit_no_results",
+                "explicit_end",
+                "stable_no_progress",
+                "first_50",
+                "row_limit",
+                "no_marker",
+                "unrecognized_empty",
+            }:
+                event["end_evidence"] = end_evidence
             elapsed_ms = item.get("elapsed_ms")
             if (
                 isinstance(elapsed_ms, int)
@@ -961,6 +1003,7 @@ class PublicBrowserSource:
             return {"error_code": "source_timeout"}
         config = asdict(self.config)
         config["timeout_seconds"] = request_timeout
+        config["product_page_root"] = str(self._data_root / "product-page-inputs")
         config["chrome_executable"] = str(self.config.chrome_executable.resolve())
         config["user_data_dir"] = (
             str(self._user_data_dir) if self._user_data_dir is not None else None
@@ -1394,10 +1437,17 @@ class PublicBrowserSource:
                 "link_target",
                 "link_scope",
                 "failed_operation",
+                "failure_module",
+                "failure_function",
+                "failure_line",
                 "scope",
             ):
                 if key in event:
                     fields[key] = event[key]
+            if "page_capture_state" in event:
+                fields["status"] = event["page_capture_state"]
+            if "product_page_image_count" in event:
+                fields["image_count"] = event["product_page_image_count"]
             self._trace_safely(
                 lambda stage=stage, phase=phase, elapsed_ms=elapsed_ms, at=at, fields=fields: session.record_stage(
                     stage,
@@ -1744,6 +1794,7 @@ class PublicBrowserSource:
                 "search_button_count",
                 "explore_button_count",
                 "period_option_count",
+                "product_page_image_count",
             }
             bounded_count_fields = {
                 "loaded_posts",
@@ -1780,6 +1831,7 @@ class PublicBrowserSource:
                 "stable_round",
                 "body_children",
                 "search_candidate_count",
+                "product_page_image_count",
                 "visible_input_count",
                 "label_locator_match_count",
                 "search_button_count",
@@ -1811,6 +1863,7 @@ class PublicBrowserSource:
                         else key not in {"row_failure_count", "identified_row_count"}
                         or item[key] <= 50
                     )
+                    and (key != "product_page_image_count" or item[key] <= 10000)
                     and (
                         key in unbounded_count_fields
                         or key in bounded_count_fields
@@ -1879,6 +1932,24 @@ class PublicBrowserSource:
                 failed_operation
             ):
                 event["failed_operation"] = failed_operation
+            failure_module = item.get("failure_module")
+            if isinstance(failure_module, str) and re.fullmatch(
+                r"automation\.inago\.adapters\.[A-Za-z0-9_]{1,64}",
+                failure_module,
+            ):
+                event["failure_module"] = failure_module
+            failure_function = item.get("failure_function")
+            if isinstance(failure_function, str) and re.fullmatch(
+                r"[_A-Za-z][_A-Za-z0-9.]{0,63}", failure_function
+            ):
+                event["failure_function"] = failure_function
+            failure_line = item.get("failure_line")
+            if (
+                isinstance(failure_line, int)
+                and not isinstance(failure_line, bool)
+                and 1 <= failure_line <= 2**31 - 1
+            ):
+                event["failure_line"] = failure_line
             if isinstance(item.get("widget_period_refresh_required"), bool):
                 event["widget_period_refresh_required"] = item[
                     "widget_period_refresh_required"
@@ -1911,9 +1982,15 @@ class PublicBrowserSource:
                         "stable_no_progress",
                         "first_50",
                         "row_limit",
+                        "no_marker",
+                        "unrecognized_empty",
                     },
                 ),
                 ("row_status", {"identified", "unresolved"}),
+                (
+                    "page_capture_state",
+                    {"captured", "existing_preserved", "capture_failed"},
+                ),
                 ("scope", {"row", "query", "request", "job", "run"}),
                 (
                     "room_condition_close_method",

@@ -1,0 +1,24 @@
+{
+  "command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.cli status --environment production --config 'C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime\\config\\settings.json' --data-root 'C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime' --run-id INAGO-2026-10-23",
+  "exit_code": 0,
+  "observed_at": "2026-10-23T15:02:53+09:00",
+  "status": {
+    "run_id": "INAGO-2026-10-23",
+    "status": "stalled",
+    "reason_code": "progress_stalled",
+    "heartbeat_status": "fresh",
+    "last_heartbeat_at": "2026-10-23T15:02:29+09:00",
+    "last_progress_at": "2026-10-23T13:42:55+09:00",
+    "progress_age_seconds": 4798,
+    "owner_pid": 95260,
+    "owner_alive": true,
+    "launcher_pid": 53788,
+    "lock_owner_matches": true,
+    "child_process_count": 18,
+    "attempt_used": 2,
+    "committed_count": 0,
+    "finished_at": null,
+    "kill_process": false,
+    "release_lock": false
+  }
+}

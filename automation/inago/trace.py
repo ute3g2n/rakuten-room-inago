@@ -25,7 +25,7 @@ from automation.inago.retention import (
 
 JST = ZoneInfo("Asia/Tokyo")
 TRACE_SCHEMA_VERSION = 1
-TRACE_MAX_EVENTS_PER_RUN = 2048
+TRACE_MAX_EVENTS_PER_RUN = 4096
 TRACE_MAX_BYTES_PER_RUN = 4 * 1024 * 1024
 TRACE_MAX_EVENT_BYTES = 16 * 1024
 TRACE_RETENTION_DAYS = 90
@@ -129,6 +129,10 @@ _EVENT_FIELDS = {
     "failure_module",
     "failure_function",
     "failure_line",
+    "code_sha256",
+    "image_count",
+    "deleted_file_count",
+    "input_ref_count",
 }
 _SCOPES = {"row", "query", "request", "job", "run", "cleanup"}
 _CORRELATION_STATES = {"complete", "partial", "unresolved"}
@@ -170,6 +174,8 @@ _ROOM_END_EVIDENCE = {
     "stable_no_progress",
     "first_50",
     "row_limit",
+    "no_marker",
+    "unrecognized_empty",
 }
 _WIDGET_GENERATION_FIELDS = {"related_widget_generation", "generation_before_period"}
 _ROOM_CONDITION_CLOSE_METHODS = {
@@ -513,6 +519,20 @@ def make_trace_event(
             if key == "row_index" and not 1 <= value <= 50:
                 raise TraceContractError("row_index must be in the accepted first 50")
             event[key] = value
+        elif key in {"image_count", "deleted_file_count", "input_ref_count"}:
+            if value is None:
+                continue
+            if type(value) is not int or not 0 <= value <= 10000:
+                raise TraceContractError(f"{key} must be an integer from 0 to 10000")
+            event[key] = value
+        elif key == "code_sha256":
+            if value is not None and (
+                not isinstance(value, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", value)
+            ):
+                raise TraceContractError("code_sha256 must be a lowercase SHA-256")
+            if value is not None:
+                event[key] = value
         elif key in _WIDGET_COUNT_FIELDS:
             if type(value) is not int or not 0 <= value <= 100:
                 raise TraceContractError(f"{key} must be an integer from 0 to 100")
@@ -977,8 +997,16 @@ class TraceWriter:
                 if self._event_count > self.policy.max_events_per_run:
                     raise TraceContractError("existing trace exceeds the event quota")
                 if record.get("event_kind") == "trace_suppressed":
-                    self._suppressed = True
                     self._set_health("degraded")
+                    can_resume_after_event_limit_increase = (
+                        record.get("suppression_reason") == "event_limit"
+                        and self._event_count < self.policy.max_events_per_run - 1
+                        and len(raw)
+                        < self.policy.max_bytes_per_run
+                        - self.policy.suppression_reserve_bytes
+                    )
+                    if not can_resume_after_event_limit_increase:
+                        self._suppressed = True
             self._bytes = len(raw)
         self._loaded = True
 

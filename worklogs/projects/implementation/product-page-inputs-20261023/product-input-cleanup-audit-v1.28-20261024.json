@@ -1,0 +1,29 @@
+{
+  "run_id": "INAGO-2026-10-23",
+  "product_input_root_exists": true,
+  "product_folder_count": 17,
+  "page_json_count": 17,
+  "ocr_json_count": 16,
+  "ocr_raw_json_count": 16,
+  "cleanup_json_count": 15,
+  "cleanup_complete_count": 15,
+  "cleanup_status_counts": {
+    "complete": 15
+  },
+  "images_directory_present_count": 2,
+  "leftover_image_file_count": 20,
+  "page_image_record_count": 55,
+  "ocr_image_record_count": 36,
+  "ocr_image_status_counts": {
+    "success": 34,
+    "error": 2
+  },
+  "nonempty_ocr_text_image_count": 34,
+  "selector_status_counts": {},
+  "run_db_status": "complete",
+  "checkpoint_keys": [
+    "ai_daily_root",
+    "daily_orchestration",
+    "report_apply"
+  ]
+}

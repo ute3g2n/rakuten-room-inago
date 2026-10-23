@@ -1,0 +1,17 @@
+{
+  "schema_version": "safe-trace-summary-v1",
+  "summarized_at": "2026-10-23T19:42:03+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "reader": "automation.inago.trace.read_trace_events (bounded helper)",
+  "raw_trace_written": false,
+  "trace_event_count": 1245,
+  "product_capture_error_event_count": 37,
+  "error_class_counts": {
+    "ReferenceError": 19,
+    "other": 8,
+    "missing_or_unclassified": 10
+  },
+  "events_with_safe_failure_location": 0,
+  "events_without_safe_failure_location": 37,
+  "finding": "JS adapter emitted safe failure location fields and Python parsed them, but PublicBrowserSource trace forwarding omitted those fields; fix added to automation/inago/live_sources.py and focused regression added."
+}

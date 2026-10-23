@@ -280,7 +280,7 @@ def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(
         config, clock=clock, resume_confirmed=True, cause_resolved=cause_resolved
     )
     assert result["committed_count"] == 15
-    assert production_daily_exit_code(result) == (0 if cause_resolved else 4)
+    assert production_daily_exit_code(result) == 4
     assert len(source.search_requests) == request_count
     connection = _database_connection(database_path)
     try:
@@ -289,12 +289,16 @@ def test_confirmed_recovery_keeps_error_history_without_replaying_drafts(
                 "SELECT checkpoint FROM run WHERE run_id=?", (first["run_id"],)
             ).fetchone()[0]
         )["daily_orchestration"]
+        assert checkpoint["error_count"] == 1
+        assert checkpoint["errors"] == [error]
         if cause_resolved:
-            assert checkpoint["error_count"] == 0
-            assert checkpoint["resolved_error_batches"][-1]["errors"] == [error]
+            assert checkpoint["cause_resolution_claims"][-1] == {
+                "observed_at": "2026-10-15T13:15:00+09:00",
+                "owner_claimed_resolved": True,
+                "effect": "none_without_operation_evidence",
+            }
         else:
-            assert checkpoint["error_count"] == 1
-            assert checkpoint["errors"] == [error]
+            assert checkpoint.get("cause_resolution_claims", []) == []
         assert connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 15
     finally:
         connection.close()
@@ -380,7 +384,7 @@ def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    """A recovered query and three unresolved rows allow the 12-to-15 refill."""
+    """A recovered query and three unresolved rows still fill the fifteen slots."""
 
     from tests_inago.test_step23_12_daily_e2e import (
         _database_connection,
@@ -428,7 +432,6 @@ def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(
         config,
         clock=FakeClock(datetime.fromisoformat(NOW)),
     )
-
     assert len(unresolved_rows_by_call) == 6
     assert all(len(rows) == 3 for rows in unresolved_rows_by_call.values())
     assert len(source.search_requests) == 8
@@ -437,7 +440,7 @@ def test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally(
     assert result["committed_count"] == 15
     assert result["source_failures"] == 1
     assert result["error_count"] == 0
-    assert result["supplemental_allocation_count"] == 3
+    assert result["supplemental_allocation_count"] == 9
     assert result["metrics_status"] == "observed"
     assert result["export"]["status"] == "ready"
     assert result["preservation"]["status"] == "ready"

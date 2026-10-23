@@ -239,6 +239,63 @@ def test_n03(tmp_path: Path) -> None:
     assert adapter_failure_snapshot["last_completed_stage"] == "trends_period_reflected"
 
 
+def test_public_source_failure_location_reaches_trace_event(tmp_path: Path) -> None:
+    """Keep the allowlisted adapter failure location in the persisted trace."""
+
+    trace = _trace_api()
+    live_sources = importlib.import_module("automation.inago.live_sources")
+    clock = FakeClock(datetime.fromisoformat("2026-10-23T19:00:00+09:00"))
+    writer = trace.TraceWriter(
+        tmp_path / "data",
+        "RUN-TRACE-LOCATION",
+        "2026-10-23",
+        clock=clock,
+    )
+    session = trace.TraceSession(
+        writer,
+        component="public_source",
+        request_id="ROOM-TRACE-LOCATION",
+        job_id="JOB-TRACE-LOCATION",
+        clock=clock,
+    )
+    adapter = object.__new__(live_sources.PublicBrowserSource)
+    started_at = clock.now_jst()
+
+    adapter._trace_node_events(
+        session,
+        [
+            {
+                "event": "public_source_stage",
+                "stage": "room_product_inputs_capture_error",
+                "elapsed_ms": 25,
+                "row_index": 1,
+                "error_class": "ReferenceError",
+                "failed_operation": "product_page_inputs_save",
+                "failure_module": "automation.inago.adapters.product_page_inputs",
+                "failure_function": "saveProductPageInputs",
+                "failure_line": 311,
+                "path": "C:/private/source/path",
+                "stack": "private stack text",
+            }
+        ],
+        started_at=started_at,
+    )
+
+    event = next(
+        event
+        for event in trace.read_trace_events(writer.path)
+        if event.get("event_kind") == "source_stage"
+        and event.get("operation") == "room_product_inputs_capture_error"
+    )
+    assert event["failure_module"] == "automation.inago.adapters.product_page_inputs"
+    assert event["failure_function"] == "saveProductPageInputs"
+    assert event["failure_line"] == 311
+    assert event["failed_operation"] == "product_page_inputs_save"
+    assert event["error_class"] == "ReferenceError"
+    assert "path" not in event
+    assert "stack" not in event
+
+
 def test_n04(tmp_path: Path, caplog) -> None:
     """Store primary, cause and cleanup classes while dropping sensitive text."""
 
@@ -400,6 +457,132 @@ def test_n04(tmp_path: Path, caplog) -> None:
         secret not in diagnostic_writer.path.read_text(encoding="utf-8")
         for secret in secrets
     )
+
+
+def test_trace_reopens_after_event_limit_increase_for_same_run(tmp_path: Path) -> None:
+    """Resume bounded trace writes when a later release raises the event cap."""
+
+    trace = _trace_api()
+    clock = FakeClock(datetime.fromisoformat("2026-10-23T21:00:00+09:00"))
+    data_root = tmp_path / "data"
+    run_id = "RUN-TRACE-LIMIT-RESUME"
+    initial_policy = trace.TracePolicy(
+        max_events_per_run=4,
+        max_bytes_per_run=8192,
+        max_event_bytes=8192,
+    )
+    initial_writer = trace.TraceWriter(
+        data_root,
+        run_id,
+        "2026-10-23",
+        policy=initial_policy,
+        clock=clock,
+    )
+    for index in range(4):
+        initial_writer.write(
+            trace.make_trace_event(
+                run_id=run_id,
+                target_date="2026-10-23",
+                component="public_source",
+                operation=f"before_limit_increase_{index}",
+                phase="status",
+                clock=clock,
+            )
+        )
+    previous_events = trace.read_trace_events(
+        initial_writer.path,
+        policy=initial_policy,
+    )
+    assert len(previous_events) == 4
+    assert previous_events[-1]["event_kind"] == "trace_suppressed"
+    assert previous_events[-1]["suppression_reason"] == "event_limit"
+
+    expanded_policy = trace.TracePolicy(
+        max_events_per_run=8,
+        max_bytes_per_run=8192,
+        max_event_bytes=8192,
+    )
+    resumed_writer = trace.TraceWriter(
+        data_root,
+        run_id,
+        "2026-10-23",
+        policy=expanded_policy,
+        clock=clock,
+    )
+    result = resumed_writer.write(
+        trace.make_trace_event(
+            run_id=run_id,
+            target_date="2026-10-23",
+            component="public_source",
+            operation="after_limit_increase",
+            phase="status",
+            clock=clock,
+        )
+    )
+
+    assert result.status == "written"
+    assert resumed_writer.health == "degraded"
+    resumed_events = trace.read_trace_events(
+        resumed_writer.path,
+        policy=expanded_policy,
+    )
+    assert len(resumed_events) == 5
+    assert resumed_events[-2]["event_kind"] == "trace_suppressed"
+    assert resumed_events[-1]["operation"] == "after_limit_increase"
+
+    for boundary in ("event_capacity", "byte_capacity"):
+        boundary_root = tmp_path / boundary
+        boundary_run_id = f"RUN-TRACE-RESUME-{boundary.upper()}"
+        bounded_writer = trace.TraceWriter(
+            boundary_root,
+            boundary_run_id,
+            "2026-10-23",
+            policy=initial_policy,
+            clock=clock,
+        )
+        for index in range(4):
+            bounded_writer.write(
+                trace.make_trace_event(
+                    run_id=boundary_run_id,
+                    target_date="2026-10-23",
+                    component="public_source",
+                    operation=f"before_boundary_{index}",
+                    phase="status",
+                    clock=clock,
+                )
+            )
+        original_bytes = bounded_writer.path.read_bytes()
+        if boundary == "event_capacity":
+            boundary_policy = trace.TracePolicy(
+                max_events_per_run=5,
+                max_bytes_per_run=8192,
+                max_event_bytes=8192,
+            )
+        else:
+            boundary_policy = trace.TracePolicy(
+                max_events_per_run=8,
+                max_bytes_per_run=len(original_bytes) + 1024,
+                max_event_bytes=1024,
+            )
+        boundary_writer = trace.TraceWriter(
+            boundary_root,
+            boundary_run_id,
+            "2026-10-23",
+            policy=boundary_policy,
+            clock=clock,
+        )
+        boundary_result = boundary_writer.write(
+            trace.make_trace_event(
+                run_id=boundary_run_id,
+                target_date="2026-10-23",
+                component="public_source",
+                operation="must_remain_suppressed",
+                phase="status",
+                clock=clock,
+            )
+        )
+        assert boundary_result.status == "suppressed"
+        assert boundary_writer.path.read_bytes() == original_bytes
 
 
 def test_n29(tmp_path: Path, monkeypatch) -> None:

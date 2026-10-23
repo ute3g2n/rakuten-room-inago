@@ -39,10 +39,187 @@ from automation.inago.orchestrator import (
     DailySearchPlan,
     DailyThemePlan,
     _intake_missing_offers,
+    _search_task,
+    _task_attempt_id,
     run_daily,
 )
 from automation.inago.orchestrator import OfferIntakeRequest
 from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID
+
+
+def test_search_task_uses_fresh_attempt_after_saved_query_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from automation.inago import orchestrator
+
+    run_id = "RUN-QUERY-CHANGE"
+    task = {
+        "task_number": 2,
+        "theme_id": "G01-T03",
+        "query": "updated Trends word",
+        "parent_refs": ["G01-T03"],
+        "level": "theme_fallback",
+        "query_kind": "theme_fallback",
+        "keyword_snapshot_ref": None,
+        "selected_word_ref": None,
+    }
+    stale_attempt_id = _task_attempt_id(run_id, 2, 1)
+    fresh_attempt_id = _task_attempt_id(run_id, 2, 2)
+    rows = {
+        stale_attempt_id: {
+            "query": "previous compound theme",
+            "parent_refs_json": json.dumps(task["parent_refs"]),
+            "level": task["level"],
+            "ended_at": "2026-10-23T13:42:00+09:00",
+            "source_status": "unavailable",
+            "error_code": "process_interrupted",
+        }
+    }
+    stale_attempt_before = dict(rows[stale_attempt_id])
+    captured: list[dict[str, object]] = []
+    processed_attempts: list[str] = []
+
+    class FakeConnection:
+        def execute(self, *_args, **_kwargs):
+            return type("RowResult", (), {"fetchone": lambda _self: {"attempt_used": 2}})()
+
+    class FakeSearchSession:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def search(self, **kwargs):
+            captured.append(kwargs)
+            rows[fresh_attempt_id] = {
+                "query": task["query"],
+                "parent_refs_json": json.dumps(task["parent_refs"]),
+                "level": task["level"],
+                "ended_at": "2026-10-23T13:45:00+09:00",
+                "source_status": "observed",
+                "error_code": None,
+            }
+            return type("SearchResult", (), {"status": "observed"})()
+
+    monkeypatch.setattr(orchestrator, "RoomSearchSession", FakeSearchSession)
+    monkeypatch.setattr(
+        orchestrator,
+        "_attempt_row",
+        lambda _connection, attempt_id: rows.get(attempt_id),
+    )
+    monkeypatch.setattr(orchestrator, "_draft_count", lambda *_args: 0)
+    monkeypatch.setattr(
+        orchestrator,
+        "_process_search_result",
+        lambda _connection, *, attempt_id, **_kwargs: processed_attempts.append(
+            attempt_id
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_save_state", lambda *_args: None)
+
+    _search_task(
+        FakeConnection(),
+        run_id=run_id,
+        task=task,
+        settings_version=SETTINGS_VERSION,
+        seed="seed",
+        target_date="2026-10-23",
+        state={"used_queries": ["previous compound theme"]},
+        ports=type("Ports", (), {"room_port": object()})(),
+        clock=FakeClock(datetime.fromisoformat(NOW)),
+        data_root=tmp_path,
+    )
+
+    assert len(captured) == 1
+    assert captured[0]["attempt_id"] == fresh_attempt_id
+    assert captured[0]["query"] == task["query"]
+    assert captured[0]["parent_refs"] == tuple(task["parent_refs"])
+    assert captured[0]["retry_of"] is None
+    assert processed_attempts == [fresh_attempt_id]
+    assert rows[stale_attempt_id] == stale_attempt_before
+
+
+def test_search_task_stops_after_three_compatible_attempts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from automation.inago import orchestrator
+
+    run_id = "RUN-QUERY-ATTEMPT-LIMIT"
+    task = {
+        "task_number": 3,
+        "theme_id": "G01-T04",
+        "query": "compatible query",
+        "parent_refs": ["G01-T04"],
+        "level": "theme_fallback",
+        "query_kind": "theme_fallback",
+        "keyword_snapshot_ref": None,
+        "selected_word_ref": None,
+    }
+    rows: dict[str, dict[str, object]] = {}
+    captured: list[dict[str, object]] = []
+    processed_attempts: list[str] = []
+
+    class FakeConnection:
+        def execute(self, *_args, **_kwargs):
+            return type("RowResult", (), {"fetchone": lambda _self: {"attempt_used": 2}})()
+
+    class FakeSearchSession:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def search(self, **kwargs):
+            captured.append(kwargs)
+            rows[kwargs["attempt_id"]] = {
+                "query": kwargs["query"],
+                "parent_refs_json": json.dumps(kwargs["parent_refs"]),
+                "level": kwargs["level"],
+                "ended_at": "2026-10-23T13:45:00+09:00",
+                "source_status": "unavailable",
+                "error_code": "source_unavailable",
+            }
+            return type("SearchResult", (), {"status": "unavailable"})()
+
+    monkeypatch.setattr(orchestrator, "RoomSearchSession", FakeSearchSession)
+    monkeypatch.setattr(
+        orchestrator,
+        "_attempt_row",
+        lambda _connection, attempt_id: rows.get(attempt_id),
+    )
+    monkeypatch.setattr(orchestrator, "_draft_count", lambda *_args: 0)
+    monkeypatch.setattr(
+        orchestrator,
+        "_process_search_result",
+        lambda _connection, *, attempt_id, **_kwargs: processed_attempts.append(
+            attempt_id
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_save_state", lambda *_args: None)
+    state: dict[str, object] = {"used_queries": []}
+
+    _search_task(
+        FakeConnection(),
+        run_id=run_id,
+        task=task,
+        settings_version=SETTINGS_VERSION,
+        seed="seed",
+        target_date="2026-10-23",
+        state=state,
+        ports=type("Ports", (), {"room_port": object()})(),
+        clock=FakeClock(datetime.fromisoformat(NOW)),
+        data_root=tmp_path,
+    )
+
+    assert [entry["attempt_id"] for entry in captured] == [
+        _task_attempt_id(run_id, 3, 1),
+        _task_attempt_id(run_id, 3, 2),
+        _task_attempt_id(run_id, 3, 3),
+    ]
+    assert [entry["retry_of"] for entry in captured] == [
+        None,
+        _task_attempt_id(run_id, 3, 1),
+        _task_attempt_id(run_id, 3, 2),
+    ]
+    assert processed_attempts == [entry["attempt_id"] for entry in captured]
+    assert state["source_stopped"] is True
+    assert state["source_stopped_reason"] == "attempt_budget_exhausted"
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -1026,22 +1203,18 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     )
 
 
-def test_order_is_related_then_theme_fallback_and_all_untried_themes(
+def test_related_queries_are_used_without_parent_fallback_for_all_untried_themes(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, untried=True, posts_per_search=0)
     outcome = _run(runtime_case, bundle)
     queries = [request.query for request in bundle.room.requests]
     assert outcome.status == "shortfall" and outcome.committed_count == 0
-    assert outcome.attempt_used == 61
-    assert len(queries) == 61 and len(set(queries)) == 61
+    assert outcome.attempt_used == 31
+    assert len(queries) == 31 and len(set(queries)) == 31
     assert len(set(bundle.planner.calls)) == 30
-    assert [item.query_kind for item in bundle.room.requests[:3]] == [
-        "related",
-        "related",
-        "theme_fallback",
-    ]
-    assert len({item.parent_refs[0] for item in bundle.room.requests[:3]}) == 1
+    assert {item.query_kind for item in bundle.room.requests} == {"related"}
+    assert all(item.query_kind != "theme_fallback" for item in bundle.room.requests)
     assert all(request.max_posts == 25 for request in bundle.room.requests)
     assert bundle.metrics.calls
 
@@ -1645,3 +1818,32 @@ def test_pending_historical_reports_are_applied_before_search(
         ).fetchone()[0]
         == 60
     )
+
+
+def test_orchestration_error_records_only_safe_internal_reason_code() -> None:
+    from automation.inago import orchestrator
+
+    safe_state: dict[str, Any] = {"errors": []}
+    orchestrator._record_orchestration_error(
+        safe_state,
+        orchestrator.DailyOrchestrationError(
+            "copy_resume_required:in_progress_recovery_required"
+        ),
+    )
+
+    safe_diagnostic = safe_state["primary_error"]["diagnostic"]
+    assert safe_diagnostic["reason_code"] == (
+        "copy_resume_required:in_progress_recovery_required"
+    )
+
+    private_message = "private product title with spaces"
+    unsafe_state: dict[str, Any] = {"errors": []}
+    orchestrator._record_orchestration_error(
+        unsafe_state,
+        orchestrator.DailyOrchestrationError(private_message),
+    )
+
+    unsafe_diagnostic = unsafe_state["primary_error"]["diagnostic"]
+    serialized = json.dumps(unsafe_state, ensure_ascii=False)
+    assert "reason_code" not in unsafe_diagnostic
+    assert private_message not in serialized

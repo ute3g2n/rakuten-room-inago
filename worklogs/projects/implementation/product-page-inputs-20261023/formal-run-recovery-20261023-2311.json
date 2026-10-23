@@ -1,0 +1,59 @@
+{
+  "mode": "recovery",
+  "status": "blocked",
+  "run_id": "INAGO-2026-10-23",
+  "owner_state": "active",
+  "lock_file_present": true,
+  "owner_process": {
+    "status": "alive",
+    "pid": 86668,
+    "reason": "process_identity_matches"
+  },
+  "child_processes": {
+    "status": "observed",
+    "count": 9,
+    "pids": [
+      25908,
+      30608,
+      36932,
+      48832,
+      56360,
+      59400,
+      71000,
+      94052,
+      108524
+    ],
+    "reason": "process_tree_observed"
+  },
+  "decision": {
+    "action": "wait_for_daily_owner",
+    "reason_code": "daily_owner_process_still_active",
+    "preserved": {
+      "run_id": "INAGO-2026-10-23",
+      "target_date": "2026-10-23",
+      "settings_version": "confirmed-0.3-step46-all132",
+      "search_attempts": 60,
+      "unfinished_generation_attempts": {},
+      "committed_count": 0,
+      "run_status": "running",
+      "metrics_pending": false,
+      "seed_preserved": true,
+      "draft_deadline": null,
+      "end_deadline": null
+    },
+    "allowed": {
+      "search": false,
+      "generation": false,
+      "metrics": false,
+      "saved_export": false,
+      "report_intake": true,
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    },
+    "execution_requested": false,
+    "cause_resolved_observed": false
+  },
+  "resume_entrypoint": null
+}

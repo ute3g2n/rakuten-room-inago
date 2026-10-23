@@ -1,13 +1,11 @@
 {
   "schema_version": "product-page-execution-plan-v1",
-  "version": "1.0",
-  "status": "planning_complete",
+  "version": "1.28",
+  "status": "execution_in_progress",
   "workspace_root": "C:/project/rakuten-room-inago",
   "target_date": "2026-10-23",
   "job_id": null,
   "incident_id": null,
-  "source_launch_id": null,
-  "source_run_id": null,
   "requirements": [
     {
       "requirement_id": "R01",
@@ -262,25 +260,29 @@
       "cases": [
         "C11",
         "C20",
-        "C21"
+        "C21",
+        "C29"
       ]
     },
     {
       "requirement_id": "R13",
-      "requirement": "検索/重複除外/テーマ配分/25件取得/期限/補充/不足判定/保存原子性の従来規則を維持",
+      "requirement": "検索/重複除外/テーマ配分/25件取得/期限/補充/不足判定/保存原子性を維持し、ROOM条件シートの検索送信クリックは最大20秒（既存source deadline以内）待機",
       "fact_ids": [
         "F05",
         "F06",
-        "F13"
+        "F13",
+        "F29"
       ],
       "evidence_refs": [
         "E05",
         "E06",
-        "E13"
+        "E13",
+        "E29"
       ],
       "steps": [
         "STEP03",
-        "STEP08"
+        "STEP08",
+        "STEP10"
       ],
       "cases": [
         "C09",
@@ -297,14 +299,16 @@
         "F12",
         "F14",
         "F16",
-        "F19"
+        "F19",
+        "F26"
       ],
       "evidence_refs": [
         "E01",
         "E12",
         "E14",
         "E16",
-        "E19"
+        "E19",
+        "E26"
       ],
       "steps": [
         "STEP07",
@@ -322,31 +326,45 @@
       "fact_ids": [
         "F11",
         "F13",
-        "F15"
+        "F15",
+        "F21",
+        "F26",
+        "F29"
       ],
       "evidence_refs": [
         "E11",
         "E13",
-        "E15"
+        "E15",
+        "E21",
+        "E26",
+        "E29"
       ],
       "steps": [
         "STEP06",
         "STEP08",
         "STEP09",
         "STEP10",
-        "STEP11"
+        "STEP11",
+        "STEP02",
+        "STEP03",
+        "STEP07"
       ],
       "cases": [
         "C21",
         "C22",
         "C23",
         "C26",
-        "C27"
+        "C27",
+        "C04",
+        "C05",
+        "C06",
+        "C10",
+        "C25"
       ]
     },
     {
       "requirement_id": "R16",
-      "requirement": "今回の成果は計画のみ。製品/Scheduler/DB/設定/実行に未着手であることを明記し計画所有fileだけ親がcommit/push",
+      "requirement": "初回依頼は計画作成のみ。その後の明示依頼で製品実装・試験・Scheduler変更・正式10/23日次へ進んだ。現在の実施状況を記録し、タスク所有差分だけcommit/pushする",
       "fact_ids": [
         "F15"
       ],
@@ -358,6 +376,66 @@
       ],
       "cases": [
         "C27"
+      ]
+    },
+    {
+      "requirement_id": "R17",
+      "requirement": "Trends生関連語hitが1件以上あれば既存KEY選別後のraw語だけでROOM検索し、KEY選別後に0件でも親query_word fallbackを作らない。Trends生関連語hitが0件の場合だけTrendsが実際に検索した保存済みquery_wordへ戻す。旧checkpointも同じ規則へ補正し、同一run/既処理結果を重複させない",
+      "fact_ids": [
+        "F20"
+      ],
+      "evidence_refs": [
+        "E20"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "cases": [
+        "C28",
+        "C29",
+        "C27"
+      ]
+    },
+    {
+      "requirement_id": "R18",
+      "requirement": "ROOM検索で商品cardが0件のまま3回bounded no-progressが安定した場合は正常な空検索として完了し、次の検索処理へ進む。未知の明示終端markerはincomplete_searchとして扱う。",
+      "fact_ids": [
+        "F30"
+      ],
+      "evidence_refs": [
+        "E30"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP08",
+        "STEP10"
+      ],
+      "cases": [
+        "C22"
+      ]
+    },
+    {
+      "requirement_id": "R19",
+      "requirement": "A failed product-page capture may be retried from the exact persisted Rakuten item URL without repeating its ROOM search; recovered candidates must retain run, offer, attempt, selection, and source-evidence identity.",
+      "fact_ids": [
+        "F31"
+      ],
+      "evidence_refs": [
+        "E31"
+      ],
+      "steps": [
+        "STEP02",
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "cases": [
+        "C30",
+        "C31"
       ]
     }
   ],
@@ -476,7 +554,7 @@
     },
     {
       "fact_id": "F15",
-      "statement": "本人のAGENTSは固定root、失敗最小node→最終回帰、非公開データ除外、タスク所有差分のcommit/pushを要求する。今回依頼は計画のみ。",
+      "statement": "初回依頼は計画作成のみだったが、その後の本人の明示依頼で実装・試験・Scheduler変更・10/23正式日次実行へ進んだ。AGENTSは固定root、失敗最小node→最終回帰、非公開データ除外、タスク所有差分のcommit/pushを要求する。",
       "evidence_refs": [
         "E15"
       ],
@@ -511,6 +589,102 @@
       "statement": "親ソース読取でdaily_pipeline.run_daily_execution_coreはnow.date()から対象日を独自作成して監視/失敗result等に使う。明示対象日の伝達にはこのcoreも変更が必要。Start-ScheduledTaskは非同期のため受付成功や旧LastTaskResultは当該runの完走証拠にならない。",
       "evidence_refs": [
         "E19"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F20",
+      "statement": "Trendsはtheme_query_candidatesから実際の1語query_wordを選んで保存する。本人は、Trends生関連語hitがある場合はKEY選別後のraw語だけをROOM検索へ使い、KEY選別後に語が0件でもquery_word fallbackを作らず、生関連語hitがない場合だけ実際のquery_wordへ戻すと指定した。旧checkpointも生関連語hitの有無を基準に補正する。",
+      "evidence_refs": [
+        "E20"
+      ],
+      "certainty": "user_confirmed_and_source_verified"
+    },
+    {
+      "fact_id": "F21",
+      "statement": "Independent product review found four uncovered conditions: reject capture_failed products before selection, correlate slot failure resolution only with its replacement commit, reject past-date new runs at the direct production runtime boundary, and validate product image URL DNS/redirect/content type.",
+      "evidence_refs": [
+        "E21"
+      ],
+      "certainty": "independent_review_and_targeted_red"
+    },
+    {
+      "fact_id": "F22",
+      "statement": "2026-10-23 17:36 JST the remaining stalled-run process tree was terminated (taskkill exit 0); official 18:18 status is recovery_needed/owner_process_not_running, with same run INAGO-2026-10-23 still running and committed_count 0. Daily scheduler stays Enabled/Ready for 2026-10-24 13:00.",
+      "evidence_refs": [
+        "E22"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F23",
+      "statement": "Review followup focused nodes pass individually on current source. The first seven-node batch had six passes and one test assertion KeyError; after correcting the assertion, the previously failing node passes. Final latest regression has not yet run.",
+      "evidence_refs": [
+        "E23"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F24",
+      "statement": "Plan v1.11 ran all 65 unique selectors; all 69 expanded tests passed in 136.10 seconds, exit 0, including the C04 legacy-checkpoint and C10 same-theme correlation nodes.",
+      "evidence_refs": [
+        "E24"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F25",
+      "statement": "The same-run resume failed at 20:11:39 JST with attempt 17 and zero commits. At 20:21:23 status showed failed, owner metadata missing and lock present; recovery advised resume_remaining with cause unresolved; the exact daily_launcher scan at 20:21:28 found zero processes. Safe trace counts show three ROOM submit errors, nine zero-row no-progress events, three incomplete_search failures, and no product-page capture event. The top-level reason retains the earlier product_page_capture_failed.",
+      "evidence_refs": [
+        "E25"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F26",
+      "statement": "Same-run launch 0e933b2d1d4549478e2e599cb518377a failed at 20:35:09 JST with attempt_used 20 and zero commits. The bounded trace shows three ROOM condition search-submit TimeoutErrors, nine no-progress events, three incomplete_search failures, and no product_page component events. After the user-directed change, the 3-second blocked-click fixture changed from 1 failure to 1 pass with a 10-second click maximum bounded by the source deadline; independent product-code review approved. Full v1.15 regression is pending.",
+      "evidence_refs": [
+        "E26"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F27",
+      "statement": "The user observed no ROOM search hits. The latest confirmed failed retry had three completed condition-search clicks, three no-progress/incomplete_search outcomes, and zero product-page operations; this does not establish why the query returned no results.",
+      "evidence_refs": [
+        "E27"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F28",
+      "statement": "The v1.17 nested-marker and card-ancestor matcher changes passed five directly affected expanded tests and the final 77-test planned regression; the product-code reviewer approved the fix. Synthetic tests do not prove the official ROOM DOM or successful daily run.",
+      "evidence_refs": [
+        "E28"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F29",
+      "statement": "The user observed no ROOM hits. The 21:54 same-run retry completed three search submits but ended with no progress, no_marker/incomplete_search, and no product-page event. A synthetic .item-preview marker with zero product cards now yields explicit no-results; when cards exist the exception is disabled. The focused affected set passed 3 tests, independent product-code review approved, and the final planned regression passed 78 tests. The actual production DOM placement and formal daily completion remain unverified.",
+      "evidence_refs": [
+        "E29"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F30",
+      "statement": "The user observed that ROOM search returned no hits. The 22:05–22:07 same-run retry completed three search submits, observed nine zero-card no-progress rounds, produced three no_marker/incomplete_search outcomes, and reached no product-page operation. v1.20 changes stable zero-card no-progress after three bounded rounds to a completed empty result while unknown explicit end markers remain incomplete. The focused 5-node set passed and an independent product-code review approved the change. The v1.20 full regression and same-run retry remain pending.",
+      "evidence_refs": [
+        "E30"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F31",
+      "statement": "The same 2026-10-23 run is failed at attempt 125 with zero commits, the owner metadata is missing, and the product-page artifacts for saved candidates are missing. The current implementation can now capture one exact saved product URL without rerunning ROOM and can retry a failed selected/candidate capture during same-run recovery.",
+      "evidence_refs": [
+        "E31"
       ],
       "certainty": "observed_by_parent"
     }
@@ -574,7 +748,7 @@
     },
     {
       "evidence_id": "E15",
-      "reference": "本人提示AGENTS.md、.agents/skills/common-execution-planning/SKILL.mdおよびreferences/contracts.md。旧10/20 job固有の禁止とGit禁止は今回の明示依頼へ適用しない。"
+      "reference": "本人提示AGENTS.md、.agents/skills/common-execution-planning/SKILL.mdおよびreferences/contracts.md。会話上、初回は計画作成のみ、その後に各STEP実行・10/23 13:00自動起動skip・実装/試験・同日正式日次起動と完走が明示された。旧10/20 job固有の禁止とGit禁止は今回の明示依頼へ適用しない。"
     },
     {
       "evidence_id": "E16",
@@ -591,13 +765,61 @@
     {
       "evidence_id": "E19",
       "reference": "親のautomation/inago/daily_pipeline.py::run_daily_execution_core（966以降、operations_monitor1110以降）、automation/inago/production_runtime.py:2049の読取確認とScheduler非同期仕様に基づく運用観測手順。"
+    },
+    {
+      "evidence_id": "E20",
+      "reference": "本人の2026-10-23指示（Trends関連語がない場合のみ実際に使った1語へ戻す）と automation/inago/theme_queries.py::choose_theme_query、automation/inago/daily_theme_planner.py::plan_theme/_plan、automation/inago/orchestrator.py::_validate_plan_snapshot/_make_tasks のソース読取。focused testはtests_inago/test_theme_query_components.pyとworklogs/projects/implementation/product-page-inputs-20261023/test.md。"
+    },
+    {
+      "evidence_id": "E21",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/code-review.md and test.md; targeted reproduction returned 7 failed expanded tests, exit 1, before product fixes."
+    },
+    {
+      "evidence_id": "E22",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-stop-20261023-173650.json; formal-run-status-20261023-181854.json"
+    },
+    {
+      "evidence_id": "E23",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/test.md; worklogs/projects/implementation/product-page-inputs-20261023/code-review.md"
+    },
+    {
+      "evidence_id": "E24",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.11-20261023.json and test.md"
+    },
+    {
+      "evidence_id": "E25",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2021.json; formal-run-launch-failure-e2fa12bedd5a443cb1bc0553a9565655.json; formal-run-room-trace-summary-20261023-2011.json"
+    },
+    {
+      "evidence_id": "E26",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-0e933b2d1d4549478e2e599cb518377a.json; formal-run-read-only-observation-20261023-2036.json; formal-run-room-trace-summary-20261023-2035.json; test.md (3-second overlay RED/GREEN); code-review.md (10-second bounded click change approved)"
+    },
+    {
+      "evidence_id": "E27",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2105.json; formal-run-read-only-observation-20261023-prelaunch-2130.json"
+    },
+    {
+      "evidence_id": "E28",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/test.md; code-review.md; final-regression-v1.17-20261023.json"
+    },
+    {
+      "evidence_id": "E29",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2153.json; formal-run-read-only-observation-20261023-prelaunch-2204.json; test.md; code-review.md; final-regression-v1.19-20261023.json"
+    },
+    {
+      "evidence_id": "E30",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-d365e7f4223e4ac5a96f1e78c31b9bae.json; formal-run-room-trace-summary-20261023-2207.json; formal-run-read-only-observation-20261023-2211.json; test.md; code-review.md"
+    },
+    {
+      "evidence_id": "E31",
+      "reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C30/result.md; worklogs/projects/implementation/product-page-inputs-20261023/cases/C31/result.md; formal-run-status-20261024-020642.json"
     }
   ],
   "steps": [
     {
       "step_id": "STEP01",
       "name": "今日13時の自動起動だけを一回スキップ",
-      "status": "planned_not_performed",
+      "status": "complete",
       "owner": "運用担当（親/default、effort high）",
       "owned_files_or_operations": "製品file所有なし。\\RakutenRoomInagoDailyの唯一のdaily trigger。原本/変更後観測はrakuten-room-inago/runtime/artifacts/product-page-rollout-20261023/scheduler/（非公開運用証拠）。",
       "requirement_ids": [
@@ -612,13 +834,14 @@
     {
       "step_id": "STEP02",
       "name": "商品ページHTML・画像の取得と商品別保存",
-      "status": "planned_not_performed",
+      "status": "direct_product_page_capture_retry_implemented_focused_passed",
       "owner": "商品取得実装担当（worker/default、effort high）",
       "owned_files_or_operations": "automation/inago/adapters/public_sources.mjs、automation/inago/live_sources.py。新設予定automation/inago/adapters/product_page_inputs.mjs、automation/inago/product_page_inputs.py（保存/読込共通部はSTEP03/06へ引渡し）。",
       "requirement_ids": [
         "R02",
         "R03",
-        "R04"
+        "R04",
+        "R15"
       ],
       "case_ids": [
         "C03",
@@ -626,21 +849,25 @@
         "C05",
         "C06",
         "C07",
-        "C08"
+        "C08",
+        "C30"
       ]
     },
     {
       "step_id": "STEP03",
-      "name": "選別15件とdraft件数の分離・checkpoint再開",
-      "status": "planned_not_performed",
+      "name": "選別15件・checkpoint再開とROOM query条件の追補",
+      "status": "same_run_product_page_recovery_implemented_focused_passed",
       "owner": "日次制御実装担当（worker/default、effort high）",
-      "owned_files_or_operations": "automation/inago/orchestrator.py、STEP02から引渡されたautomation/inago/product_page_inputs.pyの選別manifest部。DailyPorts追加が必要なら同orchestrator内で担当。",
+      "owned_files_or_operations": "R17追補: automation/inago/daily_theme_planner.py、automation/inago/orchestrator.pyのplan/task checkpoint migration。従来のorchestrator.py/product_page_inputs.py所有を尊重。",
       "requirement_ids": [
         "R04",
         "R05",
         "R06",
         "R12",
-        "R13"
+        "R13",
+        "R17",
+        "R15",
+        "R18"
       ],
       "case_ids": [
         "C08",
@@ -649,13 +876,18 @@
         "C11",
         "C12",
         "C21",
-        "C22"
+        "C22",
+        "C28",
+        "C29",
+        "C04",
+        "C27",
+        "C31"
       ]
     },
     {
       "step_id": "STEP04",
       "name": "検証版OCR依存の導入設計と全画像OCR・商品別JSON",
-      "status": "planned_not_performed",
+      "status": "implemented_and_tested",
       "owner": "OCR実装担当（worker/default、effort high）",
       "owned_files_or_operations": "新設予定automation/inago/product_ocr.py、automation/inago/requirements-ocr.lock、automation/inago/setup_ocr.ps1。automation/inago/production_runtime.pyのOCR port構成部。既存検証script/lockは読取参照。",
       "requirement_ids": [
@@ -677,7 +909,7 @@
     {
       "step_id": "STEP05",
       "name": "既存コピー入力へのHTML/OCR追加と執筆指示",
-      "status": "planned_not_performed",
+      "status": "implemented_and_tested",
       "owner": "投稿文入力実装担当（worker/default、effort high）",
       "owned_files_or_operations": "automation/inago/production_runtime.pyの_make_copy_spec_factory、automation/inago/prompt_builder.py、automation/inago/ai_runner.pyの_stage_job trusted instructions、.agents/skills/rr-inago-copywriter/SKILL.mdとreferences/contracts.md。必要な読込共通部はproduct_page_inputs.py担当と順次引渡す。",
       "requirement_ids": [
@@ -695,7 +927,7 @@
     {
       "step_id": "STEP06",
       "name": "commit後の画像削除・再開・trace",
-      "status": "planned_not_performed",
+      "status": "implemented_and_tested",
       "owner": "保存/cleanup実装担当（worker/default、effort high）",
       "owned_files_or_operations": "automation/inago/product_page_inputs.pyのcleanup/記録部、automation/inago/orchestrator.pyのcommit後/起動再開hook、必要ならautomation/inago/copy_service.pyの成功通知。automation/inago/trace.pyの既存拡張点、docs/operations/日次タスクのトレース・ログ出力一覧.md。",
       "requirement_ids": [
@@ -715,12 +947,13 @@
     {
       "step_id": "STEP07",
       "name": "正式launcherの明示対象日・許可済み再開伝達",
-      "status": "planned_not_performed",
+      "status": "implemented_direct_runtime_guard_focused_passed",
       "owner": "正式起動実装担当（worker/default、effort high）",
       "owned_files_or_operations": "automation/inago/maintenance/daily_launcher.py、automation/inago/cli.py、automation/inago/production_runtime.py、automation/inago/daily_runtime.py、automation/inago/daily_pipeline.py、automation/inago/trigger.py、automation/inago/orchestrator.py、automation/inago/recovery.py。現在の構成を再読し引数が通る箇所だけ変更。。生成上限が恒久拒否を作る場合はautomation/inago/copy_service.py、automation/inago/repository.pyと必要なautomation/inago/sql/新規migrationも親の範囲更新で所有へ追加し、履歴を保持する正式な生成cycle管理を最小実装する（番号は実装時既存を確認して新採番）。",
       "requirement_ids": [
         "R01",
-        "R14"
+        "R14",
+        "R15"
       ],
       "case_ids": [
         "C02",
@@ -731,52 +964,77 @@
     {
       "step_id": "STEP08",
       "name": "隔離試験・最小失敗デバッグ・最終回帰",
-      "status": "planned_not_performed",
+      "status": "v1_22_79_selectors_83_tests_final_regression_pending",
       "owner": "試験担当（worker/default、effort high）",
-      "owned_files_or_operations": "新設予定tests_inago/test_product_page_inputs.py、tests_inago/test_product_page_capture.py、tests_inago/test_product_page_selection.py、tests_inago/test_product_ocr.py、tests_inago/test_product_page_copy.py、tests_inago/test_product_page_cleanup.py、tests_inago/test_daily_launcher_target_date.py、tests_inago/fixtures/product_page_inputs/。必要に応じ既存関連fixture/nodeを適合。製品修正は所有担当へ返し親が範囲更新して続行。",
+      "owned_files_or_operations": "新設予定tests_inago/test_product_page_inputs.py、tests_inago/test_product_page_capture.py、tests_inago/test_product_page_selection.py、tests_inago/test_product_ocr.py、tests_inago/test_product_page_copy.py、tests_inago/test_product_page_cleanup.py、tests_inago/test_daily_launcher_target_date.py、tests_inago/fixtures/product_page_inputs/。必要に応じ既存関連fixture/nodeを適合。製品修正は所有担当へ返し親が範囲更新して続行。 tests_inago/test_product_page_url_safety.py.",
       "requirement_ids": [
         "R13",
-        "R15"
+        "R15",
+        "R17",
+        "R18"
       ],
       "case_ids": [
         "C21",
         "C22",
-        "C23"
+        "C23",
+        "C28",
+        "C29",
+        "C04",
+        "C05",
+        "C06",
+        "C10",
+        "C25",
+        "C27",
+        "C30",
+        "C31"
       ]
     },
     {
       "step_id": "STEP09",
       "name": "製品コードと試験証拠の独立レビュー",
-      "status": "planned_not_performed",
+      "status": "v1_22_independent_product_code_review_pending",
       "owner": "独立製品/試験証拠reviewer（worker/default、effort high、実装者と別agent）",
       "owned_files_or_operations": "読取専用。出力はworklogs/projects/implementation/product-page-inputs-20261023/review.md,review.json（将来実行成果）。",
       "requirement_ids": [
-        "R15"
+        "R15",
+        "R17"
       ],
       "case_ids": [
-        "C23"
+        "C23",
+        "C28",
+        "C29",
+        "C27",
+        "C31"
       ]
     },
     {
       "step_id": "STEP10",
       "name": "更新コードで10/23正式本番起動・同日再開・正常完走",
-      "status": "planned_not_performed",
+      "status": "same_run_attempt125_failed_owner_missing_resume_pending",
       "owner": "正式運用/デバッグ担当（親/default、effort high。製品修正は担当へ再割当）",
       "owned_files_or_operations": "運用artifactはruntime/artifacts/product-page-rollout-20261023/。製品/試験修正はSTEP02〜08の所有担当へ返し範囲更新。実運用DBは正式API経由だけ。",
       "requirement_ids": [
         "R01",
         "R12",
         "R14",
-        "R15"
+        "R15",
+        "R17",
+        "R13",
+        "R18"
       ],
       "case_ids": [
-        "C26"
+        "C26",
+        "C28",
+        "C29",
+        "C27",
+        "C22",
+        "C31"
       ]
     },
     {
       "step_id": "STEP11",
       "name": "要件同期・最終報告・所有差分commit/push",
-      "status": "planned_not_performed",
+      "status": "pending_formal_completion_and_git",
       "owner": "親統括/文書担当（default、effort high）",
       "owned_files_or_operations": "今回は検討/商品情報入力拡張_実装テスト計画_2026-10-23/plan.md,requirement-step-case-map.json,result.jsonのみ。将来実行ではdocs/architecture/プロジェクト全体マップ.md、README.md、docs/README.md、docs/operations/日次タスクのトレース・ログ出力一覧.md、仕様書正本と生成元（tools/docs/inago-requirements/README.mdから確認）、worklogs/projects/implementation/product-page-inputs-20261023/とreports配下の結果文書。",
       "requirement_ids": [
@@ -801,10 +1059,11 @@
       "node_kind": "operational",
       "node_or_method": "PowerShell Get/Set-ScheduledTask実操作（将来実行）、pytest nodeなし",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass",
       "expected_output": "NextRunTime10/24 13時、Enabled/Action/設定不変、本日13時自動発火なし",
       "expected_state": "DB書換え0、別Task不変、原本ref/変更時刻を記録",
-      "forbidden_effects": "他Task/実行中process/過去runへ変更0"
+      "forbidden_effects": "他Task/実行中process/過去runへ変更0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C01/result.md"
     },
     {
       "case_id": "C02",
@@ -819,10 +1078,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_skip_once_preserves_next_daily_trigger_and_manual_launch",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass",
       "expected_output": "未来境界は維持し未発火の遡及保証なし、手動起動は正式action",
       "expected_state": "経過済み操作not_performedと理由、実IDのみ",
-      "forbidden_effects": "無差別disable/kill/DB消去0"
+      "forbidden_effects": "無差別disable/kill/DB消去0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C02/result.md"
     },
     {
       "case_id": "C03",
@@ -836,62 +1096,73 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_capture.py::test_three_selectors_preserve_all_rendered_outer_html",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "各outerHTMLとUTF-8往復が完全一致、配列順一致",
       "expected_state": "run/offer/source_evidence取得時刻、閉鎖/検索復帰前保存event",
-      "forbidden_effects": "HTML本文/属性mask・切詰め0"
+      "forbidden_effects": "HTML本文/属性mask・切詰め0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C03/result.md"
     },
     {
       "case_id": "C04",
       "requirement_ids": [
-        "R02"
+        "R02",
+        "R15"
       ],
       "step_ids": [
-        "STEP02"
+        "STEP02",
+        "STEP03",
+        "STEP08"
       ],
       "name": "要素なし/空/DOM取得失敗の区別",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_product_page_capture.py::test_missing_empty_and_failed_selector_states_are_distinct",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "missing/empty/errorを明示、成功配列と失敗を混同しない",
-      "expected_state": "取得status/数/安全exception class/operationの記録",
-      "forbidden_effects": "エラーを空成功へ置換0"
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_missing_empty_and_failed_selector_states_are_distinct; tests_inago/test_product_page_selection.py::test_capture_failed_page_is_skipped_and_replenished_before_copy; tests_inago/test_product_page_selection.py::test_resume_rejects_legacy_selected_checkpoint_with_capture_failed_page; tests_inago/test_step21_browser.py::test_room_product_capture_receives_search_request_and_saves_page",
+      "existence_confirmed": true,
+      "execution_status": "adapter_capture_RED_1_failed_reproduced_missing_page_artifact; after request-scope fix and capture-error expectation update, focused repair nodes 2_passed",
+      "expected_output": "missing/empty/error distinct; capture_failed product rejected before selection, OCR, copy, or commit; refill with eligible candidate. On resume, old selected/ocr_complete entries must revalidate saved page.html_state == captured and images is a list before OCR reuse or copy.",
+      "expected_state": "No OCR/copy from capture_failed page; record failure and retain only valid selected registry/draft; verify both new-candidate and old-checkpoint paths.",
+      "forbidden_effects": "Treat failed capture as empty success or select/post it.",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C04/result.md; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.20-20261023.json"
     },
     {
       "case_id": "C05",
       "requirement_ids": [
-        "R03"
+        "R03",
+        "R15"
       ],
       "step_ids": [
-        "STEP02"
+        "STEP02",
+        "STEP08"
       ],
       "name": "lazy/srcset/background全URLと出現順/同URLdedup",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_product_page_capture.py::test_all_image_candidates_are_captured_in_occurrence_order",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "一意URLは1file、出現配列に全位置、sale_desc外画像は対象外",
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_all_image_candidates_are_captured_in_occurrence_order; tests_inago/test_product_page_url_safety.py::test_private_or_mixed_dns_answers_are_rejected; tests_inago/test_product_page_url_safety.py::test_private_redirect_is_not_requested",
+      "existence_confirmed": true,
+      "execution_status": "capture_order_pass; safety_followup_test_harness_export_mismatch_exit_1; passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "一意URLは1file、出現配列に全位置、sale_desc外画像は対象外; reject private/mixed DNS results and do not request a private-address redirect.",
       "expected_state": "列挙件数→各HTTP/保存status→path/refが一致",
-      "forbidden_effects": "用途/score/固定枚数での除外0"
+      "forbidden_effects": "用途/score/固定枚数での除外0; no private address or unvalidated redirect request.",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C05/result.md"
     },
     {
       "case_id": "C06",
       "requirement_ids": [
-        "R03"
+        "R03",
+        "R15"
       ],
       "step_ids": [
         "STEP02",
-        "STEP04"
+        "STEP04",
+        "STEP08"
       ],
       "name": "download失敗/画像なし/取得途中を全件成功にしない",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_product_page_capture.py::test_download_failure_and_zero_images_preserve_capture_states",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "失敗/zeroの状態区別、全候補recordがJSON/inputまで残る",
-      "expected_state": "success/empty/errorとsource status/取得理由、件数一致",
-      "forbidden_effects": "取得失敗画像のrecord欠落0、原画像改変0"
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_download_failure_and_zero_images_preserve_capture_states; tests_inago/test_product_page_url_safety.py::test_non_image_response_is_not_accepted_as_a_download",
+      "existence_confirmed": true,
+      "execution_status": "capture_state_pass; content_type_followup_test_harness_export_mismatch_exit_1; passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "Distinguish failed/zero/non-image responses; keep a record for every candidate through JSON/input.",
+      "expected_state": "success/empty/errorとsource status/取得理由、件数一致; do not save HTTP 200 responses whose Content-Type is not an image.",
+      "forbidden_effects": "取得失敗画像のrecord欠落0、原画像改変0; do not save non-image responses.",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C06/result.md"
     },
     {
       "case_id": "C07",
@@ -906,10 +1177,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_inputs.py::test_shop_run_and_encoded_item_identity_do_not_collide",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "safe pathが各商品を分離しpage内元IDを保持、refs全一意",
       "expected_state": "run/offer/source_evidence一致、既存ref制約通過",
-      "forbidden_effects": "固定root外書込/別商品参照/公開個人情報0"
+      "forbidden_effects": "固定root外書込/別商品参照/公開個人情報0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C07/result.md"
     },
     {
       "case_id": "C08",
@@ -926,10 +1198,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_inputs.py::test_unselected_cleanup_uses_whole_run_keep_set",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "Aのpage/ocr/画像版保持、B folder削除、C不変",
       "expected_state": "run全体keep集合=selected待ちunioncommitted、削除記録",
-      "forbidden_effects": "既採用上書き/別run削除0"
+      "forbidden_effects": "既採用上書き/別run削除0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C08/result.md"
     },
     {
       "case_id": "C09",
@@ -944,28 +1217,33 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_selection.py::test_first_copy_waits_for_fifteen_selected_and_all_ocr",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "selected15→全selected画像OCR→最初copyの順序、copy15",
       "expected_state": "draft15/reservation15、テーマ各5、検索3/各25、refs結合",
-      "forbidden_effects": "copy前倒し/重複/テーマ上限変更0"
+      "forbidden_effects": "copy前倒し/重複/テーマ上限変更0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C09/result.md"
     },
     {
       "case_id": "C10",
       "requirement_ids": [
         "R05",
-        "R13"
+        "R13",
+        "R15"
       ],
       "step_ids": [
-        "STEP03"
+        "STEP03",
+        "STEP08"
       ],
       "name": "生成失敗の枠だけ従来規則で補充し供給不足を区別",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_product_page_selection.py::test_failed_copy_is_replenished_without_recounting_committed_offers",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "A:作成済＋active待ちunionで補充1、失敗確定は履歴/画像保持し待ち枠から除外、補充にも取得/OCR/input/cleanup。B:11件全OCR→copy11→committed11/reservation11/daily status partial/shortfall_count4（不足4）。C:OCR0/copy0/committed0/reservation0/status shortfall/不足15",
-      "expected_state": "A:最終committed15/reservation15、元copy FAILと補充commitの相関を保存し回復した不足影響だけactive解除。B:実件数11/不足4。C:実件数0/不足15。全scenarioで元失敗履歴とselected失敗商品画像は保持",
-      "forbidden_effects": "失敗を成功/0供給と誤記0、無限補充0"
+      "node_or_method": "tests_inago/test_product_page_selection.py::test_other_theme_supplement_does_not_resolve_failed_slot; tests_inago/test_product_page_selection.py::test_unrelated_commit_does_not_resolve_active_slot_failure; tests_inago/test_product_page_selection.py::test_replacement_slots_and_commits_require_matching_theme",
+      "existence_confirmed": true,
+      "execution_status": "different_theme_supplement_partial_expected_pass; unrelated_commit_preserves_failure_pass; matching_theme_assignment_and_commit_in_final_regression_pass; passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "A: same-theme replacement can fill the failed slot and resolve only correlated impact. B: 11 committed, shortfall 4. C: 0 committed, shortfall 15. D: unrelated commit leaves active failure; only same-theme replacement with matching slot and offer resolves it. E: if only a different-theme supplement is available, 15 commits may be reached but active failure/error_count=1 remains and overall status is partial; never assign/resolve by different theme.",
+      "expected_state": "Preserve original failure history and failed selected product images. Store theme on new failure; recover legacy theme from selected_products or offer_theme_ids. Resolve only matching offer/slot/theme. A different-theme supplement is not correlated and cannot clear active error.",
+      "forbidden_effects": "失敗を成功/0供給と誤記0、無限補充0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C10/result.md; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.11-20261023.json",
+      "review_followup": "Independent review identified unrelated commit and cross-theme replacement risks. Both focused correlation nodes now pass; full latest regression remains pending."
     },
     {
       "case_id": "C11",
@@ -981,16 +1259,16 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "再抽選/同版OCR再実行/同商品二重枠なし、未完から続行",
       "expected_state": "selected refs/order/テーマ維持、commit実数別管理",
-      "forbidden_effects": "旧成功OCR/保存済draft上書き0"
+      "forbidden_effects": "旧成功OCR/保存済draft上書き0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C11/result.md"
     },
     {
       "case_id": "C12",
       "requirement_ids": [
-        "R06",
-        "R11"
+        "R06"
       ],
       "step_ids": [
         "STEP03",
@@ -1000,10 +1278,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_cleanup.py::test_rejected_folder_is_removed_and_failed_selected_folder_is_kept",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "不採用folderのみ全削除、生成未保存画像は保持",
       "expected_state": "page/ocr/refs/削除理由が選別状態と一致",
-      "forbidden_effects": "run全体やselected画像の誤削除0"
+      "forbidden_effects": "run全体やselected画像の誤削除0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C12/result.md"
     },
     {
       "case_id": "C13",
@@ -1013,14 +1292,15 @@
       "step_ids": [
         "STEP04"
       ],
-      "name": "検証版実OCRを正式runtime資材から読み日本語pathでも動く",
+      "name": "OCR runtime behavior and pre-read image byte limit",
       "node_kind": "planned_real_engine",
-      "node_or_method": "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "node_or_method": "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path; tests_inago/test_product_ocr.py::test_oversized_image_is_rejected_before_reading_or_worker_send",
+      "existence_confirmed": true,
+      "execution_status": "focused and full OCR tests passed; v1.26 final regression passed",
       "expected_output": "実版3.7.0/3.3.1/3.7.2、japan/medium/CPU/mkldnn false、初期化1回",
       "expected_state": "実model/cache/temp/runtime path/所要時間/原画像hash、研究rootをloadしない",
-      "forbidden_effects": "研究venv/modelへの固定依存、他人alias変更0"
+      "forbidden_effects": "研究venv/modelへの固定依存、他人alias変更0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/test.md; worklogs/projects/implementation/product-page-inputs-20261023/replay-failed-gif-v1.26-20261024.json; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.26-20261024.json"
     },
     {
       "case_id": "C14",
@@ -1036,10 +1316,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "全recordのref/status/text一致、改行/全文維持、各失敗区別",
       "expected_state": "一回初期化、候補数とrecords数一致、文字数/bytesと原本refs",
-      "forbidden_effects": "score/用途選別/切詰め/要約/誤字補完0"
+      "forbidden_effects": "score/用途選別/切詰め/要約/誤字補完0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C14/result.md"
     },
     {
       "case_id": "C15",
@@ -1054,10 +1335,11 @@
       "node_kind": "planned_real_engine",
       "node_or_method": "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "raw投影は59record/16103文字と完全一致、実再OCRは実出力をJSONと一致（旧OCR全文一致は決定性未保証）",
       "expected_state": "5商品件数9/11/6/24/9、原画像/研究原本不変、実出力hash/版",
-      "forbidden_effects": "研究原本削除/置換、本番5draft登録0"
+      "forbidden_effects": "研究原本削除/置換、本番5draft登録0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C15/result.md"
     },
     {
       "case_id": "C16",
@@ -1073,10 +1355,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_copy.py::test_copy_spec_contains_exact_html_ocr_and_all_input_refs",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "HTML全要素、全画像ref/status/textが完全一致、raw engine response重複なし",
       "expected_state": "全HTML/画像input_refs、非空の出所evidence_refs、既存fact refs維持",
-      "forbidden_effects": "パスだけ入力/別商品参照/OCRのfacts化0"
+      "forbidden_effects": "パスだけ入力/別商品参照/OCRのfacts化0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C16/result.md"
     },
     {
       "case_id": "C17",
@@ -1091,10 +1374,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_copy.py::test_runner_transport_prompt_and_staged_copy_skill_keep_full_guidance",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "実送信指示とstaged子skillに文脈/照合/除外/不明補完禁止/used refs、AG-COPYへ全payload/refを省略なく委譲し既存schema受理",
       "expected_state": "1商品jobのみ、使ったrefは入力集合内、追加AI呼出0",
-      "forbidden_effects": "文型/本文/出力schemaの不要変更、命令実行0"
+      "forbidden_effects": "文型/本文/出力schemaの不要変更、命令実行0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C17/result.md"
     },
     {
       "case_id": "C18",
@@ -1109,10 +1393,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_copy.py::test_large_payload_is_never_silently_truncated",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "上限内は全文、実上限超過は必要bytes/応答/refs記録し部分を全件としない",
       "expected_state": "既存失敗/再試行/補充と結合、新size閾値追加0",
-      "forbidden_effects": "固定文字削減/事前AI分類/要約0"
+      "forbidden_effects": "固定文字削減/事前AI分類/要約0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C18/result.md"
     },
     {
       "case_id": "C19",
@@ -1126,10 +1411,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_cleanup.py::test_images_are_deleted_only_after_each_draft_commit",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "first images削除、page/ocr/URL/ref/結果保持、second images保持",
       "expected_state": "draft/reservation原子性、commit時刻<削除時刻、15完了を待たない",
-      "forbidden_effects": "commit前削除/JSON削除/別商品削除0"
+      "forbidden_effects": "commit前削除/JSON削除/別商品削除0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C19/result.md"
     },
     {
       "case_id": "C20",
@@ -1144,10 +1430,11 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "pending cleanup再試行→成功、already missingも結果記録、AI/OCR呼出0",
       "expected_state": "draft/予約数不増、過去cleanup error保持、page/ocr不変",
-      "forbidden_effects": "draft削除/再生成/失敗商品の画像削除0"
+      "forbidden_effects": "draft削除/再生成/失敗商品の画像削除0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C20/result.md"
     },
     {
       "case_id": "C21",
@@ -1165,29 +1452,34 @@
       "node_kind": "planned",
       "node_or_method": "tests_inago/test_product_page_inputs.py::test_capture_ocr_and_cleanup_errors_keep_correlated_safe_events",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "operation/exception class/safe frames/発生捕捉位置/相関refs、未完位置が判別可能",
       "expected_state": "安全ログに件数/phase/実版、本文原本は私有artifact refs",
-      "forbidden_effects": "token/cookie/本文/SQLparameters/例外本文の通常ログ混入0"
+      "forbidden_effects": "token/cookie/本文/SQLparameters/例外本文の通常ログ混入0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C21/result.md"
     },
     {
       "case_id": "C22",
       "requirement_ids": [
         "R13",
-        "R15"
+        "R15",
+        "R18"
       ],
       "step_ids": [
         "STEP03",
-        "STEP08"
+        "STEP08",
+        "STEP10"
       ],
       "name": "既存選別/日次/保存/再開/検索規則の回帰",
       "node_kind": "existing",
-      "node_or_method": "10.2節REG01〜REG16の確認済み完全nodeを全実行",
+      "node_or_method": "10.2節REG01〜REG16の確認済み完全nodeを全実行; add tests_inago/test_step21_browser.py::test_room_zero_result_message_from_live_screen_terminates_search to final regression; add tests_inago/test_step21_browser.py::test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_progress to final regression; add tests_inago/test_step21_browser.py::test_room_zero_result_message_inside_results_container_terminates_search to final regression; add tests_inago/test_daily_fix_room.py::test_n09c_public_search_action_applies_verified_conditions to v1.15 final regression; 3-second click-blocker fixture verifies 10-second search-submit click bound (historical v1.15); current bound is 20 seconds; nested inline text marker fixture and product-card-containing ancestor exclusion fixture; 20-second submit click remains bounded by source deadline; v1.19 known zero-result marker inside .item-preview is accepted only when loaded product-card count is zero; v1.20 zero loaded cards after three bounded no-progress rounds completes as stable_no_progress; unknown explicit end text remains incomplete_search",
       "existence_confirmed": true,
-      "execution_status": "not_performed",
-      "expected_output": "従来assertが新工程でも満たされる",
+      "execution_status": "v1_20_zero_card_empty_red_1_failed_green_5_passed; product_review_approved; v1_20_final_regression_78_passed; same_run_attempt36_failed",
+      "expected_output": "従来assertが新工程でも満たされる; the screenshot no-result marker terminates the ROOM search; after three bounded no-progress rounds with zero loaded cards, return observed empty/end_reached=true/end_evidence=stable_no_progress; an unrecognized explicit end marker still returns incomplete_search; the exact screenshot no-result marker inside .items-search is recognized immediately or when it appears after a delay, while product cards and previews remain excluded; a search-submit click blocked for 3 seconds completes within the current 20-second maximum (the 10-second maximum is historical v1.15 coverage), subject to the existing source deadline; nested inline no-result marker outside cards is recognized; marker text in a card or an ancestor containing a card/preview cannot terminate the result scan; unknown empty screens remain incomplete_search with safe no_marker/unrecognized_empty classification; exact known zero-result marker inside .item-preview is accepted only when loaded card count is zero; it remains excluded when cards exist; explicit zero-result text is kept distinct from unknown empty states; ROOM submit click remains at the user-directed 20-second maximum bounded by the source deadline",
       "expected_state": "15件/テーマ/25件/不足/予約/履歴/再開の既存期待を保持",
-      "forbidden_effects": "無関係な成功試験の反復/本番DB試験0"
+      "forbidden_effects": "無関係な成功試験の反復/本番DB試験0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C22/result.md; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-stall-diagnosis-20261023-153308.json; worklogs/projects/implementation/product-page-inputs-20261023/test.md; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.14-20261023.json; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.15-20261023.json; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.17-20261023.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2136.json; worklogs/projects/implementation/product-page-inputs-20261023/code-review.md; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2153.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-prelaunch-2204.json; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.19-20261023.json; worklogs/projects/implementation/product-page-inputs-20261023/code-review.md; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.20-20261023.json",
+      "historical_execution_status": "initial_regression_passed_for_original_46_selectors"
     },
     {
       "case_id": "C23",
@@ -1203,10 +1495,11 @@
       "node_kind": "procedure",
       "node_or_method": "10.3節固定回帰コマンド（新設nodeは作成/収集後に確定）",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "exit0/PASSは実施分だけ、skip/未実施/FAILは実値",
       "expected_state": "正確command/全node/版hash/clock/期待実測/exit code/pathを保存",
-      "forbidden_effects": "test code独立review/既知FAIL無視で本番起動0"
+      "forbidden_effects": "test code独立review/既知FAIL無視で本番起動0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C23/result.md"
     },
     {
       "case_id": "C24",
@@ -1220,29 +1513,34 @@
       ],
       "name": "正式入口の既定当日/明示対象日/跨日の一貫性",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_explicit_target_date_reaches_official_daily_pipeline_across_midnight",
+      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_explicit_current_target_date_reaches_official_daily_pipeline",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "pass; passed_in_v1_13_final_regression_75_tests",
       "expected_output": "既定は当日、明示は10/23、実時計不変、各層/AI/DB/結果の日付一致。10/24 09:00実時計で--manual付き10/23正式再開がnot_dueにならず、当日の13時を待たない。preflight失敗でもfailure summary/監視/traceはtarget10/23、backup実時刻は実際10/24",
       "expected_state": "実採番launchとrun、target mismatchの既存検出維持",
-      "forbidden_effects": "時刻偽装/DB target書換え/別日run差替0"
+      "forbidden_effects": "時刻偽装/DB target書換え/別日run差替0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C24/result.md"
     },
     {
       "case_id": "C25",
       "requirement_ids": [
-        "R14"
+        "R14",
+        "R15"
       ],
       "step_ids": [
-        "STEP07"
+        "STEP07",
+        "STEP08"
       ],
       "name": "明示再開のunknown/過去日/terminal/試行上限を根本修正",
       "node_kind": "planned",
-      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_authorized_resume_continues_same_incomplete_run_without_false_cause_resolution",
-      "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "同run未完分のみ再開、新launch実採番、過去履歴保持、unknownはunknownのまま。前回error履歴を保持し回復成功したoperationだけactive error解除、未回復はactiveのまま。最終error_count0は全対象operationの実回復に基づく。代替補充の実commitで不足影響が回復した場合も元FAIL履歴を残し相関付きで当該active影響だけ解除",
-      "expected_state": "自動既定/1cycle有限retry維持、commit済再生成0、needed cycleのみ正式API生成",
-      "forbidden_effects": "cause-resolved偽装/過去launch終端書換え/失敗履歴消去0"
+      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_authorized_resume_continues_same_incomplete_run_without_false_cause_resolution; tests_inago/test_daily_launcher_target_date.py::test_past_target_date_cannot_create_a_new_run_through_production_runtime (2 parameter items)",
+      "existence_confirmed": true,
+      "execution_status": "resume_existing_run_pass; past_date_runtime_followup_2_expanded_failed_exit_1; passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "同run未完分のみ再開、新launch実採番、過去履歴保持、unknownはunknownのまま。前回error履歴を保持し回復成功したoperationだけactive error解除、未回復はactiveのまま。最終error_count0は全対象operationの実回復に基づく。代替補充の実commitで不足影響が回復した場合も元FAIL履歴を残し相関付きで当該active影響だけ解除; a direct production runtime call for a past date must reject creating a new run.",
+      "expected_state": "自動既定/1cycle有限retry維持、commit済再生成0、needed cycleのみ正式API生成; no new run row for a past target date when no existing run is present.",
+      "forbidden_effects": "cause-resolved偽装/過去launch終端書換え/失敗履歴消去0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C25/result.md",
+      "review_followup": "Independent review found coverage gap; retain test result and repair before final acceptance."
     },
     {
       "case_id": "C26",
@@ -1257,28 +1555,126 @@
       "node_kind": "operational",
       "node_or_method": "登録済みStart-ScheduledTask、再開は実装後の正式launcher引数付起動。pytest nodeなし",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
+      "execution_status": "same_run_resume_0e933b2d1d4549478e2e599cb518377a_failed_attempt20_committed0; timeout10s_targeted_fixture_green; v1_15_final_regression_pending; same_run_retry_pending",
       "expected_output": "daily/overall complete、15件、従来正常exit0、全商品HTML/OCR/ref/指示が実AI jobへ到達",
       "expected_state": "error_count0/primary_errorなし、metrics observed、export/preservation/end_backup ready、monthly_restore ready|already_checked。全成功images削除/page/ocr保持/不採用folder残存0、正式OCR runtime読込。正常error_count0は未回復active影響0を実操作/補充commitで立証し、過去FAIL/cause unknownは別履歴保持",
-      "forbidden_effects": "probe/status/launcher.completeだけの代用、本番payload公開、他人process kill0、旧LastTaskResult0/別日結果の再利用0"
+      "forbidden_effects": "probe/status/launcher.completeだけの代用、本番payload公開、他人process kill0、旧LastTaskResult0/別日結果の再利用0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C26/result.md; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2021.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-e2fa12bedd5a443cb1bc0553a9565655.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2011.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2036.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-0e933b2d1d4549478e2e599cb518377a.json; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2035.json; worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.15-20261023.json"
     },
     {
       "case_id": "C27",
       "requirement_ids": [
         "R15",
-        "R16"
+        "R16",
+        "R17"
       ],
       "step_ids": [
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10",
         "STEP11"
       ],
-      "name": "計画構造/対応/未実施状態/Git所有差分を確認",
-      "node_kind": "document",
-      "node_or_method": "PowerShell ConvertFrom-Json/Select-String、親の構造validatorとgit status/diff（実施可能な文書検証）",
+      "name": "改訂計画/実行状態/所有差分とGit結果を確認",
+      "node_kind": "document_and_pytest",
+      "node_or_method": "PowerShell JSON/document validator; read-only production status and process identity; git status/diff (document and operations evidence, no pytest node); tests_inago/test_daily_pipeline_safe_diagnostics.py::test_exception_frames_have_bounded_node_and_frame_totals; tests_inago/test_maintenance_daily_retry_routing.py::test_failure_diagnostic_marks_launcher_frame_truncation; tests_inago/test_step21_browser.py::test_product_capture_error_trace_keeps_only_safe_internal_location",
       "existence_confirmed": false,
-      "execution_status": "not_performed",
-      "expected_output": "計画のみの状態、仮IDなし、全対応漏れ0、成功Git実値/失敗理由を報告",
-      "expected_state": "source_run_id/job/launch=null、製品/試験/DB/Scheduler未変更、今回所有3fileのみ",
-      "forbidden_effects": "既存private追加/Secret/force/reset/checkout0"
+      "execution_status": "focused_v1_12_diagnostic_nodes_3_passed_included_in_5_test_batch_2_35s_exit_0; node_check_exit_0; final_regression_pending",
+      "expected_output": "Distinguish the initial plan request from the later explicitly authorized implementation, tests, Scheduler change, and formal run; retain verified source_run_id/source_launch_id; report mappings and actual Git outcome. Python exception diagnostics are capped at 12 nodes/8 safe frames each and 96 total; launcher marks truncation when input exceeds 96; JS reports only allowlisted adapter module/function/line and excludes messages/full stack/absolute paths.",
+      "expected_state": "job_id/incident_id remain null; source_run_id/source_launch_id match formal records; product/test/Scheduler/DB changes are represented accurately; stage only task-owned files.",
+      "forbidden_effects": "既存private追加/Secret/force/reset/checkout0",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/test.md; worklogs/projects/implementation/product-page-inputs-20261023/code-review.md; worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-1924.json"
+    },
+    {
+      "case_id": "C28",
+      "requirement_ids": [
+        "R17"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "name": "ROOM検索語の分岐（Trends生関連語hitあり／なし）",
+      "node_kind": "pytest",
+      "node_or_method": "tests_inago/test_theme_query_components.py::test_component_snapshot_feeds_key_and_room_without_changing_raw_words; tests_inago/test_theme_query_components.py::test_raw_trends_hits_with_no_key_selection_do_not_use_query_fallback; tests_inago/test_theme_query_components.py::test_compound_query_is_saved_and_reused_as_theme_fallback; tests_inago/test_theme_query_components.py::test_compound_theme_fallback_uses_exact_trends_parent_query; tests_inago/test_theme_query_components.py::test_failed_component_acquisition_uses_trends_query_fallback; tests_inago/test_theme_query_components.py::test_existing_full_theme_query_remains_usable_on_resume",
+      "existence_confirmed": true,
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "Trends生関連語hitありではKEY後のraw related taskのみ。KEY後zeroでもfallback/taskなし。Trends生関連語hit zero/exhaustedのみ、taskが1件でtrends_acquisition.query_wordと一致。",
+      "expected_state": "related raw snapshot、fallback状態、task orderと保存queryの一致。fixture DB内に限り検証。",
+      "forbidden_effects": "複合テーマ全構成語への分割、relatedあり時の親fallback、raw related語の変換",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C28/result.md",
+      "purpose": "fallback条件はKEY選別後の件数でなくTrends生関連語hitの有無。Trends hitがあればKEY後のraw選択語だけをROOM検索し、KEY後zeroでもfallbackしない。Trends hit zeroの場合に限り、実際のquery_wordへ戻す。"
+    },
+    {
+      "case_id": "C29",
+      "requirement_ids": [
+        "R12",
+        "R17"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "name": "同一run再開時の旧ROOM fallback task補正",
+      "node_kind": "pytest",
+      "node_or_method": "tests_inago/test_theme_query_components.py::test_resume_migrates_legacy_fallback_plan_and_task_to_saved_trends_query; tests_inago/test_theme_query_components.py::test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_queries_exist; tests_inago/test_theme_query_components.py::test_resume_removes_legacy_parent_fallback_when_raw_hits_have_no_key_selection; tests_inago/test_step13.py::test_search_task_uses_fresh_attempt_after_saved_query_changes; tests_inago/test_step13.py::test_search_task_stops_after_three_compatible_attempts",
+      "existence_confirmed": true,
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "expected_output": "生関連語hitなしではlegacy fallbackを保存済みquery_wordへ補正。生hitありではKEY後raw taskだけを保持し旧parent fallbackを除去。KEY selected=0でも同じく除去。 Query-mismatched historical attempt is not passed to result processing, its row remains unchanged, fresh retry_of is null, and at most three compatible attempts run.",
+      "expected_state": "run_id/cursor/processed task・attempt/handled/selected/committed/draft集合を保持。task/query補正は冪等。",
+      "forbidden_effects": "新run、既commit投稿再生成、processed task再追加、履歴削除、テーマ全構成語への分割",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C29/result.md; worklogs/projects/implementation/product-page-inputs-20261023/test.md",
+      "purpose": "旧checkpoint migrationでもTrends生hit有無を分岐条件にし、KEY後0件を生hitなしと混同しない。",
+      "review_followup": "v1.5 independent review F2 addressed with a dedicated resume fixture: raw snapshot non-empty, KEY selection empty, legacy pending parent fallback present."
+    },
+    {
+      "case_id": "C30",
+      "step_ids": [
+        "STEP02",
+        "STEP08",
+        "STEP09"
+      ],
+      "name": "Direct saved product URL capture retry",
+      "node_or_method": "tests_inago/test_step21_browser.py::test_product_page_can_be_recaptured_without_repeating_room_search; tests_inago/test_product_page_capture.py::test_failed_capture_can_be_retried_and_replaced_by_a_complete_page",
+      "execution_status": "focused_nodes_passed; final_regression_passed",
+      "expected_output": "Playwright captures the exact product page from its saved URL; a previous capture_failed artifact can be replaced by a captured page.",
+      "expected_state": "The page_ref and run/shop/item identity match; the captured page is reused on subsequent calls.",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C30/result.md",
+      "purpose": "Retry the failed product-page operation without repeating a full ROOM search.",
+      "requirement_ids": [
+        "R19",
+        "R15"
+      ],
+      "node_kind": "pytest",
+      "existence_confirmed": true,
+      "forbidden_effects": "No ROOM re-search, new daily run, mismatched artifact identity, or OCR/copy from an uncaptured page."
+    },
+    {
+      "case_id": "C31",
+      "step_ids": [
+        "STEP03",
+        "STEP08",
+        "STEP09",
+        "STEP10"
+      ],
+      "name": "Resume same run from saved candidates",
+      "node_or_method": "tests_inago/test_product_page_selection.py::test_resume_recaptures_failed_selected_page_without_room_search; tests_inago/test_product_page_selection.py::test_resume_selects_a_recaptured_eligible_candidate_without_room_search",
+      "execution_status": "focused_nodes_passed; final_regression_passed",
+      "expected_output": "Recover failed selected entries and refill only required slots from persisted eligible ROOM candidates.",
+      "expected_state": "Same run ID and saved source identity continue into OCR/copy after exact product-page capture; ROOM search is not repeated for recovered attempts.",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/cases/C31/result.md; formal-run-status-20261024-020642.json",
+      "purpose": "Restore progress on the already-authorized 2026-10-23 formal run while preserving prior attempt and selection history.",
+      "requirement_ids": [
+        "R19",
+        "R15"
+      ],
+      "node_kind": "pytest",
+      "existence_confirmed": true,
+      "forbidden_effects": "No ROOM re-search, new daily run, mismatched artifact identity, or OCR/copy from an uncaptured page."
     }
   ],
   "existing_regression_nodes": [
@@ -1286,156 +1682,660 @@
       "id": "REG01",
       "node": "tests_inago/test_step24_copy_spec_factory.py::test_copy_spec_factory_includes_every_fact_evidence_reference",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG02",
       "node": "tests_inago/test_step23_08_copy_flow.py::test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG03",
       "node": "tests_inago/test_step13.py::test_three_theme_five_each_completes_15_and_starts_metrics_immediately",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG04",
-      "node": "tests_inago/test_step13.py::test_order_is_related_then_theme_fallback_and_all_untried_themes",
+      "node": "tests_inago/test_step13.py::test_related_queries_are_used_without_parent_fallback_for_all_untried_themes",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "current_selector_focused_red_1_failed_exit_1_final_regression_pending; historical_alias_passed_in_initial_49_expanded_run",
+      "historical_node": "tests_inago/test_step13.py::test_order_is_related_then_theme_fallback_and_all_untried_themes",
+      "historical_status": "passed_in_initial_final_regression_49_expanded_tests; historical expectation only, not evidence for current related-only expectation",
+      "current_selector": "tests_inago/test_step13.py::test_related_queries_are_used_without_parent_fallback_for_all_untried_themes",
+      "evidence_reference": "worklogs/projects/implementation/product-page-inputs-20261023/test.md"
     },
     {
       "id": "REG05",
       "node": "tests_inago/test_step13.py::test_fourteen_committed_bodies_resume_same_run_seed_and_search_results",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG06",
       "node": "tests_inago/test_daily_live_limits.py::test_new_daily_searches_take_twenty_five_rows",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG07",
       "node": "tests_inago/test_daily_live_limits.py::test_browser_stops_product_resolution_at_twenty_five",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG08",
       "node": "tests_inago/test_step21_selection.py::test_products_with_null_likes_use_first_post_and_acquisition_order",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG09",
       "node": "tests_inago/test_step21_selection.py::test_posted_pending_and_reserved_exclusions_survive_numeric_likes_removal",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG10",
       "node": "tests_inago/test_step23_12_daily_e2e.py::test_scheduler_composition_commits_fifteen_copies_and_exports_final_state",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG11",
       "node": "tests_inago/test_step23_12_daily_e2e.py::test_observed_zero_supply_is_a_shortfall_with_an_empty_day_html",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG12",
       "node": "tests_inago/test_step23_12_daily_e2e.py::test_copy_save_failure_rolls_back_draft_and_reservation",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG13",
       "node": "tests_inago/test_step23_12_daily_e2e.py::test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG14",
       "node": "tests_inago/test_daily_fix_pipeline.py::test_manual_production_daily_runs_before_scheduled_hour",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG15",
       "node": "tests_inago/test_daily_fix_pipeline.py::test_confirmed_recovery_keeps_error_history_without_replaying_drafts",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG16",
       "node": "tests_inago/test_daily_fix_pipeline.py::test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally",
       "confirmed_by": "planner_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG17",
       "node": "tests_inago/test_step24_production.py::test_task_templates_bind_daily_and_human_api_to_safe_modes",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG18",
       "node": "tests_inago/test_step24_production.py::test_task_registration_uses_repository_python_without_acl_or_installer",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG19",
       "node": "tests_inago/test_step24_production.py::test_production_daily_does_not_start_before_first_1300_boundary",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG20",
       "node": "tests_inago/test_step24_production.py::test_production_daily_startwhenavailable_does_not_run_before_1300_next_day",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG21",
       "node": "tests_inago/test_maintenance_completion.py::test_success_result_requires_matching_target_and_run_identity",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG22",
       "node": "tests_inago/test_maintenance_completion.py::test_inconsistent_daily_summary_cannot_return_scheduler_success",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG23",
       "node": "tests_inago/test_maintenance_completion.py::test_failed_child_result_cannot_keep_complete_summary",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     },
     {
       "id": "REG24",
       "node": "tests_inago/test_maintenance_completion.py::test_daily_child_pid_is_recorded_and_process_is_joined",
       "confirmed_by": "parent_source_read",
-      "execution_status": "not_performed"
+      "execution_status": "passed_in_final_regression_49_total"
     }
   ],
-  "node_policy": "plannedおよびplanned_real_engineは新設予定で現在存在未確認。作成後にcollect確認。operational/procedure/documentはpytest nodeなし。既存完全nodeはソース確認済み、実行未実施。 既存一覧は関数selectorでparametrize全variantを対象とし、実行時collect-only展開の完全nodeをmanifest保存。今回collect未実施。",
+  "node_policy": "Initial plan regression had 46 selectors/49 expanded tests. Versions v1.11–v1.19 are historical. Current v1.20 has 74 selectors/78 expanded tests; collect-only collected 78 in 1.81s and all 78 passed in 167.62s, exit0. Manifest has 45 source/test file hashes, aggregate c0c1dd316587215b06f2adccb33f6efa1949494a7d45269e86dcf8f107996773. The official daily run is separate: same target run attempt37 is healthy/advancing with committed0 as of 22:24:59 JST.",
   "review": {
-    "status": "reviewed_no_remaining_findings",
-    "remaining_findings": 0,
+    "status": "v1_20_final_recheck_approved_no_remaining_findings_non_gating",
+    "initial_outcome": "changes_requested",
+    "initial_finding_count": 5,
+    "remaining_findings": "None after independent final recheck.",
+    "latest_review_delivery": "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review-v1.20-result.md",
     "review_refs": [
-      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.md",
-      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.json"
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review-v1.12-result.md",
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review-v1.13-result.md",
+      "worklogs/projects/implementation/product-page-inputs-20261023/code-review.md",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-53dfe63734c14e0bbec3e7117c9841af.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2001.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-e2fa12bedd5a443cb1bc0553a9565655.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2021.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2011.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-launch-failure-0e933b2d1d4549478e2e599cb518377a.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2035.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/test.md",
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review-v1.20-result.md",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2224.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.20-20261023.json"
     ],
-    "technical_content_observed_at": "2026-10-23T12:04:09+09:00",
-    "post_review_changes": "機械確認/review実施/計画完成の記録metadata追記のみ"
-  }
+    "technical_content_observed_at": "2026-10-23T22:24:59+09:00",
+    "pending_version": "1.20",
+    "reviewed_version": "1.20",
+    "v1_20_scope": "Synchronize current run attempt36/37 identity and status, remove regression/review as gates for already-authorized same-run continuation, set current planned regression fields to 74 selectors/78 tests/78 pass, and register this review result. Independent recheck pending; non-gating.",
+    "post_review_changes": "Parent applied all five initial synchronization findings; result recorded in review-v1.20-result.md.",
+    "followup_round_1": {
+      "outcome": "changes_requested",
+      "finding_count": 2,
+      "findings_summary": "High: §12 incorrectly showed no active launch and a future resume; corrected to attempt37 healthy, launch ID unobserved, continue monitoring. Medium: STEP08/09 summary labels were stale v1.14/v1.13; synchronized to v1.20 regression and product-review status.",
+      "corrections_applied": true,
+      "independent_recheck_pending": true,
+      "review_is_execution_gate": false
+    },
+    "final_outcome": "APPROVED",
+    "final_recheck": {
+      "outcome": "APPROVED",
+      "remaining_findings": 0,
+      "review_is_execution_gate": false,
+      "latest_review_delivery": "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review-v1.20-result.md"
+    }
+  },
+  "source_run_id": "INAGO-2026-10-23",
+  "source_launch_id": "f6ff67e9f7cd47bcaa83750914120929",
+  "execution_observed_at": "2026-10-24T04:28:18+09:00",
+  "followup_regression_nodes": [
+    {
+      "id": "R17-01",
+      "node": "tests_inago/test_theme_query_components.py::test_component_snapshot_feeds_key_and_room_without_changing_raw_words",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-02",
+      "node": "tests_inago/test_theme_query_components.py::test_compound_query_is_saved_and_reused_as_theme_fallback",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-03",
+      "node": "tests_inago/test_theme_query_components.py::test_compound_theme_fallback_uses_exact_trends_parent_query",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-04",
+      "node": "tests_inago/test_theme_query_components.py::test_failed_component_acquisition_uses_trends_query_fallback",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-05",
+      "node": "tests_inago/test_theme_query_components.py::test_existing_full_theme_query_remains_usable_on_resume",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_targeted_red_run"
+    },
+    {
+      "id": "R17-06",
+      "node": "tests_inago/test_theme_query_components.py::test_resume_migrates_legacy_fallback_plan_and_task_to_saved_trends_query",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-07",
+      "node": "tests_inago/test_theme_query_components.py::test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_queries_exist",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "REVIEW-01",
+      "node": "tests_inago/test_product_page_selection.py::test_capture_failed_page_is_skipped_and_replenished_before_copy",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_final_regression_65_selectors_69_tests_exit_0"
+    },
+    {
+      "id": "REVIEW-02",
+      "node": "tests_inago/test_product_page_selection.py::test_unrelated_commit_does_not_resolve_active_slot_failure",
+      "confirmed_by": "focused_test_added_and_executed",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_final_regression_65_selectors_69_tests_exit_0"
+    },
+    {
+      "id": "REVIEW-03",
+      "node": "tests_inago/test_daily_launcher_target_date.py::test_past_target_date_cannot_create_a_new_run_through_production_runtime",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_two_parameter_items_pending_product_fix"
+    },
+    {
+      "id": "REVIEW-04",
+      "node": "tests_inago/test_product_page_url_safety.py::test_private_or_mixed_dns_answers_are_rejected",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "REVIEW-05",
+      "node": "tests_inago/test_product_page_url_safety.py::test_private_redirect_is_not_requested",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "REVIEW-06",
+      "node": "tests_inago/test_product_page_url_safety.py::test_non_image_response_is_not_accepted_as_a_download",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-08",
+      "node": "tests_inago/test_theme_query_components.py::test_raw_trends_hits_with_no_key_selection_do_not_use_query_fallback",
+      "confirmed_by": "parent_test_file_read",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_pending_product_fix"
+    },
+    {
+      "id": "R17-09",
+      "node": "tests_inago/test_theme_query_components.py::test_resume_removes_legacy_parent_fallback_when_raw_hits_have_no_key_selection",
+      "confirmed_by": "test_source_read_and_focused_run",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_1_failed_0.83s_exit_1_pending_product_fix"
+    },
+    {
+      "id": "ROOM-STALL-01",
+      "node": "tests_inago/test_step21_browser.py::test_room_zero_result_message_from_live_screen_terminates_search",
+      "confirmed_by": "user_screenshot_existing_focused_red_and_read_only_formal_run_diagnosis",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_1_failed_5.77s_exit_1_pending_product_fix"
+    },
+    {
+      "id": "ROOM-STALL-02",
+      "node": "tests_inago/test_step21_browser.py::test_zero_result_without_known_end_marker_returns_incomplete_search_after_bounded_no_progress",
+      "confirmed_by": "focused_no_deadline_browser_test_with_fixture_only_cancellation_guard",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "red_observed_1_failed_16.36s_exit_1_fixture_cancel_guard_fired_no_progress_assertion_not_reached"
+    },
+    {
+      "id": "REVIEW-07",
+      "node": "tests_inago/test_product_page_selection.py::test_resume_rejects_legacy_selected_checkpoint_with_capture_failed_page",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_final_regression_65_selectors_69_tests_exit_0"
+    },
+    {
+      "id": "REVIEW-08",
+      "node": "tests_inago/test_product_page_selection.py::test_replacement_slots_and_commits_require_matching_theme",
+      "confirmed_by": "independent_product_review_followup",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_final_regression_65_selectors_69_tests_exit_0"
+    },
+    {
+      "id": "DIAG-01",
+      "node": "tests_inago/test_daily_pipeline_safe_diagnostics.py::test_exception_frames_have_bounded_node_and_frame_totals",
+      "confirmed_by": "focused_v1_12_diagnostic_batch",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_5_test_batch_2_35s_exit_0_final_regression_pending"
+    },
+    {
+      "id": "DIAG-02",
+      "node": "tests_inago/test_maintenance_daily_retry_routing.py::test_failure_diagnostic_marks_launcher_frame_truncation",
+      "confirmed_by": "focused_v1_12_diagnostic_batch",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_5_test_batch_2_35s_exit_0_final_regression_pending"
+    },
+    {
+      "id": "RESUME-01",
+      "node": "tests_inago/test_step13.py::test_search_task_uses_fresh_attempt_after_saved_query_changes",
+      "confirmed_by": "focused_v1_12_diagnostic_batch",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_5_test_batch_2_35s_exit_0_final_regression_pending"
+    },
+    {
+      "id": "RESUME-02",
+      "node": "tests_inago/test_step13.py::test_search_task_stops_after_three_compatible_attempts",
+      "confirmed_by": "focused_v1_12_diagnostic_batch",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_5_test_batch_2_35s_exit_0_final_regression_pending"
+    },
+    {
+      "id": "CAPTURE-TRACE-01",
+      "node": "tests_inago/test_step21_browser.py::test_product_capture_error_trace_keeps_only_safe_internal_location",
+      "confirmed_by": "focused_v1_12_diagnostic_batch",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "passed_in_5_test_batch_2_35s_exit_0_final_regression_pending"
+    },
+    {
+      "id": "CAPTURE-TRACE-02",
+      "node": "tests_inago/test_daily_fix_trace.py::test_public_source_failure_location_reaches_trace_event",
+      "confirmed_by": "trace-forwarding-fix-and-focused-test",
+      "execution_status": "passed_in_v1_13_final_regression_75_tests",
+      "historical_execution_status": "focused_pass_2_tests_2.50s_exit_0; v1_13_final_regression_running"
+    },
+    "tests_inago/test_step21_browser.py::test_product_page_can_be_recaptured_without_repeating_room_search",
+    "tests_inago/test_product_page_capture.py::test_failed_capture_can_be_retried_and_replaced_by_a_complete_page",
+    "tests_inago/test_product_page_selection.py::test_resume_recaptures_failed_selected_page_without_room_search",
+    "tests_inago/test_product_page_selection.py::test_resume_selects_a_recaptured_eligible_candidate_without_room_search"
+  ],
+  "planned_regression_selector_count": 86,
+  "initial_regression_selector_count": 46,
+  "followup_selector_count": 86,
+  "mechanical_checks": {
+    "performed": true,
+    "version": "1.27",
+    "status": "PASS_V1_27_FINAL_REGRESSION",
+    "exit_code": 0,
+    "structural_review": "Independent v1.13 plan recheck returned one HIGH and two MEDIUM synchronization findings; corrections are in progress. Review remains non-gating.",
+    "prior_v1_11_mechanical_checks": {
+      "performed": true,
+      "version": "1.11",
+      "status": "PASS",
+      "exit_code": 0,
+      "structural_reciprocal_validator": "PASS: 15 sections; 11 STEP x14; 29 CASE x12; 17 requirements/24 facts/24 evidence; reciprocal links complete; 65 unique selectors; 0 errors.",
+      "powershell_static_parse": "PASS: System.Management.Automation.Language.Parser, 4 fenced PowerShell blocks, 0 parse errors, exit 0; commands not executed.",
+      "planned_regression_collect_only": {
+        "selectors": 65,
+        "tests_collected": 69,
+        "elapsed_seconds": 1.66,
+        "exit_code": 0,
+        "status": "PASS"
+      },
+      "prior_intermediate_collection": {
+        "selectors": 62,
+        "tests_collected": 66,
+        "elapsed_seconds": 1.59,
+        "exit_code": 0,
+        "superseded_after_ROOM_STALL_02_added": true
+      },
+      "final_regression": "PASS: 65 selectors; 69 expanded tests passed in 136.10s; exit 0; source/test manifest final-regression-v1.11-20261023.json."
+    },
+    "planned_regression_collect_only": {
+      "selectors": 74,
+      "tests_collected": 78,
+      "elapsed_seconds": 1.81,
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    "final_regression": {
+      "status": "PASS",
+      "selectors": 74,
+      "expanded_tests": 78,
+      "passed": 78,
+      "elapsed_seconds": 167.62,
+      "exit_code": 0,
+      "manifest": "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.20-20261023.json"
+    },
+    "source_test_file_count": 45,
+    "aggregate_source_and_test_sha256": "a395b4e24a2ec1e7704eeebb5a35c4acd90266c32675fe3631274f41f1d7c52d",
+    "independent_plan_review": "Initial v1.20 review requested five synchronization corrections. They are documented and applied; independent recheck pending and non-gating.",
+    "commands_executed": {
+      "collect_only": "PowerShell extracts 71 regressionNodes from plan.md; pytest --collect-only -q @nodes",
+      "final_regression": "PowerShell extracts 71 regressionNodes from plan.md; .venv-inago/Scripts/python.exe -B -m pytest -q @nodes"
+    },
+    "newly_added_regression_selectors": [
+      "tests_inago/test_product_ocr.py::test_animated_gif_frames_are_all_decoded_and_sent_to_ocr",
+      "tests_inago/test_product_ocr.py::test_animated_gif_limits_return_explicit_error_codes",
+      "tests_inago/test_product_ocr.py::test_oversized_image_is_rejected_before_reading_or_worker_send",
+      "tests_inago/test_product_ocr.py::test_static_image_pixel_limit_is_checked_before_opencv_decode",
+      "tests_inago/test_product_ocr.py::test_unreadable_gif_returns_explicit_decode_error",
+      "tests_inago/test_product_ocr.py::test_worker_preserves_only_known_image_error_codes"
+    ],
+    "removed_regression_selectors": [],
+    "planned_regression_selector_count": 85,
+    "previous_version_selector_count": 70,
+    "plan_version": "1.27",
+    "latest_planned_regression": {
+      "plan_version": "1.27",
+      "selector_count": 86,
+      "expanded_test_count": 92,
+      "expected": "92 passed / exit 0",
+      "actual": "92 passed in 170.64s / exit 0",
+      "exit_code": 0,
+      "aggregate_source_and_test_sha256": "5c527afdb6ebff26f28ed401fc41a92c772c16be5a018939efbea0c244b6b3a8",
+      "collect_only_status": "PASSED",
+      "final_regression_status": "PASSED",
+      "manifest": "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.27-20261024.json"
+    }
+  },
+  "facts_count": 31,
+  "latest_planned_regression": {
+    "plan_version": "1.27",
+    "selector_count": 86,
+    "expanded_test_count": 92,
+    "expected": "92 passed / exit 0",
+    "actual": "92 passed in 170.64s / exit 0",
+    "exit_code": 0,
+    "aggregate_source_and_test_sha256": "5c527afdb6ebff26f28ed401fc41a92c772c16be5a018939efbea0c244b6b3a8",
+    "collect_only_status": "PASSED",
+    "final_regression_status": "PASSED",
+    "manifest": "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.27-20261024.json"
+  },
+  "initial_source_launch_id": "5cee60fd0f08468e89b1cc12177545d2",
+  "latest_resume_source_launch_id": "f6ff67e9f7cd47bcaa83750914120929",
+  "launch_id_semantics": "Latest confirmed failed resume is d365e7f4223e4ac5a96f1e78c31b9bae (attempt36, committed0). Official same-run resume is active; status at 22:33:26 shows attempt39 healthy/advancing with committed0. A new source_launch_id has not been returned; active_resume_launch_id remains null and no ID is inferred. Cause remains unresolved. Previous failed resume was a7a5e9a19f79400297d67165487bfbbe (attempt33).",
+  "last_confirmed_resume_source_launch_id": "f6ff67e9f7cd47bcaa83750914120929",
+  "active_resume_launch_id": null,
+  "previous_confirmed_resume_source_launch_id": "d365e7f4223e4ac5a96f1e78c31b9bae",
+  "previous_planned_regression": {
+    "plan_version": "1.13",
+    "selector_count": 71,
+    "expanded_test_count": 75,
+    "collect_only": {
+      "selector_count": 71,
+      "expanded_test_count": 75,
+      "elapsed_seconds": 1.32,
+      "exit_code": 0
+    },
+    "final_regression": {
+      "status": "PASS",
+      "passed": 75,
+      "elapsed_seconds": 130.58,
+      "exit_code": 0,
+      "started_at": "2026-10-23T19:48:39.002909+09:00",
+      "ended_at": "2026-10-23T19:50:49.582909+09:00"
+    },
+    "newly_added_regression_selectors": [
+      "tests_inago/test_daily_fix_trace.py::test_public_source_failure_location_reaches_trace_event"
+    ],
+    "previous_version_selector_count": 70,
+    "manifest": "worklogs/projects/implementation/product-page-inputs-20261023/final-regression-v1.13-20261023.json",
+    "source_test_file_count": 44,
+    "aggregate_source_and_test_sha256": "21bd26e6fb0c9c4df6137aa4ed9ae00a0e955c1a832340af40d0b6c7309d2e83"
+  },
+  "evidence_count": 31,
+  "requirements_count": 19,
+  "steps_count": 11,
+  "cases_count": 31,
+  "review_status": "v1.26 OCR byte preflight independent Python review: no findings; 85 selectors/91 tests passed; official same-run resume pending.",
+  "current_run_evidence": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261024-0350.json",
+  "allowed_outputs": [
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2230.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2233.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-room-trace-summary-20261023-2232.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2235.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2235.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2238.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2238.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2245.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2245.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2249.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2249.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2250.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2250.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2254.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2254.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2255.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2255.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2259.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2259.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2300.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2300.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2301.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2301.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2306.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2306.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2311.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2311.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-recovery-20261023-2311.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2314.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2314.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2316.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2316.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2317.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2317.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2319.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2319.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2321.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2321.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2322.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2322.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2323.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2323.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2326.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2326.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2327.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2327.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2330.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2330.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2340.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2340.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2341.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2341.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2344.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2344.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2345.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2345.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2346.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2346.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2349.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2349.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261023-2351.json",
+    "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-safe-observation-20261023-2351.json"
+  ],
+  "current_run_state": {
+    "source": "read_only_status_cli_and_recovery_advisory",
+    "observed_at": "2026-10-24T04:28:18+09:00",
+    "run_id": "INAGO-2026-10-23",
+    "target_date": "2026-10-23",
+    "status": "partial",
+    "reason_codes": [
+      "run_partial"
+    ],
+    "heartbeat": {
+      "status": "stale",
+      "last_updated_at": "2026-10-23T18:46:34+00:00",
+      "age_seconds": 2504,
+      "stale_after_seconds": 120,
+      "expected_interval_seconds": 30
+    },
+    "progress": {
+      "status": "stalled",
+      "last_updated_at": "2026-10-23T18:46:34+00:00",
+      "age_seconds": 2504,
+      "stalled_after_seconds": 600
+    },
+    "owner_process": {
+      "status": "missing",
+      "reason": "owner_file_missing"
+    },
+    "owner_state": "stopped",
+    "child_processes": {
+      "status": "unknown",
+      "count": null,
+      "pids": [],
+      "reason": "owner_unavailable"
+    },
+    "lock_file_present": true,
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    },
+    "attempt_used": 125,
+    "committed_count": 9,
+    "finished_at": "2026-10-24T03:46:33.746506+09:00",
+    "recovery_advisory": {
+      "run_id": "INAGO-2026-10-23",
+      "action": "resume_remaining",
+      "reason_code": "same_run_remaining_work",
+      "preserved": {
+        "run_id": "INAGO-2026-10-23",
+        "target_date": "2026-10-23",
+        "settings_version": "confirmed-0.3-step46-all132",
+        "search_attempts": 125,
+        "unfinished_generation_attempts": {},
+        "committed_count": 9,
+        "run_status": "partial",
+        "metrics_pending": false,
+        "seed_preserved": true,
+        "draft_deadline": null,
+        "end_deadline": null
+      },
+      "allowed": {
+        "search": true,
+        "generation": true,
+        "metrics": true,
+        "saved_export": true,
+        "report_intake": true,
+        "kill_process": false,
+        "release_lock": false,
+        "restore_database": false,
+        "send_notification": false
+      },
+      "execution_requested": false,
+      "cause_resolved_observed": true
+    },
+    "daily_launcher_process_scan": {
+      "observed_at": "2026-10-24T04:28:19.5740638+09:00",
+      "excluded_current_powershell_pid": 14012,
+      "count": 0,
+      "pids": []
+    },
+    "evidence_refs": [
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261024-0427.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-recovery-20261024-0427.json",
+      "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-process-scan-20261024-0427.json"
+    ],
+    "interpretation": "The same official 2026-10-23 run is partial after attempt 125 with 9 committed items. Its owner is stopped, a lock remains, and recovery advises resume_remaining. The cause-resolved claim is supported by an isolated successful replay of the exact failed GIF after the OCR fix. No execution was started by the status/recovery commands."
+  },
+  "active_source_launch_id": null
 }

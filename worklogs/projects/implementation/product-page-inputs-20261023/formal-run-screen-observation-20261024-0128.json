@@ -1,0 +1,14 @@
+{
+  "schema_version": "inago-live-room-query-observation-v1",
+  "observed_at": "2026-10-24T01:28:27+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source": "run-generated ROOM observation snapshot plus safe trace summary",
+  "snapshot_ref": "runtime/observations/room-3d3cdf93635557ac986924449cca5ea9-observation-8031a103-84bc-48eb-9dce-a956fb94f2f6.json",
+  "query": "学び ポケット",
+  "query_kind": "related",
+  "request_query_matches_response_query": true,
+  "result_signal": "ROOM trace ended with stable_no_progress and no identified rows",
+  "live_screenshot_captured": false,
+  "screenshot_limitation": "The run-owned Chrome was not exposed as a CUA browser tab and used remote-debugging-pipe; no supported live-tab screenshot was available.",
+  "interpretation": "This is a Trends-related query phrase, not the one-word theme fallback. The empty result does not establish a timeout."
+}

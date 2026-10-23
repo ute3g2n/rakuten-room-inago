@@ -1,0 +1,18 @@
+{
+  "total_validated_events": 2033,
+  "retry_window_event_count": 3,
+  "retry_window_start": "2026-10-23T21:30:28.974+09:00",
+  "retry_window_end": "2026-10-23T21:30:31.782+09:00",
+  "room_request": 1,
+  "room_condition_search_submit_complete": 0,
+  "room_list_no_progress": 0,
+  "room_search_incomplete": 0,
+  "end_evidence_counts": {},
+  "room_results_complete": 0,
+  "product_page_operations": 0,
+  "operations": {
+    "retention": 2,
+    "room_request": 1
+  },
+  "raw_trace_written": false
+}

@@ -1,0 +1,144 @@
+{
+  "schema_version": "inago-failed-run-trace-window-v1",
+  "run_id": "INAGO-2026-10-23",
+  "window_started_at": "2026-10-24T04:30:01.779758+09:00",
+  "window_event_count": 13,
+  "events": [
+    {
+      "at": "2026-10-24T04:30:05.803+09:00",
+      "component": "public_source",
+      "operation": "product_page_request",
+      "phase": "begin",
+      "elapsed_ms": 0,
+      "active_stage": "product_page_request",
+      "event_kind": "stage"
+    },
+    {
+      "at": "2026-10-24T04:30:05.806+09:00",
+      "component": "public_source",
+      "operation": "browser_persistent_launch_begin",
+      "phase": "begin",
+      "elapsed_ms": 3,
+      "active_stage": "browser_persistent_launch_begin",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:06.222+09:00",
+      "component": "public_source",
+      "operation": "browser_persistent_launch_complete",
+      "phase": "end",
+      "elapsed_ms": 419,
+      "last_completed_stage": "browser_persistent_launch_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:06.223+09:00",
+      "component": "public_source",
+      "operation": "browser_page_begin",
+      "phase": "begin",
+      "elapsed_ms": 420,
+      "active_stage": "browser_page_begin",
+      "last_completed_stage": "browser_persistent_launch_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:06.261+09:00",
+      "component": "public_source",
+      "operation": "browser_page_complete",
+      "phase": "end",
+      "elapsed_ms": 458,
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:06.261+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "elapsed_ms": 458,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:07.396+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_rendered",
+      "phase": "status",
+      "elapsed_ms": 1593,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:07.718+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_saved",
+      "phase": "status",
+      "elapsed_ms": 1915,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "status": "captured",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:08.521+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "elapsed_ms": 0,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:08.527+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "elapsed_ms": 0,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "error_class": "other",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:08.533+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "elapsed_ms": 0,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:08.540+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "elapsed_ms": 0,
+      "row_index": 6,
+      "active_stage": "product_page_capture_navigation_begin",
+      "last_completed_stage": "browser_page_complete",
+      "event_kind": "source_stage"
+    },
+    {
+      "at": "2026-10-24T04:30:08.546+09:00",
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "end",
+      "elapsed_ms": 16,
+      "last_completed_stage": "product_page_capture_navigation_begin",
+      "event_kind": "stage"
+    }
+  ],
+  "raw_trace_reprinted": false,
+  "product_text_or_identifiers_reprinted": false
+}

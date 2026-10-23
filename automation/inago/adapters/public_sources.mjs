@@ -1,6 +1,7 @@
 /** Public UI only. No internal API, hidden state, credentials, CDP or stealth. */
 import { chromium } from 'playwright-core';
 import { pathToFileURL } from 'node:url';
+import { saveProductPageInputs } from './product_page_inputs.mjs';
 
 export class SourceFailure extends Error {
   constructor(code, retryAfterSeconds = null) {
@@ -23,6 +24,8 @@ const PRODUCT_NAVIGATION_TIMEOUT_MS = 60000;
 const PRODUCT_DESTINATION_TIMEOUT_MS = 30000;
 const PRODUCT_DETAIL_CLICK_TIMEOUT_MS = 15000;
 const PRODUCT_BUTTON_TIMEOUT_MS = 120000;
+// Applying ROOM filters can take longer than opening the condition sheet.
+const ROOM_CONDITION_SEARCH_CLICK_TIMEOUT_MS = 20000;
 const PRODUCT_RESOLUTION_FAILURE_LIMIT = 10;
 const TRENDS_WIDGET_SELECTOR_VERSION = 'related-widget-v5';
 let activeTrace = {stage:'startup',row_index:null};
@@ -63,7 +66,7 @@ function trace(stage, details = {}) {
   };
   const integerFields = [
     'loaded_posts','accepted_posts','row_index','body_children','stable_round',
-    'row_failure_count','identified_row_count',
+    'row_failure_count','identified_row_count','product_page_image_count',
     'search_candidate_count','visible_input_count','label_locator_match_count',
     'search_button_count','explore_button_count','period_option_count',
     'top_table_count','top_rows_count',
@@ -79,7 +82,8 @@ function trace(stage, details = {}) {
     const maximum = key === 'stable_round' ? 3 : 50;
     if (Number.isInteger(value) && value >= 0 &&
         (key !== 'row_index' || value <= 50) &&
-        (!['stable_round','row_failure_count','identified_row_count'].includes(key) || value <= maximum))
+        (!['stable_round','row_failure_count','identified_row_count'].includes(key) || value <= maximum) &&
+        (key !== 'product_page_image_count' || value <= 10000))
       safe[key] = value;
   }
   for (const key of [
@@ -96,6 +100,7 @@ function trace(stage, details = {}) {
   const enums = {
     scope:['row','query','run'],
     row_status:['identified','unresolved'],
+    page_capture_state:['captured','existing_preserved','capture_failed'],
     document_ready_state:['loading','interactive','complete'],
     phase:['card_link','preview_click','detail_button_ready','detail_button_click','product_destination_wait','popup_wait','popup_initial_url','product_navigation','product_url_parse','room_search_restore'],
     popup_url_kind:['blank','empty','rakuten_item','rakuten_other','other_https','other_scheme','invalid'],
@@ -115,13 +120,22 @@ function trace(stage, details = {}) {
     widget_kind:['related_keywords','related_topics','unknown','multiple'],
     widget_empty_evidence:['none','explicit_no_data'],
     widget_outcome:['ready','deadline','ambiguous','contract_mismatch'],
-    end_evidence:['explicit_no_results','explicit_end','stable_no_progress','first_50','row_limit'],
+    end_evidence:['explicit_no_results','explicit_end','stable_no_progress','first_50','row_limit','no_marker','unrecognized_empty'],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (allowed.includes(details[key])) safe[key] = details[key];
   }
   if (typeof details.failed_operation === 'string' && REF.test(details.failed_operation))
     safe.failed_operation = details.failed_operation;
+  if (typeof details.failure_module === 'string' &&
+      /^automation\.inago\.adapters\.[A-Za-z0-9_]{1,64}$/.test(details.failure_module))
+    safe.failure_module = details.failure_module;
+  if (typeof details.failure_function === 'string' &&
+      /^[_A-Za-z][_A-Za-z0-9.]{0,63}$/.test(details.failure_function))
+    safe.failure_function = details.failure_function;
+  if (Number.isInteger(details.failure_line) && details.failure_line >= 1 &&
+      details.failure_line <= 2**31 - 1)
+    safe.failure_line = details.failure_line;
   process.stderr.write(JSON.stringify(safe)+'\n');
   traceEventCount++;
 }
@@ -133,6 +147,25 @@ function safeThrownErrorClass(error) {
     'ProtocolError','SourceFailure',
   ]);
   return allowed.has(error?.name) ? error.name : 'other';
+}
+
+function safeThrownErrorLocation(error) {
+  if (typeof error?.stack !== 'string') return {};
+  for (const line of error.stack.split('\n').slice(0, 32)) {
+    if (line.length > 2048) continue;
+    const match = /(?:^|[\\/])automation[\\/]inago[\\/]adapters[\\/]([A-Za-z0-9_-]{1,64})\.mjs:(\d+):\d+/.exec(line);
+    if (!match) continue;
+    const failureLine = Number(match[2]);
+    if (!Number.isSafeInteger(failureLine) || failureLine < 1 || failureLine > 2**31 - 1)
+      continue;
+    const functionMatch = /^\s*at\s+(?:async\s+)?([_A-Za-z][_A-Za-z0-9.]{0,63})\s+\(/.exec(line);
+    return {
+      failure_module: `automation.inago.adapters.${match[1].replace(/-/g, '_')}`,
+      failure_function: functionMatch?.[1] ?? 'unknown',
+      failure_line: failureLine,
+    };
+  }
+  return {};
 }
 
 function safeNetworkCode(error) {
@@ -280,7 +313,7 @@ function flushBrowserDiagnostics() {
 
 function validateInput(input) {
   const { config, request, kind } = input ?? {};
-  if (!['room', 'trends'].includes(kind) || !request || !config ||
+  if (!['room', 'trends', 'product_page'].includes(kind) || !request || !config ||
       !['fixture', 'public_ui'].includes(config.environment) ||
       typeof config.chrome_executable !== 'string' ||
       typeof config.headless !== 'boolean' ||
@@ -303,19 +336,28 @@ function validateInput(input) {
          (config.environment !== 'fixture' && config[key] !== 0))) ||
       (!(kind === 'room' && config.timeout_seconds === null) &&
         (!Number.isFinite(config.timeout_seconds) || config.timeout_seconds < 1 || config.timeout_seconds > MAX_SOURCE_TIMEOUT_SECONDS)) ||
-      !REF.test(request.run_id) || typeof (request.query ?? request.parent_word) !== 'string' ||
-      !(request.query ?? request.parent_word).trim()) throw new SourceFailure('invalid_request');
+      !REF.test(request.run_id)) throw new SourceFailure('invalid_request');
   if (config.environment === 'fixture') {
     const url = new URL(config.fixture_url);
     if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
         url.username || url.password) throw new SourceFailure('invalid_fixture_endpoint');
   } else if (config.fixture_url != null) throw new SourceFailure('invalid_fixture_endpoint');
   if (kind === 'room') {
-    if (!REF.test(request.attempt_id) || request.likes_min !== 300 ||
+    if (!REF.test(request.attempt_id) || typeof request.query !== 'string' || !request.query.trim() || request.likes_min !== 300 ||
         !Number.isInteger(request.max_posts) || request.max_posts < 1 || request.max_posts > 50 ||
         !['related', 'theme_fallback'].includes(request.level) || request.query_kind !== request.level)
       throw new SourceFailure('invalid_request');
+  } else if (kind === 'product_page') {
+    const product = productIds(request.item_url);
+    if (!REF.test(request.request_id) || !REF.test(request.attempt_id) ||
+        !REF.test(request.shop_id) || !REF.test(request.item_id) ||
+        !Number.isInteger(request.row_index) || request.row_index < 1 || request.row_index > 50 ||
+        !product || product.shop !== request.shop_id || product.item !== request.item_id ||
+        typeof config.product_page_root !== 'string' || !config.product_page_root)
+      throw new SourceFailure('invalid_request');
   } else if (!REF.test(request.request_id) || !REF.test(request.settings_version) ||
+             typeof (request.parent_word ?? request.query) !== 'string' ||
+             !(request.parent_word ?? request.query).trim() ||
              request.range !== '3m' || request.geo !== 'JP' || request.language !== 'ja' ||
              request.search_type !== 'web' || request.list_type !== 'Top') throw new SourceFailure('invalid_request');
 }
@@ -396,7 +438,7 @@ function popupUrlMetadata(page) {
   }
 }
 
-async function resolveProduct(page, card, check, deadline, access, rowIndex, config) {
+async function resolveProduct(page, card, check, deadline, access, rowIndex, config, request) {
   let popup;
   let sameTabNavigation = false;
   let destinationMonitor;
@@ -728,6 +770,26 @@ async function resolveProduct(page, card, check, deadline, access, rowIndex, con
       scope:'row',
       row_status:product ? 'identified' : 'unresolved',
     });
+    if (product && config.product_page_root) {
+      try {
+        product.page_capture = await saveProductPageInputs({
+          page: productPage, product, request, rowIndex, config,
+        });
+        trace('room_product_inputs_saved', {
+          ...detail,
+          page_capture_state: product.page_capture.state,
+          product_page_image_count: product.page_capture.image_count,
+        });
+      } catch (error) {
+        product.page_capture = { page_ref: null, state: 'capture_failed', image_count: 0 };
+        trace('room_product_inputs_capture_error', {
+          ...detail,
+          error_class: safeThrownErrorClass(error),
+          failed_operation: 'product_page_inputs_save',
+          ...safeThrownErrorLocation(error),
+        });
+      }
+    }
     if (
       sameTabNavigation &&
       config.environment === 'fixture' &&
@@ -1026,7 +1088,7 @@ export async function closeConditionPopup(page, popup, deadline) {
       room_condition_popup_state:initialState,
     });
     try {
-      const clickTimeout = remainingConditionTimeout(deadline,2500);
+      const clickTimeout = remainingConditionTimeout(deadline,ROOM_CONDITION_SEARCH_CLICK_TIMEOUT_MS);
       if (!clickTimeout) throw new SourceFailure('condition_popup_close_failed');
       await controls.nth(searchIndexes[0]).click({timeout:clickTimeout});
       trace('room_condition_search_submit_clicked', {
@@ -1156,9 +1218,31 @@ export async function collectRoom(page, request, config, deadline, access) {
     room_condition_close_method:closeResult.method,
   });
   const cards = page.locator('.items-search > .item');
-  const readEndMarker = () => page.evaluate(() => Array.from(document.querySelectorAll('body *')).find(e =>
-    e.children.length === 0 && !e.closest('.items-search, .item-preview') && e.getClientRects().length > 0 &&
-    /^(検索結果は以上です|検索結果がありません|該当する商品がありません|検索結果はありません)$/.test(e.textContent.trim()))?.textContent.trim() ?? null);
+  const roomEndMarkers = [
+    '検索結果は以上です','検索結果がありません','該当する商品がありません',
+    '検索結果はありません','ご指定の検索条件に該当する商品はありません。',
+  ];
+  const roomNoResultMarkers = [
+    '検索結果がありません','該当する商品がありません','検索結果はありません',
+    'ご指定の検索条件に該当する商品はありません。',
+  ];
+  const readEndMarker = () => page.evaluate(({markers,noResultMarkers,loadedPosts}) => {
+    const normalize = value => String(value ?? '').replace(/\s+/gu,'');
+    const productCardSelector = '.items-search > .item, .item-preview';
+    const markerByNormalizedText = new Map(markers.map(marker => [normalize(marker),marker]));
+    const noResultText = new Set(noResultMarkers.map(normalize));
+    for (const element of document.querySelectorAll('body *')) {
+      const marker = markerByNormalizedText.get(normalize(element.innerText ?? element.textContent));
+      const emptyStatePreview = loadedPosts === 0 && Boolean(element.closest('.item-preview')) &&
+        noResultText.has(normalize(marker));
+      if ((element.closest(productCardSelector) && !emptyStatePreview) ||
+          !element.getClientRects().length)
+        continue;
+      if (marker && (emptyStatePreview || !element.querySelector(productCardSelector)))
+        return marker;
+    }
+    return null;
+  },{markers:roomEndMarkers,noResultMarkers:roomNoResultMarkers,loadedPosts:loaded});
   let loaded = 0;
   let exhausted = false;
   let endMarker = null;
@@ -1197,9 +1281,23 @@ export async function collectRoom(page, request, config, deadline, access) {
     const before = loaded;
     const changeDeadline = Math.min(deadline, Date.now()+2000);
     try {
-      await waitDOM(page, check, n => document.querySelectorAll('.items-search > .item').length > n ||
-        Array.from(document.querySelectorAll('body *')).some(e => e.children.length === 0 && !e.closest('.items-search, .item-preview') && e.getClientRects().length &&
-          /^(検索結果は以上です|検索結果がありません|該当する商品がありません|検索結果はありません)$/.test(e.textContent.trim())), before, changeDeadline);
+      await waitDOM(page, check, state => {
+        const [minimumLoaded, markers, noResultMarkers] = state;
+        const normalize = value => String(value ?? '').replace(/\s+/gu,'');
+        const productCardSelector = '.items-search > .item, .item-preview';
+        const markerTexts = new Set(markers.map(normalize));
+        const noResultText = new Set(noResultMarkers.map(normalize));
+        return document.querySelectorAll('.items-search > .item').length > minimumLoaded ||
+          Array.from(document.querySelectorAll('body *')).some(element => {
+            const normalizedText = normalize(element.innerText ?? element.textContent);
+            const emptyStatePreview = minimumLoaded === 0 &&
+              Boolean(element.closest('.item-preview')) && noResultText.has(normalizedText);
+            if ((element.closest(productCardSelector) && !emptyStatePreview) ||
+                !element.getClientRects().length) return false;
+            return markerTexts.has(normalizedText) &&
+              (emptyStatePreview || !element.querySelector(productCardSelector));
+          });
+      }, [before,roomEndMarkers,roomNoResultMarkers], changeDeadline);
     } catch (error) {
       if (!(error instanceof SourceFailure) || error.code !== 'source_timeout') throw error;
       // A positive short batch ends only after three bounded scrolls add no rows.
@@ -1212,7 +1310,7 @@ export async function collectRoom(page, request, config, deadline, access) {
       stableNoProgressRounds = 0;
     } else if (exhausted) {
       break;
-    } else if (loaded > 0) {
+    } else {
       stableNoProgressRounds += 1;
       trace('room_list_no_progress', {
         scope:'query',
@@ -1230,14 +1328,19 @@ export async function collectRoom(page, request, config, deadline, access) {
       }
     }
   }
-  const explicitNoResult = new Set([
-    '検索結果がありません','該当する商品がありません','検索結果はありません',
-  ]).has(endMarker);
-  if (loaded === 0 && exhausted && !explicitNoResult)
+  const explicitNoResult = roomNoResultMarkers.includes(endMarker);
+  if (loaded === 0 && !explicitNoResult && !stableShortBatch) {
+    trace('room_search_incomplete',{
+      scope:'query',
+      loaded_posts:loaded,
+      end_evidence:endMarker === null ? 'no_marker' : 'unrecognized_empty',
+    });
     throw new SourceFailure('incomplete_search');
+  }
   if (loaded < request.max_posts && !exhausted && !stableShortBatch)
     throw new SourceFailure('incomplete_search');
-  const endEvidence = loaded === 0 ? 'explicit_no_results' :
+  const endEvidence = loaded === 0 ?
+    explicitNoResult ? 'explicit_no_results' : 'stable_no_progress' :
     exhausted ? 'explicit_end' : stableShortBatch ? 'stable_no_progress' : 'row_limit';
   trace('room_results_complete',{
     scope:'query',
@@ -1257,7 +1360,7 @@ export async function collectRoom(page, request, config, deadline, access) {
     const card = cards.nth(index);
     const name = await card.locator('.imgLink img').first().getAttribute('alt').catch(() => null);
     const image = await card.locator('.imgLink img').first().getAttribute('src').catch(() => null);
-    const ids = await resolveProduct(page, card, check, deadline, access, index+1, config);
+    const ids = await resolveProduct(page, card, check, deadline, access, index+1, config, request);
     if (!ids) productResolutionFailures += 1;
     trace('room_product_row_complete',{
       scope:'row',
@@ -1272,7 +1375,13 @@ export async function collectRoom(page, request, config, deadline, access) {
       evidence_ref: evidenceRef, observed_at: fetched, availability: ids ? 'observed' : 'unknown' });
     if (ids) facts[evidenceRef] = { offer_key: `${ids.shop}:${ids.item}`, name: name || null,
       item_url: ids.url, image_ref: image, evidence_ref: evidenceRef, observed_at: fetched,
-      origin: 'public_product_image_label' };
+      origin: 'public_product_image_label',
+      ...(ids.page_capture ? {
+        product_page_ref: ids.page_capture.page_ref,
+        product_page_state: ids.page_capture.state,
+        product_page_image_count: ids.page_capture.image_count,
+        product_page_identity: { run_id: request.run_id, shop_id: ids.shop, item_id: ids.item },
+      } : {}) };
   }
   await check();
   if (Date.now() >= deadline) throw new SourceFailure('source_timeout');
@@ -1296,6 +1405,49 @@ export async function collectRoom(page, request, config, deadline, access) {
       unused_posts: Math.max(0,loaded-posts.length), condition: { query: request.query, like: 300, comment: null,
         like_display:likeDisplay.trim(),comment_display:commentDisplay.trim() },
       end_evidence: endEvidence } };
+}
+
+export async function collectProductPage(page, request, config, deadline, access) {
+  const product = productIds(request.item_url);
+  if (!product || product.shop !== request.shop_id || product.item !== request.item_id)
+    throw new SourceFailure('invalid_request');
+  const check = guardPage(page, 'item.rakuten.co.jp', access);
+  trace('product_page_capture_navigation_begin', {
+    scope:'row', row_index:request.row_index,
+  });
+  await page.goto(request.item_url, {
+    waitUntil:'domcontentloaded',
+    timeout:Math.min(30000, Math.max(1, deadline-Date.now())),
+  });
+  await check();
+  const landed = productIds(page.url());
+  if (!landed || landed.shop !== request.shop_id || landed.item !== request.item_id)
+    throw new SourceFailure('product_page_identity_mismatch');
+  await waitDOM(page, check, () => Boolean(document.body?.children.length && document.body.innerText.trim()), null, deadline);
+  trace('product_page_capture_rendered', {
+    scope:'row', row_index:request.row_index,
+  });
+  const captured = await saveProductPageInputs({
+    page,
+    product:{...product, url:request.item_url},
+    request,
+    rowIndex:request.row_index,
+    config,
+  });
+  trace('product_page_capture_saved', {
+    scope:'row', row_index:request.row_index,
+    page_capture_state:captured.state,
+    product_page_image_count:captured.image_count,
+  });
+  return {
+    request_id:request.request_id,
+    run_id:request.run_id,
+    shop_id:request.shop_id,
+    item_id:request.item_id,
+    page_ref:captured.page_ref,
+    state:captured.state,
+    image_count:captured.image_count,
+  };
 }
 
 async function emptyEvidence(widget) {
@@ -2155,7 +2307,12 @@ export async function main(input) {
     trace('browser_page_complete');
     page.setDefaultTimeout(Math.min(10000,timeoutMs));
     page.setDefaultNavigationTimeout(Math.min(30000,timeoutMs));
-    return await (kind === 'room' ? collectRoom(page,request,config,deadline,access) : collectTrends(page,request,config,deadline,access));
+    if (kind === 'room') return await collectRoom(page,request,config,deadline,access);
+    if (kind === 'product_page') {
+      const response = await collectProductPage(page,request,config,deadline,access);
+      return {response,product_facts:{},diagnostics:{source:'public_dom'}};
+    }
+    return await collectTrends(page,request,config,deadline,access);
   } catch (error) {
     // A later DOM/navigation timeout must not erase an already observed denial.
     if (access.code) throw new SourceFailure(access.code, access.retryAfterSeconds);

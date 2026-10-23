@@ -1,0 +1,65 @@
+{
+  "schema_version": "formal-run-launch-failure-v1",
+  "source_launch_id": "53dfe63734c14e0bbec3e7117c9841af",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "completed_at": "2026-10-23T20:00:47.182174+09:00",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "overall_status": "failed",
+  "daily_status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_error_class": "product_page_capture_failed",
+  "secondary_error_classes": [
+    "step13_error_RoomContractError",
+    "step13_error_DailyOrchestrationError",
+    "step13_error_DailyOrchestrationError",
+    "step13_error_DailyOrchestrationError",
+    "step13_error_DailyOrchestrationError",
+    "step13_error_DailyOrchestrationError",
+    "product_page_capture_failed",
+    "product_page_capture_failed",
+    "product_page_capture_failed",
+    "product_page_capture_failed"
+  ],
+  "failure_diagnostic": {
+    "trace_status": "healthy",
+    "secondary_frames": [
+      {
+        "exception_class": "DailyOrchestrationError",
+        "module": "automation.inago.orchestrator",
+        "function": "run_daily",
+        "line": 4866,
+        "path": "automation/inago/orchestrator.py"
+      },
+      {
+        "exception_class": "DailyOrchestrationError",
+        "module": "automation.inago.orchestrator",
+        "function": "unknown",
+        "line": 4126,
+        "path": "automation/inago/orchestrator.py"
+      }
+    ]
+  },
+  "safe_trace_summary": {
+    "reader": "automation.inago.trace.read_trace_events",
+    "bounded_event_count": 1427,
+    "capture_error_events_total_in_run_trace": 38,
+    "capture_error_class_counts_total_in_run_trace": {
+      "ReferenceError": 19,
+      "other": 8,
+      "missing_or_unclassified": 11
+    },
+    "capture_error_safe_location_fields_present": 0,
+    "latest_retry_window": "2026-10-23T19:56:00+09:00 to 2026-10-23T20:00:46+09:00",
+    "latest_retry_window_events": 182,
+    "latest_retry_window_room_condition_search_submit_error": 3,
+    "latest_retry_window_room_list_no_progress": 9,
+    "latest_retry_window_incomplete_search_failures": 3,
+    "latest_retry_window_product_page_capture_events": 0
+  },
+  "fresh_read_only_observation": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-read-only-observation-20261023-2001.json",
+  "notes": "Safe module/function/line were not present in stored capture-error trace events despite the v1.13 trace-forwarding fix. The new retry did not reach product capture; the latest recorded ROOM search attempts timed out or made no progress, then failed as incomplete_search. Cause is not yet established. No product/OCR body, URL, raw trace, or private runtime body is included."
+}

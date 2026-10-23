@@ -1,0 +1,21 @@
+{
+  "schema_version": "safe-trace-summary-v1",
+  "summarized_at": "2026-10-23T20:21:00+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source_launch_id": "e2fa12bedd5a443cb1bc0553a9565655",
+  "reader": "automation.inago.trace.read_trace_events (bounded summary)",
+  "raw_trace_written": false,
+  "trace_event_count": 1645,
+  "retry_window": {
+    "approximate_start": "2026-10-23T20:10:13+09:00",
+    "approximate_end": "2026-10-23T20:11:39+09:00",
+    "event_count": 109,
+    "room_submit_timeout_errors": 3,
+    "room_zero_row_no_progress_events": 9,
+    "room_short_batch_stable_errors": 3,
+    "incomplete_search_failures": 3,
+    "product_page_capture_events": 0
+  },
+  "finding": "The retry stopped in ROOM search before product-page navigation. The official primary reason product_page_capture_failed was retained from earlier attempts. A local fixture now reproduces the screenshot's exact no-result text inside .items-search, where the previous matcher excluded it; the focused fix accepts that marker while excluding product-card and preview descendants.",
+  "privacy": "No search phrase, page text, OCR text, URL, raw trace, or private runtime body is stored."
+}

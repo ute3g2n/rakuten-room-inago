@@ -1,0 +1,21 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "source": "automation.inago.trace.read_trace_events with default bounded policy",
+  "trace_reference": "runtime/logs/traces/2026-10-23/INAGO-2026-10-23.jsonl",
+  "summarized_window_start": "2026-10-23T22:34:47.409+09:00",
+  "trace_latest_event_at": "2026-10-23T22:38:12.008+09:00",
+  "events_in_window": 65,
+  "safe_error_count": 1,
+  "safe_error_summary": {
+    "operation": "source_retry_after_observed",
+    "primary_error_code": "http_429"
+  },
+  "post_error_progress": [
+    "Trends request started and completed its normal setup stages",
+    "A new ROOM request began"
+  ],
+  "room_end_evidence_after_retry": {},
+  "product_page_events_in_window": 0,
+  "raw_html_ocr_query_or_product_text_printed": false,
+  "interpretation": "After one public-source HTTP429/retry-after observation, the same run resumed Trends and began a new ROOM request. No product-page event or commit is yet observed after retry."
+}

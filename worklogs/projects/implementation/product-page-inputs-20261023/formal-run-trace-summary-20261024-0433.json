@@ -1,0 +1,78 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "window_started_at": "2026-10-24T04:30:01+09:00",
+  "events_total": 6342,
+  "window_event_count": 13,
+  "read_failures": 0,
+  "window_counts": [
+    {
+      "component": "public_source",
+      "operation": "browser_page_begin",
+      "phase": "begin",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "browser_page_complete",
+      "phase": "end",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "browser_persistent_launch_begin",
+      "phase": "begin",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "browser_persistent_launch_complete",
+      "phase": "end",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "begin",
+      "safe_code_or_status": null,
+      "count": 5
+    },
+    {
+      "component": "public_source",
+      "operation": "product_page_capture_navigation_begin",
+      "phase": "end",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "product_page_capture_rendered",
+      "phase": "status",
+      "safe_code_or_status": null,
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "product_page_capture_saved",
+      "phase": "status",
+      "safe_code_or_status": "captured",
+      "count": 1
+    },
+    {
+      "component": "public_source",
+      "operation": "product_page_request",
+      "phase": "begin",
+      "safe_code_or_status": null,
+      "count": 1
+    }
+  ],
+  "error_event_count": 0,
+  "safe_error_events": [],
+  "raw_trace_reprinted": false,
+  "product_text_or_urls_reprinted": false
+}

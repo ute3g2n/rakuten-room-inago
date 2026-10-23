@@ -1,0 +1,43 @@
+{
+  "schema_version": "inago-run-observation-v1",
+  "source": "read_only_status_cli",
+  "observed_at": "2026-10-23T23:11:00+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": "stalled",
+  "reason_codes": [
+    "progress_stalled"
+  ],
+  "heartbeat": {
+    "status": "fresh",
+    "last_updated_at": "2026-10-23T23:10:43+09:00",
+    "age_seconds": 17
+  },
+  "progress": {
+    "status": "stalled",
+    "last_updated_at": "2026-10-23T23:00:43+09:00",
+    "age_seconds": 617,
+    "stalled_after_seconds": 600
+  },
+  "owner_process": {
+    "status": "alive",
+    "pid": 86668,
+    "process_start_time": "2026-10-23T13:24:10.579954+00:00"
+  },
+  "child_processes": {
+    "status": "observed",
+    "count": 9
+  },
+  "attempt_used": 60,
+  "committed_count": 0,
+  "finished_at": null,
+  "source_launch_id": null,
+  "source_launch_id_status": "not_returned_as_of_observation",
+  "permissions": {
+    "kill_process": false,
+    "release_lock": false,
+    "restore_database": false,
+    "send_notification": false
+  },
+  "interpretation": "Status is stalled on progress age, but the official owner is still alive and heartbeat fresh; recovery advises waiting for the owner. Do not start a second launcher."
+}

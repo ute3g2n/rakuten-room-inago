@@ -291,6 +291,7 @@ def plan_resume(
         "preserved": preserved,
         "allowed": _allowed(),
         "execution_requested": False,
+        "cause_resolved_observed": cause_resolved,
     }
     if database_integrity != "ok":
         base.update(
@@ -299,7 +300,7 @@ def plan_resume(
             allowed=_allowed(report_intake=False),
         )
         return base
-    if not owner_confirmed or not cause_resolved:
+    if not owner_confirmed:
         return base
     if export_only_failed:
         base.update(
@@ -308,10 +309,10 @@ def plan_resume(
             allowed=_allowed(saved_export=True),
         )
         return base
-    if target < current.date():
+    if target < current.date() and not manual:
         base.update(
             action="previous_day_not_resumed",
-            reason_code="daily_budget_is_date_scoped",
+            reason_code="manual_previous_day_target_required",
             allowed=_allowed(saved_export=True),
         )
         return base
@@ -340,10 +341,7 @@ def plan_resume(
         )
         return base
     can_add_search = preserved["committed_count"] < 15
-    can_add_draft = preserved["committed_count"] < 15 and any(
-        attempts < 3
-        for attempts in preserved["unfinished_generation_attempts"].values()
-    )
+    can_add_draft = preserved["committed_count"] < 15
     base.update(
         action="resume_remaining",
         reason_code="same_run_remaining_work",

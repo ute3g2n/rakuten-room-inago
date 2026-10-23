@@ -1,0 +1,46 @@
+{
+  "schema_version": "formal-run-read-only-observation-v1",
+  "observed_at": "2026-10-23T22:04:29.8783498+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "source_launch_id": null,
+  "status": {
+    "command": "automation.inago.cli status --environment production --config <runtime settings path> --data-root <runtime path> --run-id INAGO-2026-10-23",
+    "exit_code": 0,
+    "run_status": "failed",
+    "reason_codes": [
+      "run_failed"
+    ],
+    "attempt_used": 33,
+    "committed_count": 0,
+    "finished_at": "2026-10-23T21:54:08.835461+09:00",
+    "heartbeat": "stale",
+    "progress": "stalled",
+    "owner_process": "unknown_owner_metadata_unavailable",
+    "lock_file_present": true,
+    "kill_process": false,
+    "release_lock": false
+  },
+  "recovery": {
+    "command": "automation.inago.cli recovery --environment production --config <runtime settings path> --data-root <runtime path> --run-id INAGO-2026-10-23 --target-date 2026-10-23 --manual --owner-confirmed",
+    "exit_code": 0,
+    "action": "resume_remaining",
+    "reason_code": "same_run_remaining_work",
+    "owner_state": "stopped",
+    "cause_resolved_observed": false,
+    "execution_requested": false,
+    "run_id_preserved": "INAGO-2026-10-23",
+    "target_date_preserved": "2026-10-23"
+  },
+  "process_scan": {
+    "command": "@(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -match 'automation\\.inago\\.maintenance\\.daily_launcher' }).Count",
+    "observed_at": "2026-10-23T22:04:29.8783498+09:00",
+    "daily_launcher_process_count": 0
+  },
+  "readiness_basis": {
+    "planned_regression": "74 selectors / 78 tests passed in 168.23s / exit 0",
+    "latest_room_matcher_review": "APPROVED",
+    "manifest": "final-regression-v1.19-20261023.json"
+  },
+  "privacy": "No product text, raw HTML, OCR content, URL, cookie, or raw runtime trace stored."
+}

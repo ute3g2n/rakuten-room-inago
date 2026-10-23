@@ -1,0 +1,11 @@
+{
+  "schema_version": "inago-formal-launch-observation-v1",
+  "plan_version": "1.26",
+  "command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.maintenance.daily_launcher --config C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime\\config\\settings.json --data-root C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime --target-date 2026-10-23 --manual --resume-confirmed --cause-resolved",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "started_at": "2026-10-24T04:30:01.7797584+09:00",
+  "finished_at": "2026-10-24T04:31:51.3627471+09:00",
+  "exit_code": 4,
+  "output_policy": "launcher stdout/stderr redirected; status and recovery recorded separately"
+}

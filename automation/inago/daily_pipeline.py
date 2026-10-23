@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import asdict, dataclass, is_dataclass
-from datetime import datetime
+from datetime import date, datetime
 import logging
 import re
 import sqlite3
@@ -17,11 +18,15 @@ from automation.inago.clock import Clock, JST
 
 
 _BLOCKED_STATUSES = {
+    "blocked",
     "locked",
     "recovery_confirmation_required",
     "recovery_required",
 }
 _SAFE_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
+_SAFE_EXCEPTION_NODE_LIMIT = 12
+_SAFE_EXCEPTION_FRAME_LIMIT = 8
+_SAFE_EXCEPTION_FRAME_INSPECTION_LIMIT = 64
 _DAILY_TARGET_STATUSES = {
     "running",
     "complete",
@@ -142,16 +147,16 @@ def _safe_exception_chain(exc: BaseException) -> list[dict[str, str]]:
 def _safe_exception_frame_details(
     exc: BaseException,
 ) -> tuple[list[dict[str, str | int]], bool]:
-    """Return safe repository frames and whether the per-exception limit omitted any."""
+    """Return bounded repository frames and whether any safe frame was omitted."""
 
     try:
         repository_root = Path(__file__).resolve().parents[2]
         frames: list[dict[str, str | int]] = []
         truncated = False
-        pending: list[tuple[BaseException, str]] = [(exc, "raised")]
+        pending: deque[tuple[BaseException, str]] = deque([(exc, "raised")])
         visited: set[int] = set()
-        while pending:
-            current, relation = pending.pop(0)
+        while pending and len(visited) < _SAFE_EXCEPTION_NODE_LIMIT:
+            current, relation = pending.popleft()
             if id(current) in visited:
                 continue
             visited.add(id(current))
@@ -169,8 +174,16 @@ def _safe_exception_frame_details(
                     )
                 )
             frame = current.__traceback__
-            current_frames: list[dict[str, str | int]] = []
-            while frame is not None:
+            current_frames: deque[dict[str, str | int]] = deque(
+                maxlen=_SAFE_EXCEPTION_FRAME_LIMIT
+            )
+            inspected_frames = 0
+            safe_frame_count = 0
+            while (
+                frame is not None
+                and inspected_frames < _SAFE_EXCEPTION_FRAME_INSPECTION_LIMIT
+            ):
+                inspected_frames += 1
                 code = frame.tb_frame.f_code
                 try:
                     source = Path(code.co_filename).resolve()
@@ -196,12 +209,14 @@ def _safe_exception_frame_details(
                         "line": int(frame.tb_lineno),
                     }
                 )
+                safe_frame_count += 1
                 frame = frame.tb_next
-            if len(current_frames) > 8:
+            if safe_frame_count > _SAFE_EXCEPTION_FRAME_LIMIT or frame is not None:
                 truncated = True
-                current_frames = current_frames[-8:]
             frames.extend(current_frames)
-        return frames, truncated
+        if any(id(current) not in visited for current, _ in pending):
+            truncated = True
+        return frames[: _SAFE_EXCEPTION_NODE_LIMIT * _SAFE_EXCEPTION_FRAME_LIMIT], truncated
     except Exception:
         return [], False
 
@@ -967,6 +982,7 @@ def run_daily_execution_core(
     ports: DailyExecutionPorts,
     *,
     clock: Clock,
+    target_date: str | None = None,
 ) -> dict[str, Any]:
     """Run one day through preparation, daily work, export, preservation, and exit."""
 
@@ -974,7 +990,13 @@ def run_daily_execution_core(
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("daily execution clock must return an aware datetime")
     now = now.astimezone(JST)
-    target_date = now.date().isoformat()
+    target_date = target_date or now.date().isoformat()
+    try:
+        parsed_target_date = date.fromisoformat(target_date)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("daily target_date must be an ISO date") from exc
+    if parsed_target_date.isoformat() != target_date:
+        raise ValueError("daily target_date must be canonical")
     data_root = Path(ports.data_root).expanduser().resolve()
     timeline: list[_PipelineEvent] = []
     last_completed: str | None = None

@@ -1,0 +1,32 @@
+{
+  "observed_at": "2026-10-23T21:30:12.3259104+09:00",
+  "source_run_id": "INAGO-2026-10-23",
+  "latest_confirmed_failed_source_launch_id": "500e67b631364ef6a6fb81e7ec8d7f81",
+  "target_date": "2026-10-23",
+  "official_status_command_exit_code": 0,
+  "official_status": "failed",
+  "reason_codes": [
+    "run_failed"
+  ],
+  "attempt_used": 26,
+  "committed_count": 0,
+  "finished_at": "2026-10-23T21:05:19.962500+09:00",
+  "owner_state": "stopped_owner_file_missing",
+  "lock_file_present": true,
+  "official_recovery_command_exit_code": 0,
+  "recovery_action": "resume_remaining",
+  "recovery_reason": "same_run_remaining_work",
+  "execution_requested": false,
+  "cause_resolved_observed": false,
+  "seed_preserved": true,
+  "kill_process": false,
+  "release_lock": false,
+  "exact_daily_launcher_process_scan": {
+    "count": 0,
+    "pids": [],
+    "exit_code": 0
+  },
+  "retry_authorized": "resume only the same 10/23 run through the official launcher with --resume-confirmed; do not assert cause resolved",
+  "trace_evidence": "formal-run-room-trace-summary-20261023-2105.json",
+  "excluded": "HTML/OCR text, settings contents, credentials, raw trace"
+}

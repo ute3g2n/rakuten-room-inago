@@ -1,0 +1,33 @@
+{
+  "schema_version": "safe-trace-summary-v1",
+  "summarized_at": "2026-10-23T22:08:30+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source_launch_id": "d365e7f4223e4ac5a96f1e78c31b9bae",
+  "reader": "automation.inago.trace.read_trace_events (bounded summary)",
+  "raw_trace_written": false,
+  "trace_event_count": 2260,
+  "trace_file_bytes": 1446585,
+  "trace_status": "healthy",
+  "trace_suppression_reason": null,
+  "retry_window": {
+    "start": "2026-10-23T22:05:20+09:00",
+    "end": "2026-10-23T22:07:00.179+09:00",
+    "event_count": 106,
+    "room_request_begin": 3,
+    "room_condition_search_submit_complete_observed": 3,
+    "room_results_scan_begin": 3,
+    "room_list_no_progress_observed": 9,
+    "room_search_incomplete_no_marker_observed": 3,
+    "room_search_incomplete_error_observed": 3,
+    "product_page_operations_observed": 0,
+    "trace_suppressed": 0,
+    "operation_counts": {
+      "room_request_begin": 3,
+      "room_condition_search_submit_complete": 3,
+      "room_list_no_progress": 9,
+      "room_search_incomplete": 3
+    }
+  },
+  "finding": "All three condition searches were submitted, then each had zero loaded products and three no-progress rounds with end_evidence=no_marker; no product-page operation followed. This supports the user-observed no-hit state, but does not show the actual DOM. The v1.19 .item-preview marker exception did not resolve this retry.",
+  "privacy": "No query text, page body, OCR text, URL, raw trace, or private runtime body is stored."
+}

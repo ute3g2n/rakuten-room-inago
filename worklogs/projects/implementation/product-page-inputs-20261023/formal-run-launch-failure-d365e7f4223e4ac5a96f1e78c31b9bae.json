@@ -1,0 +1,23 @@
+{
+  "schema_version": "safe-daily-launch-failure-v1",
+  "source_launch_id": "d365e7f4223e4ac5a96f1e78c31b9bae",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_error_class": "product_page_capture_failed",
+  "secondary_error_classes": [
+    "DailyOrchestrationError",
+    "RoomContractError"
+  ],
+  "trace_status": "healthy",
+  "completed_at": "2026-10-23T22:07:00.504663+09:00",
+  "committed_count": 0,
+  "attempt_used_at_completion": 36,
+  "cause_resolved_observed": false,
+  "safe_trace_summary": "formal-run-room-trace-summary-20261023-2207.json",
+  "privacy": "Only safe summary metadata stored; no raw product/search/trace text."
+}

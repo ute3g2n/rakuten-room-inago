@@ -1,0 +1,33 @@
+{
+  "schema_version": "formal-run-launch-failure-v1",
+  "source_launch_id": "ab58a21e35bf47b1a7147c4c336a06af",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "completed_at": "2026-10-23T20:50:26.508436+09:00",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "overall_status": "failed",
+  "daily_status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_reason_origin": "retained_from_earlier_same_run_failures",
+  "attempt_used": 23,
+  "committed_count": 0,
+  "safe_trace_summary": {
+    "reader": "automation.inago.trace.read_trace_events",
+    "bounded_event_count": 1863,
+    "latest_retry_window": "2026-10-23T20:48:53.013+09:00 to 2026-10-23T20:50:26.092+09:00",
+    "latest_retry_window_event_count": 107,
+    "room_condition_search_submit_begin_count": 3,
+    "room_condition_search_submit_timeout_error_count": 2,
+    "room_condition_search_submit_complete_count": 1,
+    "room_list_no_progress_event_count": 9,
+    "room_short_batch_stable_error_count": 3,
+    "incomplete_search_failure_count": 3,
+    "product_page_component_event_count": 0,
+    "notes": "The allowlisted trace shows two 10-second submit timeouts and one successful submit. It does not expose query text. No product_page event occurred in this retry window."
+  },
+  "fresh_read_only_observation": "formal-run-read-only-observation-20261023-2056.json",
+  "notes": "The official failure reason retains product_page_capture_failed, but this retry ended during ROOM search before any product_page event. This retry used the 10-second source version; it does not test the current 20-second change."
+}

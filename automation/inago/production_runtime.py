@@ -40,7 +40,7 @@ class _DailyResumeBlocked(RuntimeError):
         self,
         *,
         status: str,
-        run_id: str,
+        run_id: str | None,
         target_date: str,
         committed_count: int,
         attempt_used: int,
@@ -665,7 +665,11 @@ def register_production_settings(
 def _make_copy_spec_factory(
     config: ProductionRuntimeConfig, settings_runtime: SettingsRuntime
 ) -> Callable[..., CopyGenerationSpec | None]:
+    import hashlib
+
     from automation.inago.copy_service import CopyGenerationSpec
+    from automation.inago.product_ocr import load_product_page_ocr
+    from automation.inago.product_page_inputs import load_product_page_inputs
 
     themes = {theme["theme_id"]: theme for theme in settings_runtime.themes}
 
@@ -723,6 +727,121 @@ def _make_copy_spec_factory(
                 and fact["source_ref"]
             )
         )
+        product_page_html: dict[str, Any] | None = None
+        product_page_ocr: dict[str, Any] | None = None
+        product_refs: list[str] = []
+        product_evidence_refs: list[str] = []
+        shop_id = str(row["shop_id"])
+        item_id = str(row["item_id"])
+        try:
+            page = load_product_page_inputs(
+                config.runtime_root, run_id, shop_id, item_id
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            raise ProductionRuntimeError("product-page input is invalid") from exc
+        if page is not None:
+            run_row = connection.execute(
+                "SELECT checkpoint FROM run WHERE run_id=?", (run_id,)
+            ).fetchone()
+            try:
+                checkpoint_root = json.loads(run_row[0]) if run_row is not None else None
+                daily_state = (
+                    checkpoint_root.get("daily_orchestration")
+                    if isinstance(checkpoint_root, dict)
+                    else None
+                )
+                selected = daily_state.get("selected_products") if isinstance(daily_state, dict) else None
+            except (TypeError, json.JSONDecodeError) as exc:
+                raise ProductionRuntimeError("selected product checkpoint is invalid") from exc
+            matches = [
+                entry for entry in selected
+                if isinstance(entry, dict)
+                and entry.get("offer_key") == offer_key
+                and entry.get("run_id") == run_id
+                and entry.get("shop_id") == shop_id
+                and entry.get("item_id") == item_id
+            ] if isinstance(selected, list) else []
+            if (
+                len(matches) != 1
+                or matches[0].get("page_ref") != page.get("page_ref")
+                or not isinstance(matches[0].get("ocr_ref"), str)
+            ):
+                raise ProductionRuntimeError("selected product page/OCR identity differs")
+            selected_product = matches[0]
+            selectors = page.get("selectors")
+            if not isinstance(selectors, list):
+                raise ProductionRuntimeError("product-page HTML manifest is invalid")
+            selector_inputs: list[dict[str, Any]] = []
+            for selector_index, selector_record in enumerate(selectors):
+                if not isinstance(selector_record, dict):
+                    raise ProductionRuntimeError("product-page HTML selector is invalid")
+                selector = selector_record.get("selector")
+                markup = selector_record.get("outer_html")
+                if not isinstance(selector, str) or not isinstance(markup, list):
+                    raise ProductionRuntimeError("product-page HTML selector payload is invalid")
+                selector_elements: list[dict[str, Any]] = []
+                for element_index, outer_html in enumerate(markup):
+                    if not isinstance(outer_html, str):
+                        raise ProductionRuntimeError("product-page HTML element is invalid")
+                    ref_digest = hashlib.sha256(
+                        f"{page['page_ref']}\0{selector_index}\0{element_index}".encode("utf-8")
+                    ).hexdigest()[:40]
+                    ref = f"html:{ref_digest}"
+                    selector_elements.append({
+                        "ref": ref,
+                        "outer_html": outer_html,
+                    })
+                    product_refs.append(ref)
+                    if outer_html.strip():
+                        product_evidence_refs.append(ref)
+                selector_inputs.append({
+                    "key": selector_record.get("key"),
+                    "selector": selector,
+                    "status": selector_record.get("status"),
+                    "elements": selector_elements,
+                })
+            page_ref = page.get("page_ref")
+            if not isinstance(page_ref, str):
+                raise ProductionRuntimeError("product-page reference is missing")
+            product_refs.append(page_ref)
+            product_page_html = {
+                "source_collected_at": page.get("captured_at"),
+                "selectors": selector_inputs,
+            }
+            try:
+                ocr = load_product_page_ocr(
+                    config.runtime_root,
+                    run_id,
+                    offer_key,
+                    shop_id,
+                    item_id,
+                    expected_page_ref=page_ref,
+                    expected_ocr_ref=selected_product["ocr_ref"],
+                )
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                raise ProductionRuntimeError("product OCR input is invalid") from exc
+            if ocr is None:
+                raise ProductionRuntimeError("selected product OCR input is missing")
+            raw_product_ocr = ocr["input_payload"]["product_page_ocr"]
+            product_page_ocr = {
+                "schema_version": raw_product_ocr["schema_version"],
+                "source_collected_at": raw_product_ocr.get("source_collected_at"),
+                "images": [
+                    {
+                        "ref": image["ref"],
+                        "status": image["status"],
+                        "text": image["text"],
+                    }
+                    for image in raw_product_ocr["images"]
+                ],
+            }
+            product_refs.extend(image["ref"] for image in product_page_ocr["images"])
+            ocr_ref = selected_product["ocr_ref"]
+            product_refs.append(ocr_ref)
+            product_evidence_refs.extend(
+                image["ref"] for image in product_page_ocr["images"]
+                if image["text"].strip()
+            )
         payload = {
             "offer": {
                 "offer_key": offer_key,
@@ -735,14 +854,18 @@ def _make_copy_spec_factory(
             "facts": facts,
             "author_experience": {"availability": "unknown", "value": None},
         }
+        if product_page_html is not None and product_page_ocr is not None:
+            payload["product_page_html"] = product_page_html
+            payload["product_page_ocr"] = product_page_ocr
+        all_evidence_refs = tuple(dict.fromkeys((*evidence_refs, *product_evidence_refs)))
         return CopyGenerationSpec(
             run_id=run_id,
             offer_key=offer_key,
             draft_version=draft_version,
             target_date=target_date,
             settings_version=settings_version,
-            input_refs=tuple(dict.fromkeys((f"offer:{offer_key}", *evidence_refs))),
-            evidence_refs=evidence_refs,
+            input_refs=tuple(dict.fromkeys((f"offer:{offer_key}", *evidence_refs, *product_refs))),
+            evidence_refs=all_evidence_refs,
             input_payload=payload,
             deadline_at=deadline_at,
             deadline_monotonic=deadline_monotonic,
@@ -1537,6 +1660,7 @@ def run_production_recovery(
     cause_resolved: bool = False,
     export_only_failed: bool = False,
     manual: bool = False,
+    target_date: str | None = None,
     process_start_time_reader: Callable[[int], str] | None = None,
     process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
@@ -1550,6 +1674,25 @@ def run_production_recovery(
     )
 
     current = _operations_now(now)
+    selected_target_date = target_date or current.date().isoformat()
+    try:
+        parsed_target_date = date.fromisoformat(selected_target_date)
+    except (TypeError, ValueError):
+        return {
+            "mode": "recovery",
+            "status": "blocked",
+            "action": "recovery_observation_unavailable",
+            "reason_code": "target_date_invalid",
+            "execution_requested": False,
+        }
+    if parsed_target_date.isoformat() != selected_target_date:
+        return {
+            "mode": "recovery",
+            "status": "blocked",
+            "action": "recovery_observation_unavailable",
+            "reason_code": "target_date_invalid",
+            "execution_requested": False,
+        }
     connection: sqlite3.Connection | None = None
     try:
         _assert_production_roots(config)
@@ -1572,7 +1715,7 @@ def run_production_recovery(
         row = _select_daily_run(
             connection,
             run_id=run_id,
-            target_date=current.date().isoformat(),
+            target_date=selected_target_date,
         )
         if not _operations_source_is_stable(config, source_snapshot):
             return _daily_state_changed_result(mode="recovery")
@@ -1587,7 +1730,6 @@ def run_production_recovery(
                 "reason_code": "daily_run_not_found",
                 "execution_requested": False,
             }
-        checkpoint_state = _validated_daily_checkpoint(row["checkpoint"])
         if not _daily_checkpoint_is_usable(connection, row):
             if not _operations_source_is_stable(config, source_snapshot):
                 return _daily_state_changed_result(mode="recovery")
@@ -1686,35 +1828,6 @@ def run_production_recovery(
             export_only_failed=export_only_failed,
             manual=manual,
         )
-        terminal_status = str(row["status"])
-        if (
-            checkpoint_state.get("phase") == "finished"
-            and terminal_status in {"failed", "shortfall", "missed"}
-            and decision.get("action") == "resume_remaining"
-        ):
-            if checkpoint_state.get("terminal_status") != terminal_status:
-                if not _operations_source_is_stable(config, source_snapshot):
-                    return _daily_state_changed_result(mode="recovery")
-                return {
-                    "mode": "recovery",
-                    "status": "blocked",
-                    "action": "daily_checkpoint_review_required",
-                    "reason_code": "daily_terminal_checkpoint_mismatch",
-                    "run_id": run_key,
-                    "execution_requested": False,
-                }
-            decision.update(
-                action="terminal_result_saved",
-                reason_code="saved_terminal_result_exists",
-                allowed={
-                    **decision["allowed"],
-                    "search": False,
-                    "generation": False,
-                    "metrics": False,
-                    "saved_export": True,
-                },
-                execution_requested=False,
-            )
         if blocked_reason is not None:
             decision.update(
                 action={
@@ -1811,12 +1924,11 @@ def run_production_daily(
     resume_confirmed: bool = False,
     cause_resolved: bool = False,
     manual: bool = False,
+    target_date: str | None = None,
     process_start_time_reader: Callable[[int], str] | None = None,
     process_tree_reader: Callable[[int], tuple[int, ...]] | None = None,
 ) -> dict[str, Any]:
     """Run the shared daily pipeline after production readiness and root guards."""
-
-    from datetime import date
 
     from automation.inago.clock import SystemClock
     from automation.inago import daily_pipeline
@@ -1828,13 +1940,49 @@ def run_production_daily(
 
     selected_clock = clock or SystemClock()
     now = selected_clock.now_jst()
+    selected_target_date = target_date or now.date().isoformat()
+    try:
+        parsed_target_date = date.fromisoformat(selected_target_date)
+    except (TypeError, ValueError):
+        return {
+            "status": "failed",
+            "target_date": selected_target_date,
+            "reason": "daily_target_date_invalid",
+            "committed_count": 0,
+        }
+    if (
+        parsed_target_date < now.date()
+        and manual
+        and not resume_confirmed
+    ):
+        return {
+            "status": "blocked",
+            "run_id": None,
+            "target_date": selected_target_date,
+            "committed_count": 0,
+            "reason": "previous_day_resume_confirmation_required",
+        }
+    if parsed_target_date.isoformat() != selected_target_date:
+        return {
+            "status": "failed",
+            "target_date": selected_target_date,
+            "reason": "daily_target_date_invalid",
+            "committed_count": 0,
+        }
     first_day = date.fromisoformat(config.start_date)
-    if now.date() < first_day or (
-        not manual and now.timetz().replace(tzinfo=None) < time(13, 0)
+    if (
+        parsed_target_date < first_day
+        or parsed_target_date > now.date()
+        or not manual
+        and (
+            parsed_target_date < now.date()
+            or parsed_target_date == now.date()
+            and now.timetz().replace(tzinfo=None) < time(13, 0)
+        )
     ):
         return {
             "status": "not_due",
-            "target_date": now.date().isoformat(),
+            "target_date": selected_target_date,
             "committed_count": 0,
         }
 
@@ -1857,8 +2005,17 @@ def run_production_daily(
             SELECT run_id, target_date, status, committed_count, attempt_used
               FROM run WHERE mode='daily' AND target_date=?
             """,
-            (current.date().isoformat(),),
+            (selected_target_date,),
         ).fetchone()
+        if parsed_target_date < current.date() and existing_run is None:
+            raise _DailyResumeBlocked(
+                status="blocked",
+                run_id=None,
+                target_date=selected_target_date,
+                committed_count=0,
+                attempt_used=0,
+                reason_code="previous_day_run_not_found",
+            )
         if existing_run is not None:
             existing_status = str(existing_run["status"])
             terminal = existing_status in {"complete", "missed"}
@@ -1866,8 +2023,9 @@ def run_production_daily(
                 config,
                 run_id=str(existing_run["run_id"]),
                 now=selected_clock.now_jst(),
+                target_date=selected_target_date,
                 owner_confirmed=resume_confirmed or terminal,
-                cause_resolved=cause_resolved or terminal,
+                cause_resolved=cause_resolved,
                 manual=manual,
                 process_start_time_reader=process_start_time_reader,
                 process_tree_reader=process_tree_reader,
@@ -1906,7 +2064,7 @@ def run_production_daily(
                     if isinstance(decision, dict)
                     else "recovery_observation_unavailable"
                 )
-                if not resume_confirmed or not cause_resolved:
+                if not resume_confirmed:
                     raise _DailyResumeBlocked(
                         status="recovery_confirmation_required",
                         run_id=str(existing_run["run_id"]),
@@ -1945,7 +2103,10 @@ def run_production_daily(
         if settings.active_basic_version != setup_state["settings_version"]:
             raise ProductionRuntimeError("runtime settings changed after setup")
         _assert_production_roots(config)
-        return {"settings_version": settings.active_basic_version}
+        return {
+            "settings_version": settings.active_basic_version,
+            "target_date": selected_target_date,
+        }
 
     def start_backup(
         connection: sqlite3.Connection,
@@ -1977,10 +2138,11 @@ def run_production_daily(
 
     def run_daily(
         connection: sqlite3.Connection,
-        _context: Any,
+        context: Any,
         on_draft_commit: Callable[[sqlite3.Connection], Any],
     ) -> Any:
         from automation.inago.trigger import run_public_scheduled_daily
+        from automation.inago.product_ocr import ProductPageOCR
 
         _assert_production_roots(config)
         components = build_public_daily_components(
@@ -1988,19 +2150,29 @@ def run_production_daily(
             connection,
             clock=selected_clock,
         )
-        return run_public_scheduled_daily(
-            connection,
-            data_root=config.runtime_root,
-            source=components["source"],
-            ai_root=components["ai_root"],
-            copy_spec_factory=components["copy_spec_factory"],
-            metrics_port=components["metrics_port"],
-            cancel_metrics_job=components["cancel_metrics_job"],
-            clock=selected_clock,
-            on_draft_commit=on_draft_commit,
-            manual=manual,
-            cause_resolved=cause_resolved,
-        )
+        product_page_ocr = ProductPageOCR()
+        try:
+            return run_public_scheduled_daily(
+                connection,
+                data_root=config.runtime_root,
+                source=components["source"],
+                ai_root=components["ai_root"],
+                copy_spec_factory=components["copy_spec_factory"],
+                metrics_port=components["metrics_port"],
+                cancel_metrics_job=components["cancel_metrics_job"],
+                product_page_ocr=product_page_ocr,
+                clock=selected_clock,
+                on_draft_commit=on_draft_commit,
+                manual=manual,
+                cause_resolved=cause_resolved,
+                target_date=(
+                    context.get("target_date", selected_target_date)
+                    if isinstance(context, Mapping)
+                    else selected_target_date
+                ),
+            )
+        finally:
+            product_page_ocr.close()
 
     def export_dashboard(_context: Any) -> Mapping[str, Any]:
         return run_production_dashboard_export(config)
@@ -2032,6 +2204,7 @@ def run_production_daily(
                 "metrics_status": "unknown",
                 "resumed": False,
                 "reason": error.reason_code,
+                "primary_error": {"phase": phase, "code": error.reason_code},
             }
         return _default_failure_result(error, connection, target_date, phase)
 
@@ -2047,7 +2220,9 @@ def run_production_daily(
         preserve_end_of_day=preserve_end_of_day,
         failure_result=failure_result,
     )
-    return daily_pipeline.run_daily_execution_core(ports, clock=selected_clock)
+    return daily_pipeline.run_daily_execution_core(
+        ports, clock=selected_clock, target_date=selected_target_date
+    )
 
 
 def run_production_end_of_day_preservation(

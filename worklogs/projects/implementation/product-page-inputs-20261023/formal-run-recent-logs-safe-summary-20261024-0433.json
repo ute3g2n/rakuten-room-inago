@@ -1,0 +1,429 @@
+{
+  "schema_version": "inago-recent-log-safe-summary-v1",
+  "window_start": "2026-10-24T04:30:01+09:00",
+  "recent_jsonl_file_count": 5,
+  "files": [
+    {
+      "category": "production_cli",
+      "modified_at": "2026-10-24T04:31:51+09:00",
+      "file_bytes": 170470,
+      "row_count": 55,
+      "safe_value_counts": {
+        "mode": {
+          "setup": 2,
+          "serve": 10,
+          "daily": 41,
+          "export": 1,
+          "backup": 1
+        },
+        "status": {
+          "failed": 39,
+          "ready": 3,
+          "starting": 6,
+          "partial": 1,
+          "not_due": 1,
+          "blocked": 1,
+          "complete": 4
+        },
+        "phase": {
+          "configuration": 4,
+          "serve": 6,
+          "daily": 39,
+          "export": 1,
+          "preflight": 1,
+          "backup": 1
+        },
+        "reason": {
+          "ProductionRuntimeError": 1,
+          "daily_processing_error": 2,
+          "UnsupportedSchemaVersion": 1,
+          "daily_interrupted_or_candidate_shortage": 1,
+          "IntegrityError": 1,
+          "IdempotencyConflict": 3,
+          "step13_error_TrendsContractError": 1,
+          "step13_error_AppServerError": 1,
+          "step13_error_DailyOrchestrationError": 6,
+          "startup_preflight_blocked": 1,
+          "daily_target_reached": 2,
+          "copy_runner_contract_rejected": 2,
+          "step13_error_RoomContractError": 1,
+          "product_page_capture_failed": 15,
+          "ocr_inference_failed": 1
+        }
+      },
+      "last_safe_rows": [
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "ocr_inference_failed"
+        },
+        {
+          "mode": "daily",
+          "status": "failed",
+          "phase": "daily",
+          "reason": "product_page_capture_failed"
+        }
+      ]
+    },
+    {
+      "category": "ai_root_transport",
+      "modified_at": "2026-10-24T04:31:49+09:00",
+      "file_bytes": 29779,
+      "row_count": 244,
+      "safe_value_counts": {
+        "event": {
+          "process_started": 23,
+          "rpc_sent": 98,
+          "root_ready": 23,
+          "process_wait": 22,
+          "process_closed": 22,
+          "turn_started": 28,
+          "turn_finished": 28
+        },
+        "status": {
+          "exited": 22,
+          "completed": 28
+        }
+      },
+      "last_safe_rows": [
+        {
+          "event": "process_started"
+        },
+        {
+          "event": "rpc_sent"
+        },
+        {
+          "event": "rpc_sent"
+        },
+        {
+          "event": "rpc_sent"
+        },
+        {
+          "event": "root_ready"
+        },
+        {
+          "event": "rpc_sent"
+        },
+        {
+          "event": "turn_started"
+        },
+        {
+          "event": "turn_finished",
+          "status": "completed"
+        },
+        {
+          "event": "process_wait",
+          "status": "exited"
+        },
+        {
+          "event": "process_closed"
+        }
+      ]
+    },
+    {
+      "category": "other_jsonl",
+      "modified_at": "2026-10-24T04:31:49+09:00",
+      "file_bytes": 5633,
+      "row_count": 18,
+      "safe_value_counts": {
+        "event": {
+          "job_started": 1,
+          "auth_observed": 1,
+          "cli_started": 1,
+          "cli_finished": 1,
+          "artifact_saved": 1,
+          "cli_event": 11,
+          "session_trace_observed": 1,
+          "job_finished": 1
+        }
+      },
+      "last_safe_rows": [
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "cli_event"
+        },
+        {
+          "event": "session_trace_observed"
+        },
+        {
+          "event": "job_finished"
+        }
+      ]
+    },
+    {
+      "category": "other_jsonl",
+      "modified_at": "2026-10-24T04:31:49+09:00",
+      "file_bytes": 1954,
+      "row_count": 6,
+      "safe_value_counts": {
+        "event": {
+          "generation_requested": 1,
+          "generation_attempt_reserved": 1,
+          "ai_result_received": 1,
+          "response_checkpoint_saved": 1,
+          "draft_commit_started": 1,
+          "draft_committed": 1
+        },
+        "status": {
+          "started": 1,
+          "in_progress": 1,
+          "success": 2,
+          "pending": 1,
+          "committed": 1
+        }
+      },
+      "last_safe_rows": [
+        {
+          "event": "generation_requested",
+          "status": "started"
+        },
+        {
+          "event": "generation_attempt_reserved",
+          "status": "in_progress"
+        },
+        {
+          "event": "ai_result_received",
+          "status": "success"
+        },
+        {
+          "event": "response_checkpoint_saved",
+          "status": "success"
+        },
+        {
+          "event": "draft_commit_started",
+          "status": "pending"
+        },
+        {
+          "event": "draft_committed",
+          "status": "committed"
+        }
+      ]
+    },
+    {
+      "category": "run_trace",
+      "modified_at": "2026-10-24T04:30:08+09:00",
+      "file_bytes": 1451834,
+      "row_count": 2246,
+      "safe_value_counts": {
+        "status": {
+          "captured": 16
+        },
+        "phase": {
+          "begin": 602,
+          "end": 306,
+          "status": 1324,
+          "error": 14
+        },
+        "error_class": {
+          "SourceFailure": 14,
+          "other": 16,
+          "TypeError": 1,
+          "ReferenceError": 1
+        },
+        "error_kind": {
+          "other_error": 14
+        },
+        "operation": {
+          "room_request": 35,
+          "browser_persistent_launch_begin": 74,
+          "browser_persistent_launch_complete": 74,
+          "browser_page_begin": 74,
+          "browser_page_complete": 74,
+          "room_navigation": 35,
+          "room_document_loaded": 35,
+          "room_search_box_ready": 35,
+          "room_condition_controls": 35,
+          "room_condition_popup_open_begin": 35,
+          "room_condition_popup_opened": 35,
+          "room_conditions_verified": 35,
+          "room_condition_close_control_inspected": 35,
+          "room_condition_close_control_missing": 35,
+          "room_condition_search_submit_begin": 37,
+          "room_condition_search_submit_clicked": 35,
+          "room_condition_close_wait_begin": 35,
+          "room_condition_close_wait_complete": 35,
+          "room_condition_search_submit_complete": 35,
+          "room_condition_popup_closed": 35,
+          "room_results_scan_begin": 69,
+          "room_list_progress": 35,
+          "room_list_no_progress": 105,
+          "room_short_batch_stable": 35,
+          "room_results_complete": 35,
+          "room_resolve_products": 35,
+          "room_product_resolution_summary": 35,
+          "trends_request": 23,
+          "trends_explore_navigation": 69,
+          "trends_explore_commit_observed": 141,
+          "trends_home_navigation": 69,
+          "trends_home_commit_observed": 51,
+          "trends_home_search_wait_begin": 24,
+          "trends_home_search_candidates": 23,
+          "trends_home_search_visible": 23,
+          "trends_home_query_entered": 23,
+          "trends_home_submit_control": 45,
+          "trends_home_submit_sent": 69,
+          "trends_period_control_wait_begin": 23,
+          "trends_period_control_visible": 23,
+          "trends_period_menu_open_begin": 23,
+          "trends_period_menu_opened": 23,
+          "trends_period_option_wait_begin": 23,
+          "trends_period_option_visible": 23,
+          "trends_period_option_clicked": 23,
+          "trends_period_reflection_wait_begin": 23,
+          "trends_period_reflected": 24,
+          "trends_list_control_wait_begin": 18,
+          "trends_legacy_zero_reload_begin": 16,
+          "trends_legacy_zero_reload_reflected": 4,
+          "trends_related_widget_normal_zero": 4,
+          "trends_related_widget_wait_begin": 26,
+          "source_retry_after_observed": 44,
+          "trends_switch_top": 8,
+          "trends_top_rows_wait_begin": 5,
+          "trends_top_rows_updated": 10,
+          "request_complete": 1,
+          "product_page_request": 16,
+          "product_page_capture_navigation_begin": 82,
+          "product_page_capture_rendered": 21,
+          "product_page_capture_saved": 16
+        },
+        "primary_error_code": {
+          "http_429": 14
+        },
+        "failed_operation": {
+          "source_retry_after_observed": 14
+        }
+      },
+      "last_safe_rows": [
+        {
+          "phase": "begin",
+          "operation": "browser_page_begin",
+          "elapsed_ms": 420
+        },
+        {
+          "phase": "end",
+          "operation": "browser_page_complete",
+          "elapsed_ms": 458
+        },
+        {
+          "phase": "begin",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 458,
+          "row_index": 6
+        },
+        {
+          "phase": "status",
+          "operation": "product_page_capture_rendered",
+          "elapsed_ms": 1593,
+          "row_index": 6
+        },
+        {
+          "status": "captured",
+          "phase": "status",
+          "operation": "product_page_capture_saved",
+          "elapsed_ms": 1915,
+          "row_index": 6
+        },
+        {
+          "phase": "begin",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 0,
+          "row_index": 6
+        },
+        {
+          "phase": "begin",
+          "error_class": "other",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 0,
+          "row_index": 6
+        },
+        {
+          "phase": "begin",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 0,
+          "row_index": 6
+        },
+        {
+          "phase": "begin",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 0,
+          "row_index": 6
+        },
+        {
+          "phase": "end",
+          "operation": "product_page_capture_navigation_begin",
+          "elapsed_ms": 16
+        }
+      ]
+    }
+  ],
+  "raw_payloads_or_product_ids_reprinted": false
+}

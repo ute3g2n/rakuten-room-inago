@@ -1,0 +1,71 @@
+{
+  "schema_version": "inago-owner-child-process-readonly-sample-v1",
+  "run_id": "INAGO-2026-10-23",
+  "observed_at": "2026-10-24T00:27:51.1290011+09:00",
+  "source": "Get-Process read-only using official status child PID list; command lines excluded",
+  "processes": [
+    {
+      "pid": 25908,
+      "name": "conhost",
+      "cpu_seconds": 0.015625,
+      "responding": true,
+      "working_set_bytes": 7999488
+    },
+    {
+      "pid": 26948,
+      "name": "node",
+      "cpu_seconds": 0.09375,
+      "responding": true,
+      "working_set_bytes": 60862464
+    },
+    {
+      "pid": 30608,
+      "name": "codex-code-mode-host",
+      "cpu_seconds": 0.109375,
+      "responding": true,
+      "working_set_bytes": 21118976
+    },
+    {
+      "pid": 58200,
+      "name": "node_repl",
+      "cpu_seconds": 0.03125,
+      "responding": true,
+      "working_set_bytes": 15880192
+    },
+    {
+      "pid": 71000,
+      "name": "conhost",
+      "cpu_seconds": 0.015625,
+      "responding": true,
+      "working_set_bytes": 7987200
+    },
+    {
+      "pid": 71332,
+      "name": "conhost",
+      "cpu_seconds": 0.015625,
+      "responding": true,
+      "working_set_bytes": 8171520
+    },
+    {
+      "pid": 101024,
+      "name": "conhost",
+      "cpu_seconds": 0.0,
+      "responding": true,
+      "working_set_bytes": 7946240
+    },
+    {
+      "pid": 103108,
+      "name": "node_repl",
+      "cpu_seconds": 0.015625,
+      "responding": true,
+      "working_set_bytes": 15642624
+    },
+    {
+      "pid": 108524,
+      "name": "codex",
+      "cpu_seconds": 41.625,
+      "responding": true,
+      "working_set_bytes": 283947008
+    }
+  ]
+}

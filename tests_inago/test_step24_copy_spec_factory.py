@@ -8,13 +8,15 @@ from automation.inago.copy_service import _check_spec
 from automation.inago.production_runtime import _make_copy_spec_factory
 
 
-def test_copy_spec_factory_includes_every_fact_evidence_reference() -> None:
+def test_copy_spec_factory_includes_every_fact_evidence_reference(tmp_path) -> None:
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
     connection.executescript(
         """
         CREATE TABLE offer (
             offer_key TEXT PRIMARY KEY,
+            shop_id TEXT NOT NULL,
+            item_id TEXT NOT NULL,
             facts_json TEXT NOT NULL,
             image_refs_json TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -35,11 +37,13 @@ def test_copy_spec_factory_includes_every_fact_evidence_reference() -> None:
     ]
     connection.execute(
         """
-        INSERT INTO offer (offer_key, facts_json, image_refs_json, name, url)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO offer (offer_key, shop_id, item_id, facts_json, image_refs_json, name, url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             offer_key,
+            "shop",
+            "item-1",
             json.dumps(facts),
             "[]",
             "Fixture offer",
@@ -50,7 +54,9 @@ def test_copy_spec_factory_includes_every_fact_evidence_reference() -> None:
         active_basic_version="confirmed-0.3-step46-all132",
         themes=({"theme_id": "G01-T01", "name": "fixture theme"},),
     )
-    make_spec = _make_copy_spec_factory(None, settings_runtime)
+    make_spec = _make_copy_spec_factory(
+        SimpleNamespace(runtime_root=tmp_path), settings_runtime
+    )
 
     spec = make_spec(
         connection,

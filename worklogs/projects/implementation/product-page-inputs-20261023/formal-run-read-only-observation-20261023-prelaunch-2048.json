@@ -1,0 +1,56 @@
+{
+  "schema_version": "formal-run-read-only-observation-v1",
+  "observed_at": "2026-10-23T20:48:39+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli status --environment production --config <settings-path> --data-root <runtime-path> --run-id INAGO-2026-10-23",
+    "exit_code": 0,
+    "status": "failed",
+    "reason_codes": [
+      "run_failed"
+    ],
+    "heartbeat_status": "stale",
+    "heartbeat_age_seconds": 811,
+    "progress_status": "stalled",
+    "progress_age_seconds": 811,
+    "owner_status": "unknown_owner_metadata_unavailable",
+    "lock_status": "missing_owner_file_missing",
+    "lock_file_present": true,
+    "attempt_used": 20,
+    "committed_count": 0,
+    "finished_at": "2026-10-23T20:35:08.110288+09:00",
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "recovery": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli recovery --environment production --config <settings-path> --data-root <runtime-path> --run-id INAGO-2026-10-23 --target-date 2026-10-23 --manual --owner-confirmed",
+    "exit_code": 0,
+    "status": "advisory",
+    "action": "resume_remaining",
+    "reason_code": "same_run_remaining_work",
+    "owner_state": "stopped",
+    "execution_requested": false,
+    "cause_resolved_observed": false,
+    "search_attempts": 20,
+    "committed_count": 0,
+    "lock_file_present": true,
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "process_scan": {
+    "observed_at": "2026-10-23T20:48:47.2338207+09:00",
+    "query": "Win32_Process; exact automation.inago.maintenance.daily_launcher module process; status and recovery commands completed first",
+    "matching_count": 0,
+    "pids": []
+  },
+  "notes": "Fresh prelaunch observation immediately before the authorized official resume. No lock or database was directly changed. No --cause-resolved flag was used."
+}

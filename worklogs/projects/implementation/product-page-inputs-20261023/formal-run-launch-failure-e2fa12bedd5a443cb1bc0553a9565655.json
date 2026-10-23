@@ -1,0 +1,32 @@
+{
+  "schema_version": "formal-run-launch-failure-v1",
+  "source_launch_id": "e2fa12bedd5a443cb1bc0553a9565655",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "completed_at": "2026-10-23T20:11:39+09:00",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "overall_status": "failed",
+  "daily_status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_reason_origin": "retained_from_earlier_same_run_failures",
+  "attempt_used": 17,
+  "committed_count": 0,
+  "safe_trace_summary": {
+    "reader": "automation.inago.trace.read_trace_events",
+    "bounded_event_count": 1645,
+    "latest_retry_window": "approximately 2026-10-23T20:10:13+09:00 to 2026-10-23T20:11:39+09:00",
+    "latest_retry_window_event_count": 109,
+    "room_condition_search_submit_error_count": 3,
+    "room_condition_search_timeout_error_count": 3,
+    "room_list_zero_row_no_progress_count": 9,
+    "room_short_batch_stable_error_count": 3,
+    "incomplete_search_failure_count": 3,
+    "product_page_capture_event_count": 0,
+    "notes": "The submit error interval includes popup-state lookup after the configured click timeout; it does not isolate click duration. No query, page body, OCR text, URL, raw trace, or private runtime body is included."
+  },
+  "fresh_read_only_observation": "formal-run-read-only-observation-20261023-2021.json",
+  "notes": "The official status retains an earlier product_page_capture_failed primary reason. The latest retry trace shows it ended at ROOM search and recorded no product-page capture event. The live DOM cause has not been directly confirmed; the .items-search marker-matching gap is reproduced with a fixture and has a focused fix."
+}

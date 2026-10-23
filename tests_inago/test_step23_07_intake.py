@@ -15,6 +15,7 @@ from automation.inago.orchestrator import (
     run_daily,
 )
 from automation.inago.production_runtime import _make_copy_spec_factory
+from automation.inago.room_adapter import RoomContractError
 from tests_inago.test_step13 import (
     PREPARATION_ROOT,
     SETTINGS_VERSION,
@@ -94,6 +95,35 @@ def test_copy_spec_rejection_records_safe_stage_code_and_identifiers() -> None:
         },
     }
     assert "private.example" not in json.dumps(state)
+
+
+def test_unexpected_orchestration_failure_keeps_safe_exception_frames() -> None:
+    state: dict[str, object] = {}
+
+    def fail_room_observation() -> None:
+        raise RoomContractError("private product description must not be stored")
+
+    try:
+        fail_room_observation()
+    except RoomContractError as exc:
+        _record_orchestration_error(state, exc)
+    else:
+        raise AssertionError("fixture must raise RoomContractError")
+
+    primary = state["primary_error"]
+    assert isinstance(primary, dict)
+    diagnostic = primary["diagnostic"]
+    assert diagnostic["exception_class"] == "RoomContractError"
+    assert diagnostic["exception_chain"] == [
+        {"relation": "raised", "exception_class": "RoomContractError"}
+    ]
+    assert any(
+        frame["path"] == "tests_inago/test_step23_07_intake.py"
+        and frame["function"] == "fail_room_observation"
+        for frame in diagnostic["exception_frames"]
+    )
+    assert "private product description" not in json.dumps(state)
+    assert state["errors"][-1]["diagnostic"] == diagnostic
 
 
 class _MultiFactOfferIntake:

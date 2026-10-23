@@ -1,0 +1,51 @@
+{
+  "schema_version": "daily-result-observation-v1",
+  "source_launch_id": "e280a0eb0bfb4b8ca047f4e0ed081ad9",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": "complete",
+  "overall_status": "complete",
+  "daily_status": "complete",
+  "reason": "daily_target_reached",
+  "daily_reason": "daily_target_reached",
+  "count_fields": {
+    "committed_count": 15,
+    "error_count": 0,
+    "shortfall_count": 0
+  },
+  "retry_summary": {
+    "attempt_count": 42,
+    "contract_violation_count": 0,
+    "recovered_count": 9,
+    "unresolved_count": 12
+  },
+  "phase_results": {
+    "daily": {
+      "committed_count": 15,
+      "error_count": 0,
+      "shortfall_count": 0,
+      "source_failures": 34,
+      "status": "complete"
+    },
+    "export": {
+      "status": "ready"
+    },
+    "metrics": {
+      "status": "observed"
+    },
+    "preservation": {
+      "end_backup_status": "ready",
+      "monthly_restore_status": "already_checked",
+      "status": "ready"
+    },
+    "start_backup": {
+      "status": "ready"
+    },
+    "trace": {
+      "event_count": 0,
+      "status": "degraded"
+    }
+  },
+  "captured_at": "2026-10-23T20:59:44.509420Z",
+  "observation_sha256": "824fda8221f62cb0cf0442f7de1fb6bbc9c53d4a93f27980b9f38fb9f2e2854f"
+}

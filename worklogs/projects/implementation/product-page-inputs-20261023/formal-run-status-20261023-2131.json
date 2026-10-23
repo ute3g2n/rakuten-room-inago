@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-10-23T21:31:49+09:00",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": "healthy",
+  "reason_codes": [
+    "run_observed_current"
+  ],
+  "heartbeat_status": "fresh",
+  "progress_status": "advancing",
+  "owner_pid": 48688,
+  "owner_start_time": "2026-10-23T21:30:27.960800+09:00",
+  "attempt_used": 27,
+  "committed_count": 0,
+  "finished_at": null,
+  "child_process_count": 18,
+  "active_source_launch_id": "not_returned_yet",
+  "evidence_source": "read_only_status_cli",
+  "raw_trace_or_product_text_included": false
+}

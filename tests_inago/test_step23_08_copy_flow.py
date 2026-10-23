@@ -31,7 +31,9 @@ def test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job(
         active_basic_version=SETTINGS_VERSION,
         themes=tuple(basic["themes"]),
     )
-    production_factory = _make_copy_spec_factory(None, settings_runtime)
+    production_factory = _make_copy_spec_factory(
+        SimpleNamespace(runtime_root=runtime_case.data_root), settings_runtime
+    )
     intake = _MultiFactOfferIntake()
     bundle = _make_ports(
         runtime_case,

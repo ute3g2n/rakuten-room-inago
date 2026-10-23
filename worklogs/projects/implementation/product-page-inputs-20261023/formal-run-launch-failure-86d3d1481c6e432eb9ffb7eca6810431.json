@@ -1,0 +1,42 @@
+{
+  "schema_version": "formal-run-launch-failure-v1",
+  "source_launch_id": "86d3d1481c6e432eb9ffb7eca6810431",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "completed_at": "2026-10-23T21:41:07.371571+09:00",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "overall_status": "failed",
+  "daily_status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_reason_origin": "retained_from_earlier_same_run_failures",
+  "attempt_used": 30,
+  "committed_count": 0,
+  "safe_diagnostics": {
+    "primary_diagnostic_count": 0,
+    "secondary_error_classes": [
+      "step13_error_RoomContractError",
+      "step13_error_DailyOrchestrationError",
+      "product_page_capture_failed"
+    ],
+    "safe_frames": [
+      {
+        "module": "automation.inago.orchestrator",
+        "function": "run_daily",
+        "line": 4866
+      },
+      {
+        "module": "automation.inago.orchestrator",
+        "function": "unknown",
+        "line": 4126
+      }
+    ],
+    "raw_message_or_stack_saved": false
+  },
+  "trace_status": "degraded_event_limit",
+  "safe_trace_summary": "formal-run-room-trace-summary-20261023-2141.json",
+  "status_recovery_observation": "formal-run-read-only-observation-20261023-2141.json",
+  "notes": "No product-page operation is recorded after trace suppression; absence in the trace is not proof that later work did not occur. Current root cause remains unknown."
+}

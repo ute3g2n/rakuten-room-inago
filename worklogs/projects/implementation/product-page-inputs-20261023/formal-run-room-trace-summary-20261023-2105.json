@@ -1,0 +1,29 @@
+{
+  "schema_version": "safe-trace-summary-v1",
+  "summarized_at": "2026-10-23T21:07:13+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "source_launch_id": "500e67b631364ef6a6fb81e7ec8d7f81",
+  "reader": "automation.inago.trace.read_trace_events (bounded summary)",
+  "raw_trace_written": false,
+  "trace_event_count": 2030,
+  "retry_window": {
+    "start": "2026-10-23T21:01:51.679+09:00",
+    "end": "2026-10-23T21:05:20.716+09:00",
+    "event_count": 167,
+    "trends_request_begin": 1,
+    "room_request_begin": 3,
+    "room_condition_search_submit_begin": 3,
+    "room_condition_search_submit_timeout_errors": 0,
+    "room_condition_search_submit_clicked": 3,
+    "room_condition_search_submit_complete": 3,
+    "room_results_scan_begin": 3,
+    "room_list_progress_initial_observations": 3,
+    "room_list_no_progress_status_events": 9,
+    "room_short_batch_stable_errors": 3,
+    "incomplete_search_failures": 3,
+    "room_results_complete_events": 0,
+    "product_page_component_events": 0
+  },
+  "finding": "The 20-second source version completed all three condition-search clicks and closed the sheet. Each result scan then produced no additional list progress and failed as incomplete_search. The current trace records the failure and row-progress rounds but does not identify whether a visible terminal marker was absent or unrecognized. No product_page event occurred.",
+  "privacy": "No query text, page body, OCR text, URL, raw trace, or private runtime body is stored."
+}

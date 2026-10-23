@@ -1,0 +1,44 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "source": "automation.inago.trace.read_trace_events with default bounded policy",
+  "trace_reference": "runtime/logs/traces/2026-10-23/INAGO-2026-10-23.jsonl",
+  "summarized_window_start": "2026-10-23T22:24:10+09:00",
+  "trace_latest_event_at": "2026-10-23T22:49:35.134+09:00",
+  "events_in_window": null,
+  "room_requests": 12,
+  "room_results_complete": 11,
+  "room_identified_row_counts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "room_row_failure_counts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "room_end_evidence_counts": {
+    "stable_no_progress": 11
+  },
+  "http_429_count": 1,
+  "http_429_recovered_to_subsequent_trends_and_room_activity": true,
+  "product_page_event_count": 0,
+  "raw_html_ocr_query_or_product_text_printed": false,
+  "interpretation": "Eleven of twelve resumed ROOM requests completed empty with zero identified rows and no row failures. One request remains in progress. No product-page capture or commit is observed."
+}

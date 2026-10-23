@@ -1,0 +1,29 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "source": "automation.inago.trace.read_trace_events with default bounded policy",
+  "trace_reference": "runtime/logs/traces/2026-10-23/INAGO-2026-10-23.jsonl",
+  "summarized_window_start": "2026-10-23T22:24:10+09:00",
+  "trace_latest_event_at": "2026-10-23T22:31:52.494+09:00",
+  "events_total_in_trace": 2495,
+  "events_in_window": 235,
+  "room_requests": 3,
+  "room_results_complete": 3,
+  "room_no_progress_observations": 9,
+  "room_end_evidence_counts": {
+    "stable_no_progress": 3,
+    "no_marker": 0
+  },
+  "room_resolved_row_counts": [
+    0,
+    0,
+    0
+  ],
+  "room_row_failure_counts": [
+    0,
+    0,
+    0
+  ],
+  "product_page_events_in_window": 0,
+  "raw_html_ocr_query_or_product_text_printed": false,
+  "interpretation": "All three resumed ROOM zero-hit searches ended as completed empty results after bounded no-progress observation. No product page capture has occurred in this window. This does not prove the daily run can reach 15 products."
+}

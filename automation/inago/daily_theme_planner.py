@@ -119,6 +119,7 @@ class DurableTrendsThemePlanner:
                 ordinal,
                 acquisition_id,
                 status="exhausted",
+                query_word=query_word,
             )
         if acquisition.status == "deadline":
             return self._plan(
@@ -250,6 +251,8 @@ class DurableTrendsThemePlanner:
             status="observed",
             snapshot_ref=saved.snapshot.snapshot_id,
             selected=tuple((word.word_id, word.raw) for word in saved.selected),
+            query_word=query_word,
+            has_related_words=bool(saved.snapshot.words),
         )
 
     def _run_key_job(
@@ -463,6 +466,8 @@ class DurableTrendsThemePlanner:
         status: str,
         snapshot_ref: str | None = None,
         selected: tuple[tuple[str, str], ...] = (),
+        query_word: str | None = None,
+        has_related_words: bool | None = None,
     ) -> DailyThemePlan:
         if status == "deadline":
             return DailyThemePlan(
@@ -473,15 +478,23 @@ class DurableTrendsThemePlanner:
                 None,
                 acquisition_status="deadline",
                 acquisition_ref=acquisition_id,
+                has_related_words=None,
             )
-        fallback = DailySearchPlan(
-            f"{theme_id}-fallback-{event_kind}-{ordinal:02d}",
-            theme_id,
-            theme_word,
-            (theme_id,),
-            "theme_fallback",
-            "theme_fallback",
+        raw_hits = (
+            bool(selected)
+            if has_related_words is None
+            else has_related_words
         )
+        fallback = None
+        if status == "exhausted" or not raw_hits:
+            fallback = DailySearchPlan(
+                f"{theme_id}-fallback-{event_kind}-{ordinal:02d}",
+                theme_id,
+                query_word or theme_word,
+                (theme_id,),
+                "theme_fallback",
+                "theme_fallback",
+            )
         if status == "exhausted":
             return DailyThemePlan(
                 theme_id,
@@ -491,6 +504,7 @@ class DurableTrendsThemePlanner:
                 None,
                 acquisition_status="exhausted",
                 acquisition_ref=acquisition_id,
+                has_related_words=False,
             )
         if status != "observed" or snapshot_ref is None:
             raise DailyOrchestrationError("daily_theme_plan_status_invalid")
@@ -515,4 +529,5 @@ class DurableTrendsThemePlanner:
             snapshot_ref,
             acquisition_status="observed",
             acquisition_ref=acquisition_id,
+            has_related_words=raw_hits,
         )

@@ -1,0 +1,11 @@
+{
+  "schema_version": "inago-command-error-observation-v1",
+  "recorded_at": "2026-10-24T00:48:51+09:00",
+  "operation": "read-only official status check",
+  "first_attempt": "failed",
+  "exit_code": 2,
+  "error_class": "cli_argument_parse_error",
+  "effect": "No state change; no run operation executed.",
+  "retry": "The correctly quoted status command for the same run succeeded immediately.",
+  "retry_evidence": "worklogs/projects/implementation/product-page-inputs-20261023/formal-run-status-20261024-0048.json"
+}

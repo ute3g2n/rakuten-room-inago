@@ -1,0 +1,54 @@
+{
+  "schema_version": "formal-run-read-only-observation-v1",
+  "observed_at": "2026-10-23T19:41:20+09:00",
+  "status": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli status --config <settings-path> --data-root <runtime-path> --environment production --run-id INAGO-2026-10-23",
+    "exit_code": 0,
+    "observed_at": "2026-10-23T19:41:20+09:00",
+    "status": "failed",
+    "reason_codes": [
+      "run_failed"
+    ],
+    "heartbeat_status": "stale",
+    "progress_status": "advancing_at_last_recorded_progress_then_finished",
+    "process_status": "unknown_owner_metadata_unavailable",
+    "lock_file_present": true,
+    "owner_file": "missing",
+    "attempt_used": 8,
+    "committed_count": 0,
+    "finished_at": "2026-10-23T19:34:10.624875+09:00",
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "recovery": {
+    "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli recovery --config <settings-path> --data-root <runtime-path> --environment production --run-id INAGO-2026-10-23 --target-date 2026-10-23 --manual --owner-confirmed",
+    "exit_code": 0,
+    "observed_at": "2026-10-23T19:41:20+09:00",
+    "status": "advisory",
+    "action": "resume_remaining",
+    "reason_code": "same_run_remaining_work",
+    "run_id": "INAGO-2026-10-23",
+    "target_date": "2026-10-23",
+    "search_attempts": 8,
+    "committed_count": 0,
+    "owner_state": "stopped",
+    "execution_requested": false,
+    "cause_resolved_observed": false,
+    "permissions": {
+      "kill_process": false,
+      "release_lock": false,
+      "restore_database": false,
+      "send_notification": false
+    }
+  },
+  "process_scan": {
+    "observed_at": "2026-10-23T19:41:20+09:00",
+    "query": "Win32_Process exact Python module invocation: -m automation.inago.maintenance.daily_launcher or -m automation.inago.cli; excludes PowerShell command-text matches",
+    "matching_count": 0,
+    "pids": []
+  }
+}

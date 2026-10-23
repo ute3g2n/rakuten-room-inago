@@ -74,7 +74,7 @@ def _uncloseable_room_html(query: str) -> str:
     return html.replace(close_control, "")
 
 
-def _search_submit_room_html() -> str:
+def _search_submit_room_html(*, click_delay_ms: int = 0) -> str:
     html = browser_fixtures.room_html(1, initial=1, terminal=True)
     popup_end = '</div></div>\n    <div id="rows">'
     popup_with_search = (
@@ -85,7 +85,19 @@ def _search_submit_room_html() -> str:
     assert popup_end in html
     html = html.replace(popup_end, popup_with_search, 1)
     close_control = '<a class="close" onclick="this.parentElement.style.display=\'none\'">閉じる</a>'
-    return html.replace(close_control, "")
+    html = html.replace(close_control, "")
+    if click_delay_ms:
+        html += f"""
+        <div id="search-click-blocker" style="display:none;position:fixed;inset:0;z-index:2147483647"></div>
+        <script>
+          const blocker=document.querySelector('#search-click-blocker');
+          document.querySelector('.search-detail-wrap').addEventListener('click',()=>{{
+            blocker.style.display='block';
+            setTimeout(()=>blocker.style.display='none',{click_delay_ms});
+          }});
+        </script>
+        """
+    return html
 
 
 class BrowserRoomSequence:
@@ -432,13 +444,13 @@ def test_n09b_already_closed_and_ambiguous_controls(tmp_path, ui_server):
 
 
 def test_n09c_public_search_action_applies_verified_conditions(tmp_path, ui_server):
-    """An explicit search action closes the conditions sheet and starts results."""
+    """The search action can finish within its expanded click window."""
 
     attempt_id = "R06-N09C-SEARCH-SUBMIT"
-    ui_server["html"] = _search_submit_room_html()
+    ui_server["html"] = _search_submit_room_html(click_delay_ms=12000)
     request = replace(room_request(), attempt_id=attempt_id, run_id=f"{attempt_id}-RUN")
 
-    response = source(tmp_path, ui_server, timeout=8).search(request)
+    response = source(tmp_path, ui_server, timeout=30).search(request)
 
     assert response["status"] == "observed", response.get("error_code")
     observation_path = next(

@@ -1,0 +1,48 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "source": "automation.inago.trace.read_trace_events with default bounded policy",
+  "trace_reference": "runtime/logs/traces/2026-10-23/INAGO-2026-10-23.jsonl",
+  "summarized_window_start": "2026-10-23T22:24:10+09:00",
+  "trace_latest_event_at": "2026-10-23T22:50:30.677+09:00",
+  "room_requests": 14,
+  "room_results_complete": 13,
+  "room_identified_row_counts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "room_row_failure_counts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "room_end_evidence_counts": {
+    "stable_no_progress": 13
+  },
+  "safe_error_counts": {
+    "http_429": 1
+  },
+  "product_page_event_count": 0,
+  "raw_html_ocr_query_or_product_text_printed": false,
+  "interpretation": "Thirteen of fourteen resumed ROOM requests have completed empty with zero identified rows and no row failures; one is underway. The single HTTP429 was followed by continued Trends and ROOM activity. No product-page capture or commit is observed."
+}

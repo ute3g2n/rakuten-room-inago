@@ -1,0 +1,46 @@
+{
+  "run_id": "INAGO-2026-10-23",
+  "scope": "two representative local ROOM searches only",
+  "playwright_core": "1.55.0",
+  "debug_api_log": true,
+  "headed_video_trace_screenshot": true,
+  "results": [
+    {
+      "query_kind": "theme_fallback",
+      "exit_code": 0,
+      "failed_stage": null,
+      "error_class": null,
+      "search_box_visible": true,
+      "query_matches_search_box": true,
+      "result_status": "results",
+      "result_card_count": 20,
+      "no_result_message_visible": false,
+      "result_wait_timeout_ms": 45000,
+      "trace_status": "saved",
+      "video_status": "saved",
+      "screenshot": "screenshots/room-search-2026-10-23T21-07-32-150Z.png",
+      "search_box_screenshot": "screenshots/room-search-box-2026-10-23T21-07-32-150Z.png",
+      "trace": "recordings/room-search-2026-10-23T21-07-32-150Z.zip",
+      "video": "recordings/b876e7505adbb49df31f5367551189af.webm"
+    },
+    {
+      "query_kind": "related",
+      "exit_code": 0,
+      "failed_stage": null,
+      "error_class": null,
+      "search_box_visible": true,
+      "query_matches_search_box": true,
+      "result_status": "results",
+      "result_card_count": 20,
+      "no_result_message_visible": false,
+      "result_wait_timeout_ms": 45000,
+      "trace_status": "saved",
+      "video_status": "saved",
+      "screenshot": "screenshots/room-search-2026-10-23T21-08-04-819Z.png",
+      "search_box_screenshot": "screenshots/room-search-box-2026-10-23T21-08-04-819Z.png",
+      "trace": "recordings/room-search-2026-10-23T21-08-04-819Z.zip",
+      "video": "recordings/923ecf6cb7f4bf4067118fdea57c79ac.webm"
+    }
+  ],
+  "queries_omitted_from_summary": true
+}

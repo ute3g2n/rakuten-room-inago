@@ -607,6 +607,31 @@ def test_exception_chain_truncation_boundary_is_reported_without_unsafe_data():
         assert all("message" not in key.lower() for key in diagnostic)
 
 
+def test_exception_frames_have_bounded_node_and_frame_totals():
+    def raise_deep(error: RuntimeError, depth: int) -> None:
+        if depth:
+            raise_deep(error, depth - 1)
+            return
+        raise error
+
+    def capture_deep(error: RuntimeError) -> BaseException:
+        try:
+            raise_deep(error, 80)
+        except RuntimeError as raised:
+            return raised
+
+    nodes = [capture_deep(RuntimeError(f"MESSAGE_CANARY_{index}")) for index in range(13)]
+    for current, following in zip(nodes, nodes[1:]):
+        current.__cause__ = following
+
+    frames, truncated = daily_pipeline._safe_exception_frame_details(nodes[0])
+
+    assert len(frames) <= 12 * 8
+    assert len(frames) == 12 * 8
+    assert truncated is True
+    assert "MESSAGE_CANARY" not in json.dumps(frames)
+
+
 def test_pipeline_source_fingerprint_helper_is_removed():
     assert not hasattr(daily_pipeline, "_pipeline_code_sha256")
 

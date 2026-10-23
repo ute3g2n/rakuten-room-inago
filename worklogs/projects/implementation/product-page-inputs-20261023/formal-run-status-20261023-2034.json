@@ -1,0 +1,43 @@
+{
+  "schema_version": "formal-run-read-only-status-v1",
+  "observed_at": "2026-10-23T20:34:22+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.cli status --config <settings-path> --data-root <runtime-path> --environment production --run-id INAGO-2026-10-23",
+  "exit_code": 0,
+  "status": "healthy",
+  "reason_codes": ["run_observed_current"],
+  "heartbeat": {
+    "status": "fresh",
+    "last_updated_at": "2026-10-23T20:34:02+09:00",
+    "age_seconds": 20,
+    "stale_after_seconds": 120
+  },
+  "progress": {
+    "status": "advancing",
+    "last_updated_at": "2026-10-23T20:34:02+09:00",
+    "age_seconds": 20,
+    "stalled_after_seconds": 600
+  },
+  "owner": {
+    "status": "alive_and_matching",
+    "pid": 95636,
+    "process_start_time": "2026-10-23T11:33:32.054240+00:00",
+    "run_id": "INAGO-2026-10-23"
+  },
+  "lock_file_present": true,
+  "attempt_used": 19,
+  "committed_count": 0,
+  "finished_at": null,
+  "child_processes": {
+    "status": "observed",
+    "count": 18
+  },
+  "permissions": {
+    "kill_process": false,
+    "release_lock": false,
+    "restore_database": false,
+    "send_notification": false
+  },
+  "notes": "The same-run official launcher is active; its new source_launch_id has not yet been returned. No private runtime body, product/OCR text, URL, credentials, or raw trace is included."
+}

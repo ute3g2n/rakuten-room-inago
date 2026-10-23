@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 import json
 import os
 from pathlib import Path
@@ -32,7 +32,11 @@ EXIT_RUNTIME_ERROR = 4
 EXIT_DAILY_UNMET = 5
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
+_FUNCTION_PATTERN = re.compile(r"^[_A-Za-z][_A-Za-z0-9.]{0,63}$")
 _ERROR_CLASS_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+_REPOSITORY_SOURCE_PATH_PATTERN = re.compile(
+    r"^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.py$"
+)
 _VALID_TRACE_STATUSES = {"healthy", "degraded", "unavailable", "not_written"}
 
 
@@ -148,6 +152,138 @@ def _extract_secondary_classes(payload: Mapping[str, object]) -> list[str]:
         if error_class is not None:
             result.append(error_class)
     return result
+
+
+def _extract_safe_failure_diagnostic(
+    payload: Mapping[str, object] | None,
+) -> dict[str, object] | None:
+    """Keep bounded class and repository-frame data, never exception messages."""
+
+    if payload is None:
+        return None
+
+    def sanitize(
+        diagnostic: Mapping[str, object],
+        record: Mapping[str, object],
+        *,
+        source: str,
+    ) -> dict[str, object] | None:
+        exception_class = _safe_error_class(diagnostic.get("exception_class"))
+        chain: list[dict[str, str]] = []
+        raw_chain = diagnostic.get("exception_chain")
+        if isinstance(raw_chain, list):
+            for entry in raw_chain[:12]:
+                if not isinstance(entry, Mapping):
+                    continue
+                relation = entry.get("relation")
+                entry_class = _safe_error_class(entry.get("exception_class"))
+                if isinstance(relation, str) and relation in {
+                    "raised",
+                    "cause",
+                    "context",
+                    "context_suppressed",
+                } and entry_class is not None:
+                    chain.append(
+                        {"relation": relation, "exception_class": entry_class}
+                    )
+
+        frames: list[dict[str, str | int]] = []
+        raw_frames = diagnostic.get("exception_frames")
+        if isinstance(raw_frames, list):
+            for frame in raw_frames[:96]:
+                if not isinstance(frame, Mapping):
+                    continue
+                frame_class = _safe_error_class(frame.get("exception_class"))
+                relation = frame.get("relation")
+                path = frame.get("path")
+                module = frame.get("module")
+                function = frame.get("function")
+                line = frame.get("line")
+                if (
+                    frame_class is None
+                    or not isinstance(relation, str)
+                    or relation
+                    not in {"raised", "cause", "context", "context_suppressed"}
+                    or not isinstance(path, str)
+                    or len(path) > 256
+                    or _REPOSITORY_SOURCE_PATH_PATTERN.fullmatch(path) is None
+                    or any(part in {".", ".."} for part in path.split("/"))
+                    or not isinstance(module, str)
+                    or _CODE_PATTERN.fullmatch(module) is None
+                    or not isinstance(function, str)
+                    or _FUNCTION_PATTERN.fullmatch(function) is None
+                    or type(line) is not int
+                    or not 1 <= line <= 2**31 - 1
+                ):
+                    continue
+                frames.append(
+                    {
+                        "exception_class": frame_class,
+                        "relation": relation,
+                        "path": path,
+                        "module": module,
+                        "function": function,
+                        "line": line,
+                    }
+                )
+        if exception_class is None and not chain and not frames:
+            return None
+        operation = _safe_code(record.get("operation"))
+        return {
+            "source": source,
+            "operation": operation,
+            "exception_class": exception_class,
+            "exception_chain": chain,
+            "exception_chain_truncated": (
+                diagnostic.get("exception_chain_truncated") is True
+            ),
+            "exception_frames": frames,
+            "exception_frames_truncated": (
+                diagnostic.get("exception_frames_truncated") is True
+                or isinstance(raw_frames, list) and len(raw_frames) > 96
+            ),
+        }
+
+    def collect(
+        record: Mapping[str, object], *, source: str
+    ) -> list[dict[str, object]]:
+        nested_diagnostics: list[Mapping[str, object]] = []
+        for index, (key, value) in enumerate(record.items()):
+            if index >= 32 or len(nested_diagnostics) >= 4:
+                break
+            if (
+                isinstance(key, str)
+                and (
+                    key == "diagnostic"
+                    or key.startswith("daily_primary_failure_diagnostic")
+                )
+                and isinstance(value, Mapping)
+            ):
+                nested_diagnostics.append(value)
+        candidates = nested_diagnostics or [record]
+        result = []
+        for diagnostic in candidates:
+            entry = sanitize(diagnostic, record, source=source)
+            if entry is not None:
+                result.append(entry)
+        return result
+
+    primary: list[dict[str, object]] = []
+    primary_error = payload.get("primary_error")
+    if isinstance(primary_error, Mapping):
+        primary = collect(primary_error, source="primary")
+
+    secondary: list[dict[str, object]] = []
+    secondary_errors = payload.get("secondary_errors")
+    if isinstance(secondary_errors, list):
+        for record in secondary_errors[:8]:
+            if not isinstance(record, Mapping):
+                continue
+            secondary.extend(collect(record, source="secondary"))
+
+    if not primary and not secondary:
+        return None
+    return {"primary": primary, "secondary": secondary}
 
 
 _OBSERVATION_COUNT_FIELDS = (
@@ -439,6 +575,7 @@ def _summarize_result(
             "reason_code": reason_code,
             "primary_error_class": primary_error_class,
             "trace_status": trace_status,
+            "failure_diagnostic": _extract_safe_failure_diagnostic(payload),
         },
         ensure_ascii=False,
         sort_keys=True,
@@ -588,13 +725,28 @@ def run_daily_launch(
     process_runner: ProcessRunner = run_daily_process,
     command: Sequence[str] | None = None,
     cwd: str | Path,
+    target_date: str | None = None,
+    manual: bool = False,
+    resume_confirmed: bool = False,
+    cause_resolved: bool = False,
 ) -> DailyLaunchOutcome:
     """Persist launch ownership, run the CLI child, then save one final notice."""
 
     if now.tzinfo is None or now.utcoffset() is None:
         raise DailyLauncherError("launch_clock_must_be_timezone_aware")
     launched_at = now.astimezone(JST)
-    target_date = launched_at.date().isoformat()
+    selected_target_date = target_date or launched_at.date().isoformat()
+    try:
+        parsed_target_date = date.fromisoformat(selected_target_date)
+    except (TypeError, ValueError) as exc:
+        raise DailyLauncherError("daily_target_date_invalid") from exc
+    if parsed_target_date.isoformat() != selected_target_date:
+        raise DailyLauncherError("daily_target_date_invalid")
+    if parsed_target_date > launched_at.date():
+        raise DailyLauncherError("daily_target_date_in_future")
+    if parsed_target_date < launched_at.date() and (not manual or not resume_confirmed):
+        raise DailyLauncherError("previous_day_resume_confirmation_required")
+    target_date = selected_target_date
     launch_id = uuid.uuid4().hex
     try:
         store.record_daily_launch_start(
@@ -609,10 +761,10 @@ def run_daily_launch(
     except (OSError, sqlite3.Error) as exc:
         raise DailyLauncherError("daily_launch_start_unavailable") from exc
 
-    daily_command = (
-        tuple(command)
-        if command is not None
-        else (
+    if command is not None:
+        daily_command = tuple(command)
+    else:
+        command_values = [
             sys.executable,
             "-B",
             "-m",
@@ -624,8 +776,16 @@ def run_daily_launch(
             str(Path(config_path)),
             "--data-root",
             str(Path(data_root)),
-        )
-    )
+            "--target-date",
+            target_date,
+        ]
+        if manual:
+            command_values.append("--manual")
+        if resume_confirmed:
+            command_values.append("--resume-confirmed")
+        if cause_resolved:
+            command_values.append("--cause-resolved")
+        daily_command = tuple(command_values)
     child_pid: int | None = None
     try:
 
@@ -727,6 +887,10 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="inago-daily-launcher")
     parser.add_argument("--config", required=True)
     parser.add_argument("--data-root", required=True)
+    parser.add_argument("--target-date")
+    parser.add_argument("--manual", action="store_true")
+    parser.add_argument("--resume-confirmed", action="store_true")
+    parser.add_argument("--cause-resolved", action="store_true")
     return parser
 
 
@@ -751,6 +915,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             config_path=Path(args.config).expanduser(),
             now=datetime.now(JST),
             cwd=Path(__file__).resolve().parents[3],
+            target_date=args.target_date,
+            manual=args.manual,
+            resume_confirmed=args.resume_confirmed,
+            cause_resolved=args.cause_resolved,
         )
     except (
         DailyLauncherError,

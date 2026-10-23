@@ -1,6 +1,6 @@
 """Q1.4 public DOM transport tests; fixture browser success is not live proof."""
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -15,6 +15,10 @@ from urllib.parse import urlsplit
 import pytest
 
 from automation.inago.live_sources import PublicBrowserSource, PublicSourceConfig
+from automation.inago.product_page_inputs import (
+    ProductPageCaptureRequest,
+    product_page_ref,
+)
 from automation.inago.room_adapter import RoomSearchRequest, parse_room_response
 from automation.inago.trends_adapter import TrendsRequest, parse_grouped_top_response
 
@@ -909,6 +913,41 @@ def test_room_product_navigation_waits_longer_than_old_fifteen_second_cap(
     } <= stages
 
 
+def test_product_page_can_be_recaptured_without_repeating_room_search(
+    tmp_path, ui_server
+):
+    port = source(tmp_path, ui_server)
+    request = ProductPageCaptureRequest(
+        request_id="product-page-recovery-request",
+        run_id="PRODUCT-PAGE-RECOVERY",
+        attempt_id="room-attempt-01",
+        shop_id="shop",
+        item_id="item-1",
+        item_url="https://item.rakuten.co.jp/shop/item-1/?ref=fixture",
+        row_index=1,
+    )
+
+    result = port.capture_product_page_inputs(request)
+
+    assert result == {
+        "request_id": request.request_id,
+        "run_id": request.run_id,
+        "shop_id": request.shop_id,
+        "item_id": request.item_id,
+        "page_ref": product_page_ref(request.run_id, request.shop_id, request.item_id),
+        "state": "captured",
+        "image_count": 0,
+    }
+    record = json.loads(
+        next((tmp_path / "observations").glob("product_page-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert record["kind"] == "product_page"
+    assert record["request"]["attempt_id"] == request.attempt_id
+    assert not list((tmp_path / "observations").glob("room-*.json"))
+
+
 @pytest.mark.parametrize("count", [0, 37])
 def test_explicit_room_end_preserves_normal_actual_count(tmp_path, ui_server, count):
     ui_server["html"] = room_html(count, terminal=True)
@@ -924,6 +963,104 @@ def test_explicit_room_end_preserves_normal_actual_count(tmp_path, ui_server, co
         and result.end_reached
         and result.end_reason == "exhausted"
     )
+
+
+def test_room_zero_result_message_from_live_screen_terminates_search(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(0, initial=0, terminal=True).replace(
+        "検索結果は以上です", "ご指定の検索条件に該当する商品はありません。"
+    )
+    request = room_request()
+
+    payload = source(tmp_path, ui_server, timeout=4).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert result.posts == ()
+    assert result.end_reached is True
+    records = list((tmp_path / "observations").glob("room-*.json"))
+    assert records
+    record = json.loads(records[0].read_text(encoding="utf-8"))
+    assert record["diagnostics"]["end_evidence"] == "explicit_no_results"
+
+
+def test_room_zero_result_message_inside_results_container_terminates_search(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(0, initial=0, terminal=True).replace(
+        '<div id="end" style="display:none">検索結果は以上です</div>',
+        '<div class="items-search"><p><span>ご指定の検索条件に</span><strong>該当する商品はありません。</strong></p></div>',
+    )
+    request = room_request()
+
+    payload = source(tmp_path, ui_server, timeout=4).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert result.posts == ()
+    assert result.end_reached is True
+    records = list((tmp_path / "observations").glob("room-*.json"))
+    assert records
+    record = json.loads(records[0].read_text(encoding="utf-8"))
+    assert record["diagnostics"]["end_evidence"] == "explicit_no_results"
+
+    ui_server["html"] = room_html(0, initial=0, terminal=False) + """
+    <script>
+      setTimeout(() => {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'items-search';
+        emptyState.innerHTML = '<p><span>ご指定の検索条件に</span><strong>該当する商品はありません。</strong></p>';
+        document.body.append(emptyState);
+      }, 1000);
+    </script>
+    """
+    delayed_root = tmp_path / "delayed-marker"
+    delayed_payload = source(delayed_root, ui_server, timeout=8).search(request)
+    delayed_result = parse_room_response(delayed_payload, request)
+
+    assert delayed_result.status == "observed", delayed_payload.get("error_code")
+    assert delayed_result.posts == ()
+    assert delayed_result.end_reached is True
+    delayed_record = json.loads(
+        next((delayed_root / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert delayed_record["diagnostics"]["end_evidence"] == "explicit_no_results"
+
+    ui_server["html"] = room_html(2, initial=1, terminal=False).replace(
+        '<div class="item"><div class="detail">',
+        '<div class="item"><div class="detail"><span>ご指定の検索条件に該当する商品はありません。</span>',
+        1,
+    )
+    card_marker_root = tmp_path / "product-card-marker"
+    card_marker_payload = source(card_marker_root, ui_server, timeout=12).search(request)
+    card_marker_result = parse_room_response(card_marker_payload, request)
+
+    assert card_marker_result.status == "observed", card_marker_payload.get("error_code")
+    assert card_marker_result.loaded_posts == 2
+
+    ui_server["html"] = room_html(0, initial=0, terminal=False) + (
+        '<div class="item-preview"><p>ご指定の検索条件に'
+        "該当する商品はありません。</p></div>"
+    )
+    preview_empty_root = tmp_path / "preview-empty-state"
+    preview_empty_payload = source(preview_empty_root, ui_server, timeout=4).search(
+        room_request()
+    )
+    preview_empty_result = parse_room_response(preview_empty_payload, room_request())
+
+    assert preview_empty_result.status == "observed", preview_empty_payload.get(
+        "error_code"
+    )
+    assert preview_empty_result.posts == ()
+    preview_empty_record = json.loads(
+        next((preview_empty_root / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert preview_empty_record["diagnostics"]["end_evidence"] == "explicit_no_results"
 
 
 def test_short_nonterminal_room_batch_finishes_after_bounded_stable_scrolls(
@@ -973,6 +1110,73 @@ def test_room_card_item_url_still_uses_preview_and_market_details_route(
         "room_detail_button_click_begin",
         "room_product_page_rendered",
     } <= stages
+
+
+def test_room_product_capture_receives_search_request_and_saves_page(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True, card_direct_href=True)
+    request = room_request()
+    payload = source(tmp_path, ui_server).search(request)
+
+    assert payload["status"] == "observed", payload.get("error_code")
+    page_files = list((tmp_path / "product-page-inputs").rglob("page.json"))
+    assert len(page_files) == 1
+    captured = json.loads(page_files[0].read_text(encoding="utf-8"))
+    assert captured["run_id"] == request.run_id
+    assert captured["source_evidence_ref"] == f"{request.attempt_id}:row:1"
+    assert captured["html_state"] == "captured"
+    observation_path = next(
+        (tmp_path / "observations").glob(
+            f"room-{request.attempt_id}-observation-*.json"
+        )
+    )
+    observation = json.loads(observation_path.read_text(encoding="utf-8"))
+    assert observation["trace_state"] == "healthy"
+    trace_events = [
+        json.loads(line)
+        for line in (tmp_path / observation["trace_ref"])
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    capture_event = next(
+        event
+        for event in trace_events
+        if event.get("operation") == "room_product_inputs_saved"
+    )
+    assert capture_event["status"] == "captured"
+    assert capture_event["image_count"] == 0
+
+
+def test_product_capture_error_trace_keeps_only_safe_internal_location(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(1, initial=1, terminal=True)
+    port = source(tmp_path, ui_server)
+    blocked_root = tmp_path / "product-page-root-is-a-file"
+    blocked_root.write_text("fixture", encoding="utf-8")
+    port._data_root = blocked_root
+
+    payload = port.search(room_request())
+
+    assert payload["status"] == "observed", payload.get("error_code")
+    record_path = next((tmp_path / "observations").glob("room-*.json"))
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    capture_errors = [
+        event
+        for event in record["node_events"]
+        if event.get("stage") == "room_product_inputs_capture_error"
+    ]
+    assert len(capture_errors) == 1
+    event = capture_errors[0]
+    assert event["failed_operation"] == "product_page_inputs_save"
+    assert event["failure_module"] == "automation.inago.adapters.product_page_inputs"
+    assert isinstance(event["failure_function"], str)
+    assert isinstance(event["failure_line"], int) and event["failure_line"] > 0
+    serialized = json.dumps(event)
+    assert str(tmp_path) not in serialized
+    assert "fixture" not in serialized
+    assert "stack" not in serialized.lower()
 
 
 def test_room_detail_button_can_navigate_same_tab_and_restore_search_results(
@@ -2259,3 +2463,59 @@ def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server
     assert response["status"] == "observed", response.get("error_code")
     assert len(response["posts"]) == 1
     assert port._active == {}
+
+
+def test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_progress(
+    tmp_path, ui_server
+):
+    ui_server["html"] = room_html(0, initial=0, terminal=False)
+    request = replace(room_request(), deadline_at=None)
+    adapter = source(tmp_path, ui_server, timeout=10)
+    cancellation_fired = threading.Event()
+
+    def cancel_after_guard_timeout():
+        cancellation_fired.set()
+        adapter.cancel_active_request(request.run_id, request.attempt_id)
+
+    guard = threading.Timer(15, cancel_after_guard_timeout)
+    guard.daemon = True
+    guard.start()
+    try:
+        payload = adapter.search(request)
+    finally:
+        guard.cancel()
+
+    assert not cancellation_fired.is_set()
+    result = parse_room_response(payload, request)
+    assert result.status == "observed", payload.get("error_code")
+    assert result.posts == ()
+    assert result.end_reached is True
+    records = list((tmp_path / "observations").glob("room-*.json"))
+    assert records
+    record = json.loads(records[0].read_text(encoding="utf-8"))
+    no_progress = [
+        event
+        for event in record["node_events"]
+        if event.get("event") == "public_source_stage"
+        and event.get("stage") == "room_list_no_progress"
+        and event.get("loaded_posts") == 0
+    ]
+    assert [event["stable_round"] for event in no_progress] == [1, 2, 3]
+    assert record["diagnostics"]["end_evidence"] == "stable_no_progress"
+
+    ui_server["html"] = room_html(0, initial=0, terminal=True)
+    generic_root = tmp_path / "unrecognized-empty-marker"
+    generic_payload = source(generic_root, ui_server, timeout=4).search(request)
+    assert generic_payload["error_code"] == "incomplete_search"
+    generic_record = json.loads(
+        next((generic_root / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    generic_incomplete = [
+        event
+        for event in generic_record["node_events"]
+        if event.get("event") == "public_source_stage"
+        and event.get("stage") == "room_search_incomplete"
+    ]
+    assert generic_incomplete[-1]["end_evidence"] == "unrecognized_empty"

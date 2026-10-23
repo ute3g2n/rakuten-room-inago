@@ -1,0 +1,16 @@
+{
+  "run_id": "INAGO-2026-10-23",
+  "run_status": "complete",
+  "folder_count_after": 16,
+  "committed_product_folder_count": 15,
+  "failed_selected_folder_count": 1,
+  "unselected_folder_count": 0,
+  "unselected_folder_files_remaining": 0,
+  "cleanup_status_counts": {
+    "complete": 15
+  },
+  "leftover_image_file_count": 1,
+  "failed_selected_product_image_retained": true,
+  "product_identity_or_path_recorded": false,
+  "postcheck_source": "read-only run checkpoint and folder aggregate"
+}

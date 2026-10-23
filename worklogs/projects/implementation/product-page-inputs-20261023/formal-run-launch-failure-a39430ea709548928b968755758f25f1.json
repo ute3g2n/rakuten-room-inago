@@ -1,0 +1,18 @@
+{
+  "schema_version": "formal-launch-failure-v1",
+  "source_launch_id": "a39430ea709548928b968755758f25f1",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "launch_mode": "official_daily_launcher_same_run_resume",
+  "status": "failed",
+  "finished_at": "2026-10-23T19:34:10.624875+09:00",
+  "reported_failure_at": "2026-10-23T19:34:11.773+09:00",
+  "exit_code": 4,
+  "reason_code": "product_page_capture_failed",
+  "attempt_used_after_failure": 8,
+  "committed_count": 0,
+  "cause_resolved_flag_passed": false,
+  "trace_summary_reference": "formal-run-capture-trace-summary-20261023-1941.json",
+  "trace_diagnostic_limitation": "safe adapter module/function/line were absent from trace due a forwarding omission; product failure cause remained unknown before the fix.",
+  "active_daily_python_process_count_at_1941": 0
+}

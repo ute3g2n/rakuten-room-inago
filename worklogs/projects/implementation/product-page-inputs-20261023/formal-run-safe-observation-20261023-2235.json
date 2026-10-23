@@ -1,0 +1,19 @@
+{
+  "schema_version": "inago-safe-trace-summary-v1",
+  "source": "automation.inago.trace.read_trace_events with default bounded policy",
+  "trace_reference": "runtime/logs/traces/2026-10-23/INAGO-2026-10-23.jsonl",
+  "summarized_window_start": "2026-10-23T22:31:52.494+09:00",
+  "trace_latest_event_at": "2026-10-23T22:34:47.409+09:00",
+  "events_in_window": 46,
+  "safe_error_count": 1,
+  "safe_error_summary": {
+    "component": "public_source",
+    "operation": "source_retry_after_observed",
+    "error_class": "SourceFailure",
+    "primary_error_code": "http_429",
+    "failed_operation": "source_retry_after_observed",
+    "error_kind": "other_error"
+  },
+  "raw_html_ocr_query_or_product_text_printed": false,
+  "interpretation": "A public source reported HTTP 429 with retry-after observed. The daily status remains healthy with fresh heartbeat; no cause-resolution or completion claim is made."
+}

@@ -1,0 +1,243 @@
+{
+  "selected_registry_count": 16,
+  "selected_status_counts": {
+    "committed": 15,
+    "failed": 1
+  },
+  "selection_ocr_status_counts": {
+    "none": 16
+  },
+  "selection_cleanup_status_counts": {
+    "none": 16
+  },
+  "safe_selection_error_code_counts": {
+    "ocr_error_code:ocr_inference_failed": 2
+  },
+  "folder_to_checkpoint_safe_status": [
+    {
+      "folder_index": 1,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 2,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 1
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 3,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": "ocr_inference_failed",
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 22,
+        "error": 1
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 4,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 5,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 6,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 3
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 7,
+      "selected_entry_match": false,
+      "selection_status": null,
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": false,
+      "ocr_image_status_counts": {},
+      "cleanup_status": null,
+      "leftover_file_count": 19
+    },
+    {
+      "folder_index": 8,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 3
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 9,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 10,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 11,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 12,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 13,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 14,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 2
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 15,
+      "selected_entry_match": true,
+      "selection_status": "failed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": "ocr_inference_failed",
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "error": 1
+      },
+      "cleanup_status": null,
+      "leftover_file_count": 1
+    },
+    {
+      "folder_index": 16,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {
+        "success": 3
+      },
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    },
+    {
+      "folder_index": 17,
+      "selected_entry_match": true,
+      "selection_status": "committed",
+      "selection_ocr_status": null,
+      "selection_cleanup_status": null,
+      "selection_error_code": null,
+      "ocr_json_present": true,
+      "ocr_image_status_counts": {},
+      "cleanup_status": "complete",
+      "leftover_file_count": 0
+    }
+  ],
+  "state_counts": {
+    "product_page_capture_failures": 27,
+    "resolved_product_slot_failures": 6,
+    "resolved_image_cleanup_failures": 15,
+    "active_slot_failures": 0
+  }
+}

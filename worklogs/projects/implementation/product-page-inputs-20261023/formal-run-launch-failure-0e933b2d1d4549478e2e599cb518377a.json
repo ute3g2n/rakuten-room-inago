@@ -1,0 +1,32 @@
+{
+  "schema_version": "formal-run-launch-failure-v1",
+  "source_launch_id": "0e933b2d1d4549478e2e599cb518377a",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "completed_at": "2026-10-23T20:35:09.313243+09:00",
+  "launcher_exit_code": 1,
+  "completion_exit_code": 4,
+  "status": "failed",
+  "overall_status": "failed",
+  "daily_status": "failed",
+  "reason_code": "product_page_capture_failed",
+  "failure_phase": "product_page_capture",
+  "primary_reason_origin": "retained_from_earlier_same_run_failures",
+  "attempt_used": 20,
+  "committed_count": 0,
+  "safe_trace_summary": {
+    "reader": "automation.inago.trace.read_trace_events",
+    "bounded_event_count": 1756,
+    "latest_retry_window": "2026-10-23T20:33:32.599+09:00 to 2026-10-23T20:35:08.907+09:00",
+    "latest_retry_window_event_count": 111,
+    "room_condition_search_submit_begin_count": 5,
+    "room_condition_search_submit_timeout_error_count": 3,
+    "room_list_no_progress_event_count": 9,
+    "room_short_batch_stable_error_count": 3,
+    "incomplete_search_failure_count": 3,
+    "product_page_component_event_count": 0,
+    "notes": "The allowlisted event summary does not expose query text or a per-click duration. The three TimeoutError events are room_condition_search_submit_error. No product_page event was present in this retry window."
+  },
+  "fresh_read_only_observation": "formal-run-read-only-observation-20261023-2036.json",
+  "notes": "Official launcher output reported failure in product_page_capture, but the latest retry trace ended in ROOM search and had no product-page event. The cause of the search-submit TimeoutError remains unconfirmed."
+}

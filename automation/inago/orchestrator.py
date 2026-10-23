@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -15,6 +16,7 @@ import uuid
 from dataclasses import dataclass, replace
 from contextlib import ExitStack
 from datetime import date, datetime, time, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence
 from zoneinfo import ZoneInfo
@@ -49,6 +51,8 @@ from automation.inago.theme_queries import theme_query_candidates
 from automation.inago.trends_adapter import TrendsRequest, load_grouped_snapshot
 from automation.inago.trace import TraceSession, TraceWriter, make_trace_event
 from automation.inago.selection import (
+    Representative,
+    SelectionResult,
     SourcePost,
     evaluate_sources,
     identify_offer_from_saved_url,
@@ -68,11 +72,14 @@ AI_REQUEST_TIMEOUT_SECONDS = 480
 METRICS_REQUEST_TIMEOUT_SECONDS = 300
 MAX_COPY_ATTEMPTS = 3
 _DAILY_CHECKPOINT_KEY = "daily_orchestration"
-_DAILY_CHECKPOINT_VERSION = 3
+_DAILY_CHECKPOINT_VERSION = 4
 _DAILY_RULES_VERSION = "requirements-1.5"
 _SAFE_RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,79}\Z")
 _SAFE_ACQUISITION_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\Z")
+_SAFE_ORCHESTRATION_REASON_CODE = re.compile(
+    r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z"
+)
 
 
 class DailyOrchestrationError(RuntimeError):
@@ -295,6 +302,7 @@ class DailyThemePlan:
     acquisition_status: str = "observed"
     acquisition_ref: str | None = None
     rules_version: str = "requirements-1.5"
+    has_related_words: bool | None = None
 
 
 class ThemePlanner(Protocol):
@@ -326,6 +334,40 @@ class CopySpecFactory(Protocol):
         deadline_monotonic: float,
     ) -> CopyGenerationSpec | None:
         """Build a copy request from the saved offer and only its available facts."""
+
+
+class ProductPageOCRPort(Protocol):
+    """OCR one selected product's saved page images and persist its product JSON.
+
+    STEP04 implements this contract. The OCR port must preserve every image's
+    success/empty/error state and return ``status`` as complete, partial, or
+    failed. The orchestrator calls it for every active selection before it
+    starts any copy request. The returned mapping contains ``status``, ordered
+    ``images`` (each with ``order``, ``status`` and optional bounded refs), and
+    ``ocr_ref``: the stable reference to the product-level JSON that the copy
+    input factory can resolve for this same run and offer.
+    """
+
+    def process_product(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        run_id: str,
+        offer_key: str,
+        shop_id: str,
+        item_id: str,
+        page_ref: str | None,
+        source_evidence_ref: str | None,
+        data_root: Path,
+    ) -> Mapping[str, Any]:
+        """Return durable OCR state for this run/product identity."""
+
+
+class ProductPageCapturePort(Protocol):
+    """Capture one exact saved Rakuten item URL without searching ROOM again."""
+
+    def capture_product_page_inputs(self, request: Any) -> Mapping[str, Any]:
+        """Return the bounded capture state for the requested item identity."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -382,6 +424,8 @@ class DailyPorts:
     fixture_only: bool = False
     cancel_room_request: Callable[[str, str], bool] | None = None
     cancel_ai_request: Callable[[str, str], bool] | None = None
+    product_page_ocr: ProductPageOCRPort | None = None
+    product_page_capture: ProductPageCapturePort | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -480,6 +524,26 @@ def _migrate_daily_checkpoint_v2(state: object) -> dict[str, Any]:
         rules_version=_DAILY_RULES_VERSION,
         migrated_from_schema_version=2,
         plans=migrated_plans,
+        selected_products=[],
+        next_selection_order=1,
+    )
+    return migrated
+
+
+def _migrate_daily_checkpoint_v3(state: object) -> dict[str, Any]:
+    if (
+        not isinstance(state, dict)
+        or state.get("schema_version") != 3
+        or state.get("rules_version") != _DAILY_RULES_VERSION
+    ):
+        raise DailyOrchestrationError("daily_checkpoint_version_invalid")
+    migrated = dict(state)
+    migrated.update(
+        schema_version=_DAILY_CHECKPOINT_VERSION,
+        rules_version=_DAILY_RULES_VERSION,
+        migrated_from_schema_version=3,
+        selected_products=[],
+        next_selection_order=1,
     )
     return migrated
 
@@ -508,6 +572,8 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
             "error_count": 0,
             "processed_attempts": [],
             "handled_offer_keys": [],
+            "selected_products": [],
+            "next_selection_order": 1,
             "errors": [],
         }
         root[_DAILY_CHECKPOINT_KEY] = state
@@ -517,6 +583,13 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
         and state.get("rules_version") == "requirements-1.4"
     ):
         state = _migrate_daily_checkpoint_v2(state)
+        root[_DAILY_CHECKPOINT_KEY] = state
+    elif (
+        isinstance(state, dict)
+        and state.get("schema_version") == 3
+        and state.get("rules_version") == _DAILY_RULES_VERSION
+    ):
+        state = _migrate_daily_checkpoint_v3(state)
         root[_DAILY_CHECKPOINT_KEY] = state
     if (
         not isinstance(state, dict)
@@ -549,6 +622,13 @@ def _daily_state(checkpoint: str | None) -> tuple[dict[str, Any], dict[str, Any]
         state.get("used_queries"), list
     ):
         raise DailyOrchestrationError("daily_checkpoint_assignment_invalid")
+    if not isinstance(state.get("selected_products"), list) or any(
+        not isinstance(item, dict) for item in state["selected_products"]
+    ):
+        raise DailyOrchestrationError("daily_selection_manifest_invalid")
+    next_order = state.get("next_selection_order", 1)
+    if isinstance(next_order, bool) or not isinstance(next_order, int) or next_order < 1:
+        raise DailyOrchestrationError("daily_selection_order_invalid")
     return root, state
 
 
@@ -617,6 +697,212 @@ def _append_error(
     errors.append(item)
 
 
+def _record_product_slot_failure(
+    state: dict[str, Any],
+    *,
+    run_id: str,
+    entry: Mapping[str, Any],
+    phase: str,
+    code: str,
+    failed_at: str,
+) -> None:
+    offer_key = entry.get("offer_key")
+    if not isinstance(offer_key, str):
+        return
+    active = state.setdefault("active_product_slot_failures", [])
+    if any(
+        isinstance(item, dict)
+        and item.get("offer_key") == offer_key
+        and item.get("phase") == phase
+        for item in active
+    ):
+        return
+    failure = {
+        "offer_key": offer_key,
+        "theme_id": entry.get("theme_id"),
+        "phase": phase,
+        "code": code,
+        "page_ref": entry.get("page_ref"),
+        "selection_order": entry.get("selection_order"),
+        "slot_id": entry.get("slot_id")
+        or _product_slot_id(run_id, entry.get("selection_order")),
+        "failed_at": failed_at,
+    }
+    active.append(failure)
+    state["error_count"] = int(state.get("error_count", 0)) + 1
+    references = {"run_id": run_id, "offer_key": offer_key}
+    if isinstance(entry.get("page_ref"), str):
+        references["artifact_ref"] = entry["page_ref"]
+    _append_error(state, phase, code, references=references)
+    state["primary_error"] = dict(state["errors"][-1])
+
+
+def _product_slot_id(run_id: str, selection_order: object) -> str | None:
+    if isinstance(selection_order, bool) or not isinstance(selection_order, int):
+        return None
+    if selection_order < 1:
+        return None
+    return f"{run_id}:slot:{selection_order:03d}"
+
+
+def _assign_product_slot_replacement(
+    state: dict[str, Any], entry: dict[str, Any]
+) -> None:
+    """Bind one new selection to one explicit, still-unfilled failed slot."""
+
+    active = state.get("active_product_slot_failures", [])
+    if not isinstance(active, list):
+        return
+    offer_key = entry.get("offer_key")
+    theme_id = entry.get("theme_id")
+    if not isinstance(offer_key, str) or not isinstance(theme_id, str):
+        return
+    for failure in active:
+        if (
+            not isinstance(failure, dict)
+            or failure.get("offer_key") == offer_key
+            or isinstance(failure.get("replacement_offer_key"), str)
+            or _product_slot_failure_theme_id(state, failure) != theme_id
+        ):
+            continue
+        slot_id = failure.get("slot_id")
+        if not isinstance(slot_id, str):
+            slot_id = _product_slot_id(
+                str(entry.get("run_id", "")), failure.get("selection_order")
+            )
+            if slot_id is None:
+                continue
+            failure["slot_id"] = slot_id
+        failure["replacement_offer_key"] = offer_key
+        failure["replacement_slot_id"] = slot_id
+        entry["replacement_slot_id"] = slot_id
+        return
+
+
+def _product_slot_failure_theme_id(
+    state: Mapping[str, Any], failure: Mapping[str, Any]
+) -> str | None:
+    """Recover a legacy failure's theme from its saved selection identity."""
+
+    theme_id = failure.get("theme_id")
+    if isinstance(theme_id, str):
+        return theme_id
+    for selected in state.get("selected_products", []):
+        if (
+            isinstance(selected, Mapping)
+            and selected.get("offer_key") == failure.get("offer_key")
+            and isinstance(selected.get("theme_id"), str)
+        ):
+            return selected["theme_id"]
+    assignments = state.get("offer_theme_ids", {})
+    if isinstance(assignments, Mapping):
+        theme_id = assignments.get(failure.get("offer_key"))
+        if isinstance(theme_id, str):
+            return theme_id
+    return None
+
+
+def _archive_resolved_error(
+    state: dict[str, Any], error: Mapping[str, Any], *, resolution: str, at: str
+) -> None:
+    state.setdefault("resolved_error_history", []).append(
+        {"error": dict(error), "resolution": resolution, "resolved_at": at}
+    )
+
+
+def _resolve_product_slot_failure_on_commit(
+    state: dict[str, Any],
+    *,
+    committed_entry: Mapping[str, Any],
+    committed_at: str,
+) -> None:
+    active = state.get("active_product_slot_failures", [])
+    if not isinstance(active, list) or not active:
+        return
+    committed_offer = committed_entry.get("offer_key")
+    selected_index = next(
+        (
+            index
+            for index, failure in enumerate(active)
+            if isinstance(failure, dict)
+            and failure.get("offer_key") == committed_offer
+        ),
+        None,
+    )
+    if selected_index is None:
+        replacement_slot_id = committed_entry.get("replacement_slot_id")
+        selected_index = next(
+            (
+                index
+                for index, failure in enumerate(active)
+                if isinstance(failure, dict)
+                and failure.get("replacement_offer_key") == committed_offer
+                and isinstance(committed_entry.get("theme_id"), str)
+                and _product_slot_failure_theme_id(state, failure)
+                == committed_entry["theme_id"]
+                and isinstance(replacement_slot_id, str)
+                and failure.get("slot_id") == replacement_slot_id
+                and failure.get("replacement_slot_id") == replacement_slot_id
+            ),
+            None,
+        )
+    if selected_index is None:
+        return
+    failure = active.pop(selected_index)
+    errors = state.setdefault("errors", [])
+    removed_error = None
+    for index in range(len(errors) - 1, -1, -1):
+        error = errors[index]
+        references = error.get("references") if isinstance(error, dict) else None
+        if (
+            isinstance(error, dict)
+            and error.get("phase") == failure.get("phase")
+            and isinstance(references, dict)
+            and references.get("offer_key") == failure.get("offer_key")
+        ):
+            removed_error = errors.pop(index)
+            break
+    if removed_error is not None:
+        state["error_count"] = max(0, int(state.get("error_count", 0)) - 1)
+        _archive_resolved_error(
+            state,
+            removed_error,
+            resolution=(
+                "same_offer_operation_recovered"
+                if failure.get("offer_key") == committed_offer
+                else "impact_recovered_by_supplement"
+            ),
+            at=committed_at,
+        )
+    primary = state.get("primary_error")
+    primary_refs = primary.get("references") if isinstance(primary, dict) else None
+    if (
+        isinstance(primary, dict)
+        and primary.get("phase") == failure.get("phase")
+        and isinstance(primary_refs, dict)
+        and primary_refs.get("offer_key") == failure.get("offer_key")
+    ):
+        if errors:
+            state["primary_error"] = dict(errors[-1])
+        else:
+            state.pop("primary_error", None)
+    resolved = state.setdefault("resolved_product_slot_failures", [])
+    is_same_offer = failure.get("offer_key") == committed_offer
+    resolved.append(
+        {
+            **failure,
+            "resolution": (
+                "same_offer_operation_recovered"
+                if is_same_offer
+                else "impact_recovered_by_supplement"
+            ),
+            "replacement_offer_key": committed_offer,
+            "replacement_page_ref": committed_entry.get("page_ref"),
+            "committed_at": committed_at,
+        }
+    )
+
+
 def _record_orchestration_error(state: dict[str, Any], exc: Exception) -> None:
     if isinstance(exc, (_CopySpecContractRejected, _CopyContractRejected)):
         _append_error(
@@ -636,7 +922,35 @@ def _record_orchestration_error(state: dict[str, Any], exc: Exception) -> None:
         "orchestration",
         f"step13_error_{type(exc).__name__}",
     )
-    state["primary_error"] = dict(state["errors"][-1])
+    primary_error = dict(state["errors"][-1])
+    try:
+        from automation.inago.daily_pipeline import (
+            _safe_diagnostic_class,
+            _safe_exception_chain_details,
+            _safe_exception_frame_details,
+        )
+
+        exception_chain, chain_truncated = _safe_exception_chain_details(exc)
+        exception_frames, frames_truncated = _safe_exception_frame_details(exc)
+        diagnostic = {
+            "exception_class": _safe_diagnostic_class(exc),
+            "exception_chain": exception_chain,
+            "exception_chain_truncated": chain_truncated,
+            "exception_frames": exception_frames,
+            "exception_frames_truncated": frames_truncated,
+        }
+        reason_code = str(exc)
+        if (
+            isinstance(exc, DailyOrchestrationError)
+            and _SAFE_ORCHESTRATION_REASON_CODE.fullmatch(reason_code)
+        ):
+            diagnostic["reason_code"] = reason_code
+        primary_error["diagnostic"] = diagnostic
+        state["errors"][-1] = primary_error
+    except Exception:
+        # Diagnostics must never change the original orchestration failure.
+        pass
+    state["primary_error"] = primary_error
 
 
 def _run_by_date(connection: sqlite3.Connection, target_date: str):
@@ -966,14 +1280,38 @@ def _outcome_from_run(
     targets = state.get("theme_targets", {})
     if not isinstance(targets, Mapping):
         targets = {}
-    supplemental_allocations = sum(
-        value
+    supplemental_theme_ids = [
+        theme_id
         for theme_id, value in targets.items()
         if theme_id not in initial_theme_ids
         and isinstance(value, int)
         and not isinstance(value, bool)
         and value > 0
+    ]
+    supplemental_target_count = sum(
+        int(targets[theme_id]) for theme_id in supplemental_theme_ids
     )
+    if connection is not None:
+        run_id = str(row["run_id"])
+        initial_selected_count = sum(
+            _selection_count(connection, run_id, state, theme_id=theme_id)
+            for theme_id in initial_theme_ids
+            if isinstance(theme_id, str)
+        )
+        known_committed_count = len(_committed_offer_themes(connection, run_id, state))
+        untracked_committed_count = max(
+            0, int(row["committed_count"]) - known_committed_count
+        )
+        initial_filled_count = min(
+            initial_allocations,
+            initial_selected_count + untracked_committed_count,
+        )
+        supplemental_allocations = min(
+            supplemental_target_count,
+            max(0, DAILY_TARGET - initial_filled_count),
+        )
+    else:
+        supplemental_allocations = supplemental_target_count
     errors = state.get("errors", [])
     if not isinstance(errors, list):
         errors = []
@@ -1030,7 +1368,11 @@ def _outcome_from_run(
 
 
 def _validate_plan(
-    plan: DailyThemePlan, theme_id: str, *, allow_legacy_acquisition: bool = False
+    plan: DailyThemePlan,
+    theme_id: str,
+    *,
+    allow_legacy_acquisition: bool = False,
+    allow_legacy_query_fallback: bool = False,
 ) -> None:
     if not isinstance(plan, DailyThemePlan) or plan.theme_id != theme_id:
         raise DailyOrchestrationError("theme_plan_identity_mismatch")
@@ -1046,6 +1388,10 @@ def _validate_plan(
         raise DailyOrchestrationError("theme_related_queue_invalid")
     if plan.acquisition_status not in {"observed", "exhausted", "deadline"}:
         raise DailyOrchestrationError("theme_acquisition_status_invalid")
+    if plan.has_related_words is not None and not isinstance(
+        plan.has_related_words, bool
+    ):
+        raise DailyOrchestrationError("theme_raw_related_word_state_invalid")
     if plan.acquisition_ref is not None and not _SAFE_ACQUISITION_REF.fullmatch(
         plan.acquisition_ref
     ):
@@ -1056,6 +1402,16 @@ def _validate_plan(
             or not plan.snapshot_ref
             or len(plan.related) != len(plan.keyword_refs)
             or (plan.acquisition_ref is None and not allow_legacy_acquisition)
+            or (
+                plan.fallback is None
+                and plan.has_related_words is not True
+                and not allow_legacy_query_fallback
+            )
+            or (
+                plan.fallback is not None
+                and plan.has_related_words is True
+                and not allow_legacy_query_fallback
+            )
         ):
             raise DailyOrchestrationError("theme_snapshot_or_related_queue_missing")
     else:
@@ -1070,11 +1426,16 @@ def _validate_plan(
             raise DailyOrchestrationError("theme_acquisition_ref_invalid")
         if plan.acquisition_status == "exhausted" and plan.fallback is None:
             raise DailyOrchestrationError("exhausted_theme_plan_missing_fallback")
+        if plan.acquisition_status == "exhausted" and plan.has_related_words is True:
+            raise DailyOrchestrationError("exhausted_theme_plan_claims_related_words")
         if plan.acquisition_status == "deadline" and plan.fallback is not None:
             raise DailyOrchestrationError("deadline_theme_plan_has_fallback")
+        if (
+            plan.acquisition_status == "deadline"
+            and plan.has_related_words is not None
+        ):
+            raise DailyOrchestrationError("deadline_theme_plan_claims_related_state")
     searches = (*plan.related, *((plan.fallback,) if plan.fallback is not None else ()))
-    if plan.acquisition_status == "observed" and plan.fallback is None:
-        raise DailyOrchestrationError("observed_theme_plan_missing_fallback")
     seen = set()
     for search in searches:
         if not isinstance(search, DailySearchPlan) or search.theme_id != theme_id:
@@ -1140,13 +1501,17 @@ def _plan_to_dict(plan: DailyThemePlan) -> dict[str, Any]:
         "acquisition_status": plan.acquisition_status,
         "acquisition_ref": plan.acquisition_ref,
         "rules_version": plan.rules_version,
+        "has_related_words": plan.has_related_words,
     }
 
 
 def _plan_from_dict(
-    value: object, *, allow_legacy_acquisition: bool = False
+    value: object,
+    *,
+    allow_legacy_acquisition: bool = False,
+    allow_legacy_query_fallback: bool = False,
 ) -> DailyThemePlan:
-    current_fields = {
+    legacy_current_fields = {
         "theme_id",
         "keyword_refs",
         "related",
@@ -1156,12 +1521,24 @@ def _plan_from_dict(
         "acquisition_ref",
         "rules_version",
     }
-    legacy_fields = current_fields | {"legacy_acquisition"}
+    current_fields = legacy_current_fields | {"has_related_words"}
+    legacy_fields = legacy_current_fields | {"legacy_acquisition"}
+    legacy_current_fields_with_migration = current_fields | {"legacy_acquisition"}
     if not isinstance(value, dict) or not (
         set(value) == current_fields
         or (
             allow_legacy_acquisition
             and set(value) == legacy_fields
+            and value.get("legacy_acquisition") is True
+        )
+        or (
+            allow_legacy_query_fallback
+            and set(value) == legacy_current_fields
+        )
+        or (
+            allow_legacy_acquisition
+            and allow_legacy_query_fallback
+            and set(value) == legacy_current_fields_with_migration
             and value.get("legacy_acquisition") is True
         )
     ):
@@ -1202,9 +1579,13 @@ def _plan_from_dict(
         acquisition_status=value["acquisition_status"],
         acquisition_ref=value["acquisition_ref"],
         rules_version=value["rules_version"],
+        has_related_words=value.get("has_related_words"),
     )
     _validate_plan(
-        plan, plan.theme_id, allow_legacy_acquisition=allow_legacy_acquisition
+        plan,
+        plan.theme_id,
+        allow_legacy_acquisition=allow_legacy_acquisition,
+        allow_legacy_query_fallback=allow_legacy_query_fallback,
     )
     return plan
 
@@ -1226,6 +1607,90 @@ def _task(search: DailySearchPlan, *, phase: str, ordinal: int) -> dict[str, Any
     }
 
 
+def _reconcile_pending_theme_tasks(
+    state: dict[str, Any],
+    *,
+    plan: DailyThemePlan,
+    event_kind: str,
+) -> None:
+    tasks = state.get("tasks")
+    cursor = state.get("task_cursor")
+    if (
+        not isinstance(tasks, list)
+        or isinstance(cursor, bool)
+        or not isinstance(cursor, int)
+        or not 0 <= cursor <= len(tasks)
+    ):
+        raise DailyOrchestrationError("daily_checkpoint_cursor_invalid")
+    processed = tasks[:cursor]
+    pending = tasks[cursor:]
+    reconciled: list[dict[str, Any]] = []
+    for raw_task in pending:
+        if not isinstance(raw_task, dict):
+            raise DailyOrchestrationError("daily_checkpoint_task_invalid")
+        is_theme_fallback = (
+            raw_task.get("phase") == event_kind
+            and raw_task.get("theme_id") == plan.theme_id
+            and raw_task.get("kind") == "theme_fallback"
+        )
+        if is_theme_fallback and plan.fallback is None:
+            continue
+        if is_theme_fallback and plan.fallback is not None:
+            raw_task = {
+                **raw_task,
+                "query": plan.fallback.query,
+                "task_id": plan.fallback.task_id,
+                "parent_refs": list(plan.fallback.parent_refs),
+                "level": plan.fallback.level,
+                "kind": plan.fallback.kind,
+                "query_kind": plan.fallback.kind,
+                "keyword_snapshot_ref": None,
+                "selected_word_ref": None,
+            }
+        reconciled.append(raw_task)
+    state["tasks"] = processed + [
+        {**task, "task_number": cursor + offset + 1}
+        for offset, task in enumerate(reconciled)
+    ]
+
+
+def _normalize_theme_query_fallback(
+    plan: DailyThemePlan,
+    *,
+    has_related_words: bool | None,
+    query_word: str | None,
+    event_kind: str,
+    ordinal: int,
+) -> DailyThemePlan:
+    if plan.acquisition_status == "deadline":
+        return replace(plan, fallback=None, has_related_words=None)
+    has_raw_words = bool(has_related_words)
+    if has_raw_words:
+        return replace(plan, fallback=None, has_related_words=True)
+    fallback_query = query_word or (
+        plan.fallback.query if plan.fallback is not None else None
+    )
+    if not isinstance(fallback_query, str) or not fallback_query.strip():
+        raise DailyOrchestrationError("theme_raw_zero_query_missing")
+    fallback_task_id = (
+        plan.fallback.task_id
+        if plan.fallback is not None
+        else f"{plan.theme_id}-fallback-{event_kind}-{ordinal:02d}"
+    )
+    return replace(
+        plan,
+        fallback=DailySearchPlan(
+            fallback_task_id,
+            plan.theme_id,
+            fallback_query,
+            (plan.theme_id,),
+            "theme_fallback",
+            "theme_fallback",
+        ),
+        has_related_words=False,
+    )
+
+
 def _get_plan(
     connection: sqlite3.Connection,
     *,
@@ -1241,12 +1706,50 @@ def _get_plan(
     key = f"{event_kind}:{ordinal:02d}"
     raw = state["plans"].get(key)
     if raw is not None:
+        legacy_query_fallback = True
         legacy_plan = (
-            state.get("migrated_from_schema_version") == 2
+            state.get("migrated_from_schema_version") in {2, 3}
             and isinstance(raw, dict)
             and raw.get("legacy_acquisition") is True
         )
-        plan = _plan_from_dict(raw, allow_legacy_acquisition=legacy_plan)
+        plan = _plan_from_dict(
+            raw,
+            allow_legacy_acquisition=legacy_plan,
+            allow_legacy_query_fallback=legacy_query_fallback,
+        )
+        _validate_plan(
+            plan,
+            theme_id,
+            allow_legacy_acquisition=legacy_plan,
+            allow_legacy_query_fallback=legacy_query_fallback,
+        )
+        has_related_words, query_word = _validate_plan_snapshot(
+            connection,
+            plan,
+            run_id=run_id,
+            settings_version=settings_version,
+            seed=seed,
+            event_kind=event_kind,
+            ordinal=ordinal,
+            allow_legacy_acquisition=legacy_plan,
+            allow_legacy_query_fallback=legacy_query_fallback,
+        )
+        normalized_plan = _normalize_theme_query_fallback(
+            plan,
+            has_related_words=has_related_words,
+            query_word=query_word,
+            event_kind=event_kind,
+            ordinal=ordinal,
+        )
+        if normalized_plan != plan:
+            _reconcile_pending_theme_tasks(
+                state,
+                plan=normalized_plan,
+                event_kind=event_kind,
+            )
+            state["plans"][key] = _plan_to_dict(normalized_plan)
+            _save_state(connection, run_id, state)
+        plan = normalized_plan
         _validate_plan(plan, theme_id, allow_legacy_acquisition=legacy_plan)
         _validate_plan_snapshot(
             connection,
@@ -1269,6 +1772,30 @@ def _get_plan(
         ordinal=ordinal,
         theme_id=theme_id,
         seed=seed,
+    )
+    _validate_plan(
+        plan,
+        theme_id,
+        allow_legacy_query_fallback=plan.has_related_words is None
+        or isinstance(plan.has_related_words, bool),
+    )
+    has_related_words, query_word = _validate_plan_snapshot(
+        connection,
+        plan,
+        run_id=run_id,
+        settings_version=settings_version,
+        seed=seed,
+        event_kind=event_kind,
+        ordinal=ordinal,
+        allow_legacy_query_fallback=plan.has_related_words is None
+        or isinstance(plan.has_related_words, bool),
+    )
+    plan = _normalize_theme_query_fallback(
+        plan,
+        has_related_words=has_related_words,
+        query_word=query_word,
+        event_kind=event_kind,
+        ordinal=ordinal,
     )
     _validate_plan(plan, theme_id)
     _validate_plan_snapshot(
@@ -1299,6 +1826,40 @@ def _get_plan(
     state["plans"][key] = _plan_to_dict(plan)
     _save_state(connection, run_id, state)
     return plan
+
+
+def _reconcile_saved_theme_plans(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    settings_version: str,
+    seed: str,
+    state: dict[str, Any],
+    planner: ThemePlanner,
+) -> None:
+    """Migrate only pending legacy fallback tasks before a resumed search."""
+
+    plans = state.get("plans")
+    if not isinstance(plans, dict):
+        raise DailyOrchestrationError("daily_checkpoint_work_invalid")
+    for key, raw_plan in list(plans.items()):
+        if not isinstance(key, str) or not isinstance(raw_plan, dict):
+            raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
+        match = re.fullmatch(r"(initial|additional):(\d{2})", key)
+        theme_id = raw_plan.get("theme_id")
+        if match is None or not isinstance(theme_id, str):
+            raise DailyOrchestrationError("saved_theme_plan_identity_invalid")
+        _get_plan(
+            connection,
+            run_id=run_id,
+            settings_version=settings_version,
+            seed=seed,
+            event_kind=match.group(1),
+            ordinal=int(match.group(2)),
+            theme_id=theme_id,
+            state=state,
+            planner=planner,
+        )
 
 
 def _theme_query_matches_fallback(connection, plan, query, settings_version) -> bool:
@@ -1342,8 +1903,10 @@ def _validate_plan_snapshot(
     event_kind,
     ordinal,
     allow_legacy_acquisition=False,
-) -> None:
+    allow_legacy_query_fallback=False,
+) -> tuple[bool | None, str | None]:
     acquisition = None
+    query_word = None
     if plan.acquisition_ref is None and not (
         allow_legacy_acquisition and plan.acquisition_status == "observed"
     ):
@@ -1387,6 +1950,7 @@ def _validate_plan_snapshot(
             )
         ):
             raise DailyOrchestrationError("theme_acquisition_state_not_adopted")
+        query_word = str(row["query_word"])
         attempt_rows = connection.execute(
             "SELECT attempt_no,status,error_code FROM trends_acquisition_attempt "
             "WHERE acquisition_id=? ORDER BY attempt_no",
@@ -1434,14 +1998,17 @@ def _validate_plan_snapshot(
                     else "theme_acquisition_deadline_unverified"
                 )
                 raise DailyOrchestrationError(error)
-            return
-    if plan.fallback is None or plan.snapshot_ref is None:
+            return (
+                False if plan.acquisition_status == "exhausted" else None,
+                query_word,
+            )
+    if plan.snapshot_ref is None or (acquisition is None and plan.fallback is None):
         raise DailyOrchestrationError("theme_snapshot_or_fallback_missing")
     request = TrendsRequest(
         plan.snapshot_ref,
         run_id,
         settings_version,
-        acquisition["query_word"] if acquisition is not None else plan.fallback.query,
+        query_word if query_word is not None else plan.fallback.query,
         range="3m",
     )
     saved = load_grouped_snapshot(connection, plan.snapshot_ref, request=request)
@@ -1461,6 +2028,21 @@ def _validate_plan_snapshot(
         item.raw for item in saved.selected
     ) != tuple(item.query for item in plan.related):
         raise DailyOrchestrationError("theme_plan_raw_or_order_changed")
+    has_related_words = bool(saved.snapshot.words)
+    if (
+        plan.has_related_words is not None
+        and plan.has_related_words is not has_related_words
+    ):
+        raise DailyOrchestrationError("theme_raw_related_word_state_mismatch")
+    if not allow_legacy_query_fallback:
+        if has_related_words and plan.fallback is not None:
+            raise DailyOrchestrationError("theme_raw_hits_have_parent_fallback")
+        if not has_related_words:
+            if plan.fallback is None:
+                raise DailyOrchestrationError("theme_raw_zero_missing_query_fallback")
+            if query_word is not None and plan.fallback.query != query_word:
+                raise DailyOrchestrationError("theme_raw_zero_fallback_query_mismatch")
+    return has_related_words, query_word
 
 
 def _make_tasks(
@@ -1566,7 +2148,8 @@ def _add_additional_theme(
         _make_tasks((plan,), phase="additional", first_number=len(state["tasks"]) + 1)
     )
     state["theme_targets"][event.theme_id] = min(
-        PER_THEME_TARGET, DAILY_TARGET - _draft_count(connection, run_id)
+        PER_THEME_TARGET,
+        max(0, DAILY_TARGET - _selection_count(connection, run_id, state)),
     )
     state["additional_events"] = ordinal
     state["phase"] = "additional"
@@ -1740,6 +2323,115 @@ def _draft_count(connection: sqlite3.Connection, run_id: str) -> int:
     return int(row["committed_count"])
 
 
+def _committed_offer_themes(
+    connection: sqlite3.Connection, run_id: str, state: Mapping[str, Any]
+) -> dict[str, str]:
+    assignments = state.get("offer_theme_ids", {})
+    rows = connection.execute(
+        "SELECT DISTINCT draft.offer_key, offer.main_theme_id "
+        "FROM draft JOIN offer USING (offer_key) WHERE draft.run_id=?",
+        (run_id,),
+    ).fetchall()
+    return {
+        str(row["offer_key"]): str(
+            assignments.get(str(row["offer_key"])) or row["main_theme_id"]
+        )
+        for row in rows
+    }
+
+
+def _active_selected_entries(state: Mapping[str, Any]) -> list[dict[str, Any]]:
+    manifest = state.get("selected_products", [])
+    if not isinstance(manifest, list):
+        raise DailyOrchestrationError("daily_selection_manifest_invalid")
+    return [
+        item
+        for item in manifest
+        if isinstance(item, dict)
+        and item.get("status")
+        in {"selected", "ocr_in_progress", "ocr_complete", "ocr_partial", "copy_in_progress"}
+    ]
+
+
+def _selection_count(
+    connection: sqlite3.Connection,
+    run_id: str,
+    state: Mapping[str, Any],
+    *,
+    theme_id: str | None = None,
+) -> int:
+    committed = _committed_offer_themes(connection, run_id, state)
+    offers = set(committed)
+    themes = dict(committed)
+    for entry in _active_selected_entries(state):
+        offer_key = entry.get("offer_key")
+        selected_theme = entry.get("theme_id")
+        if isinstance(offer_key, str) and isinstance(selected_theme, str):
+            offers.add(offer_key)
+            themes.setdefault(offer_key, selected_theme)
+    if theme_id is None:
+        return len(offers)
+    return sum(themes.get(offer_key) == theme_id for offer_key in offers)
+
+
+def _sync_committed_selection_manifest(
+    connection: sqlite3.Connection, run_id: str, state: dict[str, Any]
+) -> None:
+    from automation.inago.product_page_inputs import selection_manifest
+
+    manifest = selection_manifest(state)
+    by_offer = {
+        entry.get("offer_key"): entry
+        for entry in manifest
+        if isinstance(entry.get("offer_key"), str)
+    }
+    rows = connection.execute(
+        "SELECT DISTINCT offer.offer_key, offer.shop_id, offer.item_id, offer.main_theme_id "
+        "FROM draft JOIN offer USING (offer_key) WHERE draft.run_id=?",
+        (run_id,),
+    ).fetchall()
+    next_order = int(state.get("next_selection_order", 1))
+    for row in rows:
+        offer_key = str(row["offer_key"])
+        theme_id = state.setdefault("offer_theme_ids", {}).get(
+            offer_key, str(row["main_theme_id"])
+        )
+        state["offer_theme_ids"][offer_key] = theme_id
+        entry = by_offer.get(offer_key)
+        if entry is None:
+            entry = {
+                "offer_key": offer_key,
+                "run_id": run_id,
+                "theme_id": theme_id,
+                "selection_order": next_order,
+                "shop_id": str(row["shop_id"]),
+                "item_id": str(row["item_id"]),
+                "page_ref": None,
+                "source_evidence_ref": None,
+                "status": "committed",
+            }
+            manifest.append(entry)
+            by_offer[offer_key] = entry
+            next_order += 1
+        else:
+            entry.update(
+                run_id=run_id,
+                theme_id=theme_id,
+                shop_id=str(row["shop_id"]),
+                item_id=str(row["item_id"]),
+                status="committed",
+            )
+    orders = [
+        int(entry["selection_order"])
+        for entry in manifest
+        if isinstance(entry.get("selection_order"), int)
+        and not isinstance(entry.get("selection_order"), bool)
+    ]
+    if orders:
+        next_order = max(next_order, max(orders) + 1)
+    state["next_selection_order"] = next_order
+
+
 def _theme_draft_count(
     connection: sqlite3.Connection,
     run_id: str,
@@ -1748,13 +2440,7 @@ def _theme_draft_count(
     state: Mapping[str, Any] | None = None,
 ) -> int:
     if state is not None:
-        assignments = state.get("offer_theme_ids", {})
-        return sum(
-            assignments.get(row[0]) == theme_id
-            for row in connection.execute(
-                "SELECT DISTINCT offer_key FROM draft WHERE run_id=?", (run_id,)
-            )
-        )
+        return _selection_count(connection, run_id, state, theme_id=theme_id)
     return int(
         connection.execute(
             """
@@ -1845,6 +2531,1702 @@ def _intake_missing_offers(
             raise DailyOrchestrationError("offer_intake_identity_not_persisted")
 
 
+def _room_product_fact(ports: DailyPorts, evidence_ref: str) -> Mapping[str, Any] | None:
+    getter = getattr(ports.room_port, "product_fact", None)
+    if not callable(getter):
+        return None
+    value = getter(evidence_ref)
+    return value if isinstance(value, Mapping) else None
+
+
+def _product_page_pipeline_enabled(
+    ports: DailyPorts, evidence_refs: Sequence[str]
+) -> bool:
+    if ports.product_page_ocr is not None:
+        return True
+    for evidence_ref in evidence_refs:
+        fact = _room_product_fact(ports, evidence_ref)
+        if isinstance(fact, Mapping) and isinstance(
+            fact.get("product_page_identity"), Mapping
+        ):
+            return True
+    return False
+
+
+def _offer_identity(
+    connection: sqlite3.Connection, offer_key: str
+) -> tuple[str, str] | None:
+    row = connection.execute(
+        "SELECT shop_id, item_id FROM offer WHERE offer_key=?", (offer_key,)
+    ).fetchone()
+    if row is None:
+        return None
+    return str(row["shop_id"]), str(row["item_id"])
+
+
+def _attempt_product_candidates(
+    connection: sqlite3.Connection,
+    run_id: str,
+    attempt_id: str,
+    identities: Mapping[str, str | None],
+) -> tuple[list[dict[str, str]], dict[str, str]]:
+    from automation.inago.product_page_inputs import product_page_ref
+
+    rows = connection.execute(
+        "SELECT source_key, evidence_ref, item_url FROM source_post WHERE attempt_id=?",
+        (attempt_id,),
+    ).fetchall()
+    evidence_by_source = {str(row["source_key"]): str(row["evidence_ref"]) for row in rows}
+    candidates: dict[str, dict[str, str]] = {}
+    for source_key, offer_key in identities.items():
+        if offer_key is None:
+            continue
+        identity = _offer_identity(connection, offer_key)
+        if identity is None:
+            source_row = next(
+                (row for row in rows if str(row["source_key"]) == source_key), None
+            )
+            saved_url = source_row["item_url"] if source_row is not None else None
+            parsed = identify_offer_from_saved_url(saved_url)
+            if parsed.status != "identified" or parsed.offer_key != offer_key:
+                continue
+            shop_id, item_id = offer_key.split(":", maxsplit=1)
+        else:
+            shop_id, item_id = identity
+        candidates[offer_key] = {
+            "offer_key": offer_key,
+            "shop_id": shop_id,
+            "item_id": item_id,
+            "page_ref": product_page_ref(run_id, shop_id, item_id),
+        }
+    return list(candidates.values()), evidence_by_source
+
+
+def _cleanup_unselected_product_inputs(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    state: dict[str, Any],
+    candidates: Sequence[Mapping[str, str]],
+    data_root: Path,
+    target_date: str,
+    clock: Clock,
+) -> None:
+    from automation.inago.product_page_inputs import (
+        cleanup_unselected_product_page_folders,
+        load_product_page_inputs,
+        selection_manifest,
+    )
+
+    manifest = selection_manifest(state)
+    keep = {
+        str(entry["offer_key"])
+        for entry in manifest
+        if isinstance(entry.get("offer_key"), str)
+    }
+    keep.update(_committed_offer_themes(connection, run_id, state))
+    image_counts: dict[str, int] = {}
+    for candidate in candidates:
+        offer_key = candidate.get("offer_key")
+        if not isinstance(offer_key, str) or offer_key in keep:
+            continue
+        try:
+            page = load_product_page_inputs(
+                data_root,
+                run_id,
+                str(candidate.get("shop_id", "")),
+                str(candidate.get("item_id", "")),
+                expected_ref=(
+                    candidate.get("page_ref")
+                    if isinstance(candidate.get("page_ref"), str)
+                    else None
+                ),
+            )
+        except (OSError, ValueError, json.JSONDecodeError):
+            page = None
+        if isinstance(page, Mapping) and isinstance(page.get("images"), list):
+            image_counts[offer_key] = len(page["images"])
+    result = cleanup_unselected_product_page_folders(
+        data_root, run_id, candidates, keep
+    )
+    deleted = {item.get("offer_key") for item in result.get("deleted", [])}
+    failures = result.get("failed", [])
+    failed_by_offer = {
+        item.get("offer_key"): item
+        for item in failures
+        if isinstance(item, Mapping)
+    }
+    for candidate in candidates:
+        offer_key = candidate.get("offer_key")
+        page_ref = candidate.get("page_ref")
+        if (
+            not isinstance(offer_key, str)
+            or offer_key in keep
+            or not isinstance(page_ref, str)
+        ):
+            continue
+        failure = failed_by_offer.get(offer_key)
+        _trace_product_stage(
+            data_root,
+            run_id=run_id,
+            target_date=target_date,
+            offer_key=offer_key,
+            page_ref=page_ref,
+            operation="product_unselected_cleanup",
+            phase="error" if failure else "status",
+            clock=clock,
+            status=("failed" if failure else "deleted" if offer_key in deleted else "not_present"),
+            image_count=image_counts.get(offer_key),
+            error_code=("product_unselected_cleanup_failed" if failure else None),
+            error_class=(failure.get("error_class") if failure else None),
+        )
+    if not failures:
+        return
+    recorded = state.setdefault("product_page_cleanup_failures", [])
+    known = {
+        (item.get("offer_key"), item.get("error_class"))
+        for item in recorded
+        if isinstance(item, dict)
+    }
+    for item in failures:
+        identity = (item.get("offer_key"), item.get("error_class"))
+        if identity in known:
+            continue
+        known.add(identity)
+        recorded.append({"offer_key": identity[0], "error_class": identity[1]})
+        state["error_count"] = int(state.get("error_count", 0)) + 1
+        _append_error(
+            state,
+            "product_page_cleanup",
+            "unselected_folder_cleanup_failed",
+            references={"run_id": run_id, "offer_key": str(identity[0])},
+        )
+
+
+def _recover_unselected_product_folder_cleanup(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    state: dict[str, Any],
+    data_root: Path,
+    target_date: str,
+    clock: Clock,
+) -> None:
+    from automation.inago.product_page_inputs import (
+        cleanup_unselected_product_page_folders,
+        product_page_ref,
+        selection_manifest,
+    )
+
+    failures = state.get("product_page_cleanup_failures", [])
+    if not isinstance(failures, list) or not failures:
+        return
+    keep = {
+        str(entry["offer_key"])
+        for entry in selection_manifest(state)
+        if isinstance(entry.get("offer_key"), str)
+    }
+    keep.update(_committed_offer_themes(connection, run_id, state))
+    candidates: list[dict[str, str]] = []
+    for failure in failures:
+        offer_key = failure.get("offer_key") if isinstance(failure, Mapping) else None
+        if not isinstance(offer_key, str) or offer_key in keep:
+            continue
+        offer = connection.execute(
+            "SELECT shop_id,item_id FROM offer WHERE offer_key=?", (offer_key,)
+        ).fetchone()
+        if offer is None:
+            continue
+        shop_id, item_id = str(offer["shop_id"]), str(offer["item_id"])
+        candidates.append(
+            {
+                "offer_key": offer_key,
+                "shop_id": shop_id,
+                "item_id": item_id,
+                "page_ref": product_page_ref(run_id, shop_id, item_id),
+            }
+        )
+    if not candidates:
+        return
+    result = cleanup_unselected_product_page_folders(
+        data_root, run_id, candidates, keep
+    )
+    failed_offers = {
+        item.get("offer_key")
+        for item in result.get("failed", [])
+        if isinstance(item, Mapping)
+    }
+    resolved_offers = {
+        item.get("offer_key")
+        for item in result.get("deleted", [])
+        if isinstance(item, Mapping)
+    }
+    candidate_by_offer = {item["offer_key"]: item for item in candidates}
+    errors = state.setdefault("errors", [])
+    for offer_key in resolved_offers - failed_offers:
+        candidate = candidate_by_offer.get(offer_key)
+        if candidate is None:
+            continue
+        for index in range(len(errors) - 1, -1, -1):
+            error = errors[index]
+            references = error.get("references") if isinstance(error, dict) else None
+            if (
+                isinstance(error, dict)
+                and error.get("phase") == "product_page_cleanup"
+                and error.get("code") == "unselected_folder_cleanup_failed"
+                and isinstance(references, dict)
+                and references.get("offer_key") == offer_key
+            ):
+                resolved_error = errors.pop(index)
+                state["error_count"] = max(0, int(state.get("error_count", 0)) - 1)
+                _archive_resolved_error(
+                    state,
+                    resolved_error,
+                    resolution="unselected_folder_cleanup_recovered",
+                    at=_now(clock).isoformat(),
+                )
+                break
+        _trace_product_stage(
+            data_root,
+            run_id=run_id,
+            target_date=target_date,
+            offer_key=offer_key,
+            page_ref=candidate["page_ref"],
+            operation="product_unselected_cleanup",
+            phase="end",
+            clock=clock,
+            status="deleted_or_absent",
+        )
+    state["product_page_cleanup_failures"] = [
+        failure
+        for failure in failures
+        if not isinstance(failure, Mapping)
+        or failure.get("offer_key") not in resolved_offers - failed_offers
+    ]
+    primary = state.get("primary_error")
+    if isinstance(primary, Mapping) and not any(
+        dict(error) == dict(primary)
+        for error in errors
+        if isinstance(error, Mapping)
+    ):
+        if errors:
+            state["primary_error"] = dict(errors[-1])
+        else:
+            state.pop("primary_error", None)
+
+
+def _trace_product_stage(
+    data_root: Path,
+    *,
+    run_id: str,
+    target_date: str,
+    offer_key: str,
+    page_ref: str,
+    operation: str,
+    phase: str,
+    clock: Clock,
+    status: str | None = None,
+    image_count: int | None = None,
+    deleted_file_count: int | None = None,
+    input_ref_count: int | None = None,
+    error_code: str | None = None,
+    error_class: str | None = None,
+    failure_module: str | None = None,
+    failure_function: str | None = None,
+    failure_line: int | None = None,
+    at: str | None = None,
+) -> None:
+    try:
+        trace_kwargs: dict[str, Any] = {}
+        if _SAFE_ACQUISITION_REF.fullmatch(offer_key):
+            trace_kwargs["task_id"] = offer_key
+        session = TraceSession(
+            TraceWriter(data_root, run_id, target_date, clock=clock),
+            component="product_page",
+            request_id=page_ref,
+            clock=clock,
+            **trace_kwargs,
+        )
+        fields: dict[str, Any] = {
+            "event_kind": "product_page_pipeline",
+            "status": status,
+            "image_count": image_count,
+            "deleted_file_count": deleted_file_count,
+            "input_ref_count": input_ref_count,
+            "code_sha256": _product_pipeline_code_sha256(),
+        }
+        if error_code:
+            fields["primary_error_code"] = error_code
+        if error_class:
+            fields["error_class"] = error_class
+        if failure_module:
+            fields["failure_module"] = failure_module
+        if failure_function:
+            fields["failure_function"] = failure_function
+        if failure_line:
+            fields["failure_line"] = failure_line
+        session.record_stage(operation, phase=phase, at=at, **fields)
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "product_page_pipeline_trace_failed error_type=%s",
+            type(exc).__name__,
+        )
+
+
+@lru_cache(maxsize=1)
+def _product_pipeline_code_sha256() -> str | None:
+    paths = (
+        "orchestrator.py",
+        "product_page_inputs.py",
+        "product_ocr.py",
+        "production_runtime.py",
+        "prompt_builder.py",
+        "ai_runner.py",
+        "trace.py",
+    )
+    digest = hashlib.sha256()
+    base = Path(__file__).resolve().parent
+    try:
+        for name in paths:
+            digest.update(name.encode("ascii"))
+            digest.update(b"\0")
+            digest.update((base / name).read_bytes())
+    except OSError:
+        return None
+    return digest.hexdigest()
+
+
+def _safe_trace_frame(error: BaseException) -> dict[str, Any]:
+    frames = traceback.extract_tb(error.__traceback__)
+    if not frames:
+        return {}
+    frame = frames[-1]
+    module = Path(frame.filename).stem
+    function = frame.name
+    result: dict[str, Any] = {}
+    if re.fullmatch(r"[A-Za-z][A-Za-z0-9._:-]{0,127}", module):
+        result["failure_module"] = module
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9._:-]{0,127}", function):
+        result["failure_function"] = function
+    if frame.lineno > 0:
+        result["failure_line"] = frame.lineno
+    return result
+
+
+def _cleanup_committed_product_images(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    state: dict[str, Any],
+    entry: dict[str, Any],
+    data_root: Path,
+    clock: Clock,
+) -> None:
+    from automation.inago.product_page_inputs import cleanup_committed_product_images
+
+    previous_cleanup = entry.get("image_cleanup")
+    if isinstance(previous_cleanup, Mapping) and previous_cleanup.get("status") == "complete":
+        return
+    offer_key = entry.get("offer_key")
+    shop_id = entry.get("shop_id")
+    item_id = entry.get("item_id")
+    page_ref = entry.get("page_ref")
+    if not all(isinstance(value, str) and value for value in (offer_key, shop_id, item_id)):
+        return
+    if not isinstance(page_ref, str):
+        entry["image_cleanup"] = {"status": "not_applicable"}
+        return
+
+    cleanup_trace = None
+    try:
+        trace_kwargs: dict[str, Any] = {}
+        if _SAFE_ACQUISITION_REF.fullmatch(offer_key):
+            trace_kwargs["task_id"] = offer_key
+        cleanup_trace = TraceSession(
+            TraceWriter(data_root, run_id, target_date, clock=clock),
+            component="product_page",
+            request_id=page_ref,
+            clock=clock,
+            **trace_kwargs,
+        )
+        cleanup_trace.record_stage(
+            "product_image_cleanup",
+            phase="begin",
+            event_kind="product_page_cleanup",
+            status="started",
+            scope="cleanup",
+        )
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "product_page_cleanup_trace_begin_failed error_type=%s",
+            type(exc).__name__,
+        )
+        cleanup_trace = None
+
+    result = cleanup_committed_product_images(
+        data_root,
+        run_id,
+        offer_key,
+        shop_id,
+        item_id,
+        page_ref,
+        now=lambda: _now(clock).isoformat(),
+    )
+    if cleanup_trace is not None:
+        try:
+            common_trace_fields = {
+                "event_kind": "product_page_cleanup",
+                "status": result.get("status"),
+                "scope": "cleanup",
+                "image_count": result.get("image_count"),
+                "deleted_file_count": result.get("deleted_file_count"),
+                "code_sha256": result.get("code_sha256"),
+            }
+            if result.get("status") == "complete":
+                cleanup_trace.record_stage(
+                    "product_image_cleanup", phase="end", **common_trace_fields
+                )
+            else:
+                error_fields = {
+                    **common_trace_fields,
+                    "primary_error_code": "product_image_cleanup_failed",
+                    "error_class": result.get("error_class"),
+                    "scope": "cleanup",
+                    "failure_module": result.get("failure_module"),
+                    "failure_function": result.get("failure_function"),
+                    "failure_line": result.get("failure_line"),
+                }
+                cleanup_trace.record_stage(
+                    "product_image_cleanup", phase="error", **error_fields
+                )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "product_page_cleanup_trace_end_failed error_type=%s",
+                type(exc).__name__,
+            )
+    entry["image_cleanup"] = result
+    failures = state.setdefault("product_image_cleanup_failures", [])
+    errors = state.setdefault("errors", [])
+    matching_errors = [
+        error
+        for error in errors
+        if isinstance(error, dict)
+        and error.get("phase") == "product_image_cleanup"
+        and isinstance(error.get("references"), dict)
+        and error["references"].get("offer_key") == offer_key
+    ]
+    if result.get("status") == "complete":
+        if matching_errors:
+            for index in range(len(errors) - 1, -1, -1):
+                if errors[index] in matching_errors:
+                    resolved_error = errors.pop(index)
+                    state["error_count"] = max(
+                        0, int(state.get("error_count", 0)) - 1
+                    )
+                    _archive_resolved_error(
+                        state,
+                        resolved_error,
+                        resolution="product_image_cleanup_recovered",
+                        at=str(result.get("finished_at") or _now(clock).isoformat()),
+                    )
+                    break
+            primary = state.get("primary_error")
+            if (
+                isinstance(primary, dict)
+                and primary.get("phase") == "product_image_cleanup"
+                and isinstance(primary.get("references"), dict)
+                and primary["references"].get("offer_key") == offer_key
+            ):
+                if errors:
+                    state["primary_error"] = dict(errors[-1])
+                else:
+                    state.pop("primary_error", None)
+        failures[:] = [
+            failure
+            for failure in failures
+            if not isinstance(failure, dict) or failure.get("offer_key") != offer_key
+        ]
+        resolved = state.setdefault("resolved_product_image_cleanup_failures", [])
+        if not any(
+            isinstance(item, dict) and item.get("offer_key") == offer_key
+            for item in resolved
+        ):
+            resolved.append(
+                {"offer_key": offer_key, "resolved_at": result.get("finished_at")}
+            )
+        return
+
+    error_class = result.get("error_class")
+    if not any(
+        isinstance(failure, dict) and failure.get("offer_key") == offer_key
+        for failure in failures
+    ):
+        failures.append({"offer_key": offer_key, "error_class": error_class})
+    if not matching_errors:
+        state["error_count"] = int(state.get("error_count", 0)) + 1
+        _append_error(
+            state,
+            "product_image_cleanup",
+            "product_image_cleanup_failed",
+            references={"run_id": run_id, "offer_key": offer_key, "artifact_ref": page_ref},
+        )
+        state["primary_error"] = dict(state["errors"][-1])
+
+
+def _recover_committed_product_image_cleanup(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    state: dict[str, Any],
+    data_root: Path,
+    clock: Clock,
+) -> None:
+    from automation.inago.product_page_inputs import selection_manifest
+
+    if not state.get("product_page_pipeline"):
+        return
+    _sync_committed_selection_manifest(connection, run_id, state)
+    for entry in selection_manifest(state):
+        offer_key = entry.get("offer_key")
+        if not isinstance(offer_key, str):
+            continue
+        committed = connection.execute(
+            "SELECT 1 FROM draft WHERE run_id=? AND offer_key=? LIMIT 1",
+            (run_id, offer_key),
+        ).fetchone()
+        if committed is None:
+            continue
+        entry["status"] = "committed"
+        committed_at = entry.get("committed_at")
+        if not isinstance(committed_at, str):
+            committed_at = _now(clock).isoformat()
+            entry["committed_at"] = committed_at
+        _resolve_product_slot_failure_on_commit(
+            state,
+            committed_entry=entry,
+            committed_at=committed_at,
+        )
+        _cleanup_committed_product_images(
+            connection,
+            run_id=run_id,
+            target_date=target_date,
+            state=state,
+            entry=entry,
+            data_root=data_root,
+            clock=clock,
+        )
+
+
+def _select_attempt_candidates(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    theme_id: str,
+    attempt_id: str,
+    evaluation: Any,
+    evidence_by_source: Mapping[str, str],
+    state: dict[str, Any],
+    ports: DailyPorts,
+    clock: Clock,
+    data_root: Path,
+    recovering_offer_keys: set[str] | None = None,
+) -> None:
+    from automation.inago.product_page_inputs import selection_manifest, upsert_selection
+
+    _sync_committed_selection_manifest(connection, run_id, state)
+    manifest = selection_manifest(state)
+    capture_failures = state.setdefault("product_page_capture_failures", [])
+    if not isinstance(capture_failures, list):
+        raise DailyOrchestrationError("product_page_capture_failures_invalid")
+    recovering_offer_keys = recovering_offer_keys or set()
+    known = {
+        str(entry["offer_key"])
+        for entry in manifest
+        if isinstance(entry.get("offer_key"), str)
+    }
+    known.update(
+        str(item["offer_key"])
+        for item in capture_failures
+        if isinstance(item, dict) and isinstance(item.get("offer_key"), str)
+        and item["offer_key"] not in recovering_offer_keys
+    )
+    pipeline_enabled = _product_page_pipeline_enabled(
+        ports, tuple(evidence_by_source.values())
+    )
+    for representative in evaluation.eligible_representatives:
+        offer_key = representative.offer_key
+        if not isinstance(offer_key, str) or offer_key in known:
+            continue
+        if _selection_count(connection, run_id, state) >= DAILY_TARGET:
+            break
+        offer = connection.execute(
+            "SELECT main_theme_id,shop_id,item_id FROM offer WHERE offer_key=?",
+            (offer_key,),
+        ).fetchone()
+        if offer is None:
+            state["error_count"] = int(state.get("error_count", 0)) + 1
+            _append_error(state, "selection", "offer_record_missing")
+            continue
+        selected_theme = str(theme_id)
+        if _selection_count(connection, run_id, state, theme_id=selected_theme) >= int(
+            state["theme_targets"].get(selected_theme, PER_THEME_TARGET)
+        ):
+            continue
+        source_key = str(representative.source_key)
+        evidence_ref = evidence_by_source.get(source_key)
+        fact = _room_product_fact(ports, evidence_ref) if evidence_ref else None
+        page_identity = fact.get("product_page_identity") if fact else None
+        page_ref = fact.get("product_page_ref") if fact else None
+        if page_identity is not None and (
+            not isinstance(page_identity, Mapping)
+            or page_identity.get("run_id") != run_id
+            or page_identity.get("shop_id") != str(offer["shop_id"])
+            or page_identity.get("item_id") != str(offer["item_id"])
+        ):
+            raise DailyOrchestrationError("product_page_selection_identity_mismatch")
+        if page_ref is not None and (
+            not isinstance(page_ref, str)
+            or not _SAFE_ACQUISITION_REF.fullmatch(page_ref)
+        ):
+            raise DailyOrchestrationError("product_page_selection_ref_invalid")
+        page_document = None
+        if pipeline_enabled and page_ref is None:
+            from automation.inago.product_page_inputs import product_page_ref
+
+            page_ref = product_page_ref(
+                run_id, str(offer["shop_id"]), str(offer["item_id"])
+            )
+        if isinstance(page_ref, str):
+            from automation.inago.product_page_inputs import load_product_page_inputs
+
+            page_document = load_product_page_inputs(
+                data_root,
+                run_id,
+                str(offer["shop_id"]),
+                str(offer["item_id"]),
+                expected_ref=page_ref,
+            )
+            if page_document is not None:
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=offer_key,
+                    page_ref=page_ref,
+                    operation="product_page_capture",
+                    phase="status",
+                    clock=clock,
+                    status=str(page_document.get("html_state", "unknown")),
+                    image_count=len(page_document.get("images", [])),
+                    at=page_document.get("captured_at"),
+                )
+        if pipeline_enabled and (
+            page_document is None
+            or page_document.get("html_state") != "captured"
+        ):
+            if not any(
+                isinstance(item, dict) and item.get("offer_key") == offer_key
+                for item in capture_failures
+            ):
+                failure = {
+                    "offer_key": offer_key,
+                    "page_ref": page_ref,
+                    "source_attempt_id": attempt_id,
+                    "code": "product_page_capture_failed",
+                    "failed_at": _now(clock).isoformat(),
+                }
+                if isinstance(page_document, Mapping) and isinstance(
+                    page_document.get("html_error_class"), str
+                ):
+                    failure["error_class"] = page_document["html_error_class"]
+                capture_failures.append(failure)
+            known.add(offer_key)
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=offer_key,
+                    page_ref=page_ref,
+                    operation="product_page_capture",
+                    phase="error",
+                    clock=clock,
+                    status="capture_failed",
+                    error_code="product_page_capture_failed",
+                    error_class=(
+                        page_document.get("html_error_class")
+                        if isinstance(page_document, Mapping)
+                        and isinstance(page_document.get("html_error_class"), str)
+                        else None
+                    ),
+                )
+            _save_state(connection, run_id, state)
+            continue
+        order = int(state.get("next_selection_order", 1))
+        entry = {
+            "offer_key": offer_key,
+            "run_id": run_id,
+            "theme_id": selected_theme,
+            "selection_order": order,
+            "slot_id": _product_slot_id(run_id, order),
+            "shop_id": str(offer["shop_id"]),
+            "item_id": str(offer["item_id"]),
+            "page_ref": page_ref,
+            "source_evidence_ref": evidence_ref,
+            "source_attempt_id": attempt_id,
+            "source_key": source_key,
+            "status": "selected",
+            "selected_at": _now(clock).isoformat(),
+        }
+        _assign_product_slot_replacement(state, entry)
+        upsert_selection(manifest, entry)
+        state.setdefault("offer_theme_ids", {})[offer_key] = selected_theme
+        state["next_selection_order"] = order + 1
+        known.add(offer_key)
+        if offer_key in recovering_offer_keys:
+            capture_failures[:] = [
+                failure
+                for failure in capture_failures
+                if not (
+                    isinstance(failure, dict)
+                    and failure.get("offer_key") == offer_key
+                    and failure.get("source_attempt_id") == attempt_id
+                )
+            ]
+        _save_state(connection, run_id, state)
+        if isinstance(page_ref, str):
+            _trace_product_stage(
+                data_root,
+                run_id=run_id,
+                target_date=target_date,
+                offer_key=offer_key,
+                page_ref=page_ref,
+                operation="product_selection",
+                phase="status",
+                clock=clock,
+                status="selected",
+                image_count=(
+                    len(page_document.get("images", []))
+                    if isinstance(page_document, Mapping)
+                    and isinstance(page_document.get("images"), list)
+                    else None
+                ),
+            )
+
+
+def _product_capture_source_row(
+    connection: sqlite3.Connection, attempt_id: str, offer_key: str
+) -> sqlite3.Row | None:
+    rows = connection.execute(
+        "SELECT source_key,evidence_ref,item_url,order_index FROM source_post "
+        "WHERE attempt_id=? ORDER BY order_index",
+        (attempt_id,),
+    ).fetchall()
+    for row in rows:
+        identity = identify_offer_from_saved_url(row["item_url"])
+        if identity.status == "identified" and identity.offer_key == offer_key:
+            return row
+    return None
+
+
+def _task_theme_for_attempt(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    attempt_id: str,
+    state: Mapping[str, Any],
+) -> str | None:
+    attempt = _attempt_row(connection, attempt_id)
+    if attempt is None:
+        return None
+    global_attempt_no = int(attempt["attempt_no"])
+    for task in state.get("tasks", []):
+        if not isinstance(task, Mapping):
+            continue
+        task_number = task.get("task_number")
+        theme_id = task.get("theme_id")
+        if (
+            isinstance(task_number, bool)
+            or not isinstance(task_number, int)
+            or not isinstance(theme_id, str)
+        ):
+            continue
+        for local_attempt in range(1, global_attempt_no + 1):
+            if _task_attempt_id(run_id, task_number, local_attempt) == attempt_id:
+                return theme_id
+    return None
+
+
+def _capture_saved_product_page(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    attempt_id: str,
+    offer_key: str,
+    ports: DailyPorts,
+    data_root: Path,
+) -> Mapping[str, Any] | None:
+    from automation.inago.product_page_inputs import (
+        ProductPageCaptureRequest,
+        load_product_page_inputs,
+        product_page_ref,
+    )
+
+    capture = getattr(ports.product_page_capture, "capture_product_page_inputs", None)
+    if not callable(capture):
+        return None
+    row = _product_capture_source_row(connection, attempt_id, offer_key)
+    if row is None:
+        return None
+    identity = identify_offer_from_saved_url(row["item_url"])
+    if identity.status != "identified" or identity.offer_key != offer_key:
+        return None
+    shop_id, item_id = str(identity.shop_id), str(identity.item_id)
+    expected_ref = product_page_ref(run_id, shop_id, item_id)
+    try:
+        existing = load_product_page_inputs(
+            data_root, run_id, shop_id, item_id, expected_ref=expected_ref
+        )
+    except (OSError, ValueError, json.JSONDecodeError):
+        existing = None
+    if isinstance(existing, Mapping) and existing.get("html_state") == "captured":
+        return existing
+    digest = hashlib.sha256(
+        f"{run_id}\0{attempt_id}\0{offer_key}".encode("utf-8")
+    ).hexdigest()[:32]
+    request = ProductPageCaptureRequest(
+        request_id=f"product-page-{digest}",
+        run_id=run_id,
+        attempt_id=attempt_id,
+        shop_id=shop_id,
+        item_id=item_id,
+        item_url=str(row["item_url"]),
+        row_index=int(row["order_index"]),
+    )
+    try:
+        result = capture(request)
+    except Exception:
+        return None
+    if (
+        not isinstance(result, Mapping)
+        or result.get("request_id") != request.request_id
+        or result.get("run_id") != run_id
+        or result.get("shop_id") != shop_id
+        or result.get("item_id") != item_id
+        or result.get("page_ref") != expected_ref
+        or result.get("state") not in {"captured", "existing_preserved"}
+    ):
+        return None
+    try:
+        page = load_product_page_inputs(
+            data_root, run_id, shop_id, item_id, expected_ref=expected_ref
+        )
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(page, Mapping) or page.get("html_state") != "captured":
+        return None
+    return page
+
+
+def _recover_product_page_capture_failures(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    state: dict[str, Any],
+    ports: DailyPorts,
+    data_root: Path,
+    clock: Clock,
+) -> int:
+    """Retry saved product URLs and reselect captured candidates without ROOM search."""
+
+    selected_entries = state.get("selected_products")
+    selected_failed_before = sum(
+        1
+        for entry in selected_entries
+        if isinstance(entry, Mapping)
+        and entry.get("status") == "failed"
+        and entry.get("ocr_error_code") == "product_page_capture_failed"
+    ) if isinstance(selected_entries, list) else 0
+    if not callable(
+        getattr(ports.product_page_capture, "capture_product_page_inputs", None)
+    ):
+        state["product_page_capture_recovery"] = {
+            "capture_adapter_available": False,
+            "selected_failed_before": selected_failed_before,
+            "selected_recovered": 0,
+            "selected_failed_after": selected_failed_before,
+            "unselected_recovered": 0,
+        }
+        return 0
+    from automation.inago.product_page_inputs import (
+        load_product_page_inputs,
+        selection_manifest,
+    )
+
+    failures = state.setdefault("product_page_capture_failures", [])
+    if not isinstance(failures, list) or any(
+        not isinstance(item, dict) for item in failures
+    ):
+        raise DailyOrchestrationError("product_page_capture_failures_invalid")
+    manifest = selection_manifest(state)
+    recovered_selected = 0
+    for entry in manifest:
+        if (
+            entry.get("status") != "failed"
+            or entry.get("ocr_error_code") != "product_page_capture_failed"
+        ):
+            continue
+        attempt_id = entry.get("source_attempt_id")
+        offer_key = entry.get("offer_key")
+        if not isinstance(attempt_id, str) or not isinstance(offer_key, str):
+            continue
+        page = _capture_saved_product_page(
+            connection,
+            run_id=run_id,
+            attempt_id=attempt_id,
+            offer_key=offer_key,
+            ports=ports,
+            data_root=data_root,
+        )
+        if page is None:
+            continue
+        recovered_page_ref = page.get("page_ref")
+        if (
+            not isinstance(recovered_page_ref, str)
+            or not _SAFE_ACQUISITION_REF.fullmatch(recovered_page_ref)
+        ):
+            continue
+        entry["page_ref"] = recovered_page_ref
+        entry["status"] = "selected"
+        for key in (
+            "ocr_state",
+            "ocr_error_code",
+            "ocr_images",
+            "ocr_ref",
+            "ocr_completed_at",
+        ):
+            entry.pop(key, None)
+        failures[:] = [
+            failure
+            for failure in failures
+            if failure.get("offer_key") != offer_key
+        ]
+        recovered_selected += 1
+        _save_state(connection, run_id, state)
+
+    remaining_total = max(0, DAILY_TARGET - _selection_count(connection, run_id, state))
+    recovered_by_attempt: dict[str, list[Representative]] = {}
+    eligible_failures: list[tuple[int, int, str, str, str]] = []
+    attempt_order: dict[str, int] = {}
+    for failure in failures:
+        attempt_id = failure.get("source_attempt_id")
+        offer_key = failure.get("offer_key")
+        if not isinstance(attempt_id, str) or not isinstance(offer_key, str):
+            continue
+        attempt = _attempt_row(connection, attempt_id)
+        row = _product_capture_source_row(connection, attempt_id, offer_key)
+        theme_id = _task_theme_for_attempt(
+            connection, run_id=run_id, attempt_id=attempt_id, state=state
+        )
+        if attempt is None or row is None or theme_id is None:
+            continue
+        attempt_order[attempt_id] = int(attempt["attempt_no"])
+        eligible_failures.append(
+            (
+                int(attempt["attempt_no"]),
+                int(row["order_index"]),
+                attempt_id,
+                offer_key,
+                theme_id,
+            )
+        )
+    eligible_failures.sort()
+    theme_remaining = {
+        str(theme): max(
+            0,
+            int(target)
+            - _selection_count(connection, run_id, state, theme_id=str(theme)),
+        )
+        for theme, target in state.get("theme_targets", {}).items()
+        if isinstance(target, int) and not isinstance(target, bool)
+    }
+    recovered_unselected: set[str] = set()
+    for _attempt_order, _row_order, attempt_id, offer_key, theme_id in eligible_failures:
+        if remaining_total <= 0 or theme_remaining.get(theme_id, 0) <= 0:
+            continue
+        if any(
+            entry.get("offer_key") == offer_key
+            for entry in _active_selected_entries(state)
+        ):
+            continue
+        page = _capture_saved_product_page(
+            connection,
+            run_id=run_id,
+            attempt_id=attempt_id,
+            offer_key=offer_key,
+            ports=ports,
+            data_root=data_root,
+        )
+        if page is None:
+            continue
+        failure = next(
+            (
+                item
+                for item in failures
+                if item.get("offer_key") == offer_key
+                and item.get("source_attempt_id") == attempt_id
+            ),
+            None,
+        )
+        if failure is None:
+            continue
+        offer = _offer_identity(connection, offer_key)
+        if offer is None:
+            continue
+        source_row = _product_capture_source_row(connection, attempt_id, offer_key)
+        if source_row is None:
+            continue
+        recovered_by_attempt.setdefault(attempt_id, []).append(
+            Representative(
+                offer_key=offer_key,
+                source_key=str(source_row["source_key"]),
+                likes=None,
+                image_ref=None,
+                order_index=int(source_row["order_index"]),
+            )
+        )
+        recovered_unselected.add(offer_key)
+        remaining_total -= 1
+        theme_remaining[theme_id] = theme_remaining.get(theme_id, 0) - 1
+
+    from automation.inago.product_page_inputs import load_product_page_inputs
+
+    for attempt_id, recovered in sorted(
+        recovered_by_attempt.items(), key=lambda item: attempt_order.get(item[0], 0)
+    ):
+        theme_id = _task_theme_for_attempt(
+            connection, run_id=run_id, attempt_id=attempt_id, state=state
+        )
+        if theme_id is None:
+            continue
+        evidence_rows = connection.execute(
+            "SELECT source_key,evidence_ref FROM source_post WHERE attempt_id=?",
+            (attempt_id,),
+        ).fetchall()
+        evidence_by_source = {
+            str(row["source_key"]): str(row["evidence_ref"]) for row in evidence_rows
+        }
+        candidates, _ = _attempt_product_candidates(
+            connection,
+            run_id,
+            attempt_id,
+            _persisted_source_identities(connection, attempt_id),
+        )
+        evaluation = SelectionResult(
+            seed="saved-product-page-recovery",
+            observed_posts=len(recovered),
+            decisions=(),
+            representatives=tuple(recovered),
+            eligible_representatives=tuple(recovered),
+        )
+        _select_attempt_candidates(
+            connection,
+            run_id=run_id,
+            target_date=target_date,
+            theme_id=theme_id,
+            attempt_id=attempt_id,
+            evaluation=evaluation,
+            evidence_by_source=evidence_by_source,
+            state=state,
+            ports=ports,
+            clock=clock,
+            data_root=data_root,
+            recovering_offer_keys={
+                representative.offer_key for representative in recovered
+            },
+        )
+        _cleanup_unselected_product_inputs(
+            connection,
+            run_id=run_id,
+            state=state,
+            candidates=[
+                candidate
+                for candidate in candidates
+                if candidate.get("offer_key") in recovered_unselected
+            ],
+            data_root=data_root,
+            target_date=target_date,
+            clock=clock,
+        )
+    selected_failed_after = sum(
+        1
+        for entry in manifest
+        if entry.get("status") == "failed"
+        and entry.get("ocr_error_code") == "product_page_capture_failed"
+    )
+    unselected_recovered_count = len(recovered_unselected)
+    state["product_page_capture_recovery"] = {
+        "capture_adapter_available": True,
+        "selected_failed_before": selected_failed_before,
+        "selected_recovered": recovered_selected,
+        "selected_failed_after": selected_failed_after,
+        "unselected_recovered": unselected_recovered_count,
+    }
+    return recovered_selected + unselected_recovered_count
+
+
+def _ocr_selected_products(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    state: dict[str, Any],
+    ports: DailyPorts,
+    data_root: Path,
+    clock: Clock,
+) -> list[dict[str, Any]]:
+    from automation.inago.product_page_inputs import selection_manifest
+
+    ocr = ports.product_page_ocr
+    if ocr is None:
+        raise DailyOrchestrationError("product_page_ocr_port_unavailable")
+    _sync_committed_selection_manifest(connection, run_id, state)
+    manifest = selection_manifest(state)
+    active = sorted(_active_selected_entries(state), key=lambda item: item["selection_order"])
+    for entry in active:
+        try:
+            saved_page = None
+            if entry.get("page_ref"):
+                from automation.inago.product_page_inputs import load_product_page_inputs
+
+                saved_page = load_product_page_inputs(
+                    data_root,
+                    run_id,
+                    str(entry["shop_id"]),
+                    str(entry["item_id"]),
+                    expected_ref=str(entry["page_ref"]),
+                )
+            page_ref = entry.get("page_ref")
+            if (
+                not isinstance(saved_page, Mapping)
+                or saved_page.get("html_state") != "captured"
+                or not isinstance(saved_page.get("images"), list)
+            ):
+                entry["status"] = "failed"
+                entry["ocr_state"] = "failed"
+                entry["ocr_error_code"] = "product_page_capture_failed"
+                if isinstance(page_ref, str):
+                    _trace_product_stage(
+                        data_root,
+                        run_id=run_id,
+                        target_date=target_date,
+                        offer_key=str(entry["offer_key"]),
+                        page_ref=page_ref,
+                        operation="product_page_capture",
+                        phase="error",
+                        clock=clock,
+                        status="capture_failed",
+                        error_code="product_page_capture_failed",
+                    )
+                _record_product_slot_failure(
+                    state,
+                    run_id=run_id,
+                    entry=entry,
+                    phase="product_page_capture",
+                    code="product_page_capture_failed",
+                    failed_at=_now(clock).isoformat(),
+                )
+                _save_state(connection, run_id, state)
+                continue
+            if entry.get("status") in {
+                "ocr_complete",
+                "ocr_partial",
+                "copy_in_progress",
+            }:
+                continue
+            entry["status"] = "ocr_in_progress"
+            _save_state(connection, run_id, state)
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=str(entry["offer_key"]),
+                    page_ref=page_ref,
+                    operation="product_image_ocr",
+                    phase="begin",
+                    clock=clock,
+                    status="started",
+                    image_count=(
+                        len(saved_page.get("images", []))
+                        if isinstance(saved_page, Mapping)
+                        and isinstance(saved_page.get("images"), list)
+                        else None
+                    ),
+                )
+            outcome = ocr.process_product(
+                connection,
+                run_id=run_id,
+                offer_key=str(entry["offer_key"]),
+                shop_id=str(entry["shop_id"]),
+                item_id=str(entry["item_id"]),
+                page_ref=entry.get("page_ref"),
+                source_evidence_ref=entry.get("source_evidence_ref"),
+                data_root=data_root,
+            )
+            if not isinstance(outcome, Mapping):
+                raise DailyOrchestrationError("product_page_ocr_result_invalid")
+            product_status = outcome.get("status")
+            image_results = outcome.get("images")
+            if product_status not in {"complete", "partial", "failed"} or not isinstance(
+                image_results, list
+            ):
+                raise DailyOrchestrationError("product_page_ocr_result_invalid")
+            ocr_ref = outcome.get("ocr_ref")
+            if product_status in {"complete", "partial"} and (
+                not isinstance(ocr_ref, str)
+                or not _SAFE_ACQUISITION_REF.fullmatch(ocr_ref)
+            ):
+                raise DailyOrchestrationError("product_page_ocr_ref_missing")
+            normalized_images = []
+            for image in image_results:
+                if not isinstance(image, Mapping) or image.get("status") not in {
+                    "success",
+                    "empty",
+                    "error",
+                }:
+                    raise DailyOrchestrationError("product_page_ocr_image_result_invalid")
+                normalized = {
+                    "order": (
+                        image.get("order")
+                        if isinstance(image.get("order"), int)
+                        and not isinstance(image.get("order"), bool)
+                        else len(normalized_images)
+                    ),
+                    "status": image["status"],
+                }
+                for key in ("image_ref", "source_ref", "ocr_ref", "error_code"):
+                    value = image.get(key)
+                    if isinstance(value, str) and _SAFE_ACQUISITION_REF.fullmatch(value):
+                        normalized[key] = value
+                normalized_images.append(normalized)
+            expected_image_count = (
+                len(saved_page.get("images", []))
+                if isinstance(saved_page, Mapping)
+                and isinstance(saved_page.get("images"), list)
+                else None
+            )
+            if expected_image_count is not None and len(normalized_images) != expected_image_count:
+                raise DailyOrchestrationError("product_page_ocr_image_count_mismatch")
+            image_orders = [image["order"] for image in normalized_images]
+            if (
+                len(set(image_orders)) != len(image_orders)
+                or sorted(image_orders) != list(range(len(normalized_images)))
+            ):
+                raise DailyOrchestrationError("product_page_ocr_image_order_invalid")
+            if product_status == "complete" and any(
+                image["status"] == "error" for image in normalized_images
+            ):
+                raise DailyOrchestrationError("product_page_ocr_complete_has_errors")
+            entry["ocr_images"] = normalized_images
+            entry["ocr_ref"] = (
+                ocr_ref
+                if isinstance(ocr_ref, str)
+                and _SAFE_ACQUISITION_REF.fullmatch(ocr_ref)
+                else None
+            )
+            entry["ocr_error_code"] = (
+                outcome.get("error_code")
+                if isinstance(outcome.get("error_code"), str)
+                and _SAFE_ACQUISITION_REF.fullmatch(outcome["error_code"])
+                else None
+            )
+            entry["ocr_state"] = product_status
+            entry["ocr_completed_at"] = _now(clock).isoformat()
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=str(entry["offer_key"]),
+                    page_ref=page_ref,
+                    operation="product_image_ocr",
+                    phase="end" if product_status != "failed" else "error",
+                    clock=clock,
+                    status=product_status,
+                    image_count=len(normalized_images),
+                    error_code=(
+                        "product_page_ocr_failed"
+                        if product_status == "failed"
+                        else None
+                    ),
+                )
+            if product_status == "failed":
+                entry["status"] = "failed"
+                _record_product_slot_failure(
+                    state,
+                    run_id=run_id,
+                    entry=entry,
+                    phase="product_page_ocr",
+                    code=entry["ocr_error_code"] or "ocr_failed",
+                    failed_at=_now(clock).isoformat(),
+                )
+            else:
+                entry["status"] = "ocr_partial" if product_status == "partial" else "ocr_complete"
+            _save_state(connection, run_id, state)
+        except Exception as exc:
+            page_ref = entry.get("page_ref")
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=str(entry["offer_key"]),
+                    page_ref=page_ref,
+                    operation="product_image_ocr",
+                    phase="error",
+                    clock=clock,
+                    status="failed",
+                    error_code="product_page_ocr_failed",
+                    error_class=type(exc).__name__,
+                    **_safe_trace_frame(exc),
+                )
+            entry["status"] = "failed"
+            entry["ocr_state"] = "failed"
+            entry["ocr_error_code"] = (
+                getattr(exc, "error_code", None)
+                if isinstance(getattr(exc, "error_code", None), str)
+                else type(exc).__name__
+            )
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="product_page_ocr",
+                code="ocr_failed",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+    return [
+        entry
+        for entry in active
+        if entry.get("status") in {"ocr_complete", "ocr_partial", "copy_in_progress"}
+    ]
+
+
+def _process_selected_copies(
+    connection: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_date: str,
+    settings_version: str,
+    state: dict[str, Any],
+    ports: DailyPorts,
+    clock: Clock,
+    data_root: Path,
+    on_draft_commit: Callable[[sqlite3.Connection], None] | None,
+) -> None:
+    for entry in _ocr_selected_products(
+        connection,
+        run_id=run_id,
+        target_date=target_date,
+        state=state,
+        ports=ports,
+        data_root=data_root,
+        clock=clock,
+    ):
+        offer_key = str(entry["offer_key"])
+        existing = connection.execute(
+            "SELECT 1 FROM draft WHERE run_id=? AND offer_key=? LIMIT 1",
+            (run_id, offer_key),
+        ).fetchone()
+        if existing is not None:
+            entry["status"] = "committed"
+            committed_at = entry.get("committed_at")
+            if not isinstance(committed_at, str):
+                committed_at = _now(clock).isoformat()
+                entry["committed_at"] = committed_at
+            _resolve_product_slot_failure_on_commit(
+                state,
+                committed_entry=entry,
+                committed_at=committed_at,
+            )
+            _cleanup_committed_product_images(
+                connection,
+                run_id=run_id,
+                target_date=target_date,
+                state=state,
+                entry=entry,
+                data_root=data_root,
+                clock=clock,
+            )
+            _save_state(connection, run_id, state)
+            continue
+        theme_id = str(entry["theme_id"])
+        offer = connection.execute(
+            "SELECT 1 FROM offer WHERE offer_key=?", (offer_key,)
+        ).fetchone()
+        if offer is None:
+            entry["status"] = "failed"
+            entry["copy_error_code"] = "offer_record_missing"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code="offer_record_missing",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        entry["status"] = "copy_in_progress"
+        _save_state(connection, run_id, state)
+        now = _now(clock)
+        deadline_at = (now + timedelta(seconds=AI_REQUEST_TIMEOUT_SECONDS)).isoformat()
+        deadline_monotonic = clock.monotonic() + AI_REQUEST_TIMEOUT_SECONDS
+        try:
+            spec = ports.copy_spec_factory(
+                connection,
+                run_id=run_id,
+                offer_key=offer_key,
+                theme_id=theme_id,
+                target_date=target_date,
+                settings_version=settings_version,
+                deadline_at=deadline_at,
+                deadline_monotonic=deadline_monotonic,
+            )
+        except RejectedContract as exc:
+            page_ref = entry.get("page_ref")
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=offer_key,
+                    page_ref=page_ref,
+                    operation="product_ai_input",
+                    phase="error",
+                    clock=clock,
+                    status="rejected",
+                    error_code="product_copy_spec_rejected",
+                    error_class=type(exc).__name__,
+                    **_safe_trace_frame(exc),
+                )
+            entry["status"] = "failed"
+            entry["copy_error_code"] = "copy_spec_contract_rejected"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code="copy_spec_contract_rejected",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if spec is None:
+            page_ref = entry.get("page_ref")
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=offer_key,
+                    page_ref=page_ref,
+                    operation="product_ai_input",
+                    phase="status",
+                    clock=clock,
+                    status="missing",
+                )
+            entry["status"] = "failed"
+            entry["copy_error_code"] = "copy_input_unavailable"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code="copy_input_unavailable",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if (
+            spec.run_id != run_id
+            or spec.offer_key != offer_key
+            or spec.target_date != target_date
+            or spec.settings_version != settings_version
+            or spec.deadline_at != deadline_at
+        ):
+            entry["status"] = "failed"
+            entry["copy_error_code"] = "copy_spec_run_identity_mismatch"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code="copy_spec_run_identity_mismatch",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        page_ref = entry.get("page_ref")
+        if isinstance(page_ref, str):
+            _trace_product_stage(
+                data_root,
+                run_id=run_id,
+                target_date=target_date,
+                offer_key=offer_key,
+                page_ref=page_ref,
+                operation="product_ai_input",
+                phase="status",
+                clock=clock,
+                status="ready",
+                image_count=(
+                    len(entry.get("ocr_images", []))
+                    if isinstance(entry.get("ocr_images"), list)
+                    else None
+                ),
+                input_ref_count=len(spec.input_refs),
+            )
+        try:
+            outcome = generate_and_commit_copy(
+                connection,
+                spec,
+                ports.copy_runner,
+                data_root=data_root,
+                clock=clock,
+            )
+        except RejectedContract as exc:
+            if isinstance(page_ref, str):
+                _trace_product_stage(
+                    data_root,
+                    run_id=run_id,
+                    target_date=target_date,
+                    offer_key=offer_key,
+                    page_ref=page_ref,
+                    operation="product_copy_commit",
+                    phase="error",
+                    clock=clock,
+                    status="rejected",
+                    error_code="product_copy_commit_rejected",
+                    error_class=type(exc).__name__,
+                    **_safe_trace_frame(exc),
+                )
+            entry["status"] = "failed"
+            entry["copy_error_code"] = "copy_spec_contract_rejected"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code="copy_spec_contract_rejected",
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if isinstance(page_ref, str):
+            _trace_product_stage(
+                data_root,
+                run_id=run_id,
+                target_date=target_date,
+                offer_key=offer_key,
+                page_ref=page_ref,
+                operation="product_copy_commit",
+                phase="status",
+                clock=clock,
+                status=outcome.status,
+                image_count=(
+                    len(entry.get("ocr_images", []))
+                    if isinstance(entry.get("ocr_images"), list)
+                    else None
+                ),
+                input_ref_count=len(spec.input_refs),
+                error_code=(
+                    "product_copy_commit_failed"
+                    if outcome.status not in {"committed", "already_committed"}
+                    else None
+                ),
+            )
+        if outcome.status in {"committed", "already_committed"}:
+            entry["status"] = "committed"
+            entry["committed_at"] = _now(clock).isoformat()
+            _resolve_product_slot_failure_on_commit(
+                state,
+                committed_entry=entry,
+                committed_at=entry["committed_at"],
+            )
+            if on_draft_commit is not None:
+                on_draft_commit(connection)
+            _cleanup_committed_product_images(
+                connection,
+                run_id=run_id,
+                target_date=target_date,
+                state=state,
+                entry=entry,
+                data_root=data_root,
+                clock=clock,
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if outcome.status in {"pending_commit", "saved_response", "in_progress"}:
+            entry["status"] = "copy_in_progress"
+            entry["copy_error_code"] = outcome.error_code or outcome.status
+            _save_state(connection, run_id, state)
+            raise DailyOrchestrationError(
+                f"copy_resume_required:{outcome.error_code or outcome.status}"
+            )
+        if outcome.status == "contract_error":
+            entry["status"] = "failed"
+            entry["copy_error_code"] = outcome.error_code or "copy_contract_rejected"
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code=entry["copy_error_code"],
+                failed_at=_now(clock).isoformat(),
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if outcome.status == "expired" and outcome.error_code == "timed_out":
+            entry["status"] = "failed"
+            confirmed = getattr(ports.copy_runner, "last_cancel_confirmed", None) is True
+            entry["copy_error_code"] = (
+                "ai_request_timeout" if confirmed else "ai_request_timeout_cancel_failed"
+            )
+            _record_product_slot_failure(
+                state,
+                run_id=run_id,
+                entry=entry,
+                phase="copy",
+                code=entry["copy_error_code"],
+                failed_at=_now(clock).isoformat(),
+            )
+            if not confirmed:
+                state["source_stopped"] = True
+                state["source_stopped_reason"] = entry["copy_error_code"]
+                state["primary_error"] = dict(state["errors"][-1])
+            _save_state(connection, run_id, state)
+            continue
+        entry["status"] = "failed"
+        entry["copy_error_code"] = outcome.error_code or f"copy_{outcome.status}"
+        _record_product_slot_failure(
+            state,
+            run_id=run_id,
+            entry=entry,
+            phase="copy",
+            code=entry["copy_error_code"],
+            failed_at=_now(clock).isoformat(),
+        )
+        _save_state(connection, run_id, state)
+    state["selection_flush_due"] = False
+    _save_state(connection, run_id, state)
+
+
 def _process_search_result(
     connection: sqlite3.Connection,
     *,
@@ -1899,6 +4281,61 @@ def _process_search_result(
         evaluation=evaluation,
         clock=clock,
     )
+    source_rows = connection.execute(
+        "SELECT source_key,evidence_ref FROM source_post WHERE attempt_id=?",
+        (attempt_id,),
+    ).fetchall()
+    evidence_by_source = {
+        str(item["source_key"]): str(item["evidence_ref"]) for item in source_rows
+    }
+    pipeline_enabled = bool(state.get("product_page_pipeline")) or (
+        ports.product_page_ocr is not None
+    ) or _product_page_pipeline_enabled(
+        ports, [str(item["evidence_ref"]) for item in source_rows]
+    )
+    if pipeline_enabled:
+        state["product_page_pipeline"] = True
+        candidates, evidence_by_source = _attempt_product_candidates(
+            connection, run_id, attempt_id, persisted_identities
+        )
+        _select_attempt_candidates(
+            connection,
+            run_id=run_id,
+            target_date=target_date,
+            theme_id=theme_id,
+            attempt_id=attempt_id,
+            evaluation=evaluation,
+            evidence_by_source=evidence_by_source,
+            state=state,
+            ports=ports,
+            clock=clock,
+            data_root=data_root,
+        )
+        _cleanup_unselected_product_inputs(
+            connection,
+            run_id=run_id,
+            state=state,
+            candidates=candidates,
+            data_root=data_root,
+            target_date=target_date,
+            clock=clock,
+        )
+        if attempt_id not in processed:
+            processed.append(attempt_id)
+        _save_state(connection, run_id, state)
+        if _selection_count(connection, run_id, state) >= DAILY_TARGET:
+            _process_selected_copies(
+                connection,
+                run_id=run_id,
+                target_date=target_date,
+                settings_version=settings_version,
+                state=state,
+                ports=ports,
+                clock=clock,
+                data_root=data_root,
+                on_draft_commit=on_draft_commit,
+            )
+        return
     handled = set(state.get("handled_offer_keys", []))
     for representative in evaluation.eligible_representatives:
         if state.get("source_stopped"):
@@ -2036,7 +4473,10 @@ def _search_task(
     first_id = _task_attempt_id(run_id, task_number, 1)
     if query in used_queries and _attempt_row(connection, first_id) is None:
         return
-    for local_attempt in range(1, 4):
+    local_attempt = 1
+    compatible_attempt_count = 0
+    retry_of: str | None = None
+    while compatible_attempt_count < 3:
         if state.get("source_stopped"):
             return
         if _draft_count(connection, run_id) >= DAILY_TARGET:
@@ -2046,13 +4486,39 @@ def _search_task(
         ).fetchone()
         if run_row is None:
             return
+        max_local_attempt = max(3, int(run_row["attempt_used"]) + 3)
+        if local_attempt > max_local_attempt:
+            break
         attempt_id = _task_attempt_id(run_id, task_number, local_attempt)
-        retry_of = (
-            _task_attempt_id(run_id, task_number, local_attempt - 1)
-            if local_attempt > 1
-            else None
-        )
         existing = _attempt_row(connection, attempt_id)
+        if existing is not None and existing["ended_at"] is None:
+            _finalize_interrupted_search(connection, attempt_id, clock)
+            existing = _attempt_row(connection, attempt_id)
+
+        if existing is not None and (
+            existing["query"] != task["query"]
+            or tuple(json.loads(existing["parent_refs_json"]))
+            != tuple(task["parent_refs"])
+            or existing["level"] != task["level"]
+        ):
+            superseded_attempts = state.setdefault("superseded_search_attempts", [])
+            if isinstance(superseded_attempts, list) and not any(
+                isinstance(entry, Mapping) and entry.get("attempt_id") == attempt_id
+                for entry in superseded_attempts
+            ):
+                superseded_attempts.append(
+                    {
+                        "attempt_id": attempt_id,
+                        "task_number": task_number,
+                        "reason_code": "saved_search_input_changed",
+                    }
+                )
+                _save_state(connection, run_id, state)
+            # Keep the old attempt as history; never apply its results to the
+            # updated task inputs. A new local id is created on the next pass.
+            local_attempt += 1
+            continue
+
         if existing is None:
             result = RoomSearchSession(connection, ports.room_port, clock=clock).search(
                 attempt_id=attempt_id,
@@ -2073,17 +4539,7 @@ def _search_task(
             if query not in used_queries:
                 used_queries.append(query)
                 _save_state(connection, run_id, state)
-            if existing["ended_at"] is None:
-                _finalize_interrupted_search(connection, attempt_id, clock)
-            elif (
-                existing["query"] != task["query"]
-                or tuple(json.loads(existing["parent_refs_json"]))
-                != tuple(task["parent_refs"])
-                or existing["level"] != task["level"]
-            ):
-                raise DailyOrchestrationError("saved_search_input_changed")
-            refreshed = _attempt_row(connection, attempt_id)
-            status = str(refreshed["source_status"])
+            status = str(existing["source_status"])
         _process_search_result(
             connection,
             run_id=run_id,
@@ -2111,8 +4567,11 @@ def _search_task(
             state["primary_error"] = dict(state["errors"][-1])
             _save_state(connection, run_id, state)
             return
+        compatible_attempt_count += 1
+        retry_of = attempt_id
         if status not in {"partial", "unavailable", "invalid"}:
             return
+        local_attempt += 1
     state["source_stopped"] = True
     state["source_stopped_reason"] = "attempt_budget_exhausted"
     _save_state(connection, run_id, state)
@@ -2333,13 +4792,27 @@ def run_daily(
     on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
     manual: bool = False,
     cause_resolved: bool = False,
+    target_date: str | None = None,
 ) -> DailyRunOutcome:
-    """Run or resume today's finite daily flow under its shared runtime lock."""
+    """Run or resume one explicit daily target under its shared runtime lock."""
 
     system_clock = clock or SystemClock()
     now = _now(system_clock)
-    target_date = now.date().isoformat()
-    if not manual and now.time() < DAILY_START:
+    selected_target_date = target_date or now.date().isoformat()
+    try:
+        selected_date = date.fromisoformat(selected_target_date)
+    except (TypeError, ValueError) as exc:
+        raise DailyOrchestrationError("daily_target_date_invalid") from exc
+    if selected_date.isoformat() != selected_target_date:
+        raise DailyOrchestrationError("daily_target_date_invalid")
+    target_date = selected_target_date
+    if selected_date > now.date() or (
+        not manual
+        and (
+            selected_date < now.date()
+            or selected_date == now.date() and now.time() < DAILY_START
+        )
+    ):
         return DailyRunOutcome("not_due", None, target_date, 0, 0, "not_started")
     id_factory = run_id_factory or (lambda target: f"INAGO-{target.isoformat()}")
     actual_seed_factory = seed_factory or (lambda: secrets.token_urlsafe(24))
@@ -2351,7 +4824,7 @@ def run_daily(
     proposed_run_id = (
         str(existing_before_lock["run_id"])
         if existing_before_lock is not None
-        else id_factory(now.date())
+        else id_factory(selected_date)
     )
     if not isinstance(proposed_run_id, str) or not _SAFE_RUN_ID.fullmatch(
         proposed_run_id
@@ -2471,20 +4944,37 @@ def run_daily(
         run_id = str(run["run_id"])
         if resumed and cause_resolved:
             _, previous_state = _daily_state(run["checkpoint"])
-            previous_count = int(previous_state.get("error_count", 0))
-            if previous_count:
-                previous_state.setdefault("resolved_error_batches", []).append(
-                    {
-                        "resolved_at": _now(system_clock).isoformat(),
-                        "error_count": previous_count,
-                        "errors": list(previous_state.get("errors", [])),
-                        "primary_error": previous_state.get("primary_error"),
-                    }
+            previous_state.setdefault("cause_resolution_claims", []).append(
+                {
+                    "observed_at": _now(system_clock).isoformat(),
+                    "owner_claimed_resolved": True,
+                    "effect": "none_without_operation_evidence",
+                }
+            )
+            _save_state(connection, run_id, previous_state)
+            run = connection.execute(
+                "SELECT * FROM run WHERE run_id=?", (run_id,)
+            ).fetchone()
+        if resumed:
+            _, cleanup_state = _daily_state(run["checkpoint"])
+            if cleanup_state.get("product_page_pipeline"):
+                _recover_unselected_product_folder_cleanup(
+                    connection,
+                    run_id=run_id,
+                    state=cleanup_state,
+                    data_root=root,
+                    target_date=target_date,
+                    clock=system_clock,
                 )
-                previous_state.update(error_count=0, errors=[])
-                previous_state.pop("primary_error", None)
-                previous_state.pop("recoverable_error_pending", None)
-                _save_state(connection, run_id, previous_state)
+                _recover_committed_product_image_cleanup(
+                    connection,
+                    run_id=run_id,
+                    target_date=target_date,
+                    state=cleanup_state,
+                    data_root=root,
+                    clock=system_clock,
+                )
+                _save_state(connection, run_id, cleanup_state)
                 run = connection.execute(
                     "SELECT * FROM run WHERE run_id=?", (run_id,)
                 ).fetchone()
@@ -2573,6 +5063,50 @@ def run_daily(
         settings_version = str(current["settings_version"])
         seed = str(current["seed"])
         _, state = _daily_state(current["checkpoint"])
+        if resumed:
+            _reconcile_saved_theme_plans(
+                connection,
+                run_id=run_id,
+                settings_version=settings_version,
+                seed=seed,
+                state=state,
+                planner=ports.theme_planner,
+            )
+        if resumed and state.get("source_stopped"):
+            state.setdefault("source_stop_history", []).append(
+                {
+                    "reason": state.get("source_stopped_reason"),
+                    "resumed_at": _now(system_clock).isoformat(),
+                }
+            )
+            state["source_stopped"] = False
+            state["source_stopped_reason"] = None
+            _save_state(connection, run_id, state)
+        if state.get("phase") == "finished" and state.get("terminal_status") in {
+            "failed",
+            "shortfall",
+        } and str(current["status"]) == "running":
+            previous_terminal = state.get("terminal_status")
+            state.setdefault("terminal_history", []).append(
+                {
+                    "status": previous_terminal,
+                    "reason": state.get("last_reason"),
+                    "resumed_at": _now(system_clock).isoformat(),
+                }
+            )
+            initial_ids = state.get("initial_theme_ids", [])
+            initial_finished = (
+                isinstance(initial_ids, list)
+                and int(state.get("initial_plan_index", 0)) >= len(initial_ids)
+            )
+            state["phase"] = (
+                "additional"
+                if int(state.get("additional_events", 0)) > 0 or initial_finished
+                else "initial"
+            )
+            state.pop("terminal_status", None)
+            state.pop("last_reason", None)
+            _save_state(connection, run_id, state)
         if state.get("phase") == "finished":
             terminal = state.get("terminal_status")
             if terminal not in {"complete", "failed", "shortfall", "missed"}:
@@ -2586,9 +5120,6 @@ def run_daily(
                 reason=state.get("last_reason"),
             )
 
-        if state.pop("recoverable_error_pending", False):
-            state["error_count"] = max(0, int(state.get("error_count", 0)) - 1)
-            _save_state(connection, run_id, state)
         startup_deadline_monotonic = (
             system_clock.monotonic() + AI_REQUEST_TIMEOUT_SECONDS
         )
@@ -2677,6 +5208,32 @@ def run_daily(
                     ports=ports,
                     clock=system_clock,
                 )
+                _recover_product_page_capture_failures(
+                    connection,
+                    run_id=run_id,
+                    target_date=target_date,
+                    state=state,
+                    ports=ports,
+                    data_root=root,
+                    clock=system_clock,
+                )
+                _sync_committed_selection_manifest(connection, run_id, state)
+                _save_state(connection, run_id, state)
+                if state.get("product_page_pipeline") and (
+                    _selection_count(connection, run_id, state) >= DAILY_TARGET
+                    or state.get("selection_flush_due") is True
+                ):
+                    _process_selected_copies(
+                        connection,
+                        run_id=run_id,
+                        target_date=target_date,
+                        settings_version=settings_version,
+                        state=state,
+                        ports=ports,
+                        clock=system_clock,
+                        data_root=root,
+                        on_draft_commit=on_draft_commit,
+                    )
                 while _draft_count(connection, run_id) < DAILY_TARGET and not state.get(
                     "source_stopped"
                 ):
@@ -2702,6 +5259,24 @@ def run_daily(
                             ports=ports,
                             clock=system_clock,
                         ):
+                            state["selection_flush_due"] = True
+                            _save_state(connection, run_id, state)
+                            if state.get("product_page_pipeline") and _active_selected_entries(
+                                state
+                            ):
+                                _process_selected_copies(
+                                    connection,
+                                    run_id=run_id,
+                                    target_date=target_date,
+                                    settings_version=settings_version,
+                                    state=state,
+                                    ports=ports,
+                                    clock=system_clock,
+                                    data_root=root,
+                                    on_draft_commit=on_draft_commit,
+                                )
+                            if _draft_count(connection, run_id) >= DAILY_TARGET:
+                                continue
                             break
                         continue
                     task = tasks[cursor]
@@ -2729,13 +5304,33 @@ def run_daily(
                     )
                     state["task_cursor"] = cursor + 1
                     _save_state(connection, run_id, state)
+                if (
+                    state.get("product_page_pipeline")
+                    and state.get("source_stopped")
+                    and _active_selected_entries(state)
+                ):
+                    state["selection_flush_due"] = True
+                    _save_state(connection, run_id, state)
+                    _process_selected_copies(
+                        connection,
+                        run_id=run_id,
+                        target_date=target_date,
+                        settings_version=settings_version,
+                        state=state,
+                        ports=ports,
+                        clock=system_clock,
+                        data_root=root,
+                        on_draft_commit=on_draft_commit,
+                    )
         except Exception as exc:
             orchestration_failed = True
             if isinstance(exc, _CopyContractRejected):
                 contract_error_reason = exc.error_code
             state["error_count"] = int(state.get("error_count", 0)) + 1
-            state["recoverable_error_pending"] = True
             _record_orchestration_error(state, exc)
+            state.setdefault("active_resume_errors", []).append(
+                dict(state["errors"][-1])
+            )
             _save_state(connection, run_id, state)
 
         metric_status = _collect_metrics(
@@ -2748,8 +5343,43 @@ def run_daily(
             data_root=root,
         )
         count, attempts = _status_counts(connection, run_id)
+        if count >= DAILY_TARGET and not orchestration_failed:
+            pending_resume_errors = state.get("active_resume_errors", [])
+            if isinstance(pending_resume_errors, list) and pending_resume_errors:
+                errors = state.setdefault("errors", [])
+                for pending_error in pending_resume_errors:
+                    if not isinstance(pending_error, Mapping):
+                        continue
+                    for error_index in range(len(errors) - 1, -1, -1):
+                        if errors[error_index] == pending_error:
+                            resolved_error = errors.pop(error_index)
+                            state["error_count"] = max(
+                                0, int(state.get("error_count", 0)) - 1
+                            )
+                            _archive_resolved_error(
+                                state,
+                                resolved_error,
+                                resolution="same_run_target_reached_after_resume",
+                                at=_now(system_clock).isoformat(),
+                            )
+                            break
+                state["active_resume_errors"] = []
+                primary = state.get("primary_error")
+                if isinstance(primary, Mapping) and not any(
+                    dict(error) == dict(primary)
+                    for error in state.get("errors", [])
+                    if isinstance(error, Mapping)
+                ):
+                    if state.get("errors"):
+                        state["primary_error"] = dict(state["errors"][-1])
+                    else:
+                        state.pop("primary_error", None)
+            _save_state(connection, run_id, state)
         if count >= DAILY_TARGET:
-            status, reason = "complete", "daily_target_reached"
+            if int(state.get("error_count", 0)) == 0:
+                status, reason = "complete", "daily_target_reached"
+            else:
+                status, reason = "partial", "daily_target_reached_with_unresolved_errors"
         elif count > 0:
             status = "partial"
             reason = contract_error_reason or "daily_interrupted_or_candidate_shortage"

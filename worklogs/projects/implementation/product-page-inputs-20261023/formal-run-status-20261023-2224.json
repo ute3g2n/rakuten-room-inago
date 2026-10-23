@@ -1,0 +1,38 @@
+{
+  "schema_version": "inago-run-observation-v1",
+  "source": "read_only_status_cli",
+  "observed_at": "2026-10-23T22:24:59+09:00",
+  "run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": "healthy",
+  "reason_codes": [
+    "run_observed_current"
+  ],
+  "heartbeat": {
+    "status": "fresh",
+    "last_updated_at": "2026-10-23T22:24:41+09:00",
+    "age_seconds": 18
+  },
+  "progress": {
+    "status": "advancing",
+    "last_updated_at": "2026-10-23T22:24:41+09:00",
+    "age_seconds": 18
+  },
+  "owner_process": {
+    "status": "alive",
+    "pid": 86668,
+    "process_start_time": "2026-10-23T22:24:10.579954+00:00"
+  },
+  "child_processes": {
+    "status": "observed",
+    "count": 18
+  },
+  "attempt_used": 37,
+  "committed_count": 0,
+  "finished_at": null,
+  "source_launch_id": null,
+  "source_launch_id_status": "not_returned_as_of_observation",
+  "launch_command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.maintenance.daily_launcher --config 'C:/project/rakuten-room-inago/rakuten-room-inago/runtime/config/settings.json' --data-root 'C:/project/rakuten-room-inago/rakuten-room-inago/runtime' --target-date 2026-10-23 --manual --resume-confirmed",
+  "status_command": ".venv-inago\\Scripts\\python.exe -B -m automation.inago.cli status --environment production --config 'C:/project/rakuten-room-inago/rakuten-room-inago/runtime/config/settings.json' --data-root 'C:/project/rakuten-room-inago/rakuten-room-inago/runtime' --run-id INAGO-2026-10-23",
+  "interpretation": "Same-day run resumed through the official launcher after read-only recovery advised resume_remaining and no launcher process was found. Cause is not marked resolved. This snapshot does not establish normal completion."
+}

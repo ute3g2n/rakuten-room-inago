@@ -1548,6 +1548,59 @@ def test_production_cli_logs_sanitized_preflight_failure_to_repository_runtime(
     assert event["diagnostics"] == {"failed_checks": ["configuration_invalid"]}
 
 
+def test_production_daily_cli_emits_only_safe_exception_location_diagnostics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import io
+    import automation.inago.production_runtime as production
+    from automation.inago.room_adapter import RoomContractError
+
+    config = SimpleNamespace(runtime_root=tmp_path)
+    monkeypatch.setattr(
+        production,
+        "run_production_startup_preflight",
+        lambda *_args, **_kwargs: {"status": "ready", "failed_checks": []},
+    )
+    monkeypatch.setattr(
+        production, "load_production_config", lambda *_args, **_kwargs: config
+    )
+
+    def fail_daily(*_args, **_kwargs):
+        raise RoomContractError("private product text must not be emitted")
+
+    monkeypatch.setattr(production, "run_production_daily", fail_daily)
+    stdout, stderr = io.StringIO(), io.StringIO()
+    result = main(
+        [
+            "daily",
+            "--environment",
+            "production",
+            "--config",
+            str(tmp_path / "config"),
+            "--data-root",
+            str(tmp_path),
+        ],
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    assert result == EXIT_RUNTIME_ERROR
+    payload = json.loads(stderr.getvalue())
+    assert payload["status"] == "runtime_error"
+    assert payload["reason"] == "RoomContractError"
+    diagnostic = payload["primary_error"]["diagnostic"]
+    assert diagnostic["exception_class"] == "RoomContractError"
+    assert diagnostic["exception_chain"] == [
+        {"relation": "raised", "exception_class": "RoomContractError"}
+    ]
+    assert any(
+        frame["path"] == "tests_inago/test_step24_production.py"
+        and frame["function"] == "fail_daily"
+        for frame in diagnostic["exception_frames"]
+    )
+    assert "private product text" not in stderr.getvalue()
+
+
 def test_production_cli_logs_profile_visibility_as_booleans_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

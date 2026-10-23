@@ -1,0 +1,16 @@
+{
+  "command": ".venv-inago/Scripts/python.exe -B -m automation.inago.maintenance.daily_launcher --config C:/project/rakuten-room-inago/rakuten-room-inago/runtime/config/settings.json --data-root C:/project/rakuten-room-inago/rakuten-room-inago/runtime --target-date 2026-10-23 --manual --resume-confirmed",
+  "source_launch_id": "e280a0eb0bfb4b8ca047f4e0ed081ad9",
+  "source_run_id": "INAGO-2026-10-23",
+  "target_date": "2026-10-23",
+  "status": "complete",
+  "overall_status": "complete",
+  "daily_status": "complete",
+  "exit_code": 0,
+  "reason_code": "daily_retry_unresolved",
+  "failure_phase": null,
+  "failed_checks": [],
+  "primary_error_class": null,
+  "trace_status": "degraded",
+  "completed_at": "2026-10-24T05:59:44.509420+09:00"
+}
