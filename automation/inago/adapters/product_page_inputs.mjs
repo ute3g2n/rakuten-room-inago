@@ -283,4 +283,3 @@ export async function saveProductPageInputs({ page, product, request, rowIndex, 
   await atomicJson(pageFile, output);
   return { page_ref: pageRef, state: 'captured', image_count: images.length };
 }
-
