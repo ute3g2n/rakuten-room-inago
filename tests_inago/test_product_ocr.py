@@ -7,6 +7,8 @@ from types import ModuleType
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from automation.inago import product_ocr
 from automation.inago.product_ocr import ProductPageOCR, load_product_page_ocr
 from tests_inago.product_page_test_support import product_dir, write_page
@@ -45,7 +47,11 @@ def _image_records(count: int) -> list[dict[str, Any]]:
 
 
 def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> None:
+    decoded_frames = 0
+
     class _Frame:
+        size = (2, 2)
+
         def __init__(self, marker: str) -> None:
             self.marker = marker
 
@@ -79,11 +85,12 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
 
         @staticmethod
         def imdecode(_encoded: bytes, _mode: int):
-            assert _encoded.startswith(b"GIF89a")
-            return "opencv-first-frame"
+            raise AssertionError("GIF frames must be decoded through Pillow")
 
         @staticmethod
         def cvtColor(frame: str, _conversion: int) -> str:
+            nonlocal decoded_frames
+            decoded_frames += 1
             return frame
 
     class _Numpy:
@@ -110,14 +117,15 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
             self.inputs: list[str] = []
 
         def predict(self, frame: str) -> list[_Page]:
+            assert decoded_frames == len(self.inputs) + 1
             self.inputs.append(frame)
             return [_Page(f"text-{frame}")]
 
     frames = product_ocr._decode_image_frames(b"GIF89a-fixture", _Cv2, _Numpy)
+    assert decoded_frames == 0
     engine = _Engine()
     raw, text = product_ocr._predict_image_frames(engine, frames)
 
-    assert frames == ["frame-one", "frame-two"]
     assert engine.inputs == ["frame-one", "frame-two"]
     assert text == "text-frame-one\n\ntext-frame-two"
     assert [frame["frame_index"] for frame in raw] == [0, 1]
@@ -125,6 +133,80 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
         ["text-frame-one"],
         ["text-frame-two"],
     ]
+
+
+@pytest.mark.parametrize(
+    ("limit_name", "limit", "error_code"),
+    [
+        ("_MAX_OCR_IMAGE_FRAMES", 1, "ocr_image_frame_limit_exceeded"),
+        ("_MAX_OCR_IMAGE_PIXELS", 3, "ocr_image_pixel_limit_exceeded"),
+    ],
+)
+def test_animated_gif_limits_return_explicit_error_codes(
+    monkeypatch, limit_name: str, limit: int, error_code: str
+) -> None:
+    monkeypatch.setattr(product_ocr, limit_name, limit, raising=False)
+
+    class _Frame:
+        size = (2, 2)
+
+        def __init__(self, marker: str) -> None:
+            self.marker = marker
+
+        def convert(self, _mode: str) -> str:
+            return self.marker
+
+    class _Gif:
+        frames = [_Frame("frame-one"), _Frame("frame-two")]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+    fake_pil = ModuleType("PIL")
+    fake_image = ModuleType("PIL.Image")
+    fake_image.open = lambda _stream: _Gif()
+    fake_sequence = ModuleType("PIL.ImageSequence")
+    fake_sequence.Iterator = lambda source: iter(source.frames)
+    fake_pil.Image = fake_image
+    fake_pil.ImageSequence = fake_sequence
+    monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.Image", fake_image)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.ImageSequence", fake_sequence)
+
+    class _Cv2:
+        COLOR_RGB2BGR = 2
+
+        @staticmethod
+        def cvtColor(frame: str, _conversion: int) -> str:
+            return frame
+
+    class _Numpy:
+        @staticmethod
+        def asarray(frame: str) -> str:
+            return frame
+
+    frames = product_ocr._decode_image_frames(b"GIF89a-fixture", _Cv2, _Numpy)
+    try:
+        next(frames)
+        next(frames)
+    except ValueError as exc:
+        assert str(exc) == error_code
+    else:
+        raise AssertionError(f"expected {error_code}")
+
+
+def test_worker_preserves_only_known_image_error_codes() -> None:
+    assert (
+        product_ocr._worker_error_code(ValueError("ocr_image_decode_failed"))
+        == "ocr_image_decode_failed"
+    )
+    assert (
+        product_ocr._worker_error_code(ValueError("unexpected detail"))
+        == "ocr_inference_failed"
+    )
 
 
 def test_real_engine_uses_runtime_assets_and_handles_japanese_image_path(
