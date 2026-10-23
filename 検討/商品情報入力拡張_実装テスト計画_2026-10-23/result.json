@@ -1,0 +1,112 @@
+{
+  "schema_version": "common-execution-planning-result-v1",
+  "version": "1.0",
+  "status": "planning_complete",
+  "overall_status": "planning_complete",
+  "daily_status": null,
+  "reason_code": "planning_only_user_request",
+  "failure_phase": null,
+  "trace_status": "not_applicable",
+  "missing_reason": "今回の依頼は計画作成のみ。正式run/launch未生成で、L02および本番正常完走は未実施。",
+  "job_id": null,
+  "incident_id": null,
+  "source_launch_id": null,
+  "source_run_id": null,
+  "target_date": "2026-10-23",
+  "workspace_root": "C:/project/rakuten-room-inago",
+  "allowed_outputs": [
+    "検討/商品情報入力拡張_実装テスト計画_2026-10-23/plan.md",
+    "検討/商品情報入力拡張_実装テスト計画_2026-10-23/requirement-step-case-map.json",
+    "検討/商品情報入力拡張_実装テスト計画_2026-10-23/result.json"
+  ],
+  "completed_operations": [
+    "project_map_read",
+    "planning_skill_and_contract_read",
+    "source_and_existing_test_definitions_read",
+    "planning_draft_written",
+    "independent_review_findings_applied",
+    "parent_final_mechanical_checks_passed",
+    "independent_plan_review_completed_no_remaining_findings",
+    "parent_powershell_examples_static_syntax_parse_passed"
+  ],
+  "not_performed_operations": [
+    "scheduler_skip_once",
+    "product_implementation",
+    "ocr_dependency_installation",
+    "test_execution",
+    "database_or_config_changes",
+    "production_daily_launch",
+    "production_daily_completion",
+    "commit_push_by_planner"
+  ],
+  "facts_count": 19,
+  "requirements_count": 16,
+  "steps_count": 11,
+  "cases_count": 27,
+  "review_status": "reviewed_no_remaining_findings",
+  "unknowns": [
+    "future_execution_identity",
+    "actual_skip_result",
+    "real_runtime_OCR_installation",
+    "new_node_creation",
+    "actual_production_completion"
+  ],
+  "next_actions": [
+    "親が最終所有file一覧とdiff確認後にcommit/push",
+    "将来の本人実行依頼時にSTEP01から実装・試験・正式10/23起動/同run再開を実施"
+  ],
+  "code_changes": false,
+  "test_execution": false,
+  "scheduler_changes": false,
+  "database_changes": false,
+  "mechanical_checks": {
+    "performed": true,
+    "performed_by": "parent",
+    "version": "1.0",
+    "exit_code": 0,
+    "status": "PASS",
+    "evidence_reference": "親の2026-10-23最終v1.0機械確認メッセージおよび親実行ログ",
+    "command": null,
+    "command_missing_reason": "計画担当への引継ぎは終了コードと全検査結果要約。正確な検査commandは親の実行ログを参照し推測しない。",
+    "json_parse": true,
+    "versions_1_0_match": true,
+    "sections_0_to_14": true,
+    "step_count": 11,
+    "step_14_items_and_full_prompts": true,
+    "case_count": 27,
+    "case_12_items": true,
+    "requirement_count": 16,
+    "fact_count": 19,
+    "evidence_count": 19,
+    "all_requirement_fact_evidence_step_case_links": true,
+    "existing_function_selector_ast_definitions": 24,
+    "existing_function_selector_definitions_all_found": true,
+    "target_date_and_fixed_root_match": true,
+    "no_product_test_scheduler_db_execution_and_formal_ids_null": true,
+    "pytest_execution": false,
+    "parameter_id_collection": false,
+    "powershell_fenced_command_static_parse": {
+      "performed_by": "parent",
+      "parser": "System.Management.Automation.Language.Parser",
+      "blocks": 4,
+      "all_syntax_valid": true,
+      "parse_error_count": 0,
+      "exit_code": 0,
+      "commands_executed": false
+    }
+  },
+  "review": {
+    "performed": true,
+    "status": "reviewed_no_remaining_findings",
+    "remaining_findings": 0,
+    "review_refs": [
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.md",
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.json"
+    ],
+    "technical_content_observed_at": "2026-10-23T12:04:09+09:00",
+    "post_review_changes": "13/14節とresult/mapの機械確認/review実施/計画完成metadata追記。技術内容の再設計なし。",
+    "digest_is_gate": false
+  },
+  "plan_completion": "今回依頼の計画作成は完了。実装/試験/Scheduler変更/本番起動/正常完走は未実施。",
+  "git_status": "parent_follow_up_not_performed"
+}

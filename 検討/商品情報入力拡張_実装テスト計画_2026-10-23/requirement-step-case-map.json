@@ -1,0 +1,1441 @@
+{
+  "schema_version": "product-page-execution-plan-v1",
+  "version": "1.0",
+  "status": "planning_complete",
+  "workspace_root": "C:/project/rakuten-room-inago",
+  "target_date": "2026-10-23",
+  "job_id": null,
+  "incident_id": null,
+  "source_launch_id": null,
+  "source_run_id": null,
+  "requirements": [
+    {
+      "requirement_id": "R01",
+      "requirement": "2026-10-23 13:00 JSTの自動起動だけを一回スキップし、翌日13:00と正式手動起動を保つ",
+      "fact_ids": [
+        "F01",
+        "F12"
+      ],
+      "evidence_refs": [
+        "E01",
+        "E12"
+      ],
+      "steps": [
+        "STEP01",
+        "STEP07",
+        "STEP10"
+      ],
+      "cases": [
+        "C01",
+        "C02",
+        "C24"
+      ]
+    },
+    {
+      "requirement_id": "R02",
+      "requirement": "描画後3セレクター全要素のouterHTML全文を本文・属性を含め保存",
+      "fact_ids": [
+        "F02",
+        "F03",
+        "F17"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E03",
+        "E17"
+      ],
+      "steps": [
+        "STEP02"
+      ],
+      "cases": [
+        "C03",
+        "C04"
+      ]
+    },
+    {
+      "requirement_id": "R03",
+      "requirement": "sale_desc内全画像をlazy/srcset/背景含め取得しURL重複だけ統合、順序・状態を保持",
+      "fact_ids": [
+        "F02",
+        "F03"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E03"
+      ],
+      "steps": [
+        "STEP02"
+      ],
+      "cases": [
+        "C05",
+        "C06"
+      ]
+    },
+    {
+      "requirement_id": "R04",
+      "requirement": "run/shop/itemの識別と符号化により保存・参照を商品/実行に結合",
+      "fact_ids": [
+        "F02",
+        "F04"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E04"
+      ],
+      "steps": [
+        "STEP02",
+        "STEP03"
+      ],
+      "cases": [
+        "C07",
+        "C08"
+      ]
+    },
+    {
+      "requirement_id": "R05",
+      "requirement": "従来規則で選別済み＋作成済みを重複なく15件確保し、初回15件の後にOCR/生成",
+      "fact_ids": [
+        "F05",
+        "F06"
+      ],
+      "evidence_refs": [
+        "E05",
+        "E06"
+      ],
+      "steps": [
+        "STEP03"
+      ],
+      "cases": [
+        "C09",
+        "C10",
+        "C11"
+      ]
+    },
+    {
+      "requirement_id": "R06",
+      "requirement": "不採用商品フォルダを削除し同run既選別商品は保持",
+      "fact_ids": [
+        "F02",
+        "F05"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E05"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP06"
+      ],
+      "cases": [
+        "C08",
+        "C12"
+      ]
+    },
+    {
+      "requirement_id": "R07",
+      "requirement": "全取得画像を検証版PaddleOCR/PP-OCRv6 medium/japan/CPUでモデル一回読込して順次処理",
+      "fact_ids": [
+        "F07",
+        "F08",
+        "F16"
+      ],
+      "evidence_refs": [
+        "E07",
+        "E08",
+        "E16"
+      ],
+      "steps": [
+        "STEP04"
+      ],
+      "cases": [
+        "C13",
+        "C14",
+        "C15"
+      ]
+    },
+    {
+      "requirement_id": "R08",
+      "requirement": "商品別ocr.jsonは画像順ref/status/text、全文と改行を維持、success/empty/errorを区別",
+      "fact_ids": [
+        "F07",
+        "F09"
+      ],
+      "evidence_refs": [
+        "E07",
+        "E09"
+      ],
+      "steps": [
+        "STEP04",
+        "STEP05"
+      ],
+      "cases": [
+        "C14",
+        "C15",
+        "C16"
+      ]
+    },
+    {
+      "requirement_id": "R09",
+      "requirement": "既存入力にHTML/OCRの実内容と全input_refs/evidence_refsを追加しused_input_refsを既存形式で返す",
+      "fact_ids": [
+        "F09",
+        "F10",
+        "F11",
+        "F18"
+      ],
+      "evidence_refs": [
+        "E09",
+        "E10",
+        "E11",
+        "E18"
+      ],
+      "steps": [
+        "STEP05"
+      ],
+      "cases": [
+        "C16",
+        "C17",
+        "C18"
+      ]
+    },
+    {
+      "requirement_id": "R10",
+      "requirement": "文型/出力契約を維持し、改行の文脈と対象商品関係性を作成AI内で判断、追加分類/要約/切詰め/score選別を行わない",
+      "fact_ids": [
+        "F02",
+        "F10",
+        "F11",
+        "F18"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E10",
+        "E11",
+        "E18"
+      ],
+      "steps": [
+        "STEP04",
+        "STEP05"
+      ],
+      "cases": [
+        "C14",
+        "C17",
+        "C18"
+      ]
+    },
+    {
+      "requirement_id": "R11",
+      "requirement": "商品draftの永続commit後だけimagesを削除し、page/ocr/URL/ref/削除記録は保持",
+      "fact_ids": [
+        "F02",
+        "F11"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E11"
+      ],
+      "steps": [
+        "STEP06"
+      ],
+      "cases": [
+        "C19",
+        "C20"
+      ]
+    },
+    {
+      "requirement_id": "R12",
+      "requirement": "選別/OCR/生成/cleanup各段階を同run再開、commit直後クラッシュやcleanup失敗も再生成せず回復",
+      "fact_ids": [
+        "F06",
+        "F11"
+      ],
+      "evidence_refs": [
+        "E06",
+        "E11"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP04",
+        "STEP06",
+        "STEP10"
+      ],
+      "cases": [
+        "C11",
+        "C20",
+        "C21"
+      ]
+    },
+    {
+      "requirement_id": "R13",
+      "requirement": "検索/重複除外/テーマ配分/25件取得/期限/補充/不足判定/保存原子性の従来規則を維持",
+      "fact_ids": [
+        "F05",
+        "F06",
+        "F13"
+      ],
+      "evidence_refs": [
+        "E05",
+        "E06",
+        "E13"
+      ],
+      "steps": [
+        "STEP03",
+        "STEP08"
+      ],
+      "cases": [
+        "C09",
+        "C10",
+        "C22",
+        "C23"
+      ]
+    },
+    {
+      "requirement_id": "R14",
+      "requirement": "正式入口で対象日2026-10-23を明示して実更新版を起動し、失敗時同対象日をデバッグして正常終端15件まで遂行",
+      "fact_ids": [
+        "F01",
+        "F12",
+        "F14",
+        "F16",
+        "F19"
+      ],
+      "evidence_refs": [
+        "E01",
+        "E12",
+        "E14",
+        "E16",
+        "E19"
+      ],
+      "steps": [
+        "STEP07",
+        "STEP10"
+      ],
+      "cases": [
+        "C24",
+        "C25",
+        "C26"
+      ]
+    },
+    {
+      "requirement_id": "R15",
+      "requirement": "失敗を安全なtraceへ結び、独立製品/試験証拠review、最小失敗node→最終回帰一回、成果とGitを正確に記録",
+      "fact_ids": [
+        "F11",
+        "F13",
+        "F15"
+      ],
+      "evidence_refs": [
+        "E11",
+        "E13",
+        "E15"
+      ],
+      "steps": [
+        "STEP06",
+        "STEP08",
+        "STEP09",
+        "STEP10",
+        "STEP11"
+      ],
+      "cases": [
+        "C21",
+        "C22",
+        "C23",
+        "C26",
+        "C27"
+      ]
+    },
+    {
+      "requirement_id": "R16",
+      "requirement": "今回の成果は計画のみ。製品/Scheduler/DB/設定/実行に未着手であることを明記し計画所有fileだけ親がcommit/push",
+      "fact_ids": [
+        "F15"
+      ],
+      "evidence_refs": [
+        "E15"
+      ],
+      "steps": [
+        "STEP11"
+      ],
+      "cases": [
+        "C27"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "F01",
+      "statement": "親の2026-10-23 11:39〜11:43 JST読取観測でDailyはReady/Enabled、今日13時が次回。StartWhenAvailable=true、IgnoreNew、時間上限PT0S。",
+      "evidence_refs": [
+        "E01"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F02",
+      "statement": "構成案は3要素全文、全画像、15件後OCR、既存入力追加、商品commit後画像削除を指定。",
+      "evidence_refs": [
+        "E02"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F03",
+      "statement": "resolveProductは楽天商品DOM描画後にsame-tab復帰/Popup閉鎖するため、その直前が追加収集点。",
+      "evidence_refs": [
+        "E03"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F04",
+      "statement": "collectRoomのproduct_factsはevidence_refにoffer_key等を関連付ける。Pythonは応答の3トップレベルキーを検査し、evidence_rootをNode設定から除く。",
+      "evidence_refs": [
+        "E04"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F05",
+      "statement": "_process_search_resultは選別eligible直後generate_and_commit_copyを呼び、全体/テーマ枠はdraft件数で判定する。",
+      "evidence_refs": [
+        "E05"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F06",
+      "statement": "checkpointはplans/tasks/handled_offer_keys/offer_theme_ids等を持ち、phaseはinitial/additional/finished。選別registryは未実装。",
+      "evidence_refs": [
+        "E06"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F07",
+      "statement": "既存検証報告は5商品59画像success、returned_text合計16,103文字、OCR/商品別変換の全文一致を記録する。本計画作成で再試験はしていない。",
+      "evidence_refs": [
+        "E07"
+      ],
+      "certainty": "reported_verified_not_rerun"
+    },
+    {
+      "fact_id": "F08",
+      "statement": "検証はPaddleOCR3.7.0/PaddlePaddle3.3.1/PaddleX3.7.2/CPython3.12.13、japan CPU PP-OCRv6 medium、enable_mkldnn=False。日本語pathで初期化失敗を観測しASCII aliasで解消。",
+      "evidence_refs": [
+        "E08"
+      ],
+      "certainty": "reported_verified_not_rerun"
+    },
+    {
+      "fact_id": "F09",
+      "statement": "検証converterはreturned_textを画像別ref/status/textへ投影し、全input_refsとsuccess非空evidence_refsを作る。study固定の保存先制限がある。",
+      "evidence_refs": [
+        "E09"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F10",
+      "statement": "_make_copy_spec_factoryはoffer/purpose/facts/author_experienceを渡す。prompt_builderはJSON全体をデータ区画へ入れAG-COPY指示を追加。",
+      "evidence_refs": [
+        "E10"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F11",
+      "statement": "copy_serviceは既存draftならalready_committedを返し、保存済み応答のcommit再開を扱う。AG-COPYはused_input_refs等の既存schemaで返す。",
+      "evidence_refs": [
+        "E11"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F12",
+      "statement": "親調査ではlauncherは起動当日をtarget_dateとしparserに明示日付/再開フラグがない。子CLIにはmanual/resume-confirmed/cause-resolvedがあるがtarget-dateはない。production再開はresume_confirmed&&cause_resolvedを要求する。",
+      "evidence_refs": [
+        "E12"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F13",
+      "statement": "指定した既存試験nodeは関数定義とassertを読取確認。実行はしていない。",
+      "evidence_refs": [
+        "E13"
+      ],
+      "certainty": "confirmed_source_only"
+    },
+    {
+      "fact_id": "F14",
+      "statement": "親の2026-10-23T11:43:27+09:00正式status読取はexit0/no_run/daily_run_not_found。13時スキップ、本番起動、正常完走は未実施。source_run_id=nullを保持。",
+      "evidence_refs": [
+        "E14"
+      ],
+      "certainty": "planned_not_performed"
+    },
+    {
+      "fact_id": "F15",
+      "statement": "本人のAGENTSは固定root、失敗最小node→最終回帰、非公開データ除外、タスク所有差分のcommit/pushを要求する。今回依頼は計画のみ。",
+      "evidence_refs": [
+        "E15"
+      ],
+      "certainty": "instruction"
+    },
+    {
+      "fact_id": "F16",
+      "statement": "親調査では本番.venv-inagoはCPython3.12.13/pytest9.1.1、OCR3パッケージは未導入。従来正常完走は日次/全体complete、15件、error_count0、metrics observed、export ready、preservation ready等を併せて判定する。",
+      "evidence_refs": [
+        "E16"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F17",
+      "statement": "親確認で旧capture scriptはredactMarkupによる本文/属性省略を含む。既存5商品の保存HTMLは未マスクouterHTML完全一致の正解には使えず、59画像はOCR再現に利用できる。",
+      "evidence_refs": [
+        "E17"
+      ],
+      "certainty": "observed_by_parent"
+    },
+    {
+      "fact_id": "F18",
+      "statement": "実AI送信はai_runner._stage_jobが固定instructionsとjob_bytesを結合する経路。input_payloadはjob_documentへ含まれるが、prompt_builderだけの指示変更では実送信指示の到達を証明できない。",
+      "evidence_refs": [
+        "E18"
+      ],
+      "certainty": "confirmed"
+    },
+    {
+      "fact_id": "F19",
+      "statement": "親ソース読取でdaily_pipeline.run_daily_execution_coreはnow.date()から対象日を独自作成して監視/失敗result等に使う。明示対象日の伝達にはこのcoreも変更が必要。Start-ScheduledTaskは非同期のため受付成功や旧LastTaskResultは当該runの完走証拠にならない。",
+      "evidence_refs": [
+        "E19"
+      ],
+      "certainty": "observed_by_parent"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E01",
+      "reference": "親担当のScheduler読取結果（2026-10-23 11:39〜11:43 JST、\\RakutenRoomInagoDaily）。計画書3節に値を記載。XML原本の公開転記なし。"
+    },
+    {
+      "evidence_id": "E02",
+      "reference": "検討/商品検索_投稿文作成_画像削除_構成案.html#step-1〜step-5,#storage-heading,#integration-heading"
+    },
+    {
+      "evidence_id": "E03",
+      "reference": "automation/inago/adapters/public_sources.mjs:699〜742 resolveProduct"
+    },
+    {
+      "evidence_id": "E04",
+      "reference": "automation/inago/adapters/public_sources.mjs:1250〜1297 collectRoom、automation/inago/live_sources.py:938〜979,1022〜1093、automation/inago/offer_intake.py:173〜226"
+    },
+    {
+      "evidence_id": "E05",
+      "reference": "automation/inago/orchestrator.py:1734〜1767,1848〜2016,2680以降"
+    },
+    {
+      "evidence_id": "E06",
+      "reference": "automation/inago/orchestrator.py:487〜584、_save_state"
+    },
+    {
+      "evidence_id": "E07",
+      "reference": "検討/楽天商品要素調査_2026-10-22/OCR技術検証/OCR検証結果.md、変換検証結果.md"
+    },
+    {
+      "evidence_id": "E08",
+      "reference": "検討/楽天商品要素調査_2026-10-22/OCR技術検証/asset-manifest.json、requirements-ocr.lock、run_ocr.ps1、ocr_runner.py:17〜57,214以降"
+    },
+    {
+      "evidence_id": "E09",
+      "reference": "検討/楽天商品要素調査_2026-10-22/OCR投稿文入力フォーマット提案.md、OCR技術検証/convert_ocr_output.py:21〜30,90〜119,147以降"
+    },
+    {
+      "evidence_id": "E10",
+      "reference": "automation/inago/production_runtime.py:665〜753、automation/inago/prompt_builder.py:238〜317"
+    },
+    {
+      "evidence_id": "E11",
+      "reference": "automation/inago/copy_service.py:754〜914、.agents/skills/rr-inago-copywriter/references/contracts.md:1〜15"
+    },
+    {
+      "evidence_id": "E12",
+      "reference": "automation/inago/maintenance/daily_launcher.py::run_daily_launch/_parser、automation/inago/cli.py::_parser、automation/inago/production_runtime.py::run_production_recovery（1680以降）/run_production_daily（1908以降）、automation/inago/recovery.py::plan_resume（266以降）、automation/inago/orchestrator.py::run_daily（2472〜2490,2575以降）。親の2026-10-23ソース読取結果。"
+    },
+    {
+      "evidence_id": "E13",
+      "reference": "本計画10節の確認済み完全node一覧の各ソース定義・assert。pytest未実行。"
+    },
+    {
+      "evidence_id": "E14",
+      "reference": "今回の計画作成範囲の作業記録。source_run_id=null、daily_status=null、実施済みへの置換禁止。"
+    },
+    {
+      "evidence_id": "E15",
+      "reference": "本人提示AGENTS.md、.agents/skills/common-execution-planning/SKILL.mdおよびreferences/contracts.md。旧10/20 job固有の禁止とGit禁止は今回の明示依頼へ適用しない。"
+    },
+    {
+      "evidence_id": "E16",
+      "reference": "親担当の.venv-inago package metadata読取とautomation/inago/cli.py:production_daily_exit_code調査。runtime/config/settings.json本文は計画へ転載しない。"
+    },
+    {
+      "evidence_id": "E17",
+      "reference": "親の検討/capture_rakuten_product_elements.mjs読取確認（2026-10-23）。旧redactMarkupは本番へ移植しない。"
+    },
+    {
+      "evidence_id": "E18",
+      "reference": "automation/inago/ai_runner.py:836〜920（独立reviewer発見を計画担当がソース再読）。"
+    },
+    {
+      "evidence_id": "E19",
+      "reference": "親のautomation/inago/daily_pipeline.py::run_daily_execution_core（966以降、operations_monitor1110以降）、automation/inago/production_runtime.py:2049の読取確認とScheduler非同期仕様に基づく運用観測手順。"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "STEP01",
+      "name": "今日13時の自動起動だけを一回スキップ",
+      "status": "planned_not_performed",
+      "owner": "運用担当（親/default、effort high）",
+      "owned_files_or_operations": "製品file所有なし。\\RakutenRoomInagoDailyの唯一のdaily trigger。原本/変更後観測はrakuten-room-inago/runtime/artifacts/product-page-rollout-20261023/scheduler/（非公開運用証拠）。",
+      "requirement_ids": [
+        "R01"
+      ],
+      "case_ids": [
+        "C01",
+        "C02",
+        "C24"
+      ]
+    },
+    {
+      "step_id": "STEP02",
+      "name": "商品ページHTML・画像の取得と商品別保存",
+      "status": "planned_not_performed",
+      "owner": "商品取得実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "automation/inago/adapters/public_sources.mjs、automation/inago/live_sources.py。新設予定automation/inago/adapters/product_page_inputs.mjs、automation/inago/product_page_inputs.py（保存/読込共通部はSTEP03/06へ引渡し）。",
+      "requirement_ids": [
+        "R02",
+        "R03",
+        "R04"
+      ],
+      "case_ids": [
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08"
+      ]
+    },
+    {
+      "step_id": "STEP03",
+      "name": "選別15件とdraft件数の分離・checkpoint再開",
+      "status": "planned_not_performed",
+      "owner": "日次制御実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "automation/inago/orchestrator.py、STEP02から引渡されたautomation/inago/product_page_inputs.pyの選別manifest部。DailyPorts追加が必要なら同orchestrator内で担当。",
+      "requirement_ids": [
+        "R04",
+        "R05",
+        "R06",
+        "R12",
+        "R13"
+      ],
+      "case_ids": [
+        "C08",
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+        "C21",
+        "C22"
+      ]
+    },
+    {
+      "step_id": "STEP04",
+      "name": "検証版OCR依存の導入設計と全画像OCR・商品別JSON",
+      "status": "planned_not_performed",
+      "owner": "OCR実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "新設予定automation/inago/product_ocr.py、automation/inago/requirements-ocr.lock、automation/inago/setup_ocr.ps1。automation/inago/production_runtime.pyのOCR port構成部。既存検証script/lockは読取参照。",
+      "requirement_ids": [
+        "R07",
+        "R08",
+        "R10",
+        "R12"
+      ],
+      "case_ids": [
+        "C06",
+        "C11",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C21"
+      ]
+    },
+    {
+      "step_id": "STEP05",
+      "name": "既存コピー入力へのHTML/OCR追加と執筆指示",
+      "status": "planned_not_performed",
+      "owner": "投稿文入力実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "automation/inago/production_runtime.pyの_make_copy_spec_factory、automation/inago/prompt_builder.py、automation/inago/ai_runner.pyの_stage_job trusted instructions、.agents/skills/rr-inago-copywriter/SKILL.mdとreferences/contracts.md。必要な読込共通部はproduct_page_inputs.py担当と順次引渡す。",
+      "requirement_ids": [
+        "R08",
+        "R09",
+        "R10"
+      ],
+      "case_ids": [
+        "C07",
+        "C16",
+        "C17",
+        "C18"
+      ]
+    },
+    {
+      "step_id": "STEP06",
+      "name": "commit後の画像削除・再開・trace",
+      "status": "planned_not_performed",
+      "owner": "保存/cleanup実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "automation/inago/product_page_inputs.pyのcleanup/記録部、automation/inago/orchestrator.pyのcommit後/起動再開hook、必要ならautomation/inago/copy_service.pyの成功通知。automation/inago/trace.pyの既存拡張点、docs/operations/日次タスクのトレース・ログ出力一覧.md。",
+      "requirement_ids": [
+        "R06",
+        "R11",
+        "R12",
+        "R15"
+      ],
+      "case_ids": [
+        "C08",
+        "C12",
+        "C19",
+        "C20",
+        "C21"
+      ]
+    },
+    {
+      "step_id": "STEP07",
+      "name": "正式launcherの明示対象日・許可済み再開伝達",
+      "status": "planned_not_performed",
+      "owner": "正式起動実装担当（worker/default、effort high）",
+      "owned_files_or_operations": "automation/inago/maintenance/daily_launcher.py、automation/inago/cli.py、automation/inago/production_runtime.py、automation/inago/daily_runtime.py、automation/inago/daily_pipeline.py、automation/inago/trigger.py、automation/inago/orchestrator.py、automation/inago/recovery.py。現在の構成を再読し引数が通る箇所だけ変更。。生成上限が恒久拒否を作る場合はautomation/inago/copy_service.py、automation/inago/repository.pyと必要なautomation/inago/sql/新規migrationも親の範囲更新で所有へ追加し、履歴を保持する正式な生成cycle管理を最小実装する（番号は実装時既存を確認して新採番）。",
+      "requirement_ids": [
+        "R01",
+        "R14"
+      ],
+      "case_ids": [
+        "C02",
+        "C24",
+        "C25"
+      ]
+    },
+    {
+      "step_id": "STEP08",
+      "name": "隔離試験・最小失敗デバッグ・最終回帰",
+      "status": "planned_not_performed",
+      "owner": "試験担当（worker/default、effort high）",
+      "owned_files_or_operations": "新設予定tests_inago/test_product_page_inputs.py、tests_inago/test_product_page_capture.py、tests_inago/test_product_page_selection.py、tests_inago/test_product_ocr.py、tests_inago/test_product_page_copy.py、tests_inago/test_product_page_cleanup.py、tests_inago/test_daily_launcher_target_date.py、tests_inago/fixtures/product_page_inputs/。必要に応じ既存関連fixture/nodeを適合。製品修正は所有担当へ返し親が範囲更新して続行。",
+      "requirement_ids": [
+        "R13",
+        "R15"
+      ],
+      "case_ids": [
+        "C21",
+        "C22",
+        "C23"
+      ]
+    },
+    {
+      "step_id": "STEP09",
+      "name": "製品コードと試験証拠の独立レビュー",
+      "status": "planned_not_performed",
+      "owner": "独立製品/試験証拠reviewer（worker/default、effort high、実装者と別agent）",
+      "owned_files_or_operations": "読取専用。出力はworklogs/projects/implementation/product-page-inputs-20261023/review.md,review.json（将来実行成果）。",
+      "requirement_ids": [
+        "R15"
+      ],
+      "case_ids": [
+        "C23"
+      ]
+    },
+    {
+      "step_id": "STEP10",
+      "name": "更新コードで10/23正式本番起動・同日再開・正常完走",
+      "status": "planned_not_performed",
+      "owner": "正式運用/デバッグ担当（親/default、effort high。製品修正は担当へ再割当）",
+      "owned_files_or_operations": "運用artifactはruntime/artifacts/product-page-rollout-20261023/。製品/試験修正はSTEP02〜08の所有担当へ返し範囲更新。実運用DBは正式API経由だけ。",
+      "requirement_ids": [
+        "R01",
+        "R12",
+        "R14",
+        "R15"
+      ],
+      "case_ids": [
+        "C26"
+      ]
+    },
+    {
+      "step_id": "STEP11",
+      "name": "要件同期・最終報告・所有差分commit/push",
+      "status": "planned_not_performed",
+      "owner": "親統括/文書担当（default、effort high）",
+      "owned_files_or_operations": "今回は検討/商品情報入力拡張_実装テスト計画_2026-10-23/plan.md,requirement-step-case-map.json,result.jsonのみ。将来実行ではdocs/architecture/プロジェクト全体マップ.md、README.md、docs/README.md、docs/operations/日次タスクのトレース・ログ出力一覧.md、仕様書正本と生成元（tools/docs/inago-requirements/README.mdから確認）、worklogs/projects/implementation/product-page-inputs-20261023/とreports配下の結果文書。",
+      "requirement_ids": [
+        "R15",
+        "R16"
+      ],
+      "case_ids": [
+        "C27"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "C01",
+      "requirement_ids": [
+        "R01"
+      ],
+      "step_ids": [
+        "STEP01"
+      ],
+      "name": "一回スキップの正確な対象と翌日予定",
+      "node_kind": "operational",
+      "node_or_method": "PowerShell Get/Set-ScheduledTask実操作（将来実行）、pytest nodeなし",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "NextRunTime10/24 13時、Enabled/Action/設定不変、本日13時自動発火なし",
+      "expected_state": "DB書換え0、別Task不変、原本ref/変更時刻を記録",
+      "forbidden_effects": "他Task/実行中process/過去runへ変更0"
+    },
+    {
+      "case_id": "C02",
+      "requirement_ids": [
+        "R01"
+      ],
+      "step_ids": [
+        "STEP01",
+        "STEP07"
+      ],
+      "name": "13時経過/StartWhenAvailableで遡及成功や遅延発火を偽らない",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_skip_once_preserves_next_daily_trigger_and_manual_launch",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "未来境界は維持し未発火の遡及保証なし、手動起動は正式action",
+      "expected_state": "経過済み操作not_performedと理由、実IDのみ",
+      "forbidden_effects": "無差別disable/kill/DB消去0"
+    },
+    {
+      "case_id": "C03",
+      "requirement_ids": [
+        "R02"
+      ],
+      "step_ids": [
+        "STEP02"
+      ],
+      "name": "3 selector全matchのouterHTMLを無マスク全文保存",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_three_selectors_preserve_all_rendered_outer_html",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "各outerHTMLとUTF-8往復が完全一致、配列順一致",
+      "expected_state": "run/offer/source_evidence取得時刻、閉鎖/検索復帰前保存event",
+      "forbidden_effects": "HTML本文/属性mask・切詰め0"
+    },
+    {
+      "case_id": "C04",
+      "requirement_ids": [
+        "R02"
+      ],
+      "step_ids": [
+        "STEP02"
+      ],
+      "name": "要素なし/空/DOM取得失敗の区別",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_missing_empty_and_failed_selector_states_are_distinct",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "missing/empty/errorを明示、成功配列と失敗を混同しない",
+      "expected_state": "取得status/数/安全exception class/operationの記録",
+      "forbidden_effects": "エラーを空成功へ置換0"
+    },
+    {
+      "case_id": "C05",
+      "requirement_ids": [
+        "R03"
+      ],
+      "step_ids": [
+        "STEP02"
+      ],
+      "name": "lazy/srcset/background全URLと出現順/同URLdedup",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_all_image_candidates_are_captured_in_occurrence_order",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "一意URLは1file、出現配列に全位置、sale_desc外画像は対象外",
+      "expected_state": "列挙件数→各HTTP/保存status→path/refが一致",
+      "forbidden_effects": "用途/score/固定枚数での除外0"
+    },
+    {
+      "case_id": "C06",
+      "requirement_ids": [
+        "R03"
+      ],
+      "step_ids": [
+        "STEP02",
+        "STEP04"
+      ],
+      "name": "download失敗/画像なし/取得途中を全件成功にしない",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_capture.py::test_download_failure_and_zero_images_preserve_capture_states",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "失敗/zeroの状態区別、全候補recordがJSON/inputまで残る",
+      "expected_state": "success/empty/errorとsource status/取得理由、件数一致",
+      "forbidden_effects": "取得失敗画像のrecord欠落0、原画像改変0"
+    },
+    {
+      "case_id": "C07",
+      "requirement_ids": [
+        "R04"
+      ],
+      "step_ids": [
+        "STEP02",
+        "STEP05"
+      ],
+      "name": "run/shop/item/instanceでpathとrefsが衝突しない",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_inputs.py::test_shop_run_and_encoded_item_identity_do_not_collide",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "safe pathが各商品を分離しpage内元IDを保持、refs全一意",
+      "expected_state": "run/offer/source_evidence一致、既存ref制約通過",
+      "forbidden_effects": "固定root外書込/別商品参照/公開個人情報0"
+    },
+    {
+      "case_id": "C08",
+      "requirement_ids": [
+        "R04",
+        "R06"
+      ],
+      "step_ids": [
+        "STEP02",
+        "STEP03",
+        "STEP06"
+      ],
+      "name": "同run既選別/commit済み再取得と未選別削除",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_inputs.py::test_unselected_cleanup_uses_whole_run_keep_set",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "Aのpage/ocr/画像版保持、B folder削除、C不変",
+      "expected_state": "run全体keep集合=selected待ちunioncommitted、削除記録",
+      "forbidden_effects": "既採用上書き/別run削除0"
+    },
+    {
+      "case_id": "C09",
+      "requirement_ids": [
+        "R05",
+        "R13"
+      ],
+      "step_ids": [
+        "STEP03"
+      ],
+      "name": "初回15選別後に全OCR、その後copy一商品ずつ",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_selection.py::test_first_copy_waits_for_fifteen_selected_and_all_ocr",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "selected15→全selected画像OCR→最初copyの順序、copy15",
+      "expected_state": "draft15/reservation15、テーマ各5、検索3/各25、refs結合",
+      "forbidden_effects": "copy前倒し/重複/テーマ上限変更0"
+    },
+    {
+      "case_id": "C10",
+      "requirement_ids": [
+        "R05",
+        "R13"
+      ],
+      "step_ids": [
+        "STEP03"
+      ],
+      "name": "生成失敗の枠だけ従来規則で補充し供給不足を区別",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_selection.py::test_failed_copy_is_replenished_without_recounting_committed_offers",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "A:作成済＋active待ちunionで補充1、失敗確定は履歴/画像保持し待ち枠から除外、補充にも取得/OCR/input/cleanup。B:11件全OCR→copy11→committed11/reservation11/daily status partial/shortfall_count4（不足4）。C:OCR0/copy0/committed0/reservation0/status shortfall/不足15",
+      "expected_state": "A:最終committed15/reservation15、元copy FAILと補充commitの相関を保存し回復した不足影響だけactive解除。B:実件数11/不足4。C:実件数0/不足15。全scenarioで元失敗履歴とselected失敗商品画像は保持",
+      "forbidden_effects": "失敗を成功/0供給と誤記0、無限補充0"
+    },
+    {
+      "case_id": "C11",
+      "requirement_ids": [
+        "R05",
+        "R12"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP04"
+      ],
+      "name": "選別checkpoint/OCR中断で同run再開",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "再抽選/同版OCR再実行/同商品二重枠なし、未完から続行",
+      "expected_state": "selected refs/order/テーマ維持、commit実数別管理",
+      "forbidden_effects": "旧成功OCR/保存済draft上書き0"
+    },
+    {
+      "case_id": "C12",
+      "requirement_ids": [
+        "R06",
+        "R11"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP06"
+      ],
+      "name": "選別不採用folder削除と再開用失敗商品保持",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_cleanup.py::test_rejected_folder_is_removed_and_failed_selected_folder_is_kept",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "不採用folderのみ全削除、生成未保存画像は保持",
+      "expected_state": "page/ocr/refs/削除理由が選別状態と一致",
+      "forbidden_effects": "run全体やselected画像の誤削除0"
+    },
+    {
+      "case_id": "C13",
+      "requirement_ids": [
+        "R07"
+      ],
+      "step_ids": [
+        "STEP04"
+      ],
+      "name": "検証版実OCRを正式runtime資材から読み日本語pathでも動く",
+      "node_kind": "planned_real_engine",
+      "node_or_method": "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "実版3.7.0/3.3.1/3.7.2、japan/medium/CPU/mkldnn false、初期化1回",
+      "expected_state": "実model/cache/temp/runtime path/所要時間/原画像hash、研究rootをloadしない",
+      "forbidden_effects": "研究venv/modelへの固定依存、他人alias変更0"
+    },
+    {
+      "case_id": "C14",
+      "requirement_ids": [
+        "R07",
+        "R08",
+        "R10"
+      ],
+      "step_ids": [
+        "STEP04"
+      ],
+      "name": "全画像・低score・改行・長文・empty/errorを無加工投影",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "全recordのref/status/text一致、改行/全文維持、各失敗区別",
+      "expected_state": "一回初期化、候補数とrecords数一致、文字数/bytesと原本refs",
+      "forbidden_effects": "score/用途選別/切詰め/要約/誤字補完0"
+    },
+    {
+      "case_id": "C15",
+      "requirement_ids": [
+        "R07",
+        "R08"
+      ],
+      "step_ids": [
+        "STEP04"
+      ],
+      "name": "既存5商品59画像の製品変換と全文往復を再現",
+      "node_kind": "planned_real_engine",
+      "node_or_method": "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "raw投影は59record/16103文字と完全一致、実再OCRは実出力をJSONと一致（旧OCR全文一致は決定性未保証）",
+      "expected_state": "5商品件数9/11/6/24/9、原画像/研究原本不変、実出力hash/版",
+      "forbidden_effects": "研究原本削除/置換、本番5draft登録0"
+    },
+    {
+      "case_id": "C16",
+      "requirement_ids": [
+        "R08",
+        "R09"
+      ],
+      "step_ids": [
+        "STEP04",
+        "STEP05"
+      ],
+      "name": "ファイル本文がpayload/全refsへ届き原本が二重送信されない",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_copy.py::test_copy_spec_contains_exact_html_ocr_and_all_input_refs",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "HTML全要素、全画像ref/status/textが完全一致、raw engine response重複なし",
+      "expected_state": "全HTML/画像input_refs、非空の出所evidence_refs、既存fact refs維持",
+      "forbidden_effects": "パスだけ入力/別商品参照/OCRのfacts化0"
+    },
+    {
+      "case_id": "C17",
+      "requirement_ids": [
+        "R09",
+        "R10"
+      ],
+      "step_ids": [
+        "STEP05"
+      ],
+      "name": "実送信prompt・staged子skill・委譲入力の追加指示と従来出力契約",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_copy.py::test_runner_transport_prompt_and_staged_copy_skill_keep_full_guidance",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "実送信指示とstaged子skillに文脈/照合/除外/不明補完禁止/used refs、AG-COPYへ全payload/refを省略なく委譲し既存schema受理",
+      "expected_state": "1商品jobのみ、使ったrefは入力集合内、追加AI呼出0",
+      "forbidden_effects": "文型/本文/出力schemaの不要変更、命令実行0"
+    },
+    {
+      "case_id": "C18",
+      "requirement_ids": [
+        "R09",
+        "R10"
+      ],
+      "step_ids": [
+        "STEP05"
+      ],
+      "name": "大入力と欠測を無断切詰めせず既存失敗扱いへ接続",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_copy.py::test_large_payload_is_never_silently_truncated",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "上限内は全文、実上限超過は必要bytes/応答/refs記録し部分を全件としない",
+      "expected_state": "既存失敗/再試行/補充と結合、新size閾値追加0",
+      "forbidden_effects": "固定文字削減/事前AI分類/要約0"
+    },
+    {
+      "case_id": "C19",
+      "requirement_ids": [
+        "R11"
+      ],
+      "step_ids": [
+        "STEP06"
+      ],
+      "name": "商品保存完了後に即imagesだけ削除",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_cleanup.py::test_images_are_deleted_only_after_each_draft_commit",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "first images削除、page/ocr/URL/ref/結果保持、second images保持",
+      "expected_state": "draft/reservation原子性、commit時刻<削除時刻、15完了を待たない",
+      "forbidden_effects": "commit前削除/JSON削除/別商品削除0"
+    },
+    {
+      "case_id": "C20",
+      "requirement_ids": [
+        "R11",
+        "R12"
+      ],
+      "step_ids": [
+        "STEP06"
+      ],
+      "name": "commit直後クラッシュ/cleanup失敗から再生成せず削除のみ回復",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "pending cleanup再試行→成功、already missingも結果記録、AI/OCR呼出0",
+      "expected_state": "draft/予約数不増、過去cleanup error保持、page/ocr不変",
+      "forbidden_effects": "draft削除/再生成/失敗商品の画像削除0"
+    },
+    {
+      "case_id": "C21",
+      "requirement_ids": [
+        "R12",
+        "R15"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP04",
+        "STEP06",
+        "STEP08"
+      ],
+      "name": "失敗traceと最小nodeの再実行証跡",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_product_page_inputs.py::test_capture_ocr_and_cleanup_errors_keep_correlated_safe_events",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "operation/exception class/safe frames/発生捕捉位置/相関refs、未完位置が判別可能",
+      "expected_state": "安全ログに件数/phase/実版、本文原本は私有artifact refs",
+      "forbidden_effects": "token/cookie/本文/SQLparameters/例外本文の通常ログ混入0"
+    },
+    {
+      "case_id": "C22",
+      "requirement_ids": [
+        "R13",
+        "R15"
+      ],
+      "step_ids": [
+        "STEP03",
+        "STEP08"
+      ],
+      "name": "既存選別/日次/保存/再開/検索規則の回帰",
+      "node_kind": "existing",
+      "node_or_method": "10.2節REG01〜REG16の確認済み完全nodeを全実行",
+      "existence_confirmed": true,
+      "execution_status": "not_performed",
+      "expected_output": "従来assertが新工程でも満たされる",
+      "expected_state": "15件/テーマ/25件/不足/予約/履歴/再開の既存期待を保持",
+      "forbidden_effects": "無関係な成功試験の反復/本番DB試験0"
+    },
+    {
+      "case_id": "C23",
+      "requirement_ids": [
+        "R13",
+        "R15"
+      ],
+      "step_ids": [
+        "STEP08",
+        "STEP09"
+      ],
+      "name": "最終回帰セットと版/入力/結果の完全記録",
+      "node_kind": "procedure",
+      "node_or_method": "10.3節固定回帰コマンド（新設nodeは作成/収集後に確定）",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "exit0/PASSは実施分だけ、skip/未実施/FAILは実値",
+      "expected_state": "正確command/全node/版hash/clock/期待実測/exit code/pathを保存",
+      "forbidden_effects": "test code独立review/既知FAIL無視で本番起動0"
+    },
+    {
+      "case_id": "C24",
+      "requirement_ids": [
+        "R01",
+        "R14"
+      ],
+      "step_ids": [
+        "STEP01",
+        "STEP07"
+      ],
+      "name": "正式入口の既定当日/明示対象日/跨日の一貫性",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_explicit_target_date_reaches_official_daily_pipeline_across_midnight",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "既定は当日、明示は10/23、実時計不変、各層/AI/DB/結果の日付一致。10/24 09:00実時計で--manual付き10/23正式再開がnot_dueにならず、当日の13時を待たない。preflight失敗でもfailure summary/監視/traceはtarget10/23、backup実時刻は実際10/24",
+      "expected_state": "実採番launchとrun、target mismatchの既存検出維持",
+      "forbidden_effects": "時刻偽装/DB target書換え/別日run差替0"
+    },
+    {
+      "case_id": "C25",
+      "requirement_ids": [
+        "R14"
+      ],
+      "step_ids": [
+        "STEP07"
+      ],
+      "name": "明示再開のunknown/過去日/terminal/試行上限を根本修正",
+      "node_kind": "planned",
+      "node_or_method": "tests_inago/test_daily_launcher_target_date.py::test_authorized_resume_continues_same_incomplete_run_without_false_cause_resolution",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "同run未完分のみ再開、新launch実採番、過去履歴保持、unknownはunknownのまま。前回error履歴を保持し回復成功したoperationだけactive error解除、未回復はactiveのまま。最終error_count0は全対象operationの実回復に基づく。代替補充の実commitで不足影響が回復した場合も元FAIL履歴を残し相関付きで当該active影響だけ解除",
+      "expected_state": "自動既定/1cycle有限retry維持、commit済再生成0、needed cycleのみ正式API生成",
+      "forbidden_effects": "cause-resolved偽装/過去launch終端書換え/失敗履歴消去0"
+    },
+    {
+      "case_id": "C26",
+      "requirement_ids": [
+        "R14",
+        "R15"
+      ],
+      "step_ids": [
+        "STEP10"
+      ],
+      "name": "実更新版・正式本番10/23の正常終端と全入力/削除証拠",
+      "node_kind": "operational",
+      "node_or_method": "登録済みStart-ScheduledTask、再開は実装後の正式launcher引数付起動。pytest nodeなし",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "daily/overall complete、15件、従来正常exit0、全商品HTML/OCR/ref/指示が実AI jobへ到達",
+      "expected_state": "error_count0/primary_errorなし、metrics observed、export/preservation/end_backup ready、monthly_restore ready|already_checked。全成功images削除/page/ocr保持/不採用folder残存0、正式OCR runtime読込。正常error_count0は未回復active影響0を実操作/補充commitで立証し、過去FAIL/cause unknownは別履歴保持",
+      "forbidden_effects": "probe/status/launcher.completeだけの代用、本番payload公開、他人process kill0、旧LastTaskResult0/別日結果の再利用0"
+    },
+    {
+      "case_id": "C27",
+      "requirement_ids": [
+        "R15",
+        "R16"
+      ],
+      "step_ids": [
+        "STEP11"
+      ],
+      "name": "計画構造/対応/未実施状態/Git所有差分を確認",
+      "node_kind": "document",
+      "node_or_method": "PowerShell ConvertFrom-Json/Select-String、親の構造validatorとgit status/diff（実施可能な文書検証）",
+      "existence_confirmed": false,
+      "execution_status": "not_performed",
+      "expected_output": "計画のみの状態、仮IDなし、全対応漏れ0、成功Git実値/失敗理由を報告",
+      "expected_state": "source_run_id/job/launch=null、製品/試験/DB/Scheduler未変更、今回所有3fileのみ",
+      "forbidden_effects": "既存private追加/Secret/force/reset/checkout0"
+    }
+  ],
+  "existing_regression_nodes": [
+    {
+      "id": "REG01",
+      "node": "tests_inago/test_step24_copy_spec_factory.py::test_copy_spec_factory_includes_every_fact_evidence_reference",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG02",
+      "node": "tests_inago/test_step23_08_copy_flow.py::test_daily_copy_commit_is_persisted_to_html_with_one_native_copy_job",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG03",
+      "node": "tests_inago/test_step13.py::test_three_theme_five_each_completes_15_and_starts_metrics_immediately",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG04",
+      "node": "tests_inago/test_step13.py::test_order_is_related_then_theme_fallback_and_all_untried_themes",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG05",
+      "node": "tests_inago/test_step13.py::test_fourteen_committed_bodies_resume_same_run_seed_and_search_results",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG06",
+      "node": "tests_inago/test_daily_live_limits.py::test_new_daily_searches_take_twenty_five_rows",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG07",
+      "node": "tests_inago/test_daily_live_limits.py::test_browser_stops_product_resolution_at_twenty_five",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG08",
+      "node": "tests_inago/test_step21_selection.py::test_products_with_null_likes_use_first_post_and_acquisition_order",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG09",
+      "node": "tests_inago/test_step21_selection.py::test_posted_pending_and_reserved_exclusions_survive_numeric_likes_removal",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG10",
+      "node": "tests_inago/test_step23_12_daily_e2e.py::test_scheduler_composition_commits_fifteen_copies_and_exports_final_state",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG11",
+      "node": "tests_inago/test_step23_12_daily_e2e.py::test_observed_zero_supply_is_a_shortfall_with_an_empty_day_html",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG12",
+      "node": "tests_inago/test_step23_12_daily_e2e.py::test_copy_save_failure_rolls_back_draft_and_reservation",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG13",
+      "node": "tests_inago/test_step23_12_daily_e2e.py::test_cutoff_resume_reuses_same_run_and_does_not_regenerate_committed_copy",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG14",
+      "node": "tests_inago/test_daily_fix_pipeline.py::test_manual_production_daily_runs_before_scheduled_hour",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG15",
+      "node": "tests_inago/test_daily_fix_pipeline.py::test_confirmed_recovery_keeps_error_history_without_replaying_drafts",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG16",
+      "node": "tests_inago/test_daily_fix_pipeline.py::test_n23a_transient_search_and_row_failures_reach_fifteen_supplementally",
+      "confirmed_by": "planner_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG17",
+      "node": "tests_inago/test_step24_production.py::test_task_templates_bind_daily_and_human_api_to_safe_modes",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG18",
+      "node": "tests_inago/test_step24_production.py::test_task_registration_uses_repository_python_without_acl_or_installer",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG19",
+      "node": "tests_inago/test_step24_production.py::test_production_daily_does_not_start_before_first_1300_boundary",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG20",
+      "node": "tests_inago/test_step24_production.py::test_production_daily_startwhenavailable_does_not_run_before_1300_next_day",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG21",
+      "node": "tests_inago/test_maintenance_completion.py::test_success_result_requires_matching_target_and_run_identity",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG22",
+      "node": "tests_inago/test_maintenance_completion.py::test_inconsistent_daily_summary_cannot_return_scheduler_success",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG23",
+      "node": "tests_inago/test_maintenance_completion.py::test_failed_child_result_cannot_keep_complete_summary",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    },
+    {
+      "id": "REG24",
+      "node": "tests_inago/test_maintenance_completion.py::test_daily_child_pid_is_recorded_and_process_is_joined",
+      "confirmed_by": "parent_source_read",
+      "execution_status": "not_performed"
+    }
+  ],
+  "node_policy": "plannedおよびplanned_real_engineは新設予定で現在存在未確認。作成後にcollect確認。operational/procedure/documentはpytest nodeなし。既存完全nodeはソース確認済み、実行未実施。 既存一覧は関数selectorでparametrize全variantを対象とし、実行時collect-only展開の完全nodeをmanifest保存。今回collect未実施。",
+  "review": {
+    "status": "reviewed_no_remaining_findings",
+    "remaining_findings": 0,
+    "review_refs": [
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.md",
+      "検討/商品情報入力拡張_実装テスト計画_2026-10-23/review.json"
+    ],
+    "technical_content_observed_at": "2026-10-23T12:04:09+09:00",
+    "post_review_changes": "機械確認/review実施/計画完成の記録metadata追記のみ"
+  }
+}
