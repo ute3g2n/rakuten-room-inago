@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>商品検索・投稿文作成・画像削除の構成案</title>
+  <style>
+    :root { color-scheme: light; --ink:#192c3b; --muted:#536675; --line:#dbe4e9; --accent:#087b70; --soft:#edf7f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f6f8; color:var(--ink); font:16px/1.8 "Yu Gothic UI","Meiryo",sans-serif; }
+    main { max-width:1000px; margin:auto; padding:40px 32px 48px; }
+    header { margin-bottom:30px; }
+    .eyebrow { color:var(--accent); font-size:13px; font-weight:700; letter-spacing:.08em; }
+    h1 { margin:8px 0 12px; font-size:clamp(25px,3.5vw,34px); line-height:1.5; letter-spacing:.01em; }
+    h2 { margin:32px 0 14px; font-size:22px; line-height:1.5; }
+    h3 { margin:0 0 8px; font-size:19px; line-height:1.5; }
+    p { margin:8px 0; }
+    .lead { margin:0; color:var(--muted); }
+    .principle { margin-top:18px; padding:14px 18px; border-left:4px solid var(--accent); background:var(--soft); border-radius:0 8px 8px 0; }
+    .flow { display:grid; gap:0; }
+    .step { display:grid; grid-template-columns:40px minmax(0,1fr); gap:16px; padding:22px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+    .number { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--accent); color:white; font-weight:700; font-size:18px; }
+    .arrow { color:#718694; text-align:center; line-height:1; font-size:24px; padding:8px; }
+    .loop { margin:0 0 0 58px; padding:14px 18px; border:1px dashed #80b7ad; border-radius:10px; background:var(--soft); font-size:15px; }
+    ul { margin:8px 0 0; padding-left:1.3em; }
+    li + li { margin-top:6px; }
+    code { padding:.12em .35em; background:#eef2f5; border-radius:4px; font:13px/1.7 Consolas,"Meiryo",monospace; overflow-wrap:anywhere; }
+    .selectors { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+    .note { color:var(--muted); font-size:14px; }
+    .panel { padding:20px 24px; background:white; border:1px solid var(--line); border-radius:12px; }
+    pre { margin:10px 0; padding:16px 18px; overflow-x:auto; background:#f0f4f7; border-radius:8px; font:13px/1.8 Consolas,"Meiryo",monospace; }
+    pre code { padding:0; background:none; border-radius:0; overflow-wrap:normal; font:inherit; }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th,td { padding:11px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-weight:700; background:#f5f8fa; }
+    tbody tr:last-child td { border-bottom:0; }
+    .instruction { margin:12px 0 0; padding:16px 18px; background:var(--soft); border-left:3px solid var(--accent); border-radius:0 7px 7px 0; font-size:15px; }
+    .instruction p + p { margin-top:14px; }
+    .small-label { font-size:14px; font-weight:700; color:var(--accent); }
+    a { color:#075f98; text-underline-offset:3px; }
+    footer { margin-top:26px; color:var(--muted); font-size:13px; }
+    details { padding:12px 0; border-top:1px solid var(--line); }
+    summary { cursor:pointer; }
+    footer ul { margin-top:10px; }
+    @media(max-width:620px) {
+      main { padding:24px 16px 32px; }
+      .step { padding:18px 14px; gap:10px; grid-template-columns:34px minmax(0,1fr); }
+      .number { width:32px; height:32px; font-size:16px; }
+      .loop { margin-left:0; }
+      .panel { padding:16px; }
+      pre { padding:12px; font-size:12px; }
+      th,td { padding:10px 7px; }
+    }
+    @media print {
+      body { background:white; font-size:11pt; }
+      main { max-width:none; padding:0; }
+      header { margin-bottom:18px; }
+      h1 { font-size:22pt; }
+      h2 { font-size:16pt; }
+      h3 { font-size:13pt; }
+      .step,.panel,.instruction,pre { break-inside:avoid; }
+      .step { padding:14px; }
+      .arrow { padding:4px; }
+      details { display:none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">構成案・未実装 ／ 2026年10月23日</div>
+    <h1>商品検索 → 投稿文作成 → 画像削除</h1>
+    <p class="lead">選別した15商品のHTMLと画像内の文字を、投稿文作成の入力に追加する。</p>
+    <div class="principle"><strong>既存処理に必要な部分だけ追加。</strong><br>検索・選別の条件、テーマ配分、投稿文の文型・出力形式、失敗時の扱いは従来どおり。以下の5工程を対象とする。</div>
+  </header>
+
+  <section aria-labelledby="flow-heading">
+    <h2 id="flow-heading">5工程の流れ</h2>
+    <div class="flow">
+      <article class="step" id="step-1">
+        <div class="number" aria-hidden="true">1</div>
+        <div>
+          <h3>商品検索時に、HTMLと画像を保存</h3>
+          <p>従来の商品ページ遷移時に、次の3要素を追加取得する。</p>
+          <div class="selectors">
+            <code>span.sale_desc</code>
+            <code>span.normal_reserve_item_name</code>
+            <code>span.normal_reserve_catch_copy</code>
+          </div>
+          <ul>
+            <li>描画後DOMの <code>outerHTML</code> を、本文・属性を含めて全文保存する。該当要素が複数あれば全件保存する。</li>
+            <li><code>span.sale_desc</code> 内の全画像を保存する。遅延読込・画像候補・背景画像も確認し、商品内の同一URLは1ファイルにまとめて出現順を残す。</li>
+            <li>商品単位のフォルダへ、HTML・取得記録・画像データを格納する。取得日時、画像URL、保存先、取得状態も記録する。</li>
+          </ul>
+        </div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">↓</div>
+
+      <article class="step" id="step-2">
+        <div class="number" aria-hidden="true">2</div>
+        <div>
+          <h3>投稿文を作成する商品を選別</h3>
+          <ul>
+            <li>従来と同じ規則で選別し、作成対象の商品一覧を実行IDに結び付けて保存する。</li>
+            <li><strong>選別されなかった商品は、[1]の追加取得フォルダを丸ごと削除する。</strong>同じ実行ですでに選別済みの商品は保持する。</li>
+          </ul>
+        </div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="loop"><strong>15件に満たない間は繰り返す</strong><br>従来どおりTrends検索 → 商品検索 → 選別。初回は選別済み15件がそろったら[3]へ進む。</div>
+      <div class="arrow" aria-hidden="true">↓</div>
+
+      <article class="step" id="step-3">
+        <div class="number" aria-hidden="true">3</div>
+        <div>
+          <h3>全取得画像をOCRし、商品別JSONへ変換</h3>
+          <ul>
+            <li>選別済み15商品の保存画像を、<strong>全件OCR</strong>する。画像の用途や認識scoreによる事前選別は行わない。</li>
+            <li>検証済みの <strong>PaddleOCR／PP-OCRv6 medium・日本語・CPU</strong> を使用する。既存Python処理から呼び、モデルを一度読み込んで順に処理する。</li>
+            <li>商品ごとに <code>ocr.json</code> を作成。画像順に <code>ref / status / text</code> を保存し、OCR全文と改行を維持する。</li>
+          </ul>
+          <p class="note">動作確認済み：PaddleOCR 3.7.0、PaddlePaddle 3.3.1、oneDNN無効。5商品59画像でOCRとJSON変換・全文一致を確認済み。検証処理のロジックを本番用の保存先へ組み込む。</p>
+        </div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">↓</div>
+
+      <article class="step" id="step-4">
+        <div class="number" aria-hidden="true">4</div>
+        <div>
+          <h3>従来入力 ＋ HTML ＋ OCR全文で投稿文を作成</h3>
+          <p>1商品ずつ、ファイルの内容を読み込んで既存のAI入力に追加する。</p>
+          <pre><code>input_payload
+├─ 従来の offer / purpose / facts / author_experience
+├─ product_page_html  ← 3要素のHTML全文
+└─ product_page_ocr   ← ocr.jsonの全画像分のOCR結果</code></pre>
+          <p>全入力を参照して、従来の文型・執筆ルールで投稿文を作成する。HTML要素・OCR画像の参照IDも既存の入力参照へ登録し、AIは使った参照IDを従来どおり返す。</p>
+          <div class="instruction">
+            <div class="small-label">投稿文作成AIへ加える指示</div>
+            <p>OCRでの抽出テキスト内の改行は画像のレイアウトを反映しています。改行を単語や文の区切りと決めつけず、前後の行も文脈に含めて読んでください。英数字が改行をまたぐ場合も、自然につながると判断できるときだけ一語として解釈し、不確かな箇所は推測で補わないでください。</p>
+            <p>既存の商品情報と照らし、対象商品に結び付く説明を使ってください。発送・配送案内、店舗案内、操作用の文字、別商品など、投稿本文に不要な文章は除外してください。商品に関係するかの判断は、この投稿文作成の中で行ってください。</p>
+          </div>
+          <p class="note">HTMLとOCRの本文は商品資料として扱う。追加のAI分類・事前要約工程は設けず、OCRテキストも切り詰めない。</p>
+        </div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">↓</div>
+
+      <article class="step" id="step-5">
+        <div class="number" aria-hidden="true">5</div>
+        <div>
+          <h3>投稿文の保存完了後、画像を削除</h3>
+          <ul>
+            <li><strong>その商品の投稿文が正常に保存されたら、<code>images/</code> を削除する。</strong>15商品の完了を待たず、商品ごとに削除する。</li>
+            <li><code>page.json</code> と <code>ocr.json</code> は、入力確認・再生成用に保持する。元画像URL・参照ID・画像の削除結果も記録する。</li>
+            <li>作成途中・失敗した商品の画像は再開用に保持する。保存済み投稿文に対する削除の未実施・失敗は、再開時にも再試行する。</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="storage-heading">
+    <h2 id="storage-heading">保存先は、実行ごと・商品ごとに1フォルダ</h2>
+    <div class="panel">
+      <pre><code>rakuten-room-inago/runtime/product-page-inputs/
+└─ {run_id}/
+   └─ shop-{店舗ID}/
+      └─ item-{商品ID}/
+         ├─ page.json   … 3要素のHTML全文・取得記録・画像一覧
+         ├─ images/     … span.sale_desc 内の全取得画像
+         │  ├─ 001.jpg
+         │  └─ 002.png …
+         └─ ocr.json    … 全画像のOCR結果（商品ごとに1ファイル）</code></pre>
+      <p>既存の商品識別子 <code>店舗ID:商品ID</code> を使用する。店舗IDも階層に入れ、別店舗の同じ商品IDを区別する。ID中のパスに使えない文字は符号化し、元のIDは <code>page.json</code> に残す。</p>
+      <p class="note"><code>page.json</code> のHTMLはセレクターごとの配列で保持。要素の「なし」「空」「取得失敗」を区別する。<code>ocr.json</code> は既存の提案形式を使い、画像ごとの <code>success / empty / error</code> を保持する。参照IDには実行IDと商品識別子を含め、商品間・実行間で衝突させない。</p>
+      <table aria-label="データの保持と削除">
+        <thead><tr><th>タイミング</th><th>商品フォルダの扱い</th></tr></thead>
+        <tbody>
+          <tr><td>選別されなかった</td><td>商品フォルダ全体を削除</td></tr>
+          <tr><td>投稿文を正常に保存した</td><td><code>images/</code> を削除。HTML・OCR JSONは保持</td></tr>
+          <tr><td>作成途中・失敗</td><td>再開に必要なデータを保持</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="integration-heading">
+    <h2 id="integration-heading">既存処理への組み込みは3か所</h2>
+    <div class="panel">
+      <table aria-label="変更する処理と役割">
+        <thead><tr><th>既存の処理</th><th>追加・変更すること</th></tr></thead>
+        <tbody>
+          <tr><td>商品ページ取得</td><td>商品ページを閉じる・検索画面へ戻る前に、HTMLと画像を保存する。</td></tr>
+          <tr><td>Pythonの実行制御</td><td>選別済み一覧を既存の再開情報に追加。選別後すぐの投稿文作成を、15件の確保 → OCR・変換 → 投稿文作成の順へ移し、各段階で削除する。</td></tr>
+          <tr><td>投稿文の入力・指示構築</td><td>既存入力へHTML・OCR JSONの内容と追加指示を渡す。呼出しは従来どおり1商品単位。</td></tr>
+        </tbody>
+      </table>
+      <p class="note">15件の確保は「作成済み＋作成待ち」の商品を重複なく数える。生成失敗による不足分の補充は従来の規則に従い、補充商品にも同じ5工程を適用する。取得・OCRの未実施や失敗は状態を記録し、既存の期限・再試行・不足時の扱いに合わせる。</p>
+    </div>
+  </section>
+
+  <footer>
+    <details>
+      <summary>確認した現行処理・検証資材</summary>
+      <ul>
+        <li><a href="../automation/inago/adapters/public_sources.mjs">現行の商品ページ遷移</a> ／ <a href="../automation/inago/orchestrator.py">現行の選別・15件管理・投稿文作成</a></li>
+        <li><a href="../automation/inago/production_runtime.py">現行の投稿文入力</a> ／ <a href="../automation/inago/prompt_builder.py">現行のAI入力・指示構築</a></li>
+        <li><a href="楽天商品要素調査_2026-10-22/OCR技術検証/OCR検証結果.md">5商品59画像のOCR検証結果</a> ／ <a href="楽天商品要素調査_2026-10-22/OCR投稿文入力フォーマット提案.md">OCR JSON形式の提案</a></li>
+        <li><a href="楽天商品要素調査_2026-10-22/OCR技術検証/convert_ocr_output.py">検証済みのJSON変換処理</a> ／ <a href="楽天商品要素調査_2026-10-22/OCR技術検証/変換検証結果.md">5商品分の全文一致確認</a></li>
+      </ul>
+    </details>
+  </footer>
+</main>
+</body>
+</html>
