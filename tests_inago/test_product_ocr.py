@@ -60,6 +60,8 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
             return self.marker
 
     class _Gif:
+        size = (2, 2)
+        n_frames = 2
         frames = [_Frame("frame-one"), _Frame("frame-two")]
 
         def __enter__(self):
@@ -140,6 +142,7 @@ def test_animated_gif_frames_are_all_decoded_and_sent_to_ocr(monkeypatch) -> Non
     [
         ("_MAX_OCR_IMAGE_FRAMES", 1, "ocr_image_frame_limit_exceeded"),
         ("_MAX_OCR_IMAGE_PIXELS", 3, "ocr_image_pixel_limit_exceeded"),
+        ("_MAX_OCR_IMAGE_BYTES", 5, "ocr_image_byte_limit_exceeded"),
     ],
 )
 def test_animated_gif_limits_return_explicit_error_codes(
@@ -156,7 +159,12 @@ def test_animated_gif_limits_return_explicit_error_codes(
         def convert(self, _mode: str) -> str:
             return self.marker
 
+    image_open_count = 0
+    iterator_yield_count = 0
+
     class _Gif:
+        size = (2, 2)
+        n_frames = 2
         frames = [_Frame("frame-one"), _Frame("frame-two")]
 
         def __enter__(self):
@@ -167,9 +175,22 @@ def test_animated_gif_limits_return_explicit_error_codes(
 
     fake_pil = ModuleType("PIL")
     fake_image = ModuleType("PIL.Image")
-    fake_image.open = lambda _stream: _Gif()
+
+    def _open_image(_stream):
+        nonlocal image_open_count
+        image_open_count += 1
+        return _Gif()
+
+    fake_image.open = _open_image
     fake_sequence = ModuleType("PIL.ImageSequence")
-    fake_sequence.Iterator = lambda source: iter(source.frames)
+
+    def _iterate_frames(source):
+        nonlocal iterator_yield_count
+        for frame in source.frames:
+            iterator_yield_count += 1
+            yield frame
+
+    fake_sequence.Iterator = _iterate_frames
     fake_pil.Image = fake_image
     fake_pil.ImageSequence = fake_sequence
     monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
@@ -191,11 +212,54 @@ def test_animated_gif_limits_return_explicit_error_codes(
     frames = product_ocr._decode_image_frames(b"GIF89a-fixture", _Cv2, _Numpy)
     try:
         next(frames)
-        next(frames)
     except ValueError as exc:
         assert str(exc) == error_code
     else:
         raise AssertionError(f"expected {error_code}")
+    assert iterator_yield_count == 0
+    assert image_open_count == (0 if limit_name == "_MAX_OCR_IMAGE_BYTES" else 1)
+
+
+def test_static_image_pixel_limit_is_checked_before_opencv_decode(monkeypatch) -> None:
+    monkeypatch.setattr(product_ocr, "_MAX_OCR_IMAGE_PIXELS", 5, raising=False)
+
+    class _Image:
+        size = (3, 2)
+        n_frames = 1
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+    fake_pil = ModuleType("PIL")
+    fake_image = ModuleType("PIL.Image")
+    fake_image.open = lambda _stream: _Image()
+    fake_sequence = ModuleType("PIL.ImageSequence")
+    fake_pil.Image = fake_image
+    fake_pil.ImageSequence = fake_sequence
+    monkeypatch.setitem(__import__("sys").modules, "PIL", fake_pil)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.Image", fake_image)
+    monkeypatch.setitem(__import__("sys").modules, "PIL.ImageSequence", fake_sequence)
+
+    class _Cv2:
+        IMREAD_COLOR = 1
+
+        @staticmethod
+        def imdecode(_encoded: bytes, _mode: int):
+            raise AssertionError("oversized image must be rejected before imdecode")
+
+    class _Numpy:
+        uint8 = "uint8"
+
+        @staticmethod
+        def frombuffer(image_bytes: bytes, dtype: str) -> bytes:
+            return image_bytes
+
+    frames = product_ocr._decode_image_frames(b"PNG-fixture", _Cv2, _Numpy)
+    with pytest.raises(ValueError, match="^ocr_image_pixel_limit_exceeded$"):
+        next(frames)
 
 
 def test_worker_preserves_only_known_image_error_codes() -> None:
