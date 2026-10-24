@@ -1339,8 +1339,21 @@ def load_copy_generation_state(
         (run_id, offer_key),
     ).fetchone()
     copy_job = None
+    root_job = None
+    review_jobs = []
     artifact = None
     if attempt is not None and attempt["outcome"] == "success":
+        root_job_id = f"J-{attempt['generation_attempt_id']}"
+        root_job = connection.execute(
+            "SELECT * FROM ai_job WHERE job_id=? AND run_id=? AND agent_id='AI-O'",
+            (root_job_id, run_id),
+        ).fetchone()
+        child_prefix = f"{root_job_id}-"
+        review_jobs = connection.execute(
+            "SELECT * FROM ai_job WHERE run_id=? AND attempt=? "
+            "AND agent_id='AG-COPY-REVIEW' AND substr(job_id,1,?)=? ORDER BY job_id",
+            (run_id, attempt["attempt_no"], len(child_prefix), child_prefix),
+        ).fetchall()
         copy_job = connection.execute(
             """
             SELECT * FROM ai_job
@@ -1359,6 +1372,8 @@ def load_copy_generation_state(
         "draft": dict(draft) if draft is not None else None,
         "attempt": dict(attempt) if attempt is not None else None,
         "copy_job": dict(copy_job) if copy_job is not None else None,
+        "root_job": dict(root_job) if root_job is not None else None,
+        "review_jobs": [dict(job) for job in review_jobs],
         "artifact": dict(artifact) if artifact is not None else None,
     }
 

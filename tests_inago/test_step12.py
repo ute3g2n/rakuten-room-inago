@@ -27,6 +27,7 @@ from automation.inago.copy_service import (
     CopyGenerationSpec,
     generate_and_commit_copy,
 )
+from tests_inago.copy_quality_test_support import review_subjob
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -174,6 +175,7 @@ class FakeCopyRunner:
             "body": self.body,
             "pattern_id": self.pattern_id,
             "evidence_refs": ["INPUT-A1"],
+            "status": "ready",
             "selection_reason": "確認できる商品情報に合わせた",
             "used_input_refs": ["INPUT-A1"],
             "omitted_unknowns": ["price", "stock", "shipping", "rating", "promotion"],
@@ -249,6 +251,8 @@ class FakeCopyRunner:
                     auth_mode="fixture",
                 ),
             )
+        if subjobs:
+            subjobs = (*subjobs, review_subjob(subjobs[-1]))
         root_status = status
         return AIJobResult(
             job_id=request.job_id,
@@ -386,6 +390,7 @@ def test_generation_persists_all_successful_native_specialist_jobs_atomically(
     ).fetchall()
     assert [tuple(row) for row in rows] == [
         ("AG-COPY", "rr-inago-copywriter", "fixture-model", "fixture", "fixture"),
+        ("AG-COPY-REVIEW", "rr-inago-copy-reviewer", "fixture-model", "fixture", "fixture"),
         ("AG-KEY", "rr-inago-keywords", "fixture-model", "fixture", "fixture"),
         ("AG-OBS", "rr-inago-observation", "fixture-model", "fixture", "fixture"),
         ("AI-O", "rakuten-room-inago", "fixture-model", "fixture", "fixture"),
@@ -444,7 +449,7 @@ def test_specialist_empty_or_error_retries_when_orchestrator_succeeds(
         def run(self, request: AIJobRequest) -> AIJobResult:
             result = super().run(request)
             child = replace(result.subjobs[0], result_status=self.child_statuses.pop(0))
-            return replace(result, subjobs=(child,))
+            return replace(result, subjobs=(child, *result.subjobs[1:]))
 
     runner = SpecialistOutcomeRunner(statuses)
     result = run_copy(runtime_case, runner)
@@ -788,12 +793,12 @@ def test_runner_contract_errors_stop_without_retry(
             if mode == "extra_output_field":
                 payload["unexpected"] = "not in the role output contract"
                 child = replace(result.subjobs[0], payload=payload)
-                return replace(result, subjobs=(child,))
+                return replace(result, subjobs=(child, *result.subjobs[1:]))
             child = replace(
                 result.subjobs[0],
                 payload={**payload, "selection_reason": " "},
             )
-            return replace(result, subjobs=(child,))
+            return replace(result, subjobs=(child, *result.subjobs[1:]))
 
     runner = InvalidResultRunner(["success", "success"])
     result = run_copy(runtime_case, runner)

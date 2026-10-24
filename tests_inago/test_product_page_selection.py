@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import shutil
+import uuid
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -29,7 +32,13 @@ from tests_inago.test_step13 import (
 
 @pytest.fixture
 def runtime_case(tmp_path: Path, fixture_config_path: Path) -> RuntimeCase:
-    private_root = SAFE_FIXTURE_BASE / "product-page-selection" / tmp_path.name
+    # Different pytest invocations can give this node the same tmp_path.name.
+    # Include its full path identity so a local replay never shares state with
+    # another invocation or a prior invocation's interrupted cleanup.
+    invocation = hashlib.sha256(str(tmp_path.resolve()).encode()).hexdigest()[:16]
+    private_root = (
+        SAFE_FIXTURE_BASE / "product-page-selection" / invocation / tmp_path.name
+    )
     paths = resolve_runtime_paths(
         data_root=private_root / "state",
         config_path=fixture_config_path,
@@ -215,7 +224,7 @@ def _run(
     target_date: str | None = None,
 ):
     bundle.ports = replace(bundle.ports, product_page_ocr=ocr)
-    return run_daily(
+    outcome = run_daily(
         case.connection,
         data_root=case.data_root,
         ports=bundle.ports,
@@ -225,6 +234,47 @@ def _run(
         manual=manual,
         target_date=target_date,
     )
+    diagnostic_root = os.environ.get("INAGO_SELECTION_TEST_DIAGNOSTIC_ROOT")
+    if diagnostic_root and outcome.error_count:
+        state = _checkpoint(case.connection, outcome.run_id)
+        diagnostic = {
+            "run_id": outcome.run_id,
+            "status": outcome.status,
+            "committed_count": outcome.committed_count,
+            "error_count": outcome.error_count,
+            "errors": state.get("errors"),
+            "active_resume_errors": state.get("active_resume_errors"),
+            "active_product_slot_failures": state.get("active_product_slot_failures"),
+            "product_image_cleanup_failures": state.get("product_image_cleanup_failures"),
+            "product_page_cleanup_failures": state.get("product_page_cleanup_failures"),
+            "failed_image_cleanup_results": [
+                {"offer_key": entry.get("offer_key"), "image_cleanup": entry["image_cleanup"]}
+                for entry in state.get("selected_products", [])
+                if isinstance(entry.get("image_cleanup"), dict)
+                and entry["image_cleanup"].get("status") == "failed"
+            ],
+            "uncommitted_products": [
+                entry
+                for entry in state.get("selected_products", [])
+                if entry.get("status") != "committed"
+            ],
+            "generation_errors": [
+                dict(row)
+                for row in case.connection.execute(
+                    "SELECT offer_key,attempt_no,outcome,error_code FROM generation_attempt "
+                    "WHERE run_id=? AND error_code IS NOT NULL",
+                    (outcome.run_id,),
+                )
+            ],
+        }
+        folder = Path(diagnostic_root)
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{outcome.run_id}-{uuid.uuid4().hex}.json"
+        path.write_text(
+            json.dumps(diagnostic, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"selection test checkpoint diagnostic: {path}")
+    return outcome
 
 
 def _checkpoint(connection, run_id: str) -> dict:
@@ -374,13 +424,25 @@ def test_capture_failed_page_is_skipped_and_replenished_before_copy(
 
 
 def test_resume_recaptures_failed_selected_page_without_room_search(
-    runtime_case: RuntimeCase,
+    runtime_case: RuntimeCase, tmp_path: Path,
 ):
     bundle = _make_ports(runtime_case, posts_per_search=25)
     _enable_product_page_pipeline(bundle, runtime_case)
     ocr = _FixtureOCR()
     outcome = _run(runtime_case, bundle, ocr, run_id="PRODUCT-CAPTURE-RESUME")
-    assert outcome.status == "complete"
+    diagnostic = {
+        "status": outcome.status,
+        "committed_count": outcome.committed_count,
+        "error_count": outcome.error_count,
+        "errors": _checkpoint(runtime_case.connection, outcome.run_id).get("errors"),
+    }
+    if outcome.status != "complete":
+        diagnostic_path = tmp_path / "capture-resume-errors.json"
+        diagnostic_path.write_text(
+            json.dumps(diagnostic, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        diagnostic["diagnostic_path"] = str(diagnostic_path)
+    assert outcome.status == "complete", json.dumps(diagnostic, ensure_ascii=False)
 
     state = _checkpoint(runtime_case.connection, "PRODUCT-CAPTURE-RESUME")
     entry = state["selected_products"][0]

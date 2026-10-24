@@ -4,18 +4,68 @@
   "title": "AG-COPY generated body and separate internal rationale",
   "type": "object",
   "required": [
-    "offer_key", "draft_version", "body", "pattern_id", "evidence_refs",
-    "selection_reason", "used_input_refs", "omitted_unknowns"
+    "offer_key",
+    "draft_version",
+    "status",
+    "body",
+    "pattern_id",
+    "evidence_refs",
+    "selection_reason",
+    "used_input_refs",
+    "omitted_unknowns"
   ],
   "properties": {
-    "offer_key": {"type": "string", "minLength": 1},
-    "draft_version": {"type": "integer", "minimum": 1},
-    "body": {"type": "string", "minLength": 1},
-    "pattern_id": {"enum": ["P01", "P02", "P03", "P04", "P05"]},
-    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "selection_reason": {"type": "string", "minLength": 1},
-    "used_input_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "omitted_unknowns": {"type": "array", "items": {"type": "string", "minLength": 1}}
+    "offer_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "draft_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "body": {
+      "type": "string"
+    },
+    "pattern_id": {
+      "enum": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "selection_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "used_input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "omitted_unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "insufficient_information"
+      ]
+    }
   },
   "additionalProperties": false
 }

@@ -1,0 +1,597 @@
+{
+  "source": "offline synthetic fixture diagnostics; source file names are provenance, individual temporary files were consolidated",
+  "captured_files": 14,
+  "unique_diagnostics": 6,
+  "groups": [
+    {
+      "observations": 1,
+      "source_files": [
+        "COPY-QUALITY-CLEANUP-RETRY-b609f746bb2f44f598c0dd4ae8f07c75.json"
+      ],
+      "diagnostic": {
+        "run_id": "COPY-QUALITY-CLEANUP-RETRY",
+        "status": "partial",
+        "committed_count": 15,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "unselected_folder_cleanup_failed",
+            "phase": "product_page_cleanup",
+            "references": {
+              "offer_key": "shop-g03-t03:item-01",
+              "run_id": "COPY-QUALITY-CLEANUP-RETRY"
+            }
+          }
+        ],
+        "active_resume_errors": null,
+        "active_product_slot_failures": null,
+        "product_image_cleanup_failures": [],
+        "generation_errors": []
+      }
+    },
+    {
+      "observations": 1,
+      "source_files": [
+        "COPY-QUALITY-RESUME-9ef80c14783748b9a74a5999d74a3e18.json"
+      ],
+      "diagnostic": {
+        "run_id": "COPY-QUALITY-RESUME",
+        "status": "failed",
+        "committed_count": 0,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "omit_then_interrupt",
+                  "line": 86,
+                  "module": "test_copy_quality_selection",
+                  "path": "tests_inago/test_copy_quality_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_resume_errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "omit_then_interrupt",
+                  "line": 86,
+                  "module": "test_copy_quality_selection",
+                  "path": "tests_inago/test_copy_quality_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_product_slot_failures": null,
+        "product_image_cleanup_failures": null,
+        "generation_errors": []
+      }
+    },
+    {
+      "observations": 3,
+      "source_files": [
+        "COPY-QUALITY-SAVE-RESUME-63a96a48e6c2484c94cee5b05afc47de.json",
+        "COPY-QUALITY-SAVE-RESUME-79935238a3144aa69fba24dc58941e84.json",
+        "COPY-QUALITY-SAVE-RESUME-c768694cf5574d31af7d52788031b496.json"
+      ],
+      "diagnostic": {
+        "run_id": "COPY-QUALITY-SAVE-RESUME",
+        "status": "failed",
+        "committed_count": 0,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "step13_error_DailyOrchestrationError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "DailyOrchestrationError",
+              "exception_frames": [
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4220,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false,
+              "reason_code": "copy_resume_required:fixture_save_failure"
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_resume_errors": [
+          {
+            "code": "step13_error_DailyOrchestrationError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "DailyOrchestrationError",
+              "exception_frames": [
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "DailyOrchestrationError",
+                  "function": "unknown",
+                  "line": 4220,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false,
+              "reason_code": "copy_resume_required:fixture_save_failure"
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_product_slot_failures": null,
+        "product_image_cleanup_failures": null,
+        "generation_errors": []
+      }
+    },
+    {
+      "observations": 2,
+      "source_files": [
+        "PRODUCT-REPLENISH-15-2cc8304bdc5b4d2ebadad51a51b922a7.json",
+        "PRODUCT-REPLENISH-15-e6fdd7abcb2f41a8bd7691e9eb2f9534.json"
+      ],
+      "diagnostic": {
+        "run_id": "PRODUCT-REPLENISH-15",
+        "status": "partial",
+        "committed_count": 15,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "fixture_copy_failure",
+            "phase": "copy",
+            "references": {
+              "artifact_ref": "ppi:25c6ce4ff0acae1b9b5feec9dd1f2f127c6f703c",
+              "offer_key": "shop-g05-t03:item-01",
+              "run_id": "PRODUCT-REPLENISH-15"
+            }
+          }
+        ],
+        "active_resume_errors": null,
+        "active_product_slot_failures": [
+          {
+            "code": "fixture_copy_failure",
+            "failed_at": "2026-10-12T13:00:00+09:00",
+            "offer_key": "shop-g05-t03:item-01",
+            "page_ref": "ppi:25c6ce4ff0acae1b9b5feec9dd1f2f127c6f703c",
+            "phase": "copy",
+            "selection_order": 1,
+            "slot_id": "PRODUCT-REPLENISH-15:slot:001",
+            "theme_id": "G05-T03"
+          }
+        ],
+        "product_image_cleanup_failures": [],
+        "generation_errors": []
+      }
+    },
+    {
+      "observations": 6,
+      "source_files": [
+        "PRODUCT-RESUME-15-51299b84d51542de8ab61e468d54a908.json",
+        "PRODUCT-RESUME-15-948597465c264688b84589823302093b.json",
+        "PRODUCT-RESUME-15-a3c03df38b6f46ab8991866847a2b6f6.json",
+        "PRODUCT-RESUME-15-e437ac9666d04a20a8f1451d18db0abe.json",
+        "PRODUCT-RESUME-15-f8e208b8c9664d03b630753836840e6b.json",
+        "PRODUCT-RESUME-15-f8e79de65b1240838d84f3048c7b12e3.json"
+      ],
+      "diagnostic": {
+        "run_id": "PRODUCT-RESUME-15",
+        "status": "partial",
+        "committed_count": 4,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "interrupt_after_four_commits",
+                  "line": 649,
+                  "module": "test_product_page_selection",
+                  "path": "tests_inago/test_product_page_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_resume_errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "interrupt_after_four_commits",
+                  "line": 649,
+                  "module": "test_product_page_selection",
+                  "path": "tests_inago/test_product_page_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_product_slot_failures": null,
+        "product_image_cleanup_failures": [],
+        "generation_errors": []
+      }
+    },
+    {
+      "observations": 1,
+      "source_files": [
+        "PRODUCT-RESUME-15-93523ad9dc414bb1888a70d167ef2a9b.json"
+      ],
+      "diagnostic": {
+        "run_id": "PRODUCT-RESUME-15",
+        "status": "partial",
+        "committed_count": 4,
+        "error_count": 1,
+        "errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "interrupt_after_four_commits",
+                  "line": 656,
+                  "module": "test_product_page_selection",
+                  "path": "tests_inago/test_product_page_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_resume_errors": [
+          {
+            "code": "step13_error_RuntimeError",
+            "diagnostic": {
+              "exception_chain": [
+                {
+                  "exception_class": "RuntimeError",
+                  "relation": "raised"
+                }
+              ],
+              "exception_chain_truncated": false,
+              "exception_class": "RuntimeError",
+              "exception_frames": [
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "run_daily",
+                  "line": 5338,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4589,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4368,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "unknown",
+                  "line": 4115,
+                  "module": "automation.inago.orchestrator",
+                  "path": "automation/inago/orchestrator.py",
+                  "relation": "raised"
+                },
+                {
+                  "exception_class": "RuntimeError",
+                  "function": "interrupt_after_four_commits",
+                  "line": 656,
+                  "module": "test_product_page_selection",
+                  "path": "tests_inago/test_product_page_selection.py",
+                  "relation": "raised"
+                }
+              ],
+              "exception_frames_truncated": false
+            },
+            "phase": "orchestration"
+          }
+        ],
+        "active_product_slot_failures": null,
+        "product_image_cleanup_failures": [],
+        "generation_errors": []
+      }
+    }
+  ]
+}

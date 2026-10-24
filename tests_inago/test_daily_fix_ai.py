@@ -28,6 +28,7 @@ from automation.inago.copy_service import CopyGenerationSpec, generate_and_commi
 from automation.inago.paths import resolve_runtime_paths
 from automation.inago.repository import open_database
 from automation.inago.settings import register_external_settings
+from tests_inago.copy_quality_test_support import review_subjob
 from tests_inago.test_step08 import _base_request, _delegation, _root_response, _runner
 from tests_inago.test_step13 import (
     FakeCopyRunner,
@@ -160,6 +161,7 @@ def _fake_generation_result(
             "body": body,
             "pattern_id": "P01",
             "evidence_refs": list(request.evidence_refs),
+            "status": "ready",
             "selection_reason": "試験入力だけを使用",
             "used_input_refs": list(request.input_refs),
             "omitted_unknowns": [
@@ -192,7 +194,7 @@ def _fake_generation_result(
         payload={"summary": "fixture result"} if status == "success" else None,
         error={"code": "fixture_generation_error"} if status == "error" else None,
         artifact=None,
-        subjobs=(child,) if status == "success" else (),
+        subjobs=(child, review_subjob(child)) if status == "success" else (),
         resolved_model="fixture-model",
         reasoning_setting="fixture",
         auth_mode="fixture",
@@ -402,6 +404,7 @@ def test_n18_current_turn_identity_and_same_root_key_then_two_copies(
                     "body": body,
                     "pattern_id": "P01",
                     "evidence_refs": list(job["evidence_refs"]),
+                    "status": "ready",
                     "selection_reason": "現在turnの試験入力を使用",
                     "used_input_refs": list(job["input_refs"]),
                     "omitted_unknowns": [
@@ -468,12 +471,32 @@ def test_n18_current_turn_identity_and_same_root_key_then_two_copies(
                 "call_id": f"N18-CALL-{len(self.turns)}",
                 "arguments": {"agent_type": agent_type},
             }
+            events = [event]
+            if job["copy_targets"]:
+                response["delegations"].append(_delegation(
+                    "AG-COPY-REVIEW", "T02", "rr-inago-copy-reviewer",
+                    {
+                        "offer_key": payload["offer_key"],
+                        "draft_version": payload["draft_version"],
+                        "verdict": "pass", "reviewed_body": payload["body"],
+                        "reason": "Explicit fixture review, not real AI quality evidence.",
+                        "evidence_refs": list(job["evidence_refs"]),
+                        "used_input_refs": list(job["input_refs"]), "findings": [],
+                    },
+                    input_refs=list(job["input_refs"]),
+                    evidence_refs=list(job["evidence_refs"]),
+                ))
+                events.append({
+                    **event,
+                    "call_id": f"N18-CALL-{len(self.turns)}-review",
+                    "arguments": {"agent_type": "rr-inago-copy-reviewer"},
+                })
             return SimpleNamespace(
                 thread_id="N18-ROOT",
                 turn_id=f"N18-TURN-{len(self.turns)}",
                 final_text=json.dumps(response, ensure_ascii=False),
                 process_returncode=None,
-                events=({"method": "item/completed", "params": {"item": event}},),
+                events=tuple({"method": "item/completed", "params": {"item": item}} for item in events),
             )
 
         def close(self):
@@ -539,7 +562,7 @@ def test_n18_current_turn_identity_and_same_root_key_then_two_copies(
         assert len(set(refs)) == 3
         assert len(runner.job_results) == 3
         assert all(
-            len(result.subjobs) == 1
+            len(result.subjobs) == (1 if result.job_id == key_request.job_id else 2)
             and result.subjobs[0].parent_job_id == result.job_id
             and result.subjobs[0].job_id.startswith(result.job_id + "-a")
             for result in runner.job_results

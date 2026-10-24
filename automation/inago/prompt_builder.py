@@ -57,6 +57,11 @@ _ROLE_INSTRUCTIONS = {
         "確認できる商品情報と投稿目的に合う型を選び、型を順番に回さない。"
         "本文中に内部判断・ID・診断を混ぜず、商品・事実・投稿者本人の体験を別商品から移さない。"
     ),
+    "AG-COPY-REVIEW": (
+        "作成者とは独立して同じ一商品の全資料と最終本文を読み、タイトル・概要の再述や水増し、"
+        "資料にない事実を不合格にする。文字数や固定事実数だけで判定せず、商品理解に役立つ"
+        "具体的な説明と根拠を確認し、pass/revise/insufficient_informationを返す。"
+    ),
     "AG-INSIGHT": (
         "本人が明示依頼した範囲の数値だけを読み、scope、根拠参照、比較条件、限界を返す。"
         "nullと0、別の帰属単位、欠損を混同しない。日次必須処理を止めない。"
@@ -73,7 +78,7 @@ _ROLE_INSTRUCTIONS = {
 
 _PATTERN_POLICIES = {
     "P01": "商品/カテゴリと確認済み特徴が一つ以上あるとき、特徴説明を中心にする。",
-    "P02": "確認済み情報が少ないとき、商品/カテゴリと少数の確かな情報だけで簡潔にする。",
+    "P02": "商品理解に役立つ具体的な説明を簡潔にする。タイトル・概要の再述だけでは完成にしない。",
     "P03": "投稿時点で対象・条件・期間を含む販促が確認できるときだけ、販促情報を先に置く。",
     "P04": "互いに独立した確認済み特徴が二つ以上あるときだけ、箇条書きにする。",
     "P05": "今回の投稿者本人から実際の使用経験と観察が入力されたときだけ、その経験を中心にする。",
@@ -140,7 +145,7 @@ def _validate_request(
     if not isinstance(input_payload, Mapping):
         raise PromptBuildError("input_payload must be an object")
     _strict_json(input_payload, "input_payload")
-    if agent_id == "AG-COPY":
+    if agent_id in {"AG-COPY", "AG-COPY-REVIEW"}:
         if task_id != "T02" or len(copy_targets) != 1:
             raise PromptBuildError("copy prompt requires exactly one T02 copy target")
         target = copy_targets[0]
@@ -286,7 +291,7 @@ def build_prompt_context(
         "instructions": instructions,
         "input_payload": dict(input_payload),
     }
-    if agent_id == "AG-COPY":
+    if agent_id in {"AG-COPY", "AG-COPY-REVIEW"}:
         target = copy_targets[0]
         context["copy_target"] = {
             "offer_key": target.offer_key,
@@ -296,7 +301,8 @@ def build_prompt_context(
         context["instructions"].extend(
             [
                 "商品ごとに利用可能な情報と投稿目的から型を選び、ローテーションしない。",
-                "不明な商品事実は不明のままにし、使える情報で本文を作る。",
+                "不明な商品事実は補わない。全資料を確認しても具体的な説明ができなければ"
+                "insufficient_informationを返す。タイトル・概要の再述だけで完成にしない。",
                 "本文150～300文字・タグ5～12個は任意目安で、文字数・タグ数を満たすために"
                 "内容を足さず、長さ・タグ数を理由に完成を拒否しない。",
                 "他者の文例に現れた商品事実、効果、販促、投稿者体験を今回の商品へ転用しない。",
@@ -304,6 +310,9 @@ def build_prompt_context(
                 "B0002/B0201/B0213/B0235/B0252に限られる。",
                 "product_page_htmlとproduct_page_ocrが入力にある場合は、現在の商品名・商品ID・URLと照合して"
                 "対象商品に結び付く記述だけを使う。商品名だけで結び付かない情報は採用しない。",
+                "sale_desc・normal_reserve_item_name・normal_reserve_catch_copyの全outer_htmlと、"
+                "OCR JSON内の全画像の全テキストを必ず商品情報の資料として読み、関連する説明を活用する。"
+                "名前・カテゴリ・容量・個数の言い換え、汎用文やタグによる水増しでは完成にしない。",
                 "OCRでの抽出テキスト内の改行は画像のレイアウトを反映しています。改行を単語や文の区切りと"
                 "決めつけず、前後の行も文脈に含めて読んでください。英数字が改行をまたぐ場合も、自然につながると"
                 "判断できるときだけ一語として解釈し、不確かな箇所は推測で補わないでください。",

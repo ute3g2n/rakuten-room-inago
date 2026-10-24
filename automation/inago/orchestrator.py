@@ -2623,6 +2623,7 @@ def _cleanup_unselected_product_inputs(
         str(entry["offer_key"])
         for entry in manifest
         if isinstance(entry.get("offer_key"), str)
+        and entry.get("status") != "insufficient_information"
     }
     keep.update(_committed_offer_themes(connection, run_id, state))
     image_counts: dict[str, int] = {}
@@ -2718,6 +2719,24 @@ def _recover_unselected_product_folder_cleanup(
         selection_manifest,
     )
 
+    # Information shortage is a final candidate decision, so its inputs no
+    # longer need the diagnostic retention used for technical failures. Keep
+    # the decision in the manifest to prevent selecting the same offer again.
+    rejected = [
+        entry
+        for entry in selection_manifest(state)
+        if entry.get("status") == "insufficient_information"
+    ]
+    if rejected:
+        _cleanup_unselected_product_inputs(
+            connection,
+            run_id=run_id,
+            state=state,
+            candidates=rejected,
+            data_root=data_root,
+            target_date=target_date,
+            clock=clock,
+        )
     failures = state.get("product_page_cleanup_failures", [])
     if not isinstance(failures, list) or not failures:
         return
@@ -2725,6 +2744,7 @@ def _recover_unselected_product_folder_cleanup(
         str(entry["offer_key"])
         for entry in selection_manifest(state)
         if isinstance(entry.get("offer_key"), str)
+        and entry.get("status") != "insufficient_information"
     }
     keep.update(_committed_offer_themes(connection, run_id, state))
     candidates: list[dict[str, str]] = []
@@ -2756,12 +2776,11 @@ def _recover_unselected_product_folder_cleanup(
         for item in result.get("failed", [])
         if isinstance(item, Mapping)
     }
-    resolved_offers = {
-        item.get("offer_key")
-        for item in result.get("deleted", [])
-        if isinstance(item, Mapping)
-    }
     candidate_by_offer = {item["offer_key"]: item for item in candidates}
+    # A prior interrupted cleanup may already have removed the folder. Absence
+    # is also success; otherwise a normal exclusion can retain a stale error
+    # forever even though there is no input folder left to clean up.
+    resolved_offers = set(candidate_by_offer) - failed_offers
     errors = state.setdefault("errors", [])
     for offer_key in resolved_offers - failed_offers:
         candidate = candidate_by_offer.get(offer_key)
@@ -4147,7 +4166,9 @@ def _process_selected_copies(
                 input_ref_count=len(spec.input_refs),
                 error_code=(
                     "product_copy_commit_failed"
-                    if outcome.status not in {"committed", "already_committed"}
+                    if outcome.status not in {
+                        "committed", "already_committed", "insufficient_information"
+                    }
                     else None
                 ),
             )
@@ -4168,6 +4189,26 @@ def _process_selected_copies(
                 state=state,
                 entry=entry,
                 data_root=data_root,
+                clock=clock,
+            )
+            _save_state(connection, run_id, state)
+            continue
+        if outcome.status == "insufficient_information":
+            entry["status"] = "insufficient_information"
+            entry.pop("copy_error_code", None)
+            entry["copy_omission_reason"] = "insufficient_information"
+            entry["copy_omitted_at"] = _now(clock).isoformat()
+            _mark_offer_handled(state, offer_key)
+            # Save the normal exclusion before cleanup so an interrupted run
+            # never regenerates this candidate from the same saved material.
+            _save_state(connection, run_id, state)
+            _cleanup_unselected_product_inputs(
+                connection,
+                run_id=run_id,
+                state=state,
+                candidates=[entry],
+                data_root=data_root,
+                target_date=target_date,
                 clock=clock,
             )
             _save_state(connection, run_id, state)
@@ -4410,6 +4451,11 @@ def _process_search_result(
             _save_state(connection, run_id, state)
             if on_draft_commit is not None:
                 on_draft_commit(connection)
+        elif outcome.status == "insufficient_information":
+            # The legacy path must also move on without treating a deliberate
+            # information-shortage exclusion as a technical generation error.
+            _mark_offer_handled(state, offer_key)
+            _save_state(connection, run_id, state)
         elif outcome.status in {"pending_commit", "saved_response", "in_progress"}:
             raise DailyOrchestrationError(
                 f"copy_resume_required:{outcome.error_code or outcome.status}"

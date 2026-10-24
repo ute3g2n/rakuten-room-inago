@@ -246,6 +246,7 @@ def _runner(
         "rakuten-room-inago",
         "rr-inago-observation",
         "rr-inago-keywords",
+        "rr-inago-copy-reviewer",
         "rr-inago-copywriter",
         "rr-inago-insight",
         "rr-inago-config",
@@ -262,6 +263,7 @@ def _runner(
     for name in (
         "rr-inago-observation",
         "rr-inago-keywords",
+        "rr-inago-copy-reviewer",
         "rr-inago-copywriter",
         "rr-inago-insight",
         "rr-inago-config",
@@ -346,11 +348,13 @@ def test_daily_ai_o_uses_one_read_only_cli_and_observed_native_subagent(
     ) in recorded["stdin"]
     assert recorded["skill_dirs"] == [
         "rakuten-room-inago",
+        "rr-inago-copy-reviewer",
         "rr-inago-copywriter",
         "rr-inago-keywords",
         "rr-inago-observation",
     ]
     assert recorded["agent_configs"] == [
+        "rr-inago-copy-reviewer.toml",
         "rr-inago-copywriter.toml",
         "rr-inago-keywords.toml",
         "rr-inago-observation.toml",
@@ -389,6 +393,7 @@ def test_copy_only_job_does_not_authorize_missing_keyword_work(
             "body": "確認できる商品情報に基づく紹介文です。",
             "pattern_id": "P01",
             "evidence_refs": ["EVIDENCE-ROOM-1"],
+            "status": "ready",
             "selection_reason": "確認できる特徴を紹介するため",
             "used_input_refs": ["INPUT-OFFERS-1"],
             "omitted_unknowns": [],
@@ -758,6 +763,7 @@ def test_task_trigger_gate_rejects_unapproved_invocation_before_cli_start(
         ("AG-OBS", "T04", "rr-inago-observation"),
         ("AG-KEY", "T02", "rr-inago-keywords"),
         ("AG-COPY", "T02", "rr-inago-copywriter"),
+        ("AG-COPY-REVIEW", "T02", "rr-inago-copy-reviewer"),
         ("AG-INSIGHT", "T05", "rr-inago-insight"),
         ("AG-CONFIG", "T06", "rr-inago-config"),
         ("AG-RECOVERY", "T08", "rr-inago-recovery"),
@@ -807,6 +813,7 @@ def test_fixed_specialist_task_skill_matrix(
                 "body": "本文",
                 "pattern_id": "P02",
                 "evidence_refs": ["EVIDENCE-ROOM-1"],
+                "status": "ready",
                 "selection_reason": "利用情報に合う",
                 "used_input_refs": ["INPUT-OFFERS-1"],
                 "omitted_unknowns": [],
@@ -923,6 +930,7 @@ def test_copy_offer_or_draft_version_mismatch_is_rejected_and_raw_is_preserved(
         "body": "利用できる事実に基づいた本文です。",
         "pattern_id": "P02",
         "evidence_refs": ["EVIDENCE-ROOM-1"],
+        "status": "ready",
         "selection_reason": "商品入力に合う",
         "used_input_refs": ["INPUT-OFFERS-1"],
         "omitted_unknowns": [],
@@ -1232,13 +1240,13 @@ def test_shell_metacharacters_stay_in_stdin_and_never_become_commands(
     assert all(injected not in argument for argument in recorded["argv"])
 
 
-def test_all_seven_role_schemas_are_valid_json_schema_documents() -> None:
+def test_all_role_schemas_are_valid_json_schema_documents() -> None:
     schema_paths = [SCHEMA_ROOT / "ai-job.schema.json"] + [
         SCHEMA_ROOT / f"ai-{name}.schema.json"
-        for name in ("observation", "keywords", "copy", "insight", "config", "recovery")
+        for name in ("observation", "keywords", "copy", "copy-review", "insight", "config", "recovery")
     ]
 
-    assert len(schema_paths) == 7
+    assert len(schema_paths) == 8
     for path in schema_paths:
         schema = json.loads(path.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
@@ -1284,6 +1292,7 @@ def test_all_seven_role_schemas_are_valid_json_schema_documents() -> None:
                 "body": "本文",
                 "pattern_id": "P02",
                 "evidence_refs": ["EVIDENCE-ROOM-1"],
+                "status": "ready",
                 "selection_reason": "利用情報に合う",
                 "used_input_refs": ["INPUT-OFFERS-1"],
                 "omitted_unknowns": [],

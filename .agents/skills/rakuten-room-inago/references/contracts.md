@@ -20,6 +20,14 @@ repository source schema `automation/inago/schemas/ai-job.schema.json`は、隔�
 
 `delegations[]`は`agent_id`, `task_id`, `skill_name`, `input_refs`, `evidence_refs`, `result_status`, `payload`を持ちます。許可されるのはrunnerの固定表に記載された専門役だけです。実際の子応答と結果は同一Codex実行の構造化イベントで対応づけます。
 
+## 投稿文作成と独立レビュー（T02）
+
+- 許可役にある`AG-COPY` / `rr-inago-copywriter`と、別のネイティブ子`AG-COPY-REVIEW` / `rr-inago-copy-reviewer`を同じjob内で使います。レビューへは本文と同一商品の元入力（全HTML outer_html・全OCR textを含む）を省略せず渡します。
+- 作成者の最終JSONは`ai-copy.schema.json`、レビューの最終JSONは`ai-copy-review.schema.json`に従います。`revise`なら同じ作成子をfollowupし、修正後に同じレビュー子をfollowupします。最終delegationsは各役一件で、実際の子の最終応答に一致させます。
+- 作成`status=ready`は、同一offer_key・draft_version・最終bodyに対してレビュー`verdict=pass`かつ`reviewed_body`完全一致の場合だけ保存対象です。タイトル・概要の言い換えや容量・個数等の羅列だけは完成扱いにしません。
+- 全資料を読んでも説明材料がない場合、作成`status=insufficient_information`・`body=""`と、レビュー`verdict=insufficient_information`・`reviewed_body=""`にそろえます。正常な不採用として返し、同じ資料で空本文エラーの再試行へ回しません。候補補充・保存・削除はPythonが担当します。
+- レビューの宣言や参照IDだけを返して実際のレビュー子を省略しません。既に確定した本文や、保存だけ失敗した同一本文を再生成しません。
+
 <a id="maintenance-incident-flow"></a>
 
 ## 日次完了後の障害対応フロー

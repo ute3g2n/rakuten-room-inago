@@ -9,7 +9,7 @@ import os
 import re
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
@@ -22,6 +22,7 @@ from automation.inago.clock import Clock, SystemClock
 from automation.inago.contracts import (
     AIJobRequest,
     AIJobResult,
+    AISubjobResult,
     ArtifactRecord,
     CopyTarget,
     DraftCommitRequest,
@@ -49,6 +50,8 @@ _NON_RETRYABLE_CODES = frozenset(
         "copy_input_mismatch",
         "copy_payload_contract_invalid",
         "copy_delegation_missing",
+        "copy_review_contract_invalid",
+        "copy_review_not_passed",
         "copy_runner_result_invalid",
         "copy_runner_contract_rejected",
         "late_result",
@@ -97,6 +100,7 @@ class CopyGenerationOutcome:
         "contract_error",
         "expired",
         "in_progress",
+        "insufficient_information",
     ]
     commit_result: DraftCommitResult | None
     attempts_used: int
@@ -555,6 +559,7 @@ def _copy_payload(subjob: Any) -> dict[str, Any]:
         "selection_reason",
         "used_input_refs",
         "omitted_unknowns",
+        "status",
     }
     if set(raw) != required_fields:
         raise RejectedContract("copy response fields do not match its output schema")
@@ -573,6 +578,12 @@ def _copy_payload(subjob: Any) -> dict[str, Any]:
         raise RejectedContract("copy response used an input the subjob did not receive")
     if not set(raw.get("evidence_refs", [])).issubset(subjob.evidence_refs):
         raise RejectedContract("copy response evidence was not supplied to the subjob")
+    if raw.get("status") not in {"ready", "insufficient_information"}:
+        raise RejectedContract("copy response status is missing")
+    if raw["status"] == "insufficient_information":
+        if raw.get("body") != "":
+            raise RejectedContract("insufficient information must not contain a draft")
+        return dict(raw)
     payload = {
         field: raw[field]
         for field in (
@@ -587,6 +598,93 @@ def _copy_payload(subjob: Any) -> dict[str, Any]:
     return payload
 
 
+def _validate_copy_review(
+    request: AIJobRequest, subjobs: tuple[AISubjobResult, ...], writer: Any
+) -> str:
+    """Bind the independent review to this product, complete sources and exact body."""
+
+    reviews = [child for child in subjobs if child.agent_id == "AG-COPY-REVIEW"]
+    if len(reviews) != 1:
+        raise RejectedContract("one independent copy review is required")
+    review = reviews[0]
+    if (
+        review.job_id == writer.job_id
+        or review.parent_job_id != request.job_id
+        or review.run_id != request.run_id
+        or review.attempt != request.attempt
+        or review.task_id != "T02"
+        or review.skill_name != "rr-inago-copy-reviewer"
+        or review.target_date != request.target_date
+        or review.settings_version != request.settings_version
+        or review.deadline_at != request.deadline_at
+        or review.result_status != "success"
+        or not review.job_id
+        or not review.input_hash
+        or set(review.input_refs) != set(request.input_refs)
+        or set(review.evidence_refs) != set(request.evidence_refs)
+        or set(writer.input_refs) != set(request.input_refs)
+        or set(writer.evidence_refs) != set(request.evidence_refs)
+    ):
+        raise RejectedContract("copy review identity or source inputs differ")
+    payload = review.payload
+    required = {
+        "offer_key", "draft_version", "verdict", "reviewed_body", "reason",
+        "evidence_refs", "used_input_refs", "findings",
+    }
+    if not isinstance(payload, Mapping) or set(payload) != required:
+        raise RejectedContract("copy review fields are invalid")
+    if (
+        payload["offer_key"] != writer.payload.get("offer_key")
+        or payload["draft_version"] != writer.payload.get("draft_version")
+        or payload["reviewed_body"] != writer.payload.get("body")
+        or not isinstance(payload["reason"], str)
+        or not payload["reason"].strip()
+        or payload["verdict"] not in {"pass", "revise", "insufficient_information"}
+    ):
+        raise RejectedContract("copy review does not address the final body")
+    for field in ("evidence_refs", "used_input_refs", "findings"):
+        value = payload[field]
+        if not isinstance(value, list) or any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
+            raise RejectedContract("copy review references or findings are invalid")
+    if not set(payload["evidence_refs"]).issubset(request.evidence_refs) or not set(
+        payload["used_input_refs"]
+    ).issubset(request.input_refs):
+        raise RejectedContract("copy review used unavailable source references")
+    return str(payload["verdict"])
+
+
+def _checkpoint_subjob(
+    record: Mapping[str, Any], *, parent_job_id: str
+) -> AISubjobResult:
+    """Restore a saved specialist result without regenerating its text."""
+
+    input_refs = json.loads(record["input_refs_json"])
+    evidence_refs = json.loads(record["evidence_refs_json"])
+    payload = json.loads(record["payload_json"] or "null")
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(input_refs, list)
+        or not isinstance(evidence_refs, list)
+        or any(not isinstance(ref, str) for ref in (*input_refs, *evidence_refs))
+        or not record["job_id"].startswith(f"{parent_job_id}-")
+    ):
+        raise RejectedContract("copy_checkpoint_specialist_invalid")
+    return AISubjobResult(
+        job_id=record["job_id"], parent_job_id=parent_job_id,
+        run_id=record["run_id"], attempt=record["attempt"],
+        task_id=record["task_id"], agent_id=record["agent_id"],
+        skill_name=record["skill_name"], target_date=record["target_date"],
+        settings_version=record["settings_version"],
+        input_refs=tuple(input_refs), evidence_refs=tuple(evidence_refs),
+        input_hash=record["input_hash"], deadline_at=record["deadline_at"],
+        result_status=record["result_status"], payload=payload,
+        resolved_model=record["resolved_model"],
+        reasoning_setting=record["reasoning_setting"], auth_mode=record["auth_mode"],
+    )
+
+
 def _copy_checkpoint_request(
     spec: CopyGenerationSpec,
     state: Mapping[str, Any],
@@ -598,8 +696,31 @@ def _copy_checkpoint_request(
     artifact_row = state["artifact"]
     if attempt is None or ai_job is None or artifact_row is None:
         raise PersistenceContractError("successful copy checkpoint is incomplete")
+    root_job = state.get("root_job")
+    if root_job is None:
+        raise RejectedContract("copy_checkpoint_inputs_unverified")
+    root_job_id = _root_job_id(attempt["generation_attempt_id"])
     if (
-        ai_job["settings_version"] != spec.settings_version
+        root_job["job_id"] != root_job_id
+        or root_job["run_id"] != spec.run_id
+        or int(root_job["attempt"]) != int(attempt["attempt_no"])
+        or root_job["task_id"] != "T02"
+        or root_job["skill_name"] != "rakuten-room-inago"
+        or root_job["target_date"] != spec.target_date
+        or root_job["settings_version"] != spec.settings_version
+        or root_job["result_status"] != "success"
+        or root_job["adoption_status"] != "pending"
+    ):
+        raise RejectedContract("copy_checkpoint_root_invalid")
+    if (
+        root_job["input_hash"] != compute_input_hash(spec.input_payload)
+        or set(json.loads(root_job["input_refs_json"])) != set(spec.input_refs)
+        or set(json.loads(root_job["evidence_refs_json"])) != set(spec.evidence_refs)
+    ):
+        raise RejectedContract("copy_checkpoint_inputs_changed")
+    if (
+        ai_job["run_id"] != spec.run_id
+        or ai_job["settings_version"] != spec.settings_version
         or ai_job["target_date"] != spec.target_date
         or int(ai_job["attempt"]) != int(attempt["attempt_no"])
         or ai_job["task_id"] != "T02"
@@ -611,15 +732,37 @@ def _copy_checkpoint_request(
         raise RejectedContract("saved copy checkpoint no longer matches this run")
     stored_input_refs = tuple(json.loads(ai_job["input_refs_json"]))
     stored_evidence_refs = tuple(json.loads(ai_job["evidence_refs_json"]))
-    if not set(stored_input_refs).issubset(spec.input_refs) or not set(
-        stored_evidence_refs
-    ).issubset(spec.evidence_refs):
-        raise RejectedContract(
-            "saved copy checkpoint references are no longer available"
-        )
+    if set(stored_input_refs) != set(spec.input_refs) or set(stored_evidence_refs) != set(spec.evidence_refs):
+        raise RejectedContract("copy_checkpoint_inputs_changed")
     payload = json.loads(ai_job["payload_json"] or "null")
     if not isinstance(payload, dict):
         raise PersistenceContractError("saved copy response payload is missing")
+    saved_reviews = state.get("review_jobs", [])
+    if len(saved_reviews) != 1:
+        raise RejectedContract("copy_checkpoint_review_missing")
+    # A later retry may extend the execution deadline. Quality is tied to the
+    # saved input and review, not to that later scheduling window.
+    request = replace(
+        _new_ai_request(
+            spec, attempt_id=attempt["generation_attempt_id"],
+            attempt_no=int(attempt["attempt_no"]),
+        ),
+        deadline_at=root_job["deadline_at"],
+    )
+    writer = _checkpoint_subjob(ai_job, parent_job_id=root_job_id)
+    if not _subjob_matches(
+        request, writer, expected_offer_key=spec.offer_key,
+        expected_version=spec.draft_version,
+    ) or writer.deadline_at != request.deadline_at:
+        raise RejectedContract("copy_checkpoint_writer_invalid")
+    review = _checkpoint_subjob(saved_reviews[0], parent_job_id=root_job_id)
+    try:
+        verdict = _validate_copy_review(request, (review,), writer)
+    except (PersistenceContractError, TypeError, KeyError, ValueError) as exc:
+        raise RejectedContract("copy_checkpoint_review_invalid") from exc
+    if verdict != "pass":
+        raise RejectedContract("copy_checkpoint_review_not_passed")
+    validate_entity("copy_response", payload)
     artifact = ArtifactRecord(
         artifact_ref=artifact_row["artifact_ref"],
         path=Path(artifact_row["path"]),
@@ -669,6 +812,7 @@ def _make_outcome(
         "contract_error",
         "expired",
         "in_progress",
+        "insufficient_information",
     ],
     *,
     result: DraftCommitResult | None = None,
@@ -907,7 +1051,25 @@ def generate_and_commit_copy(
                 resumed=True,
                 error_code="daily_limit_reached",
             )
-        checkpoint = _copy_checkpoint_request(spec, state, clock=system_clock)
+        try:
+            checkpoint = _copy_checkpoint_request(spec, state, clock=system_clock)
+        except (PersistenceContractError, TypeError, KeyError, ValueError) as exc:
+            reason = str(exc)
+            error_code = (
+                reason if reason.startswith("copy_checkpoint_")
+                and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", reason)
+                else "copy_checkpoint_contract_invalid"
+            )
+            _trace_copy_event(
+                data_root, spec, "saved_response_rejected", clock=system_clock,
+                attempt_no=attempts_used, status="contract_error",
+                error_code=error_code, ai_run_invoked=False,
+            )
+            return CopyGenerationOutcome(
+                status="contract_error", commit_result=None,
+                attempts_used=attempts_used, attempt_no=attempts_used,
+                resumed=True, error_code=error_code,
+            )
         _trace_copy_event(
             data_root,
             spec,
@@ -928,6 +1090,15 @@ def generate_and_commit_copy(
             attempts_used=attempts_used,
             resumed=True,
             export_notifier=export_notifier,
+        )
+    if latest is not None and latest["error_code"] == "insufficient_information":
+        return CopyGenerationOutcome(
+            status="insufficient_information",
+            commit_result=None,
+            attempts_used=attempts_used,
+            attempt_no=attempts_used,
+            resumed=True,
+            error_code="insufficient_information",
         )
     if latest is not None and latest["error_code"] in _NON_RETRYABLE_CODES:
         status = (
@@ -1297,7 +1468,10 @@ def generate_and_commit_copy(
                 if isinstance(subjob.payload, Mapping)
                 else None
             )
-            if isinstance(raw_body, str) and not raw_body.strip():
+            if (
+                subjob.payload.get("status") != "insufficient_information"
+                and isinstance(raw_body, str) and not raw_body.strip()
+            ):
                 _persist_attempt_result(
                     connection,
                     attempt=attempt,
@@ -1351,6 +1525,41 @@ def generate_and_commit_copy(
                 attempts_used=attempts_used,
                 attempt_no=attempt_no,
                 error_code=error_code,
+            )
+
+        try:
+            verdict = _validate_copy_review(request, root.subjobs, subjob)
+            information_missing = subjob.payload["status"] == "insufficient_information"
+            expected_verdict = "insufficient_information" if information_missing else "pass"
+            if verdict != expected_verdict:
+                error_code = "copy_review_not_passed"
+            else:
+                error_code = None
+        except (PersistenceContractError, TypeError, KeyError, ValueError):
+            error_code = "copy_review_contract_invalid"
+            information_missing = False
+        if error_code is not None:
+            _persist_attempt_result(
+                connection, attempt=attempt, request=request, root=root,
+                outcome="error", error_code=error_code, clock=system_clock,
+            )
+            return CopyGenerationOutcome(
+                status="contract_error", commit_result=None, attempts_used=attempts_used,
+                attempt_no=attempt_no, error_code=error_code,
+            )
+        if information_missing:
+            _persist_attempt_result(
+                connection, attempt=attempt, request=request, root=root,
+                outcome="empty", error_code="insufficient_information", clock=system_clock,
+            )
+            _trace_copy_event(
+                data_root, spec, "copy_information_insufficient", clock=system_clock,
+                attempt_no=attempt_no, status="insufficient_information", ai_run_invoked=True,
+            )
+            return CopyGenerationOutcome(
+                status="insufficient_information", commit_result=None,
+                attempts_used=attempts_used, attempt_no=attempt_no,
+                error_code="insufficient_information",
             )
 
         response_artifact = write_temp_response(

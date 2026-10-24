@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rakuten-room-inago.invalid/schemas/ai-copy-review-v1.schema.json",
+  "title": "AG-COPY-REVIEW independent source-grounded copy review",
+  "type": "object",
+  "required": [
+    "offer_key",
+    "draft_version",
+    "verdict",
+    "reviewed_body",
+    "reason",
+    "evidence_refs",
+    "used_input_refs",
+    "findings"
+  ],
+  "properties": {
+    "offer_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "draft_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "revise",
+        "insufficient_information"
+      ]
+    },
+    "reviewed_body": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "used_input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false
+}

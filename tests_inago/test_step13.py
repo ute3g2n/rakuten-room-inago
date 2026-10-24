@@ -45,6 +45,7 @@ from automation.inago.orchestrator import (
 )
 from automation.inago.orchestrator import OfferIntakeRequest
 from automation.inago.repository import LEGACY_UNASSIGNED_THEME_ID
+from tests_inago.copy_quality_test_support import review_subjob
 
 
 def test_search_task_uses_fresh_attempt_after_saved_query_changes(
@@ -538,6 +539,7 @@ class FakeCopyRunner:
                 "body": f"試験用本文 {target.offer_key}",
                 "pattern_id": "P01",
                 "evidence_refs": [input_ref],
+                "status": "ready",
                 "selection_reason": "fixture input only",
                 "used_input_refs": [input_ref],
                 "omitted_unknowns": [
@@ -570,7 +572,7 @@ class FakeCopyRunner:
             payload={"status": "delegated"},
             error=None,
             artifact=None,
-            subjobs=(child,),
+            subjobs=(child, review_subjob(child)),
             resolved_model="fixture-model",
             reasoning_setting="fixture",
             auth_mode="fixture",
@@ -1816,8 +1818,11 @@ def test_pending_historical_reports_are_applied_before_search(
         connection.execute(
             "SELECT COUNT(*) FROM search_attempt WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
-        == 60
+        # This fixture supplies one related word for each of 30 active themes.
+        # Related hits do not also schedule a parent-theme fallback search.
+        == len(bundle.room.requests) == 30
     )
+    assert {request.query_kind for request in bundle.room.requests} == {"related"}
 
 
 def test_orchestration_error_records_only_safe_internal_reason_code() -> None:
