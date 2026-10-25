@@ -106,3 +106,29 @@ v2.64最終reviewで、分類側は大文字小文字を区別せず`DATA:`を�
 2.65証拠SHA-256: `evidence/page.json`=`c05b9960e7fae5c50d591f7424bad73fa230f9e3e574f99fe3e8564a15c57388`; `evidence/ocr.json`=`0c9f0f458c417188d1932797c3cc1fcd80977364a76cff4c239ffb8228d67203`; `evidence/job-input.json`=`10b76b6fd87e496aa3db542ab0aeb7b6b632e9d943aa0a542ec9b7d34daeec26`.
 
 Independent reviewer follow-up: v2.65で前6指摘と大文字`DATA:`指摘の解消を確認し、今回差分に残存所見なし。reviewerはテスト実行・テストコードreviewをしていない。C07/result.jsonは2.65、現行コードhash、局所19/3件、最終82/4件と証拠hashへ更新済み。
+
+## STEP 5 failure-node resolution and final regression (2026-10-25, specification 2.65)
+
+### Focused rerun
+
+- Command: `$privateFixtureRoot = Join-Path $env:TEMP 'inago-step5-remediation-focus-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -vv tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_from_existing_candidates tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format --basetemp $pytestTempRoot`
+- Expected: copy shortage/restart behavior passes; private-data-only OCR cases report skip when their source fixture is unavailable.
+- Result: 2 passed, 2 skipped, 0 failed; exit 0; 12.04s.
+- Copy-quality test corrections: the first case has 25 posts per search and succeeds from the initial candidate pool, so no additional theme event should be expected (`additional_events == 0`). The interrupted run is processing the first five-product theme batch, so five OCR calls are expected before interruption; resume checks no duplicate processing and completes the remaining products.
+- OCR skips are explicit and are not counted as passes. Missing inputs: `検討/楽天商品要素調査_2026-10-22/01_meiji-ya_129/images/image_001.jpg` and `検討/楽天商品要素調査_2026-10-22/OCR技術検証/results/ocr-results.jsonl`. The real Paddle OCR result remains unverified in this environment.
+
+### Final planned regression
+
+- Command: `$privateFixtureRoot = Join-Path $env:TEMP 'inago-safe-fixtures-20261025-step5-final'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py --basetemp $pytestTempRoot`
+- Result: `84 passed, 2 skipped, 0 failed` in 102.41s; exit 0.
+- Skipped nodes: `test_real_engine_uses_runtime_assets_and_handles_japanese_image_path` (private JPEG absent) and `test_study_fifty_nine_images_round_trip_through_product_format` (private OCR results absent). Neither is represented as a pass.
+- The final suite covered the full plan §10 node range. Product code did not change after the existing independent product review, which had no remaining findings. The two revised test modules are recorded in result.json with their current SHA-256 values.
+
+STEP5 status: completed. Local integration, prior independent product review, focused failure-node rerun, and final regression are recorded separately. Daily run, production database, external ROOM/product sites, real AI, and real OCR invocation were not performed.
+
+最終回帰のbrowser caseが更新したC03 synthetic-browser証拠（最終回帰runの成果）:
+- `worklogs/projects/implementation/item-desc-capture-20261025/C03/evidence/browser-result.json` SHA-256 `dceac43ba152ec59161e9ad5a55ead722f3bd1bc6ba8c9ac34be73567924e2ca`
+- `worklogs/projects/implementation/item-desc-capture-20261025/C03/evidence/item-desc-capture.webm` SHA-256 `e7e5199c13df9ef7ac28f85eea8ef4dc5262f50abf77c393690ef13d747fdabf`
+- `worklogs/projects/implementation/item-desc-capture-20261025/C03/evidence/trace.zip` SHA-256 `25bb5145b49b3b051c87e9bcd511da16e0a91af1ecda34c7a3ccc7c6230b1dbb`
+
+STEP5 status: completed. Local integration, prior independent product review, focused failure-node rerun, and final regression are recorded separately. Daily run, production database, external ROOM/product sites, real AI, and real OCR invocation were not performed.

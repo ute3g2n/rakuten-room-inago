@@ -13,7 +13,7 @@
     "item_id": "browser-item-desc",
     "item_url": "file:///C:/project/rakuten-room-inago/tests_inago/fixtures/product-page-item-desc.html",
     "source_evidence_ref": "CAP-BROWSER-ITEM-DESC-ATTEMPT:row:1",
-    "captured_at": "2026-10-25T02:27:41.209Z",
+    "captured_at": "2026-10-25T03:31:39.686Z",
     "html_state": "captured",
     "selectors": [
       {
@@ -41,14 +41,14 @@
         "selector": "span.item_desc",
         "status": "captured",
         "outer_html": [
-          "<span class=\"item_desc description\">\n      <p>item_desc lazy fixture text</p>\n      <img id=\"item-lazy\" data-src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" alt=\"synthetic lazy image\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" data-loaded=\"true\">\n      <img id=\"item-blob\" alt=\"synthetic blob image\" src=\"blob:null/87c1670d-2985-4cd4-813b-9ee6dc8ee339\">\n    <img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"><img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"></span>"
+          "<span class=\"item_desc description\">\n      <p>item_desc lazy fixture text</p>\n      <img id=\"item-lazy\" data-src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" alt=\"synthetic lazy image\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" data-loaded=\"true\">\n      <img id=\"item-blob\" alt=\"synthetic blob image\" src=\"blob:null/c2b1160d-2abf-461e-8141-417e3b8f5876\">\n    <img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"><img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"></span>"
         ]
       }
     ],
     "image_state": "captured",
     "lazy_load_state": "settled",
     "lazy_load_reason": null,
-    "lazy_load_observed_ms": 637,
+    "lazy_load_observed_ms": 616,
     "lazy_load_unresolved": [],
     "images": [
       {
@@ -110,9 +110,9 @@
       },
       {
         "index": 1,
-        "url": "blob:sha256:bff56391959fa7ffd1ee5c5f654875fb956963fffba2839e2788d8a7fc3005e6",
+        "url": "blob:sha256:7a6c518b34d61a1ddf6c7534a46004daab9c122c505889df1f76b00f2a996f90",
         "source_kind": "blob",
-        "source_url_sha256": "bff56391959fa7ffd1ee5c5f654875fb956963fffba2839e2788d8a7fc3005e6",
+        "source_url_sha256": "7a6c518b34d61a1ddf6c7534a46004daab9c122c505889df1f76b00f2a996f90",
         "occurrences": [
           {
             "key": "item_desc",
@@ -134,7 +134,7 @@
           }
         ],
         "status": "downloaded",
-        "file": "images/0002-bff56391959f.svg",
+        "file": "images/0002-7a6c518b34d6.svg",
         "content_type": "image/svg+xml",
         "byte_length": 116
       },
@@ -190,7 +190,7 @@
   },
   "bytesByFile": {
     "images/0001-fb686dd84a77.svg": "PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyNCcgaGVpZ2h0PScyNCc+PHJlY3Qgd2lkdGg9JzI0JyBoZWlnaHQ9JzI0JyBmaWxsPScjMzY3OGM4Jy8+PC9zdmc+",
-    "images/0002-bff56391959f.svg": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNkMTRjN2IiLz48L3N2Zz4=",
+    "images/0002-7a6c518b34d6.svg": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNkMTRjN2IiLz48L3N2Zz4=",
     "images/0003-c060dcc09317.svg": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjZjA3YTFhIi8+PC9zdmc+"
   },
   "screenshots": [

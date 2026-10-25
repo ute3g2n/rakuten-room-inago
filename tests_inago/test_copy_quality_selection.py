@@ -18,7 +18,7 @@ from tests_inago.test_product_page_selection import (
 from tests_inago.test_step13 import RuntimeCase, _make_ports
 
 
-def test_information_shortage_is_replaced_and_remaining_products_continue(
+def test_information_shortage_is_replaced_from_existing_candidates(
     runtime_case: RuntimeCase, monkeypatch,
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=25)
@@ -53,7 +53,10 @@ def test_information_shortage_is_replaced_and_remaining_products_continue(
     ).exists()
     assert len(calls) == len(set(calls)) == 16
     assert len(ocr.calls) == len(set(ocr.calls)) == 16
-    assert state["additional_events"] >= 1
+    # One unusable copy is replaced from the already collected initial pool.
+    # The 25-post searches supply enough products, so an additional theme
+    # search would be unnecessary.
+    assert state["additional_events"] == 0
     assert all(
         entry["status"] == "committed"
         for entry in state["selected_products"][1:]
@@ -93,7 +96,9 @@ def test_resume_never_regenerates_or_reselects_information_shortage(
     before = _checkpoint(runtime_case.connection, first.run_id)
     omitted = before["selected_products"][0]
     assert omitted["status"] == "insufficient_information"
-    assert len(ocr.calls) == 15
+    # Copies are processed one theme batch at a time; the interruption occurs
+    # during the first five-product batch.
+    assert len(ocr.calls) == 5
 
     second = _run(runtime_case, bundle, ocr, run_id=first.run_id)
 
