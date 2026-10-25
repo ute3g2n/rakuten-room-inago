@@ -1,0 +1,74 @@
+FFFFFF.FFF                                                               [100%]
+================================== FAILURES ===================================
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[0-legacy] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[0-product-page] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[3-legacy] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[3-product-page] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[4-legacy] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[4-product-page] _
+tests_inago\test_theme_fallback_replenishment.py:74: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert [x.query_kind for x in first_requests] == expected_kinds
+E   AssertionError: assert ['related', 'related'] == ['related', '...eme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_related_exhaustion_replenishes_only_missing_committed_bodies[5-product-page] _
+tests_inago\test_theme_fallback_replenishment.py:76: in test_related_exhaustion_replenishes_only_missing_committed_bodies
+    assert counts_before_next_theme == [5]
+E   assert [0] == [5]
+E
+E     At index 0 diff: 0 != 5
+E     Use -v to get more diff
+_ test_selected_five_with_copy_omission_replenishes_to_five_bodies[needs-fallback] _
+tests_inago\test_theme_fallback_replenishment.py:132: in test_selected_five_with_copy_omission_replenishes_to_five_bodies
+    assert [x.query_kind for x in first_requests] == (
+E   AssertionError: assert ['related'] == ['related', 'theme_fallback']
+E
+E     Right contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+_ test_selected_five_with_copy_omission_replenishes_to_five_bodies[reuse-result] _
+tests_inago\test_theme_fallback_replenishment.py:136: in test_selected_five_with_copy_omission_replenishes_to_five_bodies
+    assert _committed_for_theme(runtime_case, first_theme[0]) == 5
+E   AssertionError: assert 4 == 5
+E    +  where 4 = _committed_for_theme(RuntimeCase(connection=<sqlite3.Connection object at 0x0000021D37B716C0>, data_root=WindowsPath('C:/project/rakuten-ro...ock(current=datetime.datetime(2026, 10, 12, 13, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tokyo')), monotonic_seconds=0.0)), 'G02-T06')
+=========================== short test summary info ===========================
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[0-legacy]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[0-product-page]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[3-legacy]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[3-product-page]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[4-legacy]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[4-product-page]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_related_exhaustion_replenishes_only_missing_committed_bodies[5-product-page]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_selected_five_with_copy_omission_replenishes_to_five_bodies[needs-fallback]
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_selected_five_with_copy_omission_replenishes_to_five_bodies[reuse-result]
+9 failed, 1 passed in 25.39s
