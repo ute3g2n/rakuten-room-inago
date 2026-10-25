@@ -1,0 +1,46 @@
+Final attempt after evidence capture fix:
+.venv-inago/Scripts/python.exe -X utf8 -m coverage run --data-file=.pytest-tmp/history-web-coverage-final-02 --source=automation.inago.history_launcher,automation.inago.history_session,automation.inago.human_api,automation.inago.dashboard_history -m pytest -q tests_inago/test_history_web.py tests_inago/test_daily_fix_history.py tests_inago/test_step23_12_history_interactions.py tests_inago/test_step05.py tests_inago/test_step15.py --basetemp=.pytest-tmp/history-web-regression-final-02
+Exit: 0; 57 passed in 26.30s.
+Prior attempt history-web-regression-final: exit 1; 56 passed, 1 failed in 25.23s. Failure: locator.screenshot Element is not attached to the DOM during a legitimate SSE redraw.
+Focused repair validation:
+.venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_history_web_browser_persists_reports_daily_update_and_restart --basetemp=.pytest-tmp/history-web-screenshot-local
+Exit: 0; 1 passed in 4.69s.
+Final coverage/static/status:
+Name                                    Stmts   Miss  Cover
+-----------------------------------------------------------
+automation\inago\dashboard_history.py     239     58    76%
+automation\inago\history_launcher.py      109     33    70%
+automation\inago\history_session.py        55      2    96%
+automation\inago\human_api.py             432     41    91%
+-----------------------------------------------------------
+TOTAL                                     835    134    84%
+All done! ✨ 🍰 ✨
+4 files would be left unchanged.
+warning: in the working copy of 'README.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/architecture/プロジェクト全体マップ.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/specifications/inago/イナゴスキル要件定義書.html', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests_inago/test_history_web.py', CRLF will be replaced by LF the next time Git touches it
+ M .gitattributes
+ M README.md
+ M automation/inago/dashboard_history.py
+ M automation/inago/human_api.py
+ M automation/inago/production_runtime.py
+ M "docs/architecture/\343\203\227\343\203\255\343\202\270\343\202\247\343\202\257\343\203\210\345\205\250\344\275\223\343\203\236\343\203\203\343\203\227.md"
+ M "docs/operations/\346\227\245\346\254\241\343\202\277\343\202\271\343\202\257\343\201\256\343\203\210\343\203\254\343\203\274\343\202\271\343\203\273\343\203\255\343\202\260\345\207\272\345\212\233\344\270\200\350\246\247.md"
+ M "docs/specifications/inago/\343\202\244\343\203\212\343\202\264\343\202\271\343\202\255\343\203\253\350\246\201\344\273\266\345\256\232\347\276\251\346\233\270.html"
+ M rakuten-room-inago/dashboard-assets/history.js
+ M tests_inago/fixtures/history_web_browser.cjs
+ M tests_inago/test_history_web.py
+ M tests_inago/test_step23_12_history_interactions.py
+ M worklogs/projects/implementation/posting-history-http-20261025/implementation.md
+?? automation/inago/history_launcher.py
+?? automation/inago/history_session.py
+?? open-posting-history.bat
+?? worklogs/projects/implementation/item-desc-capture-20261025/C07/.pytest-tmp/
+?? worklogs/projects/implementation/posting-history-http-20261025/local-results.txt
+?? worklogs/projects/implementation/posting-history-http-20261025/production-after.json
+?? worklogs/projects/implementation/posting-history-http-20261025/production-before.json
+?? worklogs/projects/implementation/posting-history-http-20261025/tested-version.json
+?? worklogs/projects/implementation/posting-history-http-20261025/validation.txt
+main
+origin/main

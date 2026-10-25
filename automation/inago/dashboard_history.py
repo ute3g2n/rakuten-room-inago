@@ -51,13 +51,13 @@ _HISTORY_SCRIPT_PATH = (
     / "history.js"
 )
 _HTML_TEMPLATE = """<!doctype html>
-<html lang="ja" data-api-origin="%%API_ORIGIN%%">
+<html lang="ja" data-api-origin="%%API_ORIGIN%%" data-history-transport="%%HISTORY_TRANSPORT%%">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>イナゴスキル 日次投稿履歴</title>
-  <style>
+  <style nonce="%%CSP_NONCE%%">
     :root { color-scheme: light; font-family: "Yu Gothic UI", "Meiryo", sans-serif; color: #1b2522; background: #f4f7f5; }
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 320px; line-height: 1.6; }
@@ -165,7 +165,7 @@ _HTML_TEMPLATE = """<!doctype html>
   </main>
   <footer><p>投稿済みチェックはSQLiteへ送信されます。接続できない場合はブラウザー内に保留し、JSONを書き出して翌日の日次処理へ取り込めます。</p></footer>
   <script id="dashboard-history-data" type="application/json">%%HISTORY_DATA%%</script>
-  <script>%%HISTORY_SCRIPT%%</script>
+  <script nonce="%%CSP_NONCE%%">%%HISTORY_SCRIPT%%</script>
 </body>
 </html>
 """
@@ -538,7 +538,11 @@ def _read_history_state(connection: sqlite3.Connection) -> dict[str, Any]:
 
 
 def render_dashboard_history_html(
-    state: Mapping[str, Any], *, api_origin: str | None = None
+    state: Mapping[str, Any],
+    *,
+    api_origin: str | None = None,
+    http_mode: bool = False,
+    csp_nonce: str = "",
 ) -> str:
     """Render a self-contained date navigator from an already-read snapshot."""
 
@@ -575,6 +579,8 @@ def render_dashboard_history_html(
     html = _HTML_TEMPLATE.replace("%%HISTORY_DATA%%", _json_for_html(payload))
     html = html.replace("%%API_ORIGIN%%", _html_escape(origin, quote=True))
     html = html.replace("%%HISTORY_SCRIPT%%", safe_script)
+    html = html.replace("%%HISTORY_TRANSPORT%%", "http" if http_mode else "file")
+    html = html.replace("%%CSP_NONCE%%", _html_escape(csp_nonce, quote=True))
     html = html.replace("%%REPORT_COUNT_ROWS%%", _report_count_rows())
     if "%%HISTORY_" in html or "%%API_ORIGIN%%" in html or "%%REPORT_" in html:
         raise DashboardHistoryExportError("history HTML template is incomplete")

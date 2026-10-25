@@ -5,7 +5,10 @@ from __future__ import annotations
 import hmac
 import json
 import secrets
+import socket
 import sqlite3
+import threading
+import time
 from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -22,7 +25,15 @@ from automation.inago.contracts import (
     RejectedContract,
 )
 from automation.inago.export import build_dashboard_state
-from automation.inago.dashboard_history import _read_history_state
+from automation.inago.dashboard_history import (
+    _read_history_state,
+    render_dashboard_history_html,
+)
+from automation.inago.history_session import (
+    HISTORY_SERVICE,
+    HistorySessions,
+    history_runtime_id,
+)
 from automation.inago.repository import (
     ReceiptRevisionConflict,
     record_pending_human_action,
@@ -122,6 +133,22 @@ class _LoopbackHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
+    def server_bind(self) -> None:
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        else:
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        super().server_bind()
+
+    def shutdown(self) -> None:
+        self.stopping.set()
+        super().shutdown()
+
+    def server_close(self) -> None:
+        if hasattr(self, "stopping"):
+            self.stopping.set()
+        super().server_close()
+
 
 class _HumanAPIHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -134,13 +161,17 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
     def _api_server(self) -> Any:
         return self.server
 
-    def _send_json(self, status: int, payload: dict[str, Any]) -> None:
+    def _send_json(
+        self, status: int, payload: dict[str, Any], *, cookie: str | None = None
+    ) -> None:
         body = _json_bytes(payload)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
         if self._allows_file_origin_request():
             self.send_header("Access-Control-Allow-Origin", "null")
             self.send_header("Vary", "Origin")
@@ -149,7 +180,7 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         self.close_connection = True
         self.wfile.write(body)
 
-    def _authentication_is_valid(self) -> bool:
+    def _bearer_authentication_is_valid(self) -> bool:
         expected = self._api_server.auth_token
         if expected is None:
             return True
@@ -162,6 +193,87 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
             and bool(supplied)
             and hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
         )
+
+    def _authentication_is_valid(self) -> bool:
+        return (
+            self._bearer_authentication_is_valid()
+            or self._api_server.history_sessions.valid_cookie(
+                self.headers.get("Cookie", "")
+            )
+        )
+
+    def _send_history_html(self) -> None:
+        nonce = secrets.token_urlsafe(24)
+        # The public bootstrap shell never includes product or draft data.
+        body = render_dashboard_history_html(
+            {"days": []},
+            api_origin=self._api_server.origin,
+            http_mode=True,
+            csp_nonce=nonce,
+        ).encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        for name, value in {
+            "Content-Type": "text/html; charset=utf-8",
+            "Content-Length": str(len(body)),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "Referrer-Policy": "no-referrer",
+            "Content-Security-Policy": (
+                "default-src 'none'; "
+                f"script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; "
+                "connect-src 'self'; object-src 'none'; base-uri 'none'; "
+                "form-action 'self'; frame-ancestors 'none'"
+            ),
+            "Connection": "close",
+        }.items():
+            self.send_header(name, value)
+        self.end_headers()
+        self.close_connection = True
+        self.wfile.write(body)
+
+    def _history_events(self) -> None:
+        connection = None
+        try:
+            connection = self._api_server.connection_factory()
+            version = connection.execute("PRAGMA data_version").fetchone()[0]
+        except (sqlite3.Error, OSError):
+            if connection is not None:
+                connection.close()
+            self._send_json(
+                HTTPStatus.SERVICE_UNAVAILABLE, {"error": "storage_unavailable"}
+            )
+            return
+        try:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+            self.connection.settimeout(5)
+            self.wfile.write(b"event: history-changed\ndata: {}\n\n")
+            self.wfile.flush()
+            last_sent = time.monotonic()
+            while not self._api_server.stopping.wait(0.25):
+                if not self._authentication_is_valid():
+                    break
+                updated = connection.execute("PRAGMA data_version").fetchone()[0]
+                if updated != version:
+                    version = updated
+                    self.wfile.write(b"event: history-changed\ndata: {}\n\n")
+                elif time.monotonic() - last_sent > 10:
+                    self.wfile.write(b": keepalive\n\n")
+                else:
+                    continue
+                self.wfile.flush()
+                last_sent = time.monotonic()
+        except (OSError, sqlite3.Error):
+            # EventSource reconnects and reloads the complete state after a gap.
+            pass
+        finally:
+            self.close_connection = True
+            connection.close()
 
     def _require_authentication(self) -> bool:
         if self._authentication_is_valid():
@@ -276,6 +388,12 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
                 HTTPStatus.FORBIDDEN,
                 {"error": "origin_rejected"},
             )
+            return
+        if self.path == "/posting-history.html":
+            self._send_history_html()
+            return
+        if self.path == "/api/history-events":
+            self._history_events()
             return
         if self.path == "/health":
             connection: sqlite3.Connection | None = None
@@ -439,12 +557,47 @@ class _HumanAPIHandler(BaseHTTPRequestHandler):
         )
 
     def do_POST(self) -> None:
+        if self.path == "/api/history-session":
+            if not self._origin_is_valid():
+                self._send_json(HTTPStatus.FORBIDDEN, {"error": "origin_rejected"})
+                return
+            raw = self._read_report_body()
+            if raw is None:
+                return
+            try:
+                payload = json.loads(raw)
+                ticket = payload.get("ticket") if isinstance(payload, dict) else None
+            except (ValueError, UnicodeError):
+                ticket = None
+            cookie = self._api_server.history_sessions.redeem(ticket)
+            if cookie is None:
+                self._send_json(
+                    HTTPStatus.UNAUTHORIZED, {"error": "authentication_required"}
+                )
+            else:
+                self._send_json(HTTPStatus.OK, {"authenticated": True}, cookie=cookie)
+            return
         if not self._require_authentication():
             return
         if not self._origin_is_valid():
             self._send_json(
                 HTTPStatus.FORBIDDEN,
                 {"saved": False, "error": "origin_rejected"},
+            )
+            return
+        if self.path == "/api/history-launch-ticket":
+            if not self._bearer_authentication_is_valid():
+                self._send_json(
+                    HTTPStatus.UNAUTHORIZED, {"error": "authentication_required"}
+                )
+                return
+            self._send_json(
+                HTTPStatus.CREATED,
+                {
+                    "service": HISTORY_SERVICE,
+                    "runtime_id": history_runtime_id(self._api_server.data_root),
+                    "ticket": self._api_server.history_sessions.issue_ticket(),
+                },
             )
             return
         if not self._csrf_is_valid():
@@ -564,6 +717,8 @@ def create_server(
         raise ValueError("file-origin access requires bearer authentication")
     csrf_token = secrets.token_urlsafe(32)
     server = _LoopbackHTTPServer((bind_host, port), _HumanAPIHandler)
+    server.stopping = threading.Event()
+    server.history_sessions = HistorySessions(auth_token)
     actual_port = int(server.server_address[1])
     server.origin = f"http://127.0.0.1:{actual_port}"
     server.csrf_token = csrf_token

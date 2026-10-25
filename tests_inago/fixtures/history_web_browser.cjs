@@ -1,5 +1,5 @@
 // Clean browser integration against the isolated local history server.
-const { chromium, expect: unused } = require('playwright-core');
+const { chromium } = require('playwright-core');
 const assert = require('node:assert/strict');
 const readline = require('node:readline');
 const path = require('node:path');
@@ -16,7 +16,12 @@ const path = require('node:path');
   const ready = async (target) => target.locator('[data-history-connection="ready"]').waitFor({ timeout: 15000 });
   const selectOldDay = async (target) => target.locator('button[data-target-date="2026-10-12"]').click();
   const checkbox = (target, id) => target.locator(`input[data-report-posted-draft-id="${id}"]`);
-  const shot = (name) => page.screenshot({ path: path.join(evidence, name), fullPage: false });
+  const shot = async (name, id = 'D-A01') => {
+    const control = checkbox(page, id);
+    if (await control.count()) await control.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+    // SSE can replace a card while locator.screenshot waits for layout stability.
+    await page.screenshot({ path: path.join(evidence, name), fullPage: false });
+  };
   const until = async (condition, timeout = 3000) => {
     const deadline = Date.now() + timeout;
     while (!(await condition())) {
@@ -30,6 +35,74 @@ const path = require('node:path');
     assert.equal(new URL(page.url()).hash, '');
     await selectOldDay(page);
     await shot('01-before-check.png');
+    if (process.env.INAGO_TEST_HISTORY_MODE === 'rejected-outbox') {
+      const origin = new URL(page.url()).origin;
+      const snapshot = await (await page.request.get(origin + '/api/history-state')).json();
+      await page.route('**/api/history-state', (route) => route.fulfill({ json: snapshot }));
+      await page.route('**/api/reports', (route) => route.fulfill({
+        status: 503, contentType: 'application/json', body: '{"error":"storage_unavailable"}',
+      }));
+      await checkbox(page, 'D-A01').check();
+      await until(async () => (await page.locator('#outbox-count').textContent()).includes('1件'));
+      const other = await page.request.post(origin + '/api/reports', {
+        headers: { Origin: origin, 'X-CSRF-Token': snapshot.csrf_token },
+        data: { action_id: 'ACT-OTHER-TAB', offer_key: 'shop_test:item_A01', draft_id: 'D-A01',
+          draft_version: 1, expected_receipt_revision: 0, action: 'posted', reason: null,
+          correction_ref: null, actual_posted_at: null },
+      });
+      assert.equal(other.status(), 201);
+      await page.unroute('**/api/reports');
+      await page.unroute('**/api/history-state');
+      await checkbox(page, 'D-A02').check();
+      await until(async () => (await page.locator('article[data-draft-id="D-A02"] [data-report-status]').textContent()).includes('SQLite受付済み'));
+      await page.unroute('**/api/history-state');
+      await page.reload();
+      await ready(page);
+      await selectOldDay(page);
+      assert(await checkbox(page, 'D-A02').isChecked());
+      assert.match(await page.locator('article[data-draft-id="D-A01"] [data-report-status]').textContent(), /要確認/);
+      await shot('rejected-report-does-not-stop-other-product.png');
+      console.log(JSON.stringify({ phase: 'rejected_outbox_isolated' }));
+      return;
+    }
+    if (process.env.INAGO_TEST_HISTORY_MODE === 'queued-order') {
+      await page.route('**/api/reports', (route) => route.fulfill({
+        status: 503, contentType: 'application/json', body: '{"error":"storage_unavailable"}',
+      }));
+      await checkbox(page, 'D-A01').check();
+      await until(async () => (await page.locator('#outbox-count').textContent()).includes('1件'));
+      await page.unroute('**/api/reports');
+      await checkbox(page, 'D-A01').uncheck();
+      await until(async () => (await page.locator('#outbox-count').textContent()) === '');
+      await page.reload();
+      await ready(page);
+      await selectOldDay(page);
+      assert.equal(await checkbox(page, 'D-A01').isChecked(), false);
+      await shot('queued-actions-in-order.png');
+      console.log(JSON.stringify({ phase: 'queued_order_preserved' }));
+      return;
+    }
+    if (process.env.INAGO_TEST_HISTORY_MODE === 'receipt-revision') {
+      await page.route('**/api/history-state', (route) => route.fulfill({
+        status: 503, contentType: 'application/json', body: '{"error":"storage_unavailable"}',
+      }));
+      await checkbox(page, 'D-A01').check();
+      await until(async () => (await page.locator('#history-message').textContent()).includes('SQLiteには保存済み'));
+      assert(await checkbox(page, 'D-A01').isChecked());
+      await checkbox(page, 'D-A01').uncheck();
+      await until(async () => /SQLiteには保存済み|ブラウザー保留に保存/.test(await page.locator('#history-message').textContent()));
+      await page.locator('#history-reconnect').click();
+      await page.locator('[data-history-connection="unavailable"]').waitFor();
+      assert.equal(await checkbox(page, 'D-A01').isChecked(), false);
+      await page.unroute('**/api/history-state');
+      await page.reload();
+      await ready(page);
+      await selectOldDay(page);
+      assert.equal(await checkbox(page, 'D-A01').isChecked(), false);
+      await shot('receipt-revision-after-reload.png');
+      console.log(JSON.stringify({ phase: 'receipt_revision_preserved' }));
+      return;
+    }
     await checkbox(page, 'D-A01').check();
     await until(async () => (await page.locator('article[data-draft-id="D-A01"] [data-report-status]').textContent()).includes('SQLite受付済み'));
     await shot('02-sqlite-received.png');
@@ -43,7 +116,7 @@ const path = require('node:path');
     }, { times: 1 });
     await checkbox(page, 'D-A02').check();
     await until(async () => (await page.locator('#outbox-count').textContent()).includes('1件'));
-    await shot('03-before-api-ack.png');
+    await shot('03-before-api-ack.png', 'D-A02');
     const navigation = page.reload();
     release();
     await navigation;
@@ -84,6 +157,9 @@ const path = require('node:path');
     assert.equal(await checkbox(page, 'D-A01').isChecked(), false);
     await shot('06-correction-synced-and-reloaded.png');
     console.log(JSON.stringify({ phase: 'restarted_and_corrected' }));
+  } catch (error) {
+    await shot('failure.png').catch(() => {});
+    throw error;
   } finally {
     await context.tracing.stop({ path: path.join(evidence, 'trace.zip') });
     await context.close();

@@ -23,7 +23,7 @@ tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-re
 >           cookie = session(app)
                      ^^^^^^^^^^^^
 
-tests_inago\test_history_web.py:148: 
+tests_inago\test_history_web.py:148:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests_inago\test_history_web.py:109: in session
     app, "POST", "/api/history-session", payload={"ticket": ticket(app)}

@@ -1,5 +1,6 @@
 (() => {
   const API_ORIGIN = document.documentElement.dataset.apiOrigin || "";
+  const HTTP_HISTORY = document.documentElement.dataset.historyTransport === "http";
   let data = JSON.parse(document.getElementById("dashboard-history-data").textContent);
   const navigation = document.getElementById("date-navigation");
   const selectedDate = document.getElementById("selected-date");
@@ -31,6 +32,11 @@
   let reconnectTimer = null;
   let refreshInFlight = null;
   let reportSubmissionsInFlight = 0;
+  let historyEventSource = null;
+  let historyUpdatePending = false;
+  let historyUpdateRunning = false;
+  let outboxFlushInFlight = null;
+  const acknowledgedReports = new Map();
 
   function updatePostedCount() {
     postedCount.textContent = String(list.querySelectorAll(".posted-checkbox:checked").length);
@@ -125,19 +131,24 @@
     if (outboxDb) {
       outboxEntries = (await outboxTransaction("readonly", (store) => store.getAll())) || [];
     }
-    outboxEntries.sort((left, right) => left.queued_at.localeCompare(right.queued_at));
-    outboxButton.hidden = outboxEntries.length === 0;
+    outboxEntries.sort((left, right) => (
+      left.report.offer_key.localeCompare(right.report.offer_key)
+      || left.report.expected_receipt_revision - right.report.expected_receipt_revision
+      || left.queued_at.localeCompare(right.queued_at)
+      || left.action_id.localeCompare(right.action_id)
+    ));
+    outboxButton.hidden = !outboxEntries.some((entry) => !entry.rejection_code);
+    const needsReview = outboxEntries.filter((entry) => entry.rejection_code).length;
     outboxCount.textContent = outboxEntries.length
-      ? `ブラウザー保留 ${outboxEntries.length}件（SQLite未受付）`
+      ? `ブラウザー保留 ${outboxEntries.length}件（SQLite未受付${needsReview ? `・要確認 ${needsReview}件` : ""}）`
       : "";
     return outboxEntries;
   }
 
   function reportsFor(item) {
-    const saved = apiState
-      ? [...(apiState.pending_reports || []), ...(apiState.recent_reports || [])]
-      : [];
-    const browserQueued = outboxEntries.map((entry) => ({
+    const savedState = apiState || data;
+    const saved = [...(savedState.pending_reports || []), ...(savedState.recent_reports || [])];
+    const browserQueued = outboxEntries.filter((entry) => !entry.rejection_code).map((entry) => ({
       ...entry.report,
       receipt_revision: entry.report.expected_receipt_revision + 1,
       apply_status: "pending",
@@ -151,10 +162,10 @@
   }
 
   function revisionFor(item) {
-    const serverRevision = apiState?.receipt_revisions?.[item.offer_key];
+    const serverRevision = (apiState || data).receipt_revisions?.[item.offer_key];
     const base = Number.isInteger(serverRevision) ? serverRevision : item.receipt_revision || 0;
     return outboxEntries.reduce((revision, entry) => (
-      entry.report.offer_key === item.offer_key
+      !entry.rejection_code && entry.report.offer_key === item.offer_key
         ? Math.max(revision, entry.report.expected_receipt_revision + 1)
         : revision
     ), base);
@@ -218,6 +229,11 @@
         ? "投稿後にチェックするとSQLiteへ即時保存します。"
         : "接続できない場合はブラウザーに保留し、JSONから翌日取り込めます。";
     }
+    if (outboxEntries.some((entry) => entry.rejection_code
+      && entry.report.offer_key === item.offer_key && entry.report.draft_id === item.draft_id
+      && entry.report.draft_version === item.draft_version)) {
+      reportStatus.textContent += " SQLite未受付・要確認の報告があります。別の報告との競合等で拒否されました。DBの状態を確認して操作し直してください。";
+    }
 
     const correctionSelect = card.querySelector("[data-correction-ref]");
     if (correctionSelect) {
@@ -251,7 +267,7 @@
     const send = (token) => fetch(`${API_ORIGIN}${path}`, {
       ...options,
       mode: "cors",
-      credentials: "omit",
+      credentials: HTTP_HISTORY ? "same-origin" : "omit",
       cache: "no-store",
       referrerPolicy: "no-referrer",
       headers: {
@@ -273,6 +289,12 @@
     return entry;
   }
 
+  async function acknowledgeOutbox(actionId) {
+    if (!outboxDb) return;
+    await outboxTransaction("readwrite", (store) => store.delete(actionId));
+    await reloadOutbox();
+  }
+
   async function sendReport(report) {
     if (!apiState) throw new TypeError("SQLite保存APIの接続状態を確認できません。");
     return apiFetch("/api/reports", {
@@ -286,10 +308,24 @@
     });
   }
 
-  async function flushOutbox() {
+  function rememberReceipt(report, receipt) {
+    acknowledgedReports.set(report.action_id, receipt);
+    const received = { ...report, receipt_revision: receipt.receipt_revision, apply_status: receipt.apply_status };
+    for (const state of new Set([data, apiState].filter(Boolean))) {
+      const key = receipt.apply_status === "pending" ? "pending_reports" : "recent_reports";
+      state[key] = [...(state[key] || []).filter((entry) => entry.action_id !== report.action_id), received];
+      state.receipt_revisions ||= {};
+      state.receipt_revisions[report.offer_key] = Math.max(
+        state.receipt_revisions[report.offer_key] || 0, receipt.receipt_revision
+      );
+    }
+  }
+
+  async function flushOutboxInternal() {
     if (!apiState || outboxEntries.length === 0) return 0;
     let saved = 0;
-    for (const entry of [...outboxEntries]) {
+    while (outboxEntries.some((entry) => !entry.rejection_code)) {
+      const entry = outboxEntries.find((candidate) => !candidate.rejection_code);
       const response = await sendReport(entry.report);
       const receipt = await response.json().catch(() => ({}));
       if (!response.ok || receipt.saved !== true
@@ -297,14 +333,29 @@
         const error = new Error(apiErrorMessage(receipt.error));
         error.apiCode = receipt.error;
         error.status = response.status;
+        error.actionId = entry.action_id;
+        if (["stale_revision", "action_id_conflict", "invalid_report"].includes(receipt.error)) {
+          // Retain rejected intent for review, without blocking other products.
+          await outboxTransaction("readwrite", (store) => store.put({ ...entry, rejection_code: receipt.error }));
+          await reloadOutbox();
+          continue;
+        }
         throw error;
       }
-      await outboxTransaction("readwrite", (store) => store.delete(entry.action_id));
-      apiState.receipt_revisions[entry.report.offer_key] = receipt.receipt_revision;
+      rememberReceipt(entry.report, receipt);
+      await acknowledgeOutbox(entry.action_id);
       saved += 1;
-      await reloadOutbox();
     }
     return saved;
+  }
+
+  function flushOutbox() {
+    if (outboxFlushInFlight) return outboxFlushInFlight;
+    const current = flushOutboxInternal().finally(() => {
+      if (outboxFlushInFlight === current) outboxFlushInFlight = null;
+    });
+    outboxFlushInFlight = current;
+    return current;
   }
 
   function selectedCorrectionRef(item) {
@@ -372,29 +423,72 @@
     for (const button of reportButtons) button.disabled = true;
     const actionLabel = action === "posted" ? "投稿" : action === "skipped" ? "見送り" : "訂正";
     message.textContent = `${actionLabel}報告を送信しています。SQLiteの受付を待っています。`;
+    let queued = false;
+    let accepted = false;
     try {
-      const response = await sendReport(report);
-      const receipt = await response.json().catch(() => ({}));
-      if (!response.ok || receipt.saved !== true || receipt.apply_status !== "pending") {
-        const error = new Error(apiErrorMessage(receipt.error));
-        error.apiCode = receipt.error;
-        error.status = response.status;
+      // Persist before starting a request that can be interrupted by reload.
+      if (outboxDb) {
+        try {
+          await queueOfflineReport(report);
+          queued = true;
+        } catch (_) {
+          // A working API can still durably accept the report without IndexedDB.
+        }
+      }
+      if (queued || outboxEntries.length) {
+        await flushOutbox();
+        // Include an entry queued as an earlier flush was completing.
+        if (!acknowledgedReports.has(report.action_id)) await flushOutbox();
+      }
+      let receipt = acknowledgedReports.get(report.action_id);
+      const rejected = outboxEntries.find((entry) => entry.action_id === report.action_id && entry.rejection_code);
+      if (rejected) {
+        const error = new Error(apiErrorMessage(rejected.rejection_code));
+        error.apiCode = rejected.rejection_code;
+        error.actionId = report.action_id;
         throw error;
       }
+      if (!receipt) {
+        // IndexedDB may be unavailable, or another tab may have ACKed the entry.
+        const response = await sendReport(report);
+        receipt = await response.json().catch(() => ({}));
+        if (!response.ok || receipt.saved !== true
+          || !["pending", "applied"].includes(receipt.apply_status)) {
+          const error = new Error(apiErrorMessage(receipt.error));
+          error.apiCode = receipt.error;
+          error.status = response.status;
+          error.actionId = report.action_id;
+          throw error;
+        }
+      }
+      accepted = true;
+      rememberReceipt(report, receipt);
+      await acknowledgeOutbox(report.action_id);
       posted.checked = action === "posted";
       updatePostedCount();
+      // Do not reuse a GET that began before this POST committed.
+      if (refreshInFlight) await refreshInFlight.catch(() => {});
       await refreshConnectedState();
       message.textContent = "SQLite受付済み・翌日の日次管理反映待ち";
     } catch (error) {
+      if (accepted || acknowledgedReports.has(report.action_id)) {
+        setConnection("unavailable", "SQLite受付済み。最新表示は再接続後に読み直します。");
+        renderDays();
+        message.textContent = "SQLiteには保存済みです。再接続を待っています。";
+        return;
+      }
       const transientServerFailure = Number.isInteger(error?.status)
         && error.status >= 500 && error.status <= 599;
       const storageUnavailable = error?.apiCode === "storage_unavailable";
-      if ((error instanceof TypeError || transientServerFailure || storageUnavailable) && outboxDb) {
+      const sessionRefreshNeeded = ["authentication_required", "csrf_rejected"].includes(error?.apiCode);
+      const earlierReportFailed = queued && error?.actionId && error.actionId !== report.action_id;
+      if ((error instanceof TypeError || transientServerFailure || storageUnavailable
+        || sessionRefreshNeeded || earlierReportFailed) && outboxDb) {
         try {
-          await queueOfflineReport(report);
+          if (!queued) await queueOfflineReport(report);
           posted.checked = action === "posted";
           updatePostedCount();
-          setConnection("outbox", "API停止中のため、報告をブラウザー内に保留しました。SQLiteにはまだ受付されていません。");
+          setConnection("outbox", "報告をブラウザー内に保留しました。SQLiteの受付を確認でき次第、順番に再送します。");
           renderDays();
           message.textContent = "ブラウザー保留に保存しました。JSONを書き出し、翌日の日次取込フォルダーへ置いてください。";
           return;
@@ -404,6 +498,9 @@
             : "ブラウザー保留にも保存できませんでした。";
         }
       } else {
+        if (queued && !outboxEntries.some((entry) => entry.action_id === report.action_id && entry.rejection_code)) {
+          await acknowledgeOutbox(report.action_id);
+        }
         message.textContent = error instanceof Error
           ? error.message
           : "報告を保存できませんでした。状態を確認してください。";
@@ -414,6 +511,7 @@
       setControls(card, item, latest);
     } finally {
       reportSubmissionsInFlight = Math.max(0, reportSubmissionsInFlight - 1);
+      void drainHistoryUpdates();
     }
   }
 
@@ -456,6 +554,12 @@
 
     const details = document.createElement("details");
     details.className = "correction-controls";
+    details.addEventListener("toggle", () => {
+      if (!details.open) {
+        historyUpdatePending = true;
+        void drainHistoryUpdates();
+      }
+    });
     const summary = document.createElement("summary");
     summary.textContent = "投稿報告を訂正する";
     details.append(summary);
@@ -724,7 +828,7 @@
 
   async function attemptApiReconnect() {
     if (!API_ORIGIN || reportSubmissionsInFlight > 0 || hasOpenCorrectionForm()
-      || (authRequired && !authToken)) return;
+      || (authRequired && !authToken && !HTTP_HISTORY)) return;
     const requestAuthRevision = authRevision;
     try {
       await refreshConnectedState();
@@ -751,17 +855,17 @@
     if (reconnectTimer !== null || !API_ORIGIN) return;
     reconnectTimer = window.setInterval(() => {
       if (document.visibilityState === "hidden" || reportSubmissionsInFlight > 0
-        || (authRequired && !authToken)) return;
+        || (authRequired && !authToken && !HTTP_HISTORY)) return;
       void attemptApiReconnect();
     }, RECONNECT_INTERVAL_MS);
     window.addEventListener("online", () => {
-      if (reportSubmissionsInFlight === 0 && !(authRequired && !authToken)) {
+      if (reportSubmissionsInFlight === 0 && !(authRequired && !authToken && !HTTP_HISTORY)) {
         void attemptApiReconnect();
       }
     });
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "hidden" && reportSubmissionsInFlight === 0
-        && !(authRequired && !authToken)) {
+        && !(authRequired && !authToken && !HTTP_HISTORY)) {
         void attemptApiReconnect();
       }
     });
@@ -787,8 +891,48 @@
     });
   }
 
+  async function bootstrapHistorySession() {
+    if (!HTTP_HISTORY) return;
+    const current = new URL(window.location.href);
+    const ticket = new URLSearchParams(current.hash.slice(1)).get("launch");
+    if (!ticket) return;
+    window.history.replaceState(null, "", current.pathname + current.search);
+    const response = await fetch(`${API_ORIGIN}/api/history-session`, {
+      method: "POST", credentials: "same-origin", cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticket }),
+    });
+    if (!response.ok) throw new Error("起動受付の有効期限が切れました。起動バッチを開き直してください。");
+  }
+
+  async function drainHistoryUpdates() {
+    if (!HTTP_HISTORY || historyUpdateRunning || !historyUpdatePending
+      || reportSubmissionsInFlight > 0 || hasOpenCorrectionForm()) return;
+    historyUpdateRunning = true;
+    try {
+      while (historyUpdatePending && reportSubmissionsInFlight === 0 && !hasOpenCorrectionForm()) {
+        historyUpdatePending = false;
+        if (refreshInFlight) await refreshInFlight.catch(() => {});
+        await attemptApiReconnect();
+      }
+    } finally {
+      historyUpdateRunning = false;
+    }
+  }
+
+  function startHistoryEvents() {
+    if (!HTTP_HISTORY || historyEventSource || !globalThis.EventSource) return;
+    historyEventSource = new EventSource(`${API_ORIGIN}/api/history-events`);
+    historyEventSource.addEventListener("history-changed", () => {
+      historyUpdatePending = true;
+      void drainHistoryUpdates();
+    });
+    historyEventSource.addEventListener("error", () => { void attemptApiReconnect(); });
+    window.addEventListener("pagehide", () => historyEventSource.close());
+  }
+
   async function exportOutbox() {
-    const entries = await reloadOutbox();
+    const entries = (await reloadOutbox()).filter((entry) => !entry.rejection_code);
     if (!entries.length) return;
     const batch = {
       schema_version: 1,
@@ -828,7 +972,9 @@
       await reloadOutbox();
       renderDays();
       startReconnectLoop();
+      await bootstrapHistorySession();
       await attemptApiReconnect();
+      startHistoryEvents();
     }).catch(async (error) => {
       outboxDb = null;
       setConnection(
@@ -836,7 +982,11 @@
         `${error instanceof Error ? error.message : "ブラウザー保留領域を利用できません。"}。SQLite APIへの接続を試します。`
       );
       startReconnectLoop();
+      await bootstrapHistorySession().catch((sessionError) => {
+        message.textContent = sessionError.message;
+      });
       await attemptApiReconnect();
+      startHistoryEvents();
     });
   } else {
     setConnection("unavailable", "SQLite API接続先がありません。報告はブラウザーに保留し、JSONから翌日取り込めます。");

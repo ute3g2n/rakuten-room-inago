@@ -341,7 +341,7 @@ def test_file_html_points_to_live_api_and_has_offline_outbox() -> None:
     assert "indexedDB" in html
     assert "browser-outbox" in html
     assert "showSaveFilePicker" in html
-    assert 'credentials: "omit"' in html
+    assert 'credentials: HTTP_HISTORY ? "same-origin" : "omit"' in html
     assert "localStorage" not in html
 
 

@@ -1,0 +1,36 @@
+Final related regression (isolated fixtures):
+.venv-inago/Scripts/python.exe -X utf8 -m coverage run --data-file=.pytest-tmp/history-web-coverage --source=automation.inago.history_launcher,automation.inago.history_session,automation.inago.human_api,automation.inago.dashboard_history -m pytest -q tests_inago/test_history_web.py tests_inago/test_daily_fix_history.py tests_inago/test_step23_12_history_interactions.py tests_inago/test_step05.py tests_inago/test_step15.py --basetemp=.pytest-tmp/history-web-regression-01
+Exit: 0; 57 passed in 28.83s.
+Coverage/static validation:
+Name                                    Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------
+automation\inago\dashboard_history.py     239     58    76%   207, 210-211, 213, 219, 224, 231, 234, 239, 242, 247, 251, 253-255, 260, 270, 277, 280, 287, 294, 297, 301, 311, 347, 350, 353, 358, 363, 397, 429, 440, 445, 518, 530-537, 551-554, 570-572, 576-577, 586, 601-602, 610, 612-613, 630
+automation\inago\history_launcher.py      109     33    70%   43, 64, 69-85, 129, 150, 160-164, 173, 187-213, 217
+automation\inago\history_session.py        55      2    96%   47, 66
+automation\inago\human_api.py             432     41    91%   85-86, 140, 240-246, 260, 266, 289-291, 307, 436-437, 458-459, 505-506, 508-512, 535-536, 538, 566, 570-571, 581, 632-633, 635-639, 677-678, 690-691, 709, 713, 715, 717
+---------------------------------------------------------------------
+TOTAL                                     835    134    84%
+All done! ✨ 🍰 ✨
+4 files would be left unchanged.
+warning: in the working copy of 'README.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/architecture/プロジェクト全体マップ.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/specifications/inago/イナゴスキル要件定義書.html', CRLF will be replaced by LF the next time Git touches it
+
+Production startup command: cmd.exe /d /c "open-posting-history.bat --no-browser < nul"
+{"counts": {"run": 8, "draft": 81, "human_action": 0, "publication_event": 2}, "logical_sha256": "5a133519f408381136fc287c5fcc6536cbc165cb379e9f6b8a5dd580c421e144"}
+{"status": "ready", "server": "started", "url": "http://127.0.0.1:8765/posting-history.html", "browser_opened": false}
+
+Production browser command: cmd.exe /d /c "open-posting-history.bat < nul"
+{"status": "ready", "server": "reused", "url": "http://127.0.0.1:8765/posting-history.html", "browser_opened": true}
+
+Production browser observation: Chrome tab 35743006; HTTP history; API connected; 2026-10-25 15 drafts. No checkbox/report operations on production.
+Production DB verification:
+production_database_unchanged: True counts: {'run': 8, 'draft': 81, 'human_action': 0, 'publication_event': 2}
+
+FileVersion
+-----------
+155.0.8059.85
+
+
+Separate full daily run: not performed (outside this focused startup/synchronization task).
+All raw Playwright screenshots, videos and traces use isolated test data and remain in the ignored private evidence directory.

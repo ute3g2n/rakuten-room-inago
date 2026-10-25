@@ -2716,6 +2716,25 @@ def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> 
     finally:
         initial_connection.close()
 
+    token = read_human_api_token(config)
+    server = create_server(
+        connection_factory=connection_factory,
+        bind_host="127.0.0.1",
+        port=config.human_api_port,
+        auth_token=token,
+        allow_file_origin=True,
+        data_root=config.runtime_root,
+    )
+    try:
+        server.serve_forever(poll_interval=0.5)
+    finally:
+        server.server_close()
+
+
+def read_human_api_token(
+    config: ProductionRuntimeConfig | HumanApiRuntimeConfig,
+) -> str:
+    """Read the existing private API key without generating or exposing it."""
     token_path = _human_api_token_path(config)
     if not token_path.is_file() or _has_reparse_point(token_path):
         raise ProductionRuntimeError("private Human API token is unavailable")
@@ -2728,15 +2747,7 @@ def serve_human_api(config: ProductionRuntimeConfig | HumanApiRuntimeConfig) -> 
         raise ProductionRuntimeError("private Human API token is unreadable") from exc
     if not isinstance(token, str) or len(token) < 32:
         raise ProductionRuntimeError("private Human API token is invalid")
-    server = create_server(
-        connection_factory=connection_factory,
-        bind_host="127.0.0.1",
-        port=config.human_api_port,
-        auth_token=token,
-        allow_file_origin=True,
-        data_root=config.runtime_root,
-    )
-    server.serve_forever(poll_interval=0.5)
+    return token
 
 
 def _human_api_token_path(

@@ -1,0 +1,171 @@
+Receipt revision RED
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_confirmed_receipt_revision_survives_failed_state_refresh --basetemp=.pytest-tmp/history-web-revision-red
+Exit: 1
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_confirmed_receipt_revision_survives_failed_state_refresh ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-revision-red/test_confirmed_receipt_revisio0')
+
+    def test_confirmed_receipt_revision_survives_failed_state_refresh(tmp_path):
+        import os
+
+        evidence = _ROOT / "非公開作業データ/イナゴ実装試験/posting-history-http-20261025" / tmp_path.name
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            environment = os.environ.copy()
+            environment.update({
+                "INAGO_TEST_HISTORY_URL": app.origin + "/posting-history.html#launch=" + ticket(app),
+                "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                "INAGO_TEST_HISTORY_MODE": "receipt-revision",
+            })
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_web_browser.cjs")],
+                cwd=_ROOT, env=environment, capture_output=True, text=True,
+                encoding="utf-8", timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: history state did not synchronize before deadline
+E                 at until (C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:23:7)
+E                 at async C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:41:7
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs'], ret...rowser.cjs:23:7)\n    at async C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs:41:7\n').returncode
+
+tests_inago\test_history_web.py:312: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_web.py::test_confirmed_receipt_revision_survives_failed_state_refresh
+1 failed in 5.37s
+
+Receipt revision GREEN
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_confirmed_receipt_revision_survives_failed_state_refresh --basetemp=.pytest-tmp/history-web-revision-green-02
+Exit: 0
+.                                                                        [100%]
+1 passed in 2.75s
+
+Queued ON/OFF RED
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_queued_on_then_off_is_sent_in_receipt_order_after_recovery --basetemp=.pytest-tmp/history-web-order-red
+Exit: 1
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______ test_queued_on_then_off_is_sent_in_receipt_order_after_recovery _______
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-order-red/test_queued_on_then_off_is_sen0')
+
+    def test_queued_on_then_off_is_sent_in_receipt_order_after_recovery(tmp_path):
+        import os
+
+        evidence = _ROOT / "非公開作業データ/イナゴ実装試験/posting-history-http-20261025" / tmp_path.name
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            environment = os.environ.copy()
+            environment.update({
+                "INAGO_TEST_HISTORY_URL": app.origin + "/posting-history.html#launch=" + ticket(app),
+                "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                "INAGO_TEST_HISTORY_MODE": "queued-order",
+            })
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_web_browser.cjs")],
+                cwd=_ROOT, env=environment, capture_output=True, text=True,
+                encoding="utf-8", timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: history state did not synchronize before deadline
+E                 at until (C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:23:7)
+E                 at async C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:41:7
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs'], ret...rowser.cjs:23:7)\n    at async C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs:41:7\n').returncode
+
+tests_inago\test_history_web.py:340: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_web.py::test_queued_on_then_off_is_sent_in_receipt_order_after_recovery
+1 failed in 5.15s
+
+Queued ON/OFF GREEN
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_queued_on_then_off_is_sent_in_receipt_order_after_recovery --basetemp=.pytest-tmp/history-web-order-green
+Exit: 1
+.F                                                                       [100%]
+================================== FAILURES ===================================
+________ test_confirmed_receipt_revision_survives_failed_state_refresh ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-order-green/test_confirmed_receipt_revisio0')
+
+    def test_confirmed_receipt_revision_survives_failed_state_refresh(tmp_path):
+        import os
+
+        evidence = _ROOT / "非公開作業データ/イナゴ実装試験/posting-history-http-20261025" / tmp_path.name
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            environment = os.environ.copy()
+            environment.update({
+                "INAGO_TEST_HISTORY_URL": app.origin + "/posting-history.html#launch=" + ticket(app),
+                "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                "INAGO_TEST_HISTORY_MODE": "receipt-revision",
+            })
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_web_browser.cjs")],
+                cwd=_ROOT, env=environment, capture_output=True, text=True,
+                encoding="utf-8", timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: history state did not synchronize before deadline
+E                 at until (C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:23:7)
+E                 at async C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:58:7
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs'], ret...rowser.cjs:23:7)\n    at async C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs:58:7\n').returncode
+
+tests_inago\test_history_web.py:312: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_web.py::test_confirmed_receipt_revision_survives_failed_state_refresh
+1 failed, 1 passed in 7.65s
+
+Rejected queue RED
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_rejected_queued_report_does_not_block_another_product --basetemp=.pytest-tmp/history-web-reject-red
+Exit: 1
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________ test_rejected_queued_report_does_not_block_another_product __________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-reject-red/test_rejected_queued_report_do0')
+
+    def test_rejected_queued_report_does_not_block_another_product(tmp_path):
+        import os
+
+        evidence = _ROOT / "非公開作業データ/イナゴ実装試験/posting-history-http-20261025" / tmp_path.name
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            environment = os.environ.copy()
+            environment.update({
+                "INAGO_TEST_HISTORY_URL": app.origin + "/posting-history.html#launch=" + ticket(app),
+                "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                "INAGO_TEST_HISTORY_MODE": "rejected-outbox",
+            })
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_web_browser.cjs")],
+                cwd=_ROOT, env=environment, capture_output=True, text=True,
+                encoding="utf-8", timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: history state did not synchronize before deadline
+E                 at until (C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:23:7)
+E                 at async C:\project\rakuten-room-inago\tests_inago\fixtures\history_web_browser.cjs:51:7
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs'], ret...rowser.cjs:23:7)\n    at async C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_web_browser.cjs:51:7\n').returncode
+
+tests_inago\test_history_web.py:608: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_web.py::test_rejected_queued_report_does_not_block_another_product
+1 failed in 5.61s
+
+Rejected queue GREEN
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_rejected_queued_report_does_not_block_another_product --basetemp=.pytest-tmp/history-web-reject-green-02
+Exit: 0
+.                                                                        [100%]
+1 passed in 2.68s
+
+The first order-green attempt passed the queue-order node and failed the refreshed receipt test because an asynchronous reconnect correctly retained the next action as browser-pending. The expectation was widened to distinguish that valid pending state from rejection; final SQLite assertions remain posted revision 1/correction revision 2.
+The first rejected-queue green attempt kept serving a deliberately stale state snapshot even after the independent POST succeeded. The fixture now restores real state GET before the independent operation; rejected queue data remains stale and still exercises 409. Product acceptance was rechecked in SQLite.
+Early browser attempts shared the same trace.zip path; those raw traces were overwritten during iteration. RED pytest output above is retained. Final browser evidence is now separated by attempt and all final screenshots/video/trace are preserved.

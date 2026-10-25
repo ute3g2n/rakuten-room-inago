@@ -1,0 +1,24 @@
+{
+  "base_commit": "7f88d8579f227b5b07786786125c66f3ceaa3fd1",
+  "python": "3.12.13",
+  "node": "v24.18.1",
+  "sha256": {
+    "open-posting-history.bat": "58198c93a80572e9587752f229d52d4f1a941e2803c61099b21bcda13fbb6e9b",
+    "automation/inago/history_launcher.py": "12455fc936dc821c31a582cbd065889849d96a7f9cc4670aa8946fe238a7d26f",
+    "automation/inago/history_session.py": "88e2b8f5e3740fca63e26487e78aeaf73ec1d9668d4ad300788800b8a67f378e",
+    "automation/inago/human_api.py": "1e81b6ad9705aae9c2c43543f17cc03b5c4ce76e4779c2825d8f697404925060",
+    "automation/inago/dashboard_history.py": "f72a64797ef584abd2cd5d712142e074887772161b91aa638122b3c16d9a5d72",
+    "automation/inago/production_runtime.py": "aab240613836140e94864543ddd0ab3678ae215020964b280bb117f5e0c734d7",
+    "rakuten-room-inago/dashboard-assets/history.js": "322f199d9534e5d70245301eea872bbcf2ac1bd28cd0c435d25ec3cbfc48df07",
+    "tests_inago/test_history_web.py": "02e8d38edf9b80a6585933fd926972c2dc5e39ea2734b1c4ee3c27b53f7e6bca",
+    "tests_inago/fixtures/history_web_browser.cjs": "3cd596c3b4752084ac85af8b51359dc3c5b541bc867606454db3e805d44085db",
+    "tests_inago/test_step23_12_history_interactions.py": "4a191ebd6008c4bc39a114c120f6f0e6586694014385f42497644c3f6411913b"
+  },
+  "final_regression": {
+    "attempt": "history-web-regression-final-02",
+    "passed": 57,
+    "exit_code": 0,
+    "seconds": 26.3
+  },
+  "chrome": "155.0.8059.85"
+}
