@@ -1,0 +1,367 @@
+[
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/results.png",
+    "bytes": 840851,
+    "sha256": "842bd11a6760b40dc4f8e7339ed9c226c96a3604018825d273abb2f214a4faa6"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/conditions.png",
+    "bytes": 557796,
+    "sha256": "7eca3777f912e122c94cf546f33586cb2774ee2dc20fe5fa2505c8fea4f1a306"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/trace.zip",
+    "bytes": 6329361,
+    "sha256": "df934f2dde0fefebe8af14bde6081c2338c1a3f94e9b04b2f15806b7ae7d7240"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/events.jsonl",
+    "bytes": 3657,
+    "sha256": "002f16bdb7c9f5e7cfdd9d11d09a19fbbe9e852180688b56b7a0faddf7f5da42"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/result.json",
+    "bytes": 2721,
+    "sha256": "5dec702cd28b17c3510df8f274173bc8d981e6e7d44f6bcde9f62d6c9fa95d5b"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/01/video/7c052889665bb25325da54aba56f6586.webm",
+    "bytes": 569068,
+    "sha256": "bd25ac0f1ffd8968b94c3bea7ae37a984a5dca804ec90ce6e286211a4b45e10e"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/results.png",
+    "bytes": 868804,
+    "sha256": "a094b98451abc430425c0564b108add70458e9d9605eed265e51562e7ec0abe1"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/conditions.png",
+    "bytes": 582000,
+    "sha256": "54d20fcbb5eec62adc5d9181c9098b148a5b3cd688f73f668be2e7468314c07f"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/trace.zip",
+    "bytes": 2273869,
+    "sha256": "eb36b1f550e593c2c0d2be5a3f9e5fdb48eff23009e86bbcab17dd3bc5f20e56"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/events.jsonl",
+    "bytes": 3659,
+    "sha256": "dff02a4e5bb22a7c7495d76a5f0ec417c89b0ba5dc4f5d7129e6c7d498353dcd"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/result.json",
+    "bytes": 2712,
+    "sha256": "25c55da01a6014c966f811ff884dbd3bcb0ec61bc11683c4fb47350befacb781"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/02/video/d67723ead350e6f4c083c408cf04a93c.webm",
+    "bytes": 585451,
+    "sha256": "dbb82a712b91bf1cba32c16f360c1e1e60c4af6308312bf8e79111c642829454"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/results.png",
+    "bytes": 658828,
+    "sha256": "07b1fa30fc99b60cef8862dc91b4c0386c0fda350a765ee797d069c80f4ac4cf"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/conditions.png",
+    "bytes": 474706,
+    "sha256": "fa20c7d4255dd036a9bb6e006cc216b1acc1e2fef25456d5d1ac5b71cef97d71"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/trace.zip",
+    "bytes": 5670386,
+    "sha256": "2f146dbab190b0ba086267df8cdf6c154d791d6fa3a8771404c40534713f8804"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/events.jsonl",
+    "bytes": 3673,
+    "sha256": "1cf6618275b7a2ffa5529675b203d5daec54442f797f56e93f328a577c8049f6"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/result.json",
+    "bytes": 2721,
+    "sha256": "21ac4d9452bc1c1ccaebf605474420da0f96193c1245bdf25ad58b2655f5de66"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/03/video/c99f940ad1359e27934e5444bd86ac71.webm",
+    "bytes": 547056,
+    "sha256": "26b3c801a06b6b8a3e130f6b0dfbae132f57b1e61fee8293edb86d198f6f8cb9"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/results.png",
+    "bytes": 843086,
+    "sha256": "f2104eda4fb073a72bcd765c80aadea33b868f9a1f6eaa52cc7ae6b4d0c77183"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/conditions.png",
+    "bytes": 565304,
+    "sha256": "db9ae8f073c46fe7ece86a79f7ebdb4d927aa6e6a5fc2ac59cf7d52573afedef"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/trace.zip",
+    "bytes": 4710060,
+    "sha256": "feeb08b737c86c56031fc73e6cfea69c59176b56bf35607f6d58fc8e00b41ad8"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/events.jsonl",
+    "bytes": 3683,
+    "sha256": "eb2bde83122cfdc06f830a5b0c6aefd4e61a22e5cb01c5704e6ad83737ce25a4"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/result.json",
+    "bytes": 2718,
+    "sha256": "ce2b71f261127486923eeae17867d77c03839af1902f8b8d693684d63c891954"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/04/video/bbbfadc9896ff19979a9f7ed604eca56.webm",
+    "bytes": 740212,
+    "sha256": "f9d8dc6123e922339d329cb0ec269ed1b631ab94c1b88ee8f06477246dae0599"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/results.png",
+    "bytes": 744804,
+    "sha256": "ee8fff6daa7ffee9be7695d1136d42a21caacf35eb033a2fd16ebc3f8b7d066b"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/conditions.png",
+    "bytes": 495921,
+    "sha256": "b5b7f098a6aeacf1c15fbe5f25683c1b714500b415e2ec9096485029ba64bb2a"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/trace.zip",
+    "bytes": 4722771,
+    "sha256": "bb832ed5122588ab08994e114e591de797ede89927793513a550f675385a233c"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/events.jsonl",
+    "bytes": 3566,
+    "sha256": "e1521cef6d408cd88a498b7eeee33f7dd463dba38e1a91141ff51a1bf12d45fe"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/result.json",
+    "bytes": 2544,
+    "sha256": "4591c0fe23ded50d1b277d955983588708a0b6563ab21ec5e04deac7353d11a4"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/05/video/059fc0c43b2c05682a0991e5fe79b423.webm",
+    "bytes": 518929,
+    "sha256": "493edee3f824177de203838cbbe11e0130467fced72ad87d3c58bf70200cc384"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/results.png",
+    "bytes": 908054,
+    "sha256": "fdd900fc628abc8c3398338763a79c3ad308c66b434088ab4acfd2489ae095c4"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/conditions.png",
+    "bytes": 624604,
+    "sha256": "3c83741b71314ad003649bd9b4c1fe3ab3e17e41b51642ade131c47046cf37bf"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/trace.zip",
+    "bytes": 2440995,
+    "sha256": "80ec7abf8dc0c95d8e3ed26da9dc173ef5fc9392db1e23fb958d833f9cb0d73f"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/events.jsonl",
+    "bytes": 3683,
+    "sha256": "64def8dfe2f4c3f9c68eabb4bad6df0c1dd091ffd62ed819d6b6c419b8816f6d"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/result.json",
+    "bytes": 2691,
+    "sha256": "ce6d4b11273152c3c933236e821c5627a005e82fff0734f109546cac5262747a"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/06/video/29420f66dbc05e302e6aa05da41feaa8.webm",
+    "bytes": 542160,
+    "sha256": "bfb317fa327d502f9270f8049fa1a0d65bf24cc8313a7d6583fd20487ee6b72b"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/results.png",
+    "bytes": 814050,
+    "sha256": "1495fb2da403b21cb4f1e467cebd4ca1e1f7bb1abd3b0b83a884e04e05e7b547"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/conditions.png",
+    "bytes": 541434,
+    "sha256": "730e59b13fa1a396353bb259ebc2677038dc8802dda81e55c77555ae2c8ebfdf"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/trace.zip",
+    "bytes": 5600220,
+    "sha256": "06048ad91a1f1534ab656bc1c734c158951103574e924dcece779715a60e153f"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/events.jsonl",
+    "bytes": 3683,
+    "sha256": "7515ead488b94aac666b328870d4515552b809454e21cc7237a8976264b97e3c"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/result.json",
+    "bytes": 2738,
+    "sha256": "c859f08e002dd0bc7ee5c3102c1b19527ea4c699a25d52afa9996c84f52feeab"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/07/video/70b7ce955c023dc5ec3042cd834eade4.webm",
+    "bytes": 586752,
+    "sha256": "b7db4c6bdccd30bd88ff36e924509d5708f67dd9e23ea6d5253cf0f454b7dfdb"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/results.png",
+    "bytes": 640697,
+    "sha256": "d42fb917dd0c1b7e2456f68ff3fbc337f7262650982e3d7746865c62710dca25"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/conditions.png",
+    "bytes": 465970,
+    "sha256": "cff2e30ddd446b24b5eddd6c10dbf1d743838ea749e9eae4f2698776ff21182f"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/trace.zip",
+    "bytes": 1615120,
+    "sha256": "fa7b3f6866b6a260fde1a6c41872d49f47006573f757a35166eaba0d7ba9de0e"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/events.jsonl",
+    "bytes": 3683,
+    "sha256": "ea56a3cbdfc565a34c87ec0128985c132657f946b1ca77082100ecf7a33b7283"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/result.json",
+    "bytes": 2700,
+    "sha256": "2e4e589503105900bc13748f10354b18d5c7912f6d121182f0c25b4b6199b1be"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/08/video/2a88fba5e6e9debdf4595387d2b27901.webm",
+    "bytes": 479887,
+    "sha256": "e27d7a9b91aecc46c5761b24be28589402c323a244e59b30cb34e9b9c2b79bdd"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/results.png",
+    "bytes": 901009,
+    "sha256": "f833a2be57a582836fefcf6a657d07d64a8456c2151cc64de6bedc70b25b5a70"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/conditions.png",
+    "bytes": 585924,
+    "sha256": "8d885b58926e8ac04946e9951922c2241501cfec082bb3ec72aad111f392a34d"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/trace.zip",
+    "bytes": 2569738,
+    "sha256": "9dd154f10ef25986ca840502c0823eb77973d6c1387f230479c01a61543ba933"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/events.jsonl",
+    "bytes": 3566,
+    "sha256": "a53b525343b5b9d4019fb3f4a076d0c42ed5da2b8361d2b66a4055df2361a546"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/result.json",
+    "bytes": 2536,
+    "sha256": "b872138abcb148c1026582f7dde78e5f41190f0d9d029682250a9b553f6f1c0a"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/09/video/7d650421a8993e56c96ebb5199424a7a.webm",
+    "bytes": 859978,
+    "sha256": "de5d643d58e903a8f5db6c9a1a9ba8a570e59427b4e7462b45e0adabef0061bf"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/before.png",
+    "bytes": 6489,
+    "sha256": "cb9c3b8047859412e8abcaed51ad9ecefb4bd820c8849af4992e593d500d1836"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/results.png",
+    "bytes": 812257,
+    "sha256": "c0118ae237a9f4c81d4da92a1da8da87d870cffadda443438311c5cab562397d"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/conditions.png",
+    "bytes": 547012,
+    "sha256": "b6a1ad1ed07492709906001ff5a8bf88b087c5143d1a7f2abdef029d4043d3d7"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/trace.zip",
+    "bytes": 1854943,
+    "sha256": "9c4cd29781a0cea5b4eb258aad0f36fbd343f1a5cdb5af27efb0ef8d3ccc0626"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/events.jsonl",
+    "bytes": 3683,
+    "sha256": "b2a2c40dc85cb7ed37ebb7e09e01bfcebecb74fc578da12424162a25725aa9bd"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/result.json",
+    "bytes": 2713,
+    "sha256": "7ed764fa5d54caad493ffa830deec1640626321a1bfe048c148adc3a28f41659"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/private/10/video/4c4bf666e83999657a03555cb00fe9e6.webm",
+    "bytes": 556568,
+    "sha256": "5a274f49923109b162f24f2719cfe41c27c642c1b7cf9cdd61268a110f1574f9"
+  },
+  {
+    "path": "automation/inago/adapters/public_sources.mjs",
+    "bytes": 117147,
+    "sha256": "42511d6301ec7c7c2bc1df19d0ea88f3a3252278927f1a48408a56d81dabbdb1"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/check-display.mjs",
+    "bytes": 7856,
+    "sha256": "aa9baf86c66915061be0e00b3cf2016a242a205b33cddd8bff71f473c73c49f1"
+  },
+  {
+    "path": "worklogs/projects/maintenance/room-display-10-20261025/queries.json",
+    "bytes": 3913,
+    "sha256": "9a66f3c9d18f98e6294f9990f6c2984d66ea111ffedc0dde95984d92e2ad960d"
+  }
+]

@@ -1,0 +1,132 @@
+[
+  {
+    "attempt_id": "e847784a25be54058e3e1357dfca9626",
+    "query": "アウター ブランド",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1",
+    "selected_word_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1:w9",
+    "observed_posts": 0,
+    "no": 1,
+    "parent_refs": [
+      "G03-T01"
+    ]
+  },
+  {
+    "attempt_id": "167e403f4349527fba98022f1c59d121",
+    "query": "メンズ アウター",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1",
+    "selected_word_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1:w1",
+    "observed_posts": 0,
+    "no": 2,
+    "parent_refs": [
+      "G03-T01"
+    ]
+  },
+  {
+    "attempt_id": "b610c2ae7e3f594588a54b73c257f82e",
+    "query": "ノース フェイス",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1",
+    "selected_word_ref": "INAGO-2026-10-24:initial:02:G03-T01-a1:w5",
+    "observed_posts": 0,
+    "no": 3,
+    "parent_refs": [
+      "G03-T01"
+    ]
+  },
+  {
+    "attempt_id": "fe175c9ad5a5549f98238b33d1a32c6c",
+    "query": "キャットフード",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:initial:03:G05-T03-a1",
+    "selected_word_ref": "INAGO-2026-10-24:initial:03:G05-T03-a1:w18",
+    "observed_posts": 0,
+    "no": 4,
+    "parent_refs": [
+      "G05-T03"
+    ]
+  },
+  {
+    "attempt_id": "88fae1a9381053ec9b3933033190e2f3",
+    "query": "食器 おしゃれ",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:02:G04-T02-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:02:G04-T02-a1:w11",
+    "observed_posts": 0,
+    "no": 5,
+    "parent_refs": [
+      "G04-T02"
+    ]
+  },
+  {
+    "attempt_id": "3d9861c6677a5a45ac4e7d8a0a4a9b0b",
+    "query": "コストコ",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:03:G04-T03-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:03:G04-T03-a1:w3",
+    "observed_posts": 0,
+    "no": 6,
+    "parent_refs": [
+      "G04-T03"
+    ]
+  },
+  {
+    "attempt_id": "1a6224c2c69d58d492492dc5f03ceac9",
+    "query": "スキンケア おすすめ",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:09:G02-T01-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:09:G02-T01-a1:w1",
+    "observed_posts": 0,
+    "no": 7,
+    "parent_refs": [
+      "G02-T01"
+    ]
+  },
+  {
+    "attempt_id": "65628cd10be852eba23560609b9a142c",
+    "query": "ヘアオイル",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:10:G02-T03-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:10:G02-T03-a1:w8",
+    "observed_posts": 0,
+    "no": 8,
+    "parent_refs": [
+      "G02-T03"
+    ]
+  },
+  {
+    "attempt_id": "d0fdf4f67dc459bdbce1dd4ae78b70f7",
+    "query": "今治 タオル",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:19:G04-T04-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:19:G04-T04-a1:w3",
+    "observed_posts": 0,
+    "no": 9,
+    "parent_refs": [
+      "G04-T04"
+    ]
+  },
+  {
+    "attempt_id": "8cbaba6f93375f1b9194ef3d21e3294d",
+    "query": "ベビー チェア",
+    "level": "related",
+    "query_kind": "related",
+    "keyword_snapshot_ref": "INAGO-2026-10-24:additional:25:G05-T01-a1",
+    "selected_word_ref": "INAGO-2026-10-24:additional:25:G05-T01-a1:w5",
+    "observed_posts": 0,
+    "no": 10,
+    "parent_refs": [
+      "G05-T01"
+    ]
+  }
+]
