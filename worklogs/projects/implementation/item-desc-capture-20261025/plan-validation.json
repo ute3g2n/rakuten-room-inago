@@ -1,0 +1,19 @@
+{
+  "validation_kind": "planning_documents_only",
+  "plan_version": "1.1",
+  "headings": 15,
+  "steps": 5,
+  "fields_per_step": 14,
+  "full_prompts": 5,
+  "cases": 7,
+  "fields_per_case": 12,
+  "facts": 9,
+  "requirements": 7,
+  "existing_nodes_verified": 6,
+  "proposed_nodes_not_created": 7,
+  "source_snapshot_unchanged": true,
+  "feature_tests_executed": false,
+  "plan_sha256": "d2681315ddff5df9f98657c2b93fadc8685d42b7ad23d86f13ccdf8107f41c65",
+  "map_sha256": "81fc8f839b9cfd3d72ca4638f27af705a252fd9776f348afafe864e449021f36",
+  "result": "PASS"
+}

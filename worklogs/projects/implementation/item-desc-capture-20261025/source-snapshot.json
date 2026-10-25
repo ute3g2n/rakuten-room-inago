@@ -1,0 +1,43 @@
+{
+  "base_commit": "2eb41c2",
+  "purpose": "read_only_planning_baseline",
+  "implementation_tests_executed": false,
+  "files": [
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "sha256": "c1a3b2e1e327cbf44378e755a3edbbd2b177cd68dd07579ae0f2f02a02e49d35"
+    },
+    {
+      "path": "automation/inago/adapters/product_page_inputs.mjs",
+      "sha256": "99061ada3bb7d9931c9883db9f6dd646f0f122033b8dece851a89d501cedb150"
+    },
+    {
+      "path": "automation/inago/product_page_inputs.py",
+      "sha256": "6523144a82eaf3ebd3218d1f440a13f4802fd8ed3dc9f527db7372e63d9832cd"
+    },
+    {
+      "path": "automation/inago/product_ocr.py",
+      "sha256": "41dfe7f9f8b46d0c598e192d5ffd1ffe38f3e8bc44a46b000ff77a74d94703ea"
+    },
+    {
+      "path": "automation/inago/production_runtime.py",
+      "sha256": "6611ce90127b288f12f1ba6fec1b32aec59ab8a0b4510997b67d4fa124b781d3"
+    },
+    {
+      "path": "automation/inago/prompt_builder.py",
+      "sha256": "7ba31e028a66eb9aece842b5a3a891455c9feff0e692606530ef84af80b00a69"
+    },
+    {
+      "path": "automation/inago/ai_runner.py",
+      "sha256": "8ed444eda527d87750de8fe50ff1c41cb2220742f57989b0976bacda76495c27"
+    },
+    {
+      "path": ".agents/skills/rr-inago-copywriter/SKILL.md",
+      "sha256": "3bd8bd7e5c79bba3e2008a337e32e4aa14857d4b27568b249e7c4aaf02ed7a01"
+    },
+    {
+      "path": ".agents/skills/rr-inago-copy-reviewer/SKILL.md",
+      "sha256": "763d2bf747adf1dd6b5771157f48e71c1d266fc5848506f439f52fc517f834e5"
+    }
+  ]
+}

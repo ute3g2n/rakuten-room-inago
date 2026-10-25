@@ -1,0 +1,626 @@
+{
+  "schema_version": 1,
+  "plan_version": "1.1",
+  "plan_ref": "plans/projects/implementation/item-desc-capture-20261025/plan.md",
+  "scope": "planning_only",
+  "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c",
+  "identity": {
+    "job_id": null,
+    "incident_id": null,
+    "source_launch_id": null,
+    "source_run_id": null,
+    "target_date": null,
+    "invocation_id": null,
+    "attempt_id": null
+  },
+  "missing_reason": "本人の機能追加計画依頼でありcontroller job/run/attempt入力はない",
+  "overall_status": "planning_only",
+  "daily_status": null,
+  "reason_code": "explicit_plan_only",
+  "failure_phase": null,
+  "trace_status": "not_applicable",
+  "facts": [
+    {
+      "fact_id": "F01",
+      "statement": "要件HTMLが唯一の正本。内部requirements-sourceをloadしbuildが再生成する。内蔵版は2.61。",
+      "evidence_refs": [
+        "tools/docs/inago-requirements/README.md:3",
+        "tools/docs/inago-requirements/document-source.mjs:29",
+        "tools/docs/inago-requirements/build.mjs:9",
+        "tools/docs/inago-requirements/finalize-html.mjs:39",
+        "docs/specifications/inago/イナゴスキル要件定義書.html:5269"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F02",
+      "statement": "現行selectorはsale_desc、normal_reserve_item_name、normal_reserve_catch_copyの3種類。画像探索はsale_descだけ。全一致のouterHTML配列は取得する。",
+      "evidence_refs": [
+        "automation/inago/adapters/product_page_inputs.mjs:7",
+        "automation/inago/adapters/product_page_inputs.mjs:174",
+        "automation/inago/adapters/product_page_inputs.mjs:180",
+        "automation/inago/adapters/product_page_inputs.mjs:212"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F03",
+      "statement": "currentSrc、src、遅延属性、srcset、背景画像を列挙しURLで重複排除する。occurrencesはorder/tag/attributeのみでselector由来がない。data/blobは現状除外。HTTP画像は公開URL・redirectを検査する。",
+      "evidence_refs": [
+        "automation/inago/adapters/product_page_inputs.mjs:88",
+        "automation/inago/adapters/product_page_inputs.mjs:113",
+        "automation/inago/adapters/product_page_inputs.mjs:186",
+        "automation/inago/adapters/product_page_inputs.mjs:196",
+        "automation/inago/adapters/product_page_inputs.mjs:214"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F04",
+      "statement": "capturedの既存pageは即再利用され、画像の個別失敗でもpageはcaptured。ROOM遷移と直接取得は同じ保存関数を呼ぶが、orchestratorはcapturedの既存pageを返し、page欠落時にだけ再取得を呼ぶ経路があり、ocr_partialも処理済みとしてskipする。JS関数の局所再呼出しは通常run resumeの再取得到達を証明しない。",
+      "evidence_refs": [
+        "automation/inago/adapters/product_page_inputs.mjs:26",
+        "automation/inago/adapters/product_page_inputs.mjs:157",
+        "automation/inago/adapters/product_page_inputs.mjs:247",
+        "automation/inago/adapters/product_page_inputs.mjs:278",
+        "automation/inago/adapters/public_sources.mjs:775",
+        "automation/inago/adapters/public_sources.mjs:1432",
+        "automation/inago/orchestrator.py:3281",
+        "automation/inago/orchestrator.py:3474",
+        "automation/inago/orchestrator.py:3822"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F05",
+      "statement": "Pythonのpage loaderはschema_version=1とrun/shop/item/refを照合しselector keyを固定していない。確定後はimages/だけを削除しcleanup.jsonを残す。未選定商品の全フォルダー掃除も既存機能。",
+      "evidence_refs": [
+        "automation/inago/product_page_inputs.py:60",
+        "automation/inago/product_page_inputs.py:105",
+        "automation/inago/product_page_inputs.py:143",
+        "automation/inago/product_page_inputs.py:206",
+        "automation/inago/product_page_inputs.py:329"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F06",
+      "statement": "OCRはpage.images全件を処理。refはpage_refと画像順に依存。各画像後に保存し同一バイトhash・成功/空結果は再利用、失敗は再実行する。25MiB/120frame/40Mpixel制限と明示エラーがある。",
+      "evidence_refs": [
+        "automation/inago/product_ocr.py:42",
+        "automation/inago/product_ocr.py:481",
+        "automation/inago/product_ocr.py:527",
+        "automation/inago/product_ocr.py:575",
+        "automation/inago/product_ocr.py:633",
+        "automation/inago/product_ocr.py:688"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F07",
+      "statement": "copy specはselector配列の全HTMLを動的に展開し参照を作る。OCRはref/status/textを全文で投影。AI応答schemaは生成結果用でselector列挙ではない。",
+      "evidence_refs": [
+        "automation/inago/production_runtime.py:775",
+        "automation/inago/production_runtime.py:786",
+        "automation/inago/production_runtime.py:825",
+        "automation/inago/production_runtime.py:857",
+        "automation/inago/schemas/ai-copy.schema.json:1"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F08",
+      "statement": "writer/reviewer/文型ルールとpromptは全HTML・全OCRを要求するが、説明上の列挙は現行3種類。実行時も両担当に同じ全入力を渡す指示がある。",
+      "evidence_refs": [
+        "automation/inago/prompt_builder.py:311",
+        "automation/inago/ai_runner.py:949",
+        "automation/inago/ai_runner.py:958",
+        ".agents/skills/rr-inago-copywriter/SKILL.md:20",
+        ".agents/skills/rr-inago-copy-reviewer/SKILL.md:19",
+        ".agents/skills/rr-inago-copywriter/references/文型ルール確定.md:21",
+        ".agents/skills/rr-inago-copywriter/references/文型ルール確定.md:789",
+        ".agents/skills/rr-inago-copywriter/references/contracts.md:5",
+        ".agents/skills/rr-inago-copy-reviewer/references/contracts.md:3"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    },
+    {
+      "fact_id": "F09",
+      "statement": "capture、OCR全文変換、AI全文輸送、大容量、再開、cleanup、URL安全の既存nodeがある。コード読取で存在を確認しただけで今回未実行。",
+      "evidence_refs": [
+        "tests_inago/test_product_page_capture.py:92",
+        "tests_inago/test_product_ocr.py:362",
+        "tests_inago/test_product_page_copy.py:158",
+        "tests_inago/test_product_page_copy.py:209",
+        "tests_inago/test_product_page_copy.py:251",
+        "tests_inago/test_product_page_selection.py:654",
+        "tests_inago/test_product_page_cleanup.py:162",
+        "tests_inago/test_product_page_url_safety.py:81"
+      ],
+      "verification": "source_read_only",
+      "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c"
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "R01",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F01",
+        "F02",
+        "F08"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C01"
+      ]
+    },
+    {
+      "requirement_id": "R02",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F02",
+        "F04",
+        "F07",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP2",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C02",
+        "C03",
+        "C07"
+      ]
+    },
+    {
+      "requirement_id": "R03",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F02",
+        "F03",
+        "F04",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP2",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C03",
+        "C04",
+        "C07"
+      ]
+    },
+    {
+      "requirement_id": "R04",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F04",
+        "F06",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP3",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C04",
+        "C05",
+        "C07"
+      ]
+    },
+    {
+      "requirement_id": "R05",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F01",
+        "F07",
+        "F08",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP4",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C06",
+        "C07"
+      ]
+    },
+    {
+      "requirement_id": "R06",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP2",
+        "STEP3",
+        "STEP4",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C04",
+        "C05",
+        "C06",
+        "C07"
+      ]
+    },
+    {
+      "requirement_id": "R07",
+      "id_scope": "plan_local_not_existing_spec_id",
+      "fact_ids": [
+        "F01",
+        "F03",
+        "F05",
+        "F06",
+        "F08",
+        "F09"
+      ],
+      "step_ids": [
+        "STEP1",
+        "STEP2",
+        "STEP3",
+        "STEP4",
+        "STEP5"
+      ],
+      "case_ids": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "STEP1",
+      "status": "not_started",
+      "reason": "explicit_plan_only_scope",
+      "requirement_ids": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "case_ids": [
+        "C01"
+      ]
+    },
+    {
+      "step_id": "STEP2",
+      "status": "not_started",
+      "reason": "explicit_plan_only_scope",
+      "requirement_ids": [
+        "R02",
+        "R03",
+        "R06",
+        "R07"
+      ],
+      "case_ids": [
+        "C02",
+        "C03",
+        "C04",
+        "C07"
+      ]
+    },
+    {
+      "step_id": "STEP3",
+      "status": "not_started",
+      "reason": "explicit_plan_only_scope",
+      "requirement_ids": [
+        "R04",
+        "R06",
+        "R07"
+      ],
+      "case_ids": [
+        "C04",
+        "C05",
+        "C07"
+      ]
+    },
+    {
+      "step_id": "STEP4",
+      "status": "not_started",
+      "reason": "explicit_plan_only_scope",
+      "requirement_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "case_ids": [
+        "C06",
+        "C07"
+      ]
+    },
+    {
+      "step_id": "STEP5",
+      "status": "not_started",
+      "reason": "explicit_plan_only_scope",
+      "requirement_ids": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "case_ids": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "C01",
+      "status": "not_started",
+      "requirement_ids": [
+        "R01",
+        "R07"
+      ],
+      "proposed_nodes": [],
+      "existing_nodes": [],
+      "non_pytest_command": "node tools/docs/inago-requirements/build.mjs",
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP1",
+        "STEP5"
+      ]
+    },
+    {
+      "case_id": "C02",
+      "status": "not_started",
+      "requirement_ids": [
+        "R02",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_page_capture.py::test_description_selectors_preserve_all_html_and_states",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP2",
+        "STEP5"
+      ]
+    },
+    {
+      "case_id": "C03",
+      "status": "not_started",
+      "requirement_ids": [
+        "R02",
+        "R03",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_page_capture.py::test_description_images_keep_all_candidates_and_origins",
+          "existence": "proposed_not_created",
+          "executed": false
+        },
+        {
+          "node": "tests_inago/test_product_page_item_desc_browser.py::test_item_desc_lazy_images_are_captured_with_visual_evidence",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP2",
+        "STEP5"
+      ]
+    },
+    {
+      "case_id": "C04",
+      "status": "not_started",
+      "requirement_ids": [
+        "R03",
+        "R04",
+        "R06",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_page_capture.py::test_description_image_retry_preserves_manifest_and_legacy_capture",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP2",
+        "STEP3",
+        "STEP5"
+      ],
+      "execution_boundary": "saveProductPageInputs direct local reinvocation; not normal run resume"
+    },
+    {
+      "case_id": "C05",
+      "status": "not_started",
+      "requirement_ids": [
+        "R04",
+        "R06",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_ocr.py::test_description_images_ocr_preserves_text_and_resumes",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [
+        {
+          "node": "tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        }
+      ],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP3",
+        "STEP5"
+      ],
+      "execution_boundary": "process_product direct local reinvocation; not orchestrator ocr_partial resume"
+    },
+    {
+      "case_id": "C06",
+      "status": "not_started",
+      "requirement_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_page_copy.py::test_item_desc_full_inputs_and_guidance_reach_both_specialists",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [
+        {
+          "node": "tests_inago/test_product_page_copy.py::test_copy_spec_contains_exact_html_ocr_and_all_input_refs",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        },
+        {
+          "node": "tests_inago/test_product_page_copy.py::test_runner_transport_prompt_and_staged_copy_skill_keep_full_guidance",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        },
+        {
+          "node": "tests_inago/test_product_page_copy.py::test_large_payload_is_never_silently_truncated",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        }
+      ],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP4",
+        "STEP5"
+      ]
+    },
+    {
+      "case_id": "C07",
+      "status": "not_started",
+      "requirement_ids": [
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "proposed_nodes": [
+        {
+          "node": "tests_inago/test_product_page_copy.py::test_item_desc_capture_to_ocr_to_copy_inputs",
+          "existence": "proposed_not_created",
+          "executed": false
+        }
+      ],
+      "existing_nodes": [
+        {
+          "node": "tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        },
+        {
+          "node": "tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy",
+          "existence": "function_verified_by_source_read",
+          "executed": false
+        }
+      ],
+      "non_pytest_command": null,
+      "actual_command": null,
+      "actual_exit_code": null,
+      "actual_evidence_refs": [],
+      "step_ids": [
+        "STEP2",
+        "STEP3",
+        "STEP4",
+        "STEP5"
+      ],
+      "execution_boundary": "capture-to-copy local integration and existing successful-input resume/cleanup regression; no failed-image refetch or ocr_partial rerun guarantee"
+    }
+  ],
+  "policy": {
+    "fixed_root": "C:/project/rakuten-room-inago",
+    "review_approval_gate": false,
+    "test_code_independent_review": false,
+    "product_independent_review_planned": true,
+    "legacy_schema_version": 1,
+    "new_schema_version": 1,
+    "database_migration_planned": false,
+    "legacy_run_auto_recapture": false,
+    "git_owner": "parent",
+    "current_execution_authorized": false,
+    "retry_scope": {
+      "image_capture_retry": "explicit_local_saveProductPageInputs_reinvocation_only",
+      "ocr_retry": "explicit_local_process_product_reinvocation_only",
+      "normal_run_resume_behavior_changed": false,
+      "normal_run_resume_failed_image_refetch_guaranteed": false,
+      "normal_run_resume_ocr_partial_rerun_guaranteed": false,
+      "orchestrator_ownership": "excluded_read_only_evidence",
+      "legacy_resume": "preserve_captured_page_and_existing_ocr_partial_skip"
+    }
+  }
+}
