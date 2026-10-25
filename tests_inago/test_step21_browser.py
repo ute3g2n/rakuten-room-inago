@@ -2465,7 +2465,7 @@ def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server
     assert port._active == {}
 
 
-def test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_progress(
+def test_zero_result_without_known_end_marker_is_not_successful_empty(
     tmp_path, ui_server
 ):
     ui_server["html"] = room_html(0, initial=0, terminal=False)
@@ -2487,9 +2487,9 @@ def test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_pro
 
     assert not cancellation_fired.is_set()
     result = parse_room_response(payload, request)
-    assert result.status == "observed", payload.get("error_code")
+    assert result.status == "unavailable", payload
     assert result.posts == ()
-    assert result.end_reached is True
+    assert result.error_code in {"incomplete_search", "source_timeout"}
     records = list((tmp_path / "observations").glob("room-*.json"))
     assert records
     record = json.loads(records[0].read_text(encoding="utf-8"))
@@ -2500,8 +2500,11 @@ def test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_pro
         and event.get("stage") == "room_list_no_progress"
         and event.get("loaded_posts") == 0
     ]
-    assert [event["stable_round"] for event in no_progress] == [1, 2, 3]
-    assert record["diagnostics"]["end_evidence"] == "stable_no_progress"
+    assert no_progress
+    assert not any(
+        event.get("stage") == "room_short_batch_stable"
+        for event in record["node_events"]
+    )
 
     ui_server["html"] = room_html(0, initial=0, terminal=True)
     generic_root = tmp_path / "unrecognized-empty-marker"
@@ -2519,3 +2522,39 @@ def test_zero_result_without_known_end_marker_returns_empty_after_bounded_no_pro
         and event.get("stage") == "room_search_incomplete"
     ]
     assert generic_incomplete[-1]["end_evidence"] == "unrecognized_empty"
+
+
+def test_room_delayed_first_result_after_condition_submit_is_not_empty(
+    tmp_path, ui_server
+):
+    # Applying filters clears a previously rendered list while ROOM reloads it.
+    # The first replacement result takes longer than three two-second scrolls.
+    html = room_html(1, initial=1, terminal=False)
+    close = '<a class="close" onclick="this.parentElement.style.display=\'none\'">閉じる</a>'
+    submit = """<button type="button" onclick="
+        this.parentElement.style.display='none';
+        const rows=document.querySelector('#rows');
+        const saved=rows.innerHTML;rows.innerHTML='';
+        window.removeEventListener('scroll',more);
+        setTimeout(()=>{rows.innerHTML=saved;},8000);
+    ">検索</button>"""
+    assert close in html
+    ui_server["html"] = html.replace(close, submit)
+    request = replace(room_request(), max_posts=1, deadline_at=None)
+
+    payload = source(tmp_path, ui_server, timeout=18).search(request)
+    result = parse_room_response(payload, request)
+
+    assert result.status == "observed", payload.get("error_code")
+    assert len(result.posts) == result.loaded_posts == 1
+    record = json.loads(
+        next((tmp_path / "observations").glob("room-*.json")).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert record["diagnostics"]["end_evidence"] == "row_limit"
+    assert not any(
+        event.get("stage") == "room_short_batch_stable"
+        and event.get("loaded_posts") == 0
+        for event in record["node_events"]
+    )

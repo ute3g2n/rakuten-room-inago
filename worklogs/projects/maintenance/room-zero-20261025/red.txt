@@ -1,0 +1,19 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_____ test_room_delayed_first_result_after_condition_submit_is_not_empty ______
+tests_inago\test_step21_browser.py:2549: in test_room_delayed_first_result_after_condition_submit_is_not_empty
+    assert len(result.posts) == result.loaded_posts == 1
+E   AssertionError: assert 0 == 1
+E    +  where 0 = RoomSearchResult(request=RoomSearchRequest(attempt_id='S1', run_id='R1', query='�������', parent_refs=('T1',), level='the....340Z', error_code=None, loaded_posts=0, unused_posts=0, end_reason='exhausted', condition_evidence_ref='S1:condition').loaded_posts
+______ test_zero_result_without_known_end_marker_is_not_successful_empty ______
+tests_inago\test_step21_browser.py:2490: in test_zero_result_without_known_end_marker_is_not_successful_empty
+    assert result.status == "unavailable", payload
+E   AssertionError: {'attempt_id': 'S1', 'run_id': 'R1', 'query': '�������', 'parent_refs': ['T1'], ...}
+E   assert 'observed' == 'unavailable'
+E     
+E     - unavailable
+E     + observed
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_browser.py::test_room_delayed_first_result_after_condition_submit_is_not_empty
+FAILED tests_inago/test_step21_browser.py::test_zero_result_without_known_end_marker_is_not_successful_empty
+2 failed in 16.02s
