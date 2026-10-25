@@ -1,0 +1,12 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_resume_processed_related_search_commits_before_deciding_fallback ____
+tests_inago\test_theme_fallback_replenishment.py:282: in test_resume_processed_related_search_commits_before_deciding_fallback
+    assert [r.query_kind for r in bundle.room.requests if r.parent_refs[0] == first_theme] == ["related"]
+E   AssertionError: assert ['related', 'theme_fallback'] == ['related']
+E
+E     Left contains one more item: 'theme_fallback'
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_resume_processed_related_search_commits_before_deciding_fallback
+1 failed in 4.06s

@@ -1,0 +1,47 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+__ test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search __
+tests_inago\test_step21_daily.py:819: in test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search
+    assert [request.query for request in bundle.room.requests] == [
+E   AssertionError: assert ['ペットフード', '履物', 'スイーツ'] == ['ペットフード', '靴・履物', '菓子・スイーツ']
+E
+E     At index 1 diff: '履物' != '靴・履物'
+E     Use -v to get more diff
+____ test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning ____
+tests_inago\test_step21_daily.py:966: in test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+    resumed = _run(runtime_case, bundle)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation/inago/orchestrator.py@ac99547:5005: in run_daily
+    ???
+automation/inago/orchestrator.py@ac99547:585: in _daily_state
+    ???
+automation/inago/orchestrator.py@ac99547:512: in _migrate_daily_checkpoint_v2
+    ???
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_fields_invalid
+_________ test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit _________
+tests_inago\test_step21_daily.py:997: in test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit
+    assert state["schema_version"] == 3 and state["rules_version"] == "requirements-1.5"
+E   assert (4 == 3)
+___ test_resume_from_saved_plan_checks_contents_before_queueing[old_fields] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation/inago/orchestrator.py@ac99547:5113: in run_daily
+    ???
+automation/inago/orchestrator.py@ac99547:1852: in _reconcile_saved_theme_plans
+    ???
+automation/inago/orchestrator.py@ac99547:1715: in _get_plan
+    ???
+automation/inago/orchestrator.py@ac99547:1545: in _plan_from_dict
+    ???
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_fields_invalid
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_daily.py::test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search
+FAILED tests_inago/test_step21_daily.py::test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+FAILED tests_inago/test_step21_daily.py::test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[old_fields]
+4 failed in 3.37s

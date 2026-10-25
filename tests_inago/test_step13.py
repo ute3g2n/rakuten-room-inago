@@ -107,6 +107,7 @@ def test_search_task_uses_fresh_attempt_after_saved_query_changes(
         lambda _connection, attempt_id: rows.get(attempt_id),
     )
     monkeypatch.setattr(orchestrator, "_draft_count", lambda *_args: 0)
+    monkeypatch.setattr(orchestrator, "_theme_draft_count", lambda *_args, **_kwargs: 0)
     monkeypatch.setattr(
         orchestrator,
         "_process_search_result",
@@ -123,7 +124,10 @@ def test_search_task_uses_fresh_attempt_after_saved_query_changes(
         settings_version=SETTINGS_VERSION,
         seed="seed",
         target_date="2026-10-23",
-        state={"used_queries": ["previous compound theme"]},
+        state={
+            "used_queries": ["previous compound theme"],
+            "theme_targets": {task["theme_id"]: 5},
+        },
         ports=type("Ports", (), {"room_port": object()})(),
         clock=FakeClock(datetime.fromisoformat(NOW)),
         data_root=tmp_path,
@@ -185,6 +189,7 @@ def test_search_task_stops_after_three_compatible_attempts(
         lambda _connection, attempt_id: rows.get(attempt_id),
     )
     monkeypatch.setattr(orchestrator, "_draft_count", lambda *_args: 0)
+    monkeypatch.setattr(orchestrator, "_theme_draft_count", lambda *_args, **_kwargs: 0)
     monkeypatch.setattr(
         orchestrator,
         "_process_search_result",
@@ -193,7 +198,9 @@ def test_search_task_stops_after_three_compatible_attempts(
         ),
     )
     monkeypatch.setattr(orchestrator, "_save_state", lambda *_args: None)
-    state: dict[str, object] = {"used_queries": []}
+    state: dict[str, object] = {
+        "used_queries": [], "theme_targets": {task["theme_id"]: 5}
+    }
 
     _search_task(
         FakeConnection(),
@@ -1205,18 +1212,23 @@ def test_three_theme_five_each_completes_15_and_starts_metrics_immediately(
     )
 
 
-def test_related_queries_are_used_without_parent_fallback_for_all_untried_themes(
+def test_related_queries_then_parent_fallback_for_all_untried_themes(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, untried=True, posts_per_search=0)
     outcome = _run(runtime_case, bundle)
     queries = [request.query for request in bundle.room.requests]
     assert outcome.status == "shortfall" and outcome.committed_count == 0
-    assert outcome.attempt_used == 31
-    assert len(queries) == 31 and len(set(queries)) == 31
+    assert outcome.attempt_used == 61
+    assert len(queries) == 61 and len(set(queries)) == 61
     assert len(set(bundle.planner.calls)) == 30
-    assert {item.query_kind for item in bundle.room.requests} == {"related"}
-    assert all(item.query_kind != "theme_fallback" for item in bundle.room.requests)
+    assert {item.query_kind for item in bundle.room.requests} == {
+        "related", "theme_fallback"
+    }
+    for theme in {request.parent_refs[0] for request in bundle.room.requests}:
+        requests = [r for r in bundle.room.requests if r.parent_refs[0] == theme]
+        assert requests[-1].query_kind == "theme_fallback"
+        assert all(r.query_kind == "related" for r in requests[:-1])
     assert all(request.max_posts == 25 for request in bundle.room.requests)
     assert bundle.metrics.calls
 
@@ -1819,10 +1831,12 @@ def test_pending_historical_reports_are_applied_before_search(
             "SELECT COUNT(*) FROM search_attempt WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
         # This fixture supplies one related word for each of 30 active themes.
-        # Related hits do not also schedule a parent-theme fallback search.
-        == len(bundle.room.requests) == 30
+        # Empty related results require one parent-theme replenishment search.
+        == len(bundle.room.requests) == 60
     )
-    assert {request.query_kind for request in bundle.room.requests} == {"related"}
+    assert {request.query_kind for request in bundle.room.requests} == {
+        "related", "theme_fallback"
+    }
 
 
 def test_orchestration_error_records_only_safe_internal_reason_code() -> None:

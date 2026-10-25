@@ -261,11 +261,13 @@ def test_component_snapshot_feeds_key_and_room_without_changing_raw_words(retry_
     assert key.requests[0].input_payload["keywords"]["query_word"] in {"下着", "靴下"}
     assert [item.query for item in plan.related] == ["電子レンジ 調理"]
     tasks = daily._make_tasks([plan], phase="initial", first_number=1)
-    assert [item["query"] for item in tasks] == ["電子レンジ 調理"]
-    assert plan.fallback is None
+    assert [item["query"] for item in tasks] == [
+        "電子レンジ 調理", port.requests[0].parent_word
+    ]
+    assert plan.fallback.query == port.requests[0].parent_word
 
 
-def test_raw_trends_hits_with_no_key_selection_do_not_use_query_fallback():
+def test_raw_trends_hits_with_no_key_selection_use_query_fallback():
     plan = DurableTrendsThemePlanner._plan(
         THEME_ID,
         "肉・魚・たんぱく食材",
@@ -280,8 +282,10 @@ def test_raw_trends_hits_with_no_key_selection_do_not_use_query_fallback():
     )
 
     assert plan.related == ()
-    assert plan.fallback is None
-    assert daily._make_tasks([plan], phase="initial", first_number=1) == []
+    assert plan.fallback.query == "肉"
+    tasks = daily._make_tasks([plan], phase="initial", first_number=1)
+    assert len(tasks) == 1 and tasks[0]["query"] == "肉"
+    assert tasks[0]["query_kind"] == "theme_fallback"
 
 
 def test_compound_theme_fallback_uses_exact_trends_parent_query(retry_case):
@@ -372,7 +376,7 @@ def test_resume_migrates_legacy_fallback_plan_and_task_to_saved_trends_query(
     ).fetchone()[0] == 1
 
 
-def test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_queries_exist(
+def test_resume_keeps_parent_fallback_after_consumed_related_queries(
     resume_runtime, retry_case, monkeypatch
 ):
     case, bundle = resume_runtime
@@ -390,7 +394,7 @@ def test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_querie
         seed="SEED-1",
     )
     assert len(plan.related) == 1
-    assert plan.fallback is None
+    assert plan.fallback is not None
     legacy_plan = replace(
         plan,
         fallback=daily.DailySearchPlan(
@@ -438,11 +442,13 @@ def test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_querie
         ).fetchone()[0]
     )
     state = saved_root["daily_orchestration"]
-    assert searched == []
-    assert state["plans"]["initial:01"]["fallback"] is None
-    assert state["tasks"] == [processed_task]
-    assert state["tasks"][0]["task_id"] != legacy_fallback_task_id
-    assert state["task_cursor"] == 1
+    assert len(searched) == 1
+    assert searched[0]["query_kind"] == "theme_fallback"
+    assert searched[0]["query"] == plan.fallback.query
+    assert state["plans"]["initial:01"]["fallback"]["query"] == plan.fallback.query
+    assert state["tasks"][0] == processed_task
+    assert state["tasks"][1]["task_id"] == legacy_fallback_task_id
+    assert state["task_cursor"] == 2
     assert state["processed_attempts"] == processed_attempts
     assert state["handled_offer_keys"] == [committed_offer_key]
     assert outcome.committed_count == 1
@@ -451,7 +457,7 @@ def test_resume_removes_legacy_parent_fallback_plan_and_task_when_related_querie
     ).fetchone()[0] == 1
 
 
-def test_resume_removes_legacy_parent_fallback_when_raw_hits_have_no_key_selection(
+def test_resume_keeps_parent_fallback_when_raw_hits_have_no_key_selection(
     resume_runtime, retry_case, monkeypatch
 ):
     case, bundle = resume_runtime
@@ -541,10 +547,12 @@ def test_resume_removes_legacy_parent_fallback_when_raw_hits_have_no_key_selecti
         ).fetchone()[0]
     )
     state = saved_root["daily_orchestration"]
-    assert searched == []
-    assert state["plans"]["initial:01"]["fallback"] is None
-    assert state["tasks"] == []
-    assert state["task_cursor"] == 0
+    assert len(searched) == 1
+    assert searched[0]["query_kind"] == "theme_fallback"
+    assert searched[0]["query"] == plan.fallback.query
+    assert state["plans"]["initial:01"]["fallback"]["query"] == plan.fallback.query
+    assert len(state["tasks"]) == 1
+    assert state["task_cursor"] == 1
     assert state["processed_attempts"] == original_state["processed_attempts"]
     assert state["handled_offer_keys"] == [committed_offer_key]
     assert outcome.committed_count == 1

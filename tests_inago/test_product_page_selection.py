@@ -284,7 +284,7 @@ def _checkpoint(connection, run_id: str) -> dict:
     return json.loads(value[0])["daily_orchestration"]
 
 
-def test_first_copy_waits_for_fifteen_selected_and_all_ocr(
+def test_each_theme_commits_after_its_selected_products_finish_ocr(
     runtime_case: RuntimeCase,
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=25)
@@ -295,7 +295,7 @@ def test_first_copy_waits_for_fifteen_selected_and_all_ocr(
 
     def copy_after_ocr(request):
         copy_ocr_counts.append(len(ocr.calls))
-        assert len(ocr.calls) == 15
+        assert len(ocr.calls) in {5, 10, 15}
         return original_copy(request)
 
     bundle.runner.run = copy_after_ocr
@@ -306,7 +306,7 @@ def test_first_copy_waits_for_fifteen_selected_and_all_ocr(
     assert outcome.committed_count == 15
     assert len(ocr.calls) == 15
     assert len(set(ocr.calls)) == 15
-    assert copy_ocr_counts == [15] * 15
+    assert copy_ocr_counts == [5] * 5 + [10] * 5 + [15] * 5
     assert len(bundle.runner.requests) == 15
     state = _checkpoint(runtime_case.connection, "PRODUCT-SELECT-15")
     selected = state["selected_products"]
@@ -319,6 +319,17 @@ def test_other_theme_supplement_does_not_resolve_failed_slot(
     runtime_case: RuntimeCase, monkeypatch
 ) -> None:
     bundle = _make_ports(runtime_case, posts_per_search=25)
+    original_search = bundle.room.search
+
+    def only_five_candidates_per_theme(request):
+        response = original_search(request)
+        response["posts"] = response["posts"][:5]
+        response["loaded_posts"] = len(response["posts"])
+        return response
+
+    # Keep this case about a replacement from a different theme. A sixth
+    # available same-theme candidate now replenishes directly from saved rows.
+    bundle.room.search = only_five_candidates_per_theme
     _enable_product_page_pipeline(bundle, runtime_case)
     ocr = _FixtureOCR()
     original_generate = orchestrator.generate_and_commit_copy
@@ -662,9 +673,9 @@ def test_resume_reuses_selected_registry_and_completed_ocr(
     first = _run(runtime_case, bundle, ocr, run_id="PRODUCT-RESUME-15")
     assert first.status == "partial"
     assert first.committed_count == 4
-    assert len(ocr.calls) == 15
+    assert len(ocr.calls) == 5
     saved = _checkpoint(runtime_case.connection, "PRODUCT-RESUME-15")
-    assert len(saved["selected_products"]) == 15
+    assert len(saved["selected_products"]) == 5
     assert saved["active_resume_errors"]
 
     monkeypatch.setattr(orchestrator, "generate_and_commit_copy", original_generate)
@@ -678,10 +689,10 @@ def test_resume_reuses_selected_registry_and_completed_ocr(
     assert len(ocr.calls) == 15
     assert len(bundle.runner.requests) == 15
     final_state = _checkpoint(runtime_case.connection, "PRODUCT-RESUME-15")
-    assert [item["offer_key"] for item in final_state["selected_products"]] == [
+    assert [item["offer_key"] for item in final_state["selected_products"][:5]] == [
         item["offer_key"] for item in saved["selected_products"]
     ]
-    assert [item["ocr_ref"] for item in final_state["selected_products"]] == [
+    assert [item["ocr_ref"] for item in final_state["selected_products"][:5]] == [
         item["ocr_ref"] for item in saved["selected_products"]
     ]
     assert all(item["status"] == "committed" for item in final_state["selected_products"])

@@ -1,0 +1,43 @@
+{
+  "regression": {
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0
+  },
+  "full_daily_run": "NOT_RUN",
+  "files": [
+    {
+      "path": "automation/inago/orchestrator.py",
+      "sha256": "f3ac4de9e39251298b4d8cf9e6040673673567b4d4b4532eb41da64b9e9a8cf9"
+    },
+    {
+      "path": "automation/inago/daily_theme_planner.py",
+      "sha256": "6a18de0d44521232d1fa7f3e1b98c8ae3faf6b0f9c7f087c761558ad5c14b7f4"
+    },
+    {
+      "path": "tests_inago/test_theme_fallback_replenishment.py",
+      "sha256": "96903048f345056df6e8dc882f6cfb7814c11639bc71eb22851dd6de7b559eda"
+    },
+    {
+      "path": "tests_inago/test_theme_fallback_capture_recovery.py",
+      "sha256": "cf5b90e7741e4dfe3031b4e5727727c65cd7648721597daa947a3dea9fea139f"
+    },
+    {
+      "path": "tests_inago/test_step13.py",
+      "sha256": "512ada4d39c9e7b366d2dd01d9085e18abd08161045f168eea3c335ded360448"
+    },
+    {
+      "path": "tests_inago/test_step21_daily.py",
+      "sha256": "65a631b11fc86ca8e94e6d26d674d4c371f4d5074969ec985a63248f05073aa5"
+    },
+    {
+      "path": "tests_inago/test_theme_query_components.py",
+      "sha256": "bcec43e259383cd37fec68296e5963a12674cb6eafb94a34b11e7fe5e2df1073"
+    },
+    {
+      "path": "tests_inago/test_product_page_selection.py",
+      "sha256": "0bbe6d5cc6389fb10db31303c182cf11f79d1e1be8e31e5ad7d702b2b31ae234"
+    }
+  ]
+}

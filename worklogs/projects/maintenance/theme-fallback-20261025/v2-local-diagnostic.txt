@@ -1,0 +1,13 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning ____
+tests_inago\test_step21_daily.py:978: in test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+    assert resumed.status == "complete" and resumed.committed_count == 15, resumed
+E   AssertionError: DailyRunOutcome(status='failed', run_id='STEP13-RUN', target_date='2026-10-12', committed_count=0, attempt_used=0, met...inago/test_step21_daily.py', 'relation': 'raised'}], 'exception_frames_truncated': False}, 'phase': 'orchestration'},))
+E   assert ('failed' == 'complete'
+E
+E     - complete
+E     + failed)
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_daily.py::test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+1 failed in 0.93s

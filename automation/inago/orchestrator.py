@@ -1407,11 +1407,6 @@ def _validate_plan(
                 and plan.has_related_words is not True
                 and not allow_legacy_query_fallback
             )
-            or (
-                plan.fallback is not None
-                and plan.has_related_words is True
-                and not allow_legacy_query_fallback
-            )
         ):
             raise DailyOrchestrationError("theme_snapshot_or_related_queue_missing")
     else:
@@ -1648,10 +1643,57 @@ def _reconcile_pending_theme_tasks(
                 "selected_word_ref": None,
             }
         reconciled.append(raw_task)
-    state["tasks"] = processed + [
-        {**task, "task_number": cursor + offset + 1}
-        for offset, task in enumerate(reconciled)
-    ]
+    theme_has_tasks = any(
+        task.get("phase") == event_kind and task.get("theme_id") == plan.theme_id
+        for task in tasks
+    )
+    theme_was_enqueued = theme_has_tasks
+    if event_kind == "initial":
+        initial_themes = state.get("initial_theme_ids", [])
+        theme_was_enqueued = theme_was_enqueued or plan.theme_id in initial_themes[
+            :int(state.get("initial_plan_index", 0))
+        ]
+    elif event_kind == "additional":
+        for key, saved_plan in state.get("plans", {}).items():
+            match = re.fullmatch(r"additional:(\d{2})", key)
+            if (
+                match is not None
+                and int(match.group(1)) <= int(state.get("additional_events", 0))
+                and isinstance(saved_plan, dict)
+                and saved_plan.get("theme_id") == plan.theme_id
+            ):
+                theme_was_enqueued = True
+                break
+    if theme_was_enqueued and plan.fallback is not None and not any(
+        task.get("phase") == event_kind
+        and task.get("theme_id") == plan.theme_id
+        and task.get("kind") == "theme_fallback"
+        for task in (*processed, *reconciled)
+    ):
+        # Task numbers identify persisted search attempts. Preserve every
+        # existing number when inserting a missing legacy replenishment task.
+        number = max((int(task["task_number"]) for task in tasks), default=0) + 1
+        fallback_task = _task(plan.fallback, phase=event_kind, ordinal=number)
+        plan_order = [
+            value.get("theme_id")
+            for _, value in sorted(
+                state.get("plans", {}).items(),
+                key=lambda item: (not item[0].startswith("initial:"), item[0]),
+            )
+            if isinstance(value, dict)
+        ]
+        following_themes = (
+            set(plan_order[plan_order.index(plan.theme_id) + 1:])
+            if plan.theme_id in plan_order
+            else set()
+        )
+        insertion = next(
+            (index for index, task in enumerate(reconciled)
+             if task.get("theme_id") in following_themes),
+            len(reconciled),
+        )
+        reconciled.insert(insertion, fallback_task)
+    state["tasks"] = processed + reconciled
 
 
 def _normalize_theme_query_fallback(
@@ -1665,8 +1707,6 @@ def _normalize_theme_query_fallback(
     if plan.acquisition_status == "deadline":
         return replace(plan, fallback=None, has_related_words=None)
     has_raw_words = bool(has_related_words)
-    if has_raw_words:
-        return replace(plan, fallback=None, has_related_words=True)
     fallback_query = query_word or (
         plan.fallback.query if plan.fallback is not None else None
     )
@@ -1687,7 +1727,7 @@ def _normalize_theme_query_fallback(
             "theme_fallback",
             "theme_fallback",
         ),
-        has_related_words=False,
+        has_related_words=has_raw_words,
     )
 
 
@@ -1741,13 +1781,16 @@ def _get_plan(
             event_kind=event_kind,
             ordinal=ordinal,
         )
-        if normalized_plan != plan:
-            _reconcile_pending_theme_tasks(
-                state,
-                plan=normalized_plan,
-                event_kind=event_kind,
-            )
+        previous_tasks = state.get("tasks")
+        _reconcile_pending_theme_tasks(
+            state,
+            plan=normalized_plan,
+            event_kind=event_kind,
+        )
+        if normalized_plan != plan or state.get("tasks") != previous_tasks:
             state["plans"][key] = _plan_to_dict(normalized_plan)
+            if legacy_plan:
+                state["plans"][key]["legacy_acquisition"] = True
             _save_state(connection, run_id, state)
         plan = normalized_plan
         _validate_plan(plan, theme_id, allow_legacy_acquisition=legacy_plan)
@@ -2035,13 +2078,10 @@ def _validate_plan_snapshot(
     ):
         raise DailyOrchestrationError("theme_raw_related_word_state_mismatch")
     if not allow_legacy_query_fallback:
-        if has_related_words and plan.fallback is not None:
-            raise DailyOrchestrationError("theme_raw_hits_have_parent_fallback")
-        if not has_related_words:
-            if plan.fallback is None:
-                raise DailyOrchestrationError("theme_raw_zero_missing_query_fallback")
-            if query_word is not None and plan.fallback.query != query_word:
-                raise DailyOrchestrationError("theme_raw_zero_fallback_query_mismatch")
+        if plan.fallback is None:
+            raise DailyOrchestrationError("theme_missing_query_fallback")
+        if query_word is not None and plan.fallback.query != query_word:
+            raise DailyOrchestrationError("theme_fallback_query_mismatch")
     return has_related_words, query_word
 
 
@@ -2099,7 +2139,10 @@ def _append_initial_theme(
         planner=ports.theme_planner,
     )
     state["tasks"].extend(
-        _make_tasks((plan,), phase="initial", first_number=len(state["tasks"]) + 1)
+        _make_tasks(
+            (plan,), phase="initial",
+            first_number=max((int(task["task_number"]) for task in state["tasks"]), default=0) + 1,
+        )
     )
     state["theme_targets"][theme_id] = PER_THEME_TARGET
     state["initial_plan_index"] = index + 1
@@ -2145,11 +2188,14 @@ def _add_additional_theme(
         planner=ports.theme_planner,
     )
     state["tasks"].extend(
-        _make_tasks((plan,), phase="additional", first_number=len(state["tasks"]) + 1)
+        _make_tasks(
+            (plan,), phase="additional",
+            first_number=max((int(task["task_number"]) for task in state["tasks"]), default=0) + 1,
+        )
     )
     state["theme_targets"][event.theme_id] = min(
         PER_THEME_TARGET,
-        max(0, DAILY_TARGET - _selection_count(connection, run_id, state)),
+        max(0, DAILY_TARGET - _draft_count(connection, run_id)),
     )
     state["additional_events"] = ordinal
     state["phase"] = "additional"
@@ -2440,7 +2486,10 @@ def _theme_draft_count(
     state: Mapping[str, Any] | None = None,
 ) -> int:
     if state is not None:
-        return _selection_count(connection, run_id, state, theme_id=theme_id)
+        return sum(
+            assigned_theme == theme_id
+            for assigned_theme in _committed_offer_themes(connection, run_id, state).values()
+        )
     return int(
         connection.execute(
             """
@@ -3152,6 +3201,7 @@ def _select_attempt_candidates(
     clock: Clock,
     data_root: Path,
     recovering_offer_keys: set[str] | None = None,
+    recapture_missing_inputs: bool = False,
 ) -> None:
     from automation.inago.product_page_inputs import selection_manifest, upsert_selection
 
@@ -3228,6 +3278,15 @@ def _select_attempt_candidates(
                 str(offer["item_id"]),
                 expected_ref=page_ref,
             )
+            if page_document is None and recapture_missing_inputs:
+                page_document = _capture_saved_product_page(
+                    connection,
+                    run_id=run_id,
+                    attempt_id=attempt_id,
+                    offer_key=offer_key,
+                    ports=ports,
+                    data_root=data_root,
+                )
             if page_document is not None:
                 _trace_product_stage(
                     data_root,
@@ -3252,6 +3311,7 @@ def _select_attempt_candidates(
             ):
                 failure = {
                     "offer_key": offer_key,
+                    "theme_id": selected_theme,
                     "page_ref": page_ref,
                     "source_attempt_id": attempt_id,
                     "code": "product_page_capture_failed",
@@ -3538,7 +3598,7 @@ def _recover_product_page_capture_failures(
         _save_state(connection, run_id, state)
 
     remaining_total = max(0, DAILY_TARGET - _selection_count(connection, run_id, state))
-    recovered_by_attempt: dict[str, list[Representative]] = {}
+    recovered_by_attempt: dict[tuple[str, str], list[Representative]] = {}
     eligible_failures: list[tuple[int, int, str, str, str]] = []
     attempt_order: dict[str, int] = {}
     for failure in failures:
@@ -3548,9 +3608,11 @@ def _recover_product_page_capture_failures(
             continue
         attempt = _attempt_row(connection, attempt_id)
         row = _product_capture_source_row(connection, attempt_id, offer_key)
-        theme_id = _task_theme_for_attempt(
-            connection, run_id=run_id, attempt_id=attempt_id, state=state
-        )
+        theme_id = failure.get("theme_id")
+        if not isinstance(theme_id, str):
+            theme_id = _task_theme_for_attempt(
+                connection, run_id=run_id, attempt_id=attempt_id, state=state
+            )
         if attempt is None or row is None or theme_id is None:
             continue
         attempt_order[attempt_id] = int(attempt["attempt_no"])
@@ -3609,7 +3671,7 @@ def _recover_product_page_capture_failures(
         source_row = _product_capture_source_row(connection, attempt_id, offer_key)
         if source_row is None:
             continue
-        recovered_by_attempt.setdefault(attempt_id, []).append(
+        recovered_by_attempt.setdefault((attempt_id, theme_id), []).append(
             Representative(
                 offer_key=offer_key,
                 source_key=str(source_row["source_key"]),
@@ -3624,14 +3686,9 @@ def _recover_product_page_capture_failures(
 
     from automation.inago.product_page_inputs import load_product_page_inputs
 
-    for attempt_id, recovered in sorted(
-        recovered_by_attempt.items(), key=lambda item: attempt_order.get(item[0], 0)
+    for (attempt_id, theme_id), recovered in sorted(
+        recovered_by_attempt.items(), key=lambda item: attempt_order.get(item[0][0], 0)
     ):
-        theme_id = _task_theme_for_attempt(
-            connection, run_id=run_id, attempt_id=attempt_id, state=state
-        )
-        if theme_id is None:
-            continue
         evidence_rows = connection.execute(
             "SELECT source_key,evidence_ref FROM source_post WHERE attempt_id=?",
             (attempt_id,),
@@ -3652,6 +3709,9 @@ def _recover_product_page_capture_failures(
             representatives=tuple(recovered),
             eligible_representatives=tuple(recovered),
         )
+        group_offer_keys = {
+            representative.offer_key for representative in recovered
+        }
         _select_attempt_candidates(
             connection,
             run_id=run_id,
@@ -3664,9 +3724,7 @@ def _recover_product_page_capture_failures(
             ports=ports,
             clock=clock,
             data_root=data_root,
-            recovering_offer_keys={
-                representative.offer_key for representative in recovered
-            },
+            recovering_offer_keys=group_offer_keys,
         )
         _cleanup_unselected_product_inputs(
             connection,
@@ -3675,7 +3733,7 @@ def _recover_product_page_capture_failures(
             candidates=[
                 candidate
                 for candidate in candidates
-                if candidate.get("offer_key") in recovered_unselected
+                if candidate.get("offer_key") in group_offer_keys
             ],
             data_root=data_root,
             target_date=target_date,
@@ -4283,14 +4341,16 @@ def _process_search_result(
     clock: Clock,
     data_root: Path,
     on_draft_commit: Callable[[sqlite3.Connection], None] | None = None,
+    reuse_saved_result: bool = False,
 ) -> None:
     row = _attempt_row(connection, attempt_id)
     if row is None or row["ended_at"] is None:
         raise DailyOrchestrationError("search_result_not_durably_finalized")
     processed = state.setdefault("processed_attempts", [])
-    if attempt_id in processed:
+    already_processed = attempt_id in processed
+    if already_processed and not reuse_saved_result:
         return
-    if row["source_status"] != "observed":
+    if row["source_status"] != "observed" and not already_processed:
         state["source_failures"] = int(state.get("source_failures", 0)) + 1
     persisted_identities = (
         dict(identities)
@@ -4339,19 +4399,49 @@ def _process_search_result(
         candidates, evidence_by_source = _attempt_product_candidates(
             connection, run_id, attempt_id, persisted_identities
         )
-        _select_attempt_candidates(
-            connection,
-            run_id=run_id,
-            target_date=target_date,
-            theme_id=theme_id,
-            attempt_id=attempt_id,
-            evaluation=evaluation,
-            evidence_by_source=evidence_by_source,
-            state=state,
-            ports=ports,
-            clock=clock,
-            data_root=data_root,
-        )
+        while not state.get("source_stopped"):
+            previous_order = int(state.get("next_selection_order", 1))
+            previous_active = {
+                str(entry["offer_key"]) for entry in _active_selected_entries(state)
+            }
+            _select_attempt_candidates(
+                connection,
+                run_id=run_id,
+                target_date=target_date,
+                theme_id=theme_id,
+                attempt_id=attempt_id,
+                evaluation=evaluation,
+                evidence_by_source=evidence_by_source,
+                state=state,
+                ports=ports,
+                clock=clock,
+                data_root=data_root,
+                recapture_missing_inputs=reuse_saved_result,
+            )
+            _process_selected_copies(
+                connection,
+                run_id=run_id,
+                target_date=target_date,
+                settings_version=settings_version,
+                state=state,
+                ports=ports,
+                clock=clock,
+                data_root=data_root,
+                on_draft_commit=on_draft_commit,
+            )
+            if (
+                _draft_count(connection, run_id) >= DAILY_TARGET
+                or _theme_draft_count(connection, run_id, theme_id, state=state)
+                >= state["theme_targets"][theme_id]
+                or (
+                    int(state.get("next_selection_order", 1)) == previous_order
+                    and {
+                        str(entry["offer_key"])
+                        for entry in _active_selected_entries(state)
+                    } == previous_active
+                )
+            ):
+                break
         _cleanup_unselected_product_inputs(
             connection,
             run_id=run_id,
@@ -4364,18 +4454,6 @@ def _process_search_result(
         if attempt_id not in processed:
             processed.append(attempt_id)
         _save_state(connection, run_id, state)
-        if _selection_count(connection, run_id, state) >= DAILY_TARGET:
-            _process_selected_copies(
-                connection,
-                run_id=run_id,
-                target_date=target_date,
-                settings_version=settings_version,
-                state=state,
-                ports=ports,
-                clock=clock,
-                data_root=data_root,
-                on_draft_commit=on_draft_commit,
-            )
         return
     handled = set(state.get("handled_offer_keys", []))
     for representative in evaluation.eligible_representatives:
@@ -4518,6 +4596,49 @@ def _search_task(
     used_queries = state.setdefault("used_queries", [])
     first_id = _task_attempt_id(run_id, task_number, 1)
     if query in used_queries and _attempt_row(connection, first_id) is None:
+        if task.get("kind") == "theme_fallback":
+            # Replenishment never repeats an already executed ROOM query.
+            # Its unused saved candidates may still fill this theme's slots.
+            saved_attempts = connection.execute(
+                "SELECT attempt_id FROM search_attempt WHERE run_id=? AND query=? "
+                "AND ended_at IS NOT NULL ORDER BY attempt_no",
+                (run_id, query),
+            ).fetchall()
+            for saved_attempt in saved_attempts:
+                if state.get("source_stopped") or (
+                    _draft_count(connection, run_id) >= DAILY_TARGET
+                    or _theme_draft_count(
+                        connection, run_id, str(task["theme_id"]), state=state
+                    ) >= state["theme_targets"][str(task["theme_id"])]
+                ):
+                    break
+                attempt_id = str(saved_attempt["attempt_id"])
+                reuse = {
+                    "task_id": task["task_id"],
+                    "theme_id": task["theme_id"],
+                    "query_kind": task["query_kind"],
+                    "source_attempt_id": attempt_id,
+                }
+                recorded = state.setdefault("reused_search_results", [])
+                if reuse not in recorded:
+                    recorded.append(reuse)
+                    _save_state(connection, run_id, state)
+                _process_search_result(
+                    connection,
+                    run_id=run_id,
+                    target_date=target_date,
+                    settings_version=settings_version,
+                    theme_id=str(task["theme_id"]),
+                    seed=seed,
+                    attempt_id=attempt_id,
+                    identities=None,
+                    state=state,
+                    ports=ports,
+                    clock=clock,
+                    data_root=data_root,
+                    on_draft_commit=on_draft_commit,
+                    reuse_saved_result=True,
+                )
         return
     local_attempt = 1
     compatible_attempt_count = 0
@@ -4526,6 +4647,10 @@ def _search_task(
         if state.get("source_stopped"):
             return
         if _draft_count(connection, run_id) >= DAILY_TARGET:
+            return
+        if _theme_draft_count(
+            connection, run_id, str(task["theme_id"]), state=state
+        ) >= state["theme_targets"][str(task["theme_id"])]:
             return
         run_row = connection.execute(
             "SELECT attempt_used FROM run WHERE run_id=?", (run_id,)
@@ -5265,8 +5390,36 @@ def run_daily(
                 )
                 _sync_committed_selection_manifest(connection, run_id, state)
                 _save_state(connection, run_id, state)
+                if state.get("product_page_pipeline") and _active_selected_entries(state):
+                    # Older checkpoints marked searches processed before
+                    # copying their selected products. Finish those saved
+                    # results, including replacement candidates, before any
+                    # next-query or replenishment decision.
+                    active_sources = dict.fromkeys(
+                        (str(entry["source_attempt_id"]), str(entry["theme_id"]))
+                        for entry in _active_selected_entries(state)
+                        if isinstance(entry.get("source_attempt_id"), str)
+                        and isinstance(entry.get("theme_id"), str)
+                    )
+                    for attempt_id, theme_id in active_sources:
+                        _process_search_result(
+                            connection,
+                            run_id=run_id,
+                            target_date=target_date,
+                            settings_version=settings_version,
+                            theme_id=theme_id,
+                            seed=seed,
+                            attempt_id=attempt_id,
+                            identities=None,
+                            state=state,
+                            ports=ports,
+                            clock=system_clock,
+                            data_root=root,
+                            on_draft_commit=on_draft_commit,
+                            reuse_saved_result=True,
+                        )
                 if state.get("product_page_pipeline") and (
-                    _selection_count(connection, run_id, state) >= DAILY_TARGET
+                    _active_selected_entries(state)
                     or state.get("selection_flush_due") is True
                 ):
                     _process_selected_copies(

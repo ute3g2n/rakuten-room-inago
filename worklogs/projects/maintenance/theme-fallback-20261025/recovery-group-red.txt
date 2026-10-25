@@ -1,0 +1,10 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs ____
+tests_inago\test_theme_fallback_capture_recovery.py:65: in test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs
+    assert selected[offer_key]["theme_id"] == theme
+           ^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shop-g04-t05:item-07'
+=========================== short test summary info ===========================
+FAILED tests_inago/test_theme_fallback_capture_recovery.py::test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs
+1 failed in 1.22s

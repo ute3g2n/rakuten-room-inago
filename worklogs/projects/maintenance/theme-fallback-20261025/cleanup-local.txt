@@ -1,0 +1,13 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+____ test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs ____
+tests_inago\test_theme_fallback_capture_recovery.py:68: in test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs
+    assert len(capture.requests) == 2
+E   assert 0 == 2
+E    +  where 0 = len([])
+E    +    where [] = <tests_inago.test_product_page_selection._FixtureProductPageCapture object at 0x000002501E196930>.requests
+---------------------------- Captured stdout call -----------------------------
+selection test checkpoint diagnostic: C:\project\rakuten-room-inago\worklogs\projects\maintenance\theme-fallback-20261025\private\cleanup-diagnostics\FALLBACK-RECOVERY-GROUPS-1284d1f180d74373887c2a7a206c9620.json
+=========================== short test summary info ===========================
+FAILED tests_inago/test_theme_fallback_capture_recovery.py::test_recovery_of_two_themes_from_one_attempt_keeps_later_group_inputs
+1 failed, 1 passed in 6.41s

@@ -1,0 +1,235 @@
+....................................................F.......FF......FFFF [ 40%]
+FFFFFFF................................................................. [ 81%]
+......F..........................                                        [100%]
+================================== FAILURES ===================================
+__ test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search __
+tests_inago\test_step21_daily.py:819: in test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search
+    assert [request.query for request in bundle.room.requests] == [
+E   AssertionError: assert ['ペットフード', '履物', 'スイーツ'] == ['ペットフード', '靴・履物', '菓子・スイーツ']
+E
+E     At index 1 diff: '履物' != '靴・履物'
+E     Use -v to get more diff
+____ test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning ____
+tests_inago\test_step21_daily.py:966: in test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+    resumed = _run(runtime_case, bundle)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5127: in run_daily
+    _, cleanup_state = _daily_state(run["checkpoint"])
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+automation\inago\orchestrator.py:585: in _daily_state
+    state = _migrate_daily_checkpoint_v2(state)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+automation\inago\orchestrator.py:512: in _migrate_daily_checkpoint_v2
+    raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_fields_invalid
+_________ test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit _________
+tests_inago\test_step21_daily.py:997: in test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit
+    assert state["schema_version"] == 3 and state["rules_version"] == "requirements-1.5"
+E   assert (4 == 3)
+___ test_resume_from_saved_plan_checks_contents_before_queueing[old_fields] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1540: in _plan_from_dict
+    raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_fields_invalid
+_ test_resume_from_saved_plan_checks_contents_before_queueing[missing_fallback] _
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1540: in _plan_from_dict
+    raise DailyOrchestrationError("saved_theme_plan_fields_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_fields_invalid
+_ test_resume_from_saved_plan_checks_contents_before_queueing[foreign_theme] __
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1437: in _validate_plan
+    raise DailyOrchestrationError("theme_search_identity_mismatch")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_search_identity_mismatch
+__ test_resume_from_saved_plan_checks_contents_before_queueing[wrong_rules] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1380: in _validate_plan
+    raise DailyOrchestrationError("theme_plan_rules_version_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_plan_rules_version_invalid
+___ test_resume_from_saved_plan_checks_contents_before_queueing[wrong_kind] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1449: in _validate_plan
+    raise DailyOrchestrationError("theme_search_kind_or_refs_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_search_kind_or_refs_invalid
+__ test_resume_from_saved_plan_checks_contents_before_queueing[foreign_word] __
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1455: in _validate_plan
+    raise DailyOrchestrationError("theme_search_word_ref_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_search_word_ref_invalid
+__ test_resume_from_saved_plan_checks_contents_before_queueing[wrong_order] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1472: in _validate_plan
+    raise DailyOrchestrationError("theme_selected_order_changed")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_selected_order_changed
+_ test_resume_from_saved_plan_checks_contents_before_queueing[fallback_word] __
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1460: in _validate_plan
+    raise DailyOrchestrationError("theme_fallback_contains_related_ref")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_fallback_contains_related_ref
+_ test_resume_from_saved_plan_checks_contents_before_queueing[duplicate_task] _
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1462: in _validate_plan
+    raise DailyOrchestrationError("theme_search_task_duplicated")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_search_task_duplicated
+___ test_resume_from_saved_plan_checks_contents_before_queueing[bad_lists] ____
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1564: in _plan_from_dict
+    raise DailyOrchestrationError("saved_theme_plan_lists_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: saved_theme_plan_lists_invalid
+__ test_resume_from_saved_plan_checks_contents_before_queueing[empty_query] ___
+tests_inago\test_step21_daily.py:1172: in test_resume_from_saved_plan_checks_contents_before_queueing
+    second = _run(runtime_case, bundle)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests_inago\test_step13.py:748: in _run
+    return run_daily(
+automation\inago\orchestrator.py:5235: in run_daily
+    _reconcile_saved_theme_plans(
+automation\inago\orchestrator.py:1893: in _reconcile_saved_theme_plans
+    _get_plan(
+automation\inago\orchestrator.py:1755: in _get_plan
+    plan = _plan_from_dict(
+automation\inago\orchestrator.py:1579: in _plan_from_dict
+    _validate_plan(
+automation\inago\orchestrator.py:1443: in _validate_plan
+    raise DailyOrchestrationError("theme_search_input_invalid")
+E   automation.inago.orchestrator.DailyOrchestrationError: theme_search_input_invalid
+____________ test_images_are_deleted_only_after_each_draft_commit _____________
+tests_inago\test_product_page_cleanup.py:143: in test_images_are_deleted_only_after_each_draft_commit
+    assert outcome.status == "complete"
+E   AssertionError: assert 'partial' == 'complete'
+E
+E     - complete
+E     + partial
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_daily.py::test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search
+FAILED tests_inago/test_step21_daily.py::test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning
+FAILED tests_inago/test_step21_daily.py::test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[old_fields]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[missing_fallback]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[foreign_theme]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[wrong_rules]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[wrong_kind]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[foreign_word]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[wrong_order]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[fallback_word]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[duplicate_task]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[bad_lists]
+FAILED tests_inago/test_step21_daily.py::test_resume_from_saved_plan_checks_contents_before_queueing[empty_query]
+FAILED tests_inago/test_product_page_cleanup.py::test_images_are_deleted_only_after_each_draft_commit
+15 failed, 162 passed in 172.73s (0:02:52)

@@ -1,0 +1,10 @@
+F..                                                                      [100%]
+================================== FAILURES ===================================
+_ test_resume_restores_missing_fallback_without_renumbering[empty-key-selection] _
+tests_inago\test_theme_fallback_replenishment.py:174: in test_resume_restores_missing_fallback_without_renumbering
+    assert len(fallback_tasks) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+=========================== short test summary info ===========================
+FAILED tests_inago/test_theme_fallback_replenishment.py::test_resume_restores_missing_fallback_without_renumbering[empty-key-selection]
+1 failed, 2 passed in 0.41s

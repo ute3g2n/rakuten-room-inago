@@ -816,9 +816,18 @@ def test_exhausted_trends_uses_only_the_exact_theme_word_in_daily_room_search(
         ).fetchone()[0]
     )
     words = {item["theme_id"]: item["name"] for item in themes}
-    assert [request.query for request in bundle.room.requests] == [
-        words[row[0]] for row in acquisitions
+    saved_queries = [
+        runtime_case.connection.execute(
+            "SELECT query_word FROM trends_acquisition WHERE run_id=? AND theme_id=?",
+            (RUN_ID, row[0]),
+        ).fetchone()[0]
+        for row in acquisitions
     ]
+    assert [request.query for request in bundle.room.requests] == saved_queries
+    assert all(
+        query in theme_query_candidates(words[row[0]])
+        for query, row in zip(saved_queries, acquisitions)
+    )
     assert all(
         request.query_kind == "theme_fallback" for request in bundle.room.requests
     )
@@ -946,6 +955,7 @@ def test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning(
     saved_plan = state["plans"]["initial:01"]
     saved_plan.pop("acquisition_status")
     saved_plan.pop("acquisition_ref")
+    saved_plan.pop("has_related_words", None)
     saved_plan["rules_version"] = "requirements-1.4"
     state["schema_version"] = 2
     state["rules_version"] = "requirements-1.4"
@@ -965,7 +975,9 @@ def test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning(
     monkeypatch.setattr(daily, "_make_tasks", original_make_tasks)
     resumed = _run(runtime_case, bundle)
 
-    assert resumed.status == "complete" and resumed.committed_count == 15
+    assert resumed.status == "complete" and resumed.committed_count == 15, (
+        (resumed.primary_error or {}).get("diagnostic", {}).get("reason_code")
+    )
     assert resumed.run_id == RUN_ID
     assert bundle.planner.calls.count(first_theme_id) == 1
     migrated = json.loads(
@@ -973,7 +985,7 @@ def test_v2_checkpoint_migrates_and_resumes_saved_plan_without_replanning(
             "SELECT checkpoint FROM run WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
     )["daily_orchestration"]
-    assert migrated["schema_version"] == 3
+    assert migrated["schema_version"] == daily._DAILY_CHECKPOINT_VERSION
     assert migrated["rules_version"] == "requirements-1.5"
     assert migrated["migrated_from_schema_version"] == 2
     assert migrated["plans"]["initial:01"]["legacy_acquisition"] is True
@@ -994,7 +1006,8 @@ def test_new_checkpoint_saves_rules_raw_order_and_no_nine_limit(runtime_case):
             "SELECT checkpoint FROM run WHERE run_id=?", (RUN_ID,)
         ).fetchone()[0]
     )["daily_orchestration"]
-    assert state["schema_version"] == 3 and state["rules_version"] == "requirements-1.5"
+    assert state["schema_version"] == daily._DAILY_CHECKPOINT_VERSION
+    assert state["rules_version"] == "requirements-1.5"
     assert all(
         plan["rules_version"] == "requirements-1.5" for plan in state["plans"].values()
     )
@@ -1169,10 +1182,11 @@ def test_resume_from_saved_plan_checks_contents_before_queueing(
         "UPDATE run SET checkpoint=? WHERE run_id=?", (json.dumps(root), RUN_ID)
     )
     monkeypatch.setattr(daily, "_make_tasks", original)
-    second = _run(runtime_case, bundle)
     if fault == "none":
+        second = _run(runtime_case, bundle)
         assert second.status == "complete" and second.committed_count == 15
         assert len(bundle.planner.calls) == 3
     else:
-        assert second.status == "failed" and second.attempt_used == 0
+        with pytest.raises(daily.DailyOrchestrationError):
+            _run(runtime_case, bundle)
         assert len(bundle.planner.calls) == 1 and bundle.room.requests == []

@@ -485,16 +485,14 @@ class DurableTrendsThemePlanner:
             if has_related_words is None
             else has_related_words
         )
-        fallback = None
-        if status == "exhausted" or not raw_hits:
-            fallback = DailySearchPlan(
-                f"{theme_id}-fallback-{event_kind}-{ordinal:02d}",
-                theme_id,
-                query_word or theme_word,
-                (theme_id,),
-                "theme_fallback",
-                "theme_fallback",
-            )
+        fallback = DailySearchPlan(
+            f"{theme_id}-fallback-{event_kind}-{ordinal:02d}",
+            theme_id,
+            query_word or theme_word,
+            (theme_id,),
+            "theme_fallback",
+            "theme_fallback",
+        )
         if status == "exhausted":
             return DailyThemePlan(
                 theme_id,

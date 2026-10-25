@@ -1,0 +1,19 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>関連語検索後の不足補充の修正</title>
+<style>body{font-family:system-ui,sans-serif;line-height:1.9;color:#20313c;background:#f4f6f8;margin:0}main{max-width:850px;margin:36px auto;padding:32px;background:white;border-radius:12px}h1{font-size:1.7rem;line-height:1.5}h2{font-size:1.2rem;margin-top:28px}small{color:#526675}strong{color:#174e62}a{color:#155c85}code{overflow-wrap:anywhere}@media(max-width:600px){main{margin:0;padding:22px;border-radius:0}}</style>
+<main><small>対象：2026年10月24日の日次で判明した不足補充／修正：10月25日</small>
+<h1>関連語を使い切った後、不足分をテーマ語句で補います</h1>
+<p><strong>確定した本文が5件に足りない場合だけ、テーマ語句による補充検索を1回行うよう修正しました。</strong>4件なら残り1件、3件なら2件、0件なら5件を補います。5件確定済みなら補充検索は行いません。</p>
+<h2>何が起きたか</h2>
+<p>関連語の検索だけでは本文が5件に届かないテーマでも、テーマ語句そのものを使う補充検索が予定されず、次のテーマへ進んでいました。また、本文がまだできていなくても、候補を5件選んだ時点で達成と判断する処理がありました。</p>
+<h2>原因</h2>
+<p>関連語がある場合に補充検索を計画から削除する処理と、その組合せを受け付けない検証がありました。商品処理も複数テーマの候補をまとめてから本文作成へ進んでおり、検索を切り替える時点では本文の実際の完成数が確定していませんでした。</p>
+<h2>実際に行った修正</h2>
+<p>各検索結果から本文を確定し、5件になるまで同じ取得結果の次の商品を先に使います。その結果でも不足するときに次の関連語へ進み、選んだ関連語を使い切った後だけテーマ語句で補充します。完成数には確定保存した本文だけを数えます。</p>
+<p>中断再開でも、以前に選んだ候補の本文処理を先に進めてから補充の要否を判断します。欠けていた補充予定を復元し、既存の検索や確定本文は保持します。すでに同じ条件で検索済みなら保存結果を再利用します。新しい検索回数上限やROOM全体の時間上限は追加していません。</p>
+<h2>追加した記録</h2>
+<p>保存した検索結果を再利用するとき、その検索と補充先テーマの対応を保存します。商品ページの再取得が失敗した場合も補充先テーマを残し、復旧時に元のテーマへ戻ってしまうことを防ぎます。既存の商品処理ログと合わせて、検索・本文確定・再開の対応を確認できます。</p>
+<p>局所テストでは、0・3・4件からの補充、5件確定後の検索省略、情報不足の商品を除いて次の商品を使う動き、中断再開を確認しました。最終回帰試験の結果は実行記録に保存します。</p>
+<p>今回、本番の日次全体や昨日のrunは再実行していません。昨日の保存済み9本文が15件へ回復したことを示す報告ではありません。</p>
+<details><summary>技術付録</summary><p><a href="../../../worklogs/projects/maintenance/theme-fallback-20261025/execution.md">実行コマンド・版・局所試験・回帰試験・証拠</a>／<a href="../../../worklogs/projects/maintenance/theme-fallback-20261025/code-review.md">独立製品レビュー</a>／<a href="../../../worklogs/projects/maintenance/theme-fallback-20261025/python-review.md">Pythonレビュー</a></p></details>
+</main></html>
