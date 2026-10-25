@@ -10,7 +10,7 @@ tests_inago\test_step21_browser.py:2490: in test_zero_result_without_known_end_m
     assert result.status == "unavailable", payload
 E   AssertionError: {'attempt_id': 'S1', 'run_id': 'R1', 'query': '�������', 'parent_refs': ['T1'], ...}
 E   assert 'observed' == 'unavailable'
-E     
+E
 E     - unavailable
 E     + observed
 =========================== short test summary info ===========================
