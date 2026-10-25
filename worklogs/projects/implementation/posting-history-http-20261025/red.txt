@@ -1,0 +1,56 @@
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_web.py::test_http_history_session_is_single_use_and_survives_server_restart tests_inago/test_history_web.py::test_history_events_notice_external_sqlite_commit tests_inago/test_history_web.py::test_launcher_reuses_server_and_opens_one_time_authenticated_url --basetemp=.pytest-tmp/history-web-red
+Initial attempt: pytest temporary parent directory absent (3 setup errors); created .pytest-tmp and reran the same three nodes.
+Feature RED: exit=1
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_____ test_http_history_session_is_single_use_and_survives_server_restart _____
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-red/test_http_history_session_is_s0')
+
+    def test_http_history_session_is_single_use_and_survives_server_restart(tmp_path):
+        with running_history(tmp_path / "runtime") as app:
+            status, headers, html = request(app, "GET", "/posting-history.html")
+>           assert status == 200
+E           assert 404 == 200
+
+tests_inago\test_history_web.py:118: AssertionError
+______________ test_history_events_notice_external_sqlite_commit ______________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-red/test_history_events_notice_ext0')
+
+    def test_history_events_notice_external_sqlite_commit(tmp_path):
+        with running_history(tmp_path / "runtime") as app:
+>           cookie = session(app)
+                     ^^^^^^^^^^^^
+
+tests_inago\test_history_web.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_history_web.py:109: in session
+    app, "POST", "/api/history-session", payload={"ticket": ticket(app)}
+                                                            ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <test_history_web.RunningHistory object at 0x00000241A86D3E00>
+
+    def ticket(app):
+        status, _, body = request(
+            app, "POST", "/api/history-launch-ticket", payload={}, token=_TOKEN
+        )
+>       assert status == 201
+E       assert 403 == 201
+
+tests_inago\test_history_web.py:102: AssertionError
+______ test_launcher_reuses_server_and_opens_one_time_authenticated_url _______
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-web-red/test_launcher_reuses_server_an0')
+
+    def test_launcher_reuses_server_and_opens_one_time_authenticated_url(tmp_path):
+>       from automation.inago.history_launcher import launch_history
+E       ModuleNotFoundError: No module named 'automation.inago.history_launcher'
+
+tests_inago\test_history_web.py:171: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_web.py::test_http_history_session_is_single_use_and_survives_server_restart
+FAILED tests_inago/test_history_web.py::test_history_events_notice_external_sqlite_commit
+FAILED tests_inago/test_history_web.py::test_launcher_reuses_server_and_opens_one_time_authenticated_url
+3 failed in 0.54s
