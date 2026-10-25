@@ -1,0 +1,37 @@
+{
+  "case_id": "C05",
+  "step_id": "STEP3",
+  "status": "PASS",
+  "base_commit": "f4420bf",
+  "manifest_schema_version": 1,
+  "test_file": {
+    "path": "tests_inago/test_product_ocr.py",
+    "sha256": "d3145e2b27207ceb9b42a7552bdc845f4376237bc07f8daf58a6c9790864c591"
+  },
+  "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_ocr.py::test_sale_and_item_desc_images_all_flow_to_ordered_ocr_records tests_inago/test_product_ocr.py::test_explicit_product_ocr_retry_reuses_successful_image_hash tests_inago/test_product_ocr.py::test_legacy_v1_page_and_ocr_payload_still_load_without_new_image_fields tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion tests_inago/test_product_ocr.py::test_oversized_image_is_rejected_before_reading_or_worker_send tests_inago/test_product_ocr.py::test_animated_gif_limits_return_explicit_error_codes",
+  "exit_code": 0,
+  "passed": 8,
+  "checks": {
+    "sale_and_item_images_all_serialized": true,
+    "image_result_order_and_refs_match_manifest": true,
+    "full_text_and_newlines_preserved": true,
+    "failed_image_reflected_as_partial": true,
+    "explicit_recall_reuses_successful_hash": true,
+    "explicit_recall_retries_only_failed_image": true,
+    "legacy_v1_page_and_ocr_load": true,
+    "ocr_limits_return_explicit_error_codes": true
+  },
+  "product_ocr_code_changed": false,
+  "test_support_changed": false,
+  "real_paddle_ocr": {
+    "status": "not_performed",
+    "reason": "Existing real-engine test input fixture 検討/楽天商品要素調査_2026-10-22/01_meiji-ya_129/images/image_001.jpg is absent; local OCR worker tests used a synthetic fixture worker."
+  },
+  "renamed_retry_node": {
+    "previous": "test_explicit_product_ocr_retry_reuses_successful_image_hash",
+    "current": "test_description_images_ocr_preserves_text_and_resumes",
+    "current_node_passed_in_final_regression": true
+  },
+  "production_database_touched": false,
+  "daily_run_started": false
+}

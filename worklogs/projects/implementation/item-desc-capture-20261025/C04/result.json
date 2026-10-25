@@ -1,0 +1,59 @@
+{
+  "case_id": "C04",
+  "step_id": "STEP2",
+  "status": "PASS",
+  "product_code_sha256": "534b3bafc3c992a9f18bb5bdeab026bc79bdf9ac3842a14c9b6671e63eb42caf",
+  "test_code_sha256": "d3ae74a25ab9f3d8753845ae329e58fec16f7241d884055eeed783fd7e402ac3",
+  "fixture_sha256": "62c22f00aed019d4a993a91d89cce1d2bce7202155608e2fc068ae6eda95747c",
+  "features_verified": {
+    "sale_and_item_desc_images": true,
+    "all_srcset_candidates": true,
+    "deduplicated_urls_keep_all_occurrences": true,
+    "selector_match_dom_position_attribute_and_order": true,
+    "data_uri_base64_bytes": true,
+    "data_uri_percent_encoded_bytes": true,
+    "data_uri_case_insensitive_scheme": true,
+    "invalid_percent_escape_rejected": true,
+    "blob_bytes": true,
+    "http_download_failure_state": true,
+    "explicit_failed_image_retry_only": true,
+    "normal_captured_reuse": true,
+    "completed_cleanup_prevents_refetch": true,
+    "legacy_schema_v1_capture_preserved": true,
+    "public_http_redirect_and_dns_guards": true,
+    "scroll_animation_frame_and_stability_wait_share_2500ms_deadline": true
+  },
+  "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+  "exit_code": 0,
+  "passed": 13,
+  "failed": 0,
+  "node_check_exit_code": 0,
+  "git_diff_check_exit_code": 0,
+  "git_diff_check_warning": "CRLF-to-LF normalization warning for product_page_inputs.mjs and the pre-existing traceability markdown.",
+  "current_test_code_sha256": "8b25860b4ef7fa3d6530de3d3ce1bc178cbd1cbf00689140ee322c7e392a12de",
+  "current_capture_url_safety_run": {
+    "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+    "exit_code": 0,
+    "passed": 12,
+    "failed": 0
+  },
+  "review_remediation_capture_browser_url_run": {
+    "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py",
+    "exit_code": 0,
+    "passed": 16,
+    "failed": 0
+  },
+  "current_product_code_sha256": "9c68a923547e41e23b0fe3bca6189af656903cbb4fd74a8baa2206827c60b958",
+  "current_test_code_sha256": "ab063afc7e5f742e77efd9872768463d6241f7e75acbf4e931870a13dbfd742b",
+  "current_browser_test_sha256": "2d56bef13c2f7cf0d547d763d1008bda3586b3c32a2a6791238611e4e690562d",
+  "current_browser_fixture_sha256": "3fb5a69a7d56b0ba9cd9715f716ff9977f280871aa92d13eb5656d11c260946e",
+  "v265_final_product_code_sha256": "9c68a923547e41e23b0fe3bca6189af656903cbb4fd74a8baa2206827c60b958",
+  "v265_final_capture_test_sha256": "ab063afc7e5f742e77efd9872768463d6241f7e75acbf4e931870a13dbfd742b",
+  "v265_final_run": {
+    "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-capture-final-20261025-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py --basetemp $pytestTempRoot",
+    "exit_code": 0,
+    "passed": 19,
+    "failed": 0,
+    "specification_version": "2.65"
+  }
+}

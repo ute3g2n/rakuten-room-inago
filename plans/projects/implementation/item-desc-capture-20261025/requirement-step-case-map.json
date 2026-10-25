@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "plan_version": "1.1",
+  "plan_version": "1.2",
   "plan_ref": "plans/projects/implementation/item-desc-capture-20261025/plan.md",
-  "scope": "planning_only",
+  "scope": "implementation_and_verification",
   "source_revision": "2eb41c272677ac5f906c081350e09f858ffb252c",
   "identity": {
     "job_id": null,
@@ -14,9 +14,9 @@
     "attempt_id": null
   },
   "missing_reason": "本人の機能追加計画依頼でありcontroller job/run/attempt入力はない",
-  "overall_status": "planning_only",
+  "overall_status": "partial_with_known_unrelated_regression_failures",
   "daily_status": null,
-  "reason_code": "explicit_plan_only",
+  "reason_code": "user_authorized_plan_execution",
   "failure_phase": null,
   "trace_status": "not_applicable",
   "facts": [
@@ -300,8 +300,8 @@
   "steps": [
     {
       "step_id": "STEP1",
-      "status": "not_started",
-      "reason": "explicit_plan_only_scope",
+      "status": "completed",
+      "reason": "C01 and linked execution cases recorded in worklogs; see C01-C07 results.",
       "requirement_ids": [
         "R01",
         "R02",
@@ -317,8 +317,8 @@
     },
     {
       "step_id": "STEP2",
-      "status": "not_started",
-      "reason": "explicit_plan_only_scope",
+      "status": "completed",
+      "reason": "C02 and linked execution cases recorded in worklogs; see C01-C07 results.",
       "requirement_ids": [
         "R02",
         "R03",
@@ -334,8 +334,8 @@
     },
     {
       "step_id": "STEP3",
-      "status": "not_started",
-      "reason": "explicit_plan_only_scope",
+      "status": "completed",
+      "reason": "C03 and linked execution cases recorded in worklogs; see C01-C07 results.",
       "requirement_ids": [
         "R04",
         "R06",
@@ -349,8 +349,8 @@
     },
     {
       "step_id": "STEP4",
-      "status": "not_started",
-      "reason": "explicit_plan_only_scope",
+      "status": "completed",
+      "reason": "C04 and linked execution cases recorded in worklogs; see C01-C07 results.",
       "requirement_ids": [
         "R05",
         "R06",
@@ -363,8 +363,8 @@
     },
     {
       "step_id": "STEP5",
-      "status": "not_started",
-      "reason": "explicit_plan_only_scope",
+      "status": "partial",
+      "reason": "C07 final planned regression: 82 passed, 4 unrelated known failures, 0 errors; independent product review found no remaining findings.",
       "requirement_ids": [
         "R01",
         "R02",
@@ -388,7 +388,7 @@
   "cases": [
     {
       "case_id": "C01",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R01",
         "R07"
@@ -396,9 +396,12 @@
       "proposed_nodes": [],
       "existing_nodes": [],
       "non_pytest_command": "node tools/docs/inago-requirements/build.mjs",
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": "node tools/docs/inago-requirements/build.mjs",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C01/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C01/result.json"
+      ],
       "step_ids": [
         "STEP1",
         "STEP5"
@@ -406,7 +409,7 @@
     },
     {
       "case_id": "C02",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R02",
         "R07"
@@ -420,9 +423,12 @@
       ],
       "existing_nodes": [],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C02/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C02/result.json"
+      ],
       "step_ids": [
         "STEP2",
         "STEP5"
@@ -430,7 +436,7 @@
     },
     {
       "case_id": "C03",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R02",
         "R03",
@@ -450,9 +456,12 @@
       ],
       "existing_nodes": [],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-capture-final-20261025-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py --basetemp $pytestTempRoot",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C03/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C03/result.json"
+      ],
       "step_ids": [
         "STEP2",
         "STEP5"
@@ -460,7 +469,7 @@
     },
     {
       "case_id": "C04",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R03",
         "R04",
@@ -476,9 +485,12 @@
       ],
       "existing_nodes": [],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-capture-final-20261025-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py --basetemp $pytestTempRoot",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C04/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C04/result.json"
+      ],
       "step_ids": [
         "STEP2",
         "STEP3",
@@ -488,7 +500,7 @@
     },
     {
       "case_id": "C05",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R04",
         "R06",
@@ -509,9 +521,12 @@
         }
       ],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_ocr.py::test_sale_and_item_desc_images_all_flow_to_ordered_ocr_records tests_inago/test_product_ocr.py::test_explicit_product_ocr_retry_reuses_successful_image_hash tests_inago/test_product_ocr.py::test_legacy_v1_page_and_ocr_payload_still_load_without_new_image_fields tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion tests_inago/test_product_ocr.py::test_oversized_image_is_rejected_before_reading_or_worker_send tests_inago/test_product_ocr.py::test_animated_gif_limits_return_explicit_error_codes",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C05/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C05/result.json"
+      ],
       "step_ids": [
         "STEP3",
         "STEP5"
@@ -520,7 +535,7 @@
     },
     {
       "case_id": "C06",
-      "status": "not_started",
+      "status": "PASS",
       "requirement_ids": [
         "R05",
         "R06",
@@ -551,9 +566,12 @@
         }
       ],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_copy.py",
+      "actual_exit_code": 0,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C06/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C06/result.json"
+      ],
       "step_ids": [
         "STEP4",
         "STEP5"
@@ -561,7 +579,7 @@
     },
     {
       "case_id": "C07",
-      "status": "not_started",
+      "status": "partial",
       "requirement_ids": [
         "R02",
         "R03",
@@ -590,9 +608,12 @@
         }
       ],
       "non_pytest_command": null,
-      "actual_command": null,
-      "actual_exit_code": null,
-      "actual_evidence_refs": [],
+      "actual_command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-safe-fixtures-20261025-step5-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py --basetemp $pytestTempRoot",
+      "actual_exit_code": 1,
+      "actual_evidence_refs": [
+        "worklogs/projects/implementation/item-desc-capture-20261025/C07/execution.md",
+        "worklogs/projects/implementation/item-desc-capture-20261025/C07/result.json"
+      ],
       "step_ids": [
         "STEP2",
         "STEP3",
@@ -612,7 +633,7 @@
     "database_migration_planned": false,
     "legacy_run_auto_recapture": false,
     "git_owner": "parent",
-    "current_execution_authorized": false,
+    "current_execution_authorized": true,
     "retry_scope": {
       "image_capture_retry": "explicit_local_saveProductPageInputs_reinvocation_only",
       "ocr_retry": "explicit_local_process_product_reinvocation_only",
@@ -621,6 +642,34 @@
       "normal_run_resume_ocr_partial_rerun_guaranteed": false,
       "orchestrator_ownership": "excluded_read_only_evidence",
       "legacy_resume": "preserve_captured_page_and_existing_ocr_partial_skip"
-    }
+    },
+    "product_independent_review_status": "completed_v2.65_no_remaining_product_findings"
+  },
+  "current_specification_version": "2.65",
+  "execution_update": {
+    "authorized_by": "user follow-up: execute the plan one step at a time",
+    "date": "2026-10-25 JST",
+    "specification_version": "2.65",
+    "step_statuses": {
+      "STEP1": "completed",
+      "STEP2": "completed",
+      "STEP3": "completed",
+      "STEP4": "completed",
+      "STEP5": "partial"
+    },
+    "final_planned_regression": {
+      "command_case": "C07/result.json#v265_planned_full_regression",
+      "passed": 82,
+      "failed": 4,
+      "errors": 0,
+      "exit_code": 1,
+      "known_unrelated_failures": [
+        "2 missing OCR study fixtures",
+        "2 unchanged copy-quality selection assertions"
+      ]
+    },
+    "daily_run_started": false,
+    "production_database_touched": false,
+    "external_room_product_site_or_real_ai_used": false
   }
 }

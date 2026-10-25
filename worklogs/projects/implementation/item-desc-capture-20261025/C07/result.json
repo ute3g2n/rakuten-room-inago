@@ -1,0 +1,255 @@
+{
+  "case_id": "C07",
+  "step_id": "STEP5",
+  "status": "PARTIAL_WITH_KNOWN_UNRELATED_REGRESSION_FAILURES",
+  "base_branch": "main",
+  "base_commit": "f4420bf",
+  "specification_version": "2.65",
+  "runs": [
+    {
+      "name": "c07_integration_resume_cleanup",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_copy.py::test_item_desc_capture_to_ocr_to_copy_inputs tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "name": "current_capture_and_url_safety",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+      "exit_code": 0,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "name": "browser_node_current_path",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_item_desc_browser.py::test_item_desc_lazy_images_are_captured_with_visual_evidence",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "browser": "Chromium 155.0.8059.85"
+    },
+    {
+      "name": "planned_full_regression_default_temp",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py",
+      "exit_code": 1,
+      "passed": 54,
+      "failed": 5,
+      "errors": 21,
+      "duration": "78.44s",
+      "environment_issue": "pytest tmp_path was outside the default SAFE_FIXTURE_BASE; fixture path guard rejected it"
+    },
+    {
+      "name": "planned_full_regression_safe_temp",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-safe-fixtures-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py --basetemp $pytestTempRoot",
+      "exit_code": 1,
+      "passed": 76,
+      "failed": 4,
+      "errors": 0,
+      "duration": "84.31s",
+      "failed_nodes": [
+        "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
+        "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
+        "tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_and_remaining_products_continue",
+        "tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage"
+      ]
+    },
+    {
+      "name": "copy_quality_failures_isolated",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_and_remaining_products_continue tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 2,
+      "observations": [
+        "additional_events expected >= 1, actual 0",
+        "OCR calls expected 15, actual 5"
+      ],
+      "scope_note": "orchestrator.py and tests_inago/test_copy_quality_selection.py were not changed by this task"
+    },
+    {
+      "name": "review_remediation_focused_cases",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_invalid_image_sources_are_recorded_without_being_fetched tests_inago/test_product_page_capture.py::test_unresolved_lazy_image_is_marked_incomplete_after_finite_wait tests_inago/test_product_page_capture.py::test_inline_retry_reports_dom_recapture_exception_and_preserves_capture tests_inago/test_product_page_item_desc_browser.py::test_item_desc_lazy_images_are_captured_with_visual_evidence",
+      "red_exit_code": 1,
+      "red_failed": 4,
+      "fixed_exit_code": 0,
+      "fixed_passed": 4,
+      "fixed_duration": "5.78s"
+    },
+    {
+      "name": "post_remediation_capture_browser_url_safety",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py",
+      "exit_code": 0,
+      "passed": 16,
+      "failed": 0,
+      "duration": "14.33s"
+    },
+    {
+      "name": "post_remediation_ocr_copy_resume_cleanup",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_ocr.py::test_sale_and_item_desc_images_all_flow_to_ordered_ocr_records tests_inago/test_product_ocr.py::test_description_images_ocr_preserves_text_and_resumes tests_inago/test_product_ocr.py::test_legacy_v1_page_and_ocr_payload_still_load_without_new_image_fields tests_inago/test_product_ocr.py::test_every_image_and_exact_returned_text_survive_conversion tests_inago/test_product_ocr.py::test_oversized_image_is_rejected_before_reading_or_worker_send tests_inago/test_product_ocr.py::test_animated_gif_limits_return_explicit_error_codes tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy",
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0,
+      "duration": "12.06s"
+    },
+    {
+      "name": "post_remediation_planned_full_regression",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-safe-fixtures-20261025-step5-final'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py --basetemp $pytestTempRoot",
+      "exit_code": 1,
+      "passed": 79,
+      "failed": 4,
+      "errors": 0,
+      "duration": "97.18s",
+      "failed_nodes": [
+        "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
+        "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
+        "tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_and_remaining_products_continue",
+        "tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage"
+      ]
+    },
+    {
+      "name": "post_remediation_c07_evidence_refresh",
+      "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_copy.py::test_item_desc_capture_to_ocr_to_copy_inputs --basetemp $finalPytestRoot",
+      "exit_code": 0,
+      "passed": 1,
+      "duration": "1.04s"
+    },
+    {
+      "name": "v264_deadline_and_invalid_percent_red",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-red-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_invalid_percent_escape_in_data_uri_is_not_saved_as_downloaded tests_inago/test_product_page_capture.py::test_animation_frame_waits_share_the_finite_observation_deadline --basetemp $pytestTempRoot",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 2,
+      "duration": "0.85s",
+      "observation": "Invalid %ZZ was downloaded; unbounded rAF left unsettled top-level await and Node exited 13."
+    },
+    {
+      "name": "v264_deadline_and_invalid_percent_green",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-green-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_invalid_percent_escape_in_data_uri_is_not_saved_as_downloaded tests_inago/test_product_page_capture.py::test_animation_frame_waits_share_the_finite_observation_deadline tests_inago/test_product_page_capture.py::test_unresolved_lazy_image_is_marked_incomplete_after_finite_wait --basetemp $pytestTempRoot",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "duration": "5.86s"
+    },
+    {
+      "name": "v265_uppercase_data_scheme_red",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-data-scheme-red-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_uppercase_data_scheme_is_decoded_case_insensitively --basetemp $pytestTempRoot",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 1,
+      "duration": "0.76s",
+      "observation": "DATA: was classified as data but rejected by the decoder."
+    },
+    {
+      "name": "v265_uppercase_data_scheme_green",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-data-scheme-green-20261025'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_uppercase_data_scheme_is_decoded_case_insensitively --basetemp $pytestTempRoot",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "duration": "0.65s"
+    },
+    {
+      "name": "v265_capture_browser_url_safety",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-capture-final-20261025-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py --basetemp $pytestTempRoot",
+      "exit_code": 0,
+      "passed": 19,
+      "failed": 0,
+      "duration": "18.21s",
+      "browser": "Chromium local synthetic fixture"
+    },
+    {
+      "name": "v265_ocr_copy_resume_cleanup_and_evidence_refresh",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-c07-final-20261025-step5-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_copy.py::test_item_desc_capture_to_ocr_to_copy_inputs tests_inago/test_product_page_selection.py::test_resume_reuses_selected_registry_and_completed_ocr tests_inago/test_product_page_cleanup.py::test_resume_cleans_committed_images_without_regenerating_copy --basetemp $pytestTempRoot",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "duration": "12.40s"
+    },
+    {
+      "name": "v265_planned_full_regression",
+      "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-safe-fixtures-20261025-step5-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py --basetemp $pytestTempRoot",
+      "exit_code": 1,
+      "passed": 82,
+      "failed": 4,
+      "errors": 0,
+      "duration": "100.83s",
+      "failed_nodes": [
+        "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
+        "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
+        "tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_and_remaining_products_continue",
+        "tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage"
+      ],
+      "repeated_from_v264": true
+    }
+  ],
+  "known_missing_fixtures": [
+    "検討/楽天商品要素調査_2026-10-22/01_meiji-ya_129/images/image_001.jpg",
+    "検討/楽天商品要素調査_2026-10-22/OCR技術調査/results/ocr-results.jsonl"
+  ],
+  "evidence": {
+    "page_manifest": {
+      "path": "C07/evidence/page.json",
+      "sha256": "c05b9960e7fae5c50d591f7424bad73fa230f9e3e574f99fe3e8564a15c57388"
+    },
+    "ocr_payload": {
+      "path": "C07/evidence/ocr.json",
+      "sha256": "0c9f0f458c417188d1932797c3cc1fcd80977364a76cff4c239ffb8228d67203"
+    },
+    "job_input": {
+      "path": "C07/evidence/job-input.json",
+      "sha256": "10b76b6fd87e496aa3db542ab0aeb7b6b632e9d943aa0a542ec9b7d34daeec26"
+    }
+  },
+  "code_sha256": {
+    "automation/inago/adapters/product_page_inputs.mjs": "9c68a923547e41e23b0fe3bca6189af656903cbb4fd74a8baa2206827c60b958",
+    "automation/inago/prompt_builder.py": "e9666a70002c7a545beaec00d87f5d7b084be3a09412a815865018050b20b3de",
+    "automation/inago/ai_runner.py": "3d0e2eec65d2f01dc9dd6c8cfcf1c12818c75830c17f320bc2facf5b3acc9699",
+    "tests_inago/test_product_page_capture.py": "ab063afc7e5f742e77efd9872768463d6241f7e75acbf4e931870a13dbfd742b",
+    "docs/specifications/inago/イナゴスキル要件定義書.html": "0ecf33acfd45d5b3e5afb3e6df2fd6b8186a2dcd1bc620a81b17eacee3d735de",
+    "docs/specifications/inago/要件データ辞書.md": "3bc6de1fbed7389cba1b16de440aa0c0f3e3876bb8e34d08bab5b2c757c2131d",
+    "docs/specifications/inago/要件追跡表.md": "14ec49c68cfa238145a44c83a82321bb65a2c0408d075d7ab381c919c264ecf1"
+  },
+  "assertions": {
+    "capture_manifest_has_item_desc_html": true,
+    "all_synthetic_sale_and_item_images_downloaded": true,
+    "ocr_order_and_full_text_preserved": true,
+    "item_desc_image_ocr_present_in_job_input": true,
+    "all_same_product_refs_preserved": true,
+    "browser_lazy_images_captured": true,
+    "invalid_and_unsupported_sources_recorded": true,
+    "invalid_or_empty_base64_never_downloaded": true,
+    "lazy_source_observation_bounded_to_2500ms": true,
+    "lazy_timeout_and_unresolved_occurrences_recorded": true,
+    "inline_retry_dom_error_reported_without_mutating_page": true,
+    "legacy_resume_and_cleanup_local_nodes_passed": true,
+    "real_paddle_ocr_verified": false,
+    "lazy_scroll_and_animation_waits_share_one_2500ms_deadline": true,
+    "invalid_non_base64_percent_escape_rejected": true,
+    "uppercase_data_uri_scheme_decoded_case_insensitively": true,
+    "item_desc_page_ocr_copy_inputs_rechecked_under_v265": true,
+    "planned_full_regression_v265_completed_with_four_known_unrelated_failures": true
+  },
+  "production_database_touched": false,
+  "daily_run_started": false,
+  "external_room_or_product_site_used": false,
+  "real_ai_called": false,
+  "real_ocr_called": false,
+  "temporary_fixture_cleanup": {
+    "path": "C07/.pytest-tmp",
+    "status": "retained",
+    "reason": "Remove-Item -Recurse was rejected by the environment policy after the absolute target was verified under C07"
+  },
+  "independent_product_review": "completed_v2.65_no_remaining_product_findings",
+  "independent_product_review_scope": "Six prior findings and uppercase DATA: boundary reviewed read-only; reviewer did not run tests or review test code.",
+  "final_planned_regression": {
+    "specification_version": "2.65",
+    "passed": 82,
+    "failed": 4,
+    "errors": 0,
+    "exit_code": 1,
+    "failed_nodes": [
+      "tests_inago/test_product_ocr.py::test_real_engine_uses_runtime_assets_and_handles_japanese_image_path",
+      "tests_inago/test_product_ocr.py::test_study_fifty_nine_images_round_trip_through_product_format",
+      "tests_inago/test_copy_quality_selection.py::test_information_shortage_is_replaced_and_remaining_products_continue",
+      "tests_inago/test_copy_quality_selection.py::test_resume_never_regenerates_or_reselects_information_shortage"
+    ]
+  }
+}

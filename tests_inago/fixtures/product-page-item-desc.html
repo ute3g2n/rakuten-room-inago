@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>商品説明取得のローカルfixture</title>
+  <style>
+    body { margin: 24px; font: 16px sans-serif; color: #222; }
+    .product { max-width: 720px; }
+    .spacer { height: 1100px; background: linear-gradient(#fff, #f3f3f3); }
+    .description { border: 1px solid #888; padding: 16px; margin: 16px 0; }
+    img { display: block; width: 32px; height: 32px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main class="product">
+    <span class="sale_desc description">
+      <p>sale_desc fixture text</p>
+      <img id="sale-data-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E" alt="synthetic sale image">
+    </span>
+    <div class="spacer">scroll target is below</div>
+    <span class="item_desc description">
+      <p>item_desc lazy fixture text</p>
+      <img id="item-lazy" data-src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E" alt="synthetic lazy image">
+      <img id="item-blob" alt="synthetic blob image">
+    </span>
+  </main>
+  <script>
+    const lazyImage = document.querySelector('#item-lazy');
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !lazyImage.dataset.loaded) {
+          setTimeout(() => {
+            lazyImage.src = lazyImage.dataset.src;
+            lazyImage.dataset.loaded = 'true';
+            const lateImage = document.createElement('img');
+            lateImage.id = 'item-late';
+            lateImage.alt = 'synthetic late child image';
+            lateImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24"%3E%3Crect width="24" height="24" fill="%23f07a1a"/%3E%3C/svg%3E';
+            document.querySelector('span.item_desc').append(lateImage);
+          }, 350);
+        }
+      }
+    });
+    observer.observe(lazyImage);
+    const blobSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#d14c7b"/></svg>';
+    const blob = new Blob([blobSvg], { type: 'image/svg+xml' });
+    document.querySelector('#item-blob').src = URL.createObjectURL(blob);
+    window.fixtureReady = true;
+  </script>
+</body>
+</html>

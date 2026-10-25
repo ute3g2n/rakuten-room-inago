@@ -2,16 +2,17 @@
 
 ## 0. 文書版・対象・状態
 
-- 計画版: 1.1 / 作成日: 2026-10-25 JST。調査基準版: `2eb41c272677ac5f906c081350e09f858ffb252c`。
+- 計画版: 1.2 / 作成日: 2026-10-25 JST。調査基準版: `2eb41c272677ac5f906c081350e09f858ffb252c`。
 - 1.1変更: 独立reviewのP2指摘を受け、画像/OCR再試行の保証範囲を局所関数の明示再呼出しへ限定。通常run resumeの挙動変更・orchestrator所有追加は行わない。
+- 1.2変更: 初回の計画作成後、本人の「実行計画を1stepずつ順番に実行」という明示指示を受けてSTEP 1～5を実行した。仕様2.65、STEP 1～4は完了。STEP 5は局所範囲と独立製品reviewが合格し、計画回帰82 passed/4 failedのため部分完了。実測は各C01～C07 worklogと実行記録に結び付ける。
 - 固定root: `C:/project/rakuten-room-inago`。別worktree、checkout、workspaceを作らず、共同作業者の変更を戻さない。
-- 本人依頼は「まず仕様（要件定義HTML）を修正し、その後実装・テスト。そのための計画を最初に作成。とりあえず計画作成だけ」。**今回実施するのは読取調査と計画作成だけ**。STEP 1～5はすべて `not_started`、仕様・コード・テスト・skillの変更、試験、ブラウザー、ネットワーク、日次、DB操作は未実施。計画reviewの承認を待つ状態とは異なる。
-- 今回の所有出力: 本ファイルと同ディレクトリの`requirement-step-case-map.json`のみ。Git操作と独立計画レビューは親担当が所有する。
-- identity: `job_id=null`, `incident_id=null`, `source_launch_id=null`, `source_run_id=null`, `target_date=null`, `invocation_id=null`, `attempt_id=null`。`missing_reason`: 「本人による機能追加の計画依頼でありcontrollerのjob/run/attempt入力はない」。文書の日付を日次対象日に転用しない。`overall_status=planning_only`, `daily_status=null`, `reason_code=explicit_plan_only`, `failure_phase=null`, `trace_status=not_applicable`。
+- 初回依頼は計画のみだったが、その後の本人指示で実行へ範囲が更新された。初版の`planning_only`と`not_started`は計画作成時点の履歴であり、現在の状態は本節1.2と第9・14節、`worklogs/projects/implementation/item-desc-capture-20261025/C01`～`C07/`を参照する。1.1内の割当promptにある「計画だけの間は実行しない」という記述は実行前の計画時点を示し、現在は本人指示により superseded。
+- 現在の所有変更: 正本仕様、product capture adapter、capture/OCR/copy tests、writer/reviewer skillとprompt、計画実行記録・証拠。Git操作は親担当が行う。
+- identity: `job_id=null`, `incident_id=null`, `source_launch_id=null`, `source_run_id=null`, `target_date=null`, `invocation_id=null`, `attempt_id=null`。`missing_reason`: 「本人によるローカル機能追加でcontrollerのjob/run/attempt入力はない」。文書の日付を日次対象日に転用しない。`overall_status=partial_with_known_unrelated_regression_failures`, `daily_status=null`, `reason_code=user_authorized_plan_execution`, `failure_phase=planned_regression`, `trace_status=local_test_evidence_recorded`。
 
 ### 必ず守る項目
 
-本人1名が本人のローカル環境だけで使うシステムであり、堅牢性や防御層の追加を品質目標・開始条件にしない。review/test/readiness/release、approved、FAIL、unknown原因、証拠不足、rejected/changes_requested/unavailable、receipt、回数上限を本人が明示した開始・再開や後続工程の自作gateにしない。操作不能ならその操作だけ`not_performed`と具体理由を残し、独立して可能な作業と最終報告を続ける。失敗を成功と表現しない。原因不明なら実行可能な切分け・trace/logを残す。自作制限を発見した担当は許可範囲で根本制限を除去し、所有外なら親へ必要差分を渡して範囲更新後に続行する。正しい対象を選ぶID、実際の環境・外部権限、今回の本人による「計画だけ」という範囲は維持する。全体runの反復で調査しない。まず失敗nodeと直接影響node、修正後に計画した回帰全体を一度実行する。
+本人1名が本人のローカル環境だけで使うシステムであり、堅牢性や防御層の追加を品質目標・開始条件にしない。review/test/readiness/release、approved、FAIL、unknown原因、証拠不足、rejected/changes_requested/unavailable、receipt、回数上限を本人が明示した開始・再開や後続工程の自作gateにしない。操作不能ならその操作だけ`not_performed`と具体理由を残し、独立して可能な作業と最終報告を続ける。失敗を成功と表現しない。原因不明なら実行可能な切分け・trace/logを残す。自作制限を発見した担当は許可範囲で根本制限を除去し、所有外なら親へ必要差分を渡して範囲更新後に続行する。正しい対象を選ぶID、実際の環境・外部権限、今回の本人による機能追加の実行範囲は維持する。全体runの反復で調査しない。まず失敗nodeと直接影響node、修正後に計画した回帰全体を一度実行する。
 
 後日の実行担当はreasoning effort=highを指定し、利用可能な既定modelを用いる。model/tier/session実測は現時点null（未起動）で、未観測を開始条件にしない。独立計画reviewは別担当の読取専用確認、製品reviewは製品コードと実測証跡を対象とし、テストコードの独立レビュー工程は設けない。
 
@@ -98,7 +99,7 @@ HTML内sourceのIR-010（商品ID・ROOM取得）、IR-014（本文生成）へ�
 
 ## 8. 試験、再開、記録、禁止の共通規則
 
-すべて未来の試験計画であり今回未実行。各caseで完全node、実行コマンド、HEADと変更対象のhash、fixture hash、時計、期待・実結果、終了コード、保存先を記録する。既存nodeと新設予定nodeを区別し、新設nodeは実装後のcollectで実在を確認してから実行する。collection失敗を合格にしない。
+計画作成時点では全caseが未来の試験計画だった。実行時は完全node、コマンド、対象hash、fixture、期待・実結果、終了コード、証拠を各C01～C07のworklogに記録した。実装時に予定node名と実node名を照合し、未実施・失敗を合格にしていない。
 
 失敗時はそのnodeと直接影響nodeだけを再実行する。対象失敗修正後に本計画の回帰範囲を一度実行し、再失敗なら同じ局所手順へ戻る。FAILを製品review・記録・最終報告の開始条件にしない。日次全体の実行は本計画に含めず、ユーザーが将来起動を依頼した場合もAGENTS.mdの局所・回帰確認を先に行う。
 
@@ -110,15 +111,15 @@ HTML内sourceのIR-010（商品ID・ROOM取得）、IR-014（本文生成）へ�
 
 | STEP | 内容 | 状態 | 複雑度・依存 |
 | --- | --- | --- | --- |
-| 1 | 要件HTML・辞書・追跡表の先行同期 | not_started | 中 / 将来の本人実行依頼 |
-| 2 | 全HTML・全画像・由来・局所再試行 | not_started | 中 / STEP 1の仕様内容 |
-| 3 | OCRの全件登録・全文・互換確認 | not_started | 小～中 / STEP 2のmanifest |
-| 4 | 作成・レビューAI入力とskillの明示同期 | not_started | 中 / STEP 1,2,3の入力契約 |
-| 5 | 統合局所・回帰・独立製品review・記録 | not_started | 中 / 各変更と利用可能な証拠 |
+| 1 | 要件HTML・辞書・追跡表の先行同期 | completed | 仕様2.65 build成功 / C01,C07 |
+| 2 | 全HTML・全画像・由来・局所再試行 | completed | capture/browser/URL safety 19 passed / C02～C04,C07 |
+| 3 | OCRの全件登録・全文・互換確認 | completed | OCR/copy/resume/cleanup連鎖3 passed / C05,C07 |
+| 4 | 作成・レビューAI入力とskillの明示同期 | completed | skill/promptの連鎖確認 / C06,C07 |
+| 5 | 統合局所・回帰・独立製品review・記録 | partial | 独立review指摘なし、計画回帰82 passed/4 failed / C07 |
 
 ### STEP 1: 要件を先に修正する
 
-1. **番号・名称・状態**: STEP 1 / 正本仕様の更新 / not_started。
+1. **番号・名称・状態**: STEP 1 / 正本仕様の更新 / completed（2.65）。
 2. **目的と成立状態**: 商品ページの両説明領域・画像・OCR・全入力参照が仕様で追跡できる。
 3. **要件・受入・原典**: R01,R02,R03,R04,R05,R06,R07。F01,F02,F03,F05,F08,F09。既存IR-010/IR-014へ今回の受入追記を行う。新しい既存風の要件IDを捏造しない。
 4. **先行・開始条件**: 後日の本人による実行依頼と本計画が入力。計画review承認は開始条件ではない。今回の計画のみ依頼では実行しない。
@@ -139,7 +140,7 @@ C:/project/rakuten-room-inagoだけで作業し、AGENTS.mdとplans/projects/imp
 
 ### STEP 2: item_descの取得を追加する
 
-1. **番号・名称・状態**: STEP 2 / HTML・画像・由来・局所再試行 / not_started。
+1. **番号・名称・状態**: STEP 2 / HTML・画像・由来・局所再試行 / completed。
 2. **目的と成立状態**: 両説明領域全件のHTMLと画像が同一商品pageへ保存される。
 3. **要件・受入・原典**: R02,R03,R06,R07 / F02,F03,F04,F05,F06,F07,F09 / C02,C03,C04,C07。
 4. **先行・開始条件**: STEP 1の要件内容を先に更新。承認statusを待たない。取得対象・manifestで必要な実IDのみ維持。
@@ -160,7 +161,7 @@ C:/project/rakuten-room-inagoでAGENTS.mdとplans/projects/implementation/item-d
 
 ### STEP 3: OCR全件登録と互換を確認する
 
-1. **番号・名称・状態**: STEP 3 / OCR全画像・全文・再開 / not_started。
+1. **番号・名称・状態**: STEP 3 / OCR全画像・全文・再開 / completed（既存OCR pipelineを再利用）。
 2. **目的と成立状態**: item_desc画像もocr.jsonに入り、元画像・OCR ref・全文と失敗が追跡できる。
 3. **要件・受入・原典**: R04,R06,R07 / F04,F05,F06,F09 / C04,C05,C07。
 4. **先行・開始条件**: STEP 2の新manifestを入力とする。review承認待ちは不要。
@@ -181,7 +182,7 @@ C:/project/rakuten-room-inagoのAGENTS.mdとplans/projects/implementation/item-d
 
 ### STEP 4: 全文AI入力・作成skill・独立reviewを同期する
 
-1. **番号・名称・状態**: STEP 4 / 入力とskill同期 / not_started。
+1. **番号・名称・状態**: STEP 4 / 入力とskill同期 / completed。
 2. **目的と成立状態**: item_desc HTMLと画像OCRをwriter/reviewer両方が全入力として読み、商品説明の根拠に使える。
 3. **要件・受入・原典**: R05,R06,R07 / F01,F07,F08,F09 / C06,C07。
 4. **先行・開始条件**: 先に更新した仕様とSTEP 2/3の入力契約。review/test statusをgateにしない。
@@ -202,7 +203,7 @@ C:/project/rakuten-room-inagoだけでAGENTS.mdとplans/projects/implementation/
 
 ### STEP 5: 統合・回帰・独立製品reviewと最終記録
 
-1. **番号・名称・状態**: STEP 5 / 最終検証と引継ぎ / not_started。
+1. **番号・名称・状態**: STEP 5 / 最終検証と引継ぎ / partial（局所pass・独立review no findings、計画回帰に既知4失敗）。
 2. **目的と成立状態**: 取得→OCR→copy inputの連鎖と既存互換を実測し、変更・残課題を正確に報告できる。
 3. **要件・受入・原典**: R01～R07 / F01～F09 / C01～C07。
 4. **先行・開始条件**: 利用可能な差分・部分成果。個別局所FAILは記録してreview/報告を進める。回帰は既知の対象失敗を局所修正後に実行する。
@@ -223,7 +224,7 @@ C:/project/rakuten-room-inagoでAGENTS.mdとplans/projects/implementation/item-d
 
 ## 10. 要件/受入/STEP/case対応と各ケース12項目
 
-全caseは`not_started`。**「新設予定node」は現時点で存在せず、実装済み・収集済みと解釈しない**。既存nodeはコード読取で関数実在を確認したが今回未実行。対応表の機械形式は隣接JSONに保存する。
+計画作成時点でcase statusは`not_started`として保存した。実行時の状態は隣接JSONのexecution updateと各C01～C07 result/execution記録へ更新した。元の「新設予定node」は実装時に実際のnode名と照合し、変更・追加されたnodeはworklogの最終コマンドで確認する。
 
 | 要件 | fact | STEP | case |
 | --- | --- | --- | --- |
@@ -342,7 +343,7 @@ C:/project/rakuten-room-inagoでAGENTS.mdとplans/projects/implementation/item-d
 
 ### 最終回帰の予定範囲
 
-下記は実装後の完全コマンド。新設browserファイルが存在してから収集・実行する。今回の計画作成中は実行しない。
+下記は計画時点で記した実装後の完全コマンド。現在の実行結果は、実際に使った最終コマンドをC07/result.jsonとexecution.mdへ保存した。
 
 ```powershell
 .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_inputs.py tests_inago/test_product_page_url_safety.py tests_inago/test_product_ocr.py tests_inago/test_product_page_copy.py tests_inago/test_product_page_selection.py tests_inago/test_product_page_cleanup.py tests_inago/test_copy_quality_review.py tests_inago/test_copy_quality_selection.py
@@ -375,7 +376,7 @@ C:/project/rakuten-room-inagoでAGENTS.mdとplans/projects/implementation/item-d
 
 ## 13. 機械確認と独立レビュー
 
-計画文書の機械確認はJSON parse、0～14節、STEP 5件×14項目、case 7件×12項目、要件/fact/STEP/caseの全件対応、現行根拠pathと既存node関数の実在、許可出力2fileへの限定を対象とする。これは製品試験ではない。今回の試験実行は禁止範囲なのでpytest/build/browserを実行しない。
+計画作成時の機械確認はJSON parse、0～14節、STEP 5件×14項目、case 7件×12項目、要件/fact/STEP/caseの全件対応、現行根拠pathと既存node関数の実在、計画時点の許可出力を対象にした。これは製品試験とは別の計画品質確認だった。後続の本人指示により別途製品実装・build・browser・pytestを実行した結果をC01～C07に記録する。
 
 独立計画reviewは親が別担当へ実起動し、本計画全文と対応表、根拠・所有・予定nodeと既存node・全文prompt・範囲・未確定を確認させる。reviewerは本計画を編集せず、指摘は計画担当へ戻す。review statusは観測値であり後日工程のgateではない。製品独立reviewはSTEP 5で将来実施する。
 
@@ -385,11 +386,11 @@ C:/project/rakuten-room-inagoでAGENTS.mdとplans/projects/implementation/item-d
 | --- | --- |
 | 調査 | AGENTS、プロジェクト全体マップ、planning skill/契約、仕様生成経路、取得/OCR/AI/skill/試験を読取確認。基準HEAD 2eb41c272677ac5f906c081350e09f858ffb252c。 |
 | 計画作成 | 本書と対応JSONを作成。1.1で独立reviewのP2指摘に対応し、再試行を局所関数の明示再呼出しに限定、通常resume挙動変更を対象外と明記。計画機械確認と独立レビューの実結果は親の作業記録へ。 |
-| 仕様STEP 1 | not_started / 本人の今回範囲が計画のみ。 |
-| 取得・OCR・生成STEP 2～4 | not_started / 実装・設定・DB変更なし。 |
-| 局所・回帰STEP 5 | not_started / コマンド・nodeは実行予定で今回の実結果/終了コードはnull。 |
-| 画面・動画・trace | not_performed / 今回ブラウザー操作を行わない計画作成範囲。 |
+| 仕様STEP 1 | completed / spec v2.65、HTML build exit 0。 |
+| 取得・OCR・生成STEP 2～4 | completed / 19 capture/browser/URL safety cases; OCR-to-copy integration and skills verified. |
+| 局所・回帰STEP 5 | partial / local suites pass; final planned regression 82 passed/4 failed/0 errors; C07 records exact commands and nodes. |
+| 画面・動画・trace | captured / local synthetic browser fixture; C03 evidence contains before/after, video, trace. |
 | 日次全体・外部操作 | not_performed / 本計画の実行範囲外。 |
 | Git | 親担当が所有。担当側でstage/commit/push未実行。 |
 
-後日追記する記録は実行時刻、正式identity（欠測はnullと理由）、操作名、対象node/run、コード/入力版、正確なコマンド、期待/実結果、終了コード、証拠参照、変更/未実施理由、次の再開位置を含める。将来の成果を現在の実績へ書き換えない。
+実行記録には操作名、対象node/run、コード/仕様版、正確なコマンド、期待/実結果、終了コード、証拠参照、変更/未実施理由を追記した。controller由来identityは存在しないのでnullと理由を維持する。将来の成果を現在の実績へ書き換えない。

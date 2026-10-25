@@ -1,6 +1,6 @@
 # AG-COPY-REVIEW 入出力契約
 
-AI-O/T02で許可された一商品・一版を独立レビューする。入力はoffer_key、draft_version、設定版、input_refs、evidence_refs、作成結果と同一商品の全元資料。商品名・概要・factsだけでなく全HTML outer_html・全OCR textを読む。
+AI-O/T02で許可された一商品・一版を独立レビューする。入力はoffer_key、draft_version、設定版、input_refs、evidence_refs、作成結果と同一商品の全元資料。商品名・概要・factsだけでなくsale_desc、normal_reserve_item_name、normal_reserve_catch_copy、item_descの全HTML outer_htmlと全OCR textを読み、span.item_desc内画像からのOCRも商品説明の根拠候補として確認する。
 
 出力はai-copy-review.schema.jsonの八フィールドのみ: offer_key, draft_version, verdict, reviewed_body, reason, evidence_refs, used_input_refs, findings。verdictはpass / revise / insufficient_information。reviewed_bodyは実際に読んだ本文と完全一致。参照はjobで許可された値のみ。
 

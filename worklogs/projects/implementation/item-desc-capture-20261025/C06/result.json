@@ -1,0 +1,31 @@
+{
+  "case_id": "C06",
+  "step_id": "STEP4",
+  "status": "PASS",
+  "base_commit": "f4420bf",
+  "specification_version": "2.62",
+  "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_copy.py",
+  "exit_code": 0,
+  "passed": 4,
+  "failed": 0,
+  "dynamic_projection": {
+    "production_runtime_changed": false,
+    "all_selector_records_projected": true,
+    "all_ocr_image_texts_projected": true,
+    "item_desc_html_full": true,
+    "item_desc_image_ocr_full": true
+  },
+  "writer_and_reviewer": {
+    "same_unabridged_product_input": true,
+    "item_desc_html_and_image_ocr_in_prompt": true,
+    "both_staged_skills_and_contracts_explicit": true,
+    "all_refs_within_input_refs": true,
+    "ocr_newlines_preserved": true,
+    "large_payload_not_truncated": true,
+    "raw_engine_metadata_excluded": true
+  },
+  "python_compile_exit_code": 0,
+  "git_diff_check_exit_code": 0,
+  "real_ai_called": false,
+  "production_database_touched": false
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "run_id": "CAP-C07-01",
+  "offer_key": "c07-shop:c07-item",
+  "shop_id": "c07-shop",
+  "item_id": "c07-item",
+  "page_ref": "ppi:4dd8f8ed9c780e49723048d60a2eaed11bdac5b8",
+  "raw_ref": "ppocrraw:ed16c186c57c43662cdfc01c8df20d51e3708c2c",
+  "input_refs": [
+    "ppi:4dd8f8ed9c780e49723048d60a2eaed11bdac5b8",
+    "ocrimg:de68d6345f6d98ba6fb1335414188fa5",
+    "ocrimg:0627d737ee40f8ba7e01ba1861ef3526"
+  ],
+  "evidence_refs": [
+    "ocrimg:de68d6345f6d98ba6fb1335414188fa5",
+    "ocrimg:0627d737ee40f8ba7e01ba1861ef3526"
+  ],
+  "input_payload": {
+    "product_page_ocr": {
+      "schema_version": 1,
+      "source_collected_at": "2026-10-25T02:27:05.601Z",
+      "images": [
+        {
+          "ref": "ocrimg:de68d6345f6d98ba6fb1335414188fa5",
+          "status": "success",
+          "text": "sale OCR\ncomplete line"
+        },
+        {
+          "ref": "ocrimg:0627d737ee40f8ba7e01ba1861ef3526",
+          "status": "success",
+          "text": "item_desc OCR\ncomplete line"
+        }
+      ]
+    }
+  }
+}

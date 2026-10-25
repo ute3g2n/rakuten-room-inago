@@ -1,0 +1,58 @@
+{
+  "case_id": "C01",
+  "step_id": "STEP1",
+  "status": "PASS",
+  "base_commit": "f4420bf",
+  "document_version": "2.62",
+  "updated_date": "2026-10-25",
+  "files": [
+    {
+      "path": "docs/specifications/inago/イナゴスキル要件定義書.html",
+      "base_sha256": "c1a3b2e1e327cbf44378e755a3edbbd2b177cd68dd07579ae0f2f02a02e49d35",
+      "result_sha256": "e0a413c1ccefb69c201819af41fd943d326c5bf3aa8df6093a4d69b2de544a79",
+      "result_bytes": 4322101
+    },
+    {
+      "path": "docs/specifications/inago/要件データ辞書.md",
+      "base_sha256": "bab3bdc2fb0cc864cd86bda8755f38a2b007b73467d73c22257ce489ec70d257",
+      "result_sha256": "48f294ac0fc4f8e0208936f73105b36ebc33ca8b1897ae7538262fa72a67d500",
+      "result_bytes": 137891
+    },
+    {
+      "path": "docs/specifications/inago/要件追跡表.md",
+      "base_sha256": "9857a5b6a2f201e286b479c1318330b393acffba768f89dcbb071d18c977513b",
+      "result_sha256": "581a57568a5416e2f3d1aeb2eba7127de8c49bcdb3b93acb2eda74b8909fcf97",
+      "result_bytes": 109494
+    }
+  ],
+  "build": {
+    "command": "node tools/docs/inago-requirements/build.mjs",
+    "first_attempt_exit_code": 1,
+    "first_attempt_error": "Unsupported Markdown table; blank line separated a new supplemental row from its table.",
+    "second_attempt_exit_code": 1,
+    "second_attempt_error": "Table cell count mismatch; new reviewer row had four cells in a three-column table.",
+    "third_attempt_exit_code": 0,
+    "repeat_attempt_exit_code": 0,
+    "repeat_output_sha256_unchanged": true,
+    "chapters": 28,
+    "figures": 39,
+    "embedded_references": 26
+  },
+  "verification": {
+    "command": "node worklogs/projects/implementation/item-desc-capture-20261025/C01/verify.mjs",
+    "exit_code": 0,
+    "assertions": 9,
+    "embedded_dictionary_and_traceability_match_files": true,
+    "main_chapters": 28,
+    "production_database_touched": false,
+    "daily_run_started": false
+  },
+  "diff_check": {
+    "command": "git diff --check",
+    "exit_code": 0,
+    "note": "Git printed a CRLF-to-LF normalization warning for 要件追跡表.md."
+  },
+  "known_limits": [
+    "This is a specification/documentation verification only; no product implementation or feature test was executed in STEP1."
+  ]
+}

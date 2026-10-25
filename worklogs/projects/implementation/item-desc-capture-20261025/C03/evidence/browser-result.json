@@ -1,0 +1,202 @@
+{
+  "browser_version": "155.0.8059.85",
+  "result": {
+    "page_ref": "ppi:ae11efa84e8cbaaa7232855a8a4eb0661a3cdac9",
+    "state": "captured",
+    "image_count": 3
+  },
+  "manifest": {
+    "schema_version": 1,
+    "page_ref": "ppi:ae11efa84e8cbaaa7232855a8a4eb0661a3cdac9",
+    "run_id": "CAP-BROWSER-ITEM-DESC",
+    "shop_id": "fixture-shop",
+    "item_id": "browser-item-desc",
+    "item_url": "file:///C:/project/rakuten-room-inago/tests_inago/fixtures/product-page-item-desc.html",
+    "source_evidence_ref": "CAP-BROWSER-ITEM-DESC-ATTEMPT:row:1",
+    "captured_at": "2026-10-25T02:27:41.209Z",
+    "html_state": "captured",
+    "selectors": [
+      {
+        "key": "sale_desc",
+        "selector": "span.sale_desc",
+        "status": "captured",
+        "outer_html": [
+          "<span class=\"sale_desc description\">\n      <p>sale_desc fixture text</p>\n      <img id=\"sale-data-image\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" alt=\"synthetic sale image\">\n    </span>"
+        ]
+      },
+      {
+        "key": "normal_reserve_item_name",
+        "selector": "span.normal_reserve_item_name",
+        "status": "not_found",
+        "outer_html": []
+      },
+      {
+        "key": "normal_reserve_catch_copy",
+        "selector": "span.normal_reserve_catch_copy",
+        "status": "not_found",
+        "outer_html": []
+      },
+      {
+        "key": "item_desc",
+        "selector": "span.item_desc",
+        "status": "captured",
+        "outer_html": [
+          "<span class=\"item_desc description\">\n      <p>item_desc lazy fixture text</p>\n      <img id=\"item-lazy\" data-src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" alt=\"synthetic lazy image\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%233678c8'/%3E%3C/svg%3E\" data-loaded=\"true\">\n      <img id=\"item-blob\" alt=\"synthetic blob image\" src=\"blob:null/87c1670d-2985-4cd4-813b-9ee6dc8ee339\">\n    <img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"><img id=\"item-late\" alt=\"synthetic late child image\" src=\"data:image/svg+xml,%3Csvg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;24&quot; height=&quot;24&quot;%3E%3Crect width=&quot;24&quot; height=&quot;24&quot; fill=&quot;%23f07a1a&quot;/%3E%3C/svg%3E\"></span>"
+        ]
+      }
+    ],
+    "image_state": "captured",
+    "lazy_load_state": "settled",
+    "lazy_load_reason": null,
+    "lazy_load_observed_ms": 637,
+    "lazy_load_unresolved": [],
+    "images": [
+      {
+        "index": 0,
+        "url": "data:sha256:fb686dd84a7768e58c4d5ee4769fd5596a83fd8cf493c0a5819e6f53b8b9f1b3",
+        "source_kind": "data",
+        "source_url_sha256": "fb686dd84a7768e58c4d5ee4769fd5596a83fd8cf493c0a5819e6f53b8b9f1b3",
+        "occurrences": [
+          {
+            "key": "sale_desc",
+            "selector": "span.sale_desc",
+            "match_index": 0,
+            "dom_position": 2,
+            "tag": "img",
+            "attribute": "currentSrc",
+            "order": 0
+          },
+          {
+            "key": "sale_desc",
+            "selector": "span.sale_desc",
+            "match_index": 0,
+            "dom_position": 2,
+            "tag": "img",
+            "attribute": "src",
+            "order": 1
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 2,
+            "tag": "img",
+            "attribute": "currentSrc",
+            "order": 2
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 2,
+            "tag": "img",
+            "attribute": "src",
+            "order": 3
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 2,
+            "tag": "img",
+            "attribute": "data-src",
+            "order": 4
+          }
+        ],
+        "status": "downloaded",
+        "file": "images/0001-fb686dd84a77.svg",
+        "content_type": "image/svg+xml",
+        "byte_length": 114
+      },
+      {
+        "index": 1,
+        "url": "blob:sha256:bff56391959fa7ffd1ee5c5f654875fb956963fffba2839e2788d8a7fc3005e6",
+        "source_kind": "blob",
+        "source_url_sha256": "bff56391959fa7ffd1ee5c5f654875fb956963fffba2839e2788d8a7fc3005e6",
+        "occurrences": [
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 3,
+            "tag": "img",
+            "attribute": "currentSrc",
+            "order": 5
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 3,
+            "tag": "img",
+            "attribute": "src",
+            "order": 6
+          }
+        ],
+        "status": "downloaded",
+        "file": "images/0002-bff56391959f.svg",
+        "content_type": "image/svg+xml",
+        "byte_length": 116
+      },
+      {
+        "index": 2,
+        "url": "data:sha256:c060dcc09317602cf6201b64d425e5a849e21b1920fbd70687ef00a54b9a282a",
+        "source_kind": "data",
+        "source_url_sha256": "c060dcc09317602cf6201b64d425e5a849e21b1920fbd70687ef00a54b9a282a",
+        "occurrences": [
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 4,
+            "tag": "img",
+            "attribute": "currentSrc",
+            "order": 7
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 4,
+            "tag": "img",
+            "attribute": "src",
+            "order": 8
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 5,
+            "tag": "img",
+            "attribute": "currentSrc",
+            "order": 9
+          },
+          {
+            "key": "item_desc",
+            "selector": "span.item_desc",
+            "match_index": 0,
+            "dom_position": 5,
+            "tag": "img",
+            "attribute": "src",
+            "order": 10
+          }
+        ],
+        "status": "downloaded",
+        "file": "images/0003-c060dcc09317.svg",
+        "content_type": "image/svg+xml",
+        "byte_length": 114
+      }
+    ]
+  },
+  "bytesByFile": {
+    "images/0001-fb686dd84a77.svg": "PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyNCcgaGVpZ2h0PScyNCc+PHJlY3Qgd2lkdGg9JzI0JyBoZWlnaHQ9JzI0JyBmaWxsPScjMzY3OGM4Jy8+PC9zdmc+",
+    "images/0002-bff56391959f.svg": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNkMTRjN2IiLz48L3N2Zz4=",
+    "images/0003-c060dcc09317.svg": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjZjA3YTFhIi8+PC9zdmc+"
+  },
+  "screenshots": [
+    "C:\\project\\rakuten-room-inago\\worklogs\\projects\\implementation\\item-desc-capture-20261025\\C03\\evidence\\before.png",
+    "C:\\project\\rakuten-room-inago\\worklogs\\projects\\implementation\\item-desc-capture-20261025\\C03\\evidence\\after.png"
+  ],
+  "trace": "C:\\project\\rakuten-room-inago\\worklogs\\projects\\implementation\\item-desc-capture-20261025\\C03\\evidence\\trace.zip",
+  "video": "C:\\project\\rakuten-room-inago\\worklogs\\projects\\implementation\\item-desc-capture-20261025\\C03\\evidence\\item-desc-capture.webm"
+}

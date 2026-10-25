@@ -1,0 +1,32 @@
+{
+  "case_id": "C02",
+  "step_id": "STEP2",
+  "status": "PASS",
+  "base_commit": "f4420bf",
+  "specification_version": "2.62",
+  "product_code": {
+    "path": "automation/inago/adapters/product_page_inputs.mjs",
+    "sha256": "534b3bafc3c992a9f18bb5bdeab026bc79bdf9ac3842a14c9b6671e63eb42caf"
+  },
+  "selector_contract": {
+    "item_desc_appended_after_existing_selectors": true,
+    "all_matches_and_full_outer_html": true,
+    "sale_and_item_description_regions_share_image_capture": true,
+    "empty_not_found_unavailable_distinguished": true,
+    "public_sources_existing_capture_calls_read_only_confirmed": 2
+  },
+  "red": {
+    "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py::test_item_desc_is_appended_and_every_matching_description_html_is_saved tests_inago/test_product_page_capture.py::test_description_images_keep_all_sources_bytes_and_selector_provenance tests_inago/test_product_page_capture.py::test_only_explicit_local_retry_retries_failed_images_and_preserves_success tests_inago/test_product_page_capture.py::test_cleanup_and_legacy_captures_are_never_refetched",
+    "exit_code": 1,
+    "failed": 3,
+    "passed": 1
+  },
+  "final": {
+    "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+    "exit_code": 0,
+    "passed": 13,
+    "failed": 0
+  },
+  "production_database_touched": false,
+  "daily_run_started": false
+}

@@ -17,8 +17,8 @@ AI-Oから許可されたT02の未確定商品を一件だけ処理します。P
 
 紹介文を作成する前に、次の入力を全件・全文、必ず商品情報の資料として参照してください。
 
-- `page.json`の`sale_desc`（`span.sale_desc`）、`normal_reserve_item_name`（`span.normal_reserve_item_name`）、`normal_reserve_catch_copy`（`span.normal_reserve_catch_copy`）の3種類すべてについて、`outer_html`配列の全値を読みます。同じ種類の要素が複数ある場合も全件が対象です。jobでは、同じ値が`product_page_html.selectors[].elements[].outer_html`に格納されています。
-- OCR JSON（`ocr.json`）の全画像レコードに含まれる全抽出テキスト（`input_payload.product_page_ocr.images[].text`）を読みます。jobでは`product_page_ocr.images[].text`に格納されています。先頭の画像や一部の行だけで判断せず、全画像の全テキストを参照してください。
+- `page.json`の`sale_desc`（`span.sale_desc`）、`normal_reserve_item_name`（`span.normal_reserve_item_name`）、`normal_reserve_catch_copy`（`span.normal_reserve_catch_copy`）、`item_desc`（`span.item_desc`）の4種類すべてについて、`outer_html`配列の全値を読みます。同じ種類の要素が複数ある場合も全件が対象です。jobでは、同じ値が`product_page_html.selectors[].elements[].outer_html`に格納されています。
+- OCR JSON（`ocr.json`）の全画像レコードに含まれる全抽出テキスト（`input_payload.product_page_ocr.images[].text`）を読みます。`span.item_desc`内の画像から抽出されたOCRテキストも商品説明の参考にします。jobでは`product_page_ocr.images[].text`に格納されています。先頭の画像や一部の行だけで判断せず、全画像の全テキストを参照してください。
 
 これらはファイル参照ではなく、job内に渡されたデータを読みます。値がある入力を省略し、商品名や既存の`facts`だけで紹介文作成を済ませてはいけません。すべてを参照した後に、今回の商品に関係する特徴・仕様・使い方などを整理し、それらを参考に紹介文を作成してください。情報不足による文型選択も、全入力を参照した後に判断します。未取得・空・判読不能の内容は推測で補いません。
 

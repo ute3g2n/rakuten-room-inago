@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "page_ref": "ppi:4dd8f8ed9c780e49723048d60a2eaed11bdac5b8",
+  "run_id": "CAP-C07-01",
+  "shop_id": "c07-shop",
+  "item_id": "c07-item",
+  "item_url": "https://item.rakuten.co.jp/c07-shop/c07-item/",
+  "source_evidence_ref": "CAP-C07-01-ATTEMPT:row:1",
+  "captured_at": "2026-10-25T02:27:05.601Z",
+  "html_state": "captured",
+  "selectors": [
+    {
+      "key": "sale_desc",
+      "selector": "span.sale_desc",
+      "status": "captured",
+      "outer_html": [
+        "<span class=\"sale_desc\"><p>Sale description fixture</p><img src=\"https://images.test/sale.png\"></span>"
+      ]
+    },
+    {
+      "key": "normal_reserve_item_name",
+      "selector": "span.normal_reserve_item_name",
+      "status": "not_found",
+      "outer_html": []
+    },
+    {
+      "key": "normal_reserve_catch_copy",
+      "selector": "span.normal_reserve_catch_copy",
+      "status": "not_found",
+      "outer_html": []
+    },
+    {
+      "key": "item_desc",
+      "selector": "span.item_desc",
+      "status": "captured",
+      "outer_html": [
+        "<span class=\"item_desc\"><p>Item description complete HTML fixture</p><img src=\"https://images.test/item.png\"></span>"
+      ]
+    }
+  ],
+  "image_state": "captured",
+  "lazy_load_state": "settled",
+  "lazy_load_reason": null,
+  "lazy_load_observed_ms": 512,
+  "lazy_load_unresolved": [],
+  "images": [
+    {
+      "index": 0,
+      "url": "https://images.test/sale.png",
+      "source_kind": "http",
+      "source_url_sha256": "15f7a6387d3ac0d7e9f4066f1e638a6c3ab386251e5e441c5bfcd8b7ca4471b7",
+      "occurrences": [
+        {
+          "key": "sale_desc",
+          "selector": "span.sale_desc",
+          "match_index": 0,
+          "dom_position": 1,
+          "tag": "img",
+          "attribute": "currentSrc",
+          "order": 0
+        },
+        {
+          "key": "sale_desc",
+          "selector": "span.sale_desc",
+          "match_index": 0,
+          "dom_position": 1,
+          "tag": "img",
+          "attribute": "src",
+          "order": 1
+        }
+      ],
+      "status": "downloaded",
+      "file": "images/0001-15f7a6387d3a.png",
+      "content_type": "image/png",
+      "byte_length": 42,
+      "http_status": 200
+    },
+    {
+      "index": 1,
+      "url": "https://images.test/item.png",
+      "source_kind": "http",
+      "source_url_sha256": "1984adc58bebc237d7987e49fc67935ce467b5a191a0e766f32a1041c0c858a4",
+      "occurrences": [
+        {
+          "key": "item_desc",
+          "selector": "span.item_desc",
+          "match_index": 0,
+          "dom_position": 1,
+          "tag": "img",
+          "attribute": "currentSrc",
+          "order": 2
+        },
+        {
+          "key": "item_desc",
+          "selector": "span.item_desc",
+          "match_index": 0,
+          "dom_position": 1,
+          "tag": "img",
+          "attribute": "src",
+          "order": 3
+        }
+      ],
+      "status": "downloaded",
+      "file": "images/0002-1984adc58beb.png",
+      "content_type": "image/png",
+      "byte_length": 42,
+      "http_status": 200
+    }
+  ]
+}

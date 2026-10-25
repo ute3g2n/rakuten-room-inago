@@ -11,7 +11,7 @@ import pytest
 
 from automation.inago import product_ocr
 from automation.inago.product_ocr import ProductPageOCR, load_product_page_ocr
-from tests_inago.product_page_test_support import product_dir, write_page
+from tests_inago.product_page_test_support import product_dir, write_ocr, write_page
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -408,6 +408,217 @@ def test_every_image_and_exact_returned_text_survive_conversion(
     ]
     assert len(saved["input_refs"]) == 4
     assert saved["evidence_refs"] == [actual[0]["ref"], actual[1]["ref"]]
+
+
+def test_sale_and_item_desc_images_all_flow_to_ordered_ocr_records(
+    tmp_path: Path,
+) -> None:
+    run_id = "OCR-DESC-MIXED-01"
+    images = _image_records(4)
+    for index, image in enumerate(images):
+        selector = "span.sale_desc" if index % 2 == 0 else "span.item_desc"
+        image["occurrences"] = [
+            {
+                "key": "sale_desc" if index % 2 == 0 else "item_desc",
+                "selector": selector,
+                "match_index": 0,
+                "dom_position": index + 1,
+                "tag": "img",
+                "attribute": "src",
+                "order": index,
+            }
+        ]
+    images[2]["status"] = "http_error"
+    images[2]["file"] = None
+    page = write_page(
+        tmp_path,
+        run_id,
+        "shop",
+        "item",
+        selectors=[
+            {"key": "sale_desc", "selector": "span.sale_desc", "status": "captured", "outer_html": ["<span class=\"sale_desc\">sale</span>"]},
+            {"key": "item_desc", "selector": "span.item_desc", "status": "captured", "outer_html": ["<span class=\"item_desc\">item</span>"]},
+        ],
+        images=images,
+    )
+    folder = product_dir(tmp_path, run_id, "shop", "item")
+    for index in (0, 1, 3):
+        image_path = folder / images[index]["file"]
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        image_path.write_bytes(f"fixture-image-{index}".encode())
+
+    texts = ["sale first line\nsale second line", "item English\nitem 日本語", "last image\nfull text"]
+    engine = ProductPageOCR()
+    fixture_worker = _FixtureWorker(texts)
+    engine._worker_for = lambda _run_id, _data_root: fixture_worker
+    result = engine.process_product(
+        None,
+        run_id=run_id,
+        offer_key="shop:item",
+        shop_id="shop",
+        item_id="item",
+        page_ref=page["page_ref"],
+        source_evidence_ref=page["source_evidence_ref"],
+        data_root=tmp_path,
+    )
+
+    assert result["status"] == "partial"
+    assert [entry["order"] for entry in result["images"]] == [0, 1, 2, 3]
+    saved = load_product_page_ocr(
+        tmp_path,
+        run_id,
+        "shop:item",
+        "shop",
+        "item",
+        expected_page_ref=page["page_ref"],
+        expected_ocr_ref=result["ocr_ref"],
+    )
+    assert saved is not None
+    actual = saved["input_payload"]["product_page_ocr"]["images"]
+    assert len(actual) == len(page["images"]) == 4
+    assert [(entry["status"], entry["text"]) for entry in actual] == [
+        ("success", texts[0]),
+        ("success", texts[1]),
+        ("error", ""),
+        ("success", texts[2]),
+    ]
+    assert [item["image_ref"] for item in result["images"]] == [item["ref"] for item in actual]
+    assert saved["input_refs"] == [page["page_ref"], *[item["ref"] for item in actual]]
+    assert saved["evidence_refs"] == [actual[0]["ref"], actual[1]["ref"], actual[3]["ref"]]
+    raw = json.loads((folder / "ocr-raw.json").read_text(encoding="utf-8"))
+    assert [item["order"] for item in raw["images"]] == [0, 1, 2, 3]
+    assert raw["images"][1]["status"] == "success"
+    assert raw["images"][1]["source_sha256"]
+
+
+def test_description_images_ocr_preserves_text_and_resumes(
+    tmp_path: Path,
+) -> None:
+    run_id = "OCR-EXPLICIT-RETRY-01"
+    images = _image_records(2)
+    page = write_page(tmp_path, run_id, "shop", "item", images=images)
+    folder = product_dir(tmp_path, run_id, "shop", "item")
+    image_bytes = [b"first-stable-image", b"second-retry-image"]
+    for image, value in zip(images, image_bytes, strict=True):
+        image_path = folder / image["file"]
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        image_path.write_bytes(value)
+
+    class _RetryWorker:
+        def __init__(self) -> None:
+            self.responses: list[Any] = [
+                "kept first\nfull text",
+                RuntimeError("fixture temporary inference failure"),
+                "retried second\nfull text",
+            ]
+            self.inputs: list[bytes] = []
+
+        def predict(self, value: bytes) -> tuple[list[Any], str]:
+            self.inputs.append(value)
+            response = self.responses.pop(0)
+            if isinstance(response, Exception):
+                raise response
+            return ([{"fixture": True}], response)
+
+        def close(self) -> None:
+            pass
+
+    engine = ProductPageOCR()
+    worker = _RetryWorker()
+    engine._worker_for = lambda _run_id, _data_root: worker
+    first = engine.process_product(
+        None,
+        run_id=run_id,
+        offer_key="shop:item",
+        shop_id="shop",
+        item_id="item",
+        page_ref=page["page_ref"],
+        source_evidence_ref=page["source_evidence_ref"],
+        data_root=tmp_path,
+    )
+    first_raw = json.loads((folder / "ocr-raw.json").read_text(encoding="utf-8"))
+    second = engine.process_product(
+        None,
+        run_id=run_id,
+        offer_key="shop:item",
+        shop_id="shop",
+        item_id="item",
+        page_ref=page["page_ref"],
+        source_evidence_ref=page["source_evidence_ref"],
+        data_root=tmp_path,
+    )
+    second_raw = json.loads((folder / "ocr-raw.json").read_text(encoding="utf-8"))
+    saved = load_product_page_ocr(
+        tmp_path,
+        run_id,
+        "shop:item",
+        "shop",
+        "item",
+        expected_page_ref=page["page_ref"],
+        expected_ocr_ref=second["ocr_ref"],
+    )
+
+    assert first["status"] == "partial"
+    assert second["status"] == "complete"
+    assert len(worker.inputs) == 3
+    assert worker.inputs == [image_bytes[0], image_bytes[1], image_bytes[1]]
+    assert first_raw["images"][0]["source_sha256"] == second_raw["images"][0]["source_sha256"]
+    assert first_raw["images"][0]["returned_text_sha256"] == second_raw["images"][0]["returned_text_sha256"]
+    assert saved is not None
+    payload_images = saved["input_payload"]["product_page_ocr"]["images"]
+    assert [(entry["status"], entry["text"]) for entry in payload_images] == [
+        ("success", "kept first\nfull text"),
+        ("success", "retried second\nfull text"),
+    ]
+
+
+def test_legacy_v1_page_and_ocr_payload_still_load_without_new_image_fields(
+    tmp_path: Path,
+) -> None:
+    run_id = "OCR-LEGACY-V1-01"
+    page = write_page(
+        tmp_path,
+        run_id,
+        "shop",
+        "item",
+        images=[
+            {
+                "index": 0,
+                "url": "https://images.test/legacy.png",
+                "occurrences": [{"order": 0, "tag": "img", "attribute": "src"}],
+                "status": "downloaded",
+                "file": "images/0001-legacy.png",
+                "content_type": "image/png",
+                "byte_length": 8,
+            }
+        ],
+    )
+    legacy_payload, ocr_ref = write_ocr(
+        tmp_path,
+        page,
+        images=[
+            {"ref": "ocrimg:legacy-success", "status": "success", "text": "legacy\nfull text"},
+            {"ref": "ocrimg:legacy-error", "status": "error", "text": ""},
+        ],
+    )
+
+    loaded = load_product_page_ocr(
+        tmp_path,
+        run_id,
+        "shop:item",
+        "shop",
+        "item",
+        expected_page_ref=page["page_ref"],
+        expected_ocr_ref=ocr_ref,
+    )
+
+    assert page["schema_version"] == legacy_payload["schema_version"] == 1
+    assert "source_kind" not in page["images"][0]
+    assert loaded is not None
+    assert [entry["text"] for entry in loaded["input_payload"]["product_page_ocr"]["images"]] == [
+        "legacy\nfull text",
+        "",
+    ]
 
 
 def test_oversized_image_is_rejected_before_reading_or_worker_send(

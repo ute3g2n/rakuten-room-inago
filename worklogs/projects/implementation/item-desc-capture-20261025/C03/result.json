@@ -1,0 +1,42 @@
+{
+  "case_id": "C03",
+  "step_id": "STEP2",
+  "status": "PASS",
+  "browser": "Chromium 155.0.8059.85",
+  "input": "tests_inago/fixtures/product-page-item-desc.html",
+  "scope": "local synthetic file page; no external network or ROOM/product URL",
+  "assertions": {
+    "selector": "span.item_desc",
+    "full_html_captured": true,
+    "lazy_image_loaded_during_capture": true,
+    "image_count": 3,
+    "all_images_downloaded": true,
+    "late_dom_child_captured": true,
+    "lazy_load_state": "settled",
+    "data_and_blob_bytes_matched": true
+  },
+  "command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_item_desc_browser.py::test_item_desc_lazy_images_are_captured_with_visual_evidence",
+  "exit_code": 0,
+  "capture_url_safety_command": ".venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_url_safety.py",
+  "capture_url_safety_exit_code": 0,
+  "capture_url_safety_passed": 12,
+  "v265_final_capture_browser_url_safety": {
+    "command": "$privateFixtureRoot = Join-Path $env:TEMP 'inago-item-desc-capture-final-20261025-v265'; $pytestTempRoot = Join-Path $privateFixtureRoot 'pytest'; [System.IO.Directory]::CreateDirectory($pytestTempRoot) | Out-Null; $env:INAGO_SAFE_FIXTURE_BASE = $privateFixtureRoot; .venv-inago/Scripts/python.exe -m pytest -q tests_inago/test_product_page_capture.py tests_inago/test_product_page_item_desc_browser.py tests_inago/test_product_page_url_safety.py --basetemp $pytestTempRoot",
+    "exit_code": 0,
+    "passed": 19,
+    "failed": 0,
+    "specification_version": "2.65",
+    "product_code_sha256": "9c68a923547e41e23b0fe3bca6189af656903cbb4fd74a8baa2206827c60b958",
+    "browser_result_sha256": "8ec356a9eeb807d0295c7f0ff73340e70a204722e227c2208b8c70bced9ac0b6"
+  },
+  "evidence": {
+    "before_screenshot": "C03/evidence/before.png",
+    "after_screenshot": "C03/evidence/after.png",
+    "video": "C03/evidence/item-desc-capture.webm",
+    "trace": "C03/evidence/trace.zip",
+    "result": "C03/evidence/browser-result.json",
+    "trace_zip_valid": true,
+    "png_signatures_valid": true,
+    "webm_header_valid": true
+  }
+}

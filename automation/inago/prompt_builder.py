@@ -310,8 +310,9 @@ def build_prompt_context(
                 "B0002/B0201/B0213/B0235/B0252に限られる。",
                 "product_page_htmlとproduct_page_ocrが入力にある場合は、現在の商品名・商品ID・URLと照合して"
                 "対象商品に結び付く記述だけを使う。商品名だけで結び付かない情報は採用しない。",
-                "sale_desc・normal_reserve_item_name・normal_reserve_catch_copyの全outer_htmlと、"
-                "OCR JSON内の全画像の全テキストを必ず商品情報の資料として読み、関連する説明を活用する。"
+                "sale_desc・normal_reserve_item_name・normal_reserve_catch_copy・item_descの全outer_htmlと、"
+                "span.item_desc内の画像から抽出されたものを含む、OCR JSON内の全画像の全テキストを"
+                "必ず商品情報の資料として読み、関連する説明を活用する。"
                 "名前・カテゴリ・容量・個数の言い換え、汎用文やタグによる水増しでは完成にしない。",
                 "OCRでの抽出テキスト内の改行は画像のレイアウトを反映しています。改行を単語や文の区切りと"
                 "決めつけず、前後の行も文脈に含めて読んでください。英数字が改行をまたぐ場合も、自然につながると"
