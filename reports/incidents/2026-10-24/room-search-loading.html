@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROOM検索の読み込み中0件誤判定への対応</title>
+<style>
+body{font-family:system-ui,sans-serif;line-height:1.9;color:#20313c;background:#f4f6f8;margin:0}main{max-width:850px;margin:36px auto;padding:32px;background:white;border-radius:12px}h1{font-size:1.7rem;line-height:1.5}h2{font-size:1.2rem;margin-top:30px}small{color:#526675}strong{color:#174e62}a{color:#155c85}details{margin-top:30px}code{overflow-wrap:anywhere} @media(max-width:600px){main{margin:0;padding:22px;border-radius:0}}
+</style>
+<main>
+<small>対象日：2026年10月24日／調査・修正：10月25日</small>
+<h1>検索結果の読み込み中に、0件と確定していました</h1>
+<p><strong>検索結果がまだ表示されていない状態を、商品がない状態と誤判定する処理を修正しました。</strong>ROOM検索全体の時間上限は追加していません。</p>
+<h2>何が起きたか</h2>
+<p>日次処理の検索履歴に、正常終了した取得0件が108回記録されていました。しかし本人の画面では結果が表示されており、該当の検索だけを動かして確認したところ、読み込み中に0件で終了し、そのまま約15秒待つと20投稿が表示されました。履歴の0件を、実際に該当商品がないことの証拠として扱えません。</p>
+<h2>原因</h2>
+<p>件数が増えない状態を約2秒ずつ3回観測すると、検索完了とする判定がありました。この判定が、最初の投稿を読み込んでいる0件の状態にも適用されていました。明示的な「該当なし」を確認せず、約6秒の不変だけで正常な0件として返していました。</p>
+<h2>実際に行った修正</h2>
+<p>件数が増えないことによる終了を、1件以上表示された場合だけに限定しました。0件の間は投稿の表示、または明示的な「該当なし」の表示を待ちます。既存の期限指定、エラー検出、キャンセル処理は変更していません。</p>
+<p><strong>現在の本番設定では、この待機に時間上限はありません。</strong>投稿も「該当なし」も出ず、エラーもなければ、明示的なキャンセルまで待ち続けます。今回、新しい最大タイムアウト秒数は設定していません。</p>
+<p>修正後の同じ検索では20投稿の表示を待ち、最小の取得確認として1商品の識別・取得に成功しました。関連する回帰試験12件も合格しました。</p>
+<h2>今回残した画面・動画・ログ</h2>
+<p>局所実行の操作前後の画面、動画、操作と画面の変化を追えるPlaywright traceを保存しました。既存ログにも、0件から20投稿へ変化した時点と検索終了時点が残っています。製品のトレース機能そのものを今回新設したわけではありません。画面やtraceの原本は非公開で保管しています。</p>
+<h2>まだ確認していないこと</h2>
+<p>108回すべての記録が同じ終了判定を使っていましたが、全検索語句を実画面で再確認したわけではありません。すべてに商品が存在したとは断定しません。昨日の保存済み9件は変更しておらず、日次全体の再実行や15件への回復確認も行っていません。別に判明しているテーマ単独の補充検索の欠落は、今回の修正に含まれません。</p>
+<details><summary>技術付録・実行記録</summary>
+<p>対象run：<code>INAGO-2026-10-24</code>。日次DBは読み取りのみ。製品の変更箇所は <code>automation/inago/adapters/public_sources.mjs</code> の検索終了条件です。</p>
+<p><a href="../../../worklogs/projects/maintenance/room-zero-20261025/execution.md">コマンド・版・期待値・実結果・証拠保存先</a>／<a href="../../../worklogs/projects/maintenance/room-zero-20261025/code-review.md">独立製品レビュー</a></p>
+</details>
+</main>
+</html>

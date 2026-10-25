@@ -2468,8 +2468,13 @@ def test_room_without_deadline_ignores_source_duration_limit(tmp_path, ui_server
 def test_zero_result_without_known_end_marker_is_not_successful_empty(
     tmp_path, ui_server
 ):
+    from datetime import datetime, timedelta, timezone
+
     ui_server["html"] = room_html(0, initial=0, terminal=False)
-    request = replace(room_request(), deadline_at=None)
+    request = replace(
+        room_request(),
+        deadline_at=(datetime.now(timezone.utc) + timedelta(seconds=8)).isoformat(),
+    )
     adapter = source(tmp_path, ui_server, timeout=10)
     cancellation_fired = threading.Event()
 
@@ -2508,7 +2513,7 @@ def test_zero_result_without_known_end_marker_is_not_successful_empty(
 
     ui_server["html"] = room_html(0, initial=0, terminal=True)
     generic_root = tmp_path / "unrecognized-empty-marker"
-    generic_payload = source(generic_root, ui_server, timeout=4).search(request)
+    generic_payload = source(generic_root, ui_server, timeout=4).search(room_request())
     assert generic_payload["error_code"] == "incomplete_search"
     generic_record = json.loads(
         next((generic_root / "observations").glob("room-*.json")).read_text(

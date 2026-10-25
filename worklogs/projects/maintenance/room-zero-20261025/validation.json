@@ -1,0 +1,68 @@
+{
+  "target_run": "INAGO-2026-10-24",
+  "probe_run": "LOCAL-ROOM-ZERO-20261025",
+  "validation": {
+    "node_syntax": "PASS",
+    "python_ast": "PASS",
+    "report_links": "PASS",
+    "local_live_before": {
+      "exit_code": 0,
+      "expectation_met": false
+    },
+    "local_live_after": {
+      "exit_code": 0,
+      "expectation_met": true,
+      "loaded_posts": 20,
+      "product_sample_count": 1
+    },
+    "regression": {
+      "exit_code": 0,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full_daily_run": "NOT_RUN"
+  },
+  "files": [
+    {
+      "path": "automation/inago/adapters/public_sources.mjs",
+      "sha256": "42511d6301ec7c7c2bc1df19d0ea88f3a3252278927f1a48408a56d81dabbdb1",
+      "bytes": 117147
+    },
+    {
+      "path": "tests_inago/test_step21_browser.py",
+      "sha256": "3d68f48e918b94e4fd40f7a8f977e2b11467ee6a804da63148cc2fab2996d5a1",
+      "bytes": 96812
+    },
+    {
+      "path": "reports/incidents/2026-10-24/room-search-loading.html",
+      "sha256": "0943b01e4e92b91a13486f5f1ae2b509ec902f1dee6b47fa77fe85971f28b922",
+      "bytes": 4153
+    },
+    {
+      "path": "worklogs/projects/maintenance/room-zero-20261025/private/probe.mjs",
+      "sha256": "d6191b51d353e040a690d75e66295ad654ae19954495d482a262dd5000536484",
+      "bytes": 2778
+    },
+    {
+      "path": "worklogs/projects/maintenance/room-zero-20261025/private/probe-result.json",
+      "sha256": "053f6b9126196df84fa45296da8cc849f8e0ca63190bd120567e9b13dde52918",
+      "bytes": 2855
+    },
+    {
+      "path": "worklogs/projects/maintenance/room-zero-20261025/private/trace.zip",
+      "sha256": "fd759239a7a31201a8e5462a97485d30ff0400cbe5358ef65240b0d5d7c0ba71",
+      "bytes": 5973783
+    },
+    {
+      "path": "worklogs/projects/maintenance/room-zero-20261025/private/after/probe-result.json",
+      "sha256": "9babc3c82a8f3230f10dc5e729bec7f6549c4c02882eca91f25fb8130f224ea1",
+      "bytes": 4175
+    },
+    {
+      "path": "worklogs/projects/maintenance/room-zero-20261025/private/after/trace.zip",
+      "sha256": "fda71bcf0a8153ac4eb3bef6193719cce1e00b339334092125009ae303de6b46",
+      "bytes": 44603614
+    }
+  ]
+}

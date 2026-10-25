@@ -1317,7 +1317,9 @@ export async function collectRoom(page, request, config, deadline, access) {
         loaded_posts: loaded,
         stable_round: stableNoProgressRounds,
       });
-      if (stableNoProgressRounds >= 3) {
+      // An unchanged empty list can still be loading after filters are applied.
+      // Only a positive short batch can finish without an explicit end marker.
+      if (loaded > 0 && stableNoProgressRounds >= 3) {
         stableShortBatch = true;
         trace('room_short_batch_stable', {
           scope:'query',

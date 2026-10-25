@@ -1,0 +1,11 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+______ test_zero_result_without_known_end_marker_is_not_successful_empty ______
+tests_inago\test_step21_browser.py:2488: in test_zero_result_without_known_end_marker_is_not_successful_empty
+    assert not cancellation_fired.is_set()
+E   assert not True
+E    +  where True = is_set()
+E    +    where is_set = <threading.Event at 0x1aac1926ae0: set>.is_set
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step21_browser.py::test_zero_result_without_known_end_marker_is_not_successful_empty
+1 failed, 1 passed in 26.54s
