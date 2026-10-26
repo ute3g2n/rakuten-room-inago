@@ -1,0 +1,354 @@
+All commands use .venv-inago/Scripts/python.exe -X utf8 -m pytest -q with the relevant node(s) in tests_inago/test_history_combined_action.py and --basetemp=.pytest-tmp/<attempt>.
+Parametrized node: test_combined_copy_check_and_open_preserves_on_state[success|clipboard-failure|offline|missing-url].
+
+initial success without feature; attempt=history-combo-red; exit=1
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]' --basetemp=.pytest-tmp/history-combo-red
+reformatted tests_inago\test_history_combined_action.py
+
+All done! ✨ 🍰 ✨
+1 file reformatted.
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_combined_copy_check_and_open_preserves_on_state[success] ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-combo-red/test_combined_copy_check_and_o0')
+mode = 'success'
+
+    @pytest.mark.parametrize(
+        "mode", ["success", "clipboard-failure", "offline", "missing-url"]
+    )
+    def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
+        evidence = (
+            _ROOT
+            / "非公開作業データ/イナゴ実装試験/history-combined-action-20261026"
+            / tmp_path.parent.name
+            / tmp_path.name
+        )
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            connection = app.connect()
+            try:
+                connection.execute(
+                    "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
+                    (
+                        (
+                            None
+                            if mode == "missing-url"
+                            else "https://example.invalid/combined-product"
+                        ),
+                    ),
+                )
+            finally:
+                connection.close()
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "INAGO_TEST_HISTORY_URL": app.origin
+                    + "/posting-history.html#launch="
+                    + ticket(app),
+                    "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                    "INAGO_TEST_COMBINED_MODE": mode,
+                }
+            )
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_combined_browser.cjs")],
+                cwd=_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: locator.waitFor: Timeout 1500ms exceeded.
+E             Call log:
+E             [2m  - waiting for locator('article[data-draft-id="D-A01"]').getByRole('button', { name: 'コピー+チェック+遷移', exact: true }) to be visible[22m
+E
+E                 at C:\project\rakuten-room-inago\tests_inago\fixtures\history_combined_browser.cjs:45:20
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs']...isible\x1b[22m\n\n    at C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs:45:20\n').returncode
+
+tests_inago\test_history_combined_action.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]
+1 failed in 3.75s
+
+popup wait fixture issue; attempt=history-combo-success-01; exit=1
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]' --basetemp=.pytest-tmp/history-combo-success-01
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_combined_copy_check_and_open_preserves_on_state[success] ________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-combo-success-01/test_combined_copy_check_and_o0')
+mode = 'success'
+
+    @pytest.mark.parametrize(
+        "mode", ["success", "clipboard-failure", "offline", "missing-url"]
+    )
+    def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
+        evidence = (
+            _ROOT
+            / "非公開作業データ/イナゴ実装試験/history-combined-action-20261026"
+            / tmp_path.parent.name
+            / tmp_path.name
+        )
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            connection = app.connect()
+            try:
+                connection.execute(
+                    "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
+                    (
+                        (
+                            None
+                            if mode == "missing-url"
+                            else "https://example.invalid/combined-product"
+                        ),
+                    ),
+                )
+            finally:
+                connection.close()
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "INAGO_TEST_HISTORY_URL": app.origin
+                    + "/posting-history.html#launch="
+                    + ticket(app),
+                    "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                    "INAGO_TEST_COMBINED_MODE": mode,
+                }
+            )
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_combined_browser.cjs")],
+                cwd=_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+E             + actual - expected
+E
+E             + ''
+E             - 'https://example.invalid/combined-product'
+E
+E                 at openCombined (C:\project\rakuten-room-inago\tests_inago\fixtures\history_combined_browser.cjs:77:14)
+E                 at async C:\project\rakuten-room-inago\tests_inago\fixtures\history_combined_browser.cjs:99:7
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs']....cjs:77:14)\n    at async C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs:99:7\n").returncode
+
+tests_inago\test_history_combined_action.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]
+1 failed in 2.86s
+
+normal behavior green; attempt=history-combo-success-02; exit=0
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]' --basetemp=.pytest-tmp/history-combo-success-02
+.                                                                        [100%]
+1 passed in 2.77s
+
+edge cases first pass (2 PASS / NOT NULL fixture failure); attempt=history-combo-edges-01; exit=1
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]' 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[offline]' 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[missing-url]' --basetemp=.pytest-tmp/history-combo-edges-01
+..F                                                                      [100%]
+================================== FAILURES ===================================
+______ test_combined_copy_check_and_open_preserves_on_state[missing-url] ______
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-combo-edges-01/test_combined_copy_check_and_o2')
+mode = 'missing-url'
+
+    @pytest.mark.parametrize(
+        "mode", ["success", "clipboard-failure", "offline", "missing-url"]
+    )
+    def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
+        evidence = (
+            _ROOT
+            / "非公開作業データ/イナゴ実装試験/history-combined-action-20261026"
+            / tmp_path.parent.name
+            / tmp_path.name
+        )
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            connection = app.connect()
+            try:
+>               connection.execute(
+                    "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
+                    (
+                        (
+                            None
+                            if mode == "missing-url"
+                            else "https://example.invalid/combined-product"
+                        ),
+                    ),
+                )
+E               sqlite3.IntegrityError: NOT NULL constraint failed: offer.url
+
+tests_inago\test_history_combined_action.py:32: IntegrityError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[missing-url]
+1 failed, 2 passed in 5.25s
+
+missing URL fixture corrected; attempt=history-combo-no-url-02; exit=0
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[missing-url]' --basetemp=.pytest-tmp/history-combo-no-url-02
+.                                                                        [100%]
+1 passed in 1.87s
+
+copy fallback selection RED; attempt=history-combo-selection-red; exit=1
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]' --basetemp=.pytest-tmp/history-combo-selection-red
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_combined_copy_check_and_open_preserves_on_state[clipboard-failure] ___
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-combo-selection-red/test_combined_copy_check_and_o0')
+mode = 'clipboard-failure'
+
+    @pytest.mark.parametrize(
+        "mode", ["success", "clipboard-failure", "offline", "missing-url"]
+    )
+    def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
+        evidence = (
+            _ROOT
+            / "非公開作業データ/イナゴ実装試験/history-combined-action-20261026"
+            / tmp_path.parent.name
+            / tmp_path.name
+        )
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            connection = app.connect()
+            try:
+                connection.execute(
+                    "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
+                    (
+                        (
+                                "http://example.invalid/insecure-product"
+                            if mode == "missing-url"
+                            else "https://example.invalid/combined-product"
+                        ),
+                    ),
+                )
+            finally:
+                connection.close()
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "INAGO_TEST_HISTORY_URL": app.origin
+                    + "/posting-history.html#launch="
+                    + ticket(app),
+                    "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                    "INAGO_TEST_COMBINED_MODE": mode,
+                }
+            )
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_combined_browser.cjs")],
+                cwd=_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+E             + actual - expected
+E
+E               {
+E                 end: 12,
+E             +   focused: false,
+E             +   start: 12
+E             -   focused: true,
+E             -   start: 0
+E               }
+E
+E                 at C:\project\rakuten-room-inago\tests_inago\fixtures\history_combined_browser.cjs:102:14
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs']...start: 0\n  }\n\n    at C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs:102:14\n').returncode
+
+tests_inago\test_history_combined_action.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]
+1 failed in 2.46s
+
+selection restore before SSE preservation (1 FAIL / 1 PASS); attempt=history-combo-selection-green; exit=1
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]' 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[success]' --basetemp=.pytest-tmp/history-combo-selection-green
+F.                                                                       [100%]
+================================== FAILURES ===================================
+___ test_combined_copy_check_and_open_preserves_on_state[clipboard-failure] ___
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/history-combo-selection-green/test_combined_copy_check_and_o0')
+mode = 'clipboard-failure'
+
+    @pytest.mark.parametrize(
+        "mode", ["success", "clipboard-failure", "offline", "missing-url"]
+    )
+    def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
+        evidence = (
+            _ROOT
+            / "非公開作業データ/イナゴ実装試験/history-combined-action-20261026"
+            / tmp_path.parent.name
+            / tmp_path.name
+        )
+        evidence.mkdir(parents=True, exist_ok=True)
+        with running_history(tmp_path / "runtime") as app:
+            connection = app.connect()
+            try:
+                connection.execute(
+                    "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
+                    (
+                        (
+                                "http://example.invalid/insecure-product"
+                            if mode == "missing-url"
+                            else "https://example.invalid/combined-product"
+                        ),
+                    ),
+                )
+            finally:
+                connection.close()
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "INAGO_TEST_HISTORY_URL": app.origin
+                    + "/posting-history.html#launch="
+                    + ticket(app),
+                    "INAGO_TEST_HISTORY_EVIDENCE": str(evidence),
+                    "INAGO_TEST_COMBINED_MODE": mode,
+                }
+            )
+            result = subprocess.run(
+                ["node", str(_ROOT / "tests_inago/fixtures/history_combined_browser.cjs")],
+                cwd=_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+>           assert result.returncode == 0, result.stderr
+E           AssertionError: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+E             + actual - expected
+E
+E               {
+E                 end: 12,
+E             +   focused: false,
+E             +   start: 12
+E             -   focused: true,
+E             -   start: 0
+E               }
+E
+E                 at C:\project\rakuten-room-inago\tests_inago\fixtures\history_combined_browser.cjs:102:14
+E
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs']...start: 0\n  }\n\n    at C:\\project\\rakuten-room-inago\\tests_inago\\fixtures\\history_combined_browser.cjs:102:14\n').returncode
+
+tests_inago\test_history_combined_action.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]
+1 failed, 1 passed in 4.93s
+
+selection and SSE preservation GREEN; attempt=history-combo-selection-green-02; exit=0
+Command: .venv-inago/Scripts/python.exe -X utf8 -m pytest -q 'tests_inago/test_history_combined_action.py::test_combined_copy_check_and_open_preserves_on_state[clipboard-failure]' --basetemp=.pytest-tmp/history-combo-selection-green-02
+.                                                                        [100%]
+1 passed in 2.62s

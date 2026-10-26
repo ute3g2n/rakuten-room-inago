@@ -46,7 +46,10 @@ const path = require('node:path');
     await shot('01-before-combined.png');
     const a = await copy.boundingBox();
     const b = await combined.boundingBox();
-    assert(b.x >= a.x + a.width && Math.abs(a.y - b.y) < 2, 'combined button must be to the right of copy');
+    assert(b.x - a.x - a.width >= 15.5 && Math.abs(a.y - b.y) < 2, 'buttons must have a 16px gap');
+    const copyColor = await copy.evaluate((node) => getComputedStyle(node).backgroundColor);
+    const combinedColor = await combined.evaluate((node) => getComputedStyle(node).backgroundColor);
+    assert.notEqual(combinedColor, copyColor, 'combined action must have its own non-green color');
     if (mode === 'missing-url') {
       assert(await combined.isDisabled());
       await copy.click();
@@ -73,7 +76,7 @@ const path = require('node:path');
       await combined.click();
       const product = await opened;
       tabs += 1;
-      await product.waitForLoadState('domcontentloaded');
+      await product.waitForURL('https://example.invalid/combined-product', { waitUntil: 'domcontentloaded' });
       assert.equal(product.url(), 'https://example.invalid/combined-product');
       assert.equal(await product.evaluate(() => window.opener), null);
       await product.close();
@@ -93,6 +96,11 @@ const path = require('node:path');
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), expectedBody);
     } else {
       await until(async () => (await page.locator('#history-message').textContent()).includes('コピーできません'));
+      await page.waitForTimeout(350); // Include the SQLite/SSE redraw after receipt.
+      const selection = await card.locator('textarea.body-text').evaluate((node) => ({
+        focused: document.activeElement === node, start: node.selectionStart, end: node.selectionEnd,
+      }));
+      assert.deepEqual(selection, { focused: true, start: 0, end: expectedBody.length });
     }
     await shot('02-after-combined.png');
     if (mode === 'success') {

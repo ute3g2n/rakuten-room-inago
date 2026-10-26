@@ -37,6 +37,7 @@
   let historyUpdateRunning = false;
   let outboxFlushInFlight = null;
   const acknowledgedReports = new Map();
+  const combinedActionsInFlight = new Set();
 
   function updatePostedCount() {
     postedCount.textContent = String(list.querySelectorAll(".posted-checkbox:checked").length);
@@ -202,6 +203,11 @@
     const canCorrectPendingPost = pendingPosted && Boolean(API_ORIGIN && apiState);
     posted.checked = pending ? pendingPosted : appliedPosted;
     posted.disabled = !(canPost || canUndo);
+    const combined = card.querySelector("button[data-copy-check-open-draft-id]");
+    if (combined) {
+      combined.disabled = !item.product_url || !(posted.checked || canPost)
+        || combinedActionsInFlight.has(`${item.draft_id}:${item.draft_version}`);
+    }
     skip.disabled = !canSkip;
     if (correctionButton) {
       correctionButton.disabled = !(canReport && events.length > 0) && !canCorrectPendingPost;
@@ -658,7 +664,81 @@
     details.open = state.open;
   }
 
+  function selectDraftBody(item, body) {
+    const current = list.querySelector(
+      `article[data-draft-id="${CSS.escape(item.draft_id)}"] textarea.body-text`
+    ) || body;
+    current.focus();
+    current.select();
+  }
+
+  async function copyDraftBody(item, body) {
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+        throw new Error("clipboard unavailable");
+      }
+      await navigator.clipboard.writeText(item.body);
+      return true;
+    } catch {
+      selectDraftBody(item, body);
+      return false;
+    }
+  }
+
+  async function copyCheckAndOpen(item, card, body, productLink) {
+    const key = `${item.draft_id}:${item.draft_version}`;
+    const posted = card.querySelector("input[data-report-posted-draft-id]");
+    if (!productLink || !posted || (!posted.checked && posted.disabled)
+      || combinedActionsInFlight.has(key)) return;
+    const alreadyChecked = posted.checked;
+    combinedActionsInFlight.add(key);
+    setControls(card, item);
+    try {
+      // Start clipboard access while focused; keep navigation in the user gesture.
+      const copying = copyDraftBody(item, body);
+      let navigationError = false;
+      try {
+        productLink.click();
+      } catch {
+        navigationError = true;
+      }
+      let reporting = Promise.resolve();
+      if (!alreadyChecked) {
+        posted.checked = true;
+        updatePostedCount();
+        reporting = submitReport(item, "posted", card, posted, { previousChecked: false });
+      }
+      const [copyResult, reportResult] = await Promise.allSettled([copying, reporting]);
+      const copied = copyResult.status === "fulfilled" && copyResult.value;
+      if (!copied) selectDraftBody(item, body);
+      const parts = [copied
+        ? `${item.draft_version}版の本文をコピーしました。`
+        : "コピーできません。選択中の本文を Ctrl+C でコピーしてください。"];
+      parts.push(alreadyChecked ? "投稿済みチェックはONのままです。"
+        : reportResult.status === "rejected" ? "投稿済みチェックの保存に失敗しました。"
+          : message.textContent);
+      if (navigationError) parts.push("商品ページを開けませんでした。");
+      message.textContent = parts.filter(Boolean).join(" ");
+    } finally {
+      combinedActionsInFlight.delete(key);
+      const currentCard = list.querySelector(`article[data-draft-id="${CSS.escape(item.draft_id)}"]`);
+      const currentItem = data.days.flatMap((day) => day.items).find((entry) => (
+        entry.draft_id === item.draft_id && entry.draft_version === item.draft_version
+      ));
+      if (currentCard && currentItem) setControls(currentCard, currentItem);
+    }
+  }
+
   function renderDay(day) {
+    const focusedBody = document.activeElement;
+    const bodySelection = activeDate === day.target_date && focusedBody?.className === "body-text"
+      ? {
+        draftId: focusedBody.parentElement.dataset.draftId,
+        version: focusedBody.parentElement.dataset.draftVersion,
+        start: focusedBody.selectionStart,
+        end: focusedBody.selectionEnd,
+        direction: focusedBody.selectionDirection,
+      } : null;
     const correctionInputStates = activeDate === day.target_date
       ? captureCorrectionInputState()
       : new Map();
@@ -686,12 +766,14 @@
       meta.className = "meta";
       meta.textContent = `下書きID ${item.draft_id}・${item.draft_version}版・${item.target_date}`;
       card.append(meta);
+      let productLink = null;
       if (item.product_url) {
         const link = document.createElement("a");
         link.href = item.product_url;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.textContent = "商品ページを開く";
+        productLink = link;
         card.append(link);
       } else {
         const unavailable = document.createElement("p");
@@ -712,25 +794,38 @@
       copy.dataset.copyVersion = String(item.draft_version);
       copy.textContent = `${item.draft_version}版の本文をコピー`;
       copy.addEventListener("click", async () => {
-        try {
-          if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
-            throw new Error("clipboard unavailable");
-          }
-          await navigator.clipboard.writeText(item.body);
-          message.textContent = `${item.draft_id} ${item.draft_version}版の本文をコピーしました。`;
-        } catch {
-          body.focus();
-          body.select();
-          message.textContent = "クリップボードを使えません。選択中の本文を Ctrl+C でコピーしてください。";
-        }
+        const copied = await copyDraftBody(item, body);
+        message.textContent = copied
+          ? `${item.draft_id} ${item.draft_version}版の本文をコピーしました。`
+          : "クリップボードを使えません。選択中の本文を Ctrl+C でコピーしてください。";
       });
-      card.append(copy);
+      const combined = document.createElement("button");
+      combined.type = "button";
+      combined.className = "copy-button combined-action-button";
+      combined.dataset.copyCheckOpenDraftId = item.draft_id;
+      combined.textContent = "コピー+チェック+遷移";
+      combined.disabled = true;
+      if (!productLink) combined.title = "安全な商品URLがないため実行できません。";
+      combined.addEventListener("click", () => { void copyCheckAndOpen(item, card, body, productLink); });
+      const copyActions = document.createElement("div");
+      copyActions.className = "copy-actions";
+      copyActions.append(copy, combined);
+      card.append(copyActions);
       appendReportControls(card, item);
       const correctionInputState = correctionInputStates.get(
         `${item.draft_id}:${item.draft_version}`
       );
       restoreCorrectionInputState(card, correctionInputState);
       list.append(card);
+    }
+    if (bodySelection) {
+      const restored = list.querySelector(
+        `article[data-draft-id="${CSS.escape(bodySelection.draftId)}"] textarea.body-text`
+      );
+      if (restored && restored.parentElement.dataset.draftVersion === bodySelection.version) {
+        restored.focus({ preventScroll: true });
+        restored.setSelectionRange(bodySelection.start, bodySelection.end, bodySelection.direction);
+      }
     }
     updatePostedCount();
     updateDayReportCounts(day);

@@ -1,0 +1,19 @@
+Final related regression command:
+.venv-inago/Scripts/python.exe -X utf8 -m pytest -q tests_inago/test_history_combined_action.py tests_inago/test_history_web.py tests_inago/test_daily_fix_history.py tests_inago/test_step23_12_history_interactions.py --basetemp=.pytest-tmp/history-combo-regression-01
+Expected: all 30 related cases pass; SQLite receipts, copy-only behavior, combined action, checkbox persistence and API compatibility retained.
+Actual: 30 passed in 31.09s; exit 0.
+Production apply (read-only history export, verified API restart, root batch):
+runtime baseline: {'run': 9, 'draft': 96, 'human_action': 81, 'publication_event': 2}
+{"status":"ready","path":"C:\\project\\rakuten-room-inago\\rakuten-room-inago\\runtime\\posting-history.html","run_count":9,"draft_count":96,"error_code":null,"mode":"export"}
+Restarting verified history API PID=35828
+{"status": "ready", "server": "started", "url": "http://127.0.0.1:8765/posting-history.html", "browser_opened": true}
+
+Actual HTTP DOM observation (no checkbox click): combined label=コピー+チェック+遷移; color=rgb(27,88,166); copy color=rgb(35,103,75); gap=16px; sameRow=true.
+Runtime/static verification:
+runtime database unchanged: True {'run': 9, 'draft': 96, 'human_action': 81, 'publication_event': 2}
+private screenshot/video/trace evidence copied to ignored worklog directory: 71 files
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+warning: in the working copy of 'docs/specifications/inago/イナゴスキル要件定義書.html', CRLF will be replaced by LF the next time Git touches it
+
+Full daily run: not performed (outside this UI change).

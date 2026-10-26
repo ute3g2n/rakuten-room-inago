@@ -33,7 +33,7 @@ def test_combined_copy_check_and_open_preserves_on_state(tmp_path, mode):
                 "UPDATE offer SET url=? WHERE offer_key='shop_test:item_A01'",
                 (
                     (
-                        None
+                        "http://example.invalid/insecure-product"
                         if mode == "missing-url"
                         else "https://example.invalid/combined-product"
                     ),

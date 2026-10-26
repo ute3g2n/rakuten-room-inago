@@ -86,7 +86,11 @@ _HTML_TEMPLATE = """<!doctype html>
     .status { color: #245b42; font-weight: 700; }
     .draft-card a { width: fit-content; color: #075bba; overflow-wrap: anywhere; }
     .body-text { width: 100%; min-height: 8rem; resize: vertical; margin: 0; padding: .8rem; border: 1px solid #d5dfd9; border-radius: .5rem; background: #f8faf9; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+    .copy-actions { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1rem; row-gap: .6rem; }
     .copy-button { justify-self: start; border: 0; border-radius: .45rem; background: #23674b; color: #fff; cursor: pointer; padding: .55rem .8rem; font: inherit; }
+    .copy-button:disabled { cursor: not-allowed; opacity: .65; }
+    .combined-action-button { background: #1b58a6; }
+    .combined-action-button:hover:not(:disabled) { background: #174a8a; }
     .report-controls { display: grid; gap: .55rem; border-top: 1px solid #e3e9e5; padding-top: .65rem; }
     .posted-control { display: flex; gap: .5rem; align-items: center; font-weight: 700; }
     .posted-checkbox { width: 1.1rem; height: 1.1rem; }
@@ -113,7 +117,7 @@ _HTML_TEMPLATE = """<!doctype html>
     @media print {
       body { background: #fff; }
       header, main, footer { width: 100%; }
-      #history-sidebar, .copy-button, .report-controls { display: none !important; }
+      #history-sidebar, .copy-actions, .copy-button, .report-controls { display: none !important; }
       main { display: block; }
       .summary, .draft-card { box-shadow: none; break-inside: avoid; }
       .draft-card { margin-bottom: .7rem; }

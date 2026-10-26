@@ -1,0 +1,16 @@
+{
+  "base_commit": "00c7b0e0ea83483b46ed2aee081e21821d20250f",
+  "sha256": {
+    "rakuten-room-inago/dashboard-assets/history.js": "118b89c68b414061c7d95c548fcb588579d154f03612aee35c9f1f6d4dcde810",
+    "automation/inago/dashboard_history.py": "9638d3f965e2d913d37cf7a07ab47bdc9a4c0675cd02d39f42265baaaf918ab6",
+    "tests_inago/test_history_combined_action.py": "1f5b6802abd11cf1866c349e3f98a5dca5bcd098fde0f2a23506b73054b26f69",
+    "tests_inago/fixtures/history_combined_browser.cjs": "8041efa1fa6819ddd3ebc725e25f7463974c6dca9f9f46d7e650df54be8ca775"
+  },
+  "fixture": "RunningHistory / _database, isolated SQLite, https://example.invalid intercepted in clean headless Chrome",
+  "regression": {
+    "attempt": "history-combo-regression-01",
+    "passed": 30,
+    "exit_code": 0,
+    "seconds": 31.09
+  }
+}
