@@ -1,0 +1,94 @@
+.......EE                                                                [100%]
+=================================== ERRORS ====================================
+_ ERROR at setup of test_partial_delegation_refs_allow_commit_and_saved_response_resume[False] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/delegation-ref-policy-local/test_partial_delegation_refs_a0')
+fixture_config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+
+    @pytest.fixture
+    def runtime_case(tmp_path: Path, fixture_config_path: Path) -> RuntimeCase:
+>       paths = resolve_runtime_paths(
+            data_root=tmp_path / "state",
+            config_path=fixture_config_path,
+            fixture_mode=True,
+        )
+
+tests_inago\test_step12.py:49:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_root = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/delegation-ref-policy-local/test_partial_delegation_refs_a0/state')
+config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+fixture_mode = True
+
+    def resolve_runtime_paths(
+        *,
+        data_root: str | Path | None,
+        config_path: str | Path | None,
+        fixture_mode: bool,
+    ) -> RuntimePaths:
+        """Resolve required paths and constrain fixtures to repository test paths.
+
+        The function is intentionally read-only. Callers must create a data root
+        only after validation and only through the storage component that owns it.
+        """
+
+        workspace_root = PROJECT_ROOT.resolve()
+        resolved_data_root = _required_path(data_root, "data_root")
+        resolved_config_path = _required_path(config_path, "config_path")
+
+        if fixture_mode:
+            if not _is_strict_child(resolved_data_root, SAFE_FIXTURE_BASE.resolve()):
+>               raise UnsafePathError(
+                    "fixture data_root must stay under the private test area"
+                )
+E               automation.inago.paths.UnsafePathError: fixture data_root must stay under the private test area
+
+automation\inago\paths.py:91: UnsafePathError
+_ ERROR at setup of test_partial_delegation_refs_allow_commit_and_saved_response_resume[True] _
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/delegation-ref-policy-local/test_partial_delegation_refs_a1')
+fixture_config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+
+    @pytest.fixture
+    def runtime_case(tmp_path: Path, fixture_config_path: Path) -> RuntimeCase:
+>       paths = resolve_runtime_paths(
+            data_root=tmp_path / "state",
+            config_path=fixture_config_path,
+            fixture_mode=True,
+        )
+
+tests_inago\test_step12.py:49:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_root = WindowsPath('C:/project/rakuten-room-inago/.pytest-tmp/delegation-ref-policy-local/test_partial_delegation_refs_a1/state')
+config_path = WindowsPath('C:/project/rakuten-room-inago/tests_inago/config/fixture.json')
+fixture_mode = True
+
+    def resolve_runtime_paths(
+        *,
+        data_root: str | Path | None,
+        config_path: str | Path | None,
+        fixture_mode: bool,
+    ) -> RuntimePaths:
+        """Resolve required paths and constrain fixtures to repository test paths.
+
+        The function is intentionally read-only. Callers must create a data root
+        only after validation and only through the storage component that owns it.
+        """
+
+        workspace_root = PROJECT_ROOT.resolve()
+        resolved_data_root = _required_path(data_root, "data_root")
+        resolved_config_path = _required_path(config_path, "config_path")
+
+        if fixture_mode:
+            if not _is_strict_child(resolved_data_root, SAFE_FIXTURE_BASE.resolve()):
+>               raise UnsafePathError(
+                    "fixture data_root must stay under the private test area"
+                )
+E               automation.inago.paths.UnsafePathError: fixture data_root must stay under the private test area
+
+automation\inago\paths.py:91: UnsafePathError
+=========================== short test summary info ===========================
+ERROR tests_inago/test_copy_quality_review.py::test_partial_delegation_refs_allow_commit_and_saved_response_resume[False]
+ERROR tests_inago/test_copy_quality_review.py::test_partial_delegation_refs_allow_commit_and_saved_response_resume[True]
+7 passed, 2 errors in 1.75s

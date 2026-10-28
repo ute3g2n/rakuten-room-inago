@@ -20,6 +20,8 @@ repository source schema `automation/inago/schemas/ai-job.schema.json`は、隔�
 
 `delegations[]`は`agent_id`, `task_id`, `skill_name`, `input_refs`, `evidence_refs`, `result_status`, `payload`を持ちます。許可されるのはrunnerの固定表に記載された専門役だけです。実際の子応答と結果は同一Codex実行の構造化イベントで対応づけます。
 
+AG-COPYとAG-COPY-REVIEWへは、今回のjobの`input_refs`・`evidence_refs`を絶対に省略せず全件そのまま渡し、最終`delegations[]`にも全件を複写します。未使用でも委譲欄から参照を除きません。実際に本文に使った参照は子の`payload.used_input_refs`・`payload.evidence_refs`へ記します。省略が生じた場合の診断は、最上位`payload.details`内のJSONエンコード文字列`{"kind":"source_ref_omission","declaration_index":0,"agent_id":"AG-COPY","reason":"unknown","detail":"確認できた事実"}`で返します。reasonはnone / used_refs_only / output_shortening / context_limit / source_unavailable / other / unknown。理由不明はunknownとし、自己申告と観測を区別します。診断報告の欠測や解読不能は新しい採否条件にせず、委譲宣言やschemaへ属性を追加しません。委譲欄の全件一致ゲートは設けず、省略だけで応答拒否・停止しません。型、未許可参照、対象identity、本文とレビューの結び付きの検証は各契約に従います。
+
 ## 投稿文作成と独立レビュー（T02）
 
 - 許可役にある`AG-COPY` / `rr-inago-copywriter`と、別のネイティブ子`AG-COPY-REVIEW` / `rr-inago-copy-reviewer`を同じjob内で使います。レビューへは本文と同一商品の元入力（全HTML outer_html・全OCR textを含む）を省略せず渡します。

@@ -1,0 +1,99 @@
+....F.........................................................F......... [ 42%]
+........................................................................ [ 84%]
+...........................                                              [100%]
+================================== FAILURES ===================================
+_____________ test_runner_persists_sanitized_per_job_trace_events _____________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/delegation-ref-policy-regression-1/test_runner_persists_sanitized0')
+
+    def test_runner_persists_sanitized_per_job_trace_events(tmp_path: Path) -> None:
+        private_marker = "PRIVATE_FIXTURE_TEXT_MUST_NOT_ENTER_TRACE"
+        request = _base_request(
+            input_payload={"private_text": private_marker, "word_ids": ["WORD-01"]}
+        )
+        response = _root_response(request)
+        response["payload"]["details"] = [private_marker]
+        runner, _, _ = _runner(
+            tmp_path,
+            response=json.dumps(response, ensure_ascii=False).encode("utf-8"),
+            events=[{"type": "thread.started", "thread_id": "fixture-session-id"}],
+        )
+
+        result = runner.run(request)
+
+        assert result.result_status == "success"
+        trace_files = list((runner.data_root / "logs").rglob("*.jsonl"))
+        assert len(trace_files) == 2
+        job_trace_files = [path for path in trace_files if request.job_id in path.stem]
+        assert len(job_trace_files) == 1
+        trace_text = job_trace_files[0].read_text(encoding="utf-8")
+        records = [json.loads(line) for line in trace_text.splitlines()]
+>       assert [record["event"] for record in records] == [
+            "job_started",
+            "auth_observed",
+            "cli_started",
+            "cli_finished",
+            "artifact_saved",
+            "cli_event",
+            "job_finished",
+        ]
+E       AssertionError: assert ['job_started...i_event', ...] == ['job_started...i_event', ...]
+E
+E         At index 6 diff: 'delegation_source_refs_audited' != 'job_finished'
+E         Left contains one more item: 'job_finished'
+E         Use -v to get more diff
+
+tests_inago\test_step08.py:449: AssertionError
+_______ test_ai_job_output_schema_uses_codex_strict_json_schema_subset ________
+
+    def test_ai_job_output_schema_uses_codex_strict_json_schema_subset() -> None:
+        schema = json.loads(
+            (SCHEMA_ROOT / "ai-job.schema.json").read_text(encoding="utf-8")
+        )
+
+        def visit(node: object) -> None:
+            if isinstance(node, dict):
+                assert "const" not in node
+                assert not isinstance(node.get("type"), list)
+                if node.get("type") == "object":
+                    properties = node.get("properties", {})
+                    assert node.get("additionalProperties") is False
+                    assert set(node.get("required", [])) == set(properties)
+                for value in node.values():
+                    visit(value)
+            elif isinstance(node, list):
+                for value in node:
+                    visit(value)
+
+>       visit(schema)
+
+tests_inago\test_step08.py:1388:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests_inago\test_step08.py:1383: in visit
+    visit(value)
+tests_inago\test_step08.py:1383: in visit
+    visit(value)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = {'type': 'object', 'required': ['agent_id', 'task_id', 'skill_name', 'input_refs', 'evidence_refs', 'result_status', .....]}, 'input_refs': {'type': 'array', 'items': {'type': 'string', 'minLength': 1}}, ...}, 'additionalProperties': False}
+
+    def visit(node: object) -> None:
+        if isinstance(node, dict):
+            assert "const" not in node
+            assert not isinstance(node.get("type"), list)
+            if node.get("type") == "object":
+                properties = node.get("properties", {})
+                assert node.get("additionalProperties") is False
+>               assert set(node.get("required", [])) == set(properties)
+E               AssertionError: assert {'agent_id', ...ll_name', ...} == {'agent_id', ...ll_name', ...}
+E
+E                 Extra items in the right set:
+E                 'source_ref_omission_detail'
+E                 'source_ref_omission_reason'
+E                 Use -v to get more diff
+
+tests_inago\test_step08.py:1381: AssertionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_step08.py::test_runner_persists_sanitized_per_job_trace_events
+FAILED tests_inago/test_step08.py::test_ai_job_output_schema_uses_codex_strict_json_schema_subset
+2 failed, 169 passed in 24.85s

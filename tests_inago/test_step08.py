@@ -453,6 +453,7 @@ def test_runner_persists_sanitized_per_job_trace_events(tmp_path: Path) -> None:
         "cli_finished",
         "artifact_saved",
         "cli_event",
+        "delegation_source_refs_audited",
         "job_finished",
     ]
     assert all(record["job_id"] == request.job_id for record in records)

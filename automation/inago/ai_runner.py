@@ -35,7 +35,11 @@ from automation.inago.contracts import (
     CopyTarget,
     PersistenceContractError,
 )
-from automation.inago.artifact_io import write_temp_response_bytes
+from automation.inago.artifact_io import write_temp_response, write_temp_response_bytes
+from automation.inago.delegation_audit import (
+    build_source_ref_audit,
+    rollout_user_messages,
+)
 from automation.inago.repository import validate_entity
 from automation.inago.retention import retention_expiry, validate_data_root
 from automation.inago.trace import TraceSession, TraceWriter
@@ -166,6 +170,7 @@ class _ObservedSubagent:
     model: str | None
     reasoning_setting: str | None
     result_payload_hash: str | None = None
+    source_messages: tuple[str, ...] | None = None
 
 
 def _final_payload_hash(events: Sequence[Mapping[str, Any]]) -> str | None:
@@ -789,6 +794,7 @@ class AIJobRunner:
                     model=model,
                     reasoning_setting=reasoning,
                     result_payload_hash=_final_payload_hash(events),
+                    source_messages=rollout_user_messages(events),
                 )
             )
 
@@ -963,6 +969,17 @@ class AIJobRunner:
                 "useful source-grounded explanation, not word counts, keyword matches, or a fixed number of facts. "
                 "If verdict is revise and sources have useful detail, use native followups to the same author and reviewer "
                 "to revise and re-review inside this job. Return one final declaration per spawned specialist. "
+                "NEVER omit, select, summarize, shorten, or replace source reference IDs: both specialists' "
+                "delegations[].input_refs and delegations[].evidence_refs must copy the entire corresponding "
+                "original arrays from job-input.json verbatim, even for unused sources. Give those same full "
+                "arrays in each native handoff. Only payload.used_input_refs and payload.evidence_refs describe "
+                "sources actually used in the text; do not confuse them with delegation metadata. "
+                "Check both delegation arrays against the originals before returning. If any references were "
+                "nevertheless omitted, add a JSON-encoded string to root payload.details with kind=source_ref_omission, "
+                "declaration_index (zero-based), agent_id, reason (used_refs_only, output_shortening, context_limit, "
+                "source_unavailable, other, or unknown), and detail (a short factual explanation). Do not add "
+                "new declaration fields. Do not invent a reason; use unknown when unsure. An omission alone "
+                "is diagnostic and must not make you stop, return an error, or discard the specialist result. "
                 "A ready author result needs reviewer verdict pass bound to the identical reviewed_body. "
                 "When the full sources cannot support substantive copy, return author status insufficient_information "
                 "with body empty and reviewer verdict insufficient_information; this is a normal result, not an error. "
@@ -1406,6 +1423,8 @@ class AIJobRunner:
             "conversation_log_status",
             "conversation_log_reason_code",
             "conversation_log_copied_count",
+            "source_ref_mismatch_count",
+            "native_handoff_count",
         }
         for key, value in fields.items():
             if key not in allowed_fields:
@@ -1798,11 +1817,6 @@ class AIJobRunner:
                 payload, Mapping
             ):
                 return (), f"delegations[{index - 1}].payload"
-            if agent_id in {"AG-COPY", "AG-COPY-REVIEW"} and (
-                set(input_refs) != set(request.input_refs)
-                or set(evidence_refs) != set(request.evidence_refs)
-            ):
-                return (), f"delegations[{index - 1}].incomplete_source_refs"
             if agent_id == "AG-COPY-REVIEW" and (
                 child_traces or self.require_observed_metadata
             ) and (
@@ -2204,6 +2218,8 @@ class AIJobRunner:
                     started_at=started_at,
                     finished_at=finished_at,
                 )
+            if isinstance(response, dict) and request.copy_targets:
+                self._audit_source_refs(request, response, artifact, session_trace)
             if not isinstance(response, dict):
                 identity_error = "root_not_object"
             elif _schema_errors(_SCHEMA_DIR / "ai-job.schema.json", response):
@@ -2337,6 +2353,60 @@ class AIJobRunner:
         finally:
             if job_dir is not None:
                 self._cleanup_job_dir(job_dir)
+
+    def _audit_source_refs(
+        self,
+        request: AIJobRequest,
+        response: Mapping[str, Any],
+        response_artifact: ArtifactRecord,
+        session_trace: _CodexSessionTrace | None,
+    ) -> None:
+        """Save diagnostics independently of response acceptance and trace quotas."""
+
+        try:
+            audit = build_source_ref_audit(
+                request,
+                response,
+                response_artifact_ref=response_artifact.artifact_ref,
+                root_thread_id=session_trace.thread_id if session_trace else None,
+                native_events=session_trace.root_events if session_trace else (),
+                child_messages=(
+                    [
+                        (child.agent_type, child.thread_id, child.source_messages)
+                        for child in session_trace.children
+                    ]
+                    if session_trace
+                    else ()
+                ),
+            )
+            artifact = write_temp_response(
+                data_root=self.data_root,
+                artifact_ref=f"{request.job_id}-a{request.attempt}-source-refs",
+                payload=audit,
+                source_kind=request.source_kind,
+                created_at=response_artifact.created_at,
+                retention_expires_at=response_artifact.retention_expires_at,
+            )
+            self._trace_event(
+                request,
+                "delegation_source_refs_audited",
+                artifact_ref=artifact.artifact_ref,
+                source_ref_mismatch_count=sum(
+                    bool(
+                        d["input_refs"]["missing_refs"]
+                        or d["evidence_refs"]["missing_refs"]
+                    )
+                    for d in audit["declarations"]
+                ),
+                native_handoff_count=len(audit["native_handoffs"]),
+            )
+        except Exception as exc:
+            # Diagnostics cannot decide adoption, including unexpected parser failures.
+            self._trace_event(
+                request,
+                "delegation_source_ref_audit_failed",
+                error_code=type(exc).__name__,
+            )
 
     def _trace_result(
         self,

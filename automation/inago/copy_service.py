@@ -601,7 +601,7 @@ def _copy_payload(subjob: Any) -> dict[str, Any]:
 def _validate_copy_review(
     request: AIJobRequest, subjobs: tuple[AISubjobResult, ...], writer: Any
 ) -> str:
-    """Bind the independent review to this product, complete sources and exact body."""
+    """Bind the independent review to this product, allowed sources and exact body."""
 
     reviews = [child for child in subjobs if child.agent_id == "AG-COPY-REVIEW"]
     if len(reviews) != 1:
@@ -620,16 +620,20 @@ def _validate_copy_review(
         or review.result_status != "success"
         or not review.job_id
         or not review.input_hash
-        or set(review.input_refs) != set(request.input_refs)
-        or set(review.evidence_refs) != set(request.evidence_refs)
-        or set(writer.input_refs) != set(request.input_refs)
-        or set(writer.evidence_refs) != set(request.evidence_refs)
+        or not set(review.input_refs).issubset(request.input_refs)
+        or not set(review.evidence_refs).issubset(request.evidence_refs)
     ):
         raise RejectedContract("copy review identity or source inputs differ")
     payload = review.payload
     required = {
-        "offer_key", "draft_version", "verdict", "reviewed_body", "reason",
-        "evidence_refs", "used_input_refs", "findings",
+        "offer_key",
+        "draft_version",
+        "verdict",
+        "reviewed_body",
+        "reason",
+        "evidence_refs",
+        "used_input_refs",
+        "findings",
     }
     if not isinstance(payload, Mapping) or set(payload) != required:
         raise RejectedContract("copy review fields are invalid")
@@ -732,7 +736,9 @@ def _copy_checkpoint_request(
         raise RejectedContract("saved copy checkpoint no longer matches this run")
     stored_input_refs = tuple(json.loads(ai_job["input_refs_json"]))
     stored_evidence_refs = tuple(json.loads(ai_job["evidence_refs_json"]))
-    if set(stored_input_refs) != set(spec.input_refs) or set(stored_evidence_refs) != set(spec.evidence_refs):
+    if not set(stored_input_refs).issubset(spec.input_refs) or not set(
+        stored_evidence_refs
+    ).issubset(spec.evidence_refs):
         raise RejectedContract("copy_checkpoint_inputs_changed")
     payload = json.loads(ai_job["payload_json"] or "null")
     if not isinstance(payload, dict):

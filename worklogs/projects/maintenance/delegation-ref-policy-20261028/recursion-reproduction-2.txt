@@ -1,0 +1,56 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_unreadable_diagnostic_json_does_not_discard_result ___________
+
+tmp_path = WindowsPath('C:/project/rakuten-room-inago/����J��ƃf�[�^/�C�i�S��������/delegation-ref-policy-recursion-repro-2/test_unreadable_diagnostic_jso0')
+
+    def test_unreadable_diagnostic_json_does_not_discard_result(tmp_path):
+        request = _request()
+        response = _partial_response(request)
+        response["payload"]["details"] = ["[" * 10000 + "0" + "]" * 10000]
+        runner, _, _ = _runner(
+            tmp_path, response=json.dumps(response).encode(),
+            events=[_spawn_event("rr-inago-copywriter")],
+        )
+>       result = runner.run(request)
+                 ^^^^^^^^^^^^^^^^^^^
+
+tests_inago\test_delegation_ref_audit.py:126:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+automation\inago\ai_runner.py:2222: in run
+    self._audit_source_refs(request, response, artifact, session_trace)
+automation\inago\ai_runner.py:2367: in _audit_source_refs
+    audit = build_source_ref_audit(
+automation\inago\delegation_audit.py:151: in build_source_ref_audit
+    note = json.loads(detail)
+           ^^^^^^^^^^^^^^^^^^
+<user-profile>\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+<user-profile>\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\json\decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x00000192DC0ED1F0>
+s = '[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+
+<user-profile>\scoop\persist\uv\python\versions\cpython-3.12-windows-x86_64-none\Lib\json\decoder.py:354: RecursionError
+=========================== short test summary info ===========================
+FAILED tests_inago/test_delegation_ref_audit.py::test_unreadable_diagnostic_json_does_not_discard_result
+1 failed in 0.55s

@@ -30,7 +30,7 @@ from tests_inago.test_step12 import (
 )
 
 
-@pytest.mark.parametrize("mode", ["missing", "other_body", "revise", "wrong_product", "missing_sources"])
+@pytest.mark.parametrize("mode", ["missing", "other_body", "revise", "wrong_product"])
 def test_unapproved_or_unbound_body_cannot_be_committed(runtime_case, mode):
     class InvalidReview(FakeCopyRunner):
         def run(self, request):
@@ -45,8 +45,6 @@ def test_unapproved_or_unbound_body_cannot_be_committed(runtime_case, mode):
                 payload["verdict"] = "revise"
             elif mode == "wrong_product":
                 payload["offer_key"] = "another:product"
-            elif mode == "missing_sources":
-                review = replace(review, input_refs=())
             return replace(result, subjobs=(author, replace(review, payload=payload)))
 
     runner = InvalidReview()
@@ -198,7 +196,7 @@ def _saved_checkpoint(case, monkeypatch, spec):
 
 @pytest.mark.parametrize("mutation", [
     "missing_review", "missing_root", "review_body", "review_verdict",
-    "review_source_refs", "author_source_refs", "added_input_ref", "removed_input_ref",
+    "added_input_ref", "removed_input_ref",
     "added_evidence_ref", "changed_html_same_refs", "changed_ocr_same_refs",
 ])
 def test_unverified_or_changed_checkpoint_cannot_bypass_review(runtime_case, monkeypatch, mutation):
@@ -216,10 +214,6 @@ def test_unverified_or_changed_checkpoint_cannot_bypass_review(runtime_case, mon
             "different body" if mutation == "review_body" else "revise"
         )
         connection.execute("UPDATE ai_job SET payload_json=? WHERE job_id=?", (json.dumps(payload), row[0]))
-    elif mutation in {"review_source_refs", "author_source_refs"}:
-        connection.execute("UPDATE ai_job SET input_refs_json=? WHERE agent_id=?", (
-            '["INPUT-A1"]', "AG-COPY-REVIEW" if mutation == "review_source_refs" else "AG-COPY",
-        ))
     elif mutation == "added_input_ref":
         spec = replace(spec, input_refs=(*spec.input_refs, "INPUT-A3"))
     elif mutation == "removed_input_ref":
@@ -258,6 +252,47 @@ def test_verified_checkpoint_resumes_identical_body_without_an_ai_call(runtime_c
     saved = runtime_case.connection.execute("SELECT body,artifact_ref FROM draft").fetchone()
     assert saved[0] == json.loads(artifact_bytes)["body"] and saved[1] == artifact_ref
     assert artifact_path.read_bytes() == artifact_bytes
+
+
+@pytest.mark.parametrize("checkpoint", [False, True])
+def test_partial_delegation_refs_allow_commit_and_saved_response_resume(
+    runtime_case, monkeypatch, checkpoint
+):
+    spec = _source_spec()
+
+    class PartialDeclaration(FakeCopyRunner):
+        def run(self, request):
+            result = super().run(request)
+            return replace(
+                result,
+                subjobs=tuple(
+                    replace(child, input_refs=("INPUT-A1",)) for child in result.subjobs
+                ),
+            )
+
+    runner = PartialDeclaration()
+    if checkpoint:
+        commit = copy_service.commit_draft
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                copy_service,
+                "commit_draft",
+                lambda *a, **kw: commit(*a, failpoint="before_commit", **kw),
+            )
+            first = run_copy(runtime_case, runner, spec=spec)
+        assert first.status == "pending_commit"
+        runner = FakeCopyRunner(["error"])
+    result = run_copy(runtime_case, runner, spec=spec)
+    assert result.status == "committed"
+    assert result.resumed == checkpoint
+    assert len(runner.requests) == (0 if checkpoint else 1)
+    saved = runtime_case.connection.execute(
+        "SELECT input_refs_json FROM ai_job WHERE agent_id='AG-COPY'"
+    ).fetchone()
+    assert json.loads(saved[0]) == ["INPUT-A1"]
+    assert (
+        runtime_case.connection.execute("SELECT COUNT(*) FROM draft").fetchone()[0] == 1
+    )
 
 
 def test_already_committed_body_is_not_requalified_or_rewritten(runtime_case):

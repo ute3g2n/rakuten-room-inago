@@ -1,0 +1,35 @@
+{
+  "baseline_commit": "bb971adf5f7a656fe71d594e153ae36761d4ee0b",
+  "source_and_test_sha256": {
+    "automation/inago/ai_runner.py": "48b426985a09f892b6750618c74fb0d269948a00ecd86d4e0d1d068a268d176e",
+    "automation/inago/copy_service.py": "0fba9cb79aebd7f3c5ec3458576ec329d51b2acb0f9a267aa3c63f74e049b1cf",
+    "automation/inago/delegation_audit.py": "0532bd72c2b24c207ac5c0918dc514de18dd16c877bb1e451e55170afa7c1f6a",
+    ".agents/skills/rakuten-room-inago/SKILL.md": "62b9e8b99ec59ad8419c124dda63b0f741de0ef08138454a08b0c04ed6b5eda5",
+    ".agents/skills/rakuten-room-inago/references/contracts.md": "26eacf19759cda73830498563d077f19551d2afc85082262b6fc29158490c5c5",
+    "automation/inago/schemas/ai-job.schema.json": "a856290832e705bb5c6bfa3c307bf97168f615a55639b3fac5a2665715a761ac",
+    "tests_inago/test_delegation_ref_audit.py": "bbde95cbba7d87e2aee256f1f96a8174fd7dfe222344facde3471396d537ad86",
+    "tests_inago/test_copy_quality_review.py": "4545fc2c6d70d2768fe8ced2559ab35e3e2031db7fc4414818420e30501716b0",
+    "tests_inago/test_step08.py": "1523fc9497d42658553af3b92f7bdfad515c5afdcf0ae413857767379706bf65"
+  },
+  "evidence_redactions": [
+    "recursion-reproduction-2.txt",
+    "regression-final.junit.xml",
+    "regression.junit.xml"
+  ],
+  "redaction_scope": "User-profile paths and JUnit hostname only; original copies kept in the private fixture area.",
+  "final_regression": {
+    "exit_code": 0,
+    "passed": 173,
+    "failed": 0,
+    "seconds": 25.07,
+    "log": "regression-final.txt",
+    "junit": "regression-final.junit.xml"
+  },
+  "full_daily_run": "not_performed_user_requested_stop",
+  "evidence_whitespace_normalized": [
+    "local-tests.txt",
+    "recursion-reproduction-2.txt",
+    "regression-tests.txt",
+    "regression.junit.xml"
+  ]
+}

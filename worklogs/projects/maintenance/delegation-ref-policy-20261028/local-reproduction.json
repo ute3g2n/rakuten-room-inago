@@ -1,0 +1,7 @@
+{
+  "input": "synthetic fixture only",
+  "before": "delegations[0].incomplete_source_refs",
+  "after": null,
+  "returned_subjobs": 1,
+  "baseline": "bb971adf5f7a656fe71d594e153ae36761d4ee0b"
+}
